@@ -49,19 +49,19 @@ So none is silently skipped (ADR numbers are provisional until written):
 | 2 | Own CompiledGraph + compile-time PDC (audio+MIDI+automation) | 0006 | H1 |
 | 3 | CLAP-shaped format-neutral Node contract | 0007 | H1 |
 | 4 | Sample-accurate, block-sliced, generic event stream (UMP-superset) | 0008 | H1 |
-| 5 | Dual time representation + tempo-map curve (**PPQ-freeze — open conflict**) | 0009 | H1 |
+| 5 | Dual time representation + tempo-map curve (**PPQ = 15360**, resolved) | 0009 | H1 |
 | 6 | Per-clip `time_base` | 0009 | H1 |
 | 7 | Asset→Clip→Project non-destructive indirection | 0010 | H1 |
-| 8 | Stable persistent IDs (**mechanism — open conflict**) | 0010 | H1 |
+| 8 | Stable persistent IDs (**128-bit ULID**, resolved) | 0010 | H1 |
 | 9 | Variable / renegotiable Block size | 0006 | H1 |
 | 10 | SQLite `.yesdaw` bundle, normalized tables, migrations (+ bundle-atomicity) | 0011 | H1 |
 | 11 | Plugin state as opaque chunks | 0012 | H3 |
-| 12 | Hosting isolation (**in- vs out-of-process — open conflict**) | 0012 | H3 |
+| 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0012 | H3 |
 | 13 | f64 Bus summing | 0006 | H1 |
 | 14 | Sample-rate policy | 0009 | H1/H2 |
 
-Open conflicts (PPQ-freeze, stable-ID, hosting isolation) are detailed in the build plan's deepening
-notes → "Conflicts flagged for human review".
+The three substantive conflicts (PPQ-freeze, stable-ID, hosting isolation) were **resolved 2026-06-23**
+(see the plan's enhancement summary). The deepening notes retain the full debate.
 
 **Decisions both reports already agree on** (likely fast-tracked ADRs, low contention): real-time-safe
 audio thread separated from UI; DAG routing graph with per-node latency + PDC from day one;

@@ -43,8 +43,9 @@ researched community agentic-loop workflows. The full depth lives in the compani
 - **New cross-cutting risks surfaced** (see deepening notes): cross-file bundle atomicity, plugin
   hosting as a zero-trust boundary, supply-chain pinning, parallel-safety needs an H1 test gate.
 - **A proposed agentic-loop workflow** (section below) — community-sourced, gated on our CI.
-- **6 conflicts need a human decision** (see deepening notes → "Conflicts"); the three substantive
-  ones: PPQ-freeze framing, stable-ID mechanism, and in-process vs out-of-process plugin hosting.
+- **6 conflicts surfaced; the 3 substantive ones now RESOLVED** (2026-06-23): time stored on a large
+  fixed grid (**15360 ticks/beat**); stable IDs = **128-bit ULID** (cross-project-unique); plugin
+  hosting = **out-of-process / sandboxed from the start**. The 3 housekeeping conflicts were applied inline.
 
 ## Problem / Motivation
 
@@ -164,17 +165,19 @@ They become individual ADRs as their milestone is planned (most at H1).
 4. **Sample-accurate, block-sliced, event-type-generic stream** with per-note (UMP-superset) IDs and
    wide value fields.
 5. **Dual time representation** (int64 ticks/PPQ + derived samples) + bidirectional tempo-map curve;
-   **PPQ value frozen**.
+   **PPQ = 15360** (large fixed grid — chosen 2026-06-23, so resolution is never a real limit).
 6. **Per-clip `time_base`** (tempo-locked vs sample-locked) in the schema from clip #1.
 7. **Asset→Clip→Project non-destructive indirection;** Clips are references, Assets immutable + content-hashed.
-8. **Stable persistent IDs** for tracks/clips/markers/lanes/nodes.
+8. **Stable persistent IDs** — **128-bit ULID** (never reused, unique across projects; enables
+   templates + cross-project paste + clean interchange). Chosen 2026-06-23.
 9. **Variable / renegotiable Block size** — `prepare(maxBlockSize)`, `process(numFrames)`; never hardcoded.
 10. **SQLite Project bundle as canonical format;** normalized tables; `user_version`+`application_id`
     + migration harness; WAL `synchronous=NORMAL` for autosave, escalating to `FULL` at explicit Save.
 11. **Plugin state persisted as opaque chunks** (VST3 component + controller; CLAP `clap.state`; AU
     class-info), never reconstructed from parameter values.
-12. **In-process hosting, but Nodes communicate via serializable buffers + events** (not shared
-    pointers) — keeps out-of-process sandboxing possible later without re-touching hosting paths.
+12. **Out-of-process / sandboxed plugin hosting as the shipped default** (from H3): each plugin runs
+    in its own process; `PluginNode` is an IPC proxy over shared-memory ring buffers (honoring the
+    serializable-seam mandate). A plugin crash kills only its process, never the project. Chosen 2026-06-23.
 13. **f64 summing on Bus mixdown;** internal sample type fixed now.
 14. **Sample-rate policy** — project SR, asset-SR-mismatch resampling + quality tiers, mid-project SR
     change. Resolve at H1/H2 (asset content-hashing and buffer-pool sizing both assume an answer).
@@ -222,7 +225,7 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
 - **Goal:** a real mixer and third-party plugins as projections/adapters over the existing graph.
 - **Features:** mixer as graph projection (Fader/Pan/Sum/Send/Return/Meter, SIP solo + solo-safe via
   atomic mute mask, Sidechain as extra input pin); automation lanes honoring per-Block offsets.
-  Out-of-process **plugin scanner** (blacklist-on-crash) → **VST3 + AU** in-process via
+  Out-of-process **plugin scanner** (blacklist-on-crash) → **VST3 + AU** hosted **out-of-process** (each in its own process; `PluginNode` = IPC proxy) via
   `AudioPluginFormatManager` behind `PluginNode`, PDC now exercised by real plugin latency → **CLAP**.
   Opaque-chunk state persistence. Begin the accessibility tree.
 - **Exit criterion:** two parallel paths, one with a real high-latency plugin, stay sample-aligned

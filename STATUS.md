@@ -26,12 +26,14 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
 - 2026-06-23 — **Plan** written; ADR-0003 (product) + ADR-0004 (stack); roadmap rebuilt; docs reconciled.
 - 2026-06-23 — **Deepen-plan** applied: deepening-notes companion; loops section; decision #14
   (sample-rate); 10 simplifications adopted (8 scope-cuts rejected — full scope kept); housekeeping.
+- 2026-06-23 — **Loop workflow adopted in full**; **3 H1 conflicts resolved** (15360-tick grid /
+  128-bit ULID / out-of-process hosting).
 
 ## Next
-- ✅ **Agentic-loop workflow: adopted in full** (activates at H1; engine core included; GUI feel human-eyeballed).
-- **3 architecture conflicts — open, but H1-time (do NOT block H0):** PPQ-freeze framing · stable-ID
-  mechanism · in-process vs out-of-process plugin hosting (see deepening-notes → "Conflicts").
-- Begin **H0 spikes** whenever: device round-trip, 60fps GPU timeline, one Node behind the trait stub.
+- ✅ **Agentic-loop workflow: adopted in full** (activates at H1).
+- ✅ **3 architecture conflicts resolved** (2026-06-23): time = **15360**-tick grid · stable IDs =
+  **128-bit ULID** · plugin hosting = **out-of-process / sandboxed** from the start.
+- **Begin H0 spikes** (next build step): device round-trip, 60fps GPU timeline, one Node behind the trait stub.
 
 ## Blocked / open threads
 - _none_
