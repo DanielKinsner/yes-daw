@@ -27,11 +27,11 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
 - 2026-06-23 — **Deepen-plan** applied: deepening-notes companion; loops section; decision #14
   (sample-rate); 10 simplifications adopted (8 scope-cuts rejected — full scope kept); housekeeping.
 
-## Next — decisions open (need Dan)
-- **Adopt the agentic-loop workflow?** (proposed in the plan; recommend yes, with engine-core + GUI human-supervised)
-- **3 architecture conflicts** (see deepening-notes → "Conflicts"): PPQ-freeze framing · stable-ID
-  mechanism · in-process vs out-of-process plugin hosting.
-- Then begin **H0 spikes**: device round-trip, 60fps GPU timeline, one Node behind the trait stub.
+## Next
+- ✅ **Agentic-loop workflow: adopted in full** (activates at H1; engine core included; GUI feel human-eyeballed).
+- **3 architecture conflicts — open, but H1-time (do NOT block H0):** PPQ-freeze framing · stable-ID
+  mechanism · in-process vs out-of-process plugin hosting (see deepening-notes → "Conflicts").
+- Begin **H0 spikes** whenever: device round-trip, 60fps GPU timeline, one Node behind the trait stub.
 
 ## Blocked / open threads
 - _none_

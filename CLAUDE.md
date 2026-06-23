@@ -35,3 +35,7 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
 - Prefer compound-engineering workflows (brainstorm / plan / work / review) over basic skills.
 - `/grill-with-docs` to sharpen language and lock decisions into ADRs.
 - Custom DAW review agents (real-time safety, render correctness, etc.) come once there's engine code.
+- **Agentic loop workflow adopted in full** (from H1): the loop implements toward the current horizon's
+  exit criterion and commits only when CI gates pass, with an automated critic pass + hard-stops (never
+  edits ADRs, goldens, or `[[clang::nonblocking]]` annotations). See the plan's "Long-horizon execution
+  via agentic loops". H0 is hands-on (no gates yet); GUI visual feel is human-eyeballed.

@@ -275,10 +275,12 @@ shipping Windows uses MSVC). Clone the **pamplejuce** workflow for platform/sign
 host isolation + blacklist-on-crash; headless soak harness (zero Underruns over 30–60 min); MIDI
 timing test (offsets across Blocks + tempo changes); structure-aware fuzzing of bundle/plugin-state parsers.
 
-## Long-horizon execution via agentic loops (proposed)
+## Long-horizon execution via agentic loops (adopted — full)
 
 Community-sourced (Ralph / RPI / verification-wrapped loops; not Anthropic docs). Formalizes the
-plan's instinct that `/loop` runs against the current horizon's exit criterion. **Pending adoption.**
+plan's instinct that `/loop` runs against the current horizon's exit criterion. **Adopted in full
+(2026-06-23):** the loop drives every layer that has a CI gate, the engine core included. It activates
+at **H1** (when the gates exist); H0 spikes are hands-on.
 
 **Model.** A *bounded* loop (RPI: Research → Plan → Implement + milestone checkpoints), not bare
 `while-true`. The loop never decides architecture — the ADRs and this plan are frozen spec; it only
@@ -305,9 +307,13 @@ H{N}→H{N+1}**); max iterations; circuit-breaker on 3× same-gate failure or 2 
 ceiling; immediate hard-stop on any attempted edit to `docs/adr/**`, this plan, a golden file, a
 `[[clang::nonblocking]]` annotation, or `git reset --hard`.
 
-**Where it fits:** strongest on the engine/data-model/test-gated layers (strong oracles). Keep the
-**timeline GUI** (perceptual 60fps isn't a deterministic oracle) and **engine-core RCU / janitor /
-buffer-pool** human-supervised — C++ is "agent-hard-mode." Never fire-and-forget on those.
+**Where it fits (full adoption):** the loop runs every layer that has an automated gate — engine core
+included. Its safety net is the **automated critic pass + CI gates + commit-only-on-green +
+hard-stops**, not human babysitting. Two honest limits remain: engine-core lock-free code (RCU /
+janitor / buffer-pool) is the highest-risk C++, so the critic pass is mandatory there and ASan/UBSan
+run on every change; and the **timeline GUI's visual feel has no automated oracle** — the loop builds
+and tests its behaviour, but a human still eyeballs "does it look/feel right." Everything functional
+still loops.
 
 ## Top risks + mitigations
 
