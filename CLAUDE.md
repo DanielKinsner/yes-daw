@@ -35,9 +35,17 @@ At a checkpoint Dan verifies and may review the diff (sometimes with an outside 
 review findings as input to **verify against the project, not gospel** — don't rubber-stamp, don't get
 swayed by strong wording; apply what's correct, report changes in plain English, commit small.
 
-In H0 these stops are **frequent** (one per spike sub-task) because only a human can confirm the audio
-and the 60fps feel. The **unattended loop** that runs many checkpoints back-to-back without stopping is
-**H1+**, and only once the CI gates exist for it to check itself against.
+A checkpoint is "done" when its **mechanical** check is green (CI / a self-asserting script) — fix red
+before stopping. Once CI + the self-check harness exist (the first H0 task), an **unattended loop** can
+chain checkpoints back-to-back with little human input; H1+ just formalises it.
+
+## Verification is mechanical (Dan can't read code, and is busy)
+Dan does not read diffs and won't hand-verify by ear or eye. Every check must be **mechanical** — CI
+gates and self-asserting tests (exit 0/1), never "human reviews the diff" or "human confirms 60fps /
+the tone." If something can be checked in code (frame-time budget, deadline-miss / xrun count,
+golden-output compare, RTSan, warnings-as-errors), it must be. **CI is the gate**; the agent fixes red
+before stopping. The rare check that needs real hardware (sound actually out, real-GPU smoothness) is a
+**one-command self-asserting script** on a single machine — it prints PASS/FAIL, never asks Dan to judge.
 
 ## Hard rules (both research reports agree; locked in ADR-0002)
 - Once the audio engine exists: the audio thread never allocates, locks, logs, or does I/O. Tested, not assumed.

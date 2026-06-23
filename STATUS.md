@@ -14,19 +14,22 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- **H0 spike #1 core working** — builds, window opens, 440 Hz tone plays out real hardware. Next: WAV
-  load + scrub, then the 60fps timeline (spike #2), then the node-trait stub (spike #3).
+- **Next agent's first job: make verification mechanical** — stand up CI + a self-asserting check
+  harness so no step needs Dan to read code, listen, or watch. Then continue the spikes (each with its
+  own automated check). Dan is non-coder + busy: CI green is the gate, not him.
 
 ## Current-horizon checklist — H0 (plain English, small steps)
 - [x] Install the C++ toolchain (CMake + MSVC via VS 2022 Build Tools). ✓
 - [x] `cmake -B build` configures and fetches JUCE with no error. ✓
 - [x] App builds and a window opens (`YesDaw.exe`). ✓ — *`Main.cpp` compiled clean first try.*
 - [x] A 440 Hz tone plays out real hardware (spike #1: device round-trip core). ✓
-- [ ] Tame the spike (gentle fade-in / lower level / start-stop) so iterating isn't a jumpscare.
-- [ ] Load + scrub one WAV (finish spike #1).
-- [ ] GPU timeline canvas draws 100+ elements at 60fps while scrolling (spike #2) — decide native vs WebView.
+- [ ] **Stand up CI + a self-asserting check harness** (GitHub Actions: build + golden-output + a
+  frame-time/xrun assert) so verification is mechanical — the gate is a green check, not Dan. *(first)*
+- [ ] Tame the spike (fade-in / lower level / start-stop) so a local run isn't a jumpscare.
+- [ ] Load + scrub one WAV — verified by a golden-output check (finish spike #1).
+- [ ] GPU timeline draws 100+ elements at 60fps (spike #2) — asserted by a frame-time budget, not eyeballed; decide native vs WebView.
 - [ ] One Node behind a stub of the format-neutral trait (spike #3).
-- [ ] **Exit:** zero dropouts over a 10 min run + timeline holds 60fps → H0 done (human-confirmed).
+- [ ] **Exit:** mechanical gates green (CI) + a one-machine self-check script passes the real-hardware soak → H0 done. *(no human judgment)*
 
 ## Done recently
 - 2026-06-23 — **Foundation** committed: research corpus, CONTEXT glossary, ADR-0001/0002, roadmap, CLAUDE.md.
