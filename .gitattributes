@@ -1,0 +1,16 @@
+# Enforce LF line endings across the whole repo.
+# Keeps Windows checkouts from churning CRLF/LF and avoids git "will be replaced by" warnings.
+* text=auto eol=lf
+
+# Audio and model assets are binary: never normalize line endings, never diff as text.
+*.wav   binary
+*.aif   binary
+*.aiff  binary
+*.flac  binary
+*.mp3   binary
+*.ogg   binary
+*.m4a   binary
+*.onnx  binary
+*.bin   binary
+*.sqlite binary
+*.db    binary

@@ -1,0 +1,29 @@
+# YES DAW — project instructions
+
+A from-scratch, local-first audio production tool. The product wedge and core architecture are
+still being decided — see `docs/adr/README.md` ("Decision backlog"). Everything is grounded in
+`docs/research/`.
+
+## Talk to me like this
+- Be concise. Plain English. Lead with the answer, then a little reasoning.
+- For any decision, give multiple-choice options with a clear recommendation. Don't make me read essays.
+- Skip the throat-clearing and long recaps.
+
+## How we work
+- Measure twice, cut once. Order: research → brainstorm → grill → ADR → plan → build → review.
+- No code lands before the decisions it depends on are written as ADRs (`docs/adr/`).
+- `CONTEXT.md` is the shared vocabulary. Use those exact terms; update it when a decision changes one.
+- Long-horizon goals live in `docs/goals/`. `/loop` runs against the current horizon's exit criterion.
+
+## Hard rules (both research reports agree; to be ratified as ADRs during the grill)
+- Once the audio engine exists: the audio thread never allocates, locks, logs, or does I/O. Tested, not assumed.
+- Routing is a DAG. Per-node latency + plugin delay compensation exist from day one.
+- Built-in DSP and hosted plugins share one format-neutral node contract.
+- Events are sample-accurate and block-sliced from the start.
+- Clips reference assets (non-destructive); never edit the underlying audio in place.
+- LF line endings everywhere (`.gitattributes`).
+
+## Agents & workflows
+- Prefer compound-engineering workflows (brainstorm / plan / work / review) over basic skills.
+- `/grill-with-docs` to sharpen language and lock decisions into ADRs.
+- Custom DAW review agents (real-time safety, render correctness, etc.) come once there's engine code.

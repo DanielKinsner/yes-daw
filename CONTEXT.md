@@ -1,0 +1,161 @@
+# CONTEXT — Ubiquitous Language for YES DAW
+
+The shared vocabulary for this project. Code, docs, and conversation use these exact words with these
+exact meanings. This file is a **glossary only** — no implementation detail (that lives in
+`docs/adr/`). It is still partly open; the questions at the bottom resolve once we choose the product
+wedge.
+
+## Language
+
+### Engine & timing
+
+**Audio thread**:
+The one part of the program whose only job is delivering sound on time. It never does slow work.
+_Avoid_: real-time thread (loosely), DSP thread
+
+**Control thread**:
+The non-real-time side that handles the screen, files, and user actions.
+_Avoid_: main thread, UI thread (when you mean all non-audio work)
+
+**Frame**:
+One audio sample across all channels at a single instant.
+_Avoid_: sample (when you mean every channel at once)
+
+**Block**:
+A small batch of frames the engine processes in one cycle. Its size can vary.
+_Avoid_: buffer (when you mean the batch of frames, not the memory)
+
+**Underrun**:
+An audible glitch (click, pop, dropout) caused by missing the audio deadline.
+_Avoid_: glitch, stutter, xrun
+
+**Transport**:
+The global clock: playhead, play/stop/record, tempo map, markers.
+
+**Tempo map**:
+The timeline of tempo and time-signature changes.
+
+### Graph & mixing
+
+**Node**:
+The engine's internal processing unit. Built-in tools and plugins are both nodes.
+_Avoid_: processor, effect, module
+
+**Plugin**:
+A node that wraps third-party code (CLAP / VST3 / AU). A kind of node.
+_Avoid_: calling built-in nodes "plugins"
+
+**Graph**:
+The one-way flow of nodes from inputs to outputs; never loops back on itself.
+_Avoid_: chain (when the routing branches or merges), pipeline
+
+**Bus**:
+A node that sums several inputs into one (e.g. a group, or the master).
+_Avoid_: channel, channel strip
+
+**Master bus**:
+The final bus everything sums into before audio leaves the app.
+_Avoid_: main, output bus, master channel
+
+**Send / Return**:
+A tap that routes a copy of a signal to a separate Return node for parallel processing.
+
+**Sidechain**:
+A second input that controls how a node treats its main input.
+
+**Plugin delay compensation (PDC)**:
+Automatically aligning paths so nodes that add delay stay in time with nodes that don't.
+
+### Levels
+
+**Gain**:
+An adjustment applied to a signal (e.g. a clip's gain, an input's gain), usually before processing.
+_Avoid_: volume
+
+**Fader**:
+A track or bus's main output control.
+_Avoid_: volume
+
+**Level**:
+The loudness a meter shows.
+_Avoid_: volume
+
+### Timeline & arrangement
+
+**Track**:
+A lane in the arrangement holding clips and a chain of nodes. Carries its own mixer controls.
+_Avoid_: channel
+
+**Clip**:
+A non-destructive placement of (part of) an asset on a track, with its own start/end, gain, fades.
+_Avoid_: region, segment
+
+**Asset**:
+The underlying audio a clip points into. Copied into the project by default.
+_Avoid_: file, sample (when you mean the imported audio)
+
+### Automation
+
+**Automation**:
+Control changes pinned to song position that the user draws or records (e.g. a fade over bars 4–8).
+_Avoid_: modulation
+
+**Modulation**:
+A live repeating shape or envelope moving a control in real time, not pinned to the song. A separate,
+deferred concept — not built early.
+_Avoid_: automation
+
+### Project & assets
+
+**Project**:
+The full saved body of work: tracks, clips, routing, automation, node state.
+_Avoid_: session, set, document
+
+**Project bundle**:
+The folder/package on disk holding the project's database, copied assets, and caches.
+Working extension `.yesdaw` (not final).
+
+**Waveform cache**:
+Regenerable visual peak data for drawing waveforms, built in the background.
+
+### Render & export
+
+**Export**:
+The user action of saving finished audio or stems to a file outside the project.
+_Avoid_: bounce
+
+**Render**:
+The internal offline process that generates audio faster than real time (what an export runs).
+_Avoid_: bounce
+
+**Freeze**:
+Temporarily rendering a track's processing to a cache to save CPU; reversible (like Premiere's
+render preview). The permanent version — replace the track with its audio — is "flatten" (deferred).
+_Avoid_: commit
+
+### Product & AI
+
+**Stem**:
+An isolated part of a mix (drums, bass, vocals, other).
+
+**Stem separation**:
+Splitting a mixed track into stems with a local model.
+
+**Finishing / mastering assistant**:
+A feature that analyses audio, suggests a chain, and lets the user override every move.
+_Avoid_: auto-master (implies the user has no control)
+
+**Local-first**:
+Models and data run on the user's machine — private, offline, no per-use cloud cost.
+
+**The wedge**:
+The single sharp workflow this product wins at instead of cloning a full DAW. Not yet chosen.
+
+## Open questions (resolve as we decide the wedge)
+
+- **Product name & wedge** — "YES DAW" is a working title; if we end up a finishing tool, "DAW" may be
+  the wrong word. Finishing/mastering vs. stem-remix vs. mastering console. → ADR fork #1.
+- **User-facing chain word** — what the user calls an item in a node chain (e.g. "device" vs. "effect").
+  Depends on the UI/wedge. → ADR fork #2.
+- **Project file specifics** — bundle extension, and whether storage-format words ("JSONB") ever
+  surface to users. → ADR fork #5.
