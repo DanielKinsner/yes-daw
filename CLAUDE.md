@@ -39,3 +39,6 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
   exit criterion and commits only when CI gates pass, with an automated critic pass + hard-stops (never
   edits ADRs, goldens, or `[[clang::nonblocking]]` annotations). See the plan's "Long-horizon execution
   via agentic loops". H0 is hands-on (no gates yet); GUI visual feel is human-eyeballed.
+- **External review (Codex):** Dan runs Codex passes on the plan/code and pastes findings back. Verify
+  each against the project — don't rubber-stamp, don't get swayed by strong wording; diverge when
+  project knowledge says so. Apply what's correct, report changes in plain English, commit small.
