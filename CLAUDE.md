@@ -15,7 +15,15 @@ still being decided — see `docs/adr/README.md` ("Decision backlog"). Everythin
 - `CONTEXT.md` is the shared vocabulary. Use those exact terms; update it when a decision changes one.
 - Long-horizon goals live in `docs/goals/`. `/loop` runs against the current horizon's exit criterion.
 
-## Hard rules (both research reports agree; to be ratified as ADRs during the grill)
+## Working across machines
+Dan works on multiple machines; git is the sync. Keep the handoff clean:
+- **`STATUS.md` is the live handoff** — the single source of truth for "where are we right now." Read
+  it first; update it (current task, done, next) before committing.
+- **Pull at session start, push at session end.** Never leave finished work uncommitted on one machine.
+- **Commit in small chunks** with clear messages — one logical step per commit, not big batches.
+- **Break work down in plain English** — `STATUS.md` holds small, plainly-worded, committable steps.
+
+## Hard rules (both research reports agree; locked in ADR-0002)
 - Once the audio engine exists: the audio thread never allocates, locks, logs, or does I/O. Tested, not assumed.
 - Routing is a DAG. Per-node latency + plugin delay compensation exist from day one.
 - Built-in DSP and hosted plugins share one format-neutral node contract.
