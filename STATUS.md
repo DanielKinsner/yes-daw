@@ -28,6 +28,10 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
   (sample-rate); 10 simplifications adopted (8 scope-cuts rejected — full scope kept); housekeeping.
 - 2026-06-23 — **Loop workflow adopted in full**; **3 H1 conflicts resolved** (15360-tick grid /
   128-bit ULID / out-of-process hosting).
+- 2026-06-23 — **Codex plan review applied** (all 7 findings, no scope cut): made the snapshot /
+  state-ownership / graph-publication model exact; promoted bundle crash-recovery into H1's gate;
+  fleshed the out-of-process host runtime + isolation gate; PDC test now covers automation + events;
+  sample-rate → H1 + automation-curve added as decision #15; fixed stale docs (adr/README, CLAUDE.md).
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).

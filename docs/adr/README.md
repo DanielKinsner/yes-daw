@@ -32,7 +32,7 @@ The brainstorm and build plan resolved these. They are recorded as ADRs as each 
 | **#1** | Product identity | **Full general-purpose multi-track DAW** (not a stem/finishing wedge) — the research's narrow-wedge premise didn't apply (owner already ships standalone stem + mastering apps). | ✅ ADR-0003 |
 | **#3** | Engine stack | **C++ / JUCE 8 framework + our own engine** (not Rust, not Tracktion Engine; not `AudioProcessorGraph`). | ✅ ADR-0004 |
 | **#2** | UI stack | Build plan recommends **native JUCE Components** + a GPU timeline canvas (not WebView) for data-dense surfaces. | ADR pending (H0/H1) |
-| **#4** | Plugin hosting | Build plan: in-process **VST3 + AU first, then CLAP** (H3); Nodes kept proxy-able for later sandboxing. | ADR pending (H3) |
+| **#4** | Plugin hosting | **Out-of-process / sandboxed from the start** — VST3 + AU first, then CLAP (H3). | ✅ resolved (ADR pending, H3) |
 | **#5** | Project format | Build plan: **SQLite `.yesdaw` bundle**, normalized tables (not JSONB), WAL, migration harness (H1). | ADR pending (H1) |
 
 The build plan's **14 irreversible engine decisions** extend ADR-0002 and become individual ADRs as
@@ -58,13 +58,15 @@ So none is silently skipped (ADR numbers are provisional until written):
 | 11 | Plugin state as opaque chunks | 0012 | H3 |
 | 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0012 | H3 |
 | 13 | f64 Bus summing | 0006 | H1 |
-| 14 | Sample-rate policy | 0009 | H1/H2 |
+| 14 | Sample-rate policy | 0009 | H1 |
+| 15 | Automation curve representation | 0008 | H1 |
 
 The three substantive conflicts (PPQ-freeze, stable-ID, hosting isolation) were **resolved 2026-06-23**
 (see the plan's enhancement summary). The deepening notes retain the full debate.
 
-**Decisions both reports already agree on** (likely fast-tracked ADRs, low contention): real-time-safe
-audio thread separated from UI; DAG routing graph with per-node latency + PDC from day one;
-format-neutral node contract; sample-accurate block-sliced events; lock-free UI↔audio messaging;
-SQLite-centered persistence with autosave/crash recovery; CLAP as the first plugin format;
-local stem separation as a first-class workflow; AI assistance always user-overridable.
+**Cross-cutting foundations** (locked in ADR-0002): real-time-safe audio thread separated from UI;
+DAG routing graph with per-node latency + PDC from day one; format-neutral node contract;
+sample-accurate block-sliced events; lock-free UI↔audio messaging; SQLite-centered persistence with
+autosave/crash recovery. Plugin hosting is **out-of-process, VST3 + AU first then CLAP** (not
+CLAP-first, not in-process — decision #12). YES DAW is a **general-purpose DAW, not a stem/finishing
+tool** (ADR-0003); stem separation and mastering are separate apps.

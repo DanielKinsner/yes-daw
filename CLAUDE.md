@@ -1,8 +1,8 @@
 # YES DAW — project instructions
 
-A from-scratch, local-first audio production tool. The product wedge and core architecture are
-still being decided — see `docs/adr/README.md` ("Decision backlog"). Everything is grounded in
-`docs/research/`.
+A from-scratch, general-purpose multi-track DAW (Logic / Pro Tools / Cubase / Sonar class), C++/JUCE +
+our own engine. Product and stack are **decided** (ADR-0003 / ADR-0004); the build plan and H0–H6
+roadmap live in `docs/plans/` and `docs/goals/`. Grounded in `docs/research/`.
 
 ## Talk to me like this
 - Be concise. Plain English. Lead with the answer, then a little reasoning.

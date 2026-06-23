@@ -63,11 +63,29 @@ tool/source node) — never by merging codebases. The DAW itself is **not** a st
   (ADR-0002 #5): a typed **SPSC command queue** control→audio (`SetGain`, `AddNode`, `Connect`,
   `LoadPlugin`, `SetClipGain`), and **atomic / triple-buffer latest-value** audio→control (meter
   Level, playhead). One sanctioned mechanism (its own ADR); nothing else crosses.
-- **Graph publication is RCU-style.** The control thread compiles a new immutable `CompiledGraph`
-  off-thread and installs it with one `release`-store; the audio thread does one `acquire`-load per
-  Block and is wait-free. The retired snapshot goes to a **janitor thread** for destruction — the
-  audio thread never `delete`s and never drops a `shared_ptr` whose refcount could reach zero (the
-  subtle bug that passes review and glitches under load). C++ analog of Rust's `basedrop`.
+- **Graph publication is one ordered command, not a polled pointer.** The control thread compiles a
+  new immutable `CompiledGraph` off-thread, then enqueues a `SwapGraph{next}` **command in the same
+  SPSC queue as the scalar commands** (`SetGain`, `SetPan`, …). The audio thread drains the queue at
+  the top of each Block; on dequeuing `SwapGraph` it switches its active graph and pushes the old one
+  onto a **preallocated retirement record** for the janitor. Because the swap is *ordered with* the
+  scalar commands, a `SetGain` enqueued before it hits the old graph and one after hits the new — no
+  command is ever silently applied to the wrong topology. (This supersedes any "release-store a graph
+  pointer the audio thread polls" framing — that variant reorders scalar commands against the swap.)
+- **Immutable ≠ stateless — split immutable wiring from audio-owned mutable RT state.** The
+  `CompiledGraph` is immutable *wiring*: topology, DFS order, connections, buffer-pool layout,
+  compile-time params, inserted delay-line nodes. The **mutable RT state** a node owns (delay-line
+  ring contents, source/event read cursors, smoother state, feedback buffers, hosted-plugin internal
+  state) lives in a **stable per-node state store owned by the audio thread, keyed by node ULID**, and
+  **persists across recompiles by identity**: a surviving node reuses its existing state object in
+  place; only genuinely new nodes get fresh state (allocated control-side in `prepare()` *before* the
+  swap), and removed-node state is retired through the janitor. The control-thread compiler **never
+  reads live RT-mutated memory** — it wires references by ULID. This is how "cache delay-line state
+  across a latency change" works without a data race: the node survives the recompile, so its ring is
+  the same already-prefaulted object.
+- **Janitor = grace-period generation counter.** The audio thread publishes a monotonic `processedGen`
+  at end of Block; the janitor (its own low-priority thread) frees a retired graph or node-state only
+  once `processedGen` has advanced past the swap — proof the audio thread can no longer touch it. The
+  audio thread never `delete`s and never drops a `shared_ptr` to zero. C++ analog of Rust's `basedrop`.
 - **One-shot param changes skip recompile.** Gain/pan/clip-gain ride the SPSC queue + per-node
   smoothers; only topology/latency changes trigger recompile-and-swap.
 - **FTZ/DAZ per audio thread.** `juce::ScopedNoDenormals` at the top of every callback — non-optional
@@ -180,7 +198,10 @@ They become individual ADRs as their milestone is planned (most at H1).
     serializable-seam mandate). A plugin crash kills only its process, never the project. Chosen 2026-06-23.
 13. **f64 summing on Bus mixdown;** internal sample type fixed now.
 14. **Sample-rate policy** — project SR, asset-SR-mismatch resampling + quality tiers, mid-project SR
-    change. Resolve at H1/H2 (asset content-hashing and buffer-pool sizing both assume an answer).
+    change. **Lock at H1** (asset import + schema v1 depend on it).
+15. **Automation curve representation** — point storage `{tick, value, curve_type}`, the interpolation
+    enum (linear / bezier / hold / log), and sample-accurate-vs-block evaluation. **Lock at H1** — it
+    rides the frozen event stream, so it is as irreversible as the event model.
 
 ## Build order / milestones
 
@@ -207,9 +228,10 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
   SQLite bundle save/load (schema v1 + migration harness). **Lock:** graph+PDC, time model, event
   model, Node contract. The event stream flows (carrying only param-changes so far) — MIDI dark but
   the pipe is MIDI-capable.
-- **Exit criterion:** a saved Project round-trips (tempo map, time signatures, markers, clips intact),
-  the RT path matches an offline Render within tolerance (golden-file), and the audio path is
-  RTSan-clean — all green in CI.
+- **Exit criterion:** a saved Project round-trips (tempo map, time signatures, markers, clips intact);
+  the RT path matches an offline Render within tolerance (golden-file); the audio path is RTSan-clean;
+  **and a kill during import / migration / autosave recovers with the bundle's DB↔filesystem consistent**
+  (no orphans, media hash-verified) — all green in CI.
 
 ### H2 — Editing-first (the early priority)
 - **Goal:** non-destructive multi-track editing on imported audio — the owner's primary need.
@@ -227,9 +249,15 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
   atomic mute mask, Sidechain as extra input pin); automation lanes honoring per-Block offsets.
   Out-of-process **plugin scanner** (blacklist-on-crash) → **VST3 + AU** hosted **out-of-process** (each in its own process; `PluginNode` = IPC proxy) via
   `AudioPluginFormatManager` behind `PluginNode`, PDC now exercised by real plugin latency → **CLAP**.
-  Opaque-chunk state persistence. Begin the accessibility tree.
+  Opaque-chunk state persistence. Begin the accessibility tree. The out-of-process **runtime**
+  (detailed at H3-planning) covers: per-plugin shared-memory audio/event ring buffers with
+  block-synchronization; out-of-process plugin-UI embedding; crash → bypass-node → recompile, and
+  hang-watchdog → kill → blacklist; state save/restore across the IPC boundary; and coalesced
+  latency-change handling over IPC.
 - **Exit criterion:** two parallel paths, one with a real high-latency plugin, stay sample-aligned
-  (PDC impulse test passes against the live plugin); pluginval L8–10 + `auval` pass in CI.
+  (PDC impulse test passes against the live plugin); pluginval L8–10 + `auval` pass; **and a plugin
+  that crashes or hangs mid-session is isolated — the session survives with a "plugin crashed"
+  placeholder and the offender is blacklisted** (a host-isolation test, not just pluginval) — all in CI.
 
 ### H4 — MIDI editing & instruments (co-equal surfaces)
 - **Goal:** make the co-equal MIDI model user-facing.
@@ -269,7 +297,9 @@ shipping Windows uses MSVC). Clone the **pamplejuce** workflow for platform/sign
   audio scope.
 - **Golden-file render test diffing the RT path against the offline Render** of the same Project
   (tolerance-based; one reviewed golden per platform) — the single highest-value DAW test.
-- **PDC impulse test** — known-latency stub Node; assert the transient lands at the predicted sample.
+- **PDC impulse test (audio + automation + events), from H1** — a known-latency stub Node at a
+  convergence point; assert an audio transient, an automation-ramp value, AND a synthetic event all
+  land at the predicted compensated sample. The real-MIDI version is the H4 timing test.
 - **Save/load round-trip** on the full document (tempo map, meter map, markers, clips, time_base).
 - **Property-based undo/redo** (RapidCheck): do→undo == prior; undo-all→redo-all == original.
 - **Schema-migration fixtures** — one Project per historical schema version, never deleted.
