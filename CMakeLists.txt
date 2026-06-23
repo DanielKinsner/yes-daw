@@ -47,3 +47,24 @@ target_link_libraries(YesDaw
     juce::juce_gui_extra)
 
 yesdaw_strict_juce(YesDaw)
+
+# --- Headless DSP self-check (the mechanical gate; runs in CI, no device/display) ---
+# Pure C++ — depends ONLY on src/dsp, never on JUCE — so it builds and runs anywhere fast.
+enable_testing()
+
+add_executable(YesDawTests tests/dsp_tests.cpp)
+target_include_directories(YesDawTests PRIVATE ${YESDAW_SRC_DIR})
+
+# Absolute path to the golden so the test doesn't depend on the working directory ctest runs in.
+target_compile_definitions(YesDawTests PRIVATE
+  YESDAW_GOLDEN_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/sine_440_48k.csv")
+
+# Warnings-as-errors with a portable, locally-verifiable warning set (MSVC /W4 is the strictest
+# we can check on the Windows dev box; macOS CI uses the weaker -Wall -Wextra, so a local-clean
+# build de-risks the runner we can't see).
+set_target_properties(YesDawTests PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+target_compile_options(YesDawTests PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic>)
+
+add_test(NAME dsp_tests COMMAND YesDawTests)
