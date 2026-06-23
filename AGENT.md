@@ -11,22 +11,36 @@ MSVC), or VS 2022 Community; plus CMake ≥ 3.25 and Ninja. Via winget:
 ```
 winget install Kitware.CMake
 winget install Ninja-build.Ninja
-winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e
 ```
+
+Then add the C++ compiler **via the GUI** (the `--override "..."` one-liner is fragile across
+cmd/PowerShell quoting): open **"Visual Studio Installer"** from the Start menu → on **Build Tools**
+click **Modify** → check **"Desktop development with C++"** → **Install**.
 
 The first `cmake` configure downloads JUCE (pinned in `CMakeLists.txt`) — needs internet.
 
 ## Configure + build (Debug)
 
+Simplest on Windows — the **Visual Studio generator** finds MSVC automatically (no special prompt):
+
 ```
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug   # drop "-G Ninja" to use the default generator
+cmake -B build
+cmake --build build --config Debug
+```
+
+Faster iteration with **Ninja**, but MSVC + Ninja needs the compiler env, so run these from the
+**"x64 Native Tools Command Prompt for VS 2022"** (Start menu):
+
+```
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 ```
 
 ## Run
 
 ```
-build/YesDaw_artefacts/Debug/YesDaw.exe            # exact path varies by generator/config
+build\YesDaw_artefacts\Debug\YesDaw.exe            # exact path varies by generator/config
 ```
 
 ## H0 spike check (manual — no automated gate yet)
