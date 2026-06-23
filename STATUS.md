@@ -23,8 +23,9 @@ worklog.
 - [x] `cmake -B build` configures and fetches JUCE with no error. ✓
 - [x] App builds and a window opens (`YesDaw.exe`). ✓ — *`Main.cpp` compiled clean first try.*
 - [x] A 440 Hz tone plays out real hardware (spike #1: device round-trip core). ✓
-- [ ] **Stand up CI + a self-asserting check harness** (GitHub Actions: build + golden-output + a
-  frame-time/xrun assert) so verification is mechanical — the gate is a green check, not Dan. *(first)*
+- [ ] **Stand up CI + a self-asserting check harness** — follow `docs/ci-mechanical-verification.md`
+  (it has the starter `ci.yml`, `CMakePresets.json`, the RTSan job, `tools/soak.sh`, ADR-0005, and the
+  green-small / direct-to-main commit rule). The gate is a green check, not Dan. *(first task)*
 - [ ] Tame the spike (fade-in / lower level / start-stop) so a local run isn't a jumpscare.
 - [ ] Load + scrub one WAV — verified by a golden-output check (finish spike #1).
 - [ ] GPU timeline draws 100+ elements at 60fps (spike #2) — asserted by a frame-time budget, not eyeballed; decide native vs WebView.
@@ -53,6 +54,9 @@ worklog.
 - 2026-06-23 — **H0 spike #1 core WORKING:** toolchain in (MSVC 19.44 / CMake), JUCE fetched + built,
   `Main.cpp` compiled clean **first try**, `YesDaw.exe` plays a 440 Hz sine out real hardware. Full
   stack proven end-to-end.
+- 2026-06-23 — **Mechanical-first model + CI cheat-sheet** committed (`docs/ci-mechanical-verification.md`)
+  + `bootstrap/windows.ps1` (idempotent one-command toolchain install; fixes the winget-quoting pain).
+  Standing up CI is the agent's first H0 task. Commit rule: frequent, straight to main, no squash.
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).

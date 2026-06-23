@@ -20,7 +20,9 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
 - **`STATUS.md` is the live handoff** — the single source of truth for "where are we right now." Read
   it first; update it (current task, done, next) before committing.
 - **Pull at session start, push at session end.** Never leave finished work uncommitted on one machine.
-- **Commit in small chunks** with clear messages — one logical step per commit, not big batches.
+- **Commit frequently, straight to `main`** — every green chunk is its own commit (Dan wants a high
+  commit count and is in a commit contest; **do not squash**). Each commit should be independently
+  green so `git bisect` works; CI runs on every push as the safety net.
 - **Break work down in plain English** — `STATUS.md` holds small, plainly-worded, committable steps.
 
 ## Stop checkpoints (how a session ends cleanly)

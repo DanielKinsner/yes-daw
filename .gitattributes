@@ -14,3 +14,4 @@
 *.bin   binary
 *.sqlite binary
 *.db    binary
+*.png   binary
