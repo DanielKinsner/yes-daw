@@ -14,7 +14,7 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- _Nothing in flight._ Finishing the planning layer (deepen-plan pass running).
+- **Starting H0** (fresh session): C++/JUCE project skeleton + the 3 de-risking spikes (see roadmap H0).
 
 ## Current-horizon checklist (plain English, small steps)
 _Filled in when H0 starts. Each item is one small, committable chunk._
@@ -40,4 +40,5 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
 - **Begin H0 spikes** (next build step): device round-trip, 60fps GPU timeline, one Node behind the trait stub.
 
 ## Blocked / open threads
-- _none_
+- Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
+  for a **Codex re-verify** pass. H0 does not depend on it, so H0 proceeds in parallel.
