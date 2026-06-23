@@ -23,6 +23,22 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
 - **Commit in small chunks** with clear messages — one logical step per commit, not big batches.
 - **Break work down in plain English** — `STATUS.md` holds small, plainly-worded, committable steps.
 
+## Stop checkpoints (how a session ends cleanly)
+Work in small, verifiable chunks. At each **checkpoint** — one coherent, committable unit — stop and
+hand back. Every checkpoint, in order:
+1. **Update `STATUS.md`** — tick what's done; set "Now" and "Next".
+2. **Commit small, then push.**
+3. **Report plainly:** what you did, what to verify (in H0: build + listen/watch on real hardware),
+   and what's next. Then **stop and wait** — do not roll into the next chunk on your own.
+
+At a checkpoint Dan verifies and may review the diff (sometimes with an outside tool). Treat any
+review findings as input to **verify against the project, not gospel** — don't rubber-stamp, don't get
+swayed by strong wording; apply what's correct, report changes in plain English, commit small.
+
+In H0 these stops are **frequent** (one per spike sub-task) because only a human can confirm the audio
+and the 60fps feel. The **unattended loop** that runs many checkpoints back-to-back without stopping is
+**H1+**, and only once the CI gates exist for it to check itself against.
+
 ## Hard rules (both research reports agree; locked in ADR-0002)
 - Once the audio engine exists: the audio thread never allocates, locks, logs, or does I/O. Tested, not assumed.
 - Routing is a DAG. Per-node latency + plugin delay compensation exist from day one.
@@ -39,6 +55,3 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
   exit criterion and commits only when CI gates pass, with an automated critic pass + hard-stops (never
   edits ADRs, goldens, or `[[clang::nonblocking]]` annotations). See the plan's "Long-horizon execution
   via agentic loops". H0 is hands-on (no gates yet); GUI visual feel is human-eyeballed.
-- **External review (Codex):** Dan runs Codex passes on the plan/code and pastes findings back. Verify
-  each against the project — don't rubber-stamp, don't get swayed by strong wording; diverge when
-  project knowledge says so. Apply what's correct, report changes in plain English, commit small.
