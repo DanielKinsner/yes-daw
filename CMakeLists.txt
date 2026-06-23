@@ -13,12 +13,27 @@ FetchContent_Declare(
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(JUCE)
 
+# --- Warnings-as-errors, scoped to OUR targets only -------------------------------
+# CLAUDE.md makes warnings-as-errors a mechanical gate. We apply JUCE's own recommended
+# warning set (the set JUCE keeps its headers clean against) and turn it fatal for our
+# targets only — never for JUCE's own targets, which we leave untouched.
+function(yesdaw_strict_juce target)
+  target_link_libraries(${target} PRIVATE
+    juce::juce_recommended_config_flags
+    juce::juce_recommended_warning_flags)
+  set_target_properties(${target} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endfunction()
+
+# Project headers under src/ are includable as "dsp/SineSource.h".
+set(YESDAW_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 # --- H0 spike app (throwaway; proves device I/O + the build) ---
 juce_add_gui_app(YesDaw
   PRODUCT_NAME "YesDaw"
   COMPANY_NAME "YesDaw")
 
 target_sources(YesDaw PRIVATE src/Main.cpp)
+target_include_directories(YesDaw PRIVATE ${YESDAW_SRC_DIR})
 
 target_compile_definitions(YesDaw PRIVATE
   JUCE_WEB_BROWSER=0
@@ -29,7 +44,6 @@ target_compile_definitions(YesDaw PRIVATE
 target_link_libraries(YesDaw
   PRIVATE
     juce::juce_audio_utils
-    juce::juce_gui_extra
-  PUBLIC
-    juce::juce_recommended_config_flags
-    juce::juce_recommended_warning_flags)
+    juce::juce_gui_extra)
+
+yesdaw_strict_juce(YesDaw)
