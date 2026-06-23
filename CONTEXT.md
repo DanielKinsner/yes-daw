@@ -83,7 +83,8 @@ _Avoid_: volume
 ### Timeline & arrangement
 
 **Track**:
-A lane in the arrangement holding clips and a chain of nodes. Carries its own mixer controls.
+A lane in the arrangement holding clips and a chain of nodes. Its mixer controls (fader, pan, meter)
+belong to the track and *compile to* graph nodes — there is no separate channel-strip object.
 _Avoid_: channel
 
 **Clip**:

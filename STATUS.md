@@ -24,12 +24,14 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
 - 2026-06-23 — **Brainstorm**: direction locked — full general-purpose DAW; C++/JUCE + our own engine;
   audio + MIDI co-equal; linear timeline; editing-first; long-horizon.
 - 2026-06-23 — **Plan** written; ADR-0003 (product) + ADR-0004 (stack); roadmap rebuilt; docs reconciled.
-- 2026-06-23 — **Deepen-plan** pass run (per-section depth + community loops research + review agents).
+- 2026-06-23 — **Deepen-plan** applied: deepening-notes companion; loops section; decision #14
+  (sample-rate); 10 simplifications adopted (8 scope-cuts rejected — full scope kept); housekeeping.
 
-## Next
-- Apply the deepen-plan results to the plan; review the simplicity split (adopt vs scope-cuts); commit.
-- Decide whether to adopt an agentic-loop workflow (from the loops research).
-- Begin **H0 spikes**: device round-trip, 60fps GPU timeline, one Node behind the trait stub.
+## Next — decisions open (need Dan)
+- **Adopt the agentic-loop workflow?** (proposed in the plan; recommend yes, with engine-core + GUI human-supervised)
+- **3 architecture conflicts** (see deepening-notes → "Conflicts"): PPQ-freeze framing · stable-ID
+  mechanism · in-process vs out-of-process plugin hosting.
+- Then begin **H0 spikes**: device round-trip, 60fps GPU timeline, one Node behind the trait stub.
 
 ## Blocked / open threads
 - _none_

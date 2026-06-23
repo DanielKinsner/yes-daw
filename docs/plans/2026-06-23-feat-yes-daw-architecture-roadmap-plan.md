@@ -29,6 +29,23 @@ testing strategy, the top risks, and the open questions.
 everything else is the machinery that produces and retires those snapshots without ever blocking the
 audio thread.* Every other decision falls out of that.
 
+## Enhancement summary (deepened 2026-06-23)
+
+A 13-agent deepening pass added production-grade implementation detail, ran review agents, and
+researched community agentic-loop workflows. The full depth lives in the companion
+[**deepening notes**](2026-06-23-yes-daw-deepening-notes.md). Highlights:
+
+- **10 simplifications adopted** (same scope, fewer mechanisms to build and prove RT-safe): one
+  `DelayNode` for PDC + feedback; one per-clip gain-envelope for fades/crossfades/clip-gain; one
+  ordered SPSC queue for scalars + topology; one driver + `Clock` for playback/record/monitor/offline;
+  one `EntityId` allocator; named lock-free primitives (choc/farbot) instead of hand-rolled.
+- **Sample-rate policy added as irreversible decision #14** (was a gap).
+- **New cross-cutting risks surfaced** (see deepening notes): cross-file bundle atomicity, plugin
+  hosting as a zero-trust boundary, supply-chain pinning, parallel-safety needs an H1 test gate.
+- **A proposed agentic-loop workflow** (section below) — community-sourced, gated on our CI.
+- **6 conflicts need a human decision** (see deepening notes → "Conflicts"); the three substantive
+  ones: PPQ-freeze framing, stable-ID mechanism, and in-process vs out-of-process plugin hosting.
+
 ## Problem / Motivation
 
 The owner currently has **no DAW** (can't afford one) and wants a legit one they own end-to-end and
@@ -159,6 +176,8 @@ They become individual ADRs as their milestone is planned (most at H1).
 12. **In-process hosting, but Nodes communicate via serializable buffers + events** (not shared
     pointers) — keeps out-of-process sandboxing possible later without re-touching hosting paths.
 13. **f64 summing on Bus mixdown;** internal sample type fixed now.
+14. **Sample-rate policy** — project SR, asset-SR-mismatch resampling + quality tiers, mid-project SR
+    change. Resolve at H1/H2 (asset content-hashing and buffer-pool sizing both assume an answer).
 
 ## Build order / milestones
 
@@ -255,6 +274,40 @@ shipping Windows uses MSVC). Clone the **pamplejuce** workflow for platform/sign
 **Gates added with their subsystem:** pluginval L8–10 + `auval` (hosting); a crash-test Node proving
 host isolation + blacklist-on-crash; headless soak harness (zero Underruns over 30–60 min); MIDI
 timing test (offsets across Blocks + tempo changes); structure-aware fuzzing of bundle/plugin-state parsers.
+
+## Long-horizon execution via agentic loops (proposed)
+
+Community-sourced (Ralph / RPI / verification-wrapped loops; not Anthropic docs). Formalizes the
+plan's instinct that `/loop` runs against the current horizon's exit criterion. **Pending adoption.**
+
+**Model.** A *bounded* loop (RPI: Research → Plan → Implement + milestone checkpoints), not bare
+`while-true`. The loop never decides architecture — the ADRs and this plan are frozen spec; it only
+implements toward the current horizon's exit criterion, with the **CI gates as its green condition**.
+The fit is good because YES DAW already has hard-to-fake gates (RTSan, golden-file render-diff, PDC
+impulse, property-based undo, save/load, migration fixtures) — behavioral oracles, not weak metrics.
+
+**Loop files (version-controlled, re-read every tick):** `loop/PROMPT.md` (short marching orders),
+`loop/horizon.md` (current exit criterion + exact green commands), `loop/fix_plan.md` (prioritized,
+one-context tasks), `AGENT.md` (per-OS build/test commands), `loop/progress.txt` (append-only
+learnings). Same `STATUS.md`-style ledger the cross-machine workflow already uses.
+
+**Per tick:** fresh context → read horizon + fix_plan → pick ONE item → research-then-implement
+(scoped diff; touch no ADRs/goldens) → run the gate → commit only if green, repair-before-advancing
+if red → update fix_plan + progress → repeat.
+
+**Writer/critic split:** the implementing loop is the writer; a separate critic pass (the planned
+custom DAW review agents — real-time-safety, render-correctness) runs on the diff before merge to
+catch what gates can't (a `nonblocking` annotation removed to "fix" RTSan, a golden regenerated to
+mask a regression).
+
+**Hard stops (all mandatory):** horizon met → stop for human boundary review (**only humans advance
+H{N}→H{N+1}**); max iterations; circuit-breaker on 3× same-gate failure or 2 empty diffs; budget
+ceiling; immediate hard-stop on any attempted edit to `docs/adr/**`, this plan, a golden file, a
+`[[clang::nonblocking]]` annotation, or `git reset --hard`.
+
+**Where it fits:** strongest on the engine/data-model/test-gated layers (strong oracles). Keep the
+**timeline GUI** (perceptual 60fps isn't a deterministic oracle) and **engine-core RCU / janitor /
+buffer-pool** human-supervised — C++ is "agent-hard-mode." Never fire-and-forget on those.
 
 ## Top risks + mitigations
 
