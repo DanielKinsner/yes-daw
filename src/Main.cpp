@@ -1,0 +1,103 @@
+// YES DAW — H0 spike #1: audio device round-trip (a 440 Hz sine to the output).
+//
+// This is THROWAWAY spike code (H0), not the engine. It exists to prove the build works and the
+// audio device round-trips with no dropouts. It is UNVERIFIED until built (no toolchain on the
+// authoring machine) — expect to fix small API slips on first compile.
+//
+// Next H0 tasks (see STATUS.md): load + scrub a WAV; a 60fps GPU timeline canvas; one Node behind a
+// stub of the format-neutral node trait.
+
+#include <juce_audio_utils/juce_audio_utils.h>
+
+class MainComponent : public juce::AudioAppComponent
+{
+public:
+    MainComponent()
+    {
+        setSize (600, 300);
+        setAudioChannels (0, 2); // 0 inputs, stereo output
+    }
+
+    ~MainComponent() override { shutdownAudio(); }
+
+    void prepareToPlay (int /*samplesPerBlockExpected*/, double sampleRate) override
+    {
+        phaseDelta = juce::MathConstants<double>::twoPi * frequencyHz / sampleRate;
+    }
+
+    void getNextAudioBlock (const juce::AudioSourceChannelInfo& info) override
+    {
+        auto* left  = info.buffer->getWritePointer (0, info.startSample);
+        auto* right = info.buffer->getNumChannels() > 1
+                          ? info.buffer->getWritePointer (1, info.startSample)
+                          : nullptr;
+
+        for (int i = 0; i < info.numSamples; ++i)
+        {
+            const auto s = (float) (std::sin (phase) * amplitude);
+            left[i] = s;
+            if (right != nullptr) right[i] = s;
+
+            phase += phaseDelta;
+            if (phase >= juce::MathConstants<double>::twoPi)
+                phase -= juce::MathConstants<double>::twoPi;
+        }
+    }
+
+    void releaseResources() override {}
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (juce::Colours::black);
+        g.setColour (juce::Colours::white);
+        g.setFont (20.0f);
+        g.drawText ("YES DAW — H0 spike: 440 Hz sine playing", getLocalBounds(),
+                    juce::Justification::centred, false);
+    }
+
+    void resized() override {}
+
+private:
+    double phase = 0.0, phaseDelta = 0.0;
+    const double frequencyHz = 440.0, amplitude = 0.10;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+};
+
+class YesDawApplication : public juce::JUCEApplication
+{
+public:
+    const juce::String getApplicationName() override    { return "YesDaw"; }
+    const juce::String getApplicationVersion() override { return "0.0.0"; }
+
+    void initialise (const juce::String&) override
+    {
+        mainWindow.reset (new MainWindow ("YES DAW", new MainComponent(), *this));
+    }
+
+    void shutdown() override { mainWindow = nullptr; }
+
+private:
+    class MainWindow : public juce::DocumentWindow
+    {
+    public:
+        MainWindow (juce::String name, juce::Component* content, JUCEApplication& a)
+            : DocumentWindow (name, juce::Colours::darkgrey, DocumentWindow::allButtons), app (a)
+        {
+            setUsingNativeTitleBar (true);
+            setContentOwned (content, true);
+            centreWithSize (getWidth(), getHeight());
+            setVisible (true);
+        }
+
+        void closeButtonPressed() override { app.systemRequestedQuit(); }
+
+    private:
+        JUCEApplication& app;
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
+    };
+
+    std::unique_ptr<MainWindow> mainWindow;
+};
+
+START_JUCE_APPLICATION (YesDawApplication)

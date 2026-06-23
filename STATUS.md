@@ -14,10 +14,18 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- **Starting H0** (fresh session): C++/JUCE project skeleton + the 3 de-risking spikes (see roadmap H0).
+- **H0 kickoff:** build scaffold committed (CMake + JUCE + sine spike). **Gate → install the C++
+  toolchain** (no compiler on this machine yet — see AGENT.md), then `cmake -B build` and build + listen.
 
-## Current-horizon checklist (plain English, small steps)
-_Filled in when H0 starts. Each item is one small, committable chunk._
+## Current-horizon checklist — H0 (plain English, small steps)
+- [ ] Install the C++ toolchain (CMake, Ninja, MSVC) — see AGENT.md. *(only-human step)*
+- [ ] `cmake -B build -G Ninja` configures and fetches JUCE with no error.
+- [ ] App builds and a window opens. *(toolchain + JUCE proven)*
+- [ ] A steady 440 Hz tone plays with no clicks/dropouts (spike #1: device round-trip).
+- [ ] Load + scrub one WAV (finish spike #1).
+- [ ] GPU timeline canvas draws 100+ elements at 60fps while scrolling (spike #2) — decide native vs WebView.
+- [ ] One Node behind a stub of the format-neutral trait (spike #3).
+- [ ] **Exit:** zero dropouts over 10 min sine + timeline holds 60fps → H0 done (human-confirmed).
 
 ## Done recently
 - 2026-06-23 — **Foundation** committed: research corpus, CONTEXT glossary, ADR-0001/0002, roadmap, CLAUDE.md.
@@ -36,6 +44,8 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
   waits on a child — one-block pipeline + fail-open); per-run state arenas (RT vs offline never share
   state); fixed persistence contradiction; H1 recovery gate = save/migration (import-kill → H2);
   marked resolved conflicts historical.
+- 2026-06-23 — **H0 kickoff:** committed CMake + JUCE scaffold + sine spike (`src/Main.cpp`), `AGENT.md`,
+  `.gitignore`. Unverified until the toolchain is installed and it's built.
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).

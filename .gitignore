@@ -24,3 +24,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# C++ / CMake
+cmake-build-*/
+*.user
