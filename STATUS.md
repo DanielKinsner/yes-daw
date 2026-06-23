@@ -14,18 +14,19 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- **H0 kickoff:** build scaffold committed (CMake + JUCE + sine spike). **Gate → install the C++
-  toolchain** (no compiler on this machine yet — see AGENT.md), then `cmake -B build` and build + listen.
+- **H0 spike #1 core working** — builds, window opens, 440 Hz tone plays out real hardware. Next: WAV
+  load + scrub, then the 60fps timeline (spike #2), then the node-trait stub (spike #3).
 
 ## Current-horizon checklist — H0 (plain English, small steps)
-- [ ] Install the C++ toolchain (CMake, Ninja, MSVC) — see AGENT.md. *(only-human step)*
-- [ ] `cmake -B build -G Ninja` configures and fetches JUCE with no error.
-- [ ] App builds and a window opens. *(toolchain + JUCE proven)*
-- [ ] A steady 440 Hz tone plays with no clicks/dropouts (spike #1: device round-trip).
+- [x] Install the C++ toolchain (CMake + MSVC via VS 2022 Build Tools). ✓
+- [x] `cmake -B build` configures and fetches JUCE with no error. ✓
+- [x] App builds and a window opens (`YesDaw.exe`). ✓ — *`Main.cpp` compiled clean first try.*
+- [x] A 440 Hz tone plays out real hardware (spike #1: device round-trip core). ✓
+- [ ] Tame the spike (gentle fade-in / lower level / start-stop) so iterating isn't a jumpscare.
 - [ ] Load + scrub one WAV (finish spike #1).
 - [ ] GPU timeline canvas draws 100+ elements at 60fps while scrolling (spike #2) — decide native vs WebView.
 - [ ] One Node behind a stub of the format-neutral trait (spike #3).
-- [ ] **Exit:** zero dropouts over 10 min sine + timeline holds 60fps → H0 done (human-confirmed).
+- [ ] **Exit:** zero dropouts over a 10 min run + timeline holds 60fps → H0 done (human-confirmed).
 
 ## Done recently
 - 2026-06-23 — **Foundation** committed: research corpus, CONTEXT glossary, ADR-0001/0002, roadmap, CLAUDE.md.
@@ -46,6 +47,9 @@ worklog.
   marked resolved conflicts historical.
 - 2026-06-23 — **H0 kickoff:** committed CMake + JUCE scaffold + sine spike (`src/Main.cpp`), `AGENT.md`,
   `.gitignore`. Unverified until the toolchain is installed and it's built.
+- 2026-06-23 — **H0 spike #1 core WORKING:** toolchain in (MSVC 19.44 / CMake), JUCE fetched + built,
+  `Main.cpp` compiled clean **first try**, `YesDaw.exe` plays a 440 Hz sine out real hardware. Full
+  stack proven end-to-end.
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).
