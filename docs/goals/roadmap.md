@@ -1,83 +1,56 @@
-# YES DAW roadmap (pre-brainstorm draft)
+# YES DAW roadmap
 
-> **Status: DRAFT.** This merges the two staged roadmaps in `docs/research/` (Compass + Modern DAW
-> Architecture) into a single arc. It is provisional until ADR fork #1 (the product wedge) is
-> decided — the wedge reshuffles what belongs in which horizon. Treat exit criteria as the stable
-> part and feature lists as negotiable.
+> Long-horizon roadmap for a **full general-purpose multi-track DAW** (C++/JUCE + our own engine).
+> Each horizon has one **testable exit criterion** — that's the finish line `/loop` runs against.
+> Full detail, architecture, and rationale live in the build plan:
+> [`docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md`](../plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md).
 
-Both research roadmaps agree on the *shape*: prove the risky core first (latency, lock-free
-messaging, the node/event/thread model), then build outward, and aggressively defer plugin hosting,
-MIDI, and time-stretch. The horizons below follow that shape.
+Build order: **playable spine first**, then widen. **Editing-first** (recording is later). MIDI is
+co-equal in the *model* from H1, with its UI sequenced later. Hard rule (all three research reports):
+no mixer-UI, MIDI-editor, or plugin-UI code until the project format and graph+PDC model are frozen
+and round-trip-tested.
 
 ---
 
-## H0 — Spikes (validate the scary unknowns)
+## H0 — Spikes (throwaway)
+De-risk the three scariest unknowns before any "engine" exists: device round-trip, a 60fps GPU
+timeline, one Node behind the format-neutral trait stub. Decide native UI (recommended) vs WebView.
+**Exit:** zero Underruns over 10 min of sine at a 128-frame Block on Windows + macOS, GPU timeline
+holding 60fps while scrolling.
 
-**Goal:** de-risk the four things that, if they don't work, change everything.
-**Exit criterion:** four throwaway spikes run and are measured, with notes captured in `docs/solutions/`.
+## H1 — The spine (lock the irreversible contracts)
+RT-safe callback; SPSC command queue + atomic graph-swap + janitor reclamation; `CompiledGraph` with
+PDC wired in; multi-track audio playback to the Master bus with metering; SQLite bundle save/load
+(schema v1 + migrations). Freeze: graph+PDC, time model, event model, Node contract.
+**Exit:** a Project round-trips (tempo/meter map, markers, clips intact), RT path matches offline
+Render within tolerance (golden-file), audio path RTSan-clean — all green in CI.
 
-- Measure `cpal` round-trip latency on Windows (and macOS if targeted) at small buffer sizes.
-- Prove a lock-free UI→audio command channel + audio→UI metering channel under load.
-- Prove the chosen UI surface can render a **60 FPS scrolling waveform + live meters** from a
-  lock-free queue without blocking. *(This is the single most important first unknown per research.)*
-- Spike local stem separation (`demucs-rs` / ONNX HT-Demucs) for quality + runtime on real hardware.
+## H2 — Editing-first (the early priority)
+Import + copy-to-bundle; async waveform cache; Clip split/trim/move/gain/fades/crossfade as pure
+metadata; snap/grid; command/diff undo/redo; offline Render/Export; single-window timeline shell.
+**Exit:** any edit sequence + full undo returns the document bit-identical (property test); a
+split-with-crossfade Project's RT playback matches its offline Render.
 
-**Avoid:** UI polish, any plugin hosting, session format work.
+## H3 — Mixer + plugin hosting
+Mixer as a graph projection (Fader/Pan/Sum/Send/Return/Meter, solo/mute mask, Sidechain); automation
+lanes; out-of-process scanner → VST3 + AU → CLAP hosting behind `PluginNode`; opaque-chunk state.
+**Exit:** two parallel paths, one with a real high-latency plugin, stay sample-aligned (PDC impulse
+test); pluginval L8–10 + `auval` pass in CI.
 
-## H1 — Technical prototype (the engine breathes)
+## H4 — MIDI editing & instruments
+MIDI Clips; Notes flatten to render events; instrument Nodes; piano-roll editing; MIDI-effect Nodes;
+MPE voice allocation at the I/O boundary.
+**Exit:** note-ons at known offsets land sample-accurately across Block boundaries **and** a tempo
+change, through an instrument Node with non-zero latency that PDC compensates.
 
-**Goal:** a playable multitrack engine built on the foundations both reports insist on.
-**Exit criterion:** multitrack audio plays through the node-graph DAG with gain/pan/fades and
-metering, the audio thread is **allocation/sanitizer-clean**, and a session round-trips through
-SQLite (save → quit → reload → identical).
+## H5 — Recording (in scope, possibly user-test-gated)
+Audio-thread→FIFO→writer-thread→disk; latency-compensated monitoring; take recording + comping;
+punch/loop record; MIDI recording.
+**Exit:** a recorded take aligns within ±1 frame of a click reference at non-trivial input+output
+latency, against deterministic ground truth.
 
-- Format-neutral **node contract**; DAG graph + layered scheduler; basic mixer/summing.
-- Transport/timeline clock; clip↔asset indirection; audio file decode.
-- Sample-accurate, block-sliced event model in place (even before MIDI exists).
-- Per-node latency reporting + PDC scaffolding (built-ins report zero, but the machinery exists).
-- SQLite session storage with autosave; round-trip + crash-recovery tests.
-
-**Avoid:** locking the node/event/thread model in too late; third-party plugins; MIDI piano roll.
-
-## H2 — Alpha (a real editing workflow)
-
-**Goal:** non-destructive editing + offline render + the first AI workflow.
-**Exit criterion:** import audio → edit non-destructively → run local stem separation → bounce an
-offline render that matches a golden file within tolerance.
-
-- Recording, monitoring, track arm/solo/mute; non-destructive split/trim/move; fades; snap/grid.
-- Async waveform cache; undo/redo; crash recovery hardened.
-- Offline bounce path with golden-file render tests.
-- Local stem separation integrated into the timeline.
-
-**Avoid:** MIDI, third-party plugin hosting, time-stretch/warp.
-
-## H3 — Private beta (the wedge becomes the product)
-
-**Goal:** the differentiated workflow (decided in ADR #1) feels like a product, not a tech demo.
-**Exit criterion:** a user can take a real track through the full wedge workflow end to end
-(e.g., import → stem split → rebalance/repair/arrange → AI-assisted master → export).
-
-- AI mastering/finishing assistant (analyze → suggest → user overrides everything).
-- Templates/presets; large-session performance; device hot-swap hardening.
-
-**Avoid:** scope expansion beyond the wedge.
-
-## H4 — Plugin hosting (decided by ADR #4)
-
-**Goal:** host third-party plugins without the wedge ever crashing the whole app.
-**Exit criterion:** CLAP plugins load, process sample-accurately, persist state, and survive a
-plugin crash gracefully; `clap-validator` passes in CI.
-
-- CLAP-first via `clack`; in-process+watchdog or out-of-process per ADR #4; then VST3.
-- PDC proven with real high-latency plugins; sidechains.
-
-**Avoid:** AU and full sandboxing unless the market demands it; MIDI instruments.
-
-## H5 — v1
-
-**Goal:** a polished, stable release of the wedge workflow with a migratable session format.
-**Exit criterion:** stable session format with migrations; CLAP + VST3 hosting; the wedge workflow
-is genuinely good, Windows (+ macOS if targeted).
-
-**Avoid:** DAW-clone feature-count competition; video; surround; control surfaces.
+## H6 — Reliability & polish (ongoing)
+Autosave + crash recovery; device hot-swap; multicore work-stealing; DAWproject export; loudness
+metering; time-stretch Node; full accessibility; soak/fuzz harness.
+**Exit:** a heavy session runs 60 min at a 64–128-frame Block with zero Underruns (99.9th-pct Block
+time under the Block period); a hard kill mid-edit recovers to the last autosave with no corruption.

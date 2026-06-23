@@ -20,19 +20,24 @@ how "measure twice, cut once" leaves a paper trail.
 |---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-realtime-engine-foundations.md) | Real-time engine foundations | Accepted |
+| [0003](0003-product-full-multitrack-daw.md) | Product: a full multi-track DAW | Accepted |
+| [0004](0004-stack-juce-framework-own-engine.md) | Stack: C++/JUCE framework + our own engine | Accepted |
 
-## Decision backlog (the open forks from research)
+## Decision status (the five research forks)
 
-These are the architecture decisions the brainstorm + grilling must resolve. Each becomes an ADR
-once decided. They are listed in rough dependency order — #1 constrains the rest.
+The brainstorm and build plan resolved these. They are recorded as ADRs as each is locked.
 
-| Fork | Decision | The two poles (from `docs/research/`) | Depends on |
+| Fork | Decision | Resolution | Recorded |
 |---|---|---|---|
-| **#1** | **Product wedge & identity** | Local-first stem **finishing/mastering** tool · vs · stem-based **remix** workstation · vs · AI-mastering **console** | — |
-| **#2** | **UI stack** | Rust + **Tauri/WebView** (+ canvas/WebGPU) · vs · **native Rust GUI** (egui / Slint / Iced) | #1 |
-| **#3** | **Engine language & core deps** | **Rust** + `cpal` + `rtrb` (both reports' default) · vs · C++ + JUCE/Tracktion (fast-but-abandons-Rust escape) | #1 |
-| **#4** | **Plugin hosting timing & isolation** | **Defer** past v0, in-process + watchdog · vs · **early**, out-of-process sandbox | #1, #3 |
-| **#5** | **Session format detail** | SQLite **bundle** + BLOBs + JSON export · vs · SQLite **JSONB** + partial load + CRDT sync + DAWproject | #3 |
+| **#1** | Product identity | **Full general-purpose multi-track DAW** (not a stem/finishing wedge) — the research's narrow-wedge premise didn't apply (owner already ships standalone stem + mastering apps). | ✅ ADR-0003 |
+| **#3** | Engine stack | **C++ / JUCE 8 framework + our own engine** (not Rust, not Tracktion Engine; not `AudioProcessorGraph`). | ✅ ADR-0004 |
+| **#2** | UI stack | Build plan recommends **native JUCE Components** + a GPU timeline canvas (not WebView) for data-dense surfaces. | ADR pending (H0/H1) |
+| **#4** | Plugin hosting | Build plan: in-process **VST3 + AU first, then CLAP** (H3); Nodes kept proxy-able for later sandboxing. | ADR pending (H3) |
+| **#5** | Project format | Build plan: **SQLite `.yesdaw` bundle**, normalized tables (not JSONB), WAL, migration harness (H1). | ADR pending (H1) |
+
+The build plan's **13 irreversible engine decisions** extend ADR-0002 and become individual ADRs as
+each milestone (H1, H3, …) is planned. See
+[`docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md`](../plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md).
 
 **Decisions both reports already agree on** (likely fast-tracked ADRs, low contention): real-time-safe
 audio thread separated from UI; DAG routing graph with per-node latency + PDC from day one;

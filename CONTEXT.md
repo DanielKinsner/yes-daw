@@ -146,15 +146,13 @@ A feature that analyses audio, suggests a chain, and lets the user override ever
 _Avoid_: auto-master (implies the user has no control)
 
 **Local-first**:
-Models and data run on the user's machine — private, offline, no per-use cloud cost.
-
-**The wedge**:
-The single sharp workflow this product wins at instead of cloning a full DAW. Not yet chosen.
+Models and data run on the user's machine — private, offline, no per-use cloud cost. (Applies to the
+separate stem/mastering apps; YES DAW itself also runs fully local.)
 
 ## Open questions (resolve as we decide the wedge)
 
-- **Product name & wedge** — "YES DAW" is a working title; if we end up a finishing tool, "DAW" may be
-  the wrong word. Finishing/mastering vs. stem-remix vs. mastering console. → ADR fork #1.
+- **Product name & wedge — RESOLVED.** YES DAW is a full general-purpose multi-track DAW (not a
+  stem/finishing tool); "DAW" is the right word. "YES DAW" remains a working title. → ADR-0003.
 - **User-facing chain word** — what the user calls an item in a node chain (e.g. "device" vs. "effect").
   Depends on the UI/wedge. → ADR fork #2.
 - **Project file specifics** — bundle extension, and whether storage-format words ("JSONB") ever
