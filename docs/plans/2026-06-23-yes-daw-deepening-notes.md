@@ -130,7 +130,7 @@ This package adds depth to the existing plan. It does **not** restate or remove 
 
 **Research Insights to ADD (place under the relevant Hn):**
 
-- **H2 — Editing/undo:** Undo is **command + diff** (named intent for menu/redo + exact row before/after for bit-identical reversal), not one or the other. Coalesce only same-verb/same-target/within-gesture (a 60-event fader drag → one transaction); a new verb or a gap closes the transaction; **never mix undoable and non-undoable mutations** (peak writes, autosave, meter updates bypass the recorded path). Apply/undo runs inside one SQLite transaction. **Split is the canonical edit** — `right.srcOffset == left.srcOffset + left.srcLength` exactly (assert in the unit test); every new cut edge gets a 2–5 ms equal-power declick fade. **Fades/crossfades/clip-gain are ONE per-clip gain envelope** evaluated at frame position, differing only by curve; a true crossfade drives both sides from one shared `x` ramp with fade-out `= 1 − fadeIn(x)` (independent ramps comb-filter). Equal-power default uses the Signalsmith cheap polynomial (`f(x)=[x(1−x)(1+1.4186·x(1−x))+x]²`, ~9 ops, no `sin/cos`).
+- **H2 — Editing/undo:** Undo is **command + diff** (named intent for menu/redo + exact row before/after for bit-identical reversal), not one or the other. Coalesce only same-verb/same-target/within-gesture (a 60-event fader drag → one transaction); a new verb or a gap closes the transaction; **never mix undoable and non-undoable mutations** (peak writes, autosave, meter updates bypass the recorded path). Apply/undo mutates the **live in-memory document** and emits diffs; SQLite is written atomically only at durability boundaries (save / autosave / undo-group), **never per-edit** (Simplicity ADOPT #7) — the DB is not on the edit hot path. **Split is the canonical edit** — `right.srcOffset == left.srcOffset + left.srcLength` exactly (assert in the unit test); every new cut edge gets a 2–5 ms equal-power declick fade. **Fades/crossfades/clip-gain are ONE per-clip gain envelope** evaluated at frame position, differing only by curve; a true crossfade drives both sides from one shared `x` ramp with fade-out `= 1 − fadeIn(x)` (independent ramps comb-filter). Equal-power default uses the Signalsmith cheap polynomial (`f(x)=[x(1−x)(1+1.4186·x(1−x))+x]²`, ~9 ops, no `sin/cos`).
 
 - **H2 — Snap/peaks:** Snapping is integer tick math (`snapTick`), exactly reversible; never store a snapped sample/pixel as truth — recompute px↔tick each frame. Waveform draw is **O(visible pixels)** via a min/max+RMS mipmap pyramid (build tier 0 once streaming the asset, fold 16:1 in memory for higher tiers — never re-read the asset per tier), keyed by asset content-hash in `peaks/`, one shared background thread, LRU for on-screen tiers, mmap cold. Deleting `peaks/` is always safe. Zoomed past tier 0 → read raw samples for that small window.
 
@@ -299,6 +299,11 @@ Listed for visibility only. **None of these are to be acted on.** The owner has 
 ---
 
 ## Conflicts flagged for human review
+
+> **Historical — all RESOLVED 2026-06-23.** The three substantive conflicts (PPQ → 15360, stable-ID →
+> 128-bit ULID, hosting → out-of-process / sandboxed) are decided in the plan's enhancement summary,
+> the decisions list, and the ADR index; the housekeeping ones were applied. Kept for the record — do
+> **not** treat as open.
 
 1. **PPQ freeze framing (irreversible decision #5 / open question #5) vs the rational/large-fixed-tick option.** A reviewer argues the "frozen PPQ, baked irreversibly into the format" is *self-imposed* — storing position as rational beats (`int64 num/den`) or a deliberately huge fixed tick grid would delete the irreversibility and open-question #5 at zero scope cost, with `frac`/`double` math at the render boundary recovering groove/MPE precision regardless. The enhancements above currently follow the plan (960 PPQ + render-time `frac`). **Decision needed:** keep the frozen-PPQ ADR as written, or adopt a representation that doesn't force the bet. This is the one place a reviewer pushed back on the plan's own framing.
 

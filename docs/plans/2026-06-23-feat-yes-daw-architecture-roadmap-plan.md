@@ -75,13 +75,17 @@ tool/source node) — never by merging codebases. The DAW itself is **not** a st
   `CompiledGraph` is immutable *wiring*: topology, DFS order, connections, buffer-pool layout,
   compile-time params, inserted delay-line nodes. The **mutable RT state** a node owns (delay-line
   ring contents, source/event read cursors, smoother state, feedback buffers, hosted-plugin internal
-  state) lives in a **stable per-node state store owned by the audio thread, keyed by node ULID**, and
+  state) lives in a **per-run state arena (keyed by node ULID) owned by whichever driver is pumping**, and
   **persists across recompiles by identity**: a surviving node reuses its existing state object in
   place; only genuinely new nodes get fresh state (allocated control-side in `prepare()` *before* the
   swap), and removed-node state is retired through the janitor. The control-thread compiler **never
   reads live RT-mutated memory** — it wires references by ULID. This is how "cache delay-line state
   across a latency change" works without a data race: the node survives the recompile, so its ring is
-  the same already-prefaulted object.
+  the same already-prefaulted object. **State arenas are per run, never global:** live playback and
+  each offline Render get their own arena (`prepare()` resets it), so the golden RT-vs-offline test
+  starts from clean, comparable state and the two never share history. Under H6 multicore the
+  dependency-counter schedule guarantees no two workers touch the same node at once, so per-node state
+  always has a single concurrent writer.
 - **Janitor = grace-period generation counter.** The audio thread publishes a monotonic `processedGen`
   at end of Block; the janitor (its own low-priority thread) frees a retired graph or node-state only
   once `processedGen` has advanced past the swap — proof the audio thread can no longer touch it. The
@@ -195,7 +199,13 @@ They become individual ADRs as their milestone is planned (most at H1).
     class-info), never reconstructed from parameter values.
 12. **Out-of-process / sandboxed plugin hosting as the shipped default** (from H3): each plugin runs
     in its own process; `PluginNode` is an IPC proxy over shared-memory ring buffers (honoring the
-    serializable-seam mandate). A plugin crash kills only its process, never the project. Chosen 2026-06-23.
+    serializable-seam mandate). **The audio thread never blocks on a plugin child** (ADR-0002 #1 at the
+    IPC boundary): a **one-block pipeline** — the host writes block N and consumes the child's block
+    N−1 output, the one block of latency reported and PDC-compensated — so the audio side only reads
+    what is already in shared memory and never waits. A block not ready by a bounded sub-deadline
+    **fails open** (last-good → silence → bypass) and flags the plugin late; the out-of-band watchdog
+    kills + blacklists a child that stays late or hung. A plugin crash kills only its process, never
+    the project. Chosen 2026-06-23.
 13. **f64 summing on Bus mixdown;** internal sample type fixed now.
 14. **Sample-rate policy** — project SR, asset-SR-mismatch resampling + quality tiers, mid-project SR
     change. **Lock at H1** (asset import + schema v1 depend on it).
@@ -230,8 +240,9 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
   the pipe is MIDI-capable.
 - **Exit criterion:** a saved Project round-trips (tempo map, time signatures, markers, clips intact);
   the RT path matches an offline Render within tolerance (golden-file); the audio path is RTSan-clean;
-  **and a kill during import / migration / autosave recovers with the bundle's DB↔filesystem consistent**
-  (no orphans, media hash-verified) — all green in CI.
+  **and a kill during save or migration reopens cleanly** (WAL recovery + `integrity_check`),
+  structurally and referentially consistent — all green in CI. (Kill-during-import + asset
+  DB↔filesystem consistency move to H2 where import exists; autosave recovery is H6.)
 
 ### H2 — Editing-first (the early priority)
 - **Goal:** non-destructive multi-track editing on imported audio — the owner's primary need.
@@ -241,7 +252,8 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
   transaction grouping; offline Render/Export. Stub the take-lane/comping schema (data only).
   Single-window timeline-primary shell with remappable keymap.
 - **Exit criterion:** any sequence of edits + full undo returns the document bit-identical
-  (property-based test), and a split-with-crossfade Project's RT playback matches its offline Render.
+  (property-based test); a split-with-crossfade Project's RT playback matches its offline Render; **and
+  a kill mid-import recovers with the bundle's DB↔filesystem consistent** (assets hash-verified, no orphans).
 
 ### H3 — Mixer + plugin hosting (onto frozen contracts)
 - **Goal:** a real mixer and third-party plugins as projections/adapters over the existing graph.
@@ -257,7 +269,9 @@ editing UI before mixer/MIDI/plugin UI; recording after editing.
 - **Exit criterion:** two parallel paths, one with a real high-latency plugin, stay sample-aligned
   (PDC impulse test passes against the live plugin); pluginval L8–10 + `auval` pass; **and a plugin
   that crashes or hangs mid-session is isolated — the session survives with a "plugin crashed"
-  placeholder and the offender is blacklisted** (a host-isolation test, not just pluginval) — all in CI.
+  placeholder and the offender is blacklisted**, all **without an audio dropout** — the audio thread
+  fails open within the block budget and never waits on the child (a host-isolation test, not just
+  pluginval) — all in CI.
 
 ### H4 — MIDI editing & instruments (co-equal surfaces)
 - **Goal:** make the co-equal MIDI model user-facing.
@@ -379,7 +393,7 @@ still loops.
 3. **Plugin format priority:** VST3 + AU (H3) then CLAP; confirm AU is macOS-launch-mandatory, and
    whether LV2/Linux hosting is in long-horizon scope.
 4. **Undo persistence:** in-memory command/diff first (H2); journal to SQLite later? (doesn't block H2)
-5. **PPQ value:** 960 vs 15360 — frozen once chosen; pick during H1 planning.
+5. **PPQ value — RESOLVED:** 15360 (large fixed grid). See decision #5 / the ADR index.
 6. **Negative/pre-roll positions:** is tick 0 = Project start, or are negative positions allowed?
 7. **Recording user-test gate:** define the gate's pass condition during planning so H5 isn't blocked.
 8. **Doc housekeeping:** revise CONTEXT.md "wedge", the old roadmap, and ADR fork #1 (scheduled — see

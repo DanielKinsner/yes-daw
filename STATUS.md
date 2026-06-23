@@ -32,6 +32,10 @@ _Filled in when H0 starts. Each item is one small, committable chunk._
   state-ownership / graph-publication model exact; promoted bundle crash-recovery into H1's gate;
   fleshed the out-of-process host runtime + isolation gate; PDC test now covers automation + events;
   sample-rate → H1 + automation-curve added as decision #15; fixed stale docs (adr/README, CLAUDE.md).
+- 2026-06-23 — **Codex review round 2 applied:** plugin-IPC nonblocking contract (audio thread never
+  waits on a child — one-block pipeline + fail-open); per-run state arenas (RT vs offline never share
+  state); fixed persistence contradiction; H1 recovery gate = save/migration (import-kill → H2);
+  marked resolved conflicts historical.
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).
