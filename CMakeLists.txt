@@ -40,13 +40,23 @@ endif()
 
 function(yesdaw_harden target)
   if (MSVC)
-    target_compile_options(${target} PRIVATE /W4 /WX)
+    target_compile_options(${target} PRIVATE /W4)
   else()
-    target_compile_options(${target} PRIVATE -Wall -Wextra -Werror)
+    target_compile_options(${target} PRIVATE -Wall -Wextra)
   endif()
+
   if (YESDAW_SANITIZER)
+    # The sanitizer leg's job is RUNTIME real-time safety, not warning-cleanliness (the normal matrix
+    # already enforces warnings-as-errors). We deliberately do NOT add -Werror here: the
+    # [[clang::nonblocking]] attribute turns on a *static* -Wfunction-effects check that flags any call
+    # to an unannotated function (std::sin, std::min, ...), which is too strict for RT-safe stdlib math.
+    # RTSan's runtime detection — which actually intercepts allocations/locks/syscalls — is the gate.
     target_compile_options(${target} PRIVATE -fsanitize=${YESDAW_SANITIZER} -fno-omit-frame-pointer)
     target_link_options   (${target} PRIVATE -fsanitize=${YESDAW_SANITIZER})
+  elseif (MSVC)
+    target_compile_options(${target} PRIVATE /WX)
+  else()
+    target_compile_options(${target} PRIVATE -Werror)
   endif()
 endfunction()
 
