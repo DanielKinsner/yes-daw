@@ -60,7 +60,7 @@ public:
 
     // Produce one mono sample and advance. The envelope moves one step toward its target BEFORE the
     // sample is taken, so sample 0 is exactly 0 (silence × sin(0)).
-    float nextSample() YESDAW_RT_HOT
+    float nextSample() noexcept YESDAW_RT_HOT
     {
         if (gain_ < targetGain_)      gain_ = std::min (targetGain_, gain_ + gainStep_);
         else if (gain_ > targetGain_) gain_ = std::max (targetGain_, gain_ - gainStep_);
@@ -76,7 +76,7 @@ public:
     }
 
     // Fill numFrames of mono audio. Caller copies to however many output channels it has.
-    void processMono (float* dst, int numFrames) YESDAW_RT_HOT
+    void processMono (float* dst, int numFrames) noexcept YESDAW_RT_HOT
     {
         for (int i = 0; i < numFrames; ++i)
             dst[i] = nextSample();

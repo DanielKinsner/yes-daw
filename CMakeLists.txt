@@ -53,6 +53,13 @@ function(yesdaw_harden target)
     # RTSan's runtime detection — which actually intercepts allocations/locks/syscalls — is the gate.
     target_compile_options(${target} PRIVATE -fsanitize=${YESDAW_SANITIZER} -fno-omit-frame-pointer)
     target_link_options   (${target} PRIVATE -fsanitize=${YESDAW_SANITIZER})
+    if (YESDAW_SANITIZER STREQUAL "realtime")
+      # Bind all symbols at load time. Otherwise the FIRST call to a lazily-resolved libm symbol
+      # (std::sin) runs the dynamic linker's PLT resolver INSIDE the [[clang::nonblocking]] hot path,
+      # and RTSan flags that resolver's internal lock — an intermittent false failure that surfaced
+      # only depending on Catch2's randomized test order.
+      target_link_options(${target} PRIVATE -Wl,-z,now)
+    endif()
   elseif (MSVC)
     target_compile_options(${target} PRIVATE /WX)
   else()
