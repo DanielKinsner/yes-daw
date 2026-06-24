@@ -111,3 +111,35 @@ jobs:
 
       - name: Run under RTSan (aborts on a real-time violation)
         run: ctest --test-dir build-rt --output-on-failure --no-tests=error
+
+  # Data-race safety: compile the pure tests with -fsanitize=thread and run them. RTSan proves the audio
+  # thread never allocates/locks; only TSan proves the release/acquire contract the Runtime's
+  # publish/process/reclaim path relies on (ADR-0006) actually has no data race. The 2-thread Runtime
+  # stress test is the target. Mirrors the rtsan leg (Clang 20, pure tests, no JUCE) — but with NO
+  # -Wl,-z,now (that is RTSan-specific) and YESDAW_SANITIZER=thread.
+  tsan:
+    name: TSan (audio<->control data races)
+    runs-on: ubuntu-24.04
+    env:
+      TSAN_OPTIONS: "halt_on_error=1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang 20 + Ninja
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y ninja-build
+
+      - name: Configure (TSan, Clang 20, test-only)
+        run: >
+          cmake -B build-tsan -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
+          -DYESDAW_BUILD_APPS=OFF -DYESDAW_SANITIZER=thread
+
+      - name: Build the headless tests
+        run: cmake --build build-tsan
+
+      - name: Run under TSan (aborts on a data race)
+        run: ctest --test-dir build-tsan --output-on-failure --no-tests=error
