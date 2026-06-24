@@ -57,8 +57,11 @@ public:
 
         const float s = amplitude_ * gain_ * (float) std::sin (phase_);
 
+        // Keep phase in [0, 2pi) so sin() stays precise. Wrap BOTH ways: a negative frequency
+        // (or a future downward sweep through 0) would otherwise drift unboundedly negative.
         phase_ += phaseDelta_;
-        if (phase_ >= kTwoPi) phase_ -= kTwoPi;   // keep phase small so sin() stays precise
+        while (phase_ >= kTwoPi) phase_ -= kTwoPi;
+        while (phase_ < 0.0)     phase_ += kTwoPi;
         return s;
     }
 
