@@ -77,9 +77,10 @@ jobs:
       - name: Test (headless DSP self-check)
         run: ctest --preset ci
 
-  # Real-time safety: compile the pure DSP test with -fsanitize=realtime and run it. RTSan ABORTS if
-  # the [[clang::nonblocking]] hot path (SineSource::processMono/nextSample) ever allocates, locks, or
-  # does I/O — CLAUDE.md's "audio thread never allocates" rule, enforced mechanically. Needs Clang 20+
+  # Real-time safety: compile the pure tests with -fsanitize=realtime and run them. RTSan ABORTS if any
+  # [[clang::nonblocking]] (YESDAW_RT_HOT) hot path ever allocates, locks, or does I/O. That now spans the
+  # whole engine (Runtime::processBlock -> CompiledGraph::process -> every Node::process), not just the
+  # retired SineSource spike — CLAUDE.md's "audio thread never allocates" rule, enforced mechanically. Needs Clang 20+
   # (where RTSan landed). YesDawCheck is pure (no JUCE), so no X11/audio deps are required here.
   rtsan:
     name: RTSan (audio thread no-alloc)
