@@ -22,6 +22,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0002](0002-realtime-engine-foundations.md) | Real-time engine foundations | Accepted |
 | [0003](0003-product-full-multitrack-daw.md) | Product: a full multi-track DAW | Accepted |
 | [0004](0004-stack-juce-framework-own-engine.md) | Stack: C++/JUCE framework + our own engine | Accepted |
+| [0005](0005-mechanical-verification-and-ci-gates.md) | Mechanical verification — CI is the gate | Accepted |
 
 ## Decision status (the five research forks)
 
@@ -41,7 +42,9 @@ each milestone (H1, H3, …) is planned. See
 
 ### Engine decisions → ADR tracking
 
-So none is silently skipped (ADR numbers are provisional until written):
+So none is silently skipped (ADR numbers are provisional until written). **Note (2026-06-23):** ADR
+**0005** is now the mechanical-verification/CI-gates decision (above); the engine-decision target
+numbers below are provisional and will be assigned from **0006** onward as each is written.
 
 | # | Decision | Target ADR | Milestone |
 |---|---|---|---|
