@@ -336,6 +336,8 @@ TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistenc
     REQUIRE (value == kCodeSchemaVersion);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1 AND app_build = 'interrupted';", value).ok());
+    REQUIRE (value == 0);
 
     std::string integrity;
     REQUIRE (reopened.queryText ("PRAGMA integrity_check;", integrity).ok());
