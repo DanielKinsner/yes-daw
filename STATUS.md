@@ -16,8 +16,14 @@ worklog.
 
 ---
 
-## Now — the one small task in flight
-- **First engine code: the RT-safe graph-swap core (ADR-0006) is in and green.** `src/engine/Runtime.h`
+## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: the Node contract (ADR-0008) is frozen + green.** `src/engine/Node.h` is the CLAP-shaped
+  trait (`NodeProperties`/`AudioBlock`/`ProcessArgs` + `prepare`/`process`/`reset`/`release`/`directInputs`);
+  `process` is `noexcept` + `YESDAW_RT_HOT` (RTSan-clean). First built-in `OscillatorNode` (wraps
+  `SineSource`); the H0 throwaway Node stub is retired and block-size independence is re-asserted through
+  the real trait. `EventStream`/`Transport` are placeholders fleshed out by ADR-0009/0010. CI green on
+  `787d854` (RTSan/TSan/3-OS).
+- **Foundation: the RT-safe graph-swap core (ADR-0006) is in and green.** `src/engine/Runtime.h`
   is the seam between the control thread and the one audio thread: one ordered **choc SPSC** command
   queue carries `SwapGraph` (with a `SetGain`/`SetPan` seam reserved); the audio thread owns `current_`
   and reads an immutable `CompiledGraph`; retired graphs go to an audio→control queue and a
@@ -50,8 +56,8 @@ worklog.
   *(`src/engine/{CompiledGraph,Command,Runtime}.h`, `tests/{compiledgraph,runtime}_tests.cpp`.)*
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates.
-- [ ] Built-in Nodes behind the contract (ADR-0008): `SourceNode → FaderNode → PanNode →
-  SumNode(Master) → device`, plus `MeterNode`; f64 Bus summing.
+- [~] Built-in Nodes behind the contract (ADR-0008) — **contract frozen + `OscillatorNode` in & green**;
+  remaining: `FaderNode → PanNode → SumNode(Master)` + `MeterNode`, f64 Bus summing, wire to device.
 - [ ] Generic event stream flowing param-changes (ADR-0009); automation evaluated sample-accurately.
 - [ ] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
 - [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
@@ -134,16 +140,22 @@ worklog.
   `current_` + audio→control retire queue + generation-counter janitor (strict `processedGen>retiredAtGen`).
   Design from a 4-design/3-judge adversarial panel; grafts applied (backpressure, POD command, lock-free
   `static_assert`, canary, INVARIANT comments). New **TSan CI leg** added. 25/25 local; choc
-  `getFreeSlots()` off-by-one found + fixed. choc pinned (`5685fb5`).
+  `getFreeSlots()` off-by-one found + fixed. choc pinned (`5685fb5`). Then a 3-reviewer adversarial code
+  review (7 findings, all fixed: canary→always-on, dtor contract, null-publish guard, …) — CI green on
+  `747f46a` (RTSan + TSan + 3-OS).
+- 2026-06-23 — **Node contract landed (ADR-0008)** — `src/engine/Node.h` (CLAP-shaped trait) +
+  `src/engine/nodes/OscillatorNode.h`; H0 stub retired; block-size independence re-asserted through the
+  real trait; `process` RTSan-clean. CI green on `787d854`.
 
 ## Next
-- ✅ **Agentic-loop workflow: adopted in full** (active at H1).
-- ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006).
-- **Once CI is green (incl. the new RTSan + TSan legs on the swap core), continue the spine green-small**
-  (see the H1 checklist). Likely next chunk: the **Node contract (ADR-0008) + a couple built-in Nodes**
-  so `CompiledGraph` can hold real processing, then the **time model types (ADR-0010)** for the
-  round-trip exit. Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; each contract gets a
-  golden/round-trip Catch2 test; every commit independently green.
+- ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
+  contract + first built-in node** (ADR-0008) — all CI-green.
+- **Next chunk: more built-in Nodes (`Fader`/`Pan`/`Sum`/`Meter`, f64 Bus summing) + the real
+  `CompiledGraph` 5-pass compiler with PDC wired in (ADR-0007)** — the stub `CompiledGraph::process`
+  becomes "iterate the compiled Nodes." That is the meaty H1 piece (PDC longest-path, buffer pool,
+  order-shuffle invariant); worth its own focused pass, likely with a design panel. In parallel the
+  **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread function gets
+  `YESDAW_RT_HOT` + RTSan; each contract gets a golden/round-trip Catch2 test; every commit green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
