@@ -27,4 +27,8 @@ Thumbs.db
 
 # C++ / CMake
 cmake-build-*/
+build-*/
 *.user
+
+# Soak run output (regenerated each run)
+soak-stats.json

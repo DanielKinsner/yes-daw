@@ -96,11 +96,13 @@ jobs:
           sudo ./llvm.sh 20
           sudo apt-get install -y ninja-build
 
-      - name: Configure (RTSan, Clang 20)
+      # YESDAW_BUILD_APPS=OFF -> only the pure Catch2 test is configured, so this leg needs neither
+      # the JUCE clone nor the X11/ALSA dev libs JUCE's modules require at configure time.
+      - name: Configure (RTSan, Clang 20, test-only)
         run: >
           cmake -B build-rt -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
           -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          -DYESDAW_SANITIZER=realtime
+          -DYESDAW_BUILD_APPS=OFF -DYESDAW_SANITIZER=realtime
 
       - name: Build the headless test
         run: cmake --build build-rt --target YesDawCheck
