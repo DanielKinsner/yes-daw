@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — snap/grid worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — snap/grid worker green; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,7 +17,7 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H2 snap/grid tick math foundation is green locally.** Added the smallest headless
+- **Latest: WORKER H2 snap/grid tick math foundation is green.** Added the smallest headless
   integer snap/grid surface to the ADR-0010 time layer: `SnapGrid`, `snapTick`, exact grid-index
   readback, and checked grid-index→Tick derivation. Snapped values remain derived from Tick/grid inputs;
   no Project schema, persistence, Clip editing operations, undo/redo, UI, export, plugin hosting, H3
@@ -25,7 +25,8 @@ worklog.
   edits. `YesDawTimeCheck` now proves deterministic nearest-grid integer behavior, stable/idempotent
   snapping, exact snapped Tick↔grid-index round trips, invalid-grid rejection, and overflow refusal.
   Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci` pass (127/127). Remote CI is pending until this worker commit is pushed.
+  `ctest --preset ci` pass (127/127). Remote CI run `28135729287` for worker commit `f7975bb` is green
+  across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 snap/grid tick math foundation.
 - **Latest: REVIEW/FIX H2 waveform peak-cache foundation is green locally.** Reviewed worker commit
   `fa62e3b` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
