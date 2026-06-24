@@ -235,7 +235,11 @@ public:
     // allocation, lock, or syscall (enforced by RTSan). numFrames <= maxBlockSize.
     virtual void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT = 0;
 
-    // Drop transient state (envelopes, delay lines) to zero without reallocating. RT-safe.
+    // Drop transient state (envelopes, delay lines) to zero without reallocating. Intended to run on the
+    // audio thread between process() Blocks, so it must be RT-safe (no alloc/lock/syscall) — the built-ins
+    // honour this by construction. NB: unlike process(), reset() is NOT marked YESDAW_RT_HOT, so RTSan
+    // does not yet *mechanically* enforce it; marking the overrides + an RTSan-exercised reset test is a
+    // tracked follow-up from the H1 coverage review.
     virtual void reset() noexcept = 0;
 
     // Free what prepare() allocated. Not RT-safe; control thread.
