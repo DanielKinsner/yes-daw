@@ -27,11 +27,13 @@ using yesdaw::engine::AudioBlock;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
+using yesdaw::engine::DelayCacheEntry;
 using yesdaw::engine::DelayNode;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::IdentityDcNode;
+using yesdaw::engine::InputSlot;
 using yesdaw::engine::kNoSlot;
 using yesdaw::engine::kSilenceSlot;
 using yesdaw::engine::MasterNode;
@@ -78,6 +80,41 @@ const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
             return &node;
 
     return nullptr;
+}
+
+const DelayCacheEntry* delayCacheByKey (const CompiledGraph& graph, NodeId key)
+{
+    graph.snapshotDelayCache();
+    for (const DelayCacheEntry& entry : graph.debugDelayCache())
+        if (entry.key == key)
+            return &entry;
+
+    return nullptr;
+}
+
+GraphBuilder::Inputs delayedIdentityInputs (float dc,
+                                            NodeId delayId,
+                                            std::int64_t delaySamples,
+                                            int maxBlockSize,
+                                            const CompiledGraph* previous = nullptr)
+{
+    auto source = std::make_unique<IdentityDcNode> (1, dc, 1);
+    auto delay = std::make_unique<DelayNode> (delayId, delaySamples, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    DelayNode* const delayPtr = delay.get();
+    delayPtr->setInput (sourcePtr);
+    master->setInputNodes ({ delayPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = maxBlockSize;
+    inputs.previousForCarryOver = previous;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (delay));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
 }
 
 class LinkNode final : public Node
@@ -275,6 +312,145 @@ TEST_CASE ("GraphBuilder renders an empty project as silence", "[builder][render
     const std::vector<float> out = render (*graph, 128);
     for (float v : out)
         REQUIRE (v == 0.0f);
+}
+
+TEST_CASE ("CompiledGraph mute flips take effect without rebuilding", "[builder][mute]")
+{
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph =
+        GraphBuilder::build (inputsWithMaster (std::make_unique<IdentityDcNode> (1, 0.5f, 1)), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugMuteMask() == 0u);
+
+    std::vector<float> out = render (*graph, 16);
+    for (float v : out)
+        REQUIRE (v == 0.5f);
+
+    REQUIRE (graph->setMuted (1, true));
+    REQUIRE (graph->isMuted (1));
+    REQUIRE (graph->debugMuteMask() != 0u);
+
+    out = render (*graph, 16);
+    for (float v : out)
+        REQUIRE (v == 0.0f);
+
+    REQUIRE (graph->setMuted (1, false));
+    REQUIRE_FALSE (graph->isMuted (1));
+
+    out = render (*graph, 16);
+    for (float v : out)
+        REQUIRE (v == 0.5f);
+
+    REQUIRE_FALSE (graph->setMuted (123456u, true));
+}
+
+TEST_CASE ("GraphBuilder carries matching DelayNode state across rebuilds", "[builder][carry-over]")
+{
+    constexpr NodeId kDelayId = 22;
+    constexpr int kDelay = 4;
+    constexpr int kFrames = 4;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> previous =
+        GraphBuilder::build (delayedIdentityInputs (1.0f, kDelayId, kDelay, kFrames), &error);
+    REQUIRE (previous != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::vector<float> priming = render (*previous, kFrames);
+    for (float v : priming)
+        REQUIRE (v == 0.0f);
+
+    std::unique_ptr<CompiledGraph> next =
+        GraphBuilder::build (delayedIdentityInputs (0.0f, kDelayId, kDelay, kFrames, previous.get()), &error);
+    REQUIRE (next != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::vector<float> carried = render (*next, kFrames);
+    for (float v : carried)
+        REQUIRE (v == 1.0f);
+}
+
+TEST_CASE ("GraphBuilder carry-over zero-fills mismatched DelayNode tails", "[builder][carry-over]")
+{
+    constexpr NodeId kDelayId = 33;
+    constexpr int kFrames = 4;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> previous =
+        GraphBuilder::build (delayedIdentityInputs (1.0f, kDelayId, 3, kFrames), &error);
+    REQUIRE (previous != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    (void) render (*previous, kFrames);
+
+    const DelayCacheEntry* const oldEntry = delayCacheByKey (*previous, kDelayId);
+    REQUIRE (oldEntry != nullptr);
+    const std::size_t oldRingSize = oldEntry->ring.size();
+
+    std::unique_ptr<CompiledGraph> next =
+        GraphBuilder::build (delayedIdentityInputs (0.0f, kDelayId, 12, kFrames, previous.get()), &error);
+    REQUIRE (next != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const DelayCacheEntry* const newEntry = delayCacheByKey (*next, kDelayId);
+    REQUIRE (newEntry != nullptr);
+    REQUIRE (newEntry->ring.size() > oldRingSize);
+
+    for (std::size_t i = oldRingSize; i < newEntry->ring.size(); ++i)
+        REQUIRE (newEntry->ring[i] == 0.0f);
+
+    const std::vector<float> out = render (*next, kFrames);
+    for (float v : out)
+        REQUIRE (std::isfinite (v));
+}
+
+TEST_CASE ("GraphBuilder sorts multi-input metadata by producer id and binds buses", "[builder][bind][order]")
+{
+    auto a = std::make_unique<IdentityDcNode> (30, 0.25f, 1);
+    auto b = std::make_unique<IdentityDcNode> (10, 0.5f, 1);
+    auto c = std::make_unique<IdentityDcNode> (20, 0.125f, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const aPtr = a.get();
+    IdentityDcNode* const bPtr = b.get();
+    IdentityDcNode* const cPtr = c.get();
+    master->setInputNodes ({ aPtr, bPtr, cPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 16;
+    inputs.nodes.push_back (std::move (a));
+    inputs.nodes.push_back (std::move (master));
+    inputs.nodes.push_back (std::move (b));
+    inputs.nodes.push_back (std::move (c));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugMultiInputNodesBound());
+
+    const CompiledNode* const masterNode = compiledNodeById (*graph, kMasterId);
+    REQUIRE (masterNode != nullptr);
+    REQUIRE (masterNode->numInputs == 3u);
+
+    const std::span<const InputSlot> slots = graph->debugInputSlots();
+    const std::span<const CompiledNode> nodes = graph->debugCompiledNodes();
+    REQUIRE (slots.size() >= static_cast<std::size_t> (masterNode->inputsBegin) + masterNode->numInputs);
+
+    std::vector<NodeId> producerIds;
+    for (std::uint32_t i = 0; i < static_cast<std::uint32_t> (masterNode->numInputs); ++i)
+    {
+        const InputSlot& slot = slots[static_cast<std::size_t> (masterNode->inputsBegin) + i];
+        producerIds.push_back (nodes[slot.producerNodeIdx].id);
+    }
+
+    REQUIRE (producerIds == std::vector<NodeId> { 10u, 20u, 30u });
+
+    const std::vector<float> out = render (*graph, 16);
+    for (float v : out)
+        REQUIRE (v == 0.875f);
 }
 
 TEST_CASE ("GraphBuilder sizes the float pool to live width instead of node count", "[builder][pool]")

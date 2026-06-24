@@ -1,7 +1,7 @@
 // YES DAW — GraphBuilder (ADR-0007): control-thread compiler for immutable CompiledGraph snapshots.
 //
-// Slice I implements Pass 4 buffer-pool allocation on top of the Pass 3 PDC plan. Carry-over, mute, and
-// scalar routing land in later slices.
+// Slice J implements Pass 5 mute metadata/state, delay carry-over, and multi-input bind checks. The
+// scalar routing seam lands in slice K.
 
 #pragma once
 
@@ -16,6 +16,7 @@
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -101,6 +102,7 @@ public:
         NodeId  masterNodeId = kDefaultMasterNodeId;
         double  sampleRate   = 48000.0;
         int     maxBlockSize = 512;
+        const CompiledGraph* previousForCarryOver = nullptr;
         std::vector<std::unique_ptr<Node>> nodes;
     };
 
@@ -195,10 +197,13 @@ public:
         if (! buildCompiledMetadata (compileItems, maxBlockSize, payload, error))
             return nullptr;
         bindBusNodes (payload);
+        assert (allMultiInputNodesBound (payload));
 
         for (CompiledNode& cn : payload.compiledNodes)
             if (cn.node != nullptr)
                 cn.node->prepare (inputs.sampleRate, maxBlockSize);
+
+        carryOverDelayState (payload, inputs.previousForCarryOver);
 
         return std::make_unique<CompiledGraph> (std::move (payload));
     }
@@ -525,6 +530,7 @@ private:
             cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
             cn.outputSlot  = outputSlot;
             cn.pathLatency = item.pathLatency;
+            cn.muteBit     = compiledIdx < 64u ? static_cast<std::uint8_t> (compiledIdx) : kNoMuteBit;
             cn.kind        = item.kind;
             cn.aliasOk     = aliasOk;
 
@@ -537,7 +543,17 @@ private:
                 ++nextDoubleSlot;
             }
 
-            for (const std::size_t inputIdx : item.inputs)
+            std::vector<std::size_t> orderedInputs = item.inputs;
+            if (orderedInputs.size() > 1u)
+            {
+                std::sort (orderedInputs.begin(), orderedInputs.end(),
+                           [&items] (std::size_t a, std::size_t b)
+                           {
+                               return items[a].props.id < items[b].props.id;
+                           });
+            }
+
+            for (const std::size_t inputIdx : orderedInputs)
             {
                 payload.inputSlotIndices.push_back (InputSlot {
                     outputSlots[inputIdx],
@@ -701,6 +717,64 @@ private:
                     master->bindInputs (masterInputsFor (payload, cn));
             }
         }
+    }
+
+    static bool allMultiInputNodesBound (const CompiledGraph::Payload& payload) noexcept
+    {
+        for (const CompiledNode& cn : payload.compiledNodes)
+        {
+            if (cn.kind == CompiledNodeKind::Sum)
+            {
+                const SumNode* const sum = dynamic_cast<const SumNode*> (cn.node);
+                if (sum == nullptr || ! sum->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Master)
+            {
+                const MasterNode* const master = dynamic_cast<const MasterNode*> (cn.node);
+                if (master == nullptr || ! master->isBound())
+                    return false;
+            }
+            else if (cn.numInputs > 1u)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static void carryOverDelayState (CompiledGraph::Payload& payload, const CompiledGraph* previous)
+    {
+        if (previous == nullptr)
+            return;
+
+        previous->snapshotDelayCache();
+        const std::span<const DelayCacheEntry> cache = previous->debugDelayCache();
+
+        for (CompiledNode& cn : payload.compiledNodes)
+        {
+            if (cn.kind != CompiledNodeKind::Delay && cn.kind != CompiledNodeKind::Latency)
+                continue;
+
+            DelayNode* const delay = dynamic_cast<DelayNode*> (cn.node);
+            const DelayCacheEntry* const entry = findDelayCacheEntry (cache, cn.id);
+            if (delay != nullptr && entry != nullptr)
+                delay->restoreState (std::span<const float> (entry->ring.data(), entry->ring.size()), entry->writePos);
+        }
+    }
+
+    static const DelayCacheEntry* findDelayCacheEntry (std::span<const DelayCacheEntry> cache, NodeId key) noexcept
+    {
+        const auto it = std::lower_bound (cache.begin(), cache.end(), key,
+                                          [] (const DelayCacheEntry& entry, NodeId value)
+                                          {
+                                              return entry.key < value;
+                                          });
+        if (it == cache.end() || it->key != key)
+            return nullptr;
+
+        return &(*it);
     }
 
     static std::vector<SumNode::Input> sumInputsFor (const CompiledGraph::Payload& payload, const CompiledNode& cn)

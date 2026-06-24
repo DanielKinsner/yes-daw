@@ -88,17 +88,27 @@ public:
             pending_.push_back (r);
 
         for (const Retired& p : pending_)
+        {
+            if (p.graph != nullptr)
+                p.graph->snapshotDelayCache();
             delete p.graph;
+        }
 
         pending_.clear();
 
+        if (current_ != nullptr)
+            current_->snapshotDelayCache();
         delete current_;
         current_ = nullptr;
 
         Command c;
         while (cmdFifo_.pop (c))
             if (c.type == CommandType::SwapGraph)
+            {
+                if (c.graph != nullptr)
+                    c.graph->snapshotDelayCache();
                 delete c.graph;
+            }
     }
 
     Runtime (const Runtime&)            = delete;
@@ -193,6 +203,8 @@ public:
         {
             if (gen > pending_[i].retiredAtGen)   // strict-greater: ADR-0006 verbatim, the airtight fence-post
             {
+                if (pending_[i].graph != nullptr)
+                    pending_[i].graph->snapshotDelayCache();
                 delete pending_[i].graph;
                 ++freed;
             }

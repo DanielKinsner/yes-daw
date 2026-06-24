@@ -23,8 +23,12 @@
 
 #include "dsp/ScopedNoDenormals.h"
 #include "engine/Node.h"
+#include "engine/nodes/DelayNode.h"
+#include "engine/nodes/MasterNode.h"
+#include "engine/nodes/SumNode.h"
 #include "rt/RtHot.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -44,6 +48,7 @@ using DSlotIndex = std::uint16_t;
 
 inline constexpr SlotIndex kSilenceSlot = 0;
 inline constexpr SlotIndex kNoSlot      = 0xFFFFu;
+inline constexpr std::uint8_t kNoMuteBit = 0xFFu;
 
 enum class CompiledNodeKind : std::uint8_t
 {
@@ -92,6 +97,16 @@ struct BufferPoolLayout
     std::uint16_t numDoubleSlots     = 0;
     std::uint16_t maxChannelsPerSlot = 1;
     std::uint32_t maxBlockSize       = 0;
+};
+
+struct DelayCacheEntry
+{
+    NodeId       key              = 0;
+    std::int64_t delaySamples     = 0;
+    int          channels         = 0;
+    std::uint32_t framesPerChannel = 0;
+    std::uint32_t writePos         = 0;
+    std::vector<float> ring;
 };
 
 class CompiledGraph
@@ -187,6 +202,7 @@ public:
         const InputSlot* const    inputs  = inputSlotIndices_.data();
         float* const* const       slots   = floatSlotPtrs_.data();
         const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
+        const std::uint64_t       muteMask = muteMask_.load (std::memory_order_relaxed);
 
 #if ! defined (NDEBUG) || defined (YESDAW_TEST_DEBUG_POOL_PAINT)
         debugPaintPooledSlots (slots, poolLayout_.numFloatSlots, maxCh, numFrames);
@@ -199,8 +215,12 @@ public:
                 continue;
 
             float* const* const outChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
-            if (! cn.aliasOk)
+            const bool muted = cn.muteBit < 64u && ((muteMask & (1ull << cn.muteBit)) != 0);
+
+            if (! cn.aliasOk || muted)
                 zeroChannels (outChannels, cn.numChannels, numFrames);
+            if (muted)
+                continue;
 
             const bool busLike = cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master;
             if (cn.numInputs == 1 && ! busLike && ! cn.aliasOk)
@@ -236,8 +256,91 @@ public:
     bool    isDegenerate() const noexcept { return isDegenerate_; }
     std::int64_t totalLatency() const noexcept { return totalLatency_; }
 
+    [[nodiscard]] bool setMuted (NodeId id, bool muted) noexcept
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->muteBit >= 64u)
+            return false;
+
+        const std::uint64_t bit = 1ull << node->muteBit;
+        if (muted)
+            muteMask_.fetch_or (bit, std::memory_order_relaxed);
+        else
+            muteMask_.fetch_and (~bit, std::memory_order_relaxed);
+
+        return true;
+    }
+
+    [[nodiscard]] bool isMuted (NodeId id) const noexcept
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->muteBit >= 64u)
+            return false;
+
+        return (muteMask_.load (std::memory_order_relaxed) & (1ull << node->muteBit)) != 0;
+    }
+
+    void snapshotDelayCache() const
+    {
+        delayCache_.clear();
+        delayCache_.reserve (debugCountNodesOfKind (CompiledNodeKind::Delay)
+                             + debugCountNodesOfKind (CompiledNodeKind::Latency));
+
+        for (const CompiledNode& cn : compiledNodes_)
+        {
+            if (cn.kind != CompiledNodeKind::Delay && cn.kind != CompiledNodeKind::Latency)
+                continue;
+
+            const DelayNode* const delay = dynamic_cast<const DelayNode*> (cn.node);
+            if (delay == nullptr)
+                continue;
+
+            DelayCacheEntry entry;
+            entry.key              = cn.id;
+            entry.delaySamples     = delay->delaySamples();
+            entry.channels         = delay->channels();
+            entry.framesPerChannel = delay->framesPerChannel();
+            entry.writePos         = delay->writePos();
+
+            const std::span<const float> ring = delay->ringState();
+            entry.ring.assign (ring.begin(), ring.end());
+            delayCache_.push_back (std::move (entry));
+        }
+
+        std::sort (delayCache_.begin(), delayCache_.end(),
+                   [] (const DelayCacheEntry& a, const DelayCacheEntry& b) { return a.key < b.key; });
+    }
+
+    bool debugMultiInputNodesBound() const noexcept
+    {
+        for (const CompiledNode& cn : compiledNodes_)
+        {
+            if (cn.kind == CompiledNodeKind::Sum)
+            {
+                const SumNode* const sum = dynamic_cast<const SumNode*> (cn.node);
+                if (sum == nullptr || ! sum->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Master)
+            {
+                const MasterNode* const master = dynamic_cast<const MasterNode*> (cn.node);
+                if (master == nullptr || ! master->isBound())
+                    return false;
+            }
+            else if (cn.numInputs > 1u)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     const BufferPoolLayout& debugPoolLayout() const noexcept { return poolLayout_; }
     std::span<const CompiledNode> debugCompiledNodes() const noexcept { return compiledNodes_; }
+    std::span<const InputSlot> debugInputSlots() const noexcept { return inputSlotIndices_; }
+    std::span<const DelayCacheEntry> debugDelayCache() const noexcept { return delayCache_; }
+    std::uint64_t debugMuteMask() const noexcept { return muteMask_.load (std::memory_order_relaxed); }
 
     std::size_t debugCountNodesOfKind (CompiledNodeKind kind) const noexcept
     {
@@ -303,6 +406,20 @@ private:
             }
     }
 
+    const CompiledNode* findCompiledNode (NodeId id) const noexcept
+    {
+        const auto it = std::lower_bound (idIndex_.begin(), idIndex_.end(), id,
+                                          [] (const auto& item, NodeId value) { return item.first < value; });
+        if (it == idIndex_.end() || it->first != id)
+            return nullptr;
+
+        const std::uint32_t compiledIdx = it->second;
+        if (compiledIdx >= compiledNodes_.size())
+            return nullptr;
+
+        return &compiledNodes_[compiledIdx];
+    }
+
     GraphId       id_;
     float         identityDc_;
     std::uint32_t canary_ = kCanary;
@@ -320,6 +437,7 @@ private:
     SlotIndex                                     masterOutputSlot_ = kSilenceSlot;
     std::uint16_t                                 masterChannels_   = 1;
     std::vector<std::pair<NodeId, std::uint32_t>> idIndex_;
+    mutable std::vector<DelayCacheEntry>          delayCache_;
     bool                                          isDegenerate_     = true;
 
     static inline std::atomic<std::uint64_t> alive_ { 0 };

@@ -22,6 +22,7 @@
 
 #include "engine/Node.h"   // the frozen Node contract (ADR-0008)
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <span>
@@ -115,6 +116,27 @@ public:
     // Builder-only wiring (control thread). Not part of the Node trait.
     void         setInput (Node* in) noexcept { input_ = in; }
     std::int64_t delaySamples() const noexcept { return delaySamples_; }
+    int          channels() const noexcept { return channels_; }
+    std::uint32_t framesPerChannel() const noexcept { return framesPerChannel_; }
+    std::uint32_t writePos() const noexcept { return writePos_; }
+    std::span<const float> ringState() const noexcept { return std::span<const float> (ring_.data(), ring_.size()); }
+
+    void restoreState (std::span<const float> previousRing, std::uint32_t previousWritePos) noexcept
+    {
+        if (ring_.empty())
+        {
+            writePos_ = 0;
+            return;
+        }
+
+        std::memset (ring_.data(), 0, ring_.size() * sizeof (float));
+
+        const std::size_t copyCount = std::min (ring_.size(), previousRing.size());
+        if (copyCount > 0)
+            std::memcpy (ring_.data(), previousRing.data(), copyCount * sizeof (float));
+
+        writePos_ = mask_ != 0 ? (previousWritePos & mask_) : 0;
+    }
 
 private:
     NodeId             id_;

@@ -17,7 +17,15 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX compiler slice I is green locally.** Reviewed `cdbefd3` against the locked
+- **Latest: WORKER compiler slice J is green locally.** Pass 5 now assigns mute bits, exposes an atomic
+  mute mask on `CompiledGraph`, carries `DelayNode` ring state from `previousForCarryOver`, sorts
+  multi-input metadata by producer `NodeId`, and asserts/debug-checks that bus-style multi-input nodes
+  were bound on the control thread. Runtime janitor reclamation snapshots delay rings before delete.
+  New coverage proves mute flip without rebuild, matching delay carry-over continuity, mismatched
+  delay-ring zero-fill/no-NaN output, deterministic input order, and an assertable unbound-bus failure.
+  Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (77/77).
+  **Next:** REVIEW/FIX compiler slice J. Do not start slice K until that review/fix checkpoint is green.
+- **Previous: REVIEW/FIX compiler slice I is green locally.** Reviewed `cdbefd3` against the locked
   compiler design plus ADR-0007/0008. The Pass 4 pool shape is correct: greedy last-reader allocation
   is sized to live width, slot 0 remains permanent silence, R3 aliasing is limited to the locked
   Fader/Meter predicate, and Sum/Master f64 scratch metadata stays separate from f32 audio slots.
@@ -117,8 +125,8 @@ worklog.
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
   commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), H (PDC), and I
-  (buffer pool) are done and reviewed/fixed; next implementation commits are J (carry-over) → K
-  (SetGain seam).
+  (buffer pool) are done and reviewed/fixed; worker commit J (mute + carry-over + bind-check) is done
+  locally and awaits REVIEW/FIX; K (SetGain seam) follows only after J review/fix is green.
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -259,12 +267,17 @@ worklog.
   ADR-0007/0008. Fixed two review gaps: added the locked debug NaN pool paint to the builder gate, and
   made Sum/Master input binding safe at the exact `uint16_t` maximum fan-in. Local `ci` build + 72/72
   tests green.
+- 2026-06-24 — **CompiledGraph compiler slice J landed locally.** Added Pass 5 mute metadata/state,
+  delay-state carry-over from `previousForCarryOver`, deterministic producer-id input ordering, and
+  assertable bus bind checks without changing the frozen Node trait or landing slice K scalar routing.
+  Runtime reclamation snapshots delay rings before delete. Local `ci` build + 77/77 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER compiler slice J (ADR-0007).** Implement Pass 5 mute + carry-over + bind-check.
-  SetGain seam (K) follows only after slice J is reviewed/fixed green.
+- **Next chunk: REVIEW/FIX compiler slice J (ADR-0007).** Verify Pass 5 mute + carry-over + bind-check
+  against the locked compiler design and ADR-0007/0008. SetGain seam (K) follows only after slice J is
+  reviewed/fixed green.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 

@@ -5,6 +5,7 @@
 // on the normal matrix AND the RTSan/TSan legs.
 
 #include "engine/CompiledGraph.h"
+#include "engine/nodes/SumNode.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -13,9 +14,12 @@
 #include <vector>
 
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::CompiledNode;
+using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::ProcessArgs;
+using yesdaw::engine::SumNode;
 
 namespace {
 
@@ -84,4 +88,24 @@ TEST_CASE ("CompiledGraph releases owned Nodes on the janitor side before destru
     }
 
     REQUIRE (released);
+}
+
+TEST_CASE ("CompiledGraph exposes an assertable unbound multi-input check", "[graph][bind]")
+{
+    auto sum = std::make_unique<SumNode> (7, 1);
+    SumNode* const sumPtr = sum.get();
+
+    CompiledGraph::Payload payload;
+    payload.nodeStorage.push_back (std::move (sum));
+
+    CompiledNode cn;
+    cn.node = sumPtr;
+    cn.id = 7;
+    cn.kind = CompiledNodeKind::Sum;
+    cn.numInputs = 2;
+    cn.numChannels = 1;
+    payload.compiledNodes.push_back (cn);
+
+    CompiledGraph graph (std::move (payload));
+    REQUIRE_FALSE (graph.debugMultiInputNodesBound());
 }
