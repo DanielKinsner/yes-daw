@@ -6,6 +6,16 @@
 > canvas — plan-recommended and cost-validated by the H0 timeline spike); the formal UI-stack ADR
 > (fork #2) lands at H1.
 
+## Reference mockup (the agreed look)
+![YES DAW — arrangement view reference](docs/design/arrangement-view-reference.png)
+
+The committed UI north-star: [`docs/design/arrangement-view-reference.png`](docs/design/arrangement-view-reference.png).
+A **look-and-feel target, not a literal spec** — it spans horizons: the timeline + tracks + clips +
+mixer + transport + inspector are **H2** (most of which is "draw the engine that already exists"); the
+per-clip insert chains (Clip FX — De-Esser / Compressor / EQ) and the send/return strips (Room Verb,
+Delay) are **plugin hosting, H3**. Implementation is native JUCE (Components + GPU timeline canvas), not
+this web render.
+
 ## What it is
 A from-scratch, **professional general-purpose multi-track DAW** — Logic Pro / Pro Tools / Cubase /
 Sonar class. Desktop app. The **linear timeline** is the core, and the thing it must be great at first
