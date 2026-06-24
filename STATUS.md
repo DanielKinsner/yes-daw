@@ -27,9 +27,12 @@ worklog.
   canary, INVARIANT comments). 25/25 Catch2 tests pass locally (MSVC); a 2-thread stress test is the
   **new TSan leg's** target. RTSan covers `processBlock`. *(A real bug surfaced + fixed: choc's
   `getFreeSlots()` over-reports by one, so the backpressure gate now uses `getUsedSlots()`.)*
-- **Verification:** local MSVC build + ctest is the fast signal; the real RT/concurrency gates are
-  CI-only — **RTSan** (no alloc/lock on the hot path) + the **new TSan** leg (the release/acquire
-  contract has no data race). Watching CI on the push.
+- **Verification: GREEN.** CI on `747f46a` passed every leg — Windows/Linux/macOS build + ctest,
+  **RTSan** (audio hot path never allocates/locks) and the **new TSan** leg (the release/acquire
+  reclamation contract has no data race). The concurrency core is now mechanically proven, not argued.
+  A 4-design panel + 3-judge design pass and a 3-reviewer adversarial code review (7 findings, all
+  fixed) preceded green. *(One CI-only bug fixed post-push: a `Config cfg = {}` default arg MSVC
+  accepts but Clang/GCC reject.)*
 - **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
   into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
