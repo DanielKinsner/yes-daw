@@ -36,12 +36,23 @@ FetchContent_Declare(choc
   GIT_TAG        5685fb59db9e60d31a35df7bff0ce7967beaaf25
   GIT_SHALLOW    FALSE
   SYSTEM)
+FetchContent_Declare(sqlite3
+  URL       https://www.sqlite.org/2026/sqlite-amalgamation-3530200.zip
+  URL_HASH SHA3_256=81142986038e18f96c4a54e1a72562ae17e502a916f2a7701eff43388cbf1a40
+  SYSTEM)
 
 if (YESDAW_BUILD_APPS)
-  FetchContent_MakeAvailable(JUCE Catch2 choc)
+  FetchContent_MakeAvailable(JUCE Catch2 choc sqlite3)
 else()
-  FetchContent_MakeAvailable(Catch2 choc)   # RTSan/TSan leg: skip the JUCE clone, still get choc
+  FetchContent_MakeAvailable(Catch2 choc sqlite3)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
+
+add_library(sqlite3_amalgamation STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
+target_include_directories(sqlite3_amalgamation SYSTEM PUBLIC ${sqlite3_SOURCE_DIR})
+target_compile_definitions(sqlite3_amalgamation PRIVATE
+  SQLITE_DQS=0
+  SQLITE_OMIT_LOAD_EXTENSION
+  SQLITE_THREADSAFE=1)
 
 # --- Hardening: warnings-as-errors on OUR code only + an optional sanitizer --------
 # CLAUDE.md makes warnings-as-errors a mechanical gate. JUCE/Catch2 are SYSTEM (above),
@@ -173,6 +184,13 @@ target_include_directories(YesDawProjectCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawProjectCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawProjectCheck)
 catch_discover_tests(YesDawProjectCheck)
+
+# --- Persistence check (H1; SQLite .yesdaw bundle schema/migrations/intent log — ADR-0012) ---
+add_executable(YesDawPersistenceCheck tests/persistence_tests.cpp)
+target_include_directories(YesDawPersistenceCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawPersistenceCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawPersistenceCheck)
+catch_discover_tests(YesDawPersistenceCheck)
 
 # --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
 add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
