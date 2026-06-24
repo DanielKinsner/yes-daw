@@ -153,6 +153,13 @@ target_link_libraries(YesDawEngineCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEngineCheck)
 catch_discover_tests(YesDawEngineCheck)
 
+# --- Time-model check (H1; pure, ADR-0010 storage-facing value types) ---
+add_executable(YesDawTimeCheck tests/time_tests.cpp)
+target_include_directories(YesDawTimeCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawTimeCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawTimeCheck)
+catch_discover_tests(YesDawTimeCheck)
+
 # --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
 add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
 target_include_directories(YesDawGraphCheck PRIVATE ${YESDAW_SRC_DIR})

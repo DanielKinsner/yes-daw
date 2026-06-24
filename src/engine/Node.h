@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "engine/Time.h"
 #include "rt/RtHot.h"
 
 #include <cstdint>
@@ -40,11 +41,10 @@ struct AudioBlock
     int           numChannels = 0;
 };
 
-// Placeholders for the contracts that flow through process() but are frozen in their own ADRs — present
-// now so ProcessArgs has its frozen shape from the first Node. ADR-0009 / ADR-0010 give them bodies; a
-// Node that consumes neither simply ignores them.
+// Placeholder for the event contract that flows through process() but is frozen in ADR-0009 — present
+// now so ProcessArgs has its frozen shape from the first Node. A Node that consumes no events simply
+// ignores it.
 struct EventStream { /* ADR-0009: sample-accurate, block-sliced events. */ };
-struct Transport   { /* ADR-0010: playhead + tempo/meter map. */ };
 
 struct ProcessArgs
 {

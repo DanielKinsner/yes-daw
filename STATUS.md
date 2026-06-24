@@ -17,7 +17,14 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX compiler slice K is green locally.** Reviewed `e88a6b4` against ADR-0006/0007/0008
+- **Latest: WORKER ADR-0010 time-model types slice is green locally.** Added `src/engine/Time.h` with
+  the storage-facing time value surface: canonical `Tick`, `PPQ = 15360`, render-only `MusicalTime`,
+  `TimeBase`, tempo/meter change records, `SampleRate`, resample quality tiers, non-owning tempo/meter
+  map views, and the ADR-0010 `Transport` body used by `Node::process`. New `YesDawTimeCheck` locks
+  PPQ, enum storage values, fraction validity, map-view shape, and the default project sample rate.
+  No ADR or golden edits. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (88/88).
+  **Next:** REVIEW/FIX ADR-0010 time-model types slice.
+- **Previous: REVIEW/FIX compiler slice K is green locally.** Reviewed `e88a6b4` against ADR-0006/0007/0008
   and the locked compiler design. No code defect found: `Runtime` routes `SetGain`/`SetPan` through the
   one ordered command queue to the `CompiledGraph` current at each command point, `applySetGain`/
   `applySetPan` use the sorted `idIndex_` lookup and return false for degenerate/missing/wrong-kind
@@ -306,13 +313,17 @@ worklog.
   graph current at each command point, `idIndex_` lookup returns false for degenerate/missing/wrong-kind
   targets, `Node.h` stayed frozen, and slice I/J invariants remain intact. Local `ci` build + 84/84
   tests green.
+- 2026-06-24 — **ADR-0010 time-model types landed locally.** Added the pure C++ time value surface
+  (`Tick`, `PPQ = 15360`, `MusicalTime`, `TimeBase`, tempo/meter change records, sample-rate/resample
+  tier records, non-owning map views, and `Transport`) plus `YesDawTimeCheck`. Local `ci` build + 88/88
+  tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER time-model types (ADR-0010).** Add the small, frozen time-model type surface that
-  unblocks the round-trip exit. Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; every commit
-  green.
+- **Next chunk: REVIEW/FIX ADR-0010 time-model types slice.** Review/fix the new `Time.h`/`Transport`
+  surface against ADR-0010 and the round-trip contracts, then run the mechanical gate before the next
+  worker chunk.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
