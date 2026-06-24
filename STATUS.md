@@ -17,14 +17,19 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- **H1 kickoff: the seven irreversible contracts are frozen as ADRs (0006–0012)** — no engine code
-  lands before its ADR (CLAUDE.md). Written in dependency order: 0010 time/sample-rate · 0008 Node
-  contract · 0009 event stream + automation · 0007 CompiledGraph + PDC · 0006 immutable-snapshot
-  concurrency · 0011 Asset→Clip→Project + ULID · 0012 SQLite bundle + migrations. Two product calls
-  made by the owner: **sample-rate = keep original bytes, resample at read (non-destructive)**;
-  **automation ships all four curves (linear/hold/bezier/log)**. The three contested forks (PPQ=15360,
-  128-bit ULID, out-of-process hosting) were already resolved — just recorded. CONTEXT.md + the ADR
-  index are synced. **This is a docs-only checkpoint (no code), so CI is green by construction.**
+- **First engine code: the RT-safe graph-swap core (ADR-0006) is in and green.** `src/engine/Runtime.h`
+  is the seam between the control thread and the one audio thread: one ordered **choc SPSC** command
+  queue carries `SwapGraph` (with a `SetGain`/`SetPan` seam reserved); the audio thread owns `current_`
+  and reads an immutable `CompiledGraph`; retired graphs go to an audio→control queue and a
+  **generation-counter janitor** frees them on the strict-greater `processedGen > retiredAtGen`
+  fence-post. Design was chosen by a **4-design adversarial panel + 3 judges**; the must-fix grafts are
+  in (retire-queue backpressure, trivially-copyable POD command, `static_assert` lock-free, a debug
+  canary, INVARIANT comments). 25/25 Catch2 tests pass locally (MSVC); a 2-thread stress test is the
+  **new TSan leg's** target. RTSan covers `processBlock`. *(A real bug surfaced + fixed: choc's
+  `getFreeSlots()` over-reports by one, so the backpressure gate now uses `getUsedSlots()`.)*
+- **Verification:** local MSVC build + ctest is the fast signal; the real RT/concurrency gates are
+  CI-only — **RTSan** (no alloc/lock on the hot path) + the **new TSan** leg (the release/acquire
+  contract has no data race). Watching CI on the push.
 - **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
   into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
@@ -34,9 +39,12 @@ worklog.
 > during save/migration reopens cleanly (WAL recovery + `integrity_check`).
 - [x] **Freeze the irreversible contracts as ADRs 0006–0012** ✓ — graph+PDC, time model, event model,
   Node contract, concurrency, data-model indirection, persistence. (docs-only; CI green by construction.)
-- [ ] RT-safe audio callback skeleton (`YESDAW_RT_HOT` + RTSan coverage) — outputs silence from a
-  `nullptr` published graph.
-- [ ] SPSC command queue + `atomic<const CompiledGraph*>` swap + generation-counter janitor (ADR-0006).
+- [x] RT-safe audio callback skeleton (`YESDAW_RT_HOT` + RTSan coverage) — `Runtime::processBlock`
+  outputs silence from a `nullptr` graph, renders the installed graph otherwise. ✓
+- [x] SPSC command queue + queue-applied graph swap + generation-counter janitor (ADR-0006) ✓ — one
+  ordered choc queue (`SwapGraph`), audio-thread-local `current_`, audio→control retire queue, strict
+  `processedGen > retiredAtGen` fence-post; backpressure not leak. RTSan + TSan legs cover it in CI.
+  *(`src/engine/{CompiledGraph,Command,Runtime}.h`, `tests/{compiledgraph,runtime}_tests.cpp`.)*
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates.
 - [ ] Built-in Nodes behind the contract (ADR-0008): `SourceNode → FaderNode → PanNode →
@@ -118,16 +126,21 @@ worklog.
   curves), CompiledGraph + PDC, immutable-snapshot concurrency, Asset→Clip→Project + 128-bit ULID,
   SQLite bundle + migrations. Two owner product calls made; the resolved forks recorded; CONTEXT.md +
   the ADR index synced. Docs-only checkpoint → CI green by construction. GPU render shell folded to H2.
+- 2026-06-23 — **RT-safe graph-swap core landed (ADR-0006)** — `src/engine/{CompiledGraph,Command,Runtime}.h`:
+  immutable graph + one ordered choc SPSC command queue (`SwapGraph` + scalar seam) + audio-thread-local
+  `current_` + audio→control retire queue + generation-counter janitor (strict `processedGen>retiredAtGen`).
+  Design from a 4-design/3-judge adversarial panel; grafts applied (backpressure, POD command, lock-free
+  `static_assert`, canary, INVARIANT comments). New **TSan CI leg** added. 25/25 local; choc
+  `getFreeSlots()` off-by-one found + fixed. choc pinned (`5685fb5`).
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (active at H1).
-- ✅ **H1 contracts frozen** (ADRs 0006–0012) — engine code is now unblocked.
-- **Build the spine toward the H1 exit, green-small** (see the H1 checklist above). Each new
-  audio-thread function gets `YESDAW_RT_HOT` + RTSan coverage; each contract gets a golden + round-trip
-  Catch2 test; every commit independently green (`cmake --build --preset ci && ctest --preset ci`).
-- **First build chunk (proposed):** the RT-safe callback skeleton + SPSC command queue +
-  `atomic<const CompiledGraph*>` swap + generation-counter janitor (ADR-0006) — the narrowest thing
-  that publishes and reads a (silent) `CompiledGraph`, with RTSan proving the publish path never blocks.
+- ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006).
+- **Once CI is green (incl. the new RTSan + TSan legs on the swap core), continue the spine green-small**
+  (see the H1 checklist). Likely next chunk: the **Node contract (ADR-0008) + a couple built-in Nodes**
+  so `CompiledGraph` can hold real processing, then the **time model types (ADR-0010)** for the
+  round-trip exit. Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; each contract gets a
+  golden/round-trip Catch2 test; every commit independently green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
