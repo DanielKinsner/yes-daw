@@ -232,6 +232,7 @@ private:
         int channels = 1;
         CompiledNodeKind kind = CompiledNodeKind::Plugin;
         std::int64_t pathLatency = 0;
+        DelayCacheKey delayCacheKey = 0;
         std::vector<std::size_t> inputs;
     };
 
@@ -385,6 +386,7 @@ private:
             item.channels    = info.channels;
             item.kind        = info.kind;
             item.pathLatency = pathLatency;
+            item.delayCacheKey = static_cast<DelayCacheKey> (info.props.id);
             item.inputs      = std::move (effectiveInputs);
 
             const std::size_t itemIdx = items.size();
@@ -408,7 +410,8 @@ private:
                                             std::vector<CompileItem>& items)
     {
         const CompileItem& producer = items[inputItemIdx];
-        const NodeId spliceId = syntheticLatencyId (consumer.props.id, producer.props.id, items.size());
+        const DelayCacheKey spliceKey = syntheticLatencyKey (consumer.props.id, producer.delayCacheKey, items.size());
+        const NodeId spliceId = nodeIdFromDelayCacheKey (spliceKey);
 
         auto latency = std::make_unique<LatencyNode> (spliceId, delaySamples, producer.channels);
         latency->setInput (producer.node);
@@ -421,6 +424,7 @@ private:
         splice.channels    = producer.channels;
         splice.kind        = CompiledNodeKind::Latency;
         splice.pathLatency = producer.pathLatency + delaySamples;
+        splice.delayCacheKey = spliceKey;
         splice.inputs.push_back (inputItemIdx);
 
         const std::size_t spliceIdx = items.size();
@@ -428,13 +432,18 @@ private:
         return spliceIdx;
     }
 
-    static NodeId syntheticLatencyId (NodeId consumerId, NodeId producerId, std::size_t ordinal) noexcept
+    static DelayCacheKey syntheticLatencyKey (NodeId consumerId, DelayCacheKey producerKey, std::size_t ordinal) noexcept
     {
         std::uint64_t h = 14695981039346656037ull;
         h = fnv1a (h, static_cast<std::uint64_t> (consumerId));
-        h = fnv1a (h, static_cast<std::uint64_t> (producerId));
+        h = fnv1a (h, producerKey);
         h = fnv1a (h, static_cast<std::uint64_t> (ordinal));
-        return static_cast<NodeId> (0x8000'0000u | (static_cast<NodeId> (h) & 0x7FFF'FFFFu));
+        return 0x8000'0000'0000'0000ull | (h & 0x7FFF'FFFF'FFFF'FFFFull);
+    }
+
+    static NodeId nodeIdFromDelayCacheKey (DelayCacheKey key) noexcept
+    {
+        return static_cast<NodeId> (0x8000'0000u | (static_cast<NodeId> (key) & 0x7FFF'FFFFu));
     }
 
     static std::uint64_t fnv1a (std::uint64_t h, std::uint64_t value) noexcept
@@ -530,6 +539,7 @@ private:
             cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
             cn.outputSlot  = outputSlot;
             cn.pathLatency = item.pathLatency;
+            cn.delayCacheKey = item.delayCacheKey;
             cn.muteBit     = compiledIdx < 64u ? static_cast<std::uint8_t> (compiledIdx) : kNoMuteBit;
             cn.kind        = item.kind;
             cn.aliasOk     = aliasOk;
@@ -758,16 +768,16 @@ private:
                 continue;
 
             DelayNode* const delay = dynamic_cast<DelayNode*> (cn.node);
-            const DelayCacheEntry* const entry = findDelayCacheEntry (cache, cn.id);
+            const DelayCacheEntry* const entry = findDelayCacheEntry (cache, cn.delayCacheKey);
             if (delay != nullptr && entry != nullptr)
                 delay->restoreState (std::span<const float> (entry->ring.data(), entry->ring.size()), entry->writePos);
         }
     }
 
-    static const DelayCacheEntry* findDelayCacheEntry (std::span<const DelayCacheEntry> cache, NodeId key) noexcept
+    static const DelayCacheEntry* findDelayCacheEntry (std::span<const DelayCacheEntry> cache, DelayCacheKey key) noexcept
     {
         const auto it = std::lower_bound (cache.begin(), cache.end(), key,
-                                          [] (const DelayCacheEntry& entry, NodeId value)
+                                          [] (const DelayCacheEntry& entry, DelayCacheKey value)
                                           {
                                               return entry.key < value;
                                           });

@@ -42,6 +42,7 @@
 namespace yesdaw::engine {
 
 using GraphId = std::uint64_t;
+using DelayCacheKey = std::uint64_t;
 
 using SlotIndex  = std::uint16_t;
 using DSlotIndex = std::uint16_t;
@@ -81,6 +82,7 @@ struct CompiledNode
     SlotIndex        outputSlot    = kNoSlot;
     DSlotIndex       busAccumSlot  = kNoSlot;
     std::int64_t     pathLatency   = 0;
+    DelayCacheKey    delayCacheKey = 0;
     std::uint8_t     muteBit       = 0;
     CompiledNodeKind kind          = CompiledNodeKind::IdentityDc;
     bool             aliasOk       = false;
@@ -101,9 +103,9 @@ struct BufferPoolLayout
 
 struct DelayCacheEntry
 {
-    NodeId       key              = 0;
-    std::int64_t delaySamples     = 0;
-    int          channels         = 0;
+    DelayCacheKey key              = 0;
+    std::int64_t  delaySamples     = 0;
+    int           channels         = 0;
     std::uint32_t framesPerChannel = 0;
     std::uint32_t writePos         = 0;
     std::vector<float> ring;
@@ -296,7 +298,7 @@ public:
                 continue;
 
             DelayCacheEntry entry;
-            entry.key              = cn.id;
+            entry.key              = cn.delayCacheKey;
             entry.delaySamples     = delay->delaySamples();
             entry.channels         = delay->channels();
             entry.framesPerChannel = delay->framesPerChannel();

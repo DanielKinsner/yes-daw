@@ -17,7 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER compiler slice J is green locally.** Pass 5 now assigns mute bits, exposes an atomic
+- **Latest: REVIEW/FIX compiler slice J is green locally.** Reviewed `b649acc` against the locked
+  compiler design plus ADR-0007/0008. Node.h stayed frozen and slice K SetGain/SetPan routing did not
+  land. Slice I pool invariants still hold: greedy width-sized f32 slots, slot 0 permanent silence,
+  locked Fader/Meter-only R3 aliasing, separate f64 bus scratch, and order-shuffle invariance. Fixed one
+  real slice J carry-over bug: synthetic PDC LatencyNodes now carry a full 64-bit `DelayCacheKey`
+  alongside their low 32-bit diagnostic `NodeId`, so distinct latency delay rings cannot collide in the
+  DelayCache during carry-over/reclamation snapshots. New coverage proves colliding low NodeIds still
+  snapshot as distinct full keys. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass
+  (78/78). **Next:** WORKER compiler slice K (SetGain/SetPan command routing).
+- **Previous: WORKER compiler slice J is green locally.** Pass 5 now assigns mute bits, exposes an atomic
   mute mask on `CompiledGraph`, carries `DelayNode` ring state from `previousForCarryOver`, sorts
   multi-input metadata by producer `NodeId`, and asserts/debug-checks that bus-style multi-input nodes
   were bound on the control thread. Runtime janitor reclamation snapshots delay rings before delete.
@@ -124,9 +133,9 @@ worklog.
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
-  commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), H (PDC), and I
-  (buffer pool) are done and reviewed/fixed; worker commit J (mute + carry-over + bind-check) is done
-  locally and awaits REVIEW/FIX; K (SetGain seam) follows only after J review/fix is green.
+  commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), H (PDC), I
+  (buffer pool), and J (mute + carry-over + bind-check) are done and reviewed/fixed; K (SetGain seam)
+  follows next.
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -271,13 +280,16 @@ worklog.
   delay-state carry-over from `previousForCarryOver`, deterministic producer-id input ordering, and
   assertable bus bind checks without changing the frozen Node trait or landing slice K scalar routing.
   Runtime reclamation snapshots delay rings before delete. Local `ci` build + 77/77 tests green.
+- 2026-06-24 — **Slice J review/fix.** Reviewed `b649acc` against the locked compiler design plus
+  ADR-0007/0008. Fixed one real carry-over key bug: synthetic PDC LatencyNodes now keep full 64-bit
+  `DelayCacheKey` metadata instead of relying on the low 32-bit diagnostic NodeId, and a regression
+  asserts low-ID collisions remain distinct in the DelayCache. Local `ci` build + 78/78 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX compiler slice J (ADR-0007).** Verify Pass 5 mute + carry-over + bind-check
-  against the locked compiler design and ADR-0007/0008. SetGain seam (K) follows only after slice J is
-  reviewed/fixed green.
+- **Next chunk: WORKER compiler slice K (ADR-0007/ADR-0006).** Route SetGain/SetPan commands through
+  `CompiledGraph::idIndex_` to the matching Fader/Pan nodes without changing the frozen Node trait.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 

@@ -28,6 +28,7 @@ using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::DelayCacheEntry;
+using yesdaw::engine::DelayCacheKey;
 using yesdaw::engine::DelayNode;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
@@ -82,7 +83,7 @@ const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
     return nullptr;
 }
 
-const DelayCacheEntry* delayCacheByKey (const CompiledGraph& graph, NodeId key)
+const DelayCacheEntry* delayCacheByKey (const CompiledGraph& graph, DelayCacheKey key)
 {
     graph.snapshotDelayCache();
     for (const DelayCacheEntry& entry : graph.debugDelayCache())

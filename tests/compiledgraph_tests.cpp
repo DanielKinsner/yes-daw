@@ -5,6 +5,7 @@
 // on the normal matrix AND the RTSan/TSan legs.
 
 #include "engine/CompiledGraph.h"
+#include "engine/nodes/DelayNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -16,6 +17,9 @@
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
+using yesdaw::engine::DelayCacheEntry;
+using yesdaw::engine::DelayCacheKey;
+using yesdaw::engine::DelayNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::ProcessArgs;
@@ -108,4 +112,45 @@ TEST_CASE ("CompiledGraph exposes an assertable unbound multi-input check", "[gr
 
     CompiledGraph graph (std::move (payload));
     REQUIRE_FALSE (graph.debugMultiInputNodesBound());
+}
+
+TEST_CASE ("CompiledGraph delay cache keeps full keys when synthetic node ids collide", "[graph][carry-over]")
+{
+    constexpr yesdaw::engine::NodeId kLowCollisionId = 0x8000'0001u;
+    constexpr DelayCacheKey kFirstKey = 0x8000'0000'0000'0001ull;
+    constexpr DelayCacheKey kSecondKey = 0x8000'0001'0000'0001ull;
+
+    auto first = std::make_unique<DelayNode> (kLowCollisionId, 1, 1);
+    auto second = std::make_unique<DelayNode> (kLowCollisionId, 2, 1);
+    first->prepare (48000.0, 8);
+    second->prepare (48000.0, 8);
+
+    DelayNode* const firstPtr = first.get();
+    DelayNode* const secondPtr = second.get();
+
+    CompiledGraph::Payload payload;
+    payload.nodeStorage.push_back (std::move (first));
+    payload.nodeStorage.push_back (std::move (second));
+
+    CompiledNode firstCompiled;
+    firstCompiled.node = firstPtr;
+    firstCompiled.id = kLowCollisionId;
+    firstCompiled.kind = CompiledNodeKind::Latency;
+    firstCompiled.delayCacheKey = kFirstKey;
+    payload.compiledNodes.push_back (firstCompiled);
+
+    CompiledNode secondCompiled;
+    secondCompiled.node = secondPtr;
+    secondCompiled.id = kLowCollisionId;
+    secondCompiled.kind = CompiledNodeKind::Latency;
+    secondCompiled.delayCacheKey = kSecondKey;
+    payload.compiledNodes.push_back (secondCompiled);
+
+    CompiledGraph graph (std::move (payload));
+    graph.snapshotDelayCache();
+
+    const std::span<const DelayCacheEntry> cache = graph.debugDelayCache();
+    REQUIRE (cache.size() == 2u);
+    REQUIRE (cache[0].key == kFirstKey);
+    REQUIRE (cache[1].key == kSecondKey);
 }
