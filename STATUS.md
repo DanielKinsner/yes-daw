@@ -17,13 +17,17 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: compiler slice G is in & locally green.** `GraphBuilder` now performs Pass 1+2 validation
-  and iterative Master-backward topo, rejects duplicate/missing/over-latency/cyclic graphs, allows
-  `DelayNode` feedback boundaries, and builds the first real payload graph with `MasterNode` +
-  `IdentityDcNode`. `CompiledGraph` now runs the minimal one-slot/node executor while preserving the
-  legacy `(GraphId, dc)` degenerate fast path. Local gate: `cmake --build --preset ci` and
-  `ctest --preset ci` pass (57/57). **Next:** REVIEW/FIX compiler slice G; after review, slice H is PDC +
-  `StubLatencyNode` + impulse tests.
+- **Latest: REVIEW/FIX compiler slice G is in & locally green.** The review found one real validation
+  gap: an over-wide bus fan-in could overflow the flat `uint16` input metadata and compile to silence
+  instead of failing loudly. `GraphBuilder` now rejects unrepresentable reachable-node/input counts with
+  `GraphTooLarge`; coverage also asserts empty-project silence, missing-master rejection, and negative
+  latency rejection. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (61/61).
+  **Next:** worker slice H — Pass 3 PDC + `StubLatencyNode` + impulse tests.
+- **Previous: compiler slice G landed.** `GraphBuilder` now performs Pass 1+2 validation and iterative
+  Master-backward topo, rejects duplicate/missing/over-latency/cyclic graphs, allows `DelayNode`
+  feedback boundaries, and builds the first real payload graph with `MasterNode` + `IdentityDcNode`.
+  `CompiledGraph` runs the minimal one-slot/node executor while preserving the legacy `(GraphId, dc)`
+  degenerate fast path.
 - **Previous: REVIEW/FIX of compiler slice F landed.** The review found one real lifecycle gap:
   `CompiledGraph` owns prepared Nodes but did not call `Node::release()` before destruction. That is fixed
   on the janitor/control-side destructor path and covered by a `YesDawGraphCheck` lifecycle test.
@@ -199,15 +203,19 @@ worklog.
   `YesDawBuilderCheck` coverage proves IdentityDc→Master DC, Osc→Master non-DC, 1000-node iterative
   topo, non-Delay cycle rejection, Delay feedback-boundary allowance, duplicate/missing/latency
   rejection, and channel clamp. Local `ci` build + 57/57 tests green.
+- 2026-06-24 — **Slice G review/fix.** Reviewed `af7a0b0` against the locked compiler design plus
+  ADR-0007/0008. Fixed one real validation bug: over-wide fan-in / reachable-node counts that cannot fit
+  the flat `uint16` compiled metadata now fail as `GraphTooLarge` instead of silently compiling a bad
+  graph. Added coverage for that bug plus empty-project silence, missing master, and negative latency.
+  Local `ci` build + 61/61 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX compiler slice G (ADR-0007).** Review the new `GraphBuilder` Pass 1+2,
-  `MasterNode`/`IdentityDcNode`, and minimal payload executor against the locked compiler design. Existing
-  Runtime/CompiledGraph/Node tests stayed intact; the legacy `(id,dc)` constructor remains the
-  `isDegenerate_` fast path. PDC (H), buffer pool (I), carry-over (J), and SetGain seam (K) follow after
-  review.
+- **Next chunk: worker slice H (ADR-0007).** Implement Pass 3 PDC + `StubLatencyNode` + impulse tests
+  from the locked compiler design. Keep existing Runtime/CompiledGraph/Node/Builder tests intact; PDC
+  should report `totalLatency()==N`, avoid spurious single-input delays, and reject overflow/negative
+  latency mechanically. Buffer pool (I), carry-over (J), and SetGain seam (K) follow after H review.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 

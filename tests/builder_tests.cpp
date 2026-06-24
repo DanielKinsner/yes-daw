@@ -130,6 +130,37 @@ TEST_CASE ("GraphBuilder renders Oscillator through Master as non-DC", "[builder
     REQUIRE (maxSample - minSample > 0.001f);
 }
 
+TEST_CASE ("GraphBuilder renders an empty project as silence", "[builder][render][silence]")
+{
+    GraphBuilder::Inputs inputs;
+    inputs.id = 99;
+    inputs.maxBlockSize = 128;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::vector<float> out = render (*graph, 128);
+    for (float v : out)
+        REQUIRE (v == 0.0f);
+}
+
+TEST_CASE ("GraphBuilder rejects missing master node", "[builder][validate]")
+{
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.nodes.push_back (std::make_unique<IdentityDcNode> (1, 0.1f, 1));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::MissingNode);
+    REQUIRE (error.nodeId() == kMasterId);
+}
+
 TEST_CASE ("GraphBuilder topo walk handles a 1000-node chain iteratively", "[builder][topo][deep]")
 {
     constexpr int kLinks = 1000;
@@ -271,6 +302,21 @@ TEST_CASE ("GraphBuilder rejects latency outside the cap", "[builder][validate]"
     REQUIRE (error.nodeId() == 1u);
 }
 
+TEST_CASE ("GraphBuilder rejects negative latency", "[builder][validate]")
+{
+    auto source = std::make_unique<LinkNode> (1);
+    source->setLatency (-1);
+
+    GraphBuilder::Inputs inputs = inputsWithMaster (std::move (source));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::LatencyOutOfRange);
+    REQUIRE (error.nodeId() == 1u);
+}
+
 TEST_CASE ("GraphBuilder clamps advertised channels into the supported node range", "[builder][validate]")
 {
     std::unique_ptr<CompiledGraph> graph =
@@ -281,4 +327,25 @@ TEST_CASE ("GraphBuilder clamps advertised channels into the supported node rang
     const std::vector<float> out = render (*graph, 32);
     for (float v : out)
         REQUIRE (v == 0.25f);
+}
+
+TEST_CASE ("GraphBuilder rejects fan-in that cannot fit flat input metadata", "[builder][validate]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 1.0f, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    std::vector<Node*> inputs (65536u, source.get());
+    master->setInputNodes (std::move (inputs));
+
+    GraphBuilder::Inputs buildInputs;
+    buildInputs.masterNodeId = kMasterId;
+    buildInputs.nodes.push_back (std::move (source));
+    buildInputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (buildInputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::GraphTooLarge);
+    REQUIRE (error.nodeId() == kMasterId);
 }

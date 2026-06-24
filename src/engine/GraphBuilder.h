@@ -35,8 +35,9 @@ struct GraphBuildError
     struct MissingNode       { NodeId nodeId = 0; };
     struct LatencyOutOfRange { NodeId nodeId = 0; };
     struct CyclicGraph       { NodeId nodeId = 0; };
+    struct GraphTooLarge     { NodeId nodeId = 0; };
 
-    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph>;
+    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge>;
 
     enum class Code
     {
@@ -44,7 +45,8 @@ struct GraphBuildError
         DuplicateNodeId,
         MissingNode,
         LatencyOutOfRange,
-        CyclicGraph
+        CyclicGraph,
+        GraphTooLarge
     };
 
     Detail detail;
@@ -54,6 +56,7 @@ struct GraphBuildError
     GraphBuildError (MissingNode e)       : detail (e) {}
     GraphBuildError (LatencyOutOfRange e) : detail (e) {}
     GraphBuildError (CyclicGraph e)       : detail (e) {}
+    GraphBuildError (GraphTooLarge e)     : detail (e) {}
 
     Code code() const noexcept
     {
@@ -63,6 +66,7 @@ struct GraphBuildError
             case 2: return Code::MissingNode;
             case 3: return Code::LatencyOutOfRange;
             case 4: return Code::CyclicGraph;
+            case 5: return Code::GraphTooLarge;
             default: return Code::None;
         }
     }
@@ -76,6 +80,7 @@ struct GraphBuildError
             NodeId operator() (MissingNode e) const noexcept { return e.nodeId; }
             NodeId operator() (LatencyOutOfRange e) const noexcept { return e.nodeId; }
             NodeId operator() (CyclicGraph e) const noexcept { return e.nodeId; }
+            NodeId operator() (GraphTooLarge e) const noexcept { return e.nodeId; }
         };
 
         return std::visit (Visitor{}, detail);
@@ -88,6 +93,8 @@ public:
     static constexpr int          kMaxChannelsPerNode = 8;
     static constexpr std::int64_t kMaxLatencyCap      = 60ll * 192000ll;
     static constexpr NodeId       kDefaultMasterNodeId = 0xFFFF'FFFEu;
+    static constexpr std::size_t  kMaxCompiledNodes    = static_cast<std::size_t> (kNoSlot) - 1u;
+    static constexpr std::size_t  kMaxInputsPerNode    = static_cast<std::size_t> (std::numeric_limits<std::uint16_t>::max());
 
     struct Inputs
     {
@@ -143,6 +150,9 @@ public:
         for (std::size_t i = 0; i < infos.size(); ++i)
         {
             const std::span<Node* const> direct = infos[i].node->directInputs();
+            if (direct.size() > kMaxInputsPerNode)
+                return fail (error, GraphBuildError::GraphTooLarge { infos[i].props.id });
+
             infos[i].inputs.reserve (direct.size());
 
             for (Node* const in : direct)
@@ -165,6 +175,8 @@ public:
         std::vector<std::size_t> order;
         if (! topoFromMaster (infos, masterFound->second, order, error))
             return nullptr;
+        if (order.size() > kMaxCompiledNodes)
+            return fail (error, GraphBuildError::GraphTooLarge { inputs.masterNodeId });
 
         CompiledGraph::Payload payload;
         payload.id         = inputs.id;
