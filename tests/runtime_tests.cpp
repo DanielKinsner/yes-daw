@@ -40,7 +40,10 @@ std::unique_ptr<CompiledGraph> graph (GraphId id, float dc) { return std::make_u
 
 constexpr NodeId kRuntimeMasterId = 61000;
 
-std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
+// Raw builders — NO Catch2 assertions, so they are safe to call from a worker thread (Catch2's REQUIRE
+// is not thread-safe). The stress test below builds real graphs off the main thread; the wrappers add
+// the main-thread-only REQUIREs the single-threaded tests rely on.
+std::unique_ptr<CompiledGraph> buildFaderGraph (GraphId id, NodeId faderId, float dc)
 {
     auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
     auto fader = std::make_unique<FaderNode> (faderId, 1);
@@ -61,13 +64,10 @@ std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
     inputs.nodes.push_back (std::move (master));
 
     GraphBuildError error;
-    std::unique_ptr<CompiledGraph> built = GraphBuilder::build (std::move (inputs), &error);
-    REQUIRE (built != nullptr);
-    REQUIRE (error.code() == GraphBuildError::Code::None);
-    return built;
+    return GraphBuilder::build (std::move (inputs), &error);   // may be null; the caller decides how to assert
 }
 
-std::unique_ptr<CompiledGraph> panGraph (GraphId id, NodeId panId, float dc)
+std::unique_ptr<CompiledGraph> buildPanGraph (GraphId id, NodeId panId, float dc)
 {
     auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
     auto pan = std::make_unique<PanNode> (panId);
@@ -88,9 +88,20 @@ std::unique_ptr<CompiledGraph> panGraph (GraphId id, NodeId panId, float dc)
     inputs.nodes.push_back (std::move (master));
 
     GraphBuildError error;
-    std::unique_ptr<CompiledGraph> built = GraphBuilder::build (std::move (inputs), &error);
+    return GraphBuilder::build (std::move (inputs), &error);
+}
+
+std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
+{
+    std::unique_ptr<CompiledGraph> built = buildFaderGraph (id, faderId, dc);
     REQUIRE (built != nullptr);
-    REQUIRE (error.code() == GraphBuildError::Code::None);
+    return built;
+}
+
+std::unique_ptr<CompiledGraph> panGraph (GraphId id, NodeId panId, float dc)
+{
+    std::unique_ptr<CompiledGraph> built = buildPanGraph (id, panId, dc);
+    REQUIRE (built != nullptr);
     return built;
 }
 }
@@ -345,4 +356,64 @@ TEST_CASE ("stress: control publishes while the audio thread runs and a janitor 
         REQUIRE (CompiledGraph::aliveCount() == base + 1);   // exactly one installed graph survives
     }
     REQUIRE (CompiledGraph::aliveCount() == base);           // Runtime destroyed -> no leak, no UAF
+}
+
+TEST_CASE ("stress: real-node graphs swap under concurrency so RTSan/TSan cover node dispatch",
+           "[runtime][stress][nodes]")
+{
+    // The degenerate-graph stress test above proves the swap/reclaim MACHINERY is race-free. This one
+    // closes the gap the H1 coverage review found: it swaps REAL compiled graphs (Fader / Pan nodes)
+    // while the audio thread renders them, so the RTSan leg actually executes Node::process() under
+    // concurrent swaps and the TSan leg sees real node state cross the publish/process/reclaim boundary.
+    const auto base = CompiledGraph::aliveCount();
+    {
+        Runtime rt;                                  // default capacities
+        std::vector<float> buf (128, 0.0f);
+
+        REQUIRE (buildFaderGraph (0, 10, 0.5f) != nullptr);   // main-thread sanity before the workers run
+        REQUIRE (buildPanGraph   (0, 20, 0.5f) != nullptr);
+
+        constexpr GraphId kPublishes = 600;
+        std::atomic<bool> controlDone { false };
+        std::atomic<bool> stopJanitor { false };
+
+        std::thread control ([&]
+        {
+            for (GraphId k = 0; k < kPublishes; ++k)
+            {
+                std::unique_ptr<CompiledGraph> g = (k & 1u) ? buildPanGraph (k, 20, 0.25f)
+                                                            : buildFaderGraph (k, 10, 0.25f);
+                (void) rt.publish (std::move (g));   // dropped on backpressure -> freed; never the audio thread
+            }
+            controlDone.store (true, std::memory_order_release);
+        });
+
+        std::thread janitor ([&]
+        {
+            while (! stopJanitor.load (std::memory_order_acquire))
+                rt.reclaim();
+            rt.reclaim();
+        });
+
+        // This (main) thread is the audio thread: render real nodes while graphs swap under it.
+        while (! controlDone.load (std::memory_order_acquire))
+            rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+
+        control.join();
+
+        for (int i = 0; i < 512; ++i)
+            rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+
+        stopJanitor.store (true, std::memory_order_release);
+        janitor.join();
+
+        for (int i = 0; i < 512; ++i)
+        {
+            rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+            rt.reclaim();
+        }
+
+        REQUIRE (CompiledGraph::aliveCount() == base + 1);   // exactly one installed graph survives
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);           // no leak, no UAF
 }
