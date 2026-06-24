@@ -27,8 +27,8 @@ worklog.
   non-silence, and unchanged bundled Asset bytes after projection. No waveform cache/peaks, Clip
   editing operations, undo/redo, UI, export, plugin hosting, ADR edits, roadmap edits, golden edits, or
   `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
-  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (122/122). Remote CI is
-  pending for this worker commit until pushed.
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (122/122). Remote CI run
+  `28132790457` for `2aba17e` is green across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 bundled Asset read/decode projection.
 - **Latest: REVIEW/FIX H2 asset import + copy-to-bundle recovery gate found no defects.** Reviewed
   worker commit `31ab1c0` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
