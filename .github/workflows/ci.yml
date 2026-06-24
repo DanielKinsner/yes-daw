@@ -104,8 +104,10 @@ jobs:
           -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
           -DYESDAW_BUILD_APPS=OFF -DYESDAW_SANITIZER=realtime
 
-      - name: Build the headless test
-        run: cmake --build build-rt --target YesDawCheck
+      # Build ALL configured targets: with YESDAW_BUILD_APPS=OFF that's exactly the pure test exes
+      # (no JUCE), so every test target exists and ctest finds no unbuilt sentinels.
+      - name: Build the headless tests
+        run: cmake --build build-rt
 
       - name: Run under RTSan (aborts on a real-time violation)
         run: ctest --test-dir build-rt --output-on-failure --no-tests=error
