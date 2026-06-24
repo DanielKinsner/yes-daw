@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip metadata worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — Clip metadata worker CI green; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -27,8 +27,8 @@ worklog.
   trim/move metadata preservation, and invalid-input rejection without Project mutation.
   `YesDawPersistenceCheck` proves edited Clip metadata writes and reads back exactly through the current
   SQLite snapshot. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
-  `cmake --build --preset ci`; `ctest --preset ci` pass (131/131). Remote CI is pending until this
-  worker commit is pushed.
+  `cmake --build --preset ci`; `ctest --preset ci` pass (131/131). Remote CI run `28136942439` for
+  worker commit `a081414` is green across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 Clip split/trim/move metadata foundation.
 - **Latest: REVIEW/FIX H2 snap/grid tick math foundation found no defects.** Reviewed worker commit
   `f7975bb` against H2 scope, ADR-0010, the H2 deepening notes, and the current Time / Project /
