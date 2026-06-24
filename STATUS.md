@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — waveform peak-cache review green locally; snap/grid worker next
+**Current horizon:** **H2 (editing-first)** — waveform peak-cache review green; snap/grid worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -27,7 +27,8 @@ worklog.
   corrupt header. No Clip editing operations, undo/redo, UI, export, plugin hosting, H3 work, ADR edits,
   roadmap edits, golden edits, or `[[clang::nonblocking]]` edits. Local gate via documented Windows
   DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (124/124).
-  Remote CI is pending until this review commit is pushed.
+  Remote CI run `28134965007` for review commit `9eb0c6f` is green across Windows, Linux, macOS, RTSan,
+  and TSan.
   **Next:** WORKER H2 snap/grid tick math foundation: add the smallest headless integer `snapTick` /
   grid round-trip gate for H2, keeping snapped values derived rather than Project truth. Do not start
   Clip editing operations, undo/redo, UI, export, plugin hosting, H3 work, ADR edits, roadmap edits,
