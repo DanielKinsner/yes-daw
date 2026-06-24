@@ -15,6 +15,11 @@
     { "name": "ci", "configurePreset": "ci" }
   ],
   "testPresets": [
-    { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    }
   ]
 }

@@ -18,7 +18,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs, but never a main-push run — every commit on main must keep its own
+  # green/red verdict so `git bisect run ctest --preset ci` stays mechanical.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -35,17 +37,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # JUCE's GUI modules need X11/ALSA/etc to link on Linux (web browser + curl are compiled
-      # out via JUCE_WEB_BROWSER=0 / JUCE_USE_CURL=0, but the rest are required).
+      # JUCE's GUI modules need X11/ALSA/etc to link on Linux. webkit + curl are deliberately
+      # OMITTED: JUCE_WEB_BROWSER=0 / JUCE_USE_CURL=0 compile out their only consumers, and
+      # libwebkit2gtk-4.1-dev isn't reliably present on the ubuntu-22.04 image (the 4.0/4.1 trap).
       - name: Linux deps
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libasound2-dev libjack-jackd2-dev ladspa-sdk libcurl4-openssl-dev \
+            libasound2-dev libjack-jackd2-dev ladspa-sdk \
             libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
             libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-            libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev ninja-build
+            libglu1-mesa-dev mesa-common-dev ninja-build
 
       # Ninja (from the preset) needs cl.exe on PATH; this loads the MSVC environment.
       - name: Set up MSVC environment
