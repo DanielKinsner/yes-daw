@@ -8,8 +8,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 namespace yesdaw::engine {
+
+namespace detail {
+
+constexpr bool isFinitePositive (double value) noexcept
+{
+    return value > 0.0 && value <= std::numeric_limits<double>::max();
+}
+
+} // namespace detail
 
 using Tick = std::int64_t;
 
@@ -48,7 +58,7 @@ struct TempoChange
 
     constexpr bool hasValidBpm() const noexcept
     {
-        return bpm > 0.0;
+        return detail::isFinitePositive (bpm);
     }
 
     friend constexpr bool operator== (const TempoChange&, const TempoChange&) noexcept = default;
@@ -74,7 +84,7 @@ struct SampleRate
 
     constexpr bool isValid() const noexcept
     {
-        return hz > 0.0;
+        return detail::isFinitePositive (hz);
     }
 
     friend constexpr bool operator== (const SampleRate&, const SampleRate&) noexcept = default;

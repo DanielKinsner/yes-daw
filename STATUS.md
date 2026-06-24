@@ -17,7 +17,14 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER ADR-0010 time-model types slice is green locally.** Added `src/engine/Time.h` with
+- **Latest: REVIEW/FIX ADR-0010 time-model types slice is green locally.** Reviewed `7412597` against
+  ADR-0010, ADR-0008/0009/0011/0012, `CONTEXT.md`, and the H1 round-trip contracts. Found and fixed one
+  real validation gap: `TempoChange::hasValidBpm()` and `SampleRate::isValid()` now reject non-finite
+  values, matching the finite-tempo-map / sane-project-rate persistence contract before schema code
+  starts depending on these helpers. No ADR, golden, event-stream, or `[[clang::nonblocking]]` edits.
+  Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (89/89). **Next:** WORKER
+  ADR-0009 generic event stream flowing param-changes slice.
+- **Previous: WORKER ADR-0010 time-model types slice is green locally.** Added `src/engine/Time.h` with
   the storage-facing time value surface: canonical `Tick`, `PPQ = 15360`, render-only `MusicalTime`,
   `TimeBase`, tempo/meter change records, `SampleRate`, resample quality tiers, non-owning tempo/meter
   map views, and the ADR-0010 `Transport` body used by `Node::process`. New `YesDawTimeCheck` locks
@@ -317,13 +324,16 @@ worklog.
   (`Tick`, `PPQ = 15360`, `MusicalTime`, `TimeBase`, tempo/meter change records, sample-rate/resample
   tier records, non-owning map views, and `Transport`) plus `YesDawTimeCheck`. Local `ci` build + 88/88
   tests green.
+- 2026-06-24 — **ADR-0010 time-model types review/fix.** Reviewed `7412597` against ADR-0010 and the H1
+  round-trip/persistence contracts. Fixed one real validity gap: non-finite tempo BPM and project sample
+  rates are rejected mechanically. Local `ci` build + 89/89 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX ADR-0010 time-model types slice.** Review/fix the new `Time.h`/`Transport`
-  surface against ADR-0010 and the round-trip contracts, then run the mechanical gate before the next
-  worker chunk.
+- **Next chunk: WORKER ADR-0009 generic event stream flowing param-changes slice.** Implement one small,
+  independently green EventStream/param-change slice backed by ADR-0009; do not start persistence or
+  broader automation work in the same chunk.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

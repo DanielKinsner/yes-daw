@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 
 using yesdaw::engine::MeterChange;
@@ -61,6 +62,8 @@ TEST_CASE ("Tempo and meter changes are point records for later map conversion",
     const TempoChange tempoA { 0, 120.0, TempoCurve::Jump };
     const TempoChange tempoB { kTicksPerQuarter * 8, 96.0, TempoCurve::LinearRamp };
     const TempoChange invalidTempo { 0, 0.0, TempoCurve::Jump };
+    const TempoChange infiniteTempo { 0, std::numeric_limits<double>::infinity(), TempoCurve::Jump };
+    const TempoChange nanTempo { 0, std::numeric_limits<double>::quiet_NaN(), TempoCurve::Jump };
     const MeterChange meterA { 0, 4, 4 };
     const MeterChange meterB { kTicksPerQuarter * 16, 7, 8 };
     const MeterChange invalidMeter { 0, 0, 4 };
@@ -68,9 +71,20 @@ TEST_CASE ("Tempo and meter changes are point records for later map conversion",
     REQUIRE (tempoA.hasValidBpm());
     REQUIRE (tempoB.hasValidBpm());
     REQUIRE_FALSE (invalidTempo.hasValidBpm());
+    REQUIRE_FALSE (infiniteTempo.hasValidBpm());
+    REQUIRE_FALSE (nanTempo.hasValidBpm());
     REQUIRE (meterA.isValid());
     REQUIRE (meterB.isValid());
     REQUIRE_FALSE (invalidMeter.isValid());
+}
+
+TEST_CASE ("SampleRate rejects non-finite or non-positive project rates", "[time][sample-rate]")
+{
+    REQUIRE (SampleRate { 44100.0 }.isValid());
+    REQUIRE_FALSE (SampleRate { 0.0 }.isValid());
+    REQUIRE_FALSE (SampleRate { -48000.0 }.isValid());
+    REQUIRE_FALSE (SampleRate { std::numeric_limits<double>::infinity() }.isValid());
+    REQUIRE_FALSE (SampleRate { std::numeric_limits<double>::quiet_NaN() }.isValid());
 }
 
 TEST_CASE ("Transport exposes non-owning tempo and meter map views", "[time][transport]")
