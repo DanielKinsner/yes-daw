@@ -21,9 +21,13 @@ using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
+using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::splitClip;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::trimClip;
 using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::BundleStatus;
 using yesdaw::persistence::PendingFsOp;
@@ -354,6 +358,38 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, project);
+}
+
+TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "[persistence][project][clip-edit]")
+{
+    const auto path = makeTempBundlePath ("clip-edit-round-trip");
+
+    Project project = makeProject();
+    const EntityId splitTarget = project.clips[0].id;
+    const EntityId trimmedTarget = project.clips[1].id;
+    const EntityId rightId = idFromLowByte (6);
+
+    REQUIRE (splitClip (project, splitTarget, rightId, 4096, 333) == ProjectEditStatus::Applied);
+    REQUIRE (moveClip (project, trimmedTarget, 64'000) == ProjectEditStatus::Applied);
+    REQUIRE (trimClip (project, trimmedTarget, 64'000, 2048, 12, 64) == ProjectEditStatus::Applied);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[1].id == rightId);
+    REQUIRE (project.clips[1].srcOffset == project.clips[0].srcOffset + project.clips[0].srcLen);
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.clips[1].srcOffset == readback.clips[0].srcOffset + readback.clips[0].srcLen);
 }
 
 TEST_CASE ("Interrupted save transaction reopens the last committed Project", "[persistence][recovery][save]")

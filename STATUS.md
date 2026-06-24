@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — snap/grid review green; Clip metadata worker next
+**Current horizon:** **H2 (editing-first)** — Clip metadata worker green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,19 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 Clip split/trim/move metadata foundation is green locally.** Added the smallest
+  headless Project-level edit helpers over the existing Asset→Clip value surface: `splitClip`,
+  `trimClip`, and `moveClip`. The slice stays pure metadata: only Tick timeline starts/lengths and
+  existing source-frame windows change; Assets remain immutable; snapped sample/pixel values are not
+  stored as Project truth; and there are no schema, undo/redo, UI, export, plugin hosting, H3, ADR,
+  roadmap, golden, waveform-cache, or `[[clang::nonblocking]]` edits. `YesDawProjectCheck` proves exact
+  split adjacency (`right.srcOffset == left.srcOffset + left.srcLen`), exact unsnapped Tick placement,
+  trim/move metadata preservation, and invalid-input rejection without Project mutation.
+  `YesDawPersistenceCheck` proves edited Clip metadata writes and reads back exactly through the current
+  SQLite snapshot. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (131/131). Remote CI is pending until this
+  worker commit is pushed.
+  **Next:** REVIEW/FIX H2 Clip split/trim/move metadata foundation.
 - **Latest: REVIEW/FIX H2 snap/grid tick math foundation found no defects.** Reviewed worker commit
   `f7975bb` against H2 scope, ADR-0010, the H2 deepening notes, and the current Time / Project /
   timeline-layout tests. The slice stays headless and narrow: `SnapGrid`, `snapTick`,
@@ -666,13 +679,13 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 Clip split/trim/move metadata foundation.** Pull, read `AGENTS.md` + this
-  handoff first, then add the smallest headless Project-level edit operations for split, trim, and move
-  over the existing Asset→Clip value surface. Keep edits as pure metadata: Tick timeline positions /
-  lengths and source-frame windows only, with Assets immutable and no snapped sample/pixel Project truth.
+- **Next chunk: REVIEW/FIX H2 Clip split/trim/move metadata foundation.** Pull, read `AGENTS.md` + this
+  handoff first, then review the worker slice against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2
+  deepening notes, and the current Time / Project / ProjectBundle / render tests. Verify the edit
+  helpers stay storage-safe and metadata-only: Tick timeline positions/lengths and source-frame windows
+  only, Assets immutable, and no snapped sample/pixel Project truth. Fix only real defects you can prove.
   Do not start gain/fade/crossfade, undo/redo, UI, export, plugin hosting, H3 work, ADR edits, roadmap
-  edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]` edits; if edit-operation
-  semantics need an ADR-level decision beyond the current plan/ADRs, stop and report.
+  edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]` edits.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

@@ -11,6 +11,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -213,6 +214,17 @@ struct Clip
     friend constexpr bool operator== (const Clip&, const Clip&) noexcept = default;
 };
 
+enum class ProjectEditStatus : std::uint8_t
+{
+    Applied = 0,
+    InvalidProject,
+    InvalidClipId,
+    ClipNotFound,
+    DuplicateEntityId,
+    InvalidTimelineWindow,
+    InvalidSourceWindow
+};
+
 struct Project
 {
     EntityId id;
@@ -300,5 +312,163 @@ struct Project
         return sampleRate.isValid() && hasValidEntityIds() && assetsAreValid() && hasUniqueEntityIds() && clipsReferenceAssets();
     }
 };
+
+namespace detail {
+
+[[nodiscard]] inline bool addTickChecked (Tick a, Tick b, Tick& out) noexcept
+{
+    if (b > 0 && a > std::numeric_limits<Tick>::max() - b)
+        return false;
+
+    if (b < 0 && a < std::numeric_limits<Tick>::min() - b)
+        return false;
+
+    out = a + b;
+    return true;
+}
+
+[[nodiscard]] inline Clip* findClip (Project& project, EntityId clipId) noexcept
+{
+    for (Clip& clip : project.clips)
+        if (clip.id == clipId)
+            return &clip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool projectContainsEntityId (const Project& project, EntityId id) noexcept
+{
+    if (! id.isValid())
+        return false;
+
+    if (project.id == id)
+        return true;
+
+    for (const Asset& asset : project.assets)
+        if (asset.id == id)
+            return true;
+
+    for (const Clip& clip : project.clips)
+        if (clip.id == id)
+            return true;
+
+    return false;
+}
+
+[[nodiscard]] inline bool clipSourceWindowFitsProject (const Project& project, const Clip& clip) noexcept
+{
+    const Asset* const asset = project.findAsset (clip.assetId);
+    return asset != nullptr && clip.sourceWindowFits (*asset);
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus moveClip (Project& project, EntityId clipId, Tick newTimelineStart) noexcept
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus trimClip (Project& project,
+                                                 EntityId clipId,
+                                                 Tick newTimelineStart,
+                                                 Tick newTimelineLength,
+                                                 std::uint64_t newSrcOffset,
+                                                 std::uint64_t newSrcLen) noexcept
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (newTimelineLength < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Clip edited = *clip;
+    edited.timelineStart = newTimelineStart;
+    edited.timelineLength = newTimelineLength;
+    edited.srcOffset = newSrcOffset;
+    edited.srcLen = newSrcLen;
+
+    if (! detail::clipSourceWindowFitsProject (project, edited))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    *clip = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus splitClip (Project& project,
+                                                  EntityId clipId,
+                                                  EntityId rightClipId,
+                                                  Tick leftTimelineLength,
+                                                  std::uint64_t leftSourceLength)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid() || ! rightClipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (detail::projectContainsEntityId (project, rightClipId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    std::size_t clipIndex = project.clips.size();
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        if (project.clips[i].id == clipId)
+        {
+            clipIndex = i;
+            break;
+        }
+    }
+
+    if (clipIndex == project.clips.size())
+        return ProjectEditStatus::ClipNotFound;
+
+    const Clip original = project.clips[clipIndex];
+    if (leftTimelineLength <= 0 || leftTimelineLength >= original.timelineLength)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Tick rightTimelineStart = 0;
+    if (! detail::addTickChecked (original.timelineStart, leftTimelineLength, rightTimelineStart))
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    if (leftSourceLength == 0 || leftSourceLength >= original.srcLen)
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    Clip left = original;
+    left.timelineLength = leftTimelineLength;
+    left.srcLen = leftSourceLength;
+
+    Clip right = original;
+    right.id = rightClipId;
+    right.timelineStart = rightTimelineStart;
+    right.timelineLength = original.timelineLength - leftTimelineLength;
+    right.srcOffset = original.srcOffset + leftSourceLength;
+    right.srcLen = original.srcLen - leftSourceLength;
+
+    if (! detail::clipSourceWindowFitsProject (project, left) || ! detail::clipSourceWindowFitsProject (project, right))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    project.clips.insert (project.clips.begin() + static_cast<std::ptrdiff_t> (clipIndex + 1u), right);
+    project.clips[clipIndex] = left;
+    project.clips[clipIndex + 1u] = right;
+    return ProjectEditStatus::Applied;
+}
 
 } // namespace yesdaw::engine

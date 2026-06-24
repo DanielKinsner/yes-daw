@@ -18,9 +18,14 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
 using yesdaw::engine::kMaxUlidTimestampMs;
+using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
+using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::splitClip;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Tick;
+using yesdaw::engine::trimClip;
 using yesdaw::engine::UlidEntropy;
 
 static_assert (sizeof (EntityId) == 16);
@@ -59,6 +64,34 @@ Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint
     clip.srcLen = srcLen;
     clip.timelineLength = 15360;
     return clip;
+}
+
+Project makeEditableProject()
+{
+    const EntityId assetId = idFromLowByte (30);
+
+    Clip clip = makeClip (idFromLowByte (31), assetId, 100, 800);
+    clip.timelineStart = 777;
+    clip.timelineLength = 50'000;
+    clip.gain = 0.625f;
+    clip.fadeIn = 32;
+    clip.fadeOut = 64;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    Project project;
+    project.id = idFromLowByte (29);
+    project.sampleRate = SampleRate { 48000.0 };
+    project.assets = { makeAsset (assetId, 1200) };
+    project.clips = { clip };
+    return project;
+}
+
+void requireProjectValueUnchanged (const Project& actual, const Project& expected)
+{
+    REQUIRE (actual.id == expected.id);
+    REQUIRE (actual.sampleRate == expected.sampleRate);
+    REQUIRE (actual.assets == expected.assets);
+    REQUIRE (actual.clips == expected.clips);
 }
 
 } // namespace
@@ -216,4 +249,141 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     corruptSourceWindow.clips[1].srcLen = 100;
     REQUIRE_FALSE (corruptSourceWindow.clipsReferenceAssets());
     REQUIRE_FALSE (corruptSourceWindow.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project splitClip creates exact adjacent Tick and source-frame windows", "[project][clip-edit][split]")
+{
+    Project project = makeEditableProject();
+    const Asset originalAsset = project.assets.front();
+    const Clip original = project.clips.front();
+
+    constexpr Tick leftTicks = 12'345;
+    constexpr std::uint64_t leftFrames = 321;
+    const EntityId rightId = idFromLowByte (32);
+
+    REQUIRE (splitClip (project, original.id, rightId, leftTicks, leftFrames) == ProjectEditStatus::Applied);
+    REQUIRE (project.assets.size() == 1u);
+    REQUIRE (project.assets.front() == originalAsset);
+    REQUIRE (project.clips.size() == 2u);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Clip& left = project.clips[0];
+    const Clip& right = project.clips[1];
+
+    REQUIRE (left.id == original.id);
+    REQUIRE (right.id == rightId);
+    REQUIRE (left.assetId == original.assetId);
+    REQUIRE (right.assetId == original.assetId);
+
+    REQUIRE (left.timelineStart == original.timelineStart);
+    REQUIRE (left.timelineLength == leftTicks);
+    REQUIRE (right.timelineStart == original.timelineStart + leftTicks);
+    REQUIRE (right.timelineLength == original.timelineLength - leftTicks);
+
+    REQUIRE (left.srcOffset == original.srcOffset);
+    REQUIRE (left.srcLen == leftFrames);
+    REQUIRE (right.srcOffset == left.srcOffset + left.srcLen);
+    REQUIRE (right.srcLen == original.srcLen - leftFrames);
+    REQUIRE (left.srcLen + right.srcLen == original.srcLen);
+
+    REQUIRE (left.gain == original.gain);
+    REQUIRE (right.gain == original.gain);
+    REQUIRE (left.fadeIn == original.fadeIn);
+    REQUIRE (right.fadeIn == original.fadeIn);
+    REQUIRE (left.fadeOut == original.fadeOut);
+    REQUIRE (right.fadeOut == original.fadeOut);
+    REQUIRE (left.timeBase == original.timeBase);
+    REQUIRE (right.timeBase == original.timeBase);
+}
+
+TEST_CASE ("Project trimClip and moveClip edit only placement metadata", "[project][clip-edit][trim][move]")
+{
+    Project project = makeEditableProject();
+    const Asset originalAsset = project.assets.front();
+    const Clip original = project.clips.front();
+
+    REQUIRE (moveClip (project, original.id, -2048) == ProjectEditStatus::Applied);
+    REQUIRE (project.clips.front().timelineStart == -2048);
+    REQUIRE (project.clips.front().timelineLength == original.timelineLength);
+    REQUIRE (project.clips.front().srcOffset == original.srcOffset);
+    REQUIRE (project.clips.front().srcLen == original.srcLen);
+
+    REQUIRE (trimClip (project, original.id, 4096, 22'000, 275, 250) == ProjectEditStatus::Applied);
+
+    const Clip& edited = project.clips.front();
+    REQUIRE (edited.timelineStart == 4096);
+    REQUIRE (edited.timelineLength == 22'000);
+    REQUIRE (edited.srcOffset == 275u);
+    REQUIRE (edited.srcLen == 250u);
+    REQUIRE (edited.id == original.id);
+    REQUIRE (edited.assetId == original.assetId);
+    REQUIRE (edited.gain == original.gain);
+    REQUIRE (edited.fadeIn == original.fadeIn);
+    REQUIRE (edited.fadeOut == original.fadeOut);
+    REQUIRE (edited.timeBase == original.timeBase);
+    REQUIRE (project.assets.front() == originalAsset);
+    REQUIRE (project.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project clip edit operations reject invalid input without mutating Project", "[project][clip-edit][invalid]")
+{
+    Project project = makeEditableProject();
+    const EntityId clipId = project.clips.front().id;
+    const EntityId newClipId = idFromLowByte (40);
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, idFromLowByte (99), newClipId, 100, 100) == ProjectEditStatus::ClipNotFound);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, clipId, project.assets.front().id, 100, 100) == ProjectEditStatus::DuplicateEntityId);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, clipId, newClipId, 0, 100) == ProjectEditStatus::InvalidTimelineWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, clipId, newClipId, project.clips.front().timelineLength, 100) == ProjectEditStatus::InvalidTimelineWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, clipId, newClipId, 100, 0) == ProjectEditStatus::InvalidSourceWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (splitClip (project, clipId, newClipId, 100, project.clips.front().srcLen) == ProjectEditStatus::InvalidSourceWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (trimClip (project, clipId, 0, -1, 0, 1) == ProjectEditStatus::InvalidTimelineWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (trimClip (project, clipId, 0, 1, project.assets.front().frames + 1u, 1) == ProjectEditStatus::InvalidSourceWindow);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        Project invalid = project;
+        invalid.sampleRate = SampleRate { 0.0 };
+        const Project before = invalid;
+        REQUIRE (moveClip (invalid, clipId, 123) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
 }
