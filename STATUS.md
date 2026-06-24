@@ -17,6 +17,17 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER ADR-0009 sample-accurate automation evaluator slice is green locally.** Added the
+  pure C++ automation value/evaluator surface in `src/engine/Automation.h`: storage-facing
+  `AutomationPoint { tick, value, curveType }`, the locked ADR-0009 curve enum, parameter target/block
+  value types, and a cursor-style `evaluateAutomationPointsForBlock` helper that writes preallocated
+  parameter `Event`s through a caller-supplied tick→frame mapper. Added `YesDawEventCheck` coverage for
+  enum storage, value validation, half-open Block boundaries, cursor advancement, output-capacity and
+  invalid-input handling, and generated automation Events driving `FaderNode` at exact in-Block offsets.
+  No ADR, golden, SQLite persistence, broad automation lane/UI work, MIDI note handling, plugin hosting,
+  or audio-thread contract edits. Local gate via documented Windows DevShell flow:
+  `cmake --build --preset ci`; `ctest --preset ci` pass (103/103). **Next:** REVIEW/FIX ADR-0009
+  sample-accurate automation evaluator slice.
 - **Latest: REVIEW/FIX ADR-0011 EntityId + Asset/Clip/Project value surface is green locally.** Reviewed
   `aa4f4dc` against ADR-0011, ADR-0012, ADR-0010, `CONTEXT.md`, `AGENTS.md`, this handoff, and the H1
   contracts. Found and fixed one real ULID allocator bug: entropy exhaustion no longer wraps the
@@ -385,17 +396,21 @@ worklog.
   allocator state and later emits lower IDs. Added regression coverage for carry/reset, repeated
   exhaustion failure, next-timestamp recovery, and Project ID collision checks. Local `ci` build + 99/99
   tests green.
+- 2026-06-24 — **ADR-0009 sample-accurate automation evaluator slice landed locally.** Added the pure
+  automation point/evaluator surface and `YesDawEventCheck` coverage for stored point shape,
+  half-open Block event emission, cursor advancement, capacity/invalid-input handling, and generated
+  Events feeding `FaderNode`. Local `ci` build + 103/103 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER ADR-0009 sample-accurate automation evaluator slice.** Pull, read `AGENTS.md` +
-  this handoff first, then implement exactly one small independently green automation slice backed by
-  ADR-0009 and the H1 plan: evaluate stored automation points into sample-offset parameter `Event`s for
-  one parameter shape using the existing fixed-size `EventStream`. Keep it pure/headless and narrow.
-  Do not start SQLite persistence, broad lane/UI work, MIDI note handling, plugin hosting, goldens, or
-  audio-thread contract changes. Run the mechanical gate, update this handoff, commit/push, check
-  GitHub CI, then stop for review/fix.
+- **Next chunk: REVIEW/FIX ADR-0009 sample-accurate automation evaluator slice.** Pull, read
+  `AGENTS.md` + this handoff first, then review this worker slice against ADR-0009, ADR-0010,
+  `CONTEXT.md`, and the H1 plan. Verify the automation helper stays pure/headless, preserves the
+  fixed-size `EventStream` surface, advances by cursor instead of re-scanning lanes, honors half-open
+  Block boundaries, and does not start SQLite persistence, broad lane/UI work, MIDI note handling,
+  plugin hosting, goldens, or audio-thread contract changes. Fix only real defects found, run the
+  mechanical gate, update this handoff, commit/push, check GitHub CI, then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
