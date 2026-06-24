@@ -21,8 +21,10 @@ worklog.
   headless Catch2 self-check (golden + 440 Hz pitch + level + purity + fade + perf); an RTSan leg
   proves the audio hot path never allocates/locks; a real-machine `tools/soak.sh` is the H0 exit gate.
   An adversarial review found two gate holes (golden blind to steady-state; asymmetric distortion
-  passed) — both closed and proven. **Spike #1 (WAV scrub) done + green; the soak PASSED on the owner's
-  machine.** Next: spike #2 (60fps GPU timeline — native), then spike #3 (node-trait stub).
+  passed) — both closed and proven. **All three H0 spikes de-risked on the CI side:** #1 WAV scrub
+  (full), #2 timeline CPU cost (0.007 ms/frame for 5000 clips), #3 node block-size-independence. The
+  soak PASSED on the owner's machine. **Remaining for H0 (real-hardware/GUI):** a native GPU render
+  shell + `max_frame_ms` in the soak, then the 10-min soak run = H0 exit.
 
 ## Current-horizon checklist — H0 (plain English, small steps)
 - [x] Install the C++ toolchain (CMake + MSVC via VS 2022 Build Tools). ✓
@@ -42,8 +44,13 @@ worklog.
 - [x] Load + scrub one WAV ✓ — `YesDawAssetCheck` decodes a committed fixture WAV, golden-diffs the
   440 Hz sine (≤1e-4), recovers pitch (zero-crossings), and scrubs (sub-range read == slice, bit-
   identical). CI green on Win/Linux/mac. *(spike #1 complete)*
-- [ ] GPU timeline draws 100+ elements at 60fps (spike #2) — asserted by a frame-time budget, not eyeballed; **decide native vs WebView** (product.md leans native).
-- [ ] One Node behind a stub of the format-neutral trait (spike #3).
+- [~] GPU timeline 100+ elements at 60fps (spike #2) — **CPU half done + green**: pure viewport
+  virtualization (`src/ui/TimelineLayout.h`, `YesDawUiCheck`) lays out a 5000-clip viewport in
+  **0.0069 ms/frame** (~2400× under the 16.6 ms budget), so the whole frame is the GPU's. *Remaining
+  (real-hardware): a native GPU render shell + `max_frame_ms<16.6` in the soak.* Native confirmed (no WebView).
+- [x] One Node behind a stub of the format-neutral trait (spike #3) ✓ — `YesDawEngineCheck` drives a
+  `ToneNode` via the trait at block sizes 1/31/128/512/4096/9000 → bit-identical output, finite, no
+  denormals. *(throwaway stub; the real Node contract is frozen at H1.)*
 - [ ] **Exit:** `tools/soak.sh` exits 0 (`xruns==0`, `deadline_misses==0`, loopback RMS>0.01 @440 Hz,
   and — once the timeline lands — `max_frame_ms<16.6`) on a real machine → H0 done. *(no human judgment)*
 
