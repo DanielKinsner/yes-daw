@@ -167,6 +167,13 @@ target_link_libraries(YesDawEventCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEventCheck)
 catch_discover_tests(YesDawEventCheck)
 
+# --- Project value-surface check (H1; pure, ADR-0011 EntityId + Asset/Clip/Project values) ---
+add_executable(YesDawProjectCheck tests/project_tests.cpp)
+target_include_directories(YesDawProjectCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawProjectCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawProjectCheck)
+catch_discover_tests(YesDawProjectCheck)
+
 # --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
 add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
 target_include_directories(YesDawGraphCheck PRIVATE ${YESDAW_SRC_DIR})

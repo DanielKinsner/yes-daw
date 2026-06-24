@@ -17,6 +17,15 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER ADR-0011 EntityId + Asset/Clip/Project value surface is green locally.** Added the
+  pure C++/JUCE-free storage-facing value surface in `src/engine/Project.h`: fixed 16-byte
+  `EntityId`, a monotonic 128-bit ULID allocator, 32-byte Asset content-hash shape, minimal
+  `Asset`/`Clip`/`Project` value types, and Project/Clip invariants for valid unique IDs, Asset validity,
+  Clip→Asset references, and `clip.src_offset + clip.src_len <= asset.frames` without overflow. Added
+  `YesDawProjectCheck` coverage in `tests/project_tests.cpp`. No ADR, golden, SQLite persistence, broad
+  automation, MIDI note handling, plugin hosting, UI, or audio-thread edits. Local gate via documented
+  Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass
+  (99/99). **Next:** REVIEW/FIX ADR-0011 EntityId + Asset/Clip/Project value surface.
 - **Latest: REVIEW/FIX ADR-0009 generic event stream flowing param-changes slice is green locally.**
   Reviewed `cce212a` against ADR-0009, ADR-0008, ADR-0010, `CONTEXT.md`, and the H1 contracts. Found
   and fixed one real command/event interaction bug: after a gain parameter Event moved `FaderNode` away
@@ -194,7 +203,7 @@ worklog.
 - [x] Generic event stream flowing param-changes (ADR-0009) ✓ — fixed-size `Event`/`EventStream`,
   half-open sorted offsets, exact-offset Fader gain events, and the `SetGain` command seam review/fix
   are green.
-- [ ] Project data-model value surface (ADR-0011) — 128-bit EntityId/ULID surface plus Asset/Clip/Project
+- [x] Project data-model value surface (ADR-0011) — 128-bit EntityId/ULID surface plus Asset/Clip/Project
   value types and invariants, before SQLite persistence wiring.
 - [ ] Automation evaluated sample-accurately — curve storage is locked by ADR-0009; broad evaluator/lane
   work stays deferred until the current H1 plan calls it forward.
@@ -366,11 +375,11 @@ worklog.
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER ADR-0011 EntityId + Asset/Clip/Project value surface.** Pull, read `AGENTS.md` +
-  this handoff first, implement exactly one small independently green data-model slice backed by
-  ADR-0011: the 128-bit EntityId/ULID value surface plus minimal Asset/Clip/Project value types and
-  invariant tests. Do not start SQLite persistence, broad automation, MIDI note handling, plugin hosting,
-  or UI work in that worker slice.
+- **Next chunk: REVIEW/FIX ADR-0011 EntityId + Asset/Clip/Project value surface.** Pull, read
+  `AGENTS.md` + this handoff first, review the ADR-0011 value-surface slice against ADR-0011,
+  ADR-0012, ADR-0010, `CONTEXT.md`, `AGENTS.md`, `STATUS.md`, and H1 contracts. Fix only real defects,
+  run the mechanical gate, update this handoff, commit/push, check GitHub CI, then create the next
+  WORKER thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
