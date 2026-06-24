@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — first import/copy recovery gate is CI-green; REVIEW/FIX next
+**Current horizon:** **H2 (editing-first)** — import/copy recovery gate review-clean; Asset decode projection next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,19 +17,22 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H2 asset import + copy-to-bundle recovery gate is green locally and in CI.** Added the
-  smallest headless import/copy surface in `ProjectBundleDb`: source bytes hash to SHA-256, copy to a
-  temp file in `audio/`, re-hash after copy, atomically rename to the content-addressed `.asset` path,
-  dedupe repeated imports to the existing Asset row, and reconcile stale `pending_fs_ops` rows on open.
-  Open now mechanically verifies committed Asset rows against their content-hash bytes and sweeps orphan
-  final files out of `audio/`. Added `YesDawPersistenceCheck` coverage for dedupe, interrupted-import
-  reopen cleanup, and missing/corrupt committed asset bytes. No ADR, golden, roadmap, waveform cache,
-  Clip editing, undo, UI, export, broad decoding, plugin hosting, H3 work, or `[[clang::nonblocking]]`
-  edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset
-  ci`; `ctest --preset ci` pass (121/121). Remote CI run `28131177994` for `31ab1c0` is green across
+- **Latest: REVIEW/FIX H2 asset import + copy-to-bundle recovery gate found no defects.** Reviewed
+  worker commit `31ab1c0` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
+  `ProjectBundleDb` / `YesDawPersistenceCheck` surface. The implementation stays headless and narrow:
+  source bytes hash to SHA-256, copy to a same-directory temp file in `audio/`, re-hash after copy,
+  atomically rename to the content-addressed `.asset` path, dedupe repeated imports to the existing
+  Asset row, and reconcile stale uncommitted `pending_fs_ops` rows on open. Open verifies committed
+  Asset rows against their content-hash bytes and sweeps orphan final files out of `audio/`; tests cover
+  dedupe, interrupted-import reopen cleanup, and missing/corrupt committed asset bytes. No code defect
+  found and no ADR, golden, roadmap, waveform cache, Clip editing, undo, UI, export, broad decoding,
+  plugin hosting, H3 work, or `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell
+  flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (121/121). Remote CI
+  run `28131177994` for `31ab1c0` and run `28131500386` for latest pre-review `main` are green across
   Windows, Linux, macOS, RTSan, and TSan.
-  **Next:** REVIEW/FIX H2 asset import + copy-to-bundle recovery gate; review this worker commit first,
-  then fix only real defects.
+  **Next:** WORKER H2 bundled Asset read/decode projection feeding the graph/Render path without making
+  Clips destructive; keep it headless and do not start waveform cache, Clip editing, undo, UI, export,
+  plugin hosting, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits.
 - **Latest: H1 exit-gate closeout / CI-truth pass is green.** Verified from repo truth that the four H1
   exit gates are represented by self-asserting tests and the latest pushed commit CI:
   Project bundle readback round-trips through `YesDawPersistenceCheck`; RT path vs offline Render
@@ -319,7 +322,7 @@ worklog.
 > Exit gate (all green in CI): any edit sequence + full undo returns the document bit-identical; a
 > split-with-crossfade Project's RT playback matches offline Render; **and** a kill mid-import recovers
 > with the bundle's DB↔filesystem consistent (assets hash-verified, no orphans).
-- [ ] Import + copy-to-bundle with content-hash dedupe, staged temp writes, re-hash-before-rename, and
+- [x] Import + copy-to-bundle with content-hash dedupe, staged temp writes, re-hash-before-rename, and
   intent-log/reconcile-on-open recovery. **First chunk.**
 - [ ] Bundled Asset read/decode projection feeds the graph/Render path without making Clips destructive.
 - [ ] Clip editing as metadata: split, trim, move, gain, fade-in/out, and equal-power crossfade.
@@ -569,11 +572,12 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 asset import + copy-to-bundle recovery gate.** Pull, read `AGENTS.md` +
-  this handoff first, review the worker import/copy/recovery implementation against H2 scope and
-  ADR-0011/ADR-0012, fix only real defects if found, run the full mechanical gate, commit/push/check CI
-  if anything changes, update this handoff, then create the following WORKER thread from the current
-  `Next` state if green.
+- **Next chunk: WORKER H2 bundled Asset read/decode projection.** Pull, read `AGENTS.md` + this handoff
+  first, then implement the smallest headless projection that reads bundled Asset bytes through the
+  existing decode path and feeds graph/Render without making Clips destructive. Keep the scope to the
+  second H2 checklist item; do not start waveform cache, Clip editing, undo, UI, export, plugin hosting,
+  ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits. Commit/push only after the
+  full mechanical gate is green, then hand to REVIEW/FIX.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
