@@ -17,7 +17,15 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER compiler slice K is green locally.** Runtime now routes `SetGain`/`SetPan` from the
+- **Latest: REVIEW/FIX compiler slice K is green locally.** Reviewed `e88a6b4` against ADR-0006/0007/0008
+  and the locked compiler design. No code defect found: `Runtime` routes `SetGain`/`SetPan` through the
+  one ordered command queue to the `CompiledGraph` current at each command point, `applySetGain`/
+  `applySetPan` use the sorted `idIndex_` lookup and return false for degenerate/missing/wrong-kind
+  targets, and matched commands only mutate `FaderNode`/`PanNode` target state. `Node.h` stayed frozen;
+  slice I/J pool, mute, carry-over, deterministic input ordering, and bus bind invariants stayed intact.
+  Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (84/84). **Next:** WORKER
+  time-model types (ADR-0010).
+- **Previous: WORKER compiler slice K is green locally.** Runtime now routes `SetGain`/`SetPan` from the
   one ordered command queue to the `CompiledGraph` that is current at that command point, using the
   sorted `idIndex_` lookup. `CompiledGraph::applySetGain/applySetPan` return false for degenerate,
   missing-id, and wrong-kind targets; matched commands only call `FaderNode::setTargetGain` or
@@ -25,8 +33,7 @@ worklog.
   graph, a gain command after the swap does, PanNode routing is audible in rendered samples, invalid
   scalar commands do not corrupt output, and degenerate graphs stay no-op. `Node.h` stayed frozen and
   slice I/J invariants stayed untouched. Local gate: `cmake --build --preset ci` and `ctest --preset ci`
-  pass (84/84). **Next:** REVIEW/FIX compiler slice K. Do not start the time-model chunk until that
-  review/fix checkpoint is green.
+  pass (84/84).
 - **Latest: REVIEW/FIX compiler slice J is green locally.** Reviewed `b649acc` against the locked
   compiler design plus ADR-0007/0008. Node.h stayed frozen and slice K SetGain/SetPan routing did not
   land. Slice I pool invariants still hold: greedy width-sized f32 slots, slot 0 permanent silence,
@@ -140,12 +147,12 @@ worklog.
   ordered choc queue (`SwapGraph`), audio-thread-local `current_`, audio→control retire queue, strict
   `processedGen > retiredAtGen` fence-post; backpressure not leak. RTSan + TSan legs cover it in CI.
   *(`src/engine/{CompiledGraph,Command,Runtime}.h`, `tests/{compiledgraph,runtime}_tests.cpp`.)*
-- [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
+- [x] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
   commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), H (PDC), I
-  (buffer pool), and J (mute + carry-over + bind-check) are done and reviewed/fixed; K (SetGain/SetPan
-  seam) is implemented and locally green, with REVIEW/FIX next.
+  (buffer pool), J (mute + carry-over + bind-check), and K (SetGain/SetPan seam) are done and
+  reviewed/fixed.
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -294,15 +301,18 @@ worklog.
   ADR-0007/0008. Fixed one real carry-over key bug: synthetic PDC LatencyNodes now keep full 64-bit
   `DelayCacheKey` metadata instead of relying on the low 32-bit diagnostic NodeId, and a regression
   asserts low-ID collisions remain distinct in the DelayCache. Local `ci` build + 78/78 tests green.
+- 2026-06-24 — **Slice K review/fix.** Reviewed `e88a6b4` against ADR-0006/0007/0008 and the locked
+  compiler design. Found no code defect: scalar commands route through the one ordered queue to the
+  graph current at each command point, `idIndex_` lookup returns false for degenerate/missing/wrong-kind
+  targets, `Node.h` stayed frozen, and slice I/J invariants remain intact. Local `ci` build + 84/84
+  tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX compiler slice K (ADR-0007/ADR-0006).** Re-check the SetGain/SetPan command
-  routing through `CompiledGraph::idIndex_` and verify it did not disturb the frozen Node trait or the
-  slice I/J invariants.
-  In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
-  function gets `YESDAW_RT_HOT` + RTSan; every commit green.
+- **Next chunk: WORKER time-model types (ADR-0010).** Add the small, frozen time-model type surface that
+  unblocks the round-trip exit. Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; every commit
+  green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
