@@ -8,7 +8,7 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-**Last updated:** 2026-06-23
+**Last updated:** 2026-06-24
 **Current horizon:** **H1 (the spine)** — in progress
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
@@ -17,17 +17,21 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: the five built-in Nodes are in & green.** `DelayNode` (the one PDC+feedback primitive;
+- **Latest: `CompiledGraph` compiler slice F is in & locally green.** The graph now has the additive
+  ADR-0007 state/layout surface (`Payload`, flat compiled-node metadata, input-slot table, buffer-pool
+  layout, mute mask, master output bookkeeping, id index) behind the preserved legacy `(GraphId, dc)`
+  degenerate fast path. `src/dsp/ScopedNoDenormals.h` landed with the written R1–R7 buffer-pool contract;
+  no builder/audio executor path is reachable yet. Local gate: `cmake --build --preset ci` and
+  `ctest --preset ci` pass (47/47). **Next:** compiler slice G — `GraphBuilder` Pass 1+2 +
+  `MasterNode`/`IdentityDcNode` + first real end-to-end render.
+- **Previous: the five built-in Nodes are in & green.** `DelayNode` (the one PDC+feedback primitive;
   `LatencyNode` is an alias), `FaderNode` (ramped gain), `PanNode` (equal-power mono→stereo, LUT),
   `SumNode` (f64 Bus summing, canonical NodeId order), `MeterNode` (peak/RMS, lock-free publish) — each
   its own independently-green commit behind the frozen Node trait, each `YESDAW_RT_HOT` with a
-  cross-block-size invariance gate. `src/dsp/LinearRamp.h` is the per-frame ramp helper. The **5-pass
-  `CompiledGraph` compiler with PDC** is the remaining ADR-0007 piece — its locked implementation design
-  (4-design panel + 3 judges, like the concurrency core) is written up in
+  cross-block-size invariance gate. `src/dsp/LinearRamp.h` is the per-frame ramp helper. The locked
+  compiler implementation design remains
   [docs/plans/2026-06-23-compiledgraph-compiler-design.md](docs/plans/2026-06-23-compiledgraph-compiler-design.md);
-  build commits F–K from there. Three small open decisions for Dan are recorded in that note (defaults
-  already chosen: mono-out at H1 · keep the legacy `(id,dc)` ctor as a test seam · in-place whitelist =
-  Fader+Meter).
+  build commits G–K from there.
 - **The Node contract (ADR-0008) is frozen + green.** `src/engine/Node.h` is the CLAP-shaped
   trait (`NodeProperties`/`AudioBlock`/`ProcessArgs` + `prepare`/`process`/`reset`/`release`/`directInputs`);
   `process` is `noexcept` + `YESDAW_RT_HOT` (RTSan-clean). First built-in `OscillatorNode` (wraps
@@ -68,8 +72,8 @@ worklog.
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
-  commits F (CompiledGraph state) → G (Pass 1+2 + Master/IdentityDc) → H (PDC) → I (pool) → J (carry-over)
-  → K (SetGain seam).
+  commit F (CompiledGraph state) is done; next commits are G (Pass 1+2 + Master/IdentityDc) → H (PDC) →
+  I (pool) → J (carry-over) → K (SetGain seam).
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -171,18 +175,20 @@ worklog.
   peak/RMS). Each has a cross-block-size invariance gate; `ci` gate green at every commit (47/47 local).
   Fixed three real bugs in the panel's sketch (include convention, delay-0 read/write order, f64
   test using 1e30 instead of 1e8). The 5-pass compiler itself (commits F–K) is the next chunk.
+- 2026-06-24 — **CompiledGraph compiler slice F landed.** `CompiledGraph` gained the additive ADR-0007
+  state/layout surface and `Payload` constructor while preserving the legacy `(GraphId, dc)` degenerate
+  fast path for existing Runtime/CompiledGraph tests. `ScopedNoDenormals` landed for the real node
+  executor path. Local `ci` build + 47/47 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: the real `CompiledGraph` 5-pass compiler with PDC (ADR-0007).** Design is locked
-  ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)) — implement commits
-  **F→K** in order, each independently green, **without breaking the existing Runtime/CompiledGraph/Node
-  tests** (the legacy `(id,dc)` ctor stays as an `isDegenerate_` fast path; no existing test is touched).
-  Start with **F (CompiledGraph state extension, additive)** then **G (GraphBuilder Pass 1+2 +
-  MasterNode/IdentityDcNode + first real end-to-end render)**. PDC (H), buffer pool (I), carry-over (J),
-  SetGain seam (K) follow. In parallel the **time model types (ADR-0010)** unblock the round-trip exit.
-  Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; every commit green.
+- **Next chunk: compiler slice G (ADR-0007).** Add `GraphBuilder` Pass 1+2 plus
+  `MasterNode`/`IdentityDcNode`, then the first real end-to-end render. Existing
+  Runtime/CompiledGraph/Node tests stay intact; the legacy `(id,dc)` constructor remains the
+  `isDegenerate_` fast path. PDC (H), buffer pool (I), carry-over (J), and SetGain seam (K) follow.
+  In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
+  function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
