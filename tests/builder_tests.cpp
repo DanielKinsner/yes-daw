@@ -1,4 +1,4 @@
-// YES DAW — GraphBuilder checks (ADR-0007 slice G).
+// YES DAW — GraphBuilder checks (ADR-0007 slice G/H).
 //
 // Pure C++ + Catch2, no JUCE. These tests prove the first real compiled graph path: validate Nodes,
 // iterative topo from Master, one-slot-per-node execution, and loud failures for bad graph inputs.
@@ -13,6 +13,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <limits>
 #include <memory>
 #include <span>
 #include <utility>
@@ -20,6 +23,7 @@
 
 using yesdaw::engine::AudioBlock;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::DelayNode;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
@@ -89,6 +93,116 @@ private:
     std::int64_t latencySamples_ = 0;
 };
 
+class ImpulseNode final : public Node
+{
+public:
+    explicit ImpulseNode (NodeId id) noexcept : id_ (id) {}
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { true, false, 1, 0, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (args.audio.numChannels < 1)
+            return;
+
+        float* const out = args.audio.channels[0];
+        for (int i = 0; i < args.numFrames; ++i)
+            out[i] = 0.0f;
+
+        if (! emitted_ && args.numFrames > 0)
+            out[0] = 1.0f;
+
+        emitted_ = true;
+    }
+
+    void reset() noexcept override { emitted_ = false; }
+    void release() override {}
+
+private:
+    NodeId id_;
+    bool emitted_ = false;
+};
+
+class StubLatencyNode final : public Node
+{
+public:
+    StubLatencyNode (NodeId id, std::int64_t latencySamples) noexcept
+        : id_ (id), latencySamples_ (latencySamples)
+    {
+    }
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { true, false, 1, latencySamples_, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double, int maxBlockSize) override
+    {
+        const std::int64_t delay = latencySamples_ > 0 ? latencySamples_ : 0;
+        const std::int64_t needed = delay + static_cast<std::int64_t> (maxBlockSize > 0 ? maxBlockSize : 1) + 1;
+
+        std::uint32_t pow2 = 1;
+        while (static_cast<std::int64_t> (pow2) < needed)
+            pow2 <<= 1;
+
+        framesPerChannel_ = pow2;
+        mask_ = pow2 - 1u;
+        writePos_ = 0;
+        ring_.assign (framesPerChannel_, 0.0f);
+    }
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (args.audio.numChannels < 1)
+            return;
+
+        float* const x = args.audio.channels[0];
+        float* const ring = ring_.data();
+        const std::uint32_t w = writePos_;
+        const std::uint32_t d = static_cast<std::uint32_t> (latencySamples_ > 0 ? latencySamples_ : 0);
+
+        for (int i = 0; i < args.numFrames; ++i)
+        {
+            const std::uint32_t ui = static_cast<std::uint32_t> (i);
+            ring[(w + ui) & mask_] = x[i];
+            x[i] = ring[(w + ui - d) & mask_];
+        }
+
+        writePos_ = (writePos_ + static_cast<std::uint32_t> (args.numFrames)) & mask_;
+    }
+
+    void reset() noexcept override
+    {
+        if (! ring_.empty())
+            std::memset (ring_.data(), 0, ring_.size() * sizeof (float));
+        writePos_ = 0;
+    }
+
+    void release() override { ring_.clear(); ring_.shrink_to_fit(); }
+
+    void setInput (Node* input) noexcept { input_ = input; }
+
+private:
+    NodeId id_;
+    std::int64_t latencySamples_;
+    Node* input_ = nullptr;
+    std::vector<float> ring_;
+    std::uint32_t framesPerChannel_ = 0;
+    std::uint32_t mask_ = 0;
+    std::uint32_t writePos_ = 0;
+};
+
 } // namespace
 
 TEST_CASE ("GraphBuilder renders IdentityDc through Master", "[builder][render]")
@@ -145,6 +259,113 @@ TEST_CASE ("GraphBuilder renders an empty project as silence", "[builder][render
     const std::vector<float> out = render (*graph, 128);
     for (float v : out)
         REQUIRE (v == 0.0f);
+}
+
+TEST_CASE ("GraphBuilder PDC aligns convergence impulses at total latency", "[builder][pdc]")
+{
+    constexpr int kLatency = 11;
+    constexpr int kFrames = 32;
+
+    auto source = std::make_unique<ImpulseNode> (1);
+    auto latent = std::make_unique<StubLatencyNode> (2, kLatency);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    ImpulseNode* const sourcePtr = source.get();
+    StubLatencyNode* const latentPtr = latent.get();
+    latentPtr->setInput (sourcePtr);
+    master->setInputNodes ({ sourcePtr, latentPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = kFrames;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (latent));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) == 1u);
+
+    const std::vector<float> out = render (*graph, kFrames);
+    for (int i = 0; i < kFrames; ++i)
+        REQUIRE (out[static_cast<std::size_t> (i)] == (i == kLatency ? 2.0f : 0.0f));
+}
+
+TEST_CASE ("GraphBuilder PDC guard would catch the unspliced two-peak case", "[builder][pdc][guard]")
+{
+    constexpr int kLatency = 7;
+    constexpr int kFrames = 24;
+
+    auto source = std::make_unique<ImpulseNode> (1);
+    auto latent = std::make_unique<StubLatencyNode> (2, kLatency);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    ImpulseNode* const sourcePtr = source.get();
+    StubLatencyNode* const latentPtr = latent.get();
+    latentPtr->setInput (sourcePtr);
+    master->setInputNodes ({ sourcePtr, latentPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = kFrames;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (latent));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::vector<float> out = render (*graph, kFrames);
+
+    int nonZeroFrames = 0;
+    for (float v : out)
+        if (v != 0.0f)
+            ++nonZeroFrames;
+
+    REQUIRE (out[0] == 0.0f);
+    REQUIRE (out[static_cast<std::size_t> (kLatency)] == 2.0f);
+    REQUIRE (nonZeroFrames == 1);
+}
+
+TEST_CASE ("GraphBuilder PDC leaves single-input chains unspliced", "[builder][pdc]")
+{
+    constexpr int kLatency = 13;
+    constexpr int kFrames = 32;
+
+    auto source = std::make_unique<ImpulseNode> (1);
+    auto latent = std::make_unique<StubLatencyNode> (2, kLatency);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    ImpulseNode* const sourcePtr = source.get();
+    StubLatencyNode* const latentPtr = latent.get();
+    latentPtr->setInput (sourcePtr);
+    master->setInputNodes ({ latentPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = kFrames;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (latent));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) == 0u);
+
+    const std::vector<float> out = render (*graph, kFrames);
+    for (int i = 0; i < kFrames; ++i)
+        REQUIRE (out[static_cast<std::size_t> (i)] == (i == kLatency ? 1.0f : 0.0f));
 }
 
 TEST_CASE ("GraphBuilder rejects missing master node", "[builder][validate]")
@@ -291,6 +512,21 @@ TEST_CASE ("GraphBuilder rejects latency outside the cap", "[builder][validate]"
 {
     auto source = std::make_unique<LinkNode> (1);
     source->setLatency (GraphBuilder::kMaxLatencyCap + 1);
+
+    GraphBuilder::Inputs inputs = inputsWithMaster (std::move (source));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::LatencyOutOfRange);
+    REQUIRE (error.nodeId() == 1u);
+}
+
+TEST_CASE ("GraphBuilder rejects INT64_MAX latency before PDC arithmetic", "[builder][validate][pdc]")
+{
+    auto source = std::make_unique<LinkNode> (1);
+    source->setLatency (std::numeric_limits<std::int64_t>::max());
 
     GraphBuilder::Inputs inputs = inputsWithMaster (std::move (source));
 

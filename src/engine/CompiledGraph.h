@@ -229,6 +229,15 @@ public:
     bool    isDegenerate() const noexcept { return isDegenerate_; }
     std::int64_t totalLatency() const noexcept { return totalLatency_; }
 
+    std::size_t debugCountNodesOfKind (CompiledNodeKind kind) const noexcept
+    {
+        std::size_t count = 0;
+        for (const CompiledNode& node : compiledNodes_)
+            if (node.kind == kind)
+                ++count;
+        return count;
+    }
+
     // Liveness instrumentation (cheap, always compiled — also a legitimate diagnostic). Every
     // construction/destruction adjusts this, so a test can assert it returns to its baseline (no leak)
     // and that exactly one graph survives steady state (reclamation actually ran).

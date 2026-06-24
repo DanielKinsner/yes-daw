@@ -1,8 +1,8 @@
 // YES DAW — GraphBuilder (ADR-0007): control-thread compiler for immutable CompiledGraph snapshots.
 //
-// Slice G implements Pass 1+2 and the smallest Pass 3-5 stubs needed for an end-to-end render:
-// validation, iterative topo from Master, one f32 slot per reachable node, bus binding, prepare, publish.
-// PDC splicing, greedy pool allocation, carry-over, mute, and scalar routing land in later slices.
+// Slice H implements Pass 3 PDC on top of the slice G scaffolding: longest-path latency metadata plus
+// synthetic LatencyNode splices at convergence points. Greedy pool allocation, carry-over, mute, and
+// scalar routing land in later slices.
 
 #pragma once
 
@@ -178,14 +178,22 @@ public:
         if (order.size() > kMaxCompiledNodes)
             return fail (error, GraphBuildError::GraphTooLarge { inputs.masterNodeId });
 
-        CompiledGraph::Payload payload;
-        payload.id         = inputs.id;
-        payload.identityDc = 0.0f;
+        std::vector<CompileItem> compileItems;
+        std::size_t masterItemIdx = 0;
+        if (! buildPdcPlan (infos, order, masterFound->second, inputs.nodes, compileItems, masterItemIdx, error))
+            return nullptr;
 
+        if (compileItems.size() > kMaxCompiledNodes)
+            return fail (error, GraphBuildError::GraphTooLarge { inputs.masterNodeId });
+
+        CompiledGraph::Payload payload;
+        payload.id           = inputs.id;
+        payload.identityDc   = 0.0f;
+        payload.totalLatency = compileItems[masterItemIdx].pathLatency;
         payload.nodeStorage = std::move (inputs.nodes);
 
         const int maxBlockSize = inputs.maxBlockSize > 0 ? inputs.maxBlockSize : 1;
-        buildCompiledMetadata (infos, order, maxBlockSize, payload);
+        buildCompiledMetadata (compileItems, maxBlockSize, payload);
         bindBusNodes (payload);
 
         for (CompiledNode& cn : payload.compiledNodes)
@@ -210,6 +218,16 @@ private:
     {
         std::size_t nodeIdx = 0;
         std::size_t nextInput = 0;
+    };
+
+    struct CompileItem
+    {
+        Node* node = nullptr;
+        NodeProperties props;
+        int channels = 1;
+        CompiledNodeKind kind = CompiledNodeKind::Plugin;
+        std::int64_t pathLatency = 0;
+        std::vector<std::size_t> inputs;
     };
 
     static std::unique_ptr<CompiledGraph> fail (GraphBuildError* error, GraphBuildError value)
@@ -297,29 +315,172 @@ private:
         return true;
     }
 
-    static void buildCompiledMetadata (const std::vector<NodeInfo>& infos,
-                                       const std::vector<std::size_t>& order,
+    static bool buildPdcPlan (const std::vector<NodeInfo>& infos,
+                              const std::vector<std::size_t>& order,
+                              std::size_t masterIdx,
+                              std::vector<std::unique_ptr<Node>>& ownedNodes,
+                              std::vector<CompileItem>& items,
+                              std::size_t& masterItemIdx,
+                              GraphBuildError* error)
+    {
+        std::vector<std::size_t> originalToItem (infos.size(), kNoItem);
+        items.reserve (order.size());
+
+        for (const std::size_t nodeIdx : order)
+        {
+            const NodeInfo& info = infos[nodeIdx];
+
+            std::vector<std::size_t> effectiveInputs;
+            effectiveInputs.reserve (info.inputs.size());
+
+            for (const std::size_t inputIdx : info.inputs)
+            {
+                const std::size_t itemIdx = originalToItem[inputIdx];
+                if (itemIdx != kNoItem)
+                    effectiveInputs.push_back (itemIdx);
+            }
+
+            std::int64_t targetLatency = 0;
+            if (! effectiveInputs.empty())
+            {
+                targetLatency = items[effectiveInputs.front()].pathLatency;
+                for (const std::size_t inputItemIdx : effectiveInputs)
+                    if (items[inputItemIdx].pathLatency > targetLatency)
+                        targetLatency = items[inputItemIdx].pathLatency;
+            }
+
+            if (effectiveInputs.size() >= 2u)
+            {
+                for (std::size_t& inputItemIdx : effectiveInputs)
+                {
+                    const std::int64_t inputLatency = items[inputItemIdx].pathLatency;
+                    const std::int64_t delta = targetLatency - inputLatency;
+                    if (delta == 0)
+                        continue;
+
+                    if (delta < 0 || delta > kMaxLatencyCap)
+                        return failBool (error, GraphBuildError::LatencyOutOfRange { info.props.id });
+
+                    inputItemIdx = appendLatencySplice (info, inputItemIdx, delta, ownedNodes, items);
+                    if (items.size() > kMaxCompiledNodes)
+                        return failBool (error, GraphBuildError::GraphTooLarge { info.props.id });
+                }
+            }
+
+            std::int64_t pathLatency = info.props.latencySamples;
+            if (! effectiveInputs.empty())
+            {
+                if (! safeAddI64 (targetLatency, info.props.latencySamples, pathLatency))
+                    return failBool (error, GraphBuildError::LatencyOutOfRange { info.props.id });
+            }
+
+            CompileItem item;
+            item.node        = info.node;
+            item.props       = info.props;
+            item.channels    = info.channels;
+            item.kind        = info.kind;
+            item.pathLatency = pathLatency;
+            item.inputs      = std::move (effectiveInputs);
+
+            const std::size_t itemIdx = items.size();
+            items.push_back (std::move (item));
+            originalToItem[nodeIdx] = itemIdx;
+
+            if (nodeIdx == masterIdx)
+                masterItemIdx = itemIdx;
+
+            if (items.size() > kMaxCompiledNodes)
+                return failBool (error, GraphBuildError::GraphTooLarge { info.props.id });
+        }
+
+        return true;
+    }
+
+    static std::size_t appendLatencySplice (const NodeInfo& consumer,
+                                            std::size_t inputItemIdx,
+                                            std::int64_t delaySamples,
+                                            std::vector<std::unique_ptr<Node>>& ownedNodes,
+                                            std::vector<CompileItem>& items)
+    {
+        const CompileItem& producer = items[inputItemIdx];
+        const NodeId spliceId = syntheticLatencyId (consumer.props.id, producer.props.id, items.size());
+
+        auto latency = std::make_unique<LatencyNode> (spliceId, delaySamples, producer.channels);
+        latency->setInput (producer.node);
+        Node* const latencyPtr = latency.get();
+        ownedNodes.push_back (std::move (latency));
+
+        CompileItem splice;
+        splice.node        = latencyPtr;
+        splice.props       = latencyPtr->properties();
+        splice.channels    = producer.channels;
+        splice.kind        = CompiledNodeKind::Latency;
+        splice.pathLatency = producer.pathLatency + delaySamples;
+        splice.inputs.push_back (inputItemIdx);
+
+        const std::size_t spliceIdx = items.size();
+        items.push_back (std::move (splice));
+        return spliceIdx;
+    }
+
+    static NodeId syntheticLatencyId (NodeId consumerId, NodeId producerId, std::size_t ordinal) noexcept
+    {
+        std::uint64_t h = 14695981039346656037ull;
+        h = fnv1a (h, static_cast<std::uint64_t> (consumerId));
+        h = fnv1a (h, static_cast<std::uint64_t> (producerId));
+        h = fnv1a (h, static_cast<std::uint64_t> (ordinal));
+        return static_cast<NodeId> (0x8000'0000u | (static_cast<NodeId> (h) & 0x7FFF'FFFFu));
+    }
+
+    static std::uint64_t fnv1a (std::uint64_t h, std::uint64_t value) noexcept
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            h ^= (value >> (i * 8)) & 0xFFu;
+            h *= 1099511628211ull;
+        }
+        return h;
+    }
+
+    static bool safeAddI64 (std::int64_t a, std::int64_t b, std::int64_t& out) noexcept
+    {
+#if defined(__GNUC__) || defined(__clang__)
+        return ! __builtin_add_overflow (a, b, &out);
+#else
+        if ((b > 0 && a > std::numeric_limits<std::int64_t>::max() - b)
+            || (b < 0 && a < std::numeric_limits<std::int64_t>::min() - b))
+            return false;
+
+        out = a + b;
+        return true;
+#endif
+    }
+
+    static bool failBool (GraphBuildError* error, GraphBuildError value)
+    {
+        if (error != nullptr)
+            *error = value;
+        return false;
+    }
+
+    static void buildCompiledMetadata (const std::vector<CompileItem>& items,
                                        int maxBlockSize,
                                        CompiledGraph::Payload& payload)
     {
-        std::vector<std::uint32_t> nodeToCompiled (infos.size(), kUncompiled);
-        for (std::size_t i = 0; i < order.size(); ++i)
-            nodeToCompiled[order[i]] = static_cast<std::uint32_t> (i);
-
-        payload.compiledNodes.reserve (order.size());
-        payload.inputSlotIndices.reserve (order.size());
+        payload.compiledNodes.reserve (items.size());
+        payload.inputSlotIndices.reserve (items.size());
 
         std::uint16_t maxChannels = 1;
-        for (const std::size_t nodeIdx : order)
+        for (const CompileItem& item : items)
         {
-            const int ch = infos[nodeIdx].channels;
+            const int ch = item.channels;
             if (ch > static_cast<int> (maxChannels))
                 maxChannels = static_cast<std::uint16_t> (ch);
         }
 
         payload.poolLayout.maxBlockSize       = static_cast<std::uint32_t> (maxBlockSize);
         payload.poolLayout.maxChannelsPerSlot = maxChannels;
-        payload.poolLayout.numFloatSlots      = checkedSlotCount (order.size() + 1u);
+        payload.poolLayout.numFloatSlots      = checkedSlotCount (items.size() + 1u);
         payload.poolLayout.numDoubleSlots     = 0;
 
         const std::size_t totalSamples = static_cast<std::size_t> (payload.poolLayout.numFloatSlots)
@@ -345,32 +506,29 @@ private:
                                       + static_cast<std::size_t> (ch)] = payload.floatStorage.get() + sampleOffset;
             }
 
-        for (std::size_t compiledIdx = 0; compiledIdx < order.size(); ++compiledIdx)
+        for (std::size_t compiledIdx = 0; compiledIdx < items.size(); ++compiledIdx)
         {
-            const std::size_t nodeIdx = order[compiledIdx];
-            const NodeInfo& info = infos[nodeIdx];
+            const CompileItem& item = items[compiledIdx];
 
             CompiledNode cn;
-            cn.node        = info.node;
-            cn.id          = info.props.id;
-            cn.numChannels = static_cast<std::uint16_t> (info.channels);
+            cn.node        = item.node;
+            cn.id          = item.props.id;
+            cn.numChannels = static_cast<std::uint16_t> (item.channels);
             cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
             cn.outputSlot  = checkedSlotCount (compiledIdx + 1u);
-            cn.kind        = info.kind;
+            cn.pathLatency = item.pathLatency;
+            cn.kind        = item.kind;
 
-            for (const std::size_t inputIdx : info.inputs)
+            for (const std::size_t inputIdx : item.inputs)
             {
-                const std::uint32_t producerCompiled = nodeToCompiled[inputIdx];
-                if (producerCompiled == kUncompiled || producerCompiled >= compiledIdx)
-                    continue; // allowed Delay feedback edge, or unreachable input, is silent in slice G.
-
                 payload.inputSlotIndices.push_back (InputSlot {
-                    payload.compiledNodes[producerCompiled].outputSlot,
-                    static_cast<std::uint16_t> (producerCompiled) });
+                    payload.compiledNodes[inputIdx].outputSlot,
+                    static_cast<std::uint16_t> (inputIdx) });
             }
 
             cn.numInputs = static_cast<std::uint16_t> (payload.inputSlotIndices.size() - cn.inputsBegin);
-            payload.idIndex.push_back (std::make_pair (cn.id, static_cast<std::uint32_t> (compiledIdx)));
+            if (cn.kind != CompiledNodeKind::Latency)
+                payload.idIndex.push_back (std::make_pair (cn.id, static_cast<std::uint32_t> (compiledIdx)));
 
             if (cn.kind == CompiledNodeKind::Master)
             {
@@ -461,7 +619,7 @@ private:
                                            + static_cast<std::size_t> (c)];
     }
 
-    static constexpr std::uint32_t kUncompiled = std::numeric_limits<std::uint32_t>::max();
+    static constexpr std::size_t kNoItem = std::numeric_limits<std::size_t>::max();
 };
 
 } // namespace yesdaw::engine

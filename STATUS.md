@@ -17,12 +17,18 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX compiler slice G is in & locally green.** The review found one real validation
+- **Latest: worker compiler slice H is in & locally green.** `GraphBuilder` now performs Pass 3 PDC:
+  longest-path latency metadata, synthetic `LatencyNode` splices at convergence points, `totalLatency()`
+  publication, and no spurious splice on single-input chains. Added test-only `StubLatencyNode`/impulse
+  coverage proving a 2.0 peak lands at exactly frame N, the old unspliced two-peak failure is guarded,
+  `totalLatency()==N`, single-input chains stay unspliced, and INT64_MAX/negative latencies fail loudly.
+  Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (65/65).
+  **Next:** REVIEW/FIX compiler slice H; do not start slice I until that review is green.
+- **Previous: REVIEW/FIX compiler slice G landed.** The review found one real validation
   gap: an over-wide bus fan-in could overflow the flat `uint16` input metadata and compile to silence
   instead of failing loudly. `GraphBuilder` now rejects unrepresentable reachable-node/input counts with
   `GraphTooLarge`; coverage also asserts empty-project silence, missing-master rejection, and negative
   latency rejection. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (61/61).
-  **Next:** worker slice H — Pass 3 PDC + `StubLatencyNode` + impulse tests.
 - **Previous: compiler slice G landed.** `GraphBuilder` now performs Pass 1+2 validation and iterative
   Master-backward topo, rejects duplicate/missing/over-latency/cyclic graphs, allows `DelayNode`
   feedback boundaries, and builds the first real payload graph with `MasterNode` + `IdentityDcNode`.
@@ -85,8 +91,8 @@ worklog.
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
-  commits F (CompiledGraph state) and G (Pass 1+2 + Master/IdentityDc + first render) are done; next
-  commits are H (PDC) → I (pool) → J (carry-over) → K (SetGain seam).
+  commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), and H (PDC) are
+  done; next commits are I (pool) → J (carry-over) → K (SetGain seam), after H review/fix is green.
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -208,14 +214,19 @@ worklog.
   the flat `uint16` compiled metadata now fail as `GraphTooLarge` instead of silently compiling a bad
   graph. Added coverage for that bug plus empty-project silence, missing master, and negative latency.
   Local `ci` build + 61/61 tests green.
+- 2026-06-24 — **CompiledGraph compiler slice H landed locally.** Added Pass 3 PDC in `GraphBuilder`:
+  longest-path latency walk, synthetic `LatencyNode` splices at convergence points, and published
+  `totalLatency()`. Added test-only `StubLatencyNode` + impulse coverage for aligned convergence, the
+  old unspliced two-peak guard, no single-input splice, and INT64_MAX/negative latency rejection. Local
+  `ci` build + 65/65 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: worker slice H (ADR-0007).** Implement Pass 3 PDC + `StubLatencyNode` + impulse tests
-  from the locked compiler design. Keep existing Runtime/CompiledGraph/Node/Builder tests intact; PDC
-  should report `totalLatency()==N`, avoid spurious single-input delays, and reject overflow/negative
-  latency mechanically. Buffer pool (I), carry-over (J), and SetGain seam (K) follow after H review.
+- **Next chunk: REVIEW/FIX compiler slice H (ADR-0007).** Review the Pass 3 PDC implementation and
+  impulse tests against the locked compiler design. Verify no slice I buffer-pool, slice J carry-over, or
+  slice K SetGain behavior leaked into H. Buffer pool (I), carry-over (J), and SetGain seam (K) follow
+  only after H review/fix is green.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 
