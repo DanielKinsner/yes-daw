@@ -1,5 +1,7 @@
 # YES DAW
 
+[![CI](https://github.com/DanielKinsner/yes-daw/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielKinsner/yes-daw/actions/workflows/ci.yml)
+
 A from-scratch audio production workstation, built deliberately.
 
 The precise product wedge (finishing/mastering vs. stem-remix vs. AI-mastering console) is
@@ -34,8 +36,11 @@ Source code lands only after the decisions that shape it are recorded as ADRs.
 
 ## Current status
 
-**Phase: orientation complete → brainstorming next.** No engine code yet. The five open
-architecture forks are tracked in [`docs/adr/README.md`](docs/adr/README.md) under "Decision backlog".
+**Phase: H0 spikes.** Spike #1 (audio device round-trip) plays a 440 Hz tone on real hardware, and
+verification is now **mechanical**: GitHub Actions builds the app and runs a headless, self-asserting
+DSP check (golden output + pitch/level + a throughput floor) on Windows + macOS — the green badge
+above is the gate, not a human. Live state lives in [`STATUS.md`](STATUS.md). No engine code yet (the
+spike DSP is throwaway); the irreversible contracts get frozen at H1.
 
 ## How we work
 
