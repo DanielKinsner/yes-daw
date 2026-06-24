@@ -3,31 +3,46 @@ project(YesDaw VERSION 0.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # clang-format / clang-tidy / editors consume this
 
-# --- JUCE (fetched + pinned; bump GIT_TAG deliberately to the latest 8.0.x) ---
+# --- Dependencies (fetched + pinned to a tag; bump deliberately) ------------------
+# SYSTEM demotes their headers to -isystem / /external:I, so our warnings-as-errors
+# (yesdaw_harden below) applies to OUR code only and never trips on a JUCE/Catch2 header.
 include(FetchContent)
-FetchContent_Declare(
-  JUCE
+FetchContent_Declare(JUCE
   GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
   GIT_TAG        8.0.4
-  GIT_SHALLOW    TRUE)
-FetchContent_MakeAvailable(JUCE)
+  GIT_SHALLOW    TRUE
+  SYSTEM)
+FetchContent_Declare(Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.7.1
+  GIT_SHALLOW    TRUE
+  SYSTEM)
+FetchContent_MakeAvailable(JUCE Catch2)
 
-# --- Warnings-as-errors, scoped to OUR targets only -------------------------------
-# CLAUDE.md makes warnings-as-errors a mechanical gate. We apply JUCE's own recommended
-# warning set (the set JUCE keeps its headers clean against) and turn it fatal for our
-# targets only — never for JUCE's own targets, which we leave untouched.
-function(yesdaw_strict_juce target)
-  target_link_libraries(${target} PRIVATE
-    juce::juce_recommended_config_flags
-    juce::juce_recommended_warning_flags)
-  set_target_properties(${target} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+# --- Hardening: warnings-as-errors on OUR code only + an optional sanitizer --------
+# CLAUDE.md makes warnings-as-errors a mechanical gate. JUCE/Catch2 are SYSTEM (above),
+# so only our own code is held to the bar. YESDAW_SANITIZER plumbs in the RTSan CI leg
+# (-fsanitize=realtime) that enforces "the audio thread never allocates/locks".
+option(YESDAW_SANITIZER "asan | undefined | thread | realtime  (empty = off)" "")
+
+function(yesdaw_harden target)
+  if (MSVC)
+    target_compile_options(${target} PRIVATE /W4 /WX)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Werror)
+  endif()
+  if (YESDAW_SANITIZER)
+    target_compile_options(${target} PRIVATE -fsanitize=${YESDAW_SANITIZER} -fno-omit-frame-pointer)
+    target_link_options   (${target} PRIVATE -fsanitize=${YESDAW_SANITIZER})
+  endif()
 endfunction()
 
 # Project headers under src/ are includable as "dsp/SineSource.h".
 set(YESDAW_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# --- H0 spike app (throwaway; proves device I/O + the build) ---
+# --- H0 spike app (throwaway GUI; proves device I/O + the build) ------------------
 juce_add_gui_app(YesDaw
   PRODUCT_NAME "YesDaw"
   COMPANY_NAME "YesDaw")
@@ -44,27 +59,33 @@ target_compile_definitions(YesDaw PRIVATE
 target_link_libraries(YesDaw
   PRIVATE
     juce::juce_audio_utils
-    juce::juce_gui_extra)
+    juce::juce_gui_extra
+    juce::juce_recommended_config_flags)
 
-yesdaw_strict_juce(YesDaw)
+yesdaw_harden(YesDaw)
 
 # --- Headless DSP self-check (the mechanical gate; runs in CI, no device/display) ---
-# Pure C++ — depends ONLY on src/dsp, never on JUCE — so it builds and runs anywhere fast.
+# Pure C++ + Catch2 — depends ONLY on src/dsp, never on JUCE — so it builds/runs fast anywhere.
 enable_testing()
 
-add_executable(YesDawTests tests/dsp_tests.cpp)
-target_include_directories(YesDawTests PRIVATE ${YESDAW_SRC_DIR})
+add_executable(YesDawCheck tests/dsp_tests.cpp)
+target_include_directories(YesDawCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawCheck PRIVATE Catch2::Catch2)
 
-# Absolute path to the golden so the test doesn't depend on the working directory ctest runs in.
-target_compile_definitions(YesDawTests PRIVATE
+# Absolute path to the golden so the test doesn't depend on ctest's working directory.
+target_compile_definitions(YesDawCheck PRIVATE
   YESDAW_GOLDEN_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/sine_440_48k.csv")
 
-# Warnings-as-errors with a portable, locally-verifiable warning set (MSVC /W4 is the strictest
-# we can check on the Windows dev box; macOS CI uses the weaker -Wall -Wextra, so a local-clean
-# build de-risks the runner we can't see).
-set_target_properties(YesDawTests PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-target_compile_options(YesDawTests PRIVATE
-  $<$<CXX_COMPILER_ID:MSVC>:/W4>
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic>)
+yesdaw_harden(YesDawCheck)
 
-add_test(NAME dsp_tests COMMAND YesDawTests)
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(Catch)
+catch_discover_tests(YesDawCheck)
+
+# Bless the golden after an INTENTIONAL DSP change (review the diff before committing):
+#   cmake --build build --target bless-goldens
+add_custom_target(bless-goldens
+  COMMAND $<TARGET_FILE:YesDawCheck> --emit-golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/sine_440_48k.csv"
+  DEPENDS YesDawCheck
+  VERBATIM
+  COMMENT "Regenerating goldens from the current DSP")
