@@ -17,6 +17,15 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX ADR-0011 EntityId + Asset/Clip/Project value surface is green locally.** Reviewed
+  `aa4f4dc` against ADR-0011, ADR-0012, ADR-0010, `CONTEXT.md`, `AGENTS.md`, this handoff, and the H1
+  contracts. Found and fixed one real ULID allocator bug: entropy exhaustion no longer wraps the
+  internal entropy state and later emits lower same-timestamp IDs. Added mechanical coverage for
+  carry/reset behavior, repeated exhaustion failure, next-timestamp recovery, and Project ID collision
+  cases. No ADR, golden, SQLite persistence, broad automation, MIDI note handling, plugin hosting, UI,
+  or audio-thread edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (99/99). **Next:** WORKER ADR-0009
+  sample-accurate automation evaluator slice.
 - **Latest: WORKER ADR-0011 EntityId + Asset/Clip/Project value surface is green locally.** Added the
   pure C++/JUCE-free storage-facing value surface in `src/engine/Project.h`: fixed 16-byte
   `EntityId`, a monotonic 128-bit ULID allocator, 32-byte Asset content-hash shape, minimal
@@ -371,15 +380,22 @@ worklog.
   interaction bug: command revisions now let an equal-valued `SetGain` command override a previous event
   target, while event targets still persist across blocks without a command. Local `ci` build + 94/94
   tests green.
+- 2026-06-24 — **ADR-0011 EntityId + Asset/Clip/Project value-surface review/fix.** Reviewed `aa4f4dc`
+  and fixed one real ULID allocator bug: an exhausted same-timestamp entropy range no longer wraps the
+  allocator state and later emits lower IDs. Added regression coverage for carry/reset, repeated
+  exhaustion failure, next-timestamp recovery, and Project ID collision checks. Local `ci` build + 99/99
+  tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX ADR-0011 EntityId + Asset/Clip/Project value surface.** Pull, read
-  `AGENTS.md` + this handoff first, review the ADR-0011 value-surface slice against ADR-0011,
-  ADR-0012, ADR-0010, `CONTEXT.md`, `AGENTS.md`, `STATUS.md`, and H1 contracts. Fix only real defects,
-  run the mechanical gate, update this handoff, commit/push, check GitHub CI, then create the next
-  WORKER thread.
+- **Next chunk: WORKER ADR-0009 sample-accurate automation evaluator slice.** Pull, read `AGENTS.md` +
+  this handoff first, then implement exactly one small independently green automation slice backed by
+  ADR-0009 and the H1 plan: evaluate stored automation points into sample-offset parameter `Event`s for
+  one parameter shape using the existing fixed-size `EventStream`. Keep it pure/headless and narrow.
+  Do not start SQLite persistence, broad lane/UI work, MIDI note handling, plugin hosting, goldens, or
+  audio-thread contract changes. Run the mechanical gate, update this handoff, commit/push, check
+  GitHub CI, then stop for review/fix.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

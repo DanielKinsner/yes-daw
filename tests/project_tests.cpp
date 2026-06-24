@@ -100,6 +100,18 @@ TEST_CASE ("EntityIdAllocator emits valid monotonic ULIDs", "[project][entity-id
     REQUIRE (later < clockWentBack);
 
     REQUIRE_FALSE (allocator.allocate (kMaxUlidTimestampMs + 1u).isValid());
+
+    UlidEntropy carrySeed {};
+    carrySeed[8] = 0x01u;
+    carrySeed[9] = 0xFFu;
+
+    EntityIdAllocator carryAllocator { carrySeed };
+    const EntityId beforeCarry = carryAllocator.allocate (7);
+    const EntityId afterCarry = carryAllocator.allocate (7);
+
+    REQUIRE (beforeCarry < afterCarry);
+    REQUIRE (afterCarry.bytes[14] == 0x02u);
+    REQUIRE (afterCarry.bytes[15] == 0x00u);
 }
 
 TEST_CASE ("EntityIdAllocator reports entropy exhaustion instead of reusing an id", "[project][entity-id][allocator]")
@@ -108,8 +120,14 @@ TEST_CASE ("EntityIdAllocator reports entropy exhaustion instead of reusing an i
     almostFull.fill (0xFFu);
 
     EntityIdAllocator allocator { almostFull };
-    REQUIRE (allocator.allocate (42).isValid());
+    const EntityId lastIdForTimestamp = allocator.allocate (42);
+    REQUIRE (lastIdForTimestamp.isValid());
     REQUIRE_FALSE (allocator.allocate (42).isValid());
+    REQUIRE_FALSE (allocator.allocate (42).isValid());
+
+    const EntityId nextTimestamp = allocator.allocate (43);
+    REQUIRE (nextTimestamp.isValid());
+    REQUIRE (lastIdForTimestamp < nextTimestamp);
 }
 
 TEST_CASE ("Asset and Clip values carry ADR-0011 storage invariants", "[project][asset][clip]")
@@ -167,6 +185,21 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     duplicateClipId.clips[1].id = duplicateClipId.clips[0].id;
     REQUIRE_FALSE (duplicateClipId.hasUniqueEntityIds());
     REQUIRE_FALSE (duplicateClipId.hasValidAssetClipIndirection());
+
+    Project duplicateAssetId = project;
+    duplicateAssetId.assets[1].id = duplicateAssetId.assets[0].id;
+    REQUIRE_FALSE (duplicateAssetId.hasUniqueEntityIds());
+    REQUIRE_FALSE (duplicateAssetId.hasValidAssetClipIndirection());
+
+    Project assetMatchesProjectId = project;
+    assetMatchesProjectId.assets[1].id = project.id;
+    REQUIRE_FALSE (assetMatchesProjectId.hasUniqueEntityIds());
+    REQUIRE_FALSE (assetMatchesProjectId.hasValidAssetClipIndirection());
+
+    Project clipMatchesAssetId = project;
+    clipMatchesAssetId.clips[1].id = project.assets[0].id;
+    REQUIRE_FALSE (clipMatchesAssetId.hasUniqueEntityIds());
+    REQUIRE_FALSE (clipMatchesAssetId.hasValidAssetClipIndirection());
 
     Project invalidAsset = project;
     invalidAsset.assets[0].frames = 0;

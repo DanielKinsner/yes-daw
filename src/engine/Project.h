@@ -140,19 +140,20 @@ private:
 
     bool incrementEntropy() noexcept
     {
-        for (std::size_t i = entropy_.size(); i > 0; --i)
-        {
-            std::uint8_t& b = entropy_[i - 1u];
-            if (b != 0xFFu)
-            {
-                ++b;
-                return true;
-            }
+        std::size_t index = entropy_.size();
+        while (index > 0 && entropy_[index - 1u] == 0xFFu)
+            --index;
 
-            b = 0u;
+        if (index == 0)
+            return false;
+
+        ++entropy_[index - 1u];
+        for (std::size_t i = index; i < entropy_.size(); ++i)
+        {
+            entropy_[i] = 0u;
         }
 
-        return false;
+        return true;
     }
 
     bool          haveLastTimestamp_ = false;
