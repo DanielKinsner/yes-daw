@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — first import/copy recovery gate landed locally; REVIEW/FIX next
+**Current horizon:** **H2 (editing-first)** — first import/copy recovery gate is CI-green; REVIEW/FIX next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,7 +17,7 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H2 asset import + copy-to-bundle recovery gate is green locally.** Added the
+- **Latest: WORKER H2 asset import + copy-to-bundle recovery gate is green locally and in CI.** Added the
   smallest headless import/copy surface in `ProjectBundleDb`: source bytes hash to SHA-256, copy to a
   temp file in `audio/`, re-hash after copy, atomically rename to the content-addressed `.asset` path,
   dedupe repeated imports to the existing Asset row, and reconcile stale `pending_fs_ops` rows on open.
@@ -26,7 +26,8 @@ worklog.
   reopen cleanup, and missing/corrupt committed asset bytes. No ADR, golden, roadmap, waveform cache,
   Clip editing, undo, UI, export, broad decoding, plugin hosting, H3 work, or `[[clang::nonblocking]]`
   edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset
-  ci`; `ctest --preset ci` pass (121/121). Remote CI: pending until this checkpoint is pushed.
+  ci`; `ctest --preset ci` pass (121/121). Remote CI run `28131177994` for `31ab1c0` is green across
+  Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 asset import + copy-to-bundle recovery gate; review this worker commit first,
   then fix only real defects.
 - **Latest: H1 exit-gate closeout / CI-truth pass is green.** Verified from repo truth that the four H1
