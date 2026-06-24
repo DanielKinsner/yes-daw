@@ -857,3 +857,27 @@ TEST_CASE ("GraphBuilder rejects fan-in that cannot fit flat input metadata", "[
     REQUIRE (error.code() == GraphBuildError::Code::GraphTooLarge);
     REQUIRE (error.nodeId() == kMasterId);
 }
+
+TEST_CASE ("GraphBuilder binds the maximum representable bus fan-in without uint16 iterator wrap", "[builder][validate]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 1.0f, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    std::vector<Node*> inputs (GraphBuilder::kMaxInputsPerNode, source.get());
+    master->setInputNodes (std::move (inputs));
+
+    GraphBuilder::Inputs buildInputs;
+    buildInputs.masterNodeId = kMasterId;
+    buildInputs.nodes.push_back (std::move (source));
+    buildInputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (buildInputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const CompiledNode* masterNode = compiledNodeById (*graph, kMasterId);
+    REQUIRE (masterNode != nullptr);
+    REQUIRE (masterNode->numInputs == static_cast<std::uint16_t> (GraphBuilder::kMaxInputsPerNode));
+}

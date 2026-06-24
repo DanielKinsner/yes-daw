@@ -708,7 +708,7 @@ private:
         std::vector<SumNode::Input> inputs;
         inputs.reserve (cn.numInputs);
 
-        for (std::uint16_t i = 0; i < cn.numInputs; ++i)
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t> (cn.numInputs); ++i)
         {
             const InputSlot& slot = payload.inputSlotIndices[static_cast<std::size_t> (cn.inputsBegin) + i];
             const CompiledNode& producer = payload.compiledNodes[slot.producerNodeIdx];
@@ -727,7 +727,7 @@ private:
         std::vector<MasterNode::Input> inputs;
         inputs.reserve (cn.numInputs);
 
-        for (std::uint16_t i = 0; i < cn.numInputs; ++i)
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t> (cn.numInputs); ++i)
         {
             const InputSlot& slot = payload.inputSlotIndices[static_cast<std::size_t> (cn.inputsBegin) + i];
             const CompiledNode& producer = payload.compiledNodes[slot.producerNodeIdx];

@@ -17,7 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER compiler slice I is green locally.** `GraphBuilder` now performs Pass 4 greedy
+- **Latest: REVIEW/FIX compiler slice I is green locally.** Reviewed `cdbefd3` against the locked
+  compiler design plus ADR-0007/0008. The Pass 4 pool shape is correct: greedy last-reader allocation
+  is sized to live width, slot 0 remains permanent silence, R3 aliasing is limited to the locked
+  Fader/Meter predicate, and Sum/Master f64 scratch metadata stays separate from f32 audio slots.
+  Fixed two review gaps: the locked debug NaN pool paint is now compiled into the builder gate, and
+  bus input binding no longer wraps at the exact `uint16_t` maximum fan-in. Local gate:
+  `cmake --build --preset ci` and `ctest --preset ci` pass (72/72).
+  **Next:** WORKER compiler slice J (Pass 5 mute + carry-over + bind-check). Do not start slice K until
+  slice J is reviewed/fixed green.
+- **Previous: WORKER compiler slice I is green.** `GraphBuilder` now performs Pass 4 greedy
   buffer-pool allocation: slot 0 is permanent silence, output slots are sized to live width instead of
   one per node, last-reader analysis covers multi-input readers, R3 in-place reuse is limited to the
   locked Fader/Meter predicate, and Sum/Master bus scratch gets separate f64 slot metadata. `CompiledGraph`
@@ -107,9 +116,9 @@ worklog.
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
-  commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), and H (PDC) are
-  done and reviewed; worker slice I (pool) is locally green and ready for review/fix; next implementation
-  commits after that are J (carry-over) → K (SetGain seam).
+  commits F (CompiledGraph state), G (Pass 1+2 + Master/IdentityDc + first render), H (PDC), and I
+  (buffer pool) are done and reviewed/fixed; next implementation commits are J (carry-over) → K
+  (SetGain seam).
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -246,13 +255,16 @@ worklog.
   skips pre-clear/pre-copy for aliased nodes. New builder coverage proves width sizing, slot-0 exclusion,
   R3 positive/negative cases, multi-input last-reader protection, bus scratch slots, and diamond
   order-shuffle invariance. Local `ci` build + 71/71 tests green.
+- 2026-06-24 — **Slice I review/fix.** Reviewed `cdbefd3` against the locked compiler design plus
+  ADR-0007/0008. Fixed two review gaps: added the locked debug NaN pool paint to the builder gate, and
+  made Sum/Master input binding safe at the exact `uint16_t` maximum fan-in. Local `ci` build + 72/72
+  tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX compiler slice I (ADR-0007).** Review the Pass 4 buffer-pool allocation and
-  order-shuffle invariance gate against the locked compiler design. Carry-over (J) and SetGain seam (K)
-  follow only after slice I is reviewed/fixed green.
+- **Next chunk: WORKER compiler slice J (ADR-0007).** Implement Pass 5 mute + carry-over + bind-check.
+  SetGain seam (K) follows only after slice J is reviewed/fixed green.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 

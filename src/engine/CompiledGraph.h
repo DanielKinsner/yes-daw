@@ -28,6 +28,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <span>
 #include <type_traits>
@@ -187,6 +188,10 @@ public:
         float* const* const       slots   = floatSlotPtrs_.data();
         const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
 
+#if ! defined (NDEBUG) || defined (YESDAW_TEST_DEBUG_POOL_PAINT)
+        debugPaintPooledSlots (slots, poolLayout_.numFloatSlots, maxCh, numFrames);
+#endif
+
         for (std::size_t i = 0; i < nNodes; ++i)
         {
             const CompiledNode& cn = nodes[i];
@@ -279,6 +284,23 @@ private:
             for (int i = 0; i < numFrames; ++i)
                 d[i] = s[i];
         }
+    }
+
+    static void debugPaintPooledSlots (float* const* slots,
+                                       std::uint16_t numSlots,
+                                       std::uint16_t maxChannels,
+                                       int numFrames) noexcept YESDAW_RT_HOT
+    {
+        const float poison = std::numeric_limits<float>::signaling_NaN();
+        for (std::uint16_t slot = 1; slot < numSlots; ++slot) // slot 0 remains permanent silence
+            for (std::uint16_t c = 0; c < maxChannels; ++c)
+            {
+                float* const dst = slots[static_cast<std::size_t> (slot) * static_cast<std::size_t> (maxChannels)
+                                       + static_cast<std::size_t> (c)];
+                YESDAW_RT_FATAL (dst != nullptr);
+                for (int i = 0; i < numFrames; ++i)
+                    dst[i] = poison;
+            }
     }
 
     GraphId       id_;
