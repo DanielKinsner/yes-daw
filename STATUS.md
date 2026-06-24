@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — bundled Asset decode projection green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — bundled Asset decode projection review green; waveform cache next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,25 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 bundled Asset read/decode projection found no defects.** Reviewed worker
+  commit `2aba17e` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
+  `ProjectBundleDb` / `Project` / render-test surfaces. The slice stays headless and narrow:
+  `DecodedClipNode` is a pure source node that reads pre-decoded samples on the hot path, `GraphBuilder`
+  classifies it as `Source`, and `YesDawBundleRenderCheck` reopens a `.yesdaw` bundle, decodes the
+  bundled immutable Asset through the existing JUCE WAV reader path on the control/test side, projects
+  two non-destructive Clip source windows through Runtime and offline graph paths, compares both against
+  expected decoded Clip output, asserts non-silence, and proves bundled Asset bytes are unchanged. No
+  code defect found and no waveform cache/peaks, Clip editing operations, undo/redo, UI, export, plugin
+  hosting, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits. Local gate via
+  documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (122/122). Remote CI run `28132790457` for worker commit `2aba17e` and run
+  `28133086695` for pre-review `main`/status commit `9a91ddb` are green across Windows, Linux, macOS,
+  RTSan, and TSan.
+  **Next:** WORKER H2 waveform peak-cache foundation: add the smallest headless content-hash-keyed
+  peak/mipmap cache gate for bundled Assets, with deterministic min/max+RMS tiers and safe
+  delete/regenerate behavior. Keep it off the audio hot path and do not start Clip editing operations,
+  undo/redo, UI, export, plugin hosting, ADR edits, roadmap edits, golden edits, or
+  `[[clang::nonblocking]]` edits; if a cache-format decision rises to ADR level, stop and report.
 - **Latest: WORKER H2 bundled Asset read/decode projection is green locally.** Added the smallest
   headless projection from bundled `.yesdaw` Asset bytes into the graph/Render path: `DecodedClipNode`
   plays pre-decoded Clip source windows, `GraphBuilder` classifies it as a `Source`, and
@@ -590,12 +609,13 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 bundled Asset read/decode projection.** Pull, read `AGENTS.md` + this
-  handoff first, then review the worker slice that added `DecodedClipNode`, `GraphBuilder` Source
-  classification, and `YesDawBundleRenderCheck`. Verify it is truly limited to bundled Asset
-  read/decode projection feeding graph/Render through non-destructive Clip indirection. Do not start
-  waveform cache, Clip editing, undo, UI, export, plugin hosting, ADR edits, roadmap edits, golden edits,
-  or `[[clang::nonblocking]]` edits.
+- **Next chunk: WORKER H2 waveform peak-cache foundation.** Pull, read `AGENTS.md` + this handoff first,
+  then add the smallest headless cache gate for bundled Asset waveform peaks: content-hash-keyed
+  `peaks/` storage, deterministic min/max+RMS tier data derived from decoded Asset samples, and a
+  self-asserting delete/regenerate check proving the cache is derived/regenerable rather than canonical
+  Project truth. Keep it off the audio hot path. Do not start Clip editing operations, undo/redo, UI,
+  export, plugin hosting, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits; if
+  the cache format needs an ADR-level decision beyond the plan/deepening notes, stop and report.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
