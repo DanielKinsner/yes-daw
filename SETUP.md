@@ -6,11 +6,13 @@ only for when you want to build/run on your **own hardware** — e.g. to hear it
 check.
 
 ## What you need (Windows)
-The bootstrap script installs all of this for you. Listed so you know what's happening:
-- **Git** — to clone the repo.
+**You install nothing by hand** — the `bootstrap` script (Step 2) installs every one of these for you.
+The list looks short *because* the bootstrap does the work. Here's what it installs:
+- **Git** — to clone the repo. *(One catch: you need git already, to clone in Step 1. If `git` isn't
+  found, run `winget install Git.Git` once, then continue.)*
 - **CMake** (≥ 3.25) — the build tool.
-- **Visual Studio 2022 Build Tools** with the **"Desktop development with C++"** workload — the actual
-  C++ compiler (MSVC). Multi-GB download — the **first run takes a while**.
+- **Visual Studio 2022 Build Tools** — the C++ compiler (MSVC) **+ the Windows SDK** (the bootstrap now
+  pulls both explicitly). Multi-GB download — the **first run takes a while**.
 - **JUCE** — *not* a manual install; CMake downloads it automatically on the first configure (needs internet).
 
 ## Steps (Windows)

@@ -14,7 +14,7 @@ function Ensure-Pkg($id, $override) {
 Ensure-Pkg 'Kitware.CMake'
 Ensure-Pkg 'Git.Git'
 Ensure-Pkg 'Microsoft.VisualStudio.2022.BuildTools' `
-  '--passive --wait --includeRecommended --add Microsoft.VisualStudio.Workload.VCTools'
+  '--passive --wait --includeRecommended --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100'
 
 # Repo root derived from this script's own location — never a typed absolute path.
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
