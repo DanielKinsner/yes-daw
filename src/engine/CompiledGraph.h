@@ -147,6 +147,13 @@ public:
         // Poison the canary on the way out: if a use-after-free ever lets the audio thread call
         // process() on this freed object before the memory is reused, the canary check below traps.
         canary_ = kPoison;
+
+        // Node::release() is part of the control-thread lifecycle contract: Nodes may allocate in
+        // prepare(), and those resources are released by the janitor side before destruction.
+        for (const std::unique_ptr<Node>& node : nodeStorage_)
+            if (node != nullptr)
+                node->release();
+
         alive_.fetch_sub (1, std::memory_order_relaxed);
     }
 

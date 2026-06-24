@@ -17,15 +17,18 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: `CompiledGraph` compiler slice F is in & locally green.** The graph now has the additive
-  ADR-0007 state/layout surface (`Payload`, flat compiled-node metadata, input-slot table, buffer-pool
-  layout, mute mask, master output bookkeeping, id index) behind the preserved legacy `(GraphId, dc)`
-  degenerate fast path. `src/dsp/ScopedNoDenormals.h` landed with the written R1–R7 buffer-pool contract;
-  no builder/audio executor path is reachable yet. Local gate: `cmake --build --preset ci` and
-  `ctest --preset ci` pass (47/47). Follow-up: the macOS CI build exposed an AppleClang-only
-  `-Wunused-lambda-capture` warning in `tests/pan_tests.cpp`; that capture is removed. **Next:**
+- **Latest: REVIEW/FIX of compiler slice F is in & locally green.** The review found one real lifecycle
+  gap: `CompiledGraph` owns prepared Nodes but did not call `Node::release()` before destruction. That is
+  fixed on the janitor/control-side destructor path and covered by a new `YesDawGraphCheck` lifecycle
+  test. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (48/48). **Next:**
   compiler slice G — `GraphBuilder` Pass 1+2 + `MasterNode`/`IdentityDcNode` + first real end-to-end
   render.
+- **Previous: `CompiledGraph` compiler slice F landed, then the macOS warning was fixed.** The graph has
+  the additive ADR-0007 state/layout surface (`Payload`, flat compiled-node metadata, input-slot table,
+  buffer-pool layout, mute mask, master output bookkeeping, id index) behind the preserved legacy
+  `(GraphId, dc)` degenerate fast path. `src/dsp/ScopedNoDenormals.h` landed with the written R1–R7
+  buffer-pool contract; no builder/audio executor path is reachable yet. AppleClang's
+  `-Wunused-lambda-capture` warning in `tests/pan_tests.cpp` is removed.
 - **Previous: the five built-in Nodes are in & green.** `DelayNode` (the one PDC+feedback primitive;
   `LatencyNode` is an alias), `FaderNode` (ramped gain), `PanNode` (equal-power mono→stereo, LUT),
   `SumNode` (f64 Bus summing, canonical NodeId order), `MeterNode` (peak/RMS, lock-free publish) — each
@@ -183,6 +186,10 @@ worklog.
   executor path. Local `ci` build + 47/47 tests green.
 - 2026-06-24 — **macOS CI warning fix.** AppleClang rejected an unnecessary lambda capture in the
   PanNode block-size test under `-Werror`; removed the capture. Local `ci` build + 47/47 tests green.
+- 2026-06-24 — **Slice F review/fix.** Reviewed `a642ce9` and `b8c8e7c` against the locked compiler
+  design plus ADR-0007/0008. Fixed one lifecycle contract gap: `CompiledGraph` now calls
+  `Node::release()` for owned Nodes on destruction, and a new graph lifecycle test asserts it. Local
+  `ci` build + 48/48 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node

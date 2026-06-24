@@ -8,9 +8,34 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <memory>
+#include <span>
 #include <vector>
 
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::Node;
+using yesdaw::engine::NodeProperties;
+using yesdaw::engine::ProcessArgs;
+
+namespace {
+
+class ReleaseTrackingNode final : public Node
+{
+public:
+    explicit ReleaseTrackingNode (bool& released) noexcept : released_ (released) {}
+
+    NodeProperties properties() const noexcept override { return {}; }
+    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    void prepare (double, int) override {}
+    void process (const ProcessArgs&) noexcept YESDAW_RT_HOT override {}
+    void reset() noexcept override {}
+    void release() override { released_ = true; }
+
+private:
+    bool& released_;
+};
+
+} // namespace
 
 TEST_CASE ("CompiledGraph::process fills the buffer with its identity DC", "[graph][process]")
 {
@@ -44,4 +69,19 @@ TEST_CASE ("CompiledGraph liveness counter tracks construction and destruction",
         REQUIRE (CompiledGraph::aliveCount() == base + 1);   // b destructed
     }
     REQUIRE (CompiledGraph::aliveCount() == base);            // a destructed -> no leak
+}
+
+TEST_CASE ("CompiledGraph releases owned Nodes on the janitor side before destruction", "[graph][lifecycle]")
+{
+    bool released = false;
+
+    {
+        CompiledGraph::Payload payload;
+        payload.nodeStorage.push_back (std::make_unique<ReleaseTrackingNode> (released));
+
+        CompiledGraph g (std::move (payload));
+        REQUIRE (! released);
+    }
+
+    REQUIRE (released);
 }
