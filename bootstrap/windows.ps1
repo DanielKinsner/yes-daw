@@ -7,8 +7,12 @@ function Ensure-Pkg($id, $override) {
   $a = @('install','--id',$id,'-e','--accept-package-agreements','--accept-source-agreements')
   if ($override) { $a += @('--override', $override) }   # array-splat passes the spaced string as ONE arg
   winget @a                                             # (fixes the cmd-quoting break we hit by hand)
-  # winget returns -1978335189 ("no applicable update found") when a package is already installed — not an error.
-  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) { throw "winget failed for $id ($LASTEXITCODE)" }
+  # -1978335189 = "no applicable update" (already installed). Anything else: WARN but keep going —
+  # the tool is often already present in a usable state (e.g. winget chokes "upgrading" an existing VS
+  # Build Tools). The real gate is whether cmake can build below, not winget's mood.
+  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
+    Write-Warning "winget for $id returned $LASTEXITCODE - continuing; the build step is the real check."
+  }
 }
 
 Ensure-Pkg 'Kitware.CMake'
@@ -26,5 +30,11 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 # Visual Studio generator (default) finds MSVC automatically — no dev-prompt, no Ninja env dance.
 cmake -S "$repo" -B "$repo\build"
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "`n[bootstrap] CMake configure failed. If it said it can't find a C++ compiler: open" -ForegroundColor Yellow
+  Write-Host "'Visual Studio Installer' from the Start menu -> Modify on Build Tools -> tick" -ForegroundColor Yellow
+  Write-Host "'Desktop development with C++' -> Install, then re-run this script." -ForegroundColor Yellow
+  exit 1
+}
 cmake --build "$repo\build" --config Debug
 Write-Host "`n[bootstrap] OK. Run:  $repo\build\YesDaw_artefacts\Debug\YesDaw.exe"
