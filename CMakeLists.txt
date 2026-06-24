@@ -177,6 +177,13 @@ target_link_libraries(YesDawDelayCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawDelayCheck)
 catch_discover_tests(YesDawDelayCheck)
 
+# --- FaderNode check (H1; pure, ramped linear gain behind the Node contract — ADR-0008) ---
+add_executable(YesDawFaderCheck tests/fader_tests.cpp)
+target_include_directories(YesDawFaderCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawFaderCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawFaderCheck)
+catch_discover_tests(YesDawFaderCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
