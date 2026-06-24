@@ -17,7 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER ADR-0009 sample-accurate automation evaluator slice is green locally.** Added the
+- **Latest: REVIEW/FIX ADR-0009 sample-accurate automation evaluator slice is green locally.** Reviewed
+  `2855204` against ADR-0009, ADR-0010, `CONTEXT.md`, `AGENTS.md`, this handoff, and the H1 contracts.
+  Found no real defect: the helper stays pure/headless, preserves the fixed-size `EventStream` surface,
+  advances by cursor, honors half-open Block boundaries, handles output capacity without writing past
+  caller storage, and generated parameter Events flow into `FaderNode` at exact in-Block offsets. No
+  ADR, golden, SQLite persistence, broad lane/UI work, MIDI note handling, plugin hosting, audio-thread
+  contract, or `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (103/103). **Next:**
+  WORKER ADR-0012 SQLite `.yesdaw` bundle schema v1 + FKs + migration harness + intent-log atomicity.
+- **Previous: WORKER ADR-0009 sample-accurate automation evaluator slice is green locally.** Added the
   pure C++ automation value/evaluator surface in `src/engine/Automation.h`: storage-facing
   `AutomationPoint { tick, value, curveType }`, the locked ADR-0009 curve enum, parameter target/block
   value types, and a cursor-style `evaluateAutomationPointsForBlock` helper that writes preallocated
@@ -225,7 +234,7 @@ worklog.
   are green.
 - [x] Project data-model value surface (ADR-0011) — 128-bit EntityId/ULID surface plus Asset/Clip/Project
   value types and invariants, before SQLite persistence wiring.
-- [ ] Automation evaluated sample-accurately — curve storage is locked by ADR-0009; broad evaluator/lane
+- [x] Automation evaluated sample-accurately — curve storage is locked by ADR-0009; broad evaluator/lane
   work stays deferred until the current H1 plan calls it forward.
 - [ ] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
 - [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
@@ -400,17 +409,22 @@ worklog.
   automation point/evaluator surface and `YesDawEventCheck` coverage for stored point shape,
   half-open Block event emission, cursor advancement, capacity/invalid-input handling, and generated
   Events feeding `FaderNode`. Local `ci` build + 103/103 tests green.
+- 2026-06-24 — **ADR-0009 sample-accurate automation evaluator review/fix.** Reviewed `2855204` and
+  found no code defect: stored point shape, locked curve enum, cursor semantics, half-open boundaries,
+  output-capacity handling, EventStream compatibility, and FaderNode generated-event flow all match the
+  current narrow contract. Local `ci` build + 103/103 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX ADR-0009 sample-accurate automation evaluator slice.** Pull, read
-  `AGENTS.md` + this handoff first, then review this worker slice against ADR-0009, ADR-0010,
-  `CONTEXT.md`, and the H1 plan. Verify the automation helper stays pure/headless, preserves the
-  fixed-size `EventStream` surface, advances by cursor instead of re-scanning lanes, honors half-open
-  Block boundaries, and does not start SQLite persistence, broad lane/UI work, MIDI note handling,
-  plugin hosting, goldens, or audio-thread contract changes. Fix only real defects found, run the
-  mechanical gate, update this handoff, commit/push, check GitHub CI, then stop.
+- **Next chunk: WORKER ADR-0012 SQLite `.yesdaw` bundle schema v1 + FKs + migration harness +
+  intent-log atomicity.** Pull, read `AGENTS.md` + this handoff first, then read ADR-0012, ADR-0011,
+  ADR-0010, ADR-0009, `CONTEXT.md`, and the H1 plan. Build only the first narrow, headless persistence
+  slice needed for schema v1 and mechanical validation: SQLite bring-up settings, schema version/
+  migration harness, referential integrity, semantic validation hooks for existing Project value types,
+  and the intent-log shape for cross-file asset ops. Do not start broad UI, plugin state chunks beyond
+  the reserved header shape, asset import/decoding, waveform caches, goldens, or audio-thread contract
+  changes. Run the mechanical gate, update this handoff, commit/push, check GitHub CI, then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
