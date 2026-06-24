@@ -46,8 +46,8 @@ public:
     // the real graph must keep SOME way for a test to tell two graphs apart in the rendered buffer.)
     void process (float* out, int numFrames) const noexcept YESDAW_RT_HOT
     {
-        YESDAW_RT_ASSERT (canary_ == kCanary);   // debug-only UAF tripwire; traps, never syscalls
-        for (int i = 0; i < numFrames; ++i)
+        YESDAW_RT_FATAL (canary_ == kCanary);   // UAF tripwire — ALWAYS live (incl. RTSan/TSan/Release);
+        for (int i = 0; i < numFrames; ++i)     // traps, never syscalls, so it stays RT-safe
             out[i] = identityDc_;
     }
 

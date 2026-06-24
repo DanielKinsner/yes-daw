@@ -73,3 +73,26 @@ allocate.
   logically stale and that autosave only ever serializes control-thread truth (never a value read back
   from a snapshot); a latency-change-storm soak (no backpressure, no Underruns, no clicks). Narrow
   blueprint to internalize: Rowland's ADC20 graph + Doumler's two RT-comms patterns.
+
+## Implementation note (2026-06-23) — how the publish mechanism was resolved
+
+The Decision above names two candidate publication mechanisms — an `atomic<const CompiledGraph*>` the
+audio thread acquire-loads per Block, **and** `SwapGraph` as a variant in the one ordered SPSC queue. A
+4-design adversarial panel (+3 judges) resolved this tension in favour of the **queue-applied swap**, and
+that is what `src/engine/Runtime.h` implements:
+
+- The swap is applied **on the audio thread, drained from the ordered command queue** (so it stays
+  ordered with the future `SetGain`/`SetPan` scalars — the whole point of one queue). The audio thread's
+  current-graph pointer is therefore a **plain, audio-thread-local** `current_` — it needs no atomic
+  because no other thread reads or writes it.
+- The **release/acquire edge** the Decision requires is provided by the SPSC FIFO itself: `publish()`'s
+  push is the release; the audio thread's pop is the acquire. The new graph's contents are fully visible
+  the instant the audio thread installs it.
+- A separate `atomic<const CompiledGraph*>` "what is the audio thread currently running" channel for
+  observers (meters/UI) is **deferred** — handing observers a raw pointer needs a pin/hazard protocol to
+  be use-after-free-safe, which is out of scope for this chunk.
+
+All the load-bearing invariants of the Decision are unchanged: the audio thread **reads, never writes
+lifetime**; reclamation is the off-thread generation-counter janitor (`processedGen > retiredAtGen`);
+everything is bounded with backpressure on the control side. This note records the mechanism choice; it
+does not change the decision.

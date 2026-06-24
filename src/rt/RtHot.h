@@ -23,12 +23,23 @@
 
 // YESDAW_RT_ASSERT — a real-time-SAFE debug assertion. On failure it executes a trap instruction
 // (__debugbreak / __builtin_trap), NOT printf+abort, so it never calls into libc and stays RTSan-clean
-// inside a YESDAW_RT_HOT scope. Compiled out under NDEBUG. Use it for hot-path invariants — e.g. a
-// use-after-free canary — that must never allocate, lock, or syscall.
+// inside a YESDAW_RT_HOT scope. Compiled out under NDEBUG. Use it for cheap hot-path invariants that are
+// useful to catch in a local Debug build but not worth a production crash.
 #if defined(NDEBUG)
   #define YESDAW_RT_ASSERT(cond) ((void) 0)
 #elif defined(_MSC_VER)
   #define YESDAW_RT_ASSERT(cond) do { if (! (cond)) __debugbreak(); } while (false)
 #else
   #define YESDAW_RT_ASSERT(cond) do { if (! (cond)) __builtin_trap(); } while (false)
+#endif
+
+// YESDAW_RT_FATAL — like YESDAW_RT_ASSERT but ALWAYS active, even under NDEBUG. For invariants whose
+// violation means engine corruption (a use-after-free, a lost retirement): fail fast with a trap rather
+// than silently corrupt audio. Still RT-safe (a single trap instruction, no libc/lock/syscall), so it
+// stays clean inside a YESDAW_RT_HOT scope — and, crucially, it is live on the Release/RTSan/TSan CI
+// legs (all NDEBUG), where a real bug actually surfaces.
+#if defined(_MSC_VER)
+  #define YESDAW_RT_FATAL(cond) do { if (! (cond)) __debugbreak(); } while (false)
+#else
+  #define YESDAW_RT_FATAL(cond) do { if (! (cond)) __builtin_trap(); } while (false)
 #endif

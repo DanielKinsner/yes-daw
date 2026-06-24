@@ -17,7 +17,9 @@
 //                           the CONTROL side backpressures — never the audio thread.
 //   * reclaim()           : the JANITOR — exactly ONE non-audio thread (the control/test thread, or a
 //                           dedicated janitor thread). Sole consumer of the retirement queue.
-//   * ~Runtime()          : the audio thread MUST already be stopped. Frees everything still owned.
+//   * ~Runtime()          : the audio thread AND the janitor MUST already be stopped (the dtor itself
+//                           reads the retirement queue and writes pending_ — i.e. it acts as the
+//                           janitor, so a live janitor would be a second reader/writer). Frees all.
 //
 // Why no atomic<const CompiledGraph*> on the hot path (cf. ADR-0006's wording): the swap is applied on
 // the audio thread from the ordered queue, so `current_` is audio-thread-local and needs no atomic.
@@ -56,12 +58,17 @@ class Runtime
 public:
     struct Config
     {
-        std::uint32_t commandCapacity    = 256;   // control->audio queue depth
-        std::uint32_t retireCapacity     = 64;    // audio->control retirement queue depth
-        int           maxCommandsPerBlock = 64;   // bound the per-block drain so a block stays O(1)-ish
+        std::uint32_t commandCapacity     = 256;  // control->audio queue depth
+        std::uint32_t retireCapacity      = 64;   // audio->control retirement queue depth
+        std::uint32_t maxCommandsPerBlock = 64;   // bound the per-block drain so a block stays O(1)-ish
     };
 
-    explicit Runtime (Config cfg = {})
+    // NB: the default ctor delegates rather than using `Config cfg = {}` as a default argument — the
+    // latter instantiates Config's default member initializers inside Runtime's own definition, which
+    // Clang/GCC reject (only MSVC tolerates it). `Config{}` in a ctor's mem-init context is fine.
+    Runtime() : Runtime (Config{}) {}
+
+    explicit Runtime (Config cfg)
         : cfg_ (cfg)
     {
         cmdFifo_.reset (cfg.commandCapacity);
@@ -71,7 +78,8 @@ public:
 
     ~Runtime()
     {
-        // Precondition: the audio thread is stopped (no concurrent processBlock). With it gone, every
+        // Precondition: the audio thread AND the janitor are stopped — this destroying thread is the
+        // sole remaining user. With no concurrent processBlock, every
         // retired graph is trivially safe to free regardless of generation. A graph lives in exactly one
         // place at a time — the command queue (published, not yet installed), `current_` (installed), or
         // the retirement queue / `pending_` (retired) — so each bucket is freed exactly once.
@@ -102,6 +110,9 @@ public:
     // unique_ptr destructs) — nothing entered the engine, the control side backpressures.
     [[nodiscard]] bool publish (std::unique_ptr<CompiledGraph> next) noexcept
     {
+        if (next == nullptr)        // a null graph would silently revert the engine to silence — reject it
+            return false;
+
         const Command c { CommandType::SwapGraph, next.get(), 0, 0.0f };
 
         if (cmdFifo_.push (c))
@@ -138,7 +149,7 @@ public:
         //     choc over-reports by one — it counts the ring's sentinel slot). Used can only be
         //     OVER-reported here (the janitor's pops may not be visible yet), which is conservative-safe.
         Command c;
-        for (int i = 0; i < cfg_.maxCommandsPerBlock; ++i)
+        for (std::uint32_t i = 0; i < cfg_.maxCommandsPerBlock; ++i)
         {
             if (retireFifo_.getUsedSlots() >= cfg_.retireCapacity)   // retire queue full -> defer to next block
                 break;
@@ -194,10 +205,9 @@ public:
         return freed;
     }
 
-    // ---- Diagnostics (control thread) ----------------------------------------------------------------
+    // ---- Diagnostics (any thread — atomic reads) -----------------------------------------------------
     std::uint64_t processedGen()   const noexcept { return processedGen_.load (std::memory_order_acquire); }
     std::uint64_t scalarsApplied() const noexcept { return scalarsApplied_.load (std::memory_order_acquire); }
-    std::size_t   pendingCount()   const noexcept { return pending_.size(); }   // janitor-thread view
 
 private:
     void applyCommand (const Command& c) noexcept YESDAW_RT_HOT
@@ -209,8 +219,8 @@ private:
                 {
                     const bool retired = retireFifo_.push (
                         Retired { current_, processedGen_.load (std::memory_order_relaxed) });
-                    YESDAW_RT_ASSERT (retired);   // guaranteed by the getFreeSlots() gate in processBlock
-                    (void) retired;
+                    YESDAW_RT_FATAL (retired);    // guaranteed by the getUsedSlots() gate in processBlock;
+                    (void) retired;               // a lost retirement would leak the old graph -> fail fast
                 }
                 current_ = c.graph;
                 break;
