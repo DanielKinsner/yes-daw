@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — approved to begin; first chunk queued, not implemented
+**Current horizon:** **H2 (editing-first)** — first import/copy recovery gate landed locally; REVIEW/FIX next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,13 +17,18 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: Dan approved H1 and advanced the project to H2.** H1 stays closed with green mechanical
-  gates; H2 is now the current horizon. This checkpoint only updates the live handoff: no H2 code,
-  ADR, golden, roadmap, or `[[clang::nonblocking]]` edits. **Next:** WORKER H2 asset import +
-  copy-to-bundle recovery gate: implement the smallest headless import surface for copying source audio
-  bytes into the `.yesdaw` bundle with content-hash dedupe, intent-log/reconcile-on-open coverage, and
-  a kill/interruption recovery test proving DB↔filesystem consistency. Do not start waveform cache,
-  Clip editing, undo, UI, or export in that first chunk.
+- **Latest: WORKER H2 asset import + copy-to-bundle recovery gate is green locally.** Added the
+  smallest headless import/copy surface in `ProjectBundleDb`: source bytes hash to SHA-256, copy to a
+  temp file in `audio/`, re-hash after copy, atomically rename to the content-addressed `.asset` path,
+  dedupe repeated imports to the existing Asset row, and reconcile stale `pending_fs_ops` rows on open.
+  Open now mechanically verifies committed Asset rows against their content-hash bytes and sweeps orphan
+  final files out of `audio/`. Added `YesDawPersistenceCheck` coverage for dedupe, interrupted-import
+  reopen cleanup, and missing/corrupt committed asset bytes. No ADR, golden, roadmap, waveform cache,
+  Clip editing, undo, UI, export, broad decoding, plugin hosting, H3 work, or `[[clang::nonblocking]]`
+  edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset
+  ci`; `ctest --preset ci` pass (121/121). Remote CI: pending until this checkpoint is pushed.
+  **Next:** REVIEW/FIX H2 asset import + copy-to-bundle recovery gate; review this worker commit first,
+  then fix only real defects.
 - **Latest: H1 exit-gate closeout / CI-truth pass is green.** Verified from repo truth that the four H1
   exit gates are represented by self-asserting tests and the latest pushed commit CI:
   Project bundle readback round-trips through `YesDawPersistenceCheck`; RT path vs offline Render
@@ -563,12 +568,11 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 asset import + copy-to-bundle recovery gate.** Pull, read `AGENTS.md` + this
-  handoff first, then implement only the smallest headless import/copy surface: source bytes copied into
-  the bundle as content-addressed assets with dedupe, temp+rehash+atomic rename, intent-log recovery, and
-  a self-asserting interrupted-import reopen test proving DB↔filesystem consistency. Do not start
-  waveform cache, Clip editing, undo, UI, export, H3 plugin work, ADR edits, roadmap edits, golden edits,
-  or `[[clang::nonblocking]]` edits.
+- **Next chunk: REVIEW/FIX H2 asset import + copy-to-bundle recovery gate.** Pull, read `AGENTS.md` +
+  this handoff first, review the worker import/copy/recovery implementation against H2 scope and
+  ADR-0011/ADR-0012, fix only real defects if found, run the full mechanical gate, commit/push/check CI
+  if anything changes, update this handoff, then create the following WORKER thread from the current
+  `Next` state if green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
