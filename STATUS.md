@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H1 (the spine)** — exit gates green; waiting for Dan's horizon-boundary review
+**Current horizon:** **H2 (editing-first)** — approved to begin; first chunk queued, not implemented
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,13 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: Dan approved H1 and advanced the project to H2.** H1 stays closed with green mechanical
+  gates; H2 is now the current horizon. This checkpoint only updates the live handoff: no H2 code,
+  ADR, golden, roadmap, or `[[clang::nonblocking]]` edits. **Next:** WORKER H2 asset import +
+  copy-to-bundle recovery gate: implement the smallest headless import surface for copying source audio
+  bytes into the `.yesdaw` bundle with content-hash dedupe, intent-log/reconcile-on-open coverage, and
+  a kill/interruption recovery test proving DB↔filesystem consistency. Do not start waveform cache,
+  Clip editing, undo, UI, or export in that first chunk.
 - **Latest: H1 exit-gate closeout / CI-truth pass is green.** Verified from repo truth that the four H1
   exit gates are represented by self-asserting tests and the latest pushed commit CI:
   Project bundle readback round-trips through `YesDawPersistenceCheck`; RT path vs offline Render
@@ -302,7 +309,23 @@ worklog.
 - **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
   into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
-## Current-horizon checklist — H1 (the spine; plain English, small steps)
+## Current-horizon checklist — H2 (editing-first; plain English, small steps)
+> Exit gate (all green in CI): any edit sequence + full undo returns the document bit-identical; a
+> split-with-crossfade Project's RT playback matches offline Render; **and** a kill mid-import recovers
+> with the bundle's DB↔filesystem consistent (assets hash-verified, no orphans).
+- [ ] Import + copy-to-bundle with content-hash dedupe, staged temp writes, re-hash-before-rename, and
+  intent-log/reconcile-on-open recovery. **First chunk.**
+- [ ] Bundled Asset read/decode projection feeds the graph/Render path without making Clips destructive.
+- [ ] Clip editing as metadata: split, trim, move, gain, fade-in/out, and equal-power crossfade.
+- [ ] Snap/grid round-trips exactly through integer ticks↔samples.
+- [ ] Command/diff undo/redo with transaction grouping and a property-based bit-identical undo gate.
+- [ ] Offline Render/Export for edited Projects, including split-with-crossfade RT-vs-offline coverage.
+- [ ] Single-window timeline-primary shell with remappable keymap; native GPU render shell / frame-time
+  gate comes here as the folded H0 UI carry-over.
+- [ ] **Exit gates green:** property undo · split-crossfade RT-vs-offline · kill-mid-import bundle
+  consistency.
+
+## Previous-horizon checklist — H1 (closed; spine)
 > Exit gate (all green in CI): a Project round-trips (tempo/meter map, markers, clips intact); the RT
 > path matches an offline Render within golden tolerance; the audio path is RTSan-clean; **and** a kill
 > during save/migration reopens cleanly (WAL recovery + `integrity_check`).
@@ -538,11 +561,14 @@ worklog.
   Local `ci` build + 118/118 tests green.
 
 ## Next
-- ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
-  contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next state: stop for Dan's H1/H2 horizon-boundary review.** H1's mechanical exit gates are green in
-  repo truth and remote CI. Do not start H2, edit ADRs, edit the roadmap, edit goldens, or touch
-  `[[clang::nonblocking]]` annotations until Dan advances the horizon.
+- ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
+  RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
+- **Next chunk: WORKER H2 asset import + copy-to-bundle recovery gate.** Pull, read `AGENTS.md` + this
+  handoff first, then implement only the smallest headless import/copy surface: source bytes copied into
+  the bundle as content-addressed assets with dedupe, temp+rehash+atomic rename, intent-log recovery, and
+  a self-asserting interrupted-import reopen test proving DB↔filesystem consistency. Do not start
+  waveform cache, Clip editing, undo, UI, export, H3 plugin work, ADR edits, roadmap edits, golden edits,
+  or `[[clang::nonblocking]]` edits.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
