@@ -1,8 +1,10 @@
 # YES DAW — Product
 
 > The product spec — what YES DAW is and what it does. Also the file to hand a UI generator
-> ("generate a UI from this"). It describes the product and the main screen; it does **not** lock the
-> UI stack (native vs web is still an open decision).
+> ("generate a UI from this"). It describes the product and the main screen; a generated mockup is a
+> look-and-feel exploration only. The implementation **leans native** (JUCE Components + a GPU timeline
+> canvas — plan-recommended and cost-validated by the H0 timeline spike); the formal UI-stack ADR
+> (fork #2) lands at H1.
 
 ## What it is
 A from-scratch, **professional general-purpose multi-track DAW** — Logic Pro / Pro Tools / Cubase /
@@ -36,4 +38,5 @@ Track · Clip · Bus · Master bus · Fader · Pan · Level meter · Transport /
 ## For UI generation
 Produce a polished, realistic desktop mockup of the arrangement view above (wide proportions, dark
 theme). A generated web/React mockup is a **look-and-feel exploration**, not the implementation — the
-engine is C++/JUCE and the UI stack is still being decided.
+engine is C++/JUCE and the UI leans **native** (Components + GPU timeline canvas), with the formal
+UI-stack ADR at H1.

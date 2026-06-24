@@ -2,12 +2,14 @@
 
 [![CI](https://github.com/DanielKinsner/yes-daw/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielKinsner/yes-daw/actions/workflows/ci.yml)
 
-A from-scratch audio production workstation, built deliberately.
+A from-scratch, general-purpose **multi-track DAW** (Logic / Pro Tools / Cubase / Sonar class), built
+deliberately.
 
-The precise product wedge (finishing/mastering vs. stem-remix vs. AI-mastering console) is
-**still being decided** — that decision, and the engine/UI/plugin/format decisions beneath it,
-are the subject of the brainstorming and grilling sessions that open this project. Everything
-here is grounded in the consolidated research under [`docs/research/`](docs/research/).
+Product and stack are **decided**: a full general-purpose DAW, not a stem/finishing wedge
+([ADR-0003](docs/adr/0003-product-full-multitrack-daw.md)), built on C++/JUCE + our own engine
+([ADR-0004](docs/adr/0004-stack-juce-framework-own-engine.md)). We're past planning and into **H0
+(spikes)** — proving out the scariest unknowns behind a green CI gate (see [`STATUS.md`](STATUS.md)).
+Everything is grounded in the consolidated research under [`docs/research/`](docs/research/).
 
 ## Why this repo looks like docs before it looks like code
 

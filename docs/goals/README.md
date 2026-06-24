@@ -6,9 +6,9 @@ to measure progress against, independent of any single conversation.
 
 ## Files
 
-- [`roadmap.md`](roadmap.md) — the staged roadmap (horizons H0…Hn), each with a goal, exit criteria,
-  and explicit "not yet" guardrails. **Currently a pre-brainstorm draft** distilled from the research;
-  it will be revised once the product wedge (ADR fork #1) is decided.
+- [`roadmap.md`](roadmap.md) — the staged roadmap (horizons H0…H6), each with a goal, exit criteria,
+  and explicit "not yet" guardrails. Rebuilt after the product wedge was decided (full DAW, ADR-0003)
+  and the architecture plan was written; it is the live reference roadmap, not a draft.
 
 ## How horizons, goals, and loops relate
 

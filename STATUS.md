@@ -38,21 +38,29 @@ worklog.
 - [x] Tame the spike (fade-in / lower level) ✓ — 50 ms fade-in + `noteOn/noteOff` in `SineSource`,
   −20 dBFS default; asserted by the fade-in check. *(start-stop UI deferred — spike.)*
 - [x] Real-machine soak harness built ✓ — `YesDawSoak` opens the real device, counts xruns/deadline-
-  misses (+ optional loopback RMS/440-mag) → PASS/FAIL. Run it with `tools/soak.ps1` (native Windows, no
-  Git Bash) or `tools/soak.sh`. **PASSED on the owner's machine** (0 misses). **Owner runs the 10-min
-  gate; loopback needs an out→in jumper.**
+  misses → PASS/FAIL; now enforces the **128-frame** target (`--block-size`, the roadmap stress case)
+  and, with `--loopback`, that the captured tone is actually **440 Hz**. Run with `tools/soak.ps1`
+  (native Windows, no Git Bash) or `tools/soak.sh`. Audio is clean (0 dropouts) on the owner's box, but
+  the 128-frame target needs a **low-latency driver** (ASIO/WASAPI-exclusive — shared-mode Realtek
+  forces 480). **Owner runs the 10-min gate; loopback needs an out→in jumper.**
 - [x] Load + scrub one WAV ✓ — `YesDawAssetCheck` decodes a committed fixture WAV, golden-diffs the
   440 Hz sine (≤1e-4), recovers pitch (zero-crossings), and scrubs (sub-range read == slice, bit-
   identical). CI green on Win/Linux/mac. *(spike #1 complete)*
 - [~] GPU timeline 100+ elements at 60fps (spike #2) — **CPU half done + green**: pure viewport
   virtualization (`src/ui/TimelineLayout.h`, `YesDawUiCheck`) lays out a 5000-clip viewport in
   **0.0069 ms/frame** (~2400× under the 16.6 ms budget), so the whole frame is the GPU's. *Remaining
-  (real-hardware): a native GPU render shell + `max_frame_ms<16.6` in the soak.* Native confirmed (no WebView).
+  (real-hardware): a native GPU render shell + `max_frame_ms<16.6` in the soak (NOT yet implemented).*
+  Native is the chosen direction (plan-recommended + this spike's cost validation); the formal UI-stack
+  ADR (fork #2) is written at H1 — until then "native" is a strong lean, not a locked ADR.
 - [x] One Node behind a stub of the format-neutral trait (spike #3) ✓ — `YesDawEngineCheck` drives a
   `ToneNode` via the trait at block sizes 1/31/128/512/4096/9000 → bit-identical output, finite, no
   denormals. *(throwaway stub; the real Node contract is frozen at H1.)*
-- [ ] **Exit:** `tools/soak.sh` exits 0 (`xruns==0`, `deadline_misses==0`, loopback RMS>0.01 @440 Hz,
-  and — once the timeline lands — `max_frame_ms<16.6`) on a real machine → H0 done. *(no human judgment)*
+- [ ] **Exit = two soak gates on a real machine** (no human judgment):
+  - **(a) audio — IMPLEMENTED:** `soak.sh`/`soak.ps1` exits 0 with `xruns==0`, `deadline_misses==0`,
+    `block_size<=128`, and (with `--loopback`) RMS>0.01 dominated by 440 Hz.
+  - **(b) GPU 60 fps — NOT YET IMPLEMENTED:** `max_frame_ms<16.6` requires the native render shell that
+    doesn't exist yet, so the soak does NOT check it — a soak PASS today is the AUDIO gate only.
+  H0 is done when both are green on one machine at a 128-frame Block.
 
 ## Done recently
 - 2026-06-23 — **Foundation** committed: research corpus, CONTEXT glossary, ADR-0001/0002, roadmap, CLAUDE.md.

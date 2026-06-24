@@ -5,8 +5,10 @@
 // a pure unit with no device/GUI deps so it can be golden-tested headlessly in CI — this file is
 // only the JUCE device shell that pumps it to the hardware.
 //
-// Next H0 tasks (see STATUS.md): load + scrub a WAV; a 60fps GPU timeline canvas; one Node behind a
-// stub of the format-neutral node trait.
+// The offline H0 spikes are DONE + green (see STATUS.md): WAV load+scrub (YesDawAssetCheck), timeline
+// layout cost (YesDawUiCheck), node block-size independence (YesDawEngineCheck). The one remaining H0
+// item is a native GPU render shell that actually draws the timeline at 60 fps + a frame-time gate in
+// the soak.
 
 #include "dsp/SineSource.h"
 

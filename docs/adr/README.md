@@ -36,33 +36,33 @@ The brainstorm and build plan resolved these. They are recorded as ADRs as each 
 | **#4** | Plugin hosting | **Out-of-process / sandboxed from the start** — VST3 + AU first, then CLAP (H3). | ✅ resolved (ADR pending, H3) |
 | **#5** | Project format | Build plan: **SQLite `.yesdaw` bundle**, normalized tables (not JSONB), WAL, migration harness (H1). | ADR pending (H1) |
 
-The build plan's **14 irreversible engine decisions** extend ADR-0002 and become individual ADRs as
+The build plan's **15 irreversible engine decisions** extend ADR-0002 and become individual ADRs as
 each milestone (H1, H3, …) is planned. See
 [`docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md`](../plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md).
 
 ### Engine decisions → ADR tracking
 
 So none is silently skipped (ADR numbers are provisional until written). **Note (2026-06-23):** ADR
-**0005** is now the mechanical-verification/CI-gates decision (above); the engine-decision target
-numbers below are provisional and will be assigned from **0006** onward as each is written.
+**0005** is the mechanical-verification/CI-gates decision (above), so the engine-decision target numbers
+below start at **0006** (shifted up one from an earlier draft to avoid colliding with 0005).
 
 | # | Decision | Target ADR | Milestone |
 |---|---|---|---|
-| 1 | Immutable compiled-snapshot concurrency model | 0005 | H1 |
-| 2 | Own CompiledGraph + compile-time PDC (audio+MIDI+automation) | 0006 | H1 |
-| 3 | CLAP-shaped format-neutral Node contract | 0007 | H1 |
-| 4 | Sample-accurate, block-sliced, generic event stream (UMP-superset) | 0008 | H1 |
-| 5 | Dual time representation + tempo-map curve (**PPQ = 15360**, resolved) | 0009 | H1 |
-| 6 | Per-clip `time_base` | 0009 | H1 |
-| 7 | Asset→Clip→Project non-destructive indirection | 0010 | H1 |
-| 8 | Stable persistent IDs (**128-bit ULID**, resolved) | 0010 | H1 |
-| 9 | Variable / renegotiable Block size | 0006 | H1 |
-| 10 | SQLite `.yesdaw` bundle, normalized tables, migrations (+ bundle-atomicity) | 0011 | H1 |
-| 11 | Plugin state as opaque chunks | 0012 | H3 |
-| 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0012 | H3 |
-| 13 | f64 Bus summing | 0006 | H1 |
-| 14 | Sample-rate policy | 0009 | H1 |
-| 15 | Automation curve representation | 0008 | H1 |
+| 1 | Immutable compiled-snapshot concurrency model | 0006 | H1 |
+| 2 | Own CompiledGraph + compile-time PDC (audio+MIDI+automation) | 0007 | H1 |
+| 3 | CLAP-shaped format-neutral Node contract | 0008 | H1 |
+| 4 | Sample-accurate, block-sliced, generic event stream (UMP-superset) | 0009 | H1 |
+| 5 | Dual time representation + tempo-map curve (**PPQ = 15360**, resolved) | 0010 | H1 |
+| 6 | Per-clip `time_base` | 0010 | H1 |
+| 7 | Asset→Clip→Project non-destructive indirection | 0011 | H1 |
+| 8 | Stable persistent IDs (**128-bit ULID**, resolved) | 0011 | H1 |
+| 9 | Variable / renegotiable Block size | 0007 | H1 |
+| 10 | SQLite `.yesdaw` bundle, normalized tables, migrations (+ bundle-atomicity) | 0012 | H1 |
+| 11 | Plugin state as opaque chunks | 0013 | H3 |
+| 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0013 | H3 |
+| 13 | f64 Bus summing | 0007 | H1 |
+| 14 | Sample-rate policy | 0010 | H1 |
+| 15 | Automation curve representation | 0009 | H1 |
 
 The three substantive conflicts (PPQ-freeze, stable-ID, hosting isolation) were **resolved 2026-06-23**
 (see the plan's enhancement summary). The deepening notes retain the full debate.
