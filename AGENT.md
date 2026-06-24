@@ -29,12 +29,18 @@ cmake -B build
 cmake --build build --config Debug
 ```
 
+**One dir per purpose — never share a dir across generators.** This convenience build owns `build/`
+(VS generator); the `ci` preset (below) owns `build-ci/` (Ninja); the RTSan leg owns `build-rt/`; the
+Ninja-Debug iteration below owns `build-ninja/`. Mixing two generators in one dir is what triggers
+CMake's "generator does not match the generator used previously" error — keeping them separate makes
+that impossible, so any of these can be run freely without wiping a dir first.
+
 Faster iteration with **Ninja**, but MSVC + Ninja needs the compiler env, so run these from the
 **"x64 Native Tools Command Prompt for VS 2022"** (Start menu):
 
 ```
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+cmake -B build-ninja -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-ninja
 ```
 
 ## Run
@@ -48,14 +54,17 @@ build\YesDaw_artefacts\Debug\YesDaw.exe            # exact path varies by genera
 Everything runs through the `ci` CMake preset so the cloud and all three machines invoke it the same:
 
 ```
-cmake --preset ci          # configure (Ninja, Release) — needs the MSVC env on Windows (x64 Native Tools prompt)
+cmake --preset ci          # configure (Ninja, Release) into build-ci/ — needs the MSVC env on Windows (x64 Native Tools prompt)
 cmake --build --preset ci  # build the app + the headless test
 ctest --preset ci          # run YesDawCheck — exit 0/1, the gate
 ```
 
+The preset builds into its own `build-ci/` (not `build/`), so the Debug VS-generator quick-build above
+can coexist with it — neither command ever errors with a "generator does not match" mismatch.
+
 `ctest` runs the headless `YesDawCheck` (golden + 440 Hz pitch + level + purity + fade + perf). A
 green run IS the verification — no listening. After an **intentional** DSP change, re-bless the golden:
-`cmake --build build --target bless-goldens`.
+`cmake --build --preset ci --target bless-goldens` (path-free — targets the preset's build-ci/).
 
 ## Real-machine soak (the H0 exit gate — needs real hardware)
 

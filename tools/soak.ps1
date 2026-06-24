@@ -17,8 +17,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
-# Find the built soak binary across the Visual Studio and Ninja layouts.
+# Find the built soak binary. The `ci` preset (the documented path) builds Ninja/Release into build-ci\
+# (JUCE console apps land under <name>_artefacts\<config>\); the casual `cmake -B build` Visual Studio
+# path lands under build\ the same way — check both.
 $candidates = @(
+  "$repo\build-ci\YesDawSoak_artefacts\Release\YesDawSoak.exe",
+  "$repo\build-ci\YesDawSoak_artefacts\Debug\YesDawSoak.exe",
+  "$repo\build-ci\YesDawSoak.exe",
   "$repo\build\YesDawSoak_artefacts\Debug\YesDawSoak.exe",
   "$repo\build\YesDawSoak_artefacts\Release\YesDawSoak.exe",
   "$repo\build\Debug\YesDawSoak.exe",

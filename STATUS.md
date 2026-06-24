@@ -12,7 +12,7 @@ worklog.
 **Current horizon:** **H1 (the spine)** — in progress
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
-> human step is blessing a golden on an intended audio change (`cmake --build build --target bless-goldens`).
+> human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
 
 ---
 

@@ -53,5 +53,7 @@ without expecting overlap.
 
 ## The mechanical model (one entry point)
 Every machine + CI runs the same: `cmake --preset ci && cmake --build --preset ci && ctest --preset ci`.
-After an intentional DSP change, re-bless goldens: `cmake --build build --target bless-goldens`. CI is
-the gate; see `ADR-0005` and `docs/ci-mechanical-verification.md`.
+The preset builds into its own `build-ci/` (Ninja), so a casual `cmake -B build` (Visual Studio
+generator) can't collide with it — that "generator does not match" error is gone by construction.
+After an intentional DSP change, re-bless goldens: `cmake --build --preset ci --target bless-goldens`.
+CI is the gate; see `ADR-0005` and `docs/ci-mechanical-verification.md`.

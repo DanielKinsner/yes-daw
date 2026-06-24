@@ -16,12 +16,17 @@ DUR="${1:-600}"
 shift || true
 EXTRA="$*"
 
-# Find the built soak binary across the Ninja (preset) and Visual Studio layouts.
+# Find the built soak binary. The `ci` preset (the documented path) builds Ninja/Release into build-ci/
+# (JUCE console apps land under <name>_artefacts/<config>/); the casual `cmake -B build` Visual Studio
+# path lands under build/ the same way — check both.
 BIN=""
-for c in "$ROOT/build/YesDawSoak" "$ROOT/build/YesDawSoak.exe" \
-         "$ROOT/build/Release/YesDawSoak.exe" "$ROOT/build/Debug/YesDawSoak.exe" \
+for c in "$ROOT/build-ci/YesDawSoak_artefacts/Release/YesDawSoak.exe" \
+         "$ROOT/build-ci/YesDawSoak_artefacts/Debug/YesDawSoak.exe" \
+         "$ROOT/build-ci/YesDawSoak" "$ROOT/build-ci/YesDawSoak.exe" \
          "$ROOT/build/YesDawSoak_artefacts/Release/YesDawSoak.exe" \
-         "$ROOT/build/YesDawSoak_artefacts/Debug/YesDawSoak.exe"; do
+         "$ROOT/build/YesDawSoak_artefacts/Debug/YesDawSoak.exe" \
+         "$ROOT/build/Release/YesDawSoak.exe" "$ROOT/build/Debug/YesDawSoak.exe" \
+         "$ROOT/build/YesDawSoak" "$ROOT/build/YesDawSoak.exe"; do
   if [ -x "$c" ]; then BIN="$c"; break; fi
 done
 if [ -z "$BIN" ]; then

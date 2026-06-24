@@ -3,6 +3,11 @@
 
 # YES DAW — Mechanical-First Operating Model
 
+> **Historical synthesis (2026-06-23).** This is the planning record, not the live reference. The shipped
+> files are the source of truth: `CMakePresets.json`, `.github/workflows/ci.yml`, `AGENT.md`. One drift
+> to note: the `ci` preset now builds into its **own `build-ci/` dir** (not the `build/` shown in the
+> snippets below), so the casual `cmake -B build` Visual Studio path can't collide with it.
+
 **The one-line shift:** Today the gate is *Dan listens and watches on real hardware* (STATUS.md line 29, CLAUDE.md lines 31–33, 57). That doesn't scale and it blocks the H1 unattended loop. This plan replaces every "human confirms" with a **machine that renders to numbers and exits 0/1**, so the only thing Dan ever does is read a green or red check.
 
 ---
@@ -226,7 +231,7 @@ ctest --test-dir "$repo/build" --output-on-failure
 5. **`CMakePresets.json` is the single entry point** so all 3 machines *and* CI run byte-identical, path-free invocations:
 ```jsonc
 { "version": 6,
-  "configurePresets": [{ "name":"ci","generator":"Ninja","binaryDir":"${sourceDir}/build",
+  "configurePresets": [{ "name":"ci","generator":"Ninja","binaryDir":"${sourceDir}/build-ci",
     "cacheVariables": { "CMAKE_BUILD_TYPE":"Release" } }],
   "buildPresets":     [{ "name":"ci","configurePreset":"ci" }],
   "testPresets":      [{ "name":"ci","configurePreset":"ci",

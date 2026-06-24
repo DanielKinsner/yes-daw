@@ -27,11 +27,20 @@ FetchContent_Declare(JUCE
   GIT_TAG        8.0.4
   GIT_SHALLOW    TRUE
   SYSTEM)
+# choc: header-only, ISC. We use choc::fifo::SingleReaderSingleWriterFIFO as the ONE sanctioned
+# lock-free SPSC primitive (ADR-0006 / deepening-notes ADOPT #1 — "do not hand-roll three"). Pinned by
+# commit (no semver tags upstream); GIT_SHALLOW FALSE so the exact SHA stays fetchable as HEAD moves.
+# Pure C++, so it is fetched on the RTSan/TSan legs too (it carries no JUCE/X11/ALSA dependency).
+FetchContent_Declare(choc
+  GIT_REPOSITORY https://github.com/Tracktion/choc.git
+  GIT_TAG        5685fb59db9e60d31a35df7bff0ce7967beaaf25
+  GIT_SHALLOW    FALSE
+  SYSTEM)
 
 if (YESDAW_BUILD_APPS)
-  FetchContent_MakeAvailable(JUCE Catch2)
+  FetchContent_MakeAvailable(JUCE Catch2 choc)
 else()
-  FetchContent_MakeAvailable(Catch2)   # RTSan leg: skip the JUCE clone entirely
+  FetchContent_MakeAvailable(Catch2 choc)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
 
 # --- Hardening: warnings-as-errors on OUR code only + an optional sanitizer --------
@@ -113,6 +122,9 @@ endif() # YESDAW_BUILD_APPS
 # Pure C++ + Catch2 — depends ONLY on src/dsp, never on JUCE — so it builds/runs fast anywhere.
 enable_testing()
 
+# std::thread in the Runtime stress test needs the platform threads library (pthread on Linux/macOS).
+find_package(Threads REQUIRED)
+
 add_executable(YesDawCheck tests/dsp_tests.cpp)
 target_include_directories(YesDawCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawCheck PRIVATE Catch2::Catch2)
@@ -148,6 +160,16 @@ target_link_libraries(YesDawGraphCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawGraphCheck)
 catch_discover_tests(YesDawGraphCheck)
 
+# --- Runtime check (H1; pure, RT-safe graph publish/swap + generation-counter reclamation — ADR-0006) ---
+# Built UNCONDITIONALLY so the RTSan leg (-fsanitize=realtime) covers processBlock and the TSan leg
+# (-fsanitize=thread) covers the publish/process/reclaim data race. Uses choc's SPSC FIFO + std::thread.
+add_executable(YesDawRuntimeCheck tests/runtime_tests.cpp)
+target_include_directories(YesDawRuntimeCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawRuntimeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawRuntimeCheck PRIVATE Catch2::Catch2WithMain Threads::Threads)
+yesdaw_harden(YesDawRuntimeCheck)
+catch_discover_tests(YesDawRuntimeCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
@@ -169,7 +191,7 @@ if (YESDAW_BUILD_APPS)
 endif()
 
 # Bless the golden after an INTENTIONAL DSP change (review the diff before committing):
-#   cmake --build build --target bless-goldens
+#   cmake --build --preset ci --target bless-goldens   # path-free; targets the preset's build-ci/
 add_custom_target(bless-goldens
   COMMAND $<TARGET_FILE:YesDawCheck> --emit-golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/sine_440_48k.csv"
   DEPENDS YesDawCheck

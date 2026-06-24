@@ -5,9 +5,9 @@
     {
       "name": "ci",
       "displayName": "CI (Ninja, Release)",
-      "description": "The one invocation every machine and the cloud share, byte-identical and path-free.",
+      "description": "The one invocation every machine and the cloud share, byte-identical and path-free. Owns its own build-ci/ dir so a casual `cmake -B build` (VS generator) never collides with it.",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build-ci",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     }
   ],
