@@ -1,36 +1,85 @@
-// YES DAW — H0 spike #3: a Node behind a stub of the format-neutral trait.
+// YES DAW — the Node contract (ADR-0008): one CLAP-shaped, format-neutral processing unit.
 //
-// THROWAWAY spike stub (H0), NOT the real Node contract — that's a frozen H1 decision (CLAP-shaped,
-// see ADR tracking). This minimal interface exists only to de-risk the scary unknown: does a stateful
-// node give the SAME output no matter how the host slices it into blocks? Hosts hand us odd, tiny,
-// and huge block sizes (1, 31, 512, 4096, ...), and any place that resets or mishandles state at a
-// block boundary would corrupt the audio. The test drives one node at all those sizes and asserts the
-// full output is bit-identical every way.
+// Built-in DSP and (at H3) hosted plugins implement this same trait, so adding plugin hosting later is
+// an adapter, not an engine rewrite (ADR-0002 #3). The graph compiler (ADR-0007), PDC, the buffer pool,
+// and the event router all program against this shape — changing it later touches every Node at once,
+// so it is frozen here. process() is the audio hot path; prepare() is the ONLY place a Node allocates.
+//
+// Pure C++ — no JUCE — so every Node is covered by the RTSan/TSan legs. (PluginNode, the one adapter
+// that wraps juce::AudioProcessor, lives behind a layering boundary — ADR-0008 — never in this header.)
+//
+// NOTE: this replaces the throwaway H0 spike trait that proved block-size independence; that property is
+// a real contract rule and is re-asserted against the built-in Nodes (tests/node_tests.cpp).
 
 #pragma once
 
-#include "dsp/SineSource.h"
+#include "rt/RtHot.h"
+
+#include <cstdint>
+#include <span>
 
 namespace yesdaw::engine {
 
-// The stub trait every processing unit will implement (built-in or hosted plugin), block-sliced.
-struct Node
+using NodeId = std::uint32_t;
+
+// What a Node advertises to the compiler. latencySamples drives PDC; channels/produces* drive routing.
+struct NodeProperties
 {
-    virtual ~Node() = default;
-    virtual void prepare (double sampleRate) = 0;
-    virtual void process (float* block, int numFrames) = 0;   // fills/transforms `block` in place
+    bool         producesAudio  = false;
+    bool         producesEvents = false;
+    int          channels       = 0;
+    std::int64_t latencySamples = 0;
+    NodeId       id             = 0;
 };
 
-// A generator node behind the trait — a stateful phase accumulator, so block-size independence is a
-// real property to prove (a node that re-prepared per block, or lost phase, would fail it).
-class ToneNode final : public Node
+// A view over the per-channel audio buffers a Node reads/writes this Block. The frame count travels in
+// ProcessArgs (variable Block, ADR-0010): each channels[c] points to at least ProcessArgs::numFrames floats.
+struct AudioBlock
+{
+    float* const* channels    = nullptr;
+    int           numChannels = 0;
+};
+
+// Placeholders for the contracts that flow through process() but are frozen in their own ADRs — present
+// now so ProcessArgs has its frozen shape from the first Node. ADR-0009 / ADR-0010 give them bodies; a
+// Node that consumes neither simply ignores them.
+struct EventStream { /* ADR-0009: sample-accurate, block-sliced events. */ };
+struct Transport   { /* ADR-0010: playhead + tempo/meter map. */ };
+
+struct ProcessArgs
+{
+    AudioBlock       audio;
+    EventStream&     events;
+    const Transport& transport;
+    int              numFrames = 0;   // <= the maxBlockSize passed to prepare()
+};
+
+// The trait every processing unit implements.
+class Node
 {
 public:
-    void prepare (double sampleRate) override         { src_.prepare (sampleRate); }
-    void process (float* block, int numFrames) override { src_.processMono (block, numFrames); }
+    virtual ~Node() = default;
 
-private:
-    yesdaw::dsp::SineSource src_;
+    // Advertised properties (the compiler reads these every recompile). Cheap, RT-safe.
+    virtual NodeProperties properties() const noexcept = 0;
+
+    // The Nodes feeding this one — the graph compiler walks these for topo order + PDC. A source/leaf
+    // returns an empty span. Edges are wired by the graph builder (ADR-0007).
+    virtual std::span<Node* const> directInputs() const noexcept = 0;
+
+    // Allocate + size everything for a sample rate and maximum Block. The ONLY place a Node may allocate.
+    // Not RT-safe; called from the control thread before the Node goes live.
+    virtual void prepare (double sampleRate, int maxBlockSize) = 0;
+
+    // The audio hot path: read/transform/write args.audio for args.numFrames frames. RT-safe — no
+    // allocation, lock, or syscall (enforced by RTSan). numFrames <= maxBlockSize.
+    virtual void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT = 0;
+
+    // Drop transient state (envelopes, delay lines) to zero without reallocating. RT-safe.
+    virtual void reset() noexcept = 0;
+
+    // Free what prepare() allocated. Not RT-safe; control thread.
+    virtual void release() = 0;
 };
 
 } // namespace yesdaw::engine
