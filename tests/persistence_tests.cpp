@@ -1,7 +1,9 @@
 // YES DAW - headless checks for ADR-0012 SQLite bundle schema/migrations/intent log.
 
 #include "persistence/ProjectBundle.h"
+#include "persistence/WaveformPeakCache.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <sqlite3.h>
@@ -27,6 +29,7 @@ using yesdaw::persistence::BundleStatus;
 using yesdaw::persistence::PendingFsOp;
 using yesdaw::persistence::PendingFsOpKind;
 using yesdaw::persistence::ProjectBundleDb;
+using yesdaw::persistence::buildWaveformPeakCache;
 using yesdaw::persistence::detail::SchemaMigration;
 using yesdaw::persistence::kApplicationId;
 using yesdaw::persistence::kBusyTimeoutMs;
@@ -34,6 +37,7 @@ using yesdaw::persistence::kCacheSizeKiB;
 using yesdaw::persistence::kCodeSchemaVersion;
 using yesdaw::persistence::kWalAutoCheckpointPages;
 using yesdaw::persistence::detail::kSchemaV1Sql;
+using Catch::Approx;
 
 namespace {
 
@@ -626,4 +630,48 @@ TEST_CASE ("Opening a bundle rejects committed Asset rows with missing or corrup
 
     ProjectBundleDb corruptReopen;
     REQUIRE (ProjectBundleDb::openExistingBundle (corruptPath, corruptReopen).status == BundleStatus::IntegrityFailed);
+}
+
+TEST_CASE ("Waveform peak cache builds deterministic min max and RMS tiers", "[persistence][asset][peaks]")
+{
+    Asset asset;
+    asset.id = idFromLowByte (100);
+    asset.contentHash = hashFromLowByte (101);
+    asset.frames = 16;
+    asset.sampleRate = SampleRate { 48000.0 };
+    asset.channels = 1;
+
+    const std::vector<float> samples {
+        -1.0f, 0.5f, 0.25f, -0.25f,
+        2.0f, -2.0f, 0.0f, 1.0f,
+        0.25f, 0.25f, 0.25f, 0.25f,
+        -0.5f, -0.5f, 0.5f, 0.5f,
+    };
+
+    const auto result = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()), 4);
+    INFO (result.message);
+    REQUIRE (result.ok());
+
+    const auto& cache = result.cache;
+    REQUIRE (cache.contentHash == asset.contentHash);
+    REQUIRE (cache.sourceFrames == asset.frames);
+    REQUIRE (cache.channels == asset.channels);
+    REQUIRE (cache.tiers.size() == 2u);
+
+    const auto& tier0 = cache.tiers[0];
+    REQUIRE (tier0.framesPerPeak == 4u);
+    REQUIRE (tier0.peaks.size() == 4u);
+    REQUIRE (tier0.peaks[0].min == Approx (-1.0f));
+    REQUIRE (tier0.peaks[0].max == Approx (0.5f));
+    REQUIRE (tier0.peaks[0].rms == Approx (std::sqrt (1.375 / 4.0)));
+    REQUIRE (tier0.peaks[1].min == Approx (-2.0f));
+    REQUIRE (tier0.peaks[1].max == Approx (2.0f));
+    REQUIRE (tier0.peaks[1].rms == Approx (1.5));
+
+    const auto& folded = cache.tiers[1];
+    REQUIRE (folded.framesPerPeak == 64u);
+    REQUIRE (folded.peaks.size() == 1u);
+    REQUIRE (folded.peaks[0].min == Approx (-2.0f));
+    REQUIRE (folded.peaks[0].max == Approx (2.0f));
+    REQUIRE (folded.peaks[0].rms == Approx (std::sqrt (11.625 / 16.0)));
 }

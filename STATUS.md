@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — bundled Asset decode projection review green; waveform cache next
+**Current horizon:** **H2 (editing-first)** — waveform peak-cache foundation green locally; review next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,19 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 waveform peak-cache foundation is green locally.** Added the smallest headless
+  derived peak-cache surface for bundled Assets: `WaveformPeakCache` builds deterministic min/max+RMS
+  tiers from decoded Asset samples, folds higher tiers 16:1, stores/loads a content-hash-keyed
+  `peaks/<hash>.ypeaks` file, and rejects invalid cache files by header/hash/tier-shape/length/finite
+  value validation so they can be discarded and regenerated. `YesDawPersistenceCheck` proves exact
+  tier math on deterministic samples; `YesDawBundleRenderCheck` imports the fixture WAV into a `.yesdaw`
+  bundle, decodes the bundled Asset on the control/test side, writes the peak cache under `peaks/`,
+  reloads it, deletes `peaks/`, reopens Project truth unchanged, regenerates identical cache data, and
+  rejects/replaces a corrupt peak header. No Clip editing operations, undo/redo, UI, export, plugin
+  hosting, H3 work, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits. Local
+  gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (124/124). Remote CI is pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H2 waveform peak-cache foundation.
 - **Latest: REVIEW/FIX H2 bundled Asset read/decode projection found no defects.** Reviewed worker
   commit `2aba17e` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
   `ProjectBundleDb` / `Project` / render-test surfaces. The slice stays headless and narrow:
@@ -609,13 +622,13 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 waveform peak-cache foundation.** Pull, read `AGENTS.md` + this handoff first,
-  then add the smallest headless cache gate for bundled Asset waveform peaks: content-hash-keyed
-  `peaks/` storage, deterministic min/max+RMS tier data derived from decoded Asset samples, and a
-  self-asserting delete/regenerate check proving the cache is derived/regenerable rather than canonical
-  Project truth. Keep it off the audio hot path. Do not start Clip editing operations, undo/redo, UI,
-  export, plugin hosting, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits; if
-  the cache format needs an ADR-level decision beyond the plan/deepening notes, stop and report.
+- **Next chunk: REVIEW/FIX H2 waveform peak-cache foundation.** Pull, read `AGENTS.md` + this handoff
+  first, then review the worker slice against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and
+  the current `WaveformPeakCache` / bundle decode tests. Verify the cache remains derived/regenerable
+  Project-adjacent state, content-hash keyed under `peaks/`, deterministic, off the audio hot path, and
+  mechanically covered by the 124-test gate. Do not start Clip editing operations, undo/redo, UI,
+  export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]`
+  edits.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

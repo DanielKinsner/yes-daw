@@ -10,6 +10,7 @@
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "persistence/ProjectBundle.h"
+#include "persistence/WaveformPeakCache.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -22,6 +23,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
@@ -46,6 +48,12 @@ using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
 using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::ProjectBundleDb;
+using yesdaw::persistence::WaveformPeakCacheStatus;
+using yesdaw::persistence::buildWaveformPeakCache;
+using yesdaw::persistence::readWaveformPeakCache;
+using yesdaw::persistence::waveformPeakCachePathForHash;
+using yesdaw::persistence::waveformPeakCacheRelativePathForHash;
+using yesdaw::persistence::writeWaveformPeakCache;
 
 namespace {
 
@@ -84,6 +92,19 @@ std::vector<std::uint8_t> readBytes (const std::filesystem::path& path)
     return bytes;
 }
 
+void writeBytes (const std::filesystem::path& path, std::span<const std::uint8_t> bytes)
+{
+    std::error_code ec;
+    std::filesystem::create_directories (path.parent_path(), ec);
+    REQUIRE (! ec);
+
+    std::ofstream output (path, std::ios::binary | std::ios::trunc);
+    REQUIRE (output.good());
+    output.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()));
+    output.close();
+    REQUIRE (output.good());
+}
+
 std::unique_ptr<juce::AudioFormatReader> openWavReader (const std::filesystem::path& path)
 {
     juce::WavAudioFormat wav;
@@ -117,6 +138,28 @@ std::vector<float> decodeClipWindowFromBundle (const std::filesystem::path& bund
 
     const float* const channel = decoded.getReadPointer (0);
     return std::vector<float> (channel, channel + static_cast<std::ptrdiff_t> (clip.srcLen));
+}
+
+std::vector<float> decodeFullAssetChannelMajorFromBundle (const std::filesystem::path& bundlePath,
+                                                          const Asset& asset)
+{
+    REQUIRE (asset.channels == 1u);
+    REQUIRE (asset.frames <= static_cast<std::uint64_t> (std::numeric_limits<int>::max()));
+
+    const std::filesystem::path assetPath =
+        bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
+
+    const auto reader = openWavReader (assetPath);
+    REQUIRE (reader != nullptr);
+    REQUIRE (reader->sampleRate == asset.sampleRate.hz);
+    REQUIRE (reader->numChannels == asset.channels);
+    REQUIRE (reader->lengthInSamples == static_cast<juce::int64> (asset.frames));
+
+    juce::AudioBuffer<float> decoded (1, static_cast<int> (asset.frames));
+    REQUIRE (reader->read (&decoded, 0, static_cast<int> (asset.frames), 0, true, false));
+
+    const float* const channel = decoded.getReadPointer (0);
+    return std::vector<float> (channel, channel + static_cast<std::ptrdiff_t> (asset.frames));
 }
 
 std::unique_ptr<CompiledGraph> buildBundleClipProjection (const ProjectBundleDb& db,
@@ -333,4 +376,97 @@ TEST_CASE ("bundled Asset bytes decode through Clip indirection into graph Rende
     REQUIRE (readBytes (bundledAssetPath) == bytesBefore);
 
     REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("bundled Asset waveform peak cache is content hash keyed and regenerable", "[bundle][asset][peaks]")
+{
+    const auto bundlePath = makeTempBundlePath ("bundle-peaks");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    Asset imported;
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+
+        const AssetImportRequest import {
+            fixturePath,
+            idFromLowByte (30),
+            4096,
+            SampleRate { 48000.0 },
+            1,
+        };
+        REQUIRE (db.importAssetBytes (import, imported).ok());
+
+        Project project;
+        project.id = idFromLowByte (31);
+        project.sampleRate = SampleRate { 48000.0 };
+        project.assets.push_back (imported);
+        REQUIRE (project.hasValidAssetClipIndirection());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, reopened).ok());
+
+    Project project;
+    REQUIRE (reopened.readProjectSnapshot (project).ok());
+    REQUIRE (project.assets.size() == 1u);
+    const Asset asset = project.assets.front();
+
+    const std::vector<float> decoded = decodeFullAssetChannelMajorFromBundle (bundlePath, asset);
+    const auto built = buildWaveformPeakCache (asset, std::span<const float> (decoded.data(), decoded.size()));
+    INFO (built.message);
+    REQUIRE (built.ok());
+    REQUIRE (built.cache.tiers.size() == 2u);
+    REQUIRE (built.cache.tiers[0].framesPerPeak == 256u);
+    REQUIRE (built.cache.tiers[0].peaks.size() == 16u);
+    REQUIRE (built.cache.tiers[1].framesPerPeak == 4096u);
+    REQUIRE (built.cache.tiers[1].peaks.size() == 1u);
+    REQUIRE (built.cache.tiers[1].peaks.front().max > 0.49f);
+    REQUIRE (built.cache.tiers[1].peaks.front().min < -0.49f);
+    REQUIRE (built.cache.tiers[1].peaks.front().rms > 0.35f);
+
+    const std::string relativePeakPath = waveformPeakCacheRelativePathForHash (asset.contentHash);
+    REQUIRE (relativePeakPath.rfind ("peaks/", 0) == 0);
+
+    const std::filesystem::path peakPath = waveformPeakCachePathForHash (bundlePath, asset.contentHash);
+    REQUIRE (writeWaveformPeakCache (bundlePath, built.cache).ok());
+    REQUIRE (std::filesystem::exists (peakPath));
+
+    const auto loaded = readWaveformPeakCache (bundlePath, asset.contentHash);
+    INFO (loaded.message);
+    REQUIRE (loaded.ok());
+    REQUIRE (loaded.cache == built.cache);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath / "peaks", ec);
+    REQUIRE (! ec);
+    REQUIRE_FALSE (std::filesystem::exists (peakPath));
+
+    ProjectBundleDb afterDelete;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, afterDelete).ok());
+
+    Project readback;
+    REQUIRE (afterDelete.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.id == project.id);
+    REQUIRE (readback.sampleRate == project.sampleRate);
+    REQUIRE (readback.assets == project.assets);
+    REQUIRE (readback.clips == project.clips);
+
+    const auto regenerated = buildWaveformPeakCache (asset, std::span<const float> (decoded.data(), decoded.size()));
+    INFO (regenerated.message);
+    REQUIRE (regenerated.ok());
+    REQUIRE (regenerated.cache == loaded.cache);
+    REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
+    REQUIRE (readWaveformPeakCache (bundlePath, asset.contentHash).cache == loaded.cache);
+
+    const std::vector<std::uint8_t> corrupt { 'n', 'o', 'p', 'e' };
+    writeBytes (peakPath, std::span<const std::uint8_t> (corrupt.data(), corrupt.size()));
+    const auto rejected = readWaveformPeakCache (bundlePath, asset.contentHash);
+    REQUIRE (rejected.status == WaveformPeakCacheStatus::FormatInvalid);
+
+    REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
+    const auto recovered = readWaveformPeakCache (bundlePath, asset.contentHash);
+    REQUIRE (recovered.ok());
+    REQUIRE (recovered.cache == loaded.cache);
 }
