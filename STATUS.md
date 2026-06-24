@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H1 (the spine)** — in progress
+**Current horizon:** **H1 (the spine)** — exit gates green; waiting for Dan's horizon-boundary review
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: H1 exit-gate closeout / CI-truth pass is green.** Verified from repo truth that the four H1
+  exit gates are represented by self-asserting tests and the latest pushed commit CI:
+  Project bundle readback round-trips through `YesDawPersistenceCheck`; RT path vs offline Render
+  equivalence is covered by `YesDawRenderCheck` with non-silence and `1e-6` max-abs diff; the audio hot
+  path is covered by the Clang 20 RTSan CI leg over the pure engine tests; and interrupted save /
+  interrupted migration reopen-clean recovery is covered by `YesDawPersistenceCheck` with
+  `integrity_check == ok` and rollback/rerun assertions. Remote CI run `28125785485` for `ac4a576`
+  is green across Windows, Linux, macOS, RTSan, and TSan. No ADR, golden, roadmap, code, or
+  `[[clang::nonblocking]]` edits. **Next:** stop for Dan's H1/H2 horizon-boundary review; do not start
+  H2 until Dan advances the horizon.
 - **Latest: REVIEW/FIX H1 kill-during-save/migration reopen-clean gate is green locally.** Reviewed
   `bc5065b` against ADR-0012, ADR-0011, ADR-0010, `CONTEXT.md`, the H1 plan/roadmap, and the current
   SQLite bundle/migration/open-validation/readback code. Found and fixed one narrow test-proof gap:
@@ -321,7 +331,7 @@ worklog.
 - [x] Automation evaluated sample-accurately — curve storage is locked by ADR-0009; broad evaluator/lane
   work stays deferred until the current H1 plan calls it forward.
 - [x] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
-- [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
+- [x] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
   kill-during-save/migration reopen-clean. H1 done when all four are green in CI.
 
 ## Previous-horizon checklist — H0 (closed; GPU render shell + 60fps gate folded into H2)
@@ -530,12 +540,9 @@ worklog.
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: H1 exit-gate closeout / CI-truth pass.** Pull, read `AGENTS.md` + this handoff first,
-  then verify the latest pushed commit's GitHub CI and inspect the current H1 exit gates: Project
-  round-trip, RT-vs-offline Render equivalence, RTSan-clean audio path, and kill-during-save/migration
-  reopen-clean. If all four are represented and green in CI, update the H1 checklist to mark the exit
-  gates green and stop for Dan's horizon-boundary review. Do not start H2, edit ADRs, edit the roadmap,
-  edit goldens, or touch `[[clang::nonblocking]]` annotations.
+- **Next state: stop for Dan's H1/H2 horizon-boundary review.** H1's mechanical exit gates are green in
+  repo truth and remote CI. Do not start H2, edit ADRs, edit the roadmap, edit goldens, or touch
+  `[[clang::nonblocking]]` annotations until Dan advances the horizon.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
