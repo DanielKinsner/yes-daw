@@ -16,6 +16,11 @@ Ensure-Pkg 'Git.Git'
 Ensure-Pkg 'Microsoft.VisualStudio.2022.BuildTools' `
   '--passive --wait --includeRecommended --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100'
 
+# winget updates PATH in the registry, but THIS shell started before that — so a just-installed cmake
+# isn't on PATH yet. Refresh PATH in-session so cmake is callable without opening a new terminal.
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
+            [System.Environment]::GetEnvironmentVariable('Path','User')
+
 # Repo root derived from this script's own location — never a typed absolute path.
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
