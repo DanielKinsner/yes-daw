@@ -287,6 +287,21 @@ TEST_CASE ("Opening an existing bundle runs layered semantic validation", "[pers
     REQUIRE (validation.status == BundleStatus::SemanticInvalid);
 }
 
+TEST_CASE ("Opening an existing bundle rejects non-canonical Project value storage types", "[persistence][semantic][open]")
+{
+    const auto path = makeTempBundlePath ("semantic-type-open");
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (makeProject()).ok());
+        REQUIRE (db.executeSql ("UPDATE clips SET src_offset = 0.5 WHERE id = X'00000000000000000000000000000004';").ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
 TEST_CASE ("Intent log rows commit or roll back with the surrounding asset transaction", "[persistence][intent-log]")
 {
     const auto path = makeTempBundlePath ("intent");

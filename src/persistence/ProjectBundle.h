@@ -959,7 +959,10 @@ public:
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
 
-        return validateStoredRanges();
+        if (auto result = validateStoredRanges(); ! result.ok())
+            return result;
+
+        return validateStoredTypes();
     }
 
     [[nodiscard]] static BundleResult runMigrationsForTest (sqlite3* db, int fromVersion, std::span<const detail::SchemaMigration> migrations)
@@ -1067,6 +1070,25 @@ private:
 
         if (rangeProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "persisted row violates schema v1 semantic ranges" };
+
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult validateStoredTypes() const
+    {
+        bool typeProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM project WHERE typeof(id) != 'blob' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') "
+                "UNION ALL SELECT 1 FROM assets WHERE typeof(id) != 'blob' OR typeof(content_hash) != 'blob' OR typeof(frames) != 'integer' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') OR typeof(channels) != 'integer' "
+                "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
+                "LIMIT 1;",
+                typeProblem);
+            ! result.ok())
+            return result;
+
+        if (typeProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "persisted Project value row uses a non-canonical storage type" };
 
         return detail::ok();
     }

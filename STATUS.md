@@ -17,6 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H1 Project round-trip bundle readback slice is green locally.** Reviewed
+  `e84e612` against ADR-0012, ADR-0011, ADR-0010, `CONTEXT.md`, this handoff, and the H1 Project
+  round-trip gate. Found and fixed one real SQLite dynamic-typing defect: existing bundles now reject
+  non-canonical storage types on the current `Project`/`Asset`/`Clip` value rows before readback can
+  coerce them (for example, a fractional `src_offset` truncating through `sqlite3_column_int64`). Added
+  a reopen regression proving that bad row is refused during layered open validation. No ADR, golden,
+  roadmap, UI, asset import/decoding, waveform cache, plugin hosting, broad automation lane, or
+  audio-thread contract edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (115/115). **Next:** WORKER H1 RT-vs-offline
+  Render equivalence gate, with no golden-file edits unless Dan explicitly blesses that boundary.
 - **Latest: WORKER H1 Project round-trip bundle readback slice is green locally.** Added
   `ProjectBundleDb::readProjectSnapshot`, the smallest SQLite readback path for the current
   `Project`/`Asset`/`Clip` value surface, with layered validation before reconstructing values from a
@@ -456,18 +466,22 @@ worklog.
 - 2026-06-24 — **H1 Project round-trip readback slice landed locally.** Added
   `ProjectBundleDb::readProjectSnapshot` and a reopened-bundle round-trip test for the current
   `Project`/`Asset`/`Clip` value surface. Local `ci` configure/build + 111/111 tests green.
+- 2026-06-24 — **H1 Project round-trip readback review/fix.** Existing bundles now reject
+  non-canonical SQLite storage types for the current `Project`/`Asset`/`Clip` value rows before
+  readback can coerce them. Local `ci` configure/build + 115/115 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX H1 Project round-trip bundle readback slice for the existing Project/Asset/
-  Clip value surface.** Pull, read `AGENTS.md` + this handoff first, then review the readback worker
-  slice against ADR-0012, ADR-0011, ADR-0010, `CONTEXT.md`, and the H1 Project round-trip gate. Verify
-  the reopened-bundle readback reconstructs the current value surface without weakening layered
-  validation or drifting into UI, asset import/decoding, waveform caches, plugin hosting, broad
-  automation lanes, goldens, or audio-thread contract changes. Fix only real defects, run the mechanical
-  gate, update this handoff, commit/push if a fix lands, check GitHub CI, create the next worker thread,
-  then stop.
+- **Next chunk: WORKER H1 RT-vs-offline Render equivalence gate.** Pull, read `AGENTS.md` + this
+  handoff first, then implement the narrowest headless mechanical gate proving the RT path and a
+  same-Project offline Render path produce matching audio within tolerance. Stay inside the existing
+  engine/Project contracts; do not drift into UI, asset import/decoding, waveform caches, plugin
+  hosting, broad automation lanes, kill-during-save/migration recovery, ADR edits, roadmap edits,
+  `[[clang::nonblocking]]` annotation edits, or golden-file edits. If a golden artifact truly must be
+  added or blessed, hard-stop and report that boundary instead of editing it. Run the mechanical gate,
+  update this handoff, commit/push if green, check GitHub CI, create the next REVIEW/FIX thread, then
+  stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
