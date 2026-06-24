@@ -17,6 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H1 kill-during-save/migration reopen-clean gate is green locally.** Added two narrow
+  self-asserting recovery gates in `YesDawPersistenceCheck`: an interrupted save transaction closes
+  without `COMMIT`, then the bundle reopens with `integrity_check == ok` and the last committed
+  `Project` readback intact; an interrupted schema migration transaction writes v1 shape plus
+  application/user identity without `COMMIT`, then reopen reruns migration cleanly and passes
+  identity, `schema_migrations`, `integrity_check`, and semantic validation. No ADR, golden, roadmap,
+  UI, asset import/decoding, waveform cache, plugin hosting, broad automation lane, or
+  `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
+  `cmake --build --preset ci`; `ctest --preset ci` pass (118/118). **Next:** REVIEW/FIX H1
+  kill-during-save/migration reopen-clean gate.
 - **Latest: REVIEW/FIX H1 RT-vs-offline Render equivalence gate is green locally.** Reviewed `968b16d`
   against ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, `CONTEXT.md`, the H1 plan/roadmap,
   current Runtime/CompiledGraph/GraphBuilder/Node contracts, and the landed `YesDawRenderCheck` +
@@ -498,18 +508,22 @@ worklog.
   locked H1 contracts and found no code defect: the gate proves the narrow current Project -> CompiledGraph
   projection through both Runtime and offline paths without drifting into deferred surfaces. Local `ci`
   configure/build + 116/116 tests green.
+- 2026-06-24 — **H1 kill-during-save/migration reopen-clean gate landed locally.** Added persistence
+  recovery tests for uncommitted save rollback to the last committed Project and uncommitted schema
+  migration rollback/rerun on reopen. Both assert `integrity_check == ok`; the migration path also
+  asserts identity/schema row publication and semantic validation. Local `ci` build + 118/118 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER H1 kill-during-save/migration reopen-clean gate.** Pull, read `AGENTS.md` + this
-  handoff first, then implement the smallest mechanical gate for the remaining H1 recovery exit
-  criterion on the current SQLite `.yesdaw` bundle / migration / open-validation surface. Simulate or
-  verify an interrupted save or migration leaves a bundle that reopens cleanly or refuses safely through
-  integrity + semantic validation, using self-asserting tests only. Stay out of UI, asset import/decoding,
-  waveform caches, plugin hosting, broad automation lanes, ADR edits, roadmap edits,
-  `[[clang::nonblocking]]` annotation edits, and golden-file edits. Run the mechanical gate, update this
-  handoff, commit/push if green, check GitHub CI, create the next thread, then stop.
+- **Next chunk: REVIEW/FIX H1 kill-during-save/migration reopen-clean gate.** Pull, read `AGENTS.md` +
+  this handoff first, then review the landed persistence recovery tests against ADR-0012, ADR-0011,
+  ADR-0010, `CONTEXT.md`, and the current SQLite bundle/migration/open-validation code. Verify the gate
+  really proves interrupted save/migration reopen-clean behavior on the current surface; fix only real
+  defects. Stay out of UI, asset import/decoding, waveform caches, plugin hosting, broad automation
+  lanes, ADR edits, roadmap edits, `[[clang::nonblocking]]` annotation edits, and golden-file edits. Run
+  the mechanical gate, update this handoff, commit/push if changed and green, check GitHub CI, create
+  the next thread, then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

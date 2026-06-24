@@ -30,6 +30,7 @@ using yesdaw::persistence::kBusyTimeoutMs;
 using yesdaw::persistence::kCacheSizeKiB;
 using yesdaw::persistence::kCodeSchemaVersion;
 using yesdaw::persistence::kWalAutoCheckpointPages;
+using yesdaw::persistence::detail::kSchemaV1Sql;
 
 namespace {
 
@@ -55,6 +56,24 @@ std::filesystem::path makeTempBundlePath (std::string_view label)
     std::error_code ec;
     std::filesystem::remove_all (path, ec);
     return path;
+}
+
+std::string utf8Path (const std::filesystem::path& path)
+{
+    const auto utf8 = path.generic_u8string();
+    return std::string (utf8.begin(), utf8.end());
+}
+
+void requireRawExec (sqlite3* db, std::string_view sql)
+{
+    char* rawError = nullptr;
+    const std::string command (sql);
+    const int rc = sqlite3_exec (db, command.c_str(), nullptr, nullptr, &rawError);
+    const std::string message = rawError == nullptr ? sqlite3_errmsg (db) : rawError;
+    sqlite3_free (rawError);
+
+    INFO (message);
+    REQUIRE (rc == SQLITE_OK);
 }
 
 Asset makeAsset (EntityId id, std::uint64_t frames = 48000)
@@ -258,6 +277,70 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, project);
+}
+
+TEST_CASE ("Interrupted save transaction reopens the last committed Project", "[persistence][recovery][save]")
+{
+    const auto path = makeTempBundlePath ("save-recovery");
+    const Project committed = makeProject();
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (committed).ok());
+        REQUIRE (db.executeSql ("BEGIN IMMEDIATE;").ok());
+        REQUIRE (db.executeSql (
+            "DELETE FROM clips; DELETE FROM assets; DELETE FROM project; "
+            "INSERT INTO project(singleton_id, id, sample_rate_hz) "
+            "VALUES (1, X'000000000000000000000000000000FE', 96000.0);")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    std::string integrity;
+    REQUIRE (reopened.queryText ("PRAGMA integrity_check;", integrity).ok());
+    REQUIRE (integrity == "ok");
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, committed);
+}
+
+TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistence][recovery][migration]")
+{
+    const auto path = makeTempBundlePath ("migration-recovery");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path, ec);
+    REQUIRE (! ec);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    requireRawExec (rawDb, "BEGIN IMMEDIATE;");
+    requireRawExec (rawDb, kSchemaV1Sql);
+    requireRawExec (rawDb, "INSERT INTO schema_migrations(version, app_build) VALUES (1, 'interrupted');");
+    requireRawExec (rawDb, "PRAGMA application_id = 1497715505;");
+    requireRawExec (rawDb, "PRAGMA user_version = 1;");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openOrCreateBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA application_id;", value).ok());
+    REQUIRE (value == kApplicationId);
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1;", value).ok());
+    REQUIRE (value == 1);
+
+    std::string integrity;
+    REQUIRE (reopened.queryText ("PRAGMA integrity_check;", integrity).ok());
+    REQUIRE (integrity == "ok");
+    REQUIRE (reopened.validateStoredProjectSemantics().ok());
 }
 
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")
