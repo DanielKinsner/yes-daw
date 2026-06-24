@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-23
-**Current horizon:** **H0 (spikes)** — in progress
+**Current horizon:** **H1 (the spine)** — in progress
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build build --target bless-goldens`).
@@ -17,16 +17,36 @@ worklog.
 ---
 
 ## Now — the one small task in flight
-- **Verification is now mechanical and green.** CI (Windows + Linux + macOS) builds the app and runs a
-  headless Catch2 self-check (golden + 440 Hz pitch + level + purity + fade + perf); an RTSan leg
-  proves the audio hot path never allocates/locks; a real-machine `tools/soak.sh` is the H0 exit gate.
-  An adversarial review found two gate holes (golden blind to steady-state; asymmetric distortion
-  passed) — both closed and proven. **All three H0 spikes de-risked on the CI side:** #1 WAV scrub
-  (full), #2 timeline CPU cost (0.007 ms/frame for 5000 clips), #3 node block-size-independence. The
-  soak PASSED on the owner's machine. **Remaining for H0 (real-hardware/GUI):** a native GPU render
-  shell + `max_frame_ms` in the soak, then the 10-min soak run = H0 exit.
+- **H1 kickoff: the seven irreversible contracts are frozen as ADRs (0006–0012)** — no engine code
+  lands before its ADR (CLAUDE.md). Written in dependency order: 0010 time/sample-rate · 0008 Node
+  contract · 0009 event stream + automation · 0007 CompiledGraph + PDC · 0006 immutable-snapshot
+  concurrency · 0011 Asset→Clip→Project + ULID · 0012 SQLite bundle + migrations. Two product calls
+  made by the owner: **sample-rate = keep original bytes, resample at read (non-destructive)**;
+  **automation ships all four curves (linear/hold/bezier/log)**. The three contested forks (PPQ=15360,
+  128-bit ULID, out-of-process hosting) were already resolved — just recorded. CONTEXT.md + the ADR
+  index are synced. **This is a docs-only checkpoint (no code), so CI is green by construction.**
+- **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
+  into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
-## Current-horizon checklist — H0 (plain English, small steps)
+## Current-horizon checklist — H1 (the spine; plain English, small steps)
+> Exit gate (all green in CI): a Project round-trips (tempo/meter map, markers, clips intact); the RT
+> path matches an offline Render within golden tolerance; the audio path is RTSan-clean; **and** a kill
+> during save/migration reopens cleanly (WAL recovery + `integrity_check`).
+- [x] **Freeze the irreversible contracts as ADRs 0006–0012** ✓ — graph+PDC, time model, event model,
+  Node contract, concurrency, data-model indirection, persistence. (docs-only; CI green by construction.)
+- [ ] RT-safe audio callback skeleton (`YESDAW_RT_HOT` + RTSan coverage) — outputs silence from a
+  `nullptr` published graph.
+- [ ] SPSC command queue + `atomic<const CompiledGraph*>` swap + generation-counter janitor (ADR-0006).
+- [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
+  PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates.
+- [ ] Built-in Nodes behind the contract (ADR-0008): `SourceNode → FaderNode → PanNode →
+  SumNode(Master) → device`, plus `MeterNode`; f64 Bus summing.
+- [ ] Generic event stream flowing param-changes (ADR-0009); automation evaluated sample-accurately.
+- [ ] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
+- [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
+  kill-during-save/migration reopen-clean. H1 done when all four are green in CI.
+
+## Previous-horizon checklist — H0 (closed; GPU render shell + 60fps gate folded into H2)
 - [x] Install the C++ toolchain (CMake + MSVC via VS 2022 Build Tools). ✓
 - [x] `cmake -B build` configures and fetches JUCE with no error. ✓
 - [x] App builds and a window opens (`YesDaw.exe`). ✓ — *`Main.cpp` compiled clean first try.*
@@ -93,12 +113,21 @@ worklog.
   `bless-goldens`; ADR-0005. An **adversarial multi-agent review** caught + closed two real gate holes
   (golden window inside the fade; asymmetric distortion passing) — both proven via injected-bug tests.
   Built the **real-machine soak** (`tools/soak.sh` + `YesDawSoak`); verified on this box.
+- 2026-06-23 — **H1 contracts frozen as ADRs 0006–0012** (the precondition for engine code): time model
+  + sample-rate (keep-original / resample-at-read), Node contract, event stream + automation (all four
+  curves), CompiledGraph + PDC, immutable-snapshot concurrency, Asset→Clip→Project + 128-bit ULID,
+  SQLite bundle + migrations. Two owner product calls made; the resolved forks recorded; CONTEXT.md +
+  the ADR index synced. Docs-only checkpoint → CI green by construction. GPU render shell folded to H2.
 
 ## Next
-- ✅ **Agentic-loop workflow: adopted in full** (activates at H1).
-- ✅ **3 architecture conflicts resolved** (2026-06-23): time = **15360**-tick grid · stable IDs =
-  **128-bit ULID** · plugin hosting = **out-of-process / sandboxed** from the start.
-- **Begin H0 spikes** (next build step): device round-trip, 60fps GPU timeline, one Node behind the trait stub.
+- ✅ **Agentic-loop workflow: adopted in full** (active at H1).
+- ✅ **H1 contracts frozen** (ADRs 0006–0012) — engine code is now unblocked.
+- **Build the spine toward the H1 exit, green-small** (see the H1 checklist above). Each new
+  audio-thread function gets `YESDAW_RT_HOT` + RTSan coverage; each contract gets a golden + round-trip
+  Catch2 test; every commit independently green (`cmake --build --preset ci && ctest --preset ci`).
+- **First build chunk (proposed):** the RT-safe callback skeleton + SPSC command queue +
+  `atomic<const CompiledGraph*>` swap + generation-counter janitor (ADR-0006) — the narrowest thing
+  that publishes and reads a (silent) `CompiledGraph`, with RTSan proving the publish path never blocks.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

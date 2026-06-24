@@ -35,6 +35,19 @@ The global clock: playhead, play/stop/record, tempo map, markers.
 **Tempo map**:
 The timeline of tempo and time-signature changes.
 
+**Tick**:
+The canonical unit of musical position — an `int64` count, never a float. Samples are derived from
+ticks through the tempo map, never stored as the source of truth.
+_Avoid_: beat (when you mean the stored unit), sample position (as authoritative)
+
+**PPQ**:
+Ticks per quarter note — fixed at **15360**. A large grid so resolution is never the limit.
+
+**Snapshot**:
+The immutable, compiled form of the graph that the audio thread reads. Published by atomic swap;
+the old one is freed off-thread. The audio thread only ever reads it.
+_Avoid_: live graph (the editable side), current graph (ambiguous)
+
 ### Graph & mixing
 
 **Node**:
@@ -66,6 +79,15 @@ A second input that controls how a node treats its main input.
 **Plugin delay compensation (PDC)**:
 Automatically aligning paths so nodes that add delay stay in time with nodes that don't.
 
+**CompiledGraph**:
+The flat, contiguous, read-only result of compiling the editable routing — what a Snapshot *is*. The
+audio thread iterates it in order with no scheduling or allocation.
+
+**Event**:
+One sample-accurate, block-sliced thing that happens (a parameter change, a note, an automation point).
+Carries an exact offset inside the Block. MIDI is one kind of Event.
+_Avoid_: message (when you mean our internal event), MIDI event (for non-MIDI events)
+
 ### Levels
 
 **Gain**:
@@ -92,8 +114,13 @@ A non-destructive placement of (part of) an asset on a track, with its own start
 _Avoid_: region, segment
 
 **Asset**:
-The underlying audio a clip points into. Copied into the project by default.
+The underlying audio a clip points into. Copied into the project by default. Immutable and
+content-hashed; never edited in place.
 _Avoid_: file, sample (when you mean the imported audio)
+
+**time_base**:
+A clip's choice of how its position follows time: **tempo-locked** (moves with the tempo map) or
+**sample-locked** (a fixed sample duration that ignores tempo). Set per clip, from the schema.
 
 ### Automation
 
@@ -118,6 +145,11 @@ Working extension `.yesdaw` (not final).
 
 **Waveform cache**:
 Regenerable visual peak data for drawing waveforms, built in the background.
+
+**Entity ID**:
+The stable identity of any saved thing (asset, clip, track, node). A **128-bit ULID** — never reused,
+unique across projects, so templates, cross-project paste, and interchange stay unambiguous.
+_Avoid_: rowid, index (when you mean stable identity)
 
 ### Render & export
 
