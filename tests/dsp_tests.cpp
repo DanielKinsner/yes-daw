@@ -228,6 +228,19 @@ TEST_CASE ("DSP sustains real time with headroom (coarse smoke test)", "[perf]")
     REQUIRE (realtimeFactor >= 20.0);
 }
 
+TEST_CASE ("hot path is real-time-safe", "[rtsan]")
+{
+    // processMono/nextSample are marked YESDAW_RT_HOT ([[clang::nonblocking]]). Under the RTSan CI
+    // leg (-fsanitize=realtime) this run ABORTS if the hot path allocates, locks, or does I/O. In a
+    // normal build it's just a smoke render that must produce finite output.
+    yesdaw::dsp::SineSource src;
+    src.prepare (kSampleRate);
+    std::vector<float> buf (256);   // allocation is here, OUTSIDE the nonblocking call — fine
+    for (int b = 0; b < 100; ++b)
+        src.processMono (buf.data(), 256);
+    REQUIRE (std::isfinite (buf[0]));
+}
+
 int main (int argc, char** argv)
 {
     // Bless mode: write the golden, then exit (used by the `bless-goldens` CMake target).

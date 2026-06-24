@@ -13,6 +13,16 @@
 #include <algorithm>
 #include <cmath>
 
+// Mark the audio hot path as real-time-safe so the RTSan CI leg (-fsanitize=realtime) aborts if it
+// ever allocates, locks, or does I/O — the CLAUDE.md hard rule, enforced mechanically rather than by
+// inspection. Guarded on actual attribute support (Clang 20+ only): every other compiler, including
+// AppleClang in the main matrix, expands it to nothing so -Werror never trips on an unknown attribute.
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(clang::nonblocking)
+  #define YESDAW_RT_HOT [[clang::nonblocking]]
+#else
+  #define YESDAW_RT_HOT
+#endif
+
 namespace yesdaw::dsp {
 
 // A sine oscillator with a short linear fade-in/out envelope. The fade "tames the spike" so starting
@@ -50,7 +60,7 @@ public:
 
     // Produce one mono sample and advance. The envelope moves one step toward its target BEFORE the
     // sample is taken, so sample 0 is exactly 0 (silence × sin(0)).
-    float nextSample()
+    float nextSample() YESDAW_RT_HOT
     {
         if (gain_ < targetGain_)      gain_ = std::min (targetGain_, gain_ + gainStep_);
         else if (gain_ > targetGain_) gain_ = std::max (targetGain_, gain_ - gainStep_);
@@ -66,7 +76,7 @@ public:
     }
 
     // Fill numFrames of mono audio. Caller copies to however many output channels it has.
-    void processMono (float* dst, int numFrames)
+    void processMono (float* dst, int numFrames) YESDAW_RT_HOT
     {
         for (int i = 0; i < numFrames; ++i)
             dst[i] = nextSample();

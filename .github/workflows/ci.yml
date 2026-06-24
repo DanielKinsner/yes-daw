@@ -76,3 +76,34 @@ jobs:
 
       - name: Test (headless DSP self-check)
         run: ctest --preset ci
+
+  # Real-time safety: compile the pure DSP test with -fsanitize=realtime and run it. RTSan ABORTS if
+  # the [[clang::nonblocking]] hot path (SineSource::processMono/nextSample) ever allocates, locks, or
+  # does I/O — CLAUDE.md's "audio thread never allocates" rule, enforced mechanically. Needs Clang 20+
+  # (where RTSan landed). YesDawCheck is pure (no JUCE), so no X11/audio deps are required here.
+  rtsan:
+    name: RTSan (audio thread no-alloc)
+    runs-on: ubuntu-24.04
+    env:
+      RTSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/rtsan_suppressions.txt"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang 20 + Ninja
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y ninja-build
+
+      - name: Configure (RTSan, Clang 20)
+        run: >
+          cmake -B build-rt -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
+          -DYESDAW_SANITIZER=realtime
+
+      - name: Build the headless test
+        run: cmake --build build-rt --target YesDawCheck
+
+      - name: Run under RTSan (aborts on a real-time violation)
+        run: ctest --test-dir build-rt --output-on-failure --no-tests=error

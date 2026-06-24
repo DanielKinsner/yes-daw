@@ -1,0 +1,9 @@
+# RTSan (-fsanitize=realtime) suppressions.
+#
+# Silences known third-party frames that legitimately allocate/lock inside code we don't control,
+# while keeping OUR audio hot path strict. The current RTSan target (YesDawCheck) is pure and links
+# no JUCE, so nothing here matches yet — these entries are staged for when JUCE-hosted audio code
+# (AudioProcessorPlayer, the VST3 host) comes under RTSan at H1/H3. Add our own frames here ONLY with
+# a written justification; never to paper over a real allocation on the audio thread.
+call-stack-contains:juce::VST3*
+call-stack-contains:juce::AudioProcessorPlayer*
