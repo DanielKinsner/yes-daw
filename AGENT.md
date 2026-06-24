@@ -43,6 +43,26 @@ cmake -B build-ninja -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-ninja
 ```
 
+### Windows: loading the MSVC env in a NON-interactive shell (agents / scripts)
+
+The Ninja and `--preset ci` builds need `cl.exe` on PATH; an interactive "x64 Native Tools prompt"
+isn't available to an automated shell. Load the env programmatically, and **re-run it in the same shell
+invocation as the build** (env does not persist between separate tool calls), e.g. in PowerShell:
+
+```powershell
+$vs = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"   # Community? swap "BuildTools"->"Community"
+Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+Enter-VsDevShell -VsInstallPath $vs -DevCmdArguments '-arch=x64 -host_arch=x64' -SkipAutomaticLocation | Out-Null
+$env:Path = "C:\Program Files\CMake\bin;" + $env:Path   # winget CMake/Ninja may not be on the dev-shell PATH
+Set-Location "<repo>"
+cmake --preset ci; cmake --build --preset ci; ctest --preset ci
+```
+
+Notes: a harmless `vswhere.exe is not recognized` line may print during the DevShell import — ignore it.
+If the VS path differs, find it with `& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`.
+Locally on Windows you can only run the **MSVC** build + ctest; the **RTSan/TSan** legs need Clang 20
+(Linux) — they are CI-only, so push and let CI be the gate for those.
+
 ## Run
 
 ```
