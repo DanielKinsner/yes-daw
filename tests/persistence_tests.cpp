@@ -234,6 +234,21 @@ TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity ch
     REQUIRE (validation.status == BundleStatus::SemanticInvalid);
 }
 
+TEST_CASE ("Opening an existing bundle runs layered semantic validation", "[persistence][semantic][open]")
+{
+    const auto path = makeTempBundlePath ("semantic-open");
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (makeProject()).ok());
+        REQUIRE (db.executeSql ("UPDATE clips SET src_len = 901 WHERE id = X'00000000000000000000000000000004';").ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
 TEST_CASE ("Intent log rows commit or roll back with the surrounding asset transaction", "[persistence][intent-log]")
 {
     const auto path = makeTempBundlePath ("intent");

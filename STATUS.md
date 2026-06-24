@@ -17,6 +17,15 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX ADR-0012 SQLite `.yesdaw` bundle schema slice is green locally.** Reviewed
+  `d12c2a8` against ADR-0012 plus adjacent Project/Time/Event/Automation contracts. Found and fixed one
+  real open-validation defect: existing bundles now run the layered quick/FK/semantic validator before a
+  database handle is returned, and the row-exists helper no longer treats SQLite step errors as "no
+  problem." Added a reopen regression proving a semantically corrupt Clip source window is refused on
+  open. No ADR, golden, roadmap, UI, asset import/decoding, waveform cache, plugin hosting, broad
+  automation lane, or audio-thread contract edits. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (110/110). **Next:**
+  WORKER H1 Project round-trip bundle readback slice for the existing Project/Asset/Clip value surface.
 - **Latest: WORKER ADR-0012 SQLite `.yesdaw` bundle schema slice is green locally.** Added the first
   narrow, headless persistence surface in `src/persistence/ProjectBundle.h`: official pinned SQLite
   amalgamation wiring, `.yesdaw` package layout creation, WAL/NORMAL/FK/busy-timeout/autocheckpoint/
@@ -431,17 +440,20 @@ worklog.
   persistence surface and `YesDawPersistenceCheck`: pinned SQLite amalgamation, `.yesdaw` bundle
   layout, v1 schema/migration harness, FKs, Project semantic validation, reserved plugin chunk header,
   and `pending_fs_ops` intent-log atomicity. Local `ci` configure/build + 109/109 tests green.
+- 2026-06-24 — **ADR-0012 review/fix landed locally.** Existing bundles now run layered semantic
+  validation during open, so corrupt stored Clip source windows are refused before callers receive a DB
+  handle. Local `ci` configure/build + 110/110 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX ADR-0012 SQLite `.yesdaw` bundle schema v1 + FKs + migration harness +
-  intent-log atomicity.** Pull, read `AGENTS.md` + this handoff first, then review the just-landed
-  persistence slice against ADR-0012, ADR-0011, ADR-0010, ADR-0009, `CONTEXT.md`, the H1 plan, and the
-  current Project/Time/Event/Automation code/tests. Verify repo truth, not review vibes. Fix only real
-  defects in the narrow headless persistence surface; do not start broad UI, plugin state chunks beyond
-  the reserved header shape, asset import/decoding, waveform caches, goldens, or audio-thread contract
-  changes. Run the mechanical gate, update this handoff, commit/push, check GitHub CI, then stop.
+- **Next chunk: WORKER H1 Project round-trip bundle readback slice for the existing Project/Asset/Clip
+  value surface.** Pull, read `AGENTS.md` + this handoff first, then add the smallest SQLite readback
+  path needed to reopen a `.yesdaw` bundle and reconstruct the current `Project` value surface
+  (`Project`, `Asset`, `Clip`) exactly enough for a mechanical round-trip test. Stay inside the H1
+  Project round-trip exit gate; do not start UI, asset import/decoding, waveform caches, plugin hosting,
+  broad automation lanes, goldens, or audio-thread contract changes. Run the mechanical gate, update
+  this handoff, commit/push, check GitHub CI, create the next review/fix thread, then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

@@ -268,8 +268,21 @@ inline BundleResult hasAnyRow (sqlite3* db, std::string_view sql, bool& out)
     if (auto result = stmt.prepare (db, sql); ! result.ok())
         return result;
 
-    out = stmt.step() == SQLITE_ROW;
-    return ok();
+    const int step = stmt.step();
+    if (step == SQLITE_ROW)
+    {
+        out = true;
+        return ok();
+    }
+
+    if (step == SQLITE_DONE)
+    {
+        out = false;
+        return ok();
+    }
+
+    out = false;
+    return sqliteMessage (db, BundleStatus::SqliteError, sqlite3_errmsg (db));
 }
 
 inline BundleResult expectDone (sqlite3* db, Statement& stmt, BundleStatus status = BundleStatus::SqliteError)
@@ -865,6 +878,9 @@ private:
 
         if (appId != kApplicationId || userVersion != kCodeSchemaVersion)
             return BundleResult { BundleStatus::MigrationFailed, SQLITE_ERROR, static_cast<int> (userVersion), "schema migration did not publish v1 identity" };
+
+        if (auto result = opened.validateStoredProjectSemantics(); ! result.ok())
+            return result;
 
         out = std::move (opened);
         return detail::ok (static_cast<int> (userVersion));
