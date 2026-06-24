@@ -17,6 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H1 RT-vs-offline Render equivalence gate is green locally.** Added
+  `YesDawRenderCheck`, a narrow in-memory headless gate that builds a valid current `Project` value,
+  compiles that same Project projection into two fresh `CompiledGraph`s, publishes one through
+  `Runtime`, free-wheels the other as offline Render, slices the two paths with different Block
+  schedules, and max-abs-diffs the audio within `1e-6` while asserting non-silence and graph-lifetime
+  cleanup. No ADR, golden, roadmap, UI, asset import/decoding, waveform cache, plugin hosting, broad
+  automation lane, kill-during-save/migration recovery, or `[[clang::nonblocking]]` edits. Local gate
+  via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (116/116), with final build+ctest after the oscillator-backed refinement
+  also green. **Next:** REVIEW/FIX H1 RT-vs-offline Render equivalence gate.
 - **Latest: REVIEW/FIX H1 Project round-trip bundle readback slice is green locally.** Reviewed
   `e84e612` against ADR-0012, ADR-0011, ADR-0010, `CONTEXT.md`, this handoff, and the H1 Project
   round-trip gate. Found and fixed one real SQLite dynamic-typing defect: existing bundles now reject
@@ -469,19 +479,23 @@ worklog.
 - 2026-06-24 — **H1 Project round-trip readback review/fix.** Existing bundles now reject
   non-canonical SQLite storage types for the current `Project`/`Asset`/`Clip` value rows before
   readback can coerce them. Local `ci` configure/build + 115/115 tests green.
+- 2026-06-24 — **H1 RT-vs-offline Render equivalence gate landed locally.** Added
+  `YesDawRenderCheck`: the same valid current Project projection is rendered through Runtime and a
+  free-wheeling offline Render driver with different Block schedules, then compared within `1e-6`.
+  Local `ci` configure/build + 116/116 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER H1 RT-vs-offline Render equivalence gate.** Pull, read `AGENTS.md` + this
-  handoff first, then implement the narrowest headless mechanical gate proving the RT path and a
-  same-Project offline Render path produce matching audio within tolerance. Stay inside the existing
-  engine/Project contracts; do not drift into UI, asset import/decoding, waveform caches, plugin
-  hosting, broad automation lanes, kill-during-save/migration recovery, ADR edits, roadmap edits,
-  `[[clang::nonblocking]]` annotation edits, or golden-file edits. If a golden artifact truly must be
-  added or blessed, hard-stop and report that boundary instead of editing it. Run the mechanical gate,
-  update this handoff, commit/push if green, check GitHub CI, create the next REVIEW/FIX thread, then
-  stop.
+- **Next chunk: REVIEW/FIX H1 RT-vs-offline Render equivalence gate.** Pull, read `AGENTS.md` + this
+  handoff first, then review the landed `YesDawRenderCheck` chunk against ADR-0006, ADR-0007, ADR-0008,
+  ADR-0009, ADR-0010, ADR-0011, `CONTEXT.md`, and the current Runtime/CompiledGraph/GraphBuilder/Node
+  contracts. Verify the gate genuinely proves RT-vs-offline equivalence for the current Project
+  surface without drifting into UI, asset import/decoding, waveform caches, plugin hosting, broad
+  automation lanes, kill-during-save/migration recovery, ADR edits, roadmap edits,
+  `[[clang::nonblocking]]` annotation edits, or golden-file edits. Fix only real defects, run the
+  mechanical gate, update this handoff, commit/push if green, check GitHub CI, create the next thread,
+  then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

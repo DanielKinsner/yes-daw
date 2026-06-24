@@ -217,6 +217,14 @@ target_link_libraries(YesDawRuntimeCheck PRIVATE Catch2::Catch2WithMain Threads:
 yesdaw_harden(YesDawRuntimeCheck)
 catch_discover_tests(YesDawRuntimeCheck)
 
+# --- Render equivalence check (H1; RT path vs same-Project offline Render path) ---
+add_executable(YesDawRenderCheck tests/render_tests.cpp)
+target_include_directories(YesDawRenderCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawRenderCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawRenderCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawRenderCheck)
+catch_discover_tests(YesDawRenderCheck)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
