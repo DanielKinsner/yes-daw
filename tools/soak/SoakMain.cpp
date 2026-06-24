@@ -141,14 +141,20 @@ bool hasFlag (int argc, char** argv, const std::string& flag)
 
 int main (int argc, char** argv)
 {
-    const double      seconds   = std::stod (argValue (argc, argv, "--seconds", "30"));
-    const std::string statsPath = argValue (argc, argv, "--stats-out", "stats.json");
-    const bool        loopback  = hasFlag (argc, argv, "--loopback");
+    const double      seconds        = std::stod (argValue (argc, argv, "--seconds", "30"));
+    const std::string statsPath      = argValue (argc, argv, "--stats-out", "stats.json");
+    const bool        loopback       = hasFlag  (argc, argv, "--loopback");
+    const int         requestedBlock = (int) std::stol (argValue (argc, argv, "--block-size", "128"));
 
     const juce::ScopedJuceInitialiser_GUI juceInit;   // brings up the device backends; no message loop needed
 
     juce::AudioDeviceManager adm;
-    const juce::String err = adm.initialiseWithDefaultDevices (loopback ? 2 : 0, 2);
+    // Request the H0 target block size (128 frames by default) — the tight-deadline stress case the
+    // roadmap names. The device may not honour it (e.g. WASAPI shared mode); the actual size is
+    // reported as block_size and the soak scripts check it against requested_block_size.
+    juce::AudioDeviceManager::AudioDeviceSetup setup;
+    setup.bufferSize = requestedBlock;
+    const juce::String err = adm.initialise (loopback ? 2 : 0, 2, nullptr, true, {}, &setup);
 
     auto writeStats = [&] (const std::string& deviceName, double sr, int block,
                            int xruns, int deadlineMisses, double maxCbMs, double budgetMs,
@@ -161,6 +167,7 @@ int main (int argc, char** argv)
           << "  \"device\": \""           << deviceName     << "\",\n"
           << "  \"sample_rate\": "         << sr             << ",\n"
           << "  \"block_size\": "          << block          << ",\n"
+          << "  \"requested_block_size\": "<< requestedBlock << ",\n"
           << "  \"xruns\": "               << xruns          << ",\n"
           << "  \"deadline_misses\": "     << deadlineMisses << ",\n"
           << "  \"max_block_ms\": "        << maxCbMs        << ",\n"
