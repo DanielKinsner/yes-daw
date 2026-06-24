@@ -22,8 +22,10 @@ worklog.
   layout, mute mask, master output bookkeeping, id index) behind the preserved legacy `(GraphId, dc)`
   degenerate fast path. `src/dsp/ScopedNoDenormals.h` landed with the written R1–R7 buffer-pool contract;
   no builder/audio executor path is reachable yet. Local gate: `cmake --build --preset ci` and
-  `ctest --preset ci` pass (47/47). **Next:** compiler slice G — `GraphBuilder` Pass 1+2 +
-  `MasterNode`/`IdentityDcNode` + first real end-to-end render.
+  `ctest --preset ci` pass (47/47). Follow-up: the macOS CI build exposed an AppleClang-only
+  `-Wunused-lambda-capture` warning in `tests/pan_tests.cpp`; that capture is removed. **Next:**
+  compiler slice G — `GraphBuilder` Pass 1+2 + `MasterNode`/`IdentityDcNode` + first real end-to-end
+  render.
 - **Previous: the five built-in Nodes are in & green.** `DelayNode` (the one PDC+feedback primitive;
   `LatencyNode` is an alias), `FaderNode` (ramped gain), `PanNode` (equal-power mono→stereo, LUT),
   `SumNode` (f64 Bus summing, canonical NodeId order), `MeterNode` (peak/RMS, lock-free publish) — each
@@ -179,6 +181,8 @@ worklog.
   state/layout surface and `Payload` constructor while preserving the legacy `(GraphId, dc)` degenerate
   fast path for existing Runtime/CompiledGraph tests. `ScopedNoDenormals` landed for the real node
   executor path. Local `ci` build + 47/47 tests green.
+- 2026-06-24 — **macOS CI warning fix.** AppleClang rejected an unnecessary lambda capture in the
+  PanNode block-size test under `-Werror`; removed the capture. Local `ci` build + 47/47 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node

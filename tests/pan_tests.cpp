@@ -85,7 +85,7 @@ TEST_CASE ("PanNode output is identical across Block sizes during a pan sweep", 
 {
     const int total = 4096;
 
-    auto render = [total] (int blockSize)
+    auto render = [] (int blockSize)
     {
         PanNode node (1);
         Node& iface = node;
