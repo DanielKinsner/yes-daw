@@ -141,6 +141,13 @@ target_link_libraries(YesDawEngineCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEngineCheck)
 catch_discover_tests(YesDawEngineCheck)
 
+# --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
+add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
+target_include_directories(YesDawGraphCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawGraphCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawGraphCheck)
+catch_discover_tests(YesDawGraphCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the

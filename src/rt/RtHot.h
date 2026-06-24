@@ -20,3 +20,15 @@
 #else
   #define YESDAW_RT_HOT
 #endif
+
+// YESDAW_RT_ASSERT — a real-time-SAFE debug assertion. On failure it executes a trap instruction
+// (__debugbreak / __builtin_trap), NOT printf+abort, so it never calls into libc and stays RTSan-clean
+// inside a YESDAW_RT_HOT scope. Compiled out under NDEBUG. Use it for hot-path invariants — e.g. a
+// use-after-free canary — that must never allocate, lock, or syscall.
+#if defined(NDEBUG)
+  #define YESDAW_RT_ASSERT(cond) ((void) 0)
+#elif defined(_MSC_VER)
+  #define YESDAW_RT_ASSERT(cond) do { if (! (cond)) __debugbreak(); } while (false)
+#else
+  #define YESDAW_RT_ASSERT(cond) do { if (! (cond)) __builtin_trap(); } while (false)
+#endif
