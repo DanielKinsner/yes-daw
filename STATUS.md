@@ -17,7 +17,18 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: the Node contract (ADR-0008) is frozen + green.** `src/engine/Node.h` is the CLAP-shaped
+- **Latest: the five built-in Nodes are in & green.** `DelayNode` (the one PDC+feedback primitive;
+  `LatencyNode` is an alias), `FaderNode` (ramped gain), `PanNode` (equal-power mono→stereo, LUT),
+  `SumNode` (f64 Bus summing, canonical NodeId order), `MeterNode` (peak/RMS, lock-free publish) — each
+  its own independently-green commit behind the frozen Node trait, each `YESDAW_RT_HOT` with a
+  cross-block-size invariance gate. `src/dsp/LinearRamp.h` is the per-frame ramp helper. The **5-pass
+  `CompiledGraph` compiler with PDC** is the remaining ADR-0007 piece — its locked implementation design
+  (4-design panel + 3 judges, like the concurrency core) is written up in
+  [docs/plans/2026-06-23-compiledgraph-compiler-design.md](docs/plans/2026-06-23-compiledgraph-compiler-design.md);
+  build commits F–K from there. Three small open decisions for Dan are recorded in that note (defaults
+  already chosen: mono-out at H1 · keep the legacy `(id,dc)` ctor as a test seam · in-place whitelist =
+  Fader+Meter).
+- **The Node contract (ADR-0008) is frozen + green.** `src/engine/Node.h` is the CLAP-shaped
   trait (`NodeProperties`/`AudioBlock`/`ProcessArgs` + `prepare`/`process`/`reset`/`release`/`directInputs`);
   `process` is `noexcept` + `YESDAW_RT_HOT` (RTSan-clean). First built-in `OscillatorNode` (wraps
   `SineSource`); the H0 throwaway Node stub is retired and block-size independence is re-asserted through
@@ -55,9 +66,13 @@ worklog.
   `processedGen > retiredAtGen` fence-post; backpressure not leak. RTSan + TSan legs cover it in CI.
   *(`src/engine/{CompiledGraph,Command,Runtime}.h`, `tests/{compiledgraph,runtime}_tests.cpp`.)*
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
-  PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates.
-- [~] Built-in Nodes behind the contract (ADR-0008) — **contract frozen + `OscillatorNode` in & green**;
-  remaining: `FaderNode → PanNode → SumNode(Master)` + `MeterNode`, f64 Bus summing, wire to device.
+  PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
+  locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
+  commits F (CompiledGraph state) → G (Pass 1+2 + Master/IdentityDc) → H (PDC) → I (pool) → J (carry-over)
+  → K (SetGain seam).
+- [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
+  `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
+  separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
 - [ ] Generic event stream flowing param-changes (ADR-0009); automation evaluated sample-accurately.
 - [ ] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
 - [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
@@ -146,16 +161,28 @@ worklog.
 - 2026-06-23 — **Node contract landed (ADR-0008)** — `src/engine/Node.h` (CLAP-shaped trait) +
   `src/engine/nodes/OscillatorNode.h`; H0 stub retired; block-size independence re-asserted through the
   real trait; `process` RTSan-clean. CI green on `787d854`.
+- 2026-06-23 — **CompiledGraph compiler design panel + all five built-in Nodes landed.** A 4-design
+  adversarial panel + 3 judges chose the ADR-0007 compiler implementation (spine = incremental-landing;
+  grafts from PDC-correctness / RT-safety / simplest-correct) → locked in
+  `docs/plans/2026-06-23-compiledgraph-compiler-design.md`. Then five built-ins, each an
+  independently-green commit behind the frozen Node trait: `DelayNode` (the one PDC+feedback primitive,
+  write-then-read so delay 0 passes through), `FaderNode` + `LinearRamp`, `PanNode` (equal-power LUT),
+  `SumNode` (f64 Bus summing, canonical NodeId order, f64-cancellation gate), `MeterNode` (lock-free
+  peak/RMS). Each has a cross-block-size invariance gate; `ci` gate green at every commit (47/47 local).
+  Fixed three real bugs in the panel's sketch (include convention, delay-0 read/write order, f64
+  test using 1e30 instead of 1e8). The 5-pass compiler itself (commits F–K) is the next chunk.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
-  contract + first built-in node** (ADR-0008) — all CI-green.
-- **Next chunk: more built-in Nodes (`Fader`/`Pan`/`Sum`/`Meter`, f64 Bus summing) + the real
-  `CompiledGraph` 5-pass compiler with PDC wired in (ADR-0007)** — the stub `CompiledGraph::process`
-  becomes "iterate the compiled Nodes." That is the meaty H1 piece (PDC longest-path, buffer pool,
-  order-shuffle invariant); worth its own focused pass, likely with a design panel. In parallel the
-  **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread function gets
-  `YESDAW_RT_HOT` + RTSan; each contract gets a golden/round-trip Catch2 test; every commit green.
+  contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
+- **Next chunk: the real `CompiledGraph` 5-pass compiler with PDC (ADR-0007).** Design is locked
+  ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)) — implement commits
+  **F→K** in order, each independently green, **without breaking the existing Runtime/CompiledGraph/Node
+  tests** (the legacy `(id,dc)` ctor stays as an `isDegenerate_` fast path; no existing test is touched).
+  Start with **F (CompiledGraph state extension, additive)** then **G (GraphBuilder Pass 1+2 +
+  MasterNode/IdentityDcNode + first real end-to-end render)**. PDC (H), buffer pool (I), carry-over (J),
+  SetGain seam (K) follow. In parallel the **time model types (ADR-0010)** unblock the round-trip exit.
+  Each new audio-thread function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
