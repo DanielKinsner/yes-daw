@@ -17,6 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H1 Project round-trip bundle readback slice is green locally.** Added
+  `ProjectBundleDb::readProjectSnapshot`, the smallest SQLite readback path for the current
+  `Project`/`Asset`/`Clip` value surface, with layered validation before reconstructing values from a
+  reopened `.yesdaw` bundle. Added a mechanical round-trip regression proving project id/sample rate,
+  Asset ids/content hashes/frames/sample rates/channels, and Clip ids/Asset refs/ticks/source windows/
+  gain/fades/time_base survive close + reopen. No ADR, golden, roadmap, UI, asset import/decoding,
+  waveform cache, plugin hosting, broad automation lane, or audio-thread contract edits. Local gate via
+  documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (111/111). **Next:** REVIEW/FIX H1 Project round-trip bundle readback slice
+  for the existing Project/Asset/Clip value surface.
 - **Latest: REVIEW/FIX ADR-0012 SQLite `.yesdaw` bundle schema slice is green locally.** Reviewed
   `d12c2a8` against ADR-0012 plus adjacent Project/Time/Event/Automation contracts. Found and fixed one
   real open-validation defect: existing bundles now run the layered quick/FK/semantic validator before a
@@ -443,17 +453,21 @@ worklog.
 - 2026-06-24 — **ADR-0012 review/fix landed locally.** Existing bundles now run layered semantic
   validation during open, so corrupt stored Clip source windows are refused before callers receive a DB
   handle. Local `ci` configure/build + 110/110 tests green.
+- 2026-06-24 — **H1 Project round-trip readback slice landed locally.** Added
+  `ProjectBundleDb::readProjectSnapshot` and a reopened-bundle round-trip test for the current
+  `Project`/`Asset`/`Clip` value surface. Local `ci` configure/build + 111/111 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: WORKER H1 Project round-trip bundle readback slice for the existing Project/Asset/Clip
-  value surface.** Pull, read `AGENTS.md` + this handoff first, then add the smallest SQLite readback
-  path needed to reopen a `.yesdaw` bundle and reconstruct the current `Project` value surface
-  (`Project`, `Asset`, `Clip`) exactly enough for a mechanical round-trip test. Stay inside the H1
-  Project round-trip exit gate; do not start UI, asset import/decoding, waveform caches, plugin hosting,
-  broad automation lanes, goldens, or audio-thread contract changes. Run the mechanical gate, update
-  this handoff, commit/push, check GitHub CI, create the next review/fix thread, then stop.
+- **Next chunk: REVIEW/FIX H1 Project round-trip bundle readback slice for the existing Project/Asset/
+  Clip value surface.** Pull, read `AGENTS.md` + this handoff first, then review the readback worker
+  slice against ADR-0012, ADR-0011, ADR-0010, `CONTEXT.md`, and the H1 Project round-trip gate. Verify
+  the reopened-bundle readback reconstructs the current value surface without weakening layered
+  validation or drifting into UI, asset import/decoding, waveform caches, plugin hosting, broad
+  automation lanes, goldens, or audio-thread contract changes. Fix only real defects, run the mechanical
+  gate, update this handoff, commit/push if a fix lands, check GitHub CI, create the next worker thread,
+  then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

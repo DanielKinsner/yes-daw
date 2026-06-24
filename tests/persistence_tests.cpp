@@ -108,6 +108,15 @@ ProjectBundleDb openFreshBundle (const std::filesystem::path& path)
     return db;
 }
 
+void requireSameProjectSurface (const Project& actual, const Project& expected)
+{
+    REQUIRE (actual.id == expected.id);
+    REQUIRE (actual.sampleRate == expected.sampleRate);
+    REQUIRE (actual.assets == expected.assets);
+    REQUIRE (actual.clips == expected.clips);
+    REQUIRE (actual.hasValidAssetClipIndirection());
+}
+
 } // namespace
 
 TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity", "[persistence][sqlite][schema]")
@@ -220,6 +229,35 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     Project invalidGain = project;
     invalidGain.clips[0].gain = -0.25f;
     REQUIRE (db.writeProjectSnapshot (invalidGain).status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Project value surface round-trips through a reopened bundle", "[persistence][project][round-trip]")
+{
+    const auto path = makeTempBundlePath ("round-trip");
+
+    Project project = makeProject();
+    project.assets[1].sampleRate = SampleRate { 44100.0 };
+    project.assets[1].channels = 1;
+    project.clips[0].timelineStart = 3840;
+    project.clips[0].timelineLength = 30720;
+    project.clips[1].timelineStart = 15360 * 9;
+    project.clips[1].timelineLength = 15360 * 2;
+    project.clips[1].gain = 1.25f;
+    project.clips[1].fadeIn = 0;
+    project.clips[1].fadeOut = 96;
+    project.clips[1].timeBase = TimeBase::TempoLocked;
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
 }
 
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")

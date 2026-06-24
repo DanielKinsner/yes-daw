@@ -96,6 +96,11 @@ inline BundleResult sqliteMessage (sqlite3* db, BundleStatus status, std::string
     return BundleResult { status, code, 0, std::move (message) };
 }
 
+inline BundleResult semanticInvalid (std::string message)
+{
+    return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, std::move (message) };
+}
+
 inline std::string utf8Path (const std::filesystem::path& path)
 {
     const auto utf8 = path.generic_u8string();
@@ -292,6 +297,22 @@ inline BundleResult expectDone (sqlite3* db, Statement& stmt, BundleStatus statu
         return ok();
 
     return sqliteMessage (db, status, sqlite3_errmsg (db));
+}
+
+template <std::size_t N>
+inline BundleResult columnBlob (sqlite3_stmt* stmt, int column, std::array<std::uint8_t, N>& out, std::string_view label)
+{
+    const int   bytes = sqlite3_column_bytes (stmt, column);
+    const void* raw = sqlite3_column_blob (stmt, column);
+
+    if (bytes != static_cast<int> (N) || raw == nullptr)
+        return semanticInvalid (std::string (label) + " has invalid blob length");
+
+    const auto* data = static_cast<const std::uint8_t*> (raw);
+    for (std::size_t i = 0; i < N; ++i)
+        out[i] = data[i];
+
+    return ok();
 }
 
 inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
@@ -744,6 +765,125 @@ public:
             return result;
         }
 
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult readProjectSnapshot (engine::Project& out) const
+    {
+        if (auto result = validateStoredProjectSemantics(); ! result.ok())
+            return result;
+
+        engine::Project project;
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT id, sample_rate_hz FROM project WHERE singleton_id = 1;"); ! result.ok())
+                return result;
+
+            const int first = stmt.step();
+            if (first == SQLITE_DONE)
+                return detail::semanticInvalid ("project snapshot is missing the project row");
+            if (first != SQLITE_ROW)
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+            if (auto result = detail::columnBlob (stmt.get(), 0, project.id.bytes, "project.id"); ! result.ok())
+                return result;
+            project.sampleRate = engine::SampleRate { sqlite3_column_double (stmt.get(), 1) };
+
+            const int second = stmt.step();
+            if (second != SQLITE_DONE)
+                return second == SQLITE_ROW ? detail::semanticInvalid ("project snapshot has multiple project rows")
+                                            : detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, content_hash, frames, sample_rate_hz, channels FROM assets ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::Asset asset;
+                if (auto result = detail::columnBlob (stmt.get(), 0, asset.id.bytes, "assets.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, asset.contentHash.bytes, "assets.content_hash"); ! result.ok())
+                    return result;
+
+                const sqlite3_int64 frames = sqlite3_column_int64 (stmt.get(), 2);
+                if (frames <= 0)
+                    return detail::semanticInvalid ("assets.frames is outside the Project value range");
+                asset.frames = static_cast<std::uint64_t> (frames);
+                asset.sampleRate = engine::SampleRate { sqlite3_column_double (stmt.get(), 3) };
+
+                const sqlite3_int64 channels = sqlite3_column_int64 (stmt.get(), 4);
+                if (channels <= 0 || channels > std::numeric_limits<std::uint16_t>::max())
+                    return detail::semanticInvalid ("assets.channels is outside the Project value range");
+                asset.channels = static_cast<std::uint16_t> (channels);
+
+                project.assets.push_back (asset);
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, asset_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base "
+                    "FROM clips ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::Clip clip;
+                if (auto result = detail::columnBlob (stmt.get(), 0, clip.id.bytes, "clips.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, clip.assetId.bytes, "clips.asset_id"); ! result.ok())
+                    return result;
+
+                clip.timelineStart = sqlite3_column_int64 (stmt.get(), 2);
+                clip.timelineLength = sqlite3_column_int64 (stmt.get(), 3);
+
+                const sqlite3_int64 srcOffset = sqlite3_column_int64 (stmt.get(), 4);
+                const sqlite3_int64 srcLen = sqlite3_column_int64 (stmt.get(), 5);
+                if (srcOffset < 0 || srcLen < 0)
+                    return detail::semanticInvalid ("clips source window is outside the Project value range");
+                clip.srcOffset = static_cast<std::uint64_t> (srcOffset);
+                clip.srcLen = static_cast<std::uint64_t> (srcLen);
+
+                clip.gain = static_cast<float> (sqlite3_column_double (stmt.get(), 6));
+                clip.fadeIn = sqlite3_column_int64 (stmt.get(), 7);
+                clip.fadeOut = sqlite3_column_int64 (stmt.get(), 8);
+
+                const sqlite3_int64 timeBase = sqlite3_column_int64 (stmt.get(), 9);
+                if (timeBase != static_cast<sqlite3_int64> (engine::TimeBase::TempoLocked)
+                    && timeBase != static_cast<sqlite3_int64> (engine::TimeBase::SampleLocked))
+                    return detail::semanticInvalid ("clips.time_base is outside the Project value range");
+                clip.timeBase = static_cast<engine::TimeBase> (timeBase);
+
+                project.clips.push_back (clip);
+            }
+        }
+
+        if (! detail::projectFitsSchemaV1 (project))
+            return detail::semanticInvalid ("read Project violates schema v1 semantics");
+
+        out = std::move (project);
         return detail::ok();
     }
 
