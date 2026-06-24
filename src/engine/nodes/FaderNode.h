@@ -24,6 +24,8 @@ class FaderNode final : public Node
 {
 public:
     static constexpr ParameterId kGainParameterId = 1;
+    static_assert (std::atomic<std::uint64_t>::is_always_lock_free,
+                   "FaderNode command revision must stay lock-free on the audio thread");
 
     explicit FaderNode (NodeId id = 0, int channels = 1) noexcept
         : id_ (id), channels_ (channels > 0 ? channels : 1) {}
@@ -45,7 +47,7 @@ public:
         const float requested = requestedGain_.load (std::memory_order_relaxed);
         gain_.setRampLength (static_cast<int> (kRampSeconds * sr));   // ~5 ms glide
         gain_.snap (requested); // start settled at the requested gain
-        lastRequestedGain_ = requested;
+        seenRequestedGainVersion_ = requestedGainVersion_.load (std::memory_order_acquire);
     }
 
     void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
@@ -73,12 +75,16 @@ public:
     {
         const float requested = requestedGain_.load (std::memory_order_relaxed);
         gain_.snap (requested);
-        lastRequestedGain_ = requested;
+        seenRequestedGainVersion_ = requestedGainVersion_.load (std::memory_order_acquire);
     }
     void release() override {}
 
     // Control-thread setters (the SetGain seam, ADR-0006). Builder wires the input.
-    void setTargetGain (float linearGain) noexcept { requestedGain_.store (linearGain, std::memory_order_relaxed); }
+    void setTargetGain (float linearGain) noexcept
+    {
+        requestedGain_.store (linearGain, std::memory_order_relaxed);
+        requestedGainVersion_.fetch_add (1, std::memory_order_release);
+    }
     void setInput (Node* in) noexcept { input_ = in; }
 
 private:
@@ -86,11 +92,12 @@ private:
 
     void syncControlTarget() noexcept YESDAW_RT_HOT
     {
-        const float requested = requestedGain_.load (std::memory_order_relaxed);
-        if (requested == lastRequestedGain_)
+        const std::uint64_t version = requestedGainVersion_.load (std::memory_order_acquire);
+        if (version == seenRequestedGainVersion_)
             return;
 
-        lastRequestedGain_ = requested;
+        seenRequestedGainVersion_ = version;
+        const float requested = requestedGain_.load (std::memory_order_relaxed);
         gain_.setTarget (requested);
     }
 
@@ -131,7 +138,8 @@ private:
     int               channels_;
     Node*             input_ = nullptr;
     std::atomic<float> requestedGain_ { 1.0f };   // unity by default
-    float              lastRequestedGain_ = 1.0f;
+    std::atomic<std::uint64_t> requestedGainVersion_ { 0 };
+    std::uint64_t              seenRequestedGainVersion_ = 0;
     yesdaw::dsp::LinearRamp gain_;
 };
 

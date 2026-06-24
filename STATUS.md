@@ -17,7 +17,17 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER ADR-0009 generic event stream flowing param-changes slice is green locally.** Replaced
+- **Latest: REVIEW/FIX ADR-0009 generic event stream flowing param-changes slice is green locally.**
+  Reviewed `cce212a` against ADR-0009, ADR-0008, ADR-0010, `CONTEXT.md`, and the H1 contracts. Found
+  and fixed one real command/event interaction bug: after a gain parameter Event moved `FaderNode` away
+  from the old command target, a later `SetGain` command back to that same old value could be swallowed.
+  `FaderNode` now tracks `SetGain` commands with a lock-free revision counter, so equal-valued commands
+  still override prior event targets while event targets persist across blocks when no command arrives.
+  New coverage proves the edge case. No ADR, golden, persistence, MIDI note handling, plugin hosting, or
+  broad automation evaluator edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (94/94). **Next:** WORKER ADR-0011
+  EntityId + Asset/Clip/Project value surface.
+- **Previous: WORKER ADR-0009 generic event stream flowing param-changes slice is green locally.** Replaced
   the `EventStream` placeholder with the first ADR-0009 fixed-size event surface: trivially-copyable
   `Event`, CLAP-style `VoiceAddress`, parameter/note/SysEx payload space, non-owning block-sliced
   `EventStream`, and a validator for sorted half-open `[0, numFrames)` offsets. `FaderNode` now consumes
@@ -181,7 +191,13 @@ worklog.
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
-- [ ] Generic event stream flowing param-changes (ADR-0009); automation evaluated sample-accurately.
+- [x] Generic event stream flowing param-changes (ADR-0009) ✓ — fixed-size `Event`/`EventStream`,
+  half-open sorted offsets, exact-offset Fader gain events, and the `SetGain` command seam review/fix
+  are green.
+- [ ] Project data-model value surface (ADR-0011) — 128-bit EntityId/ULID surface plus Asset/Clip/Project
+  value types and invariants, before SQLite persistence wiring.
+- [ ] Automation evaluated sample-accurately — curve storage is locked by ADR-0009; broad evaluator/lane
+  work stays deferred until the current H1 plan calls it forward.
 - [ ] SQLite `.yesdaw` bundle: schema v1 + FKs + migration harness + intent-log atomicity (ADR-0012).
 - [ ] **Exit gates green:** Project round-trip · RT-vs-offline golden diff · RTSan-clean ·
   kill-during-save/migration reopen-clean. H1 done when all four are green in CI.
@@ -342,14 +358,19 @@ worklog.
   `Event`/`EventStream` shape, parameter/note/SysEx payload space, sorted half-open block validation,
   and exact-offset Fader gain parameter consumption through the frozen `Node::process` event slot.
   Local `ci` build + 93/93 tests green.
+- 2026-06-24 — **ADR-0009 event stream review/fix.** Reviewed `cce212a` and fixed one real SetGain/event
+  interaction bug: command revisions now let an equal-valued `SetGain` command override a previous event
+  target, while event targets still persist across blocks without a command. Local `ci` build + 94/94
+  tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX ADR-0009 generic event stream flowing param-changes slice.** Pull, read
-  `AGENTS.md` + this handoff first, review the worker commit against ADR-0009/0008/0010 and the H1
-  contracts, fix only real defects, run the mechanical gate, update this handoff, commit/push, check CI,
-  then create the next WORKER thread.
+- **Next chunk: WORKER ADR-0011 EntityId + Asset/Clip/Project value surface.** Pull, read `AGENTS.md` +
+  this handoff first, implement exactly one small independently green data-model slice backed by
+  ADR-0011: the 128-bit EntityId/ULID value surface plus minimal Asset/Clip/Project value types and
+  invariant tests. Do not start SQLite persistence, broad automation, MIDI note handling, plugin hosting,
+  or UI work in that worker slice.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

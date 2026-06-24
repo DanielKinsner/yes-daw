@@ -128,3 +128,29 @@ TEST_CASE ("FaderNode keeps an event target across the next block", "[event][par
     for (const float v : second)
         REQUIRE (std::isfinite (v));
 }
+
+TEST_CASE ("FaderNode SetGain command can override a previous event target", "[event][parameter][fader]")
+{
+    FaderNode node (10, 1);
+    Node& iface = node;
+    iface.prepare (kSr, 32);
+
+    const std::array<Event, 1> events {
+        makeParameterChangeEvent (0, 10, FaderNode::kGainParameterId, 0.0),
+    };
+    EventStream firstStream { std::span<const Event> (events) };
+
+    std::vector<float> first (16, 1.0f);
+    processFaderBlock (node, first, firstStream);
+    REQUIRE (first.back() < first.front());
+
+    node.setTargetGain (1.0f); // same as the original command target, but different from the event target
+
+    EventStream empty;
+    std::vector<float> second (16, 1.0f);
+    processFaderBlock (node, second, empty);
+
+    REQUIRE (second.front() > first.back());
+    REQUIRE (second.back() > second.front());
+    REQUIRE (second.back() <= 1.0f);
+}
