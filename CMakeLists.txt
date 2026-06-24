@@ -160,6 +160,13 @@ target_link_libraries(YesDawTimeCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawTimeCheck)
 catch_discover_tests(YesDawTimeCheck)
 
+# --- Event-stream check (H1; pure, ADR-0009 generic block-sliced events + param changes) ---
+add_executable(YesDawEventCheck tests/event_tests.cpp)
+target_include_directories(YesDawEventCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawEventCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawEventCheck)
+catch_discover_tests(YesDawEventCheck)
+
 # --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
 add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
 target_include_directories(YesDawGraphCheck PRIVATE ${YESDAW_SRC_DIR})

@@ -23,6 +23,8 @@ namespace yesdaw::engine {
 class FaderNode final : public Node
 {
 public:
+    static constexpr ParameterId kGainParameterId = 1;
+
     explicit FaderNode (NodeId id = 0, int channels = 1) noexcept
         : id_ (id), channels_ (channels > 0 ? channels : 1) {}
 
@@ -40,38 +42,39 @@ public:
     void prepare (double sampleRate, int /*maxBlockSize*/) override
     {
         const double sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+        const float requested = requestedGain_.load (std::memory_order_relaxed);
         gain_.setRampLength (static_cast<int> (kRampSeconds * sr));   // ~5 ms glide
-        gain_.snap (requestedGain_.load (std::memory_order_relaxed)); // start settled at the requested gain
+        gain_.snap (requested); // start settled at the requested gain
+        lastRequestedGain_ = requested;
     }
 
     void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
     {
-        gain_.setTarget (requestedGain_.load (std::memory_order_relaxed));   // no-op if unchanged
+        syncControlTarget();
 
         const int channels = args.audio.numChannels < channels_ ? args.audio.numChannels : channels_;
+        const std::uint32_t frames = args.numFrames > 0 ? static_cast<std::uint32_t> (args.numFrames) : 0u;
+        std::uint32_t cursor = 0;
 
-        if (! gain_.isRamping())
+        for (const Event& event : args.events.events())
         {
-            const float g = gain_.current();
-            for (int c = 0; c < channels; ++c)
-            {
-                float* x = args.audio.channels[c];
-                for (int i = 0; i < args.numFrames; ++i)
-                    x[i] *= g;
-            }
-            return;
+            if (! isGainParameterEvent (event) || event.timeInBlock >= frames || event.timeInBlock < cursor)
+                continue;
+
+            processRange (args, channels, static_cast<int> (cursor), static_cast<int> (event.timeInBlock));
+            gain_.setTarget (static_cast<float> (event.payload.parameter.normalizedValue));
+            cursor = event.timeInBlock;
         }
 
-        // Ramping: one gain per frame, applied to every channel — block-size-independent by construction.
-        for (int i = 0; i < args.numFrames; ++i)
-        {
-            const float g = gain_.next();
-            for (int c = 0; c < channels; ++c)
-                args.audio.channels[c][i] *= g;
-        }
+        processRange (args, channels, static_cast<int> (cursor), args.numFrames);
     }
 
-    void reset() noexcept override { gain_.snap (requestedGain_.load (std::memory_order_relaxed)); }
+    void reset() noexcept override
+    {
+        const float requested = requestedGain_.load (std::memory_order_relaxed);
+        gain_.snap (requested);
+        lastRequestedGain_ = requested;
+    }
     void release() override {}
 
     // Control-thread setters (the SetGain seam, ADR-0006). Builder wires the input.
@@ -81,10 +84,54 @@ public:
 private:
     static constexpr double kRampSeconds = 0.005;
 
+    void syncControlTarget() noexcept YESDAW_RT_HOT
+    {
+        const float requested = requestedGain_.load (std::memory_order_relaxed);
+        if (requested == lastRequestedGain_)
+            return;
+
+        lastRequestedGain_ = requested;
+        gain_.setTarget (requested);
+    }
+
+    bool isGainParameterEvent (const Event& event) const noexcept YESDAW_RT_HOT
+    {
+        return event.type == EventType::ParameterChange
+               && event.payload.parameter.targetNode == id_
+               && event.payload.parameter.parameterId == kGainParameterId;
+    }
+
+    void processRange (const ProcessArgs& args, int channels, int beginFrame, int endFrame) noexcept YESDAW_RT_HOT
+    {
+        if (beginFrame >= endFrame)
+            return;
+
+        if (! gain_.isRamping())
+        {
+            for (int c = 0; c < channels; ++c)
+            {
+                float* const x = args.audio.channels[c];
+                const float  g = gain_.current();
+                for (int i = beginFrame; i < endFrame; ++i)
+                    x[i] *= g;
+            }
+            return;
+        }
+
+        // Ramping: one gain per frame, applied to every channel — block-size-independent by construction.
+        for (int i = beginFrame; i < endFrame; ++i)
+        {
+            const float g = gain_.next();
+            for (int c = 0; c < channels; ++c)
+                args.audio.channels[c][i] *= g;
+        }
+    }
+
     NodeId            id_;
     int               channels_;
     Node*             input_ = nullptr;
     std::atomic<float> requestedGain_ { 1.0f };   // unity by default
+    float              lastRequestedGain_ = 1.0f;
     yesdaw::dsp::LinearRamp gain_;
 };
 

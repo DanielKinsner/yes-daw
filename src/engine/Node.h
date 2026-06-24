@@ -16,12 +16,16 @@
 #include "engine/Time.h"
 #include "rt/RtHot.h"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <span>
+#include <type_traits>
 
 namespace yesdaw::engine {
 
 using NodeId = std::uint32_t;
+using ParameterId = std::uint32_t;
 
 // What a Node advertises to the compiler. latencySamples drives PDC; channels/produces* drive routing.
 struct NodeProperties
@@ -41,10 +45,166 @@ struct AudioBlock
     int           numChannels = 0;
 };
 
-// Placeholder for the event contract that flows through process() but is frozen in ADR-0009 — present
-// now so ProcessArgs has its frozen shape from the first Node. A Node that consumes no events simply
-// ignores it.
-struct EventStream { /* ADR-0009: sample-accurate, block-sliced events. */ };
+enum class EventType : std::uint16_t
+{
+    ParameterChange = 0,
+    NoteOn          = 1,
+    NoteOff         = 2,
+    NoteExpression  = 3,
+    Midi1           = 4,
+    Midi2           = 5,
+    SysEx           = 6
+};
+
+// A CLAP-style voice address. -1 means wildcard, so one shape can carry channel-wide, key-wide,
+// per-note, and future MPE/MIDI-2 events.
+struct VoiceAddress
+{
+    std::int32_t noteId    = -1;
+    std::int16_t portIndex = -1;
+    std::int16_t channel   = -1;
+    std::int16_t key       = -1;
+};
+
+struct ParameterChangePayload
+{
+    NodeId      targetNode      = 0;
+    ParameterId parameterId     = 0;
+    double      normalizedValue = 0.0;
+};
+
+struct NotePayload
+{
+    double normalizedVelocity = 0.0;
+    double pitchNote          = 0.0;
+};
+
+struct SysExPayload
+{
+    std::uint32_t offset   = 0;
+    std::uint32_t length   = 0;
+    std::uint64_t reserved = 0;
+};
+
+union EventPayload
+{
+    ParameterChangePayload parameter;
+    NotePayload            note;
+    SysExPayload           sysex;
+    std::uint64_t          raw[2];
+};
+
+// ADR-0009: fixed-size, trivially-copyable, sample-accurate events sorted ascending by timeInBlock.
+struct Event
+{
+    std::uint32_t timeInBlock = 0; // half-open Block offset: [0, ProcessArgs::numFrames)
+    EventType     type        = EventType::ParameterChange;
+    std::uint16_t flags       = 0;
+    VoiceAddress  voice;
+    EventPayload  payload     = {};
+};
+
+static_assert (std::is_trivially_copyable_v<VoiceAddress>, "VoiceAddress must stay flat");
+static_assert (std::is_trivially_copyable_v<ParameterChangePayload>, "Parameter payload must stay flat");
+static_assert (std::is_trivially_copyable_v<EventPayload>, "Event payload must stay flat");
+static_assert (std::is_trivially_copyable_v<Event>, "Event must pass through fixed-size RT buffers");
+static_assert (sizeof (Event) <= 64, "Event must stay cache-small and fixed-size");
+
+[[nodiscard]] inline Event makeParameterChangeEvent (std::uint32_t timeInBlock,
+                                                     NodeId targetNode,
+                                                     ParameterId parameterId,
+                                                     double normalizedValue) noexcept
+{
+    Event event {};
+    event.timeInBlock                     = timeInBlock;
+    event.type                            = EventType::ParameterChange;
+    event.payload.parameter.targetNode      = targetNode;
+    event.payload.parameter.parameterId     = parameterId;
+    event.payload.parameter.normalizedValue = normalizedValue;
+    return event;
+}
+
+// A non-owning per-Block view. The producer owns/sorts storage; Nodes read this view on the audio thread.
+class EventStream
+{
+public:
+    EventStream() noexcept = default;
+
+    explicit EventStream (std::span<const Event> events,
+                          std::span<const std::byte> sysexBytes = {}) noexcept
+        : events_ (events), sysexBytes_ (sysexBytes)
+    {
+    }
+
+    [[nodiscard]] std::span<const Event> events() const noexcept YESDAW_RT_HOT { return events_; }
+    [[nodiscard]] const Event* begin() const noexcept YESDAW_RT_HOT { return events_.data(); }
+    [[nodiscard]] const Event* end() const noexcept YESDAW_RT_HOT { return events_.data() + events_.size(); }
+    [[nodiscard]] bool empty() const noexcept YESDAW_RT_HOT { return events_.empty(); }
+    [[nodiscard]] std::size_t size() const noexcept YESDAW_RT_HOT { return events_.size(); }
+    [[nodiscard]] std::span<const std::byte> sysexBytes() const noexcept YESDAW_RT_HOT { return sysexBytes_; }
+
+    // Control/test-side validator for ADR-0009's sorted, half-open [0, numFrames) block contract.
+    [[nodiscard]] bool isValidForBlock (std::uint32_t numFrames) const noexcept
+    {
+        std::uint32_t previous = 0;
+        bool          havePrevious = false;
+
+        for (const Event& event : events_)
+        {
+            if (event.timeInBlock >= numFrames)
+                return false;
+
+            if (havePrevious && event.timeInBlock < previous)
+                return false;
+
+            if (! payloadIsValid (event))
+                return false;
+
+            previous     = event.timeInBlock;
+            havePrevious = true;
+        }
+
+        return true;
+    }
+
+private:
+    [[nodiscard]] bool payloadIsValid (const Event& event) const noexcept
+    {
+        switch (event.type)
+        {
+            case EventType::ParameterChange:
+            {
+                const double v = event.payload.parameter.normalizedValue;
+                return std::isfinite (v) && v >= 0.0 && v <= 1.0;
+            }
+
+            case EventType::NoteOn:
+            case EventType::NoteOff:
+            case EventType::NoteExpression:
+            {
+                const double velocity = event.payload.note.normalizedVelocity;
+                return std::isfinite (velocity) && velocity >= 0.0 && velocity <= 1.0
+                       && std::isfinite (event.payload.note.pitchNote);
+            }
+
+            case EventType::SysEx:
+            {
+                const std::size_t offset = event.payload.sysex.offset;
+                const std::size_t length = event.payload.sysex.length;
+                return offset <= sysexBytes_.size() && length <= sysexBytes_.size() - offset;
+            }
+
+            case EventType::Midi1:
+            case EventType::Midi2:
+                return true;
+        }
+
+        return false;
+    }
+
+    std::span<const Event>     events_;
+    std::span<const std::byte> sysexBytes_;
+};
 
 struct ProcessArgs
 {
