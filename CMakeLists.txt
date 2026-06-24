@@ -120,6 +120,26 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 catch_discover_tests(YesDawCheck)
 
+# --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
+# Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
+# (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
+# pure-test RTSan leg.
+if (YESDAW_BUILD_APPS)
+  juce_add_console_app(YesDawAssetCheck PRODUCT_NAME "YesDawAssetCheck")
+  target_sources(YesDawAssetCheck PRIVATE tests/wav_tests.cpp)
+  target_compile_definitions(YesDawAssetCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawAssetCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      juce::juce_audio_formats
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawAssetCheck)
+  catch_discover_tests(YesDawAssetCheck)
+endif()
+
 # Bless the golden after an INTENTIONAL DSP change (review the diff before committing):
 #   cmake --build build --target bless-goldens
 add_custom_target(bless-goldens
