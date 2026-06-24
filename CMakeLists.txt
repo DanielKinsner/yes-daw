@@ -170,6 +170,13 @@ target_link_libraries(YesDawRuntimeCheck PRIVATE Catch2::Catch2WithMain Threads:
 yesdaw_harden(YesDawRuntimeCheck)
 catch_discover_tests(YesDawRuntimeCheck)
 
+# --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
+add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
+target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawDelayCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawDelayCheck)
+catch_discover_tests(YesDawDelayCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
