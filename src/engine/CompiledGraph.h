@@ -174,10 +174,54 @@ public:
 
         const yesdaw::dsp::ScopedNoDenormals noDenormals;
 
-        // Slice F is state/layout only. The real node executor lands with the builder slices; until then
-        // a payload graph fails closed to silence instead of exposing uninitialised pool memory.
+        YESDAW_RT_FATAL (numFrames >= 0);
+        YESDAW_RT_FATAL (static_cast<std::uint32_t> (numFrames) <= poolLayout_.maxBlockSize);
+
+        EventStream events;
+        Transport   transport;
+
+        const CompiledNode* const nodes   = compiledNodes_.data();
+        const std::size_t         nNodes  = compiledNodes_.size();
+        const InputSlot* const    inputs  = inputSlotIndices_.data();
+        float* const* const       slots   = floatSlotPtrs_.data();
+        const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
+
+        for (std::size_t i = 0; i < nNodes; ++i)
+        {
+            const CompiledNode& cn = nodes[i];
+            if (cn.node == nullptr || cn.outputSlot == kNoSlot)
+                continue;
+
+            float* const* const outChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
+            zeroChannels (outChannels, cn.numChannels, numFrames);
+
+            const bool busLike = cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master;
+            if (cn.numInputs == 1 && ! busLike)
+            {
+                const InputSlot& input = inputs[cn.inputsBegin];
+                if (input.fromSlot != kNoSlot)
+                {
+                    const CompiledNode& producer = nodes[input.producerNodeIdx];
+                    float* const* const inChannels = slots + static_cast<std::size_t> (input.fromSlot) * static_cast<std::size_t> (maxCh);
+                    copyChannels (inChannels, producer.numChannels, outChannels, cn.numChannels, numFrames);
+                }
+            }
+
+            const ProcessArgs args { AudioBlock { outChannels, static_cast<int> (cn.numChannels) },
+                                     events, transport, numFrames };
+            cn.node->process (args);
+        }
+
+        if (masterOutputSlot_ == kSilenceSlot || floatSlotPtrs_.empty())
+        {
+            for (int i = 0; i < numFrames; ++i)
+                out[i] = 0.0f;
+            return;
+        }
+
+        const float* const master = slots[static_cast<std::size_t> (masterOutputSlot_) * static_cast<std::size_t> (maxCh)];
         for (int i = 0; i < numFrames; ++i)
-            out[i] = 0.0f;
+            out[i] = master[i];
     }
 
     GraphId id()         const noexcept { return id_; }
@@ -193,6 +237,35 @@ public:
 private:
     static constexpr std::uint32_t kCanary = 0xC0DEFACEu;
     static constexpr std::uint32_t kPoison = 0xDEADBEEFu;
+
+    static void zeroChannels (float* const* channels, std::uint16_t numChannels, int numFrames) noexcept YESDAW_RT_HOT
+    {
+        for (std::uint16_t c = 0; c < numChannels; ++c)
+        {
+            float* const dst = channels[c];
+            YESDAW_RT_FATAL (dst != nullptr);
+            for (int i = 0; i < numFrames; ++i)
+                dst[i] = 0.0f;
+        }
+    }
+
+    static void copyChannels (float* const* src,
+                              std::uint16_t srcChannels,
+                              float* const* dst,
+                              std::uint16_t dstChannels,
+                              int numFrames) noexcept YESDAW_RT_HOT
+    {
+        const std::uint16_t n = srcChannels < dstChannels ? srcChannels : dstChannels;
+        for (std::uint16_t c = 0; c < n; ++c)
+        {
+            const float* const s = src[c];
+            float* const       d = dst[c];
+            YESDAW_RT_FATAL (s != nullptr);
+            YESDAW_RT_FATAL (d != nullptr);
+            for (int i = 0; i < numFrames; ++i)
+                d[i] = s[i];
+        }
+    }
 
     GraphId       id_;
     float         identityDc_;

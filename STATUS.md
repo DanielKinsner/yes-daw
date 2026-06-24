@@ -17,12 +17,16 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX of compiler slice F is in & locally green.** The review found one real lifecycle
-  gap: `CompiledGraph` owns prepared Nodes but did not call `Node::release()` before destruction. That is
-  fixed on the janitor/control-side destructor path and covered by a new `YesDawGraphCheck` lifecycle
-  test. Local gate: `cmake --build --preset ci` and `ctest --preset ci` pass (48/48). **Next:**
-  compiler slice G — `GraphBuilder` Pass 1+2 + `MasterNode`/`IdentityDcNode` + first real end-to-end
-  render.
+- **Latest: compiler slice G is in & locally green.** `GraphBuilder` now performs Pass 1+2 validation
+  and iterative Master-backward topo, rejects duplicate/missing/over-latency/cyclic graphs, allows
+  `DelayNode` feedback boundaries, and builds the first real payload graph with `MasterNode` +
+  `IdentityDcNode`. `CompiledGraph` now runs the minimal one-slot/node executor while preserving the
+  legacy `(GraphId, dc)` degenerate fast path. Local gate: `cmake --build --preset ci` and
+  `ctest --preset ci` pass (57/57). **Next:** REVIEW/FIX compiler slice G; after review, slice H is PDC +
+  `StubLatencyNode` + impulse tests.
+- **Previous: REVIEW/FIX of compiler slice F landed.** The review found one real lifecycle gap:
+  `CompiledGraph` owns prepared Nodes but did not call `Node::release()` before destruction. That is fixed
+  on the janitor/control-side destructor path and covered by a `YesDawGraphCheck` lifecycle test.
 - **Previous: `CompiledGraph` compiler slice F landed, then the macOS warning was fixed.** The graph has
   the additive ADR-0007 state/layout surface (`Payload`, flat compiled-node metadata, input-slot table,
   buffer-pool layout, mute mask, master output bookkeeping, id index) behind the preserved legacy
@@ -77,8 +81,8 @@ worklog.
 - [ ] `CompiledGraph` 5-pass compiler with PDC wired in; all built-ins report 0 latency (ADR-0007);
   PDC impulse test + cross-buffer-size invariance + order-shuffle invariant as Catch2 gates. **Design
   locked** ([compiler-design note](docs/plans/2026-06-23-compiledgraph-compiler-design.md)); build
-  commit F (CompiledGraph state) is done; next commits are G (Pass 1+2 + Master/IdentityDc) → H (PDC) →
-  I (pool) → J (carry-over) → K (SetGain seam).
+  commits F (CompiledGraph state) and G (Pass 1+2 + Master/IdentityDc + first render) are done; next
+  commits are H (PDC) → I (pool) → J (carry-over) → K (SetGain seam).
 - [x] Built-in Nodes behind the contract (ADR-0008) — **all five in & green**: `OscillatorNode`,
   `DelayNode`/`LatencyNode`, `FaderNode`, `PanNode`, `SumNode` (f64 Bus summing), `MeterNode`. Each a
   separate green commit. *(Master = a top-level SumNode + device-wiring land with the compiler / H2.)*
@@ -190,14 +194,20 @@ worklog.
   design plus ADR-0007/0008. Fixed one lifecycle contract gap: `CompiledGraph` now calls
   `Node::release()` for owned Nodes on destruction, and a new graph lifecycle test asserts it. Local
   `ci` build + 48/48 tests green.
+- 2026-06-24 — **CompiledGraph compiler slice G landed locally.** Added `GraphBuilder` Pass 1+2
+  validation/topo, `MasterNode`, `IdentityDcNode`, and the first payload-graph executor path. New
+  `YesDawBuilderCheck` coverage proves IdentityDc→Master DC, Osc→Master non-DC, 1000-node iterative
+  topo, non-Delay cycle rejection, Delay feedback-boundary allowance, duplicate/missing/latency
+  rejection, and channel clamp. Local `ci` build + 57/57 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: compiler slice G (ADR-0007).** Add `GraphBuilder` Pass 1+2 plus
-  `MasterNode`/`IdentityDcNode`, then the first real end-to-end render. Existing
-  Runtime/CompiledGraph/Node tests stay intact; the legacy `(id,dc)` constructor remains the
-  `isDegenerate_` fast path. PDC (H), buffer pool (I), carry-over (J), and SetGain seam (K) follow.
+- **Next chunk: REVIEW/FIX compiler slice G (ADR-0007).** Review the new `GraphBuilder` Pass 1+2,
+  `MasterNode`/`IdentityDcNode`, and minimal payload executor against the locked compiler design. Existing
+  Runtime/CompiledGraph/Node tests stayed intact; the legacy `(id,dc)` constructor remains the
+  `isDegenerate_` fast path. PDC (H), buffer pool (I), carry-over (J), and SetGain seam (K) follow after
+  review.
   In parallel the **time model types (ADR-0010)** unblock the round-trip exit. Each new audio-thread
   function gets `YESDAW_RT_HOT` + RTSan; every commit green.
 

@@ -160,6 +160,13 @@ target_link_libraries(YesDawGraphCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawGraphCheck)
 catch_discover_tests(YesDawGraphCheck)
 
+# --- GraphBuilder check (H1; pure, compiler Pass 1+2 + first real render — ADR-0007) ---
+add_executable(YesDawBuilderCheck tests/builder_tests.cpp)
+target_include_directories(YesDawBuilderCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawBuilderCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawBuilderCheck)
+catch_discover_tests(YesDawBuilderCheck)
+
 # --- Runtime check (H1; pure, RT-safe graph publish/swap + generation-counter reclamation — ADR-0006) ---
 # Built UNCONDITIONALLY so the RTSan leg (-fsanitize=realtime) covers processBlock and the TSan leg
 # (-fsanitize=thread) covers the publish/process/reclaim data race. Uses choc's SPSC FIFO + std::thread.
