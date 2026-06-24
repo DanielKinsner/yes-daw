@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — import/copy recovery gate review-clean; Asset decode projection next
+**Current horizon:** **H2 (editing-first)** — bundled Asset decode projection green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,19 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 bundled Asset read/decode projection is green locally.** Added the smallest
+  headless projection from bundled `.yesdaw` Asset bytes into the graph/Render path: `DecodedClipNode`
+  plays pre-decoded Clip source windows, `GraphBuilder` classifies it as a `Source`, and
+  `YesDawBundleRenderCheck` imports the fixture WAV into the bundle with content-hash Asset storage,
+  writes a Project with two Clips referencing that same immutable Asset, reopens the bundle, decodes the
+  bundled `.asset` bytes through the existing JUCE WAV reader path, and renders through both Runtime and
+  offline graph paths. The gate asserts RT/offline equality, decoded-Clip expected output equality,
+  non-silence, and unchanged bundled Asset bytes after projection. No waveform cache/peaks, Clip
+  editing operations, undo/redo, UI, export, plugin hosting, ADR edits, roadmap edits, golden edits, or
+  `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (122/122). Remote CI is
+  pending for this worker commit until pushed.
+  **Next:** REVIEW/FIX H2 bundled Asset read/decode projection.
 - **Latest: REVIEW/FIX H2 asset import + copy-to-bundle recovery gate found no defects.** Reviewed
   worker commit `31ab1c0` against H2 scope, ADR-0011, ADR-0012, the H2 deepening notes, and the current
   `ProjectBundleDb` / `YesDawPersistenceCheck` surface. The implementation stays headless and narrow:
@@ -568,16 +581,21 @@ worklog.
   tests against the locked persistence and Project/time contracts. Fixed one narrow test-proof gap: the
   migration recovery gate now proves the synthetic interrupted migration row did not survive reopen.
   Local `ci` build + 118/118 tests green.
+- 2026-06-24 — **H2 bundled Asset read/decode projection landed locally.** Added
+  `DecodedClipNode` plus `YesDawBundleRenderCheck`: a headless `.yesdaw` bundle imports the fixture WAV,
+  reopens Project/Asset/Clip rows, decodes the bundled Asset file, renders two non-destructive Clip
+  source windows through Runtime/offline graph paths, and proves the bundled Asset bytes are unchanged.
+  Local `ci` configure/build + 122/122 tests green.
 
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 bundled Asset read/decode projection.** Pull, read `AGENTS.md` + this handoff
-  first, then implement the smallest headless projection that reads bundled Asset bytes through the
-  existing decode path and feeds graph/Render without making Clips destructive. Keep the scope to the
-  second H2 checklist item; do not start waveform cache, Clip editing, undo, UI, export, plugin hosting,
-  ADR edits, roadmap edits, golden edits, or `[[clang::nonblocking]]` edits. Commit/push only after the
-  full mechanical gate is green, then hand to REVIEW/FIX.
+- **Next chunk: REVIEW/FIX H2 bundled Asset read/decode projection.** Pull, read `AGENTS.md` + this
+  handoff first, then review the worker slice that added `DecodedClipNode`, `GraphBuilder` Source
+  classification, and `YesDawBundleRenderCheck`. Verify it is truly limited to bundled Asset
+  read/decode projection feeding graph/Render through non-destructive Clip indirection. Do not start
+  waveform cache, Clip editing, undo, UI, export, plugin hosting, ADR edits, roadmap edits, golden edits,
+  or `[[clang::nonblocking]]` edits.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

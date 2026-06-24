@@ -7,6 +7,7 @@
 
 #include "engine/CompiledGraph.h"
 #include "engine/nodes/DelayNode.h"
+#include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/MasterNode.h"
@@ -258,6 +259,8 @@ private:
             return CompiledNodeKind::IdentityDc;
         if (dynamic_cast<OscillatorNode*> (&node) != nullptr)
             return CompiledNodeKind::Oscillator;
+        if (dynamic_cast<DecodedClipNode*> (&node) != nullptr)
+            return CompiledNodeKind::Source;
         if (dynamic_cast<FaderNode*> (&node) != nullptr)
             return CompiledNodeKind::Fader;
         if (dynamic_cast<PanNode*> (&node) != nullptr)

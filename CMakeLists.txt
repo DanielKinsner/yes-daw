@@ -278,6 +278,23 @@ if (YESDAW_BUILD_APPS)
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawAssetCheck)
   catch_discover_tests(YesDawAssetCheck)
+
+  juce_add_console_app(YesDawBundleRenderCheck PRODUCT_NAME "YesDawBundleRenderCheck")
+  target_sources(YesDawBundleRenderCheck PRIVATE tests/bundle_render_tests.cpp)
+  target_include_directories(YesDawBundleRenderCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawBundleRenderCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawBundleRenderCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawBundleRenderCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      sqlite3_amalgamation
+      juce::juce_audio_formats
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawBundleRenderCheck)
+  catch_discover_tests(YesDawBundleRenderCheck)
 endif()
 
 # Bless the golden after an INTENTIONAL DSP change (review the diff before committing):
