@@ -10,18 +10,10 @@
 
 #pragma once
 
+#include "rt/RtHot.h"   // YESDAW_RT_HOT — the audio hot-path attribute (one shared definition)
+
 #include <algorithm>
 #include <cmath>
-
-// Mark the audio hot path as real-time-safe so the RTSan CI leg (-fsanitize=realtime) aborts if it
-// ever allocates, locks, or does I/O — the CLAUDE.md hard rule, enforced mechanically rather than by
-// inspection. Guarded on actual attribute support (Clang 20+ only): every other compiler, including
-// AppleClang in the main matrix, expands it to nothing so -Werror never trips on an unknown attribute.
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(clang::nonblocking)
-  #define YESDAW_RT_HOT [[clang::nonblocking]]
-#else
-  #define YESDAW_RT_HOT
-#endif
 
 namespace yesdaw::dsp {
 
