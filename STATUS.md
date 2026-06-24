@@ -17,6 +17,17 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H1 RT-vs-offline Render equivalence gate is green locally.** Reviewed `968b16d`
+  against ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, `CONTEXT.md`, the H1 plan/roadmap,
+  current Runtime/CompiledGraph/GraphBuilder/Node contracts, and the landed `YesDawRenderCheck` +
+  CMake surface. Found no real defect: the gate stays inside the current `Project` value surface,
+  builds two fresh `CompiledGraph`s from the same valid Project projection, exercises `Runtime`
+  publish/process vs a direct offline graph with different Block schedules, and asserts non-silence,
+  max-abs diff <= `1e-6`, plus graph-lifetime cleanup. No ADR, golden, roadmap, UI, asset
+  import/decoding, waveform cache, plugin hosting, broad automation lane, kill-during-save/migration
+  recovery, or `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (116/116). **Next:**
+  WORKER H1 kill-during-save/migration reopen-clean gate for the current SQLite bundle/migration surface.
 - **Latest: WORKER H1 RT-vs-offline Render equivalence gate is green locally.** Added
   `YesDawRenderCheck`, a narrow in-memory headless gate that builds a valid current `Project` value,
   compiles that same Project projection into two fresh `CompiledGraph`s, publishes one through
@@ -483,19 +494,22 @@ worklog.
   `YesDawRenderCheck`: the same valid current Project projection is rendered through Runtime and a
   free-wheeling offline Render driver with different Block schedules, then compared within `1e-6`.
   Local `ci` configure/build + 116/116 tests green.
+- 2026-06-24 — **H1 RT-vs-offline Render equivalence gate review/fix.** Reviewed `968b16d` against the
+  locked H1 contracts and found no code defect: the gate proves the narrow current Project -> CompiledGraph
+  projection through both Runtime and offline paths without drifting into deferred surfaces. Local `ci`
+  configure/build + 116/116 tests green.
 
 ## Next
 - ✅ **H1 contracts frozen** (ADRs 0006–0012); ✅ **RT-safe graph-swap core** (ADR-0006); ✅ **Node
   contract + all five built-in Nodes** (ADR-0008/0007) — all CI-green.
-- **Next chunk: REVIEW/FIX H1 RT-vs-offline Render equivalence gate.** Pull, read `AGENTS.md` + this
-  handoff first, then review the landed `YesDawRenderCheck` chunk against ADR-0006, ADR-0007, ADR-0008,
-  ADR-0009, ADR-0010, ADR-0011, `CONTEXT.md`, and the current Runtime/CompiledGraph/GraphBuilder/Node
-  contracts. Verify the gate genuinely proves RT-vs-offline equivalence for the current Project
-  surface without drifting into UI, asset import/decoding, waveform caches, plugin hosting, broad
-  automation lanes, kill-during-save/migration recovery, ADR edits, roadmap edits,
-  `[[clang::nonblocking]]` annotation edits, or golden-file edits. Fix only real defects, run the
-  mechanical gate, update this handoff, commit/push if green, check GitHub CI, create the next thread,
-  then stop.
+- **Next chunk: WORKER H1 kill-during-save/migration reopen-clean gate.** Pull, read `AGENTS.md` + this
+  handoff first, then implement the smallest mechanical gate for the remaining H1 recovery exit
+  criterion on the current SQLite `.yesdaw` bundle / migration / open-validation surface. Simulate or
+  verify an interrupted save or migration leaves a bundle that reopens cleanly or refuses safely through
+  integrity + semantic validation, using self-asserting tests only. Stay out of UI, asset import/decoding,
+  waveform caches, plugin hosting, broad automation lanes, ADR edits, roadmap edits,
+  `[[clang::nonblocking]]` annotation edits, and golden-file edits. Run the mechanical gate, update this
+  handoff, commit/push if green, check GitHub CI, create the next thread, then stop.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
