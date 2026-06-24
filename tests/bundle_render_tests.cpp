@@ -466,6 +466,30 @@ TEST_CASE ("bundled Asset waveform peak cache is content hash keyed and regenera
     REQUIRE (rejected.status == WaveformPeakCacheStatus::FormatInvalid);
 
     REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
+    std::vector<std::uint8_t> wrongHash = readBytes (peakPath);
+    REQUIRE (wrongHash.size() > 16u);
+    wrongHash[16] ^= 0x01u;
+    writeBytes (peakPath, std::span<const std::uint8_t> (wrongHash.data(), wrongHash.size()));
+    REQUIRE (readWaveformPeakCache (bundlePath, asset.contentHash).status == WaveformPeakCacheStatus::FormatInvalid);
+
+    REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
+    std::vector<std::uint8_t> truncated = readBytes (peakPath);
+    REQUIRE_FALSE (truncated.empty());
+    truncated.pop_back();
+    writeBytes (peakPath, std::span<const std::uint8_t> (truncated.data(), truncated.size()));
+    REQUIRE (readWaveformPeakCache (bundlePath, asset.contentHash).status == WaveformPeakCacheStatus::FormatInvalid);
+
+    REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
+    std::vector<std::uint8_t> nanPayload = readBytes (peakPath);
+    constexpr std::size_t firstPayloadRmsOffset = 4u + 2u + 2u + 8u + 32u + 4u + 4u + 8u + 8u;
+    REQUIRE (nanPayload.size() >= firstPayloadRmsOffset + 4u);
+    constexpr std::uint32_t quietNanBits = 0x7FC00000u;
+    for (std::size_t i = 0; i < 4u; ++i)
+        nanPayload[firstPayloadRmsOffset + i] = static_cast<std::uint8_t> ((quietNanBits >> (i * 8u)) & 0xFFu);
+    writeBytes (peakPath, std::span<const std::uint8_t> (nanPayload.data(), nanPayload.size()));
+    REQUIRE (readWaveformPeakCache (bundlePath, asset.contentHash).status == WaveformPeakCacheStatus::FormatInvalid);
+
+    REQUIRE (writeWaveformPeakCache (bundlePath, regenerated.cache).ok());
     const auto recovered = readWaveformPeakCache (bundlePath, asset.contentHash);
     REQUIRE (recovered.ok());
     REQUIRE (recovered.cache == loaded.cache);
