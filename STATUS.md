@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — snap/grid worker green; review/fix next
+**Current horizon:** **H2 (editing-first)** — snap/grid review green; Clip metadata worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,23 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 snap/grid tick math foundation found no defects.** Reviewed worker commit
+  `f7975bb` against H2 scope, ADR-0010, the H2 deepening notes, and the current Time / Project /
+  timeline-layout tests. The slice stays headless and narrow: `SnapGrid`, `snapTick`,
+  `gridIndexForTick`, and `tickForGridIndex` are pure integer Tick/grid math; invalid grids are
+  rejected; overflow is refused; snapped Tick↔grid-index round trips are exact and stable; and Project
+  schema/persistence/timeline layout remain untouched, so no snapped sample or pixel values are stored
+  as canonical Project truth. No Clip editing operations, undo/redo, UI, export, plugin hosting, H3
+  work, ADR edits, roadmap edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]`
+  edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (127/127). Remote CI run `28135729287` for
+  worker commit `f7975bb` and run `28135936744` for pre-review status commit `bb49b73` are green across
+  Windows, Linux, macOS, RTSan, and TSan.
+  **Next:** WORKER H2 Clip split/trim/move metadata foundation: add the smallest headless Project-level
+  edit operations over the existing Asset→Clip value surface, keeping edits as pure metadata with Tick
+  timeline positions and existing source-frame windows. Do not start gain/fade/crossfade, undo/redo, UI,
+  export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, or
+  `[[clang::nonblocking]]` edits; if operation semantics rise to ADR level, stop and report.
 - **Latest: WORKER H2 snap/grid tick math foundation is green.** Added the smallest headless
   integer snap/grid surface to the ADR-0010 time layer: `SnapGrid`, `snapTick`, exact grid-index
   readback, and checked grid-index→Tick derivation. Snapped values remain derived from Tick/grid inputs;
@@ -649,11 +666,13 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 snap/grid tick math foundation.** Review the worker implementation against
-  ADR-0010, H2 scope, and the current Time/Project/timeline tests. Verify snapped values remain derived
-  Tick/grid math rather than Project truth. Do not start Clip editing operations, undo/redo, UI, export,
-  plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, or
-  `[[clang::nonblocking]]` edits.
+- **Next chunk: WORKER H2 Clip split/trim/move metadata foundation.** Pull, read `AGENTS.md` + this
+  handoff first, then add the smallest headless Project-level edit operations for split, trim, and move
+  over the existing Asset→Clip value surface. Keep edits as pure metadata: Tick timeline positions /
+  lengths and source-frame windows only, with Assets immutable and no snapped sample/pixel Project truth.
+  Do not start gain/fade/crossfade, undo/redo, UI, export, plugin hosting, H3 work, ADR edits, roadmap
+  edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]` edits; if edit-operation
+  semantics need an ADR-level decision beyond the current plan/ADRs, stop and report.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
