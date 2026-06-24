@@ -838,6 +838,49 @@ TEST_CASE ("GraphBuilder PDC aligns convergence impulses at total latency", "[bu
         REQUIRE (out[static_cast<std::size_t> (i)] == (i == kLatency ? 2.0f : 0.0f));
 }
 
+TEST_CASE ("GraphBuilder PDC aligns convergence impulses through a SumNode", "[builder][pdc][sum]")
+{
+    // The Master convergence test above proves PDC alignment for a 2-input Master. The H1 coverage
+    // review found the SAME alignment was never proven for a SumNode convergence (it runs the same
+    // splice logic). One branch is delayed kLatency, the other is direct; both feed a SumNode -> PDC
+    // must splice the direct branch so a single impulse lands at exactly frame kLatency and the two
+    // aligned paths sum to 2.0.
+    constexpr int kLatency = 9;
+    constexpr int kFrames = 32;
+
+    auto source = std::make_unique<ImpulseNode> (1);
+    auto latent = std::make_unique<StubLatencyNode> (2, kLatency);
+    auto sum = std::make_unique<SumNode> (3, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    ImpulseNode* const sourcePtr = source.get();
+    StubLatencyNode* const latentPtr = latent.get();
+    SumNode* const sumPtr = sum.get();
+    latentPtr->setInput (sourcePtr);
+    sumPtr->setInputNodes ({ sourcePtr, latentPtr });
+    master->setInputNodes ({ sumPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = kFrames;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (latent));
+    inputs.nodes.push_back (std::move (sum));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) == 1u);
+
+    const std::vector<float> out = render (*graph, kFrames);
+    for (int i = 0; i < kFrames; ++i)
+        REQUIRE (out[static_cast<std::size_t> (i)] == (i == kLatency ? 2.0f : 0.0f));
+}
+
 TEST_CASE ("GraphBuilder PDC guard would catch the unspliced two-peak case", "[builder][pdc][guard]")
 {
     constexpr int kLatency = 7;
@@ -1001,6 +1044,7 @@ TEST_CASE ("GraphBuilder allows a DelayNode back-edge", "[builder][cycle][delay]
 
     GraphBuilder::Inputs inputs;
     inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 32;
     inputs.nodes.push_back (std::move (a));
     inputs.nodes.push_back (std::move (delay));
     inputs.nodes.push_back (std::move (master));
@@ -1010,6 +1054,17 @@ TEST_CASE ("GraphBuilder allows a DelayNode back-edge", "[builder][cycle][delay]
 
     REQUIRE (graph != nullptr);
     REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    // The H1 coverage review found this test only proved the feedback graph BUILDS. Now actually run it:
+    // a DelayNode feedback boundary is excluded from the forward longest-path so latency stays finite,
+    // and with nothing exciting the loop the output must be exact silence. A stale/garbage feedback read
+    // would surface as a non-zero sample or a NaN from the debug pool-paint (NaN != 0 fails the check).
+    REQUIRE (graph->totalLatency() >= 0);
+    REQUIRE (graph->totalLatency() < 32);
+
+    const std::vector<float> out = render (*graph, 32);
+    for (float v : out)
+        REQUIRE (v == 0.0f);
 }
 
 TEST_CASE ("GraphBuilder rejects duplicate node ids", "[builder][validate]")
