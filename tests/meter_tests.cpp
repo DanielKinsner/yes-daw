@@ -94,3 +94,29 @@ TEST_CASE ("MeterNode reset() clears the published metrics", "[meter][reset]")
     REQUIRE (node.peak() == 0.0f);
     REQUIRE (node.rms()  == 0.0f);
 }
+
+TEST_CASE ("MeterNode aggregates peak and RMS across channels", "[meter][multichannel]")
+{
+    // The H1 coverage review found every meter test used a 1-channel block, so the multichannel
+    // aggregation loop (peak/RMS across c = 0..channels) was never exercised. Stereo meters appear in
+    // real graphs (PanNode outputs 2 channels), so prove the loop: a spike in the RIGHT channel only
+    // must still set the overall peak, and RMS must pool BOTH channels' energy.
+    constexpr int n = 256;
+    std::vector<float> left  (static_cast<std::size_t> (n), 0.2f);
+    std::vector<float> right (static_cast<std::size_t> (n), 0.2f);
+    right[100] = -0.9f;                          // a spike in the right channel only
+
+    MeterNode node (5, 2);                        // id 5, TWO channels
+    Node& iface = node;
+    iface.prepare (48000.0, n);
+    EventStream events;
+    Transport   transport;
+    float* const channels[2] = { left.data(), right.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, n });
+
+    REQUIRE (node.peak() == Approx (0.9f).margin (1.0e-6));   // the peak spans BOTH channels
+
+    const double sumSq = (2.0 * n - 1.0) * (0.2 * 0.2) + (0.9 * 0.9);
+    const double expectedRms = std::sqrt (sumSq / (2.0 * n));
+    REQUIRE (node.rms() == Approx (expectedRms).margin (1.0e-4));   // RMS pools both channels
+}
