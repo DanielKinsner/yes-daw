@@ -5,23 +5,94 @@
 // to its baseline once the Runtime is destroyed.
 
 #include "engine/CompiledGraph.h"
+#include "engine/GraphBuilder.h"
 #include "engine/Runtime.h"
+#include "engine/nodes/FaderNode.h"
+#include "engine/nodes/IdentityDcNode.h"
+#include "engine/nodes/MasterNode.h"
+#include "engine/nodes/PanNode.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <thread>
 #include <vector>
 
+using Catch::Approx;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
+using yesdaw::engine::GraphBuildError;
+using yesdaw::engine::GraphBuilder;
+using yesdaw::engine::IdentityDcNode;
+using yesdaw::engine::MasterNode;
+using yesdaw::engine::NodeId;
+using yesdaw::engine::PanNode;
 using yesdaw::engine::Runtime;
 
 namespace {
 std::unique_ptr<CompiledGraph> graph (GraphId id, float dc) { return std::make_unique<CompiledGraph> (id, dc); }
+
+constexpr NodeId kRuntimeMasterId = 61000;
+
+std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
+{
+    auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
+    auto fader = std::make_unique<FaderNode> (faderId, 1);
+    auto master = std::make_unique<MasterNode> (kRuntimeMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    faderPtr->setInput (sourcePtr);
+    master->setInputNodes ({ faderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = id;
+    inputs.masterNodeId = kRuntimeMasterId;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> built = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (built != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    return built;
+}
+
+std::unique_ptr<CompiledGraph> panGraph (GraphId id, NodeId panId, float dc)
+{
+    auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
+    auto pan = std::make_unique<PanNode> (panId);
+    auto master = std::make_unique<MasterNode> (kRuntimeMasterId, 2);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    PanNode* const panPtr = pan.get();
+    panPtr->setInput (sourcePtr);
+    master->setInputNodes ({ panPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = id;
+    inputs.masterNodeId = kRuntimeMasterId;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (pan));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> built = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (built != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    return built;
+}
 }
 
 TEST_CASE ("a runtime with no published graph outputs silence", "[runtime][silence]")
@@ -59,7 +130,7 @@ TEST_CASE ("a published graph is observable on the audio thread, and swaps repla
     REQUIRE (CompiledGraph::aliveCount() == base);
 }
 
-TEST_CASE ("the scalar seam is drained in order with swaps", "[runtime][ordering][seam]")
+TEST_CASE ("unapplied scalar seam commands do not disturb degenerate swaps", "[runtime][ordering][seam]")
 {
     const auto base = CompiledGraph::aliveCount();
     {
@@ -73,9 +144,85 @@ TEST_CASE ("the scalar seam is drained in order with swaps", "[runtime][ordering
 
         rt.processBlock (buf.data(), static_cast<int> (buf.size()));
 
-        REQUIRE (rt.scalarsApplied() == 2);         // both scalar ops applied, in order with the swap
+        REQUIRE (rt.scalarsApplied() == 0);         // degenerate graphs expose no Fader/Pan command target
         for (float v : buf)
             REQUIRE (v == -0.25f);                  // and the sandwiched swap took effect
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("Runtime routes SetGain to the graph current at each command point", "[runtime][scalar][gain]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kFaderId = 10;
+
+        Runtime rt;
+        std::vector<float> buf (512, 0.0f);
+
+        REQUIRE (rt.publish (faderGraph (1, kFaderId, 1.0f)));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+        REQUIRE (buf.back() == 1.0f);
+
+        REQUIRE (rt.postSetGain (kFaderId, 0.25f));
+        REQUIRE (rt.publish (faderGraph (2, kFaderId, 2.0f)));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+        REQUIRE (rt.scalarsApplied() == 1);
+        REQUIRE (buf.back() == Approx (2.0f).margin (1.0e-6f));  // pre-swap gain did not hit graph B
+
+        REQUIRE (rt.postSetGain (kFaderId, 0.75f));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+        REQUIRE (rt.scalarsApplied() == 2);
+        REQUIRE (buf.back() == Approx (1.5f).margin (1.0e-6f));
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("Runtime routes SetPan through the current compiled graph", "[runtime][scalar][pan]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kPanId = 20;
+
+        Runtime rt;
+        std::vector<float> buf (512, 0.0f);
+
+        REQUIRE (rt.publish (panGraph (1, kPanId, 1.0f)));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+        REQUIRE (buf.back() == Approx (std::sqrt (0.5f)).margin (1.0e-4f));
+
+        REQUIRE (rt.postSetPan (kPanId, 1.0f));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+        REQUIRE (rt.scalarsApplied() == 1);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-4f));
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("Runtime ignores scalar commands for missing ids and wrong node kinds", "[runtime][scalar][invalid]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kFaderId = 30;
+
+        Runtime rt;
+        std::vector<float> buf (512, 0.0f);
+
+        REQUIRE (rt.publish (faderGraph (1, kFaderId, 1.0f)));
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+
+        REQUIRE (rt.postSetGain (9999, 0.0f));       // missing id
+        REQUIRE (rt.postSetPan (kFaderId, 1.0f));    // wrong node kind
+        rt.processBlock (buf.data(), static_cast<int> (buf.size()));
+
+        REQUIRE (rt.scalarsApplied() == 0);
+        REQUIRE (buf.back() == 1.0f);
 
         rt.reclaim();
     }

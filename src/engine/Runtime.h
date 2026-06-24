@@ -4,7 +4,7 @@
 //
 // Model (the winning design of the H1 concurrency panel, with the panel's must-fix grafts):
 //   * The control thread builds an immutable CompiledGraph and publish()es it. The swap travels as a
-//     variant in ONE ordered SPSC command queue (so future scalar ops stay ordered with it — ADR-0006).
+//     variant in ONE ordered SPSC command queue so scalar ops stay ordered with it (ADR-0006).
 //   * The audio thread owns `current_` (a plain, audio-thread-local pointer). Each block it drains the
 //     command queue IN ORDER, applies any swap, renders, then release-stores an end-of-block generation.
 //   * Retiring a graph hands {old, gen} to an audio->control retirement queue. A generation-counter
@@ -238,10 +238,13 @@ private:
                 break;
 
             case CommandType::SetGain:
+                if (current_ != nullptr && current_->applySetGain (c.node, c.value))
+                    scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
+                break;
+
             case CommandType::SetPan:
-                // Seam only (ADR-0006): drained in order with swaps, observable by the ordering test, no
-                // consumer yet. Adding one is a new arm here, not a re-plumb of the queue.
-                scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
+                if (current_ != nullptr && current_->applySetPan (c.node, c.value))
+                    scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
                 break;
         }
     }

@@ -63,6 +63,19 @@ TEST_CASE ("CompiledGraph exposes its id and identity DC", "[graph][identity]")
     REQUIRE (g.identityDc() == -0.5f);
 }
 
+TEST_CASE ("CompiledGraph scalar applies are no-ops on the degenerate seam", "[graph][scalar][degenerate]")
+{
+    CompiledGraph g (42, 0.5f);
+
+    REQUIRE_FALSE (g.applySetGain (7, 0.25f));
+    REQUIRE_FALSE (g.applySetPan (7, 1.0f));
+
+    std::vector<float> out (16, -1.0f);
+    g.process (out.data(), static_cast<int> (out.size()));
+    for (float v : out)
+        REQUIRE (v == 0.5f);
+}
+
 TEST_CASE ("CompiledGraph liveness counter tracks construction and destruction", "[graph][liveness]")
 {
     // Baseline-relative so the test is independent of Catch2's run order.

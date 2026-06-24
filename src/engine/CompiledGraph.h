@@ -24,7 +24,9 @@
 #include "dsp/ScopedNoDenormals.h"
 #include "engine/Node.h"
 #include "engine/nodes/DelayNode.h"
+#include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
+#include "engine/nodes/PanNode.h"
 #include "engine/nodes/SumNode.h"
 #include "rt/RtHot.h"
 
@@ -280,6 +282,26 @@ public:
             return false;
 
         return (muteMask_.load (std::memory_order_relaxed) & (1ull << node->muteBit)) != 0;
+    }
+
+    [[nodiscard]] bool applySetGain (NodeId id, float linearGain) const noexcept YESDAW_RT_HOT
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->kind != CompiledNodeKind::Fader || node->node == nullptr)
+            return false;
+
+        static_cast<FaderNode*> (node->node)->setTargetGain (linearGain);
+        return true;
+    }
+
+    [[nodiscard]] bool applySetPan (NodeId id, float pan) const noexcept YESDAW_RT_HOT
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->kind != CompiledNodeKind::Pan || node->node == nullptr)
+            return false;
+
+        static_cast<PanNode*> (node->node)->setPan (pan);
+        return true;
     }
 
     void snapshotDelayCache() const

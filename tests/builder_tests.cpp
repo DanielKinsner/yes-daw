@@ -10,8 +10,10 @@
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
+#include "engine/nodes/PanNode.h"
 #include "engine/nodes/SumNode.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
@@ -43,8 +45,10 @@ using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::OscillatorNode;
+using yesdaw::engine::PanNode;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::SumNode;
+using Catch::Approx;
 
 namespace {
 
@@ -114,6 +118,46 @@ GraphBuilder::Inputs delayedIdentityInputs (float dc,
     inputs.previousForCarryOver = previous;
     inputs.nodes.push_back (std::move (source));
     inputs.nodes.push_back (std::move (delay));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
+}
+
+GraphBuilder::Inputs faderInputs (float dc, NodeId faderId)
+{
+    auto source = std::make_unique<IdentityDcNode> (1, dc, 1);
+    auto fader = std::make_unique<FaderNode> (faderId, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    faderPtr->setInput (sourcePtr);
+    master->setInputNodes ({ faderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
+}
+
+GraphBuilder::Inputs panInputs (float dc, NodeId panId)
+{
+    auto source = std::make_unique<IdentityDcNode> (1, dc, 1);
+    auto pan = std::make_unique<PanNode> (panId);
+    auto master = std::make_unique<MasterNode> (kMasterId, 2);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    PanNode* const panPtr = pan.get();
+    panPtr->setInput (sourcePtr);
+    master->setInputNodes ({ panPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (pan));
     inputs.nodes.push_back (std::move (master));
     return inputs;
 }
@@ -345,6 +389,56 @@ TEST_CASE ("CompiledGraph mute flips take effect without rebuilding", "[builder]
         REQUIRE (v == 0.5f);
 
     REQUIRE_FALSE (graph->setMuted (123456u, true));
+}
+
+TEST_CASE ("CompiledGraph applySetGain only mutates Fader nodes", "[builder][scalar][gain]")
+{
+    constexpr NodeId kFaderId = 2;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (faderInputs (1.0f, kFaderId), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    REQUIRE_FALSE (graph->applySetGain (1, 0.0f));          // wrong kind: IdentityDcNode
+    REQUIRE_FALSE (graph->applySetPan (kFaderId, 1.0f));    // wrong command for FaderNode
+
+    std::vector<float> out = render (*graph, 512);
+    REQUIRE (out.back() == 1.0f);
+
+    REQUIRE (graph->applySetGain (kFaderId, 0.25f));
+    out = render (*graph, 512);
+    REQUIRE (out.back() == Approx (0.25f).margin (1.0e-6f));
+
+    REQUIRE_FALSE (graph->applySetGain (123456u, 0.0f));
+    out = render (*graph, 512);
+    REQUIRE (out.back() == Approx (0.25f).margin (1.0e-6f));
+}
+
+TEST_CASE ("CompiledGraph applySetPan only mutates Pan nodes", "[builder][scalar][pan]")
+{
+    constexpr NodeId kPanId = 2;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (panInputs (1.0f, kPanId), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    REQUIRE_FALSE (graph->applySetPan (1, 1.0f));          // wrong kind: IdentityDcNode
+    REQUIRE_FALSE (graph->applySetGain (kPanId, 0.0f));   // wrong command for PanNode
+
+    std::vector<float> out = render (*graph, 512);
+    REQUIRE (out.back() == Approx (std::sqrt (0.5f)).margin (1.0e-4f));
+
+    REQUIRE (graph->applySetPan (kPanId, 1.0f));
+    out = render (*graph, 512);
+    REQUIRE (out.back() == Approx (0.0f).margin (1.0e-4f));
+
+    REQUIRE_FALSE (graph->applySetPan (123456u, -1.0f));
+    out = render (*graph, 512);
+    REQUIRE (out.back() == Approx (0.0f).margin (1.0e-4f));
 }
 
 TEST_CASE ("GraphBuilder carries matching DelayNode state across rebuilds", "[builder][carry-over]")

@@ -1,7 +1,7 @@
 // YES DAW — GraphBuilder (ADR-0007): control-thread compiler for immutable CompiledGraph snapshots.
 //
-// Slice J implements Pass 5 mute metadata/state, delay carry-over, and multi-input bind checks. The
-// scalar routing seam lands in slice K.
+// Pass 5 owns mute metadata/state, delay carry-over, and multi-input bind checks. Runtime scalar command
+// routing is handled by CompiledGraph's id-index lookup.
 
 #pragma once
 
