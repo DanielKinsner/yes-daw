@@ -1,7 +1,6 @@
 // YES DAW — GraphBuilder (ADR-0007): control-thread compiler for immutable CompiledGraph snapshots.
 //
-// Slice H implements Pass 3 PDC on top of the slice G scaffolding: longest-path latency metadata plus
-// synthetic LatencyNode splices at convergence points. Greedy pool allocation, carry-over, mute, and
+// Slice I implements Pass 4 buffer-pool allocation on top of the Pass 3 PDC plan. Carry-over, mute, and
 // scalar routing land in later slices.
 
 #pragma once
@@ -193,7 +192,8 @@ public:
         payload.nodeStorage = std::move (inputs.nodes);
 
         const int maxBlockSize = inputs.maxBlockSize > 0 ? inputs.maxBlockSize : 1;
-        buildCompiledMetadata (compileItems, maxBlockSize, payload);
+        if (! buildCompiledMetadata (compileItems, maxBlockSize, payload, error))
+            return nullptr;
         bindBusNodes (payload);
 
         for (CompiledNode& cn : payload.compiledNodes)
@@ -463,12 +463,17 @@ private:
         return false;
     }
 
-    static void buildCompiledMetadata (const std::vector<CompileItem>& items,
+    static bool buildCompiledMetadata (const std::vector<CompileItem>& items,
                                        int maxBlockSize,
-                                       CompiledGraph::Payload& payload)
+                                       CompiledGraph::Payload& payload,
+                                       GraphBuildError* error)
     {
         payload.compiledNodes.reserve (items.size());
-        payload.inputSlotIndices.reserve (items.size());
+
+        std::size_t totalInputs = 0;
+        for (const CompileItem& item : items)
+            totalInputs += item.inputs.size();
+        payload.inputSlotIndices.reserve (totalInputs);
 
         std::uint16_t maxChannels = 1;
         for (const CompileItem& item : items)
@@ -478,11 +483,156 @@ private:
                 maxChannels = static_cast<std::uint16_t> (ch);
         }
 
+        std::vector<std::size_t> lastReader (items.size(), kNoItem);
+        for (std::size_t consumerIdx = 0; consumerIdx < items.size(); ++consumerIdx)
+            for (const std::size_t producerIdx : items[consumerIdx].inputs)
+                lastReader[producerIdx] = consumerIdx;
+
+        std::vector<SlotIndex> outputSlots (items.size(), kNoSlot);
+        std::vector<std::vector<SlotIndex>> freeSlotsByChannels (static_cast<std::size_t> (maxChannels) + 1u);
+        std::vector<std::size_t> releaseStamp (items.size(), 0);
+
+        SlotIndex nextFloatSlot = 1; // slot 0 is permanent silence
+        DSlotIndex nextDoubleSlot = 0;
+
+        for (std::size_t compiledIdx = 0; compiledIdx < items.size(); ++compiledIdx)
+        {
+            const CompileItem& item = items[compiledIdx];
+            const std::uint16_t channels = static_cast<std::uint16_t> (item.channels);
+
+            bool aliasOk = false;
+            SlotIndex outputSlot = kNoSlot;
+
+            if (canAliasInPlace (items, outputSlots, lastReader, compiledIdx))
+            {
+                outputSlot = outputSlots[item.inputs.front()];
+                aliasOk = true;
+            }
+            else if (! allocateFloatSlot (freeSlotsByChannels, channels, nextFloatSlot, outputSlot))
+            {
+                return failBool (error, GraphBuildError::GraphTooLarge { item.props.id });
+            }
+
+            if (outputSlot == kSilenceSlot || outputSlot == kNoSlot)
+                return failBool (error, GraphBuildError::GraphTooLarge { item.props.id });
+
+            outputSlots[compiledIdx] = outputSlot;
+
+            CompiledNode cn;
+            cn.node        = item.node;
+            cn.id          = item.props.id;
+            cn.numChannels = channels;
+            cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
+            cn.outputSlot  = outputSlot;
+            cn.pathLatency = item.pathLatency;
+            cn.kind        = item.kind;
+            cn.aliasOk     = aliasOk;
+
+            if (cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master)
+            {
+                if (nextDoubleSlot == kNoSlot)
+                    return failBool (error, GraphBuildError::GraphTooLarge { item.props.id });
+
+                cn.busAccumSlot = nextDoubleSlot;
+                ++nextDoubleSlot;
+            }
+
+            for (const std::size_t inputIdx : item.inputs)
+            {
+                payload.inputSlotIndices.push_back (InputSlot {
+                    outputSlots[inputIdx],
+                    static_cast<std::uint16_t> (inputIdx) });
+            }
+
+            cn.numInputs = static_cast<std::uint16_t> (payload.inputSlotIndices.size() - cn.inputsBegin);
+            if (cn.kind != CompiledNodeKind::Latency)
+                payload.idIndex.push_back (std::make_pair (cn.id, static_cast<std::uint32_t> (compiledIdx)));
+
+            if (cn.kind == CompiledNodeKind::Master)
+            {
+                payload.masterOutputSlot = cn.outputSlot;
+                payload.masterChannels   = cn.numChannels;
+            }
+
+            payload.compiledNodes.push_back (cn);
+
+            const std::size_t stamp = compiledIdx + 1u;
+            for (const std::size_t inputIdx : item.inputs)
+            {
+                if (lastReader[inputIdx] != compiledIdx || releaseStamp[inputIdx] == stamp)
+                    continue;
+
+                releaseStamp[inputIdx] = stamp;
+
+                const SlotIndex releasedSlot = outputSlots[inputIdx];
+                if (releasedSlot != kNoSlot && releasedSlot != kSilenceSlot && releasedSlot != outputSlot)
+                {
+                    const std::uint16_t releasedChannels = static_cast<std::uint16_t> (items[inputIdx].channels);
+                    freeSlotsByChannels[releasedChannels].push_back (releasedSlot);
+                }
+            }
+        }
+
+        std::sort (payload.idIndex.begin(), payload.idIndex.end(),
+                   [] (const auto& a, const auto& b) { return a.first < b.first; });
+
         payload.poolLayout.maxBlockSize       = static_cast<std::uint32_t> (maxBlockSize);
         payload.poolLayout.maxChannelsPerSlot = maxChannels;
-        payload.poolLayout.numFloatSlots      = checkedSlotCount (items.size() + 1u);
-        payload.poolLayout.numDoubleSlots     = 0;
+        payload.poolLayout.numFloatSlots      = nextFloatSlot;
+        payload.poolLayout.numDoubleSlots     = nextDoubleSlot;
 
+        allocateFloatStorage (payload);
+        allocateDoubleStorage (payload);
+        return true;
+    }
+
+    static bool allocateFloatSlot (std::vector<std::vector<SlotIndex>>& freeSlotsByChannels,
+                                   std::uint16_t channels,
+                                   SlotIndex& nextFloatSlot,
+                                   SlotIndex& out) noexcept
+    {
+        std::vector<SlotIndex>& bucket = freeSlotsByChannels[channels];
+        if (! bucket.empty())
+        {
+            out = bucket.back();
+            bucket.pop_back();
+            return true;
+        }
+
+        if (nextFloatSlot == kNoSlot)
+            return false;
+
+        out = nextFloatSlot;
+        ++nextFloatSlot;
+        return true;
+    }
+
+    static bool canAliasInPlace (const std::vector<CompileItem>& items,
+                                 const std::vector<SlotIndex>& outputSlots,
+                                 const std::vector<std::size_t>& lastReader,
+                                 std::size_t itemIdx) noexcept
+    {
+        const CompileItem& item = items[itemIdx];
+        if (item.inputs.size() != 1u)
+            return false;
+        if (item.kind != CompiledNodeKind::Fader && item.kind != CompiledNodeKind::Meter)
+            return false;
+
+        const std::size_t producerIdx = item.inputs.front();
+        const CompileItem& producer = items[producerIdx];
+        if (lastReader[producerIdx] != itemIdx)
+            return false;
+        if (producer.channels != item.channels)
+            return false;
+        if (producer.kind == CompiledNodeKind::Sum || item.kind == CompiledNodeKind::Sum)
+            return false;
+
+        const SlotIndex producerSlot = outputSlots[producerIdx];
+        return producerSlot != kNoSlot && producerSlot != kSilenceSlot;
+    }
+
+    static void allocateFloatStorage (CompiledGraph::Payload& payload)
+    {
         const std::size_t totalSamples = static_cast<std::size_t> (payload.poolLayout.numFloatSlots)
                                        * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
                                        * static_cast<std::size_t> (payload.poolLayout.maxBlockSize);
@@ -505,49 +655,35 @@ private:
                                       * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
                                       + static_cast<std::size_t> (ch)] = payload.floatStorage.get() + sampleOffset;
             }
-
-        for (std::size_t compiledIdx = 0; compiledIdx < items.size(); ++compiledIdx)
-        {
-            const CompileItem& item = items[compiledIdx];
-
-            CompiledNode cn;
-            cn.node        = item.node;
-            cn.id          = item.props.id;
-            cn.numChannels = static_cast<std::uint16_t> (item.channels);
-            cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
-            cn.outputSlot  = checkedSlotCount (compiledIdx + 1u);
-            cn.pathLatency = item.pathLatency;
-            cn.kind        = item.kind;
-
-            for (const std::size_t inputIdx : item.inputs)
-            {
-                payload.inputSlotIndices.push_back (InputSlot {
-                    payload.compiledNodes[inputIdx].outputSlot,
-                    static_cast<std::uint16_t> (inputIdx) });
-            }
-
-            cn.numInputs = static_cast<std::uint16_t> (payload.inputSlotIndices.size() - cn.inputsBegin);
-            if (cn.kind != CompiledNodeKind::Latency)
-                payload.idIndex.push_back (std::make_pair (cn.id, static_cast<std::uint32_t> (compiledIdx)));
-
-            if (cn.kind == CompiledNodeKind::Master)
-            {
-                payload.masterOutputSlot = cn.outputSlot;
-                payload.masterChannels   = cn.numChannels;
-            }
-
-            payload.compiledNodes.push_back (cn);
-        }
-
-        std::sort (payload.idIndex.begin(), payload.idIndex.end(),
-                   [] (const auto& a, const auto& b) { return a.first < b.first; });
     }
 
-    static std::uint16_t checkedSlotCount (std::size_t value) noexcept
+    static void allocateDoubleStorage (CompiledGraph::Payload& payload)
     {
-        return value > static_cast<std::size_t> (std::numeric_limits<std::uint16_t>::max())
-            ? std::numeric_limits<std::uint16_t>::max()
-            : static_cast<std::uint16_t> (value);
+        if (payload.poolLayout.numDoubleSlots == 0)
+            return;
+
+        const std::size_t totalSamples = static_cast<std::size_t> (payload.poolLayout.numDoubleSlots)
+                                       * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
+                                       * static_cast<std::size_t> (payload.poolLayout.maxBlockSize);
+        payload.doubleStorage = std::make_unique<double[]> (totalSamples);
+        for (std::size_t i = 0; i < totalSamples; ++i)
+            payload.doubleStorage[i] = 0.0;
+
+        payload.doubleSlotPtrs.resize (static_cast<std::size_t> (payload.poolLayout.numDoubleSlots)
+                                       * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot),
+                                       nullptr);
+
+        for (std::uint16_t slot = 0; slot < payload.poolLayout.numDoubleSlots; ++slot)
+            for (std::uint16_t ch = 0; ch < payload.poolLayout.maxChannelsPerSlot; ++ch)
+            {
+                const std::size_t sampleOffset = (static_cast<std::size_t> (slot)
+                                                  * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
+                                                  + static_cast<std::size_t> (ch))
+                                               * static_cast<std::size_t> (payload.poolLayout.maxBlockSize);
+                payload.doubleSlotPtrs[static_cast<std::size_t> (slot)
+                                       * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
+                                       + static_cast<std::size_t> (ch)] = payload.doubleStorage.get() + sampleOffset;
+            }
     }
 
     static void bindBusNodes (CompiledGraph::Payload& payload)

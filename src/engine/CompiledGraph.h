@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -193,10 +194,11 @@ public:
                 continue;
 
             float* const* const outChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
-            zeroChannels (outChannels, cn.numChannels, numFrames);
+            if (! cn.aliasOk)
+                zeroChannels (outChannels, cn.numChannels, numFrames);
 
             const bool busLike = cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master;
-            if (cn.numInputs == 1 && ! busLike)
+            if (cn.numInputs == 1 && ! busLike && ! cn.aliasOk)
             {
                 const InputSlot& input = inputs[cn.inputsBegin];
                 if (input.fromSlot != kNoSlot)
@@ -228,6 +230,9 @@ public:
     float   identityDc() const noexcept { return identityDc_; }
     bool    isDegenerate() const noexcept { return isDegenerate_; }
     std::int64_t totalLatency() const noexcept { return totalLatency_; }
+
+    const BufferPoolLayout& debugPoolLayout() const noexcept { return poolLayout_; }
+    std::span<const CompiledNode> debugCompiledNodes() const noexcept { return compiledNodes_; }
 
     std::size_t debugCountNodesOfKind (CompiledNodeKind kind) const noexcept
     {

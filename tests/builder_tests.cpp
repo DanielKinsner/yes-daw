@@ -8,7 +8,9 @@
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/MasterNode.h"
+#include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
+#include "engine/nodes/SumNode.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -23,18 +25,23 @@
 
 using yesdaw::engine::AudioBlock;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::DelayNode;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::IdentityDcNode;
+using yesdaw::engine::kNoSlot;
+using yesdaw::engine::kSilenceSlot;
 using yesdaw::engine::MasterNode;
+using yesdaw::engine::MeterNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::OscillatorNode;
 using yesdaw::engine::ProcessArgs;
+using yesdaw::engine::SumNode;
 
 namespace {
 
@@ -62,6 +69,15 @@ std::vector<float> render (CompiledGraph& graph, int frames)
     std::vector<float> out (static_cast<std::size_t> (frames), -999.0f);
     graph.process (out.data(), frames);
     return out;
+}
+
+const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
+{
+    for (const CompiledNode& node : graph.debugCompiledNodes())
+        if (node.id == id)
+            return &node;
+
+    return nullptr;
 }
 
 class LinkNode final : public Node
@@ -259,6 +275,262 @@ TEST_CASE ("GraphBuilder renders an empty project as silence", "[builder][render
     const std::vector<float> out = render (*graph, 128);
     for (float v : out)
         REQUIRE (v == 0.0f);
+}
+
+TEST_CASE ("GraphBuilder sizes the float pool to live width instead of node count", "[builder][pool]")
+{
+    constexpr int kLinks = 32;
+
+    auto source = std::make_unique<IdentityDcNode> (1, 0.5f, 1);
+    Node* previous = source.get();
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 64;
+    inputs.nodes.reserve (static_cast<std::size_t> (kLinks) + 2u);
+    inputs.nodes.push_back (std::move (source));
+
+    for (int i = 0; i < kLinks; ++i)
+    {
+        auto link = std::make_unique<LinkNode> (static_cast<NodeId> (2 + i));
+        link->setInput (previous);
+        previous = link.get();
+        inputs.nodes.push_back (std::move (link));
+    }
+
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+    master->setInputNodes ({ previous });
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugPoolLayout().numFloatSlots == 3u);
+    REQUIRE (graph->debugPoolLayout().numFloatSlots < static_cast<std::uint16_t> (kLinks));
+
+    const std::vector<float> out = render (*graph, 64);
+    for (float v : out)
+        REQUIRE (v == 0.5f);
+}
+
+TEST_CASE ("GraphBuilder never assigns slot zero as a producer output", "[builder][pool][silence-slot]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto fader = std::make_unique<FaderNode> (2, 1);
+    auto meter = std::make_unique<MeterNode> (3, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    MeterNode* const meterPtr = meter.get();
+    faderPtr->setInput (sourcePtr);
+    meterPtr->setInput (faderPtr);
+    master->setInputNodes ({ meterPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (meter));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    for (const CompiledNode& node : graph->debugCompiledNodes())
+    {
+        REQUIRE (node.outputSlot != kSilenceSlot);
+        REQUIRE (node.outputSlot != kNoSlot);
+    }
+}
+
+TEST_CASE ("GraphBuilder marks R3 in-place reuse only for whitelisted last-reader nodes", "[builder][pool][alias]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto fader = std::make_unique<FaderNode> (2, 1);
+    auto meter = std::make_unique<MeterNode> (3, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    MeterNode* const meterPtr = meter.get();
+    faderPtr->setInput (sourcePtr);
+    meterPtr->setInput (faderPtr);
+    master->setInputNodes ({ meterPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 32;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (meter));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const CompiledNode* sourceNode = compiledNodeById (*graph, 1);
+    const CompiledNode* faderNode = compiledNodeById (*graph, 2);
+    const CompiledNode* meterNode = compiledNodeById (*graph, 3);
+    REQUIRE (sourceNode != nullptr);
+    REQUIRE (faderNode != nullptr);
+    REQUIRE (meterNode != nullptr);
+
+    REQUIRE (faderNode->aliasOk);
+    REQUIRE (faderNode->outputSlot == sourceNode->outputSlot);
+    REQUIRE (meterNode->aliasOk);
+    REQUIRE (meterNode->outputSlot == faderNode->outputSlot);
+
+    const std::vector<float> out = render (*graph, 32);
+    for (float v : out)
+        REQUIRE (v == 0.25f);
+}
+
+TEST_CASE ("GraphBuilder keeps pending multi-input readers from being reused early", "[builder][pool][alias]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto fader = std::make_unique<FaderNode> (2, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    faderPtr->setInput (sourcePtr);
+    master->setInputNodes ({ faderPtr, sourcePtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 32;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const CompiledNode* sourceNode = compiledNodeById (*graph, 1);
+    const CompiledNode* faderNode = compiledNodeById (*graph, 2);
+    REQUIRE (sourceNode != nullptr);
+    REQUIRE (faderNode != nullptr);
+
+    REQUIRE_FALSE (faderNode->aliasOk);
+    REQUIRE (faderNode->outputSlot != sourceNode->outputSlot);
+
+    const std::vector<float> out = render (*graph, 32);
+    for (float v : out)
+        REQUIRE (v == 0.5f);
+}
+
+TEST_CASE ("GraphBuilder does not alias Fader output over SumNode output", "[builder][pool][alias][sum]")
+{
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto sum = std::make_unique<SumNode> (2, 1);
+    auto fader = std::make_unique<FaderNode> (3, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    SumNode* const sumPtr = sum.get();
+    FaderNode* const faderPtr = fader.get();
+    sumPtr->setInputNodes ({ sourcePtr });
+    faderPtr->setInput (sumPtr);
+    master->setInputNodes ({ faderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 32;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (sum));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const CompiledNode* sumNode = compiledNodeById (*graph, 2);
+    const CompiledNode* faderNode = compiledNodeById (*graph, 3);
+    const CompiledNode* masterNode = compiledNodeById (*graph, kMasterId);
+    REQUIRE (sumNode != nullptr);
+    REQUIRE (faderNode != nullptr);
+    REQUIRE (masterNode != nullptr);
+
+    REQUIRE_FALSE (faderNode->aliasOk);
+    REQUIRE (faderNode->outputSlot != sumNode->outputSlot);
+    REQUIRE (sumNode->busAccumSlot != kNoSlot);
+    REQUIRE (masterNode->busAccumSlot != kNoSlot);
+    REQUIRE (sumNode->busAccumSlot != masterNode->busAccumSlot);
+    REQUIRE (graph->debugPoolLayout().numDoubleSlots == 2u);
+
+    const std::vector<float> out = render (*graph, 32);
+    for (float v : out)
+        REQUIRE (v == 0.25f);
+}
+
+TEST_CASE ("GraphBuilder renders equivalent diamond graphs identically across input order", "[builder][pool][order]")
+{
+    auto buildDiamond = [] (bool reverse)
+    {
+        auto source = std::make_unique<IdentityDcNode> (1, 1.0f, 1);
+        auto left = std::make_unique<FaderNode> (10, 1);
+        auto right = std::make_unique<FaderNode> (20, 1);
+        auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+        IdentityDcNode* const sourcePtr = source.get();
+        FaderNode* const leftPtr = left.get();
+        FaderNode* const rightPtr = right.get();
+        leftPtr->setTargetGain (0.25f);
+        rightPtr->setTargetGain (0.75f);
+        leftPtr->setInput (sourcePtr);
+        rightPtr->setInput (sourcePtr);
+
+        GraphBuilder::Inputs inputs;
+        inputs.masterNodeId = kMasterId;
+        inputs.maxBlockSize = 64;
+
+        if (reverse)
+        {
+            master->setInputNodes ({ rightPtr, leftPtr });
+            inputs.nodes.push_back (std::move (right));
+            inputs.nodes.push_back (std::move (master));
+            inputs.nodes.push_back (std::move (source));
+            inputs.nodes.push_back (std::move (left));
+        }
+        else
+        {
+            master->setInputNodes ({ leftPtr, rightPtr });
+            inputs.nodes.push_back (std::move (source));
+            inputs.nodes.push_back (std::move (left));
+            inputs.nodes.push_back (std::move (right));
+            inputs.nodes.push_back (std::move (master));
+        }
+
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code() == GraphBuildError::Code::None);
+        return graph;
+    };
+
+    std::unique_ptr<CompiledGraph> a = buildDiamond (false);
+    std::unique_ptr<CompiledGraph> b = buildDiamond (true);
+
+    const std::vector<float> outA = render (*a, 64);
+    const std::vector<float> outB = render (*b, 64);
+
+    REQUIRE (outA == outB);
+    for (float v : outA)
+        REQUIRE (v == 1.0f);
 }
 
 TEST_CASE ("GraphBuilder PDC aligns convergence impulses at total latency", "[builder][pdc]")
