@@ -16,17 +16,22 @@ using yesdaw::engine::MeterMapView;
 using yesdaw::engine::MusicalTime;
 using yesdaw::engine::ResampleQuality;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::SnapGrid;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
 using yesdaw::engine::TempoMapView;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Transport;
+using yesdaw::engine::gridIndexForTick;
 using yesdaw::engine::kTicksPerQuarter;
+using yesdaw::engine::snapTick;
+using yesdaw::engine::tickForGridIndex;
 
 static_assert (std::is_same_v<Tick, std::int64_t>);
 static_assert (kTicksPerQuarter == 15360);
 static_assert (std::is_trivially_copyable_v<MusicalTime>);
+static_assert (std::is_trivially_copyable_v<SnapGrid>);
 static_assert (std::is_trivially_copyable_v<TempoChange>);
 static_assert (std::is_trivially_copyable_v<MeterChange>);
 static_assert (std::is_trivially_copyable_v<SampleRate>);
@@ -55,6 +60,88 @@ TEST_CASE ("MusicalTime carries exact ticks plus render-only fractional ticks", 
     REQUIRE_FALSE (negativeFrac.hasValidFraction());
     REQUIRE_FALSE (oneWholeFrac.hasValidFraction());
     REQUIRE (downbeat.tick == 61440);
+}
+
+TEST_CASE ("SnapGrid snaps ticks with deterministic integer nearest-grid behavior", "[time][snap]")
+{
+    const SnapGrid sixteenth { kTicksPerQuarter / 4 };
+    Tick snapped = -1;
+
+    REQUIRE (sixteenth.isValid());
+    REQUIRE (snapTick (0, sixteenth, snapped));
+    REQUIRE (snapped == 0);
+
+    REQUIRE (snapTick (sixteenth.intervalTicks / 2 - 1, sixteenth, snapped));
+    REQUIRE (snapped == 0);
+
+    REQUIRE (snapTick (sixteenth.intervalTicks / 2, sixteenth, snapped));
+    REQUIRE (snapped == sixteenth.intervalTicks);
+
+    REQUIRE (snapTick (sixteenth.intervalTicks / 2 + 1, sixteenth, snapped));
+    REQUIRE (snapped == sixteenth.intervalTicks);
+
+    REQUIRE (snapTick (kTicksPerQuarter + 17, sixteenth, snapped));
+    REQUIRE (snapped == kTicksPerQuarter);
+
+    const Tick once = snapped;
+    REQUIRE (snapTick (once, sixteenth, snapped));
+    REQUIRE (snapped == once);
+
+    REQUIRE (snapTick (-1, sixteenth, snapped));
+    REQUIRE (snapped == 0);
+
+    REQUIRE (snapTick (-sixteenth.intervalTicks / 2, sixteenth, snapped));
+    REQUIRE (snapped == 0);
+
+    REQUIRE (snapTick (-sixteenth.intervalTicks / 2 - 1, sixteenth, snapped));
+    REQUIRE (snapped == -sixteenth.intervalTicks);
+}
+
+TEST_CASE ("SnapGrid round-trips snapped ticks through integer grid indexes", "[time][snap]")
+{
+    const SnapGrid tripletEighth { kTicksPerQuarter / 3 };
+
+    for (const Tick index : { Tick { -8 }, Tick { -1 }, Tick { 0 }, Tick { 1 }, Tick { 37 } })
+    {
+        Tick tick = 0;
+        Tick readbackIndex = 0;
+
+        REQUIRE (tickForGridIndex (index, tripletEighth, tick));
+        REQUIRE (gridIndexForTick (tick, tripletEighth, readbackIndex));
+        REQUIRE (readbackIndex == index);
+
+        Tick snapped = 0;
+        REQUIRE (snapTick (tick, tripletEighth, snapped));
+        REQUIRE (snapped == tick);
+    }
+
+    Tick index = 0;
+    REQUIRE_FALSE (gridIndexForTick (tripletEighth.intervalTicks + 1, tripletEighth, index));
+}
+
+TEST_CASE ("SnapGrid rejects invalid grids and overflowing derived ticks", "[time][snap]")
+{
+    const SnapGrid zero { 0 };
+    const SnapGrid negative { -kTicksPerQuarter };
+    const SnapGrid twoTicks { 2 };
+    Tick out = 123;
+
+    REQUIRE_FALSE (zero.isValid());
+    REQUIRE_FALSE (negative.isValid());
+
+    REQUIRE_FALSE (snapTick (kTicksPerQuarter, zero, out));
+    REQUIRE (out == 123);
+
+    REQUIRE_FALSE (gridIndexForTick (kTicksPerQuarter, negative, out));
+    REQUIRE (out == 123);
+
+    REQUIRE_FALSE (tickForGridIndex (std::numeric_limits<Tick>::max(), twoTicks, out));
+    REQUIRE (out == 123);
+
+    REQUIRE (snapTick (std::numeric_limits<Tick>::max() - 1, twoTicks, out));
+    REQUIRE (out == std::numeric_limits<Tick>::max() - 1);
+
+    REQUIRE_FALSE (snapTick (std::numeric_limits<Tick>::max(), twoTicks, out));
 }
 
 TEST_CASE ("Tempo and meter changes are point records for later map conversion", "[time][maps]")

@@ -19,6 +19,21 @@ constexpr bool isFinitePositive (double value) noexcept
     return value > 0.0 && value <= std::numeric_limits<double>::max();
 }
 
+constexpr bool scaleTick (std::int64_t value, std::int64_t factor, std::int64_t& out) noexcept
+{
+    if (factor <= 0)
+        return false;
+
+    if (value > 0 && value > std::numeric_limits<std::int64_t>::max() / factor)
+        return false;
+
+    if (value < 0 && value < std::numeric_limits<std::int64_t>::min() / factor)
+        return false;
+
+    out = value * factor;
+    return true;
+}
+
 } // namespace detail
 
 using Tick = std::int64_t;
@@ -37,6 +52,61 @@ struct MusicalTime
 
     friend constexpr bool operator== (const MusicalTime&, const MusicalTime&) noexcept = default;
 };
+
+struct SnapGrid
+{
+    Tick intervalTicks = kTicksPerQuarter;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return intervalTicks > 0;
+    }
+
+    friend constexpr bool operator== (const SnapGrid&, const SnapGrid&) noexcept = default;
+};
+
+[[nodiscard]] constexpr bool snapTick (Tick tick, SnapGrid grid, Tick& snapped) noexcept
+{
+    if (! grid.isValid())
+        return false;
+
+    const Tick interval = grid.intervalTicks;
+    Tick quotient = tick / interval;
+    Tick remainder = tick % interval;
+
+    if (remainder < 0)
+    {
+        --quotient;
+        remainder += interval;
+    }
+
+    if (remainder >= interval - remainder)
+    {
+        if (quotient == std::numeric_limits<Tick>::max())
+            return false;
+
+        ++quotient;
+    }
+
+    return detail::scaleTick (quotient, interval, snapped);
+}
+
+[[nodiscard]] constexpr bool gridIndexForTick (Tick tick, SnapGrid grid, Tick& index) noexcept
+{
+    if (! grid.isValid() || tick % grid.intervalTicks != 0)
+        return false;
+
+    index = tick / grid.intervalTicks;
+    return true;
+}
+
+[[nodiscard]] constexpr bool tickForGridIndex (Tick index, SnapGrid grid, Tick& tick) noexcept
+{
+    if (! grid.isValid())
+        return false;
+
+    return detail::scaleTick (index, grid.intervalTicks, tick);
+}
 
 enum class TimeBase : std::uint8_t
 {
