@@ -43,12 +43,32 @@ cmake --build build
 build\YesDaw_artefacts\Debug\YesDaw.exe            # exact path varies by generator/config
 ```
 
-## H0 spike check (manual — no automated gate yet)
+## The mechanical gate (build + test on every machine, byte-identical to CI)
 
-Run it: a window opens and a steady 440 Hz tone plays with **no clicks or dropouts** over ~10 minutes.
-That's spike #1 (device round-trip). WAV scrub, the 60fps timeline, and the node-trait stub follow.
+Everything runs through the `ci` CMake preset so the cloud and all three machines invoke it the same:
 
-## Tests / gates (arrive at H1 — none exist yet; H0 is human-confirmed)
+```
+cmake --preset ci          # configure (Ninja, Release) — needs the MSVC env on Windows (x64 Native Tools prompt)
+cmake --build --preset ci  # build the app + the headless test
+ctest --preset ci          # run YesDawCheck — exit 0/1, the gate
+```
 
-RTSan (Clang leg), golden-file render-diff, PDC impulse, property-based undo, save/load round-trip,
-migration fixtures. When these exist, this is the "green" the loop commits against.
+`ctest` runs the headless `YesDawCheck` (golden + 440 Hz pitch + level + purity + fade + perf). A
+green run IS the verification — no listening. After an **intentional** DSP change, re-bless the golden:
+`cmake --build build --target bless-goldens`.
+
+## Real-machine soak (the H0 exit gate — needs real hardware)
+
+CI can't open an audio device, so the one physical check is a self-asserting script:
+
+```
+tools/soak.sh 600              # 10 min on the default device; PASS/FAIL + exit 0/1, no listening
+tools/soak.sh 600 --loopback   # also assert sound physically came out at 440 Hz (wire out->in first)
+```
+
+## Gates (live now; more arrive with the engine at H1)
+
+Live at H0: build matrix (Win/Linux/mac), Catch2 self-check via `ctest`, golden render-diff, RTSan
+(`-fsanitize=realtime`, Clang 20 leg), warnings-as-errors, the real-machine soak. Arriving at H1 as the
+engine lands: PDC impulse, property-based undo, save/load round-trip, migration fixtures. This green is
+what the agentic loop commits against. See ADR-0005 and `docs/ci-mechanical-verification.md`.

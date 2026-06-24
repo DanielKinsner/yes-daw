@@ -9,28 +9,40 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-23
-**Current horizon:** Planning → next is **H0 (spikes)**
+**Current horizon:** **H0 (spikes)** — in progress
+
+> **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
+> human step is blessing a golden on an intended audio change (`cmake --build build --target bless-goldens`).
 
 ---
 
 ## Now — the one small task in flight
-- **Next agent's first job: make verification mechanical** — stand up CI + a self-asserting check
-  harness so no step needs Dan to read code, listen, or watch. Then continue the spikes (each with its
-  own automated check). Dan is non-coder + busy: CI green is the gate, not him.
+- **Verification is now mechanical and green.** CI (Windows + Linux + macOS) builds the app and runs a
+  headless Catch2 self-check (golden + 440 Hz pitch + level + purity + fade + perf); an RTSan leg
+  proves the audio hot path never allocates/locks; a real-machine `tools/soak.sh` is the H0 exit gate.
+  An adversarial review found two gate holes (golden blind to steady-state; asymmetric distortion
+  passed) — both closed and proven. **Next: the remaining spikes** (#1 WAV scrub, #2 60fps timeline,
+  #3 node-trait stub), each with its own automated check.
 
 ## Current-horizon checklist — H0 (plain English, small steps)
 - [x] Install the C++ toolchain (CMake + MSVC via VS 2022 Build Tools). ✓
 - [x] `cmake -B build` configures and fetches JUCE with no error. ✓
 - [x] App builds and a window opens (`YesDaw.exe`). ✓ — *`Main.cpp` compiled clean first try.*
 - [x] A 440 Hz tone plays out real hardware (spike #1: device round-trip core). ✓
-- [ ] **Stand up CI + a self-asserting check harness** — follow `docs/ci-mechanical-verification.md`
-  (it has the starter `ci.yml`, `CMakePresets.json`, the RTSan job, `tools/soak.sh`, ADR-0005, and the
-  green-small / direct-to-main commit rule). The gate is a green check, not Dan. *(first task)*
-- [ ] Tame the spike (fade-in / lower level / start-stop) so a local run isn't a jumpscare.
+- [x] **Stand up CI + a self-asserting check harness** ✓ — GitHub Actions (Win+Linux+mac) via the `ci`
+  preset builds + runs Catch2 `YesDawCheck` (golden + Goertzel/zero-crossing 440 Hz + RMS/peak/symmetry/
+  DC purity + fade + perf); RTSan leg (`-fsanitize=realtime`, Clang 20) enforces no-alloc on the hot
+  path; warnings-as-errors; `bless-goldens`. Recorded in ADR-0005. *(green; see `docs/ci-mechanical-verification.md`)*
+- [x] Tame the spike (fade-in / lower level) ✓ — 50 ms fade-in + `noteOn/noteOff` in `SineSource`,
+  −20 dBFS default; asserted by the fade-in check. *(start-stop UI deferred — spike.)*
+- [x] Real-machine soak harness built ✓ — `tools/soak.sh` + `YesDawSoak` open the real device, count
+  xruns/deadline-misses (+ optional loopback RMS/440-mag) → PASS/FAIL. Verified on this box (3 s run,
+  0 misses). **Owner runs the 10-min gate; loopback needs an out→in jumper.**
 - [ ] Load + scrub one WAV — verified by a golden-output check (finish spike #1).
-- [ ] GPU timeline draws 100+ elements at 60fps (spike #2) — asserted by a frame-time budget, not eyeballed; decide native vs WebView.
+- [ ] GPU timeline draws 100+ elements at 60fps (spike #2) — asserted by a frame-time budget, not eyeballed; **decide native vs WebView** (product.md leans native).
 - [ ] One Node behind a stub of the format-neutral trait (spike #3).
-- [ ] **Exit:** mechanical gates green (CI) + a one-machine self-check script passes the real-hardware soak → H0 done. *(no human judgment)*
+- [ ] **Exit:** `tools/soak.sh` exits 0 (`xruns==0`, `deadline_misses==0`, loopback RMS>0.01 @440 Hz,
+  and — once the timeline lands — `max_frame_ms<16.6`) on a real machine → H0 done. *(no human judgment)*
 
 ## Done recently
 - 2026-06-23 — **Foundation** committed: research corpus, CONTEXT glossary, ADR-0001/0002, roadmap, CLAUDE.md.
@@ -57,6 +69,12 @@ worklog.
 - 2026-06-23 — **Mechanical-first model + CI cheat-sheet** committed (`docs/ci-mechanical-verification.md`)
   + `bootstrap/windows.ps1` (idempotent one-command toolchain install; fixes the winget-quoting pain).
   Standing up CI is the agent's first H0 task. Commit rule: frequent, straight to main, no squash.
+- 2026-06-23 — **CI + harness LIVE and GREEN** (the first H0 task, done in full): extracted a pure
+  `SineSource` from the spike; Catch2 `YesDawCheck` (golden + pitch + level + purity + fade + perf);
+  GitHub Actions 3-OS matrix via the `ci` preset; warnings-as-errors (SYSTEM-demoted deps); RTSan leg;
+  `bless-goldens`; ADR-0005. An **adversarial multi-agent review** caught + closed two real gate holes
+  (golden window inside the fade; asymmetric distortion passing) — both proven via injected-bug tests.
+  Built the **real-machine soak** (`tools/soak.sh` + `YesDawSoak`); verified on this box.
 
 ## Next
 - ✅ **Agentic-loop workflow: adopted in full** (activates at H1).

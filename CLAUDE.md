@@ -30,7 +30,7 @@ Work in small, verifiable chunks. At each **checkpoint** — one coherent, commi
 hand back. Every checkpoint, in order:
 1. **Update `STATUS.md`** — tick what's done; set "Now" and "Next".
 2. **Commit small, then push.**
-3. **Report plainly:** what you did, what to verify (in H0: build + listen/watch on real hardware),
+3. **Report plainly:** what you did, what the CI gate checks (on red, the failing job — never "listen/watch"),
    and what's next. Then **stop and wait** — do not roll into the next chunk on your own.
 
 At a checkpoint Dan verifies and may review the diff (sometimes with an outside tool). Treat any
@@ -64,4 +64,5 @@ before stopping. The rare check that needs real hardware (sound actually out, re
 - **Agentic loop workflow adopted in full** (from H1): the loop implements toward the current horizon's
   exit criterion and commits only when CI gates pass, with an automated critic pass + hard-stops (never
   edits ADRs, goldens, or `[[clang::nonblocking]]` annotations). See the plan's "Long-horizon execution
-  via agentic loops". H0 is hands-on (no gates yet); GUI visual feel is human-eyeballed.
+  via agentic loops". H0's gates exist now (build + Catch2 + golden + RTSan + soak; ADR-0005), so the
+  loop's precondition is met from H0 — only GUI *visual feel* is still human-eyeballed.
