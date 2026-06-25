@@ -331,14 +331,169 @@ TEST_CASE ("the pipeline is correct across channel counts and varying Block size
     runGainPipeline (2, 1,  3.0f);
 }
 
+TEST_CASE ("events beyond maxEventsPerBlock are dropped to the cap (first ones kept)", "[rtlane][events][overflow]")
+{
+    RtLaneConfig cfg;
+    cfg.channels          = 1;
+    cfg.maxBlockSize      = 8;
+    cfg.maxEventsPerBlock = 4;
+
+    RtLaneRing ring;
+    ring.prepare (cfg);
+
+    constexpr int numFrames = 8;
+    std::vector<float> in (numFrames, 1.0f);
+    std::vector<float> out (numFrames, 0.0f);
+    float* inCh[1]  = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    auto eventGain = [] (std::span<const Event> evs,
+                         const float* const* i, float* const* o, int ch, int nf) noexcept
+    {
+        const double g = evs.empty() ? 1.0 : evs.back().payload.parameter.normalizedValue;
+        for (int c = 0; c < ch; ++c)
+            for (int f = 0; f < nf; ++f)
+                o[c][f] = i[c][f] * static_cast<float> (g);
+    };
+
+    // Submit 7 events (cap is 4). The impl keeps the FIRST 4, so the surviving "last" is events[3] (0.4).
+    std::array<Event, 7> evs{};
+    for (std::uint32_t k = 0; k < 7; ++k)
+        evs[k] = makeParameterChangeEvent (0, 1, 1, 0.1 * static_cast<double> (k + 1));
+
+    ring.exchangeBlock (inCh, 1, numFrames, evs, outCh, 1);
+    REQUIRE (ring.pollOnce (eventGain));
+    const RtLaneExchangeResult r = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+
+    REQUIRE (r.source == RtLaneOutput::Fresh);
+    REQUIRE (r.outputEventCount == 4);                       // clamped to maxEventsPerBlock, no overrun
+    for (int f = 0; f < numFrames; ++f)
+        REQUIRE (out[f] == Approx (0.4));                    // events[3] (the 4th) is the surviving last
+}
+
+TEST_CASE ("numFrames beyond maxBlockSize is clamped, not overrun", "[rtlane][sizes][clamp]")
+{
+    RtLaneConfig cfg;
+    cfg.channels     = 1;
+    cfg.maxBlockSize = 8;
+
+    RtLaneRing ring;
+    ring.prepare (cfg);
+
+    constexpr int over = 20;                                 // caller asks for more than maxBlockSize
+    std::vector<float> in (over, 0.0f);
+    std::vector<float> out (over, -1.0f);
+    float* inCh[1]  = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    for (int f = 0; f < over; ++f) in[f] = sampleFor (0, f);
+    ring.exchangeBlock (inCh, 1, over, {}, outCh, 1);        // internally clamped to 8
+    REQUIRE (ring.pollOnce (identityProcess));
+
+    for (int f = 0; f < over; ++f) in[f] = sampleFor (1, f);
+    const RtLaneExchangeResult r = ring.exchangeBlock (inCh, 1, over, {}, outCh, 1);
+
+    REQUIRE (r.source == RtLaneOutput::Fresh);
+    REQUIRE (r.outputNumFrames <= 8);                        // delivered frame count never exceeds maxBlockSize
+    for (int f = 0; f < 8; ++f)
+        REQUIRE (out[f] == Approx (sampleFor (0, f)));       // the clamped frames are Block 0's data
+}
+
+TEST_CASE ("reset() re-primes the ring for reuse", "[rtlane][reset]")
+{
+    RtLaneConfig cfg;
+    cfg.channels           = 1;
+    cfg.maxBlockSize       = 8;
+    cfg.lastGoodHoldBlocks = 1;
+    cfg.bypassAfterMisses  = 2;
+
+    RtLaneRing ring;
+    ring.prepare (cfg);
+
+    constexpr int numFrames = 8;
+    std::vector<float> in (numFrames, 1.0f);
+    std::vector<float> out (numFrames, 0.0f);
+    float* inCh[1]  = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    // Drive the ring into latched bypass, then leave seq counters non-zero.
+    ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (ring.pollOnce (identityProcess));
+    ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);   // Fresh
+    ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);   // miss 1
+    ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);   // miss 2 -> bypass
+    REQUIRE (ring.bypassActive());
+    REQUIRE (ring.inputSeq() != 0);
+
+    ring.reset();
+    REQUIRE_FALSE (ring.bypassActive());
+    REQUIRE (ring.inputSeq() == 0);
+    REQUIRE (ring.outputSeq() == 0);
+    REQUIRE (ring.lastStatus() == RtLaneOutput::Silence);
+
+    // A fresh run after reset behaves exactly like a new ring.
+    const RtLaneExchangeResult r0 = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (r0.source == RtLaneOutput::Silence);
+    REQUIRE (ring.pollOnce (identityProcess));
+    const RtLaneExchangeResult r1 = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (r1.source == RtLaneOutput::Fresh);
+    REQUIRE (r1.outputBlockIndex == 0);
+}
+
+TEST_CASE ("numFrames varying block-to-block within one run delivers + zero-fills correctly", "[rtlane][sizes][varying]")
+{
+    RtLaneConfig cfg;
+    cfg.channels     = 1;
+    cfg.maxBlockSize = 64;
+
+    RtLaneRing ring;
+    ring.prepare (cfg);
+
+    const std::array<int, 7> frames { 64, 16, 48, 8, 32, 60, 1 };
+    std::vector<float> in (64, 0.0f);
+    std::vector<float> out (64, 0.0f);
+    float* inCh[1]  = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    for (std::size_t n = 0; n < frames.size(); ++n)
+    {
+        const int F = frames[n];
+        for (int f = 0; f < F; ++f) in[f] = sampleFor (static_cast<std::uint64_t> (n), f);
+
+        const RtLaneExchangeResult r = ring.exchangeBlock (inCh, 1, F, {}, outCh, 1);
+
+        if (n >= 1)
+        {
+            const int prevF = frames[n - 1];
+            const int wn    = std::min (prevF, F);   // delivered output = min(producing-block, current-block)
+            REQUIRE (r.source == RtLaneOutput::Fresh);
+            REQUIRE (r.outputBlockIndex == static_cast<std::uint64_t> (n) - 1);
+            REQUIRE (r.outputNumFrames == static_cast<std::uint32_t> (wn));
+            for (int f = 0; f < wn; ++f)
+                REQUIRE (out[f] == Approx (sampleFor (static_cast<std::uint64_t> (n) - 1, f)));  // overlap delivered
+            for (int f = wn; f < F; ++f)
+                REQUIRE (out[f] == 0.0f);                                                        // tail zero-filled
+        }
+
+        REQUIRE (ring.pollOnce (identityProcess));
+    }
+}
+
 namespace {
 
 struct StressResult
 {
-    std::uint64_t freshCount       = 0;
-    bool          allFreshCorrect  = true;   // every Fresh delivery == its source Block's processing
-    bool          allFreshOneLate  = true;   // every Fresh delivery is EXACTLY Block N-1 (deterministic)
+    std::uint64_t freshCount      = 0;
+    std::uint64_t missCount       = 0;
+    bool          allFreshCorrect = true;   // every Fresh delivery == its source Block's processing
+    bool          allFreshOneLate = true;   // every Fresh delivery is EXACTLY Block N-1 (deterministic)
 };
+
+constexpr std::uint64_t kStressBlocks = 3000;
+// The final Blocks are ALWAYS paced (the audio thread waits for the child), so even the flat-out run is
+// guaranteed to land some CONCURRENT Fresh deliveries through the output seqlock — which keeps its
+// allFreshCorrect / allFreshOneLate assertions from passing vacuously on a zero-Fresh run.
+constexpr std::uint64_t kStressCoda = 128;
 
 // Run the audio role (this thread) and the child role (a worker thread) concurrently. `paced` models the
 // audio device's one-Block-per-period cadence by letting the child publish each Block before the next
@@ -386,10 +541,9 @@ StressResult runStress (bool paced)
     }
 
     StressResult result;
-    constexpr std::uint64_t kBlocks   = 3000;
-    constexpr int           kSpinCap  = 2'000'000;   // bound the pace wait so a starved child can't hang us
+    constexpr int kSpinCap = 2'000'000;   // bound the pace wait so a starved child can't hang us
 
-    for (std::uint64_t n = 0; n < kBlocks; ++n)
+    for (std::uint64_t n = 0; n < kStressBlocks; ++n)
     {
         for (int c = 0; c < channels; ++c)
             for (int f = 0; f < numFrames; ++f)
@@ -409,10 +563,16 @@ StressResult runStress (bool paced)
                         != Approx (chanSample (c, r.outputBlockIndex, f) * gain))
                         result.allFreshCorrect = false;
         }
+        else
+        {
+            ++result.missCount;
+        }
 
-        if (paced)
+        // Pace this Block if requested, OR if we are in the always-paced coda (so flat-out still lands
+        // concurrent Fresh deliveries — the child is live, the audio thread just waits for Block n).
+        if (paced || n >= kStressBlocks - kStressCoda)
             for (int s = 0; ring.outputSeq() <= n && s < kSpinCap; ++s)
-                std::this_thread::yield();           // give the child the Block period to produce Block n
+                std::this_thread::yield();
     }
 
     stop.store (true, std::memory_order_release);
@@ -431,10 +591,13 @@ TEST_CASE ("stress: the audio thread and child thread exchange Blocks race-free"
     {
         // The audio thread outruns the child, so it repeatedly reads slots the child is mid-writing. The
         // seqlock + relaxed-atomic payload must make every such read either a correct Fresh Block or a
-        // miss — never torn garbage. This is the case the TSan leg verifies has no data race.
+        // miss — never torn garbage. This is the case the TSan leg verifies has no data race. The paced
+        // coda guarantees freshCount > 0, so the no-garbage assertions below are never vacuous.
         const StressResult r = runStress (/*paced*/ false);
         REQUIRE (r.allFreshCorrect);
         REQUIRE (r.allFreshOneLate);
+        REQUIRE (r.freshCount > 0);                       // at least the coda delivered Fresh concurrently
+        REQUIRE (r.freshCount + r.missCount == kStressBlocks);
     }
 
     SECTION ("paced: a child that keeps up delivers every Block exactly one Block late")
@@ -442,6 +605,7 @@ TEST_CASE ("stress: the audio thread and child thread exchange Blocks race-free"
         const StressResult r = runStress (/*paced*/ true);
         REQUIRE (r.allFreshCorrect);
         REQUIRE (r.allFreshOneLate);
-        REQUIRE (r.freshCount > 1000);   // sustained correct delivery across the run (kBlocks == 3000)
+        REQUIRE (r.freshCount > 1000);                    // sustained correct delivery (kStressBlocks == 3000)
+        REQUIRE (r.freshCount + r.missCount == kStressBlocks);
     }
 }
