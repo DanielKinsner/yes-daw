@@ -98,6 +98,24 @@ Project makeEditableProject()
     return project;
 }
 
+Project makeTwoClipEditableProject()
+{
+    Project project = makeEditableProject();
+
+    Clip second = project.clips.front();
+    second.id = idFromLowByte (33);
+    second.timelineStart = 90'000;
+    second.timelineLength = 30'000;
+    second.srcOffset = 0;
+    second.srcLen = 400;
+    second.gain = 1.0f;
+    second.fadeIn = 0;
+    second.fadeOut = 0;
+
+    project.clips.push_back (second);
+    return project;
+}
+
 void requireProjectValueUnchanged (const Project& actual, const Project& expected)
 {
     REQUIRE (actual.id == expected.id);
@@ -442,6 +460,127 @@ TEST_CASE ("Project undo stack records command diffs for clip metadata edits", "
     REQUIRE (undo.canUndo());
     REQUIRE_FALSE (undo.canRedo());
     REQUIRE (undo.redoDepth() == 0u);
+}
+
+TEST_CASE ("Project undo stack groups compatible headless clip edit transactions", "[project][clip-edit][undo][group]")
+{
+    Project project = makeTwoClipEditableProject();
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project original = project;
+    const EntityId firstId = project.clips[0].id;
+    const EntityId secondId = project.clips[1].id;
+    const EntityId rightId = idFromLowByte (34);
+
+    ProjectUndoStack undo;
+    REQUIRE_FALSE (undo.transactionGroupOpen());
+    REQUIRE (undo.beginTransactionGroup());
+    REQUIRE (undo.transactionGroupOpen());
+    REQUIRE_FALSE (undo.beginTransactionGroup());
+
+    auto result = undo.apply (project, ProjectEditCommand::moveClip (firstId, 1'024));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+
+    result = undo.apply (project, ProjectEditCommand::moveClip (firstId, 2'048));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveClip);
+    REQUIRE (undo.nextUndo()->diff.before.size() == 1u);
+    REQUIRE (undo.nextUndo()->diff.after.size() == 1u);
+    REQUIRE (undo.nextUndo()->diff.before[0] == original.clips[0]);
+    REQUIRE (undo.nextUndo()->diff.after[0] == project.clips[0]);
+
+    result = undo.apply (project, ProjectEditCommand::setClipGain (firstId, 1.25f));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+
+    result = undo.apply (project, ProjectEditCommand::setClipGain (firstId, 0.75f));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetClipGain);
+    REQUIRE (undo.nextUndo()->diff.before[0].gain == original.clips[0].gain);
+    REQUIRE (undo.nextUndo()->diff.after[0].gain == 0.75f);
+
+    result = undo.apply (project, ProjectEditCommand::moveClip (secondId, 10'000));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 3u);
+
+    result = undo.apply (project, ProjectEditCommand::moveClip (secondId, 11'000));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 3u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveClip);
+    REQUIRE (undo.nextUndo()->diff.before[0] == original.clips[1]);
+    REQUIRE (undo.nextUndo()->diff.after[0] == project.clips[1]);
+
+    result = undo.apply (project, ProjectEditCommand::splitClip (firstId, rightId, 8'000, 300));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 4u);
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[0].id == firstId);
+    REQUIRE (project.clips[1].id == rightId);
+    REQUIRE (project.clips[1].srcOffset == project.clips[0].srcOffset + project.clips[0].srcLen);
+
+    REQUIRE (undo.endTransactionGroup());
+    REQUIRE_FALSE (undo.transactionGroupOpen());
+    REQUIRE_FALSE (undo.endTransactionGroup());
+
+    const Project edited = project;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE (undo.redoDepth() == 4u);
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+    REQUIRE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
+}
+
+TEST_CASE ("Project undo stack keeps compatible edits separate outside transaction groups", "[project][clip-edit][undo][group]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+
+    ProjectUndoStack undo;
+    auto result = undo.apply (project, ProjectEditCommand::moveClip (clipId, 1'024));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+
+    const Project afterFirstMove = project;
+    result = undo.apply (project, ProjectEditCommand::moveClip (clipId, 2'048));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+
+    const Project edited = project;
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, afterFirstMove);
+
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
 }
 
 TEST_CASE ("Project undo stack rejects failed commands and mismatched live Project state", "[project][clip-edit][undo][invalid]")

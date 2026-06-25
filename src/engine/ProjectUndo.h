@@ -118,6 +118,7 @@ struct ProjectEditApplyResult
 {
     ProjectEditStatus editStatus = ProjectEditStatus::InvalidProject;
     bool recorded = false;
+    bool coalesced = false;
 
     [[nodiscard]] constexpr bool applied() const noexcept
     {
@@ -238,6 +239,28 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool canCoalesceProjectEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::MoveClip
+           || verb == ProjectEditVerb::TrimClip
+           || verb == ProjectEditVerb::SetClipGain
+           || verb == ProjectEditVerb::SetClipFades;
+}
+
+[[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
+                                                              const ProjectEditTransaction& newer)
+{
+    return older.command.verb == newer.command.verb
+           && older.command.clipId == newer.command.clipId
+           && canCoalesceProjectEditVerb (older.command.verb)
+           && older.diff.firstClipIndex == newer.diff.firstClipIndex
+           && older.diff.before.size() == 1u
+           && older.diff.after.size() == 1u
+           && newer.diff.before.size() == 1u
+           && newer.diff.after.size() == 1u
+           && older.diff.after == newer.diff.before;
+}
+
 } // namespace detail
 
 [[nodiscard]] inline ProjectEditApplyResult applyProjectEditCommand (Project& project,
@@ -264,14 +287,46 @@ namespace detail {
 class ProjectUndoStack final
 {
 public:
+    [[nodiscard]] bool beginTransactionGroup() noexcept
+    {
+        if (activeGroupId_ != 0)
+            return false;
+
+        activeGroupId_ = nextGroupId_++;
+        return true;
+    }
+
+    [[nodiscard]] bool endTransactionGroup() noexcept
+    {
+        if (activeGroupId_ == 0)
+            return false;
+
+        activeGroupId_ = 0;
+        return true;
+    }
+
     [[nodiscard]] ProjectEditApplyResult apply (Project& project, const ProjectEditCommand& command)
     {
         ProjectEditTransaction transaction;
-        const ProjectEditApplyResult result = applyProjectEditCommand (project, command, transaction);
+        ProjectEditApplyResult result = applyProjectEditCommand (project, command, transaction);
         if (! result.applied())
             return result;
 
-        undo_.push_back (transaction);
+        if (activeGroupId_ != 0 && ! undo_.empty())
+        {
+            UndoEntry& previous = undo_.back();
+            if (previous.groupId == activeGroupId_
+                && detail::canCoalesceProjectEditTransactions (previous.transaction, transaction))
+            {
+                previous.transaction.command = transaction.command;
+                previous.transaction.diff.after = transaction.diff.after;
+                redo_.clear();
+                result.coalesced = true;
+                return result;
+            }
+        }
+
+        undo_.push_back (UndoEntry { transaction, activeGroupId_ });
         redo_.clear();
         return result;
     }
@@ -281,11 +336,12 @@ public:
         if (undo_.empty())
             return ProjectUndoStatus::NothingToUndo;
 
-        const ProjectEditTransaction transaction = undo_.back();
+        const UndoEntry entry = undo_.back();
+        const ProjectEditTransaction& transaction = entry.transaction;
         if (! detail::applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before))
             return ProjectUndoStatus::ProjectMismatch;
 
-        redo_.push_back (transaction);
+        redo_.push_back (entry);
         undo_.pop_back();
         return ProjectUndoStatus::Applied;
     }
@@ -295,33 +351,43 @@ public:
         if (redo_.empty())
             return ProjectUndoStatus::NothingToRedo;
 
-        const ProjectEditTransaction transaction = redo_.back();
+        const UndoEntry entry = redo_.back();
+        const ProjectEditTransaction& transaction = entry.transaction;
         if (! detail::applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after))
             return ProjectUndoStatus::ProjectMismatch;
 
-        undo_.push_back (transaction);
+        undo_.push_back (entry);
         redo_.pop_back();
         return ProjectUndoStatus::Applied;
     }
 
     [[nodiscard]] bool canUndo() const noexcept { return ! undo_.empty(); }
     [[nodiscard]] bool canRedo() const noexcept { return ! redo_.empty(); }
+    [[nodiscard]] bool transactionGroupOpen() const noexcept { return activeGroupId_ != 0; }
     [[nodiscard]] std::size_t undoDepth() const noexcept { return undo_.size(); }
     [[nodiscard]] std::size_t redoDepth() const noexcept { return redo_.size(); }
 
     [[nodiscard]] const ProjectEditTransaction* nextUndo() const noexcept
     {
-        return undo_.empty() ? nullptr : &undo_.back();
+        return undo_.empty() ? nullptr : &undo_.back().transaction;
     }
 
     [[nodiscard]] const ProjectEditTransaction* nextRedo() const noexcept
     {
-        return redo_.empty() ? nullptr : &redo_.back();
+        return redo_.empty() ? nullptr : &redo_.back().transaction;
     }
 
 private:
-    std::vector<ProjectEditTransaction> undo_;
-    std::vector<ProjectEditTransaction> redo_;
+    struct UndoEntry
+    {
+        ProjectEditTransaction transaction;
+        std::uint64_t groupId = 0;
+    };
+
+    std::vector<UndoEntry> undo_;
+    std::vector<UndoEntry> redo_;
+    std::uint64_t activeGroupId_ = 0;
+    std::uint64_t nextGroupId_ = 1;
 };
 
 } // namespace yesdaw::engine
