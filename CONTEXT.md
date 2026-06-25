@@ -158,8 +158,9 @@ The folder/package on disk holding the project's database, copied assets, and ca
 Working extension `.yesdaw` (not final).
 
 **Plugin state chunk**:
-Opaque saved bytes returned by a plugin, wrapped by YES DAW metadata before storage. It is restored as
-plugin-owned state, not rebuilt from parameter values.
+Opaque saved bytes returned by a plugin, wrapped by YES DAW metadata before storage and associated with
+the saved plugin node's Entity ID. It is restored as plugin-owned state, not rebuilt from parameter
+values.
 
 **Waveform cache**:
 Regenerable visual peak data for drawing waveforms, built in the background.

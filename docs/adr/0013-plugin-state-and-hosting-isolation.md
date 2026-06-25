@@ -52,7 +52,8 @@ H3 contract without choosing every IPC implementation detail.
   VST3 component state and controller state, AU class-info/state, and CLAP `clap.state`.
 - YES DAW owns the wrapper/header shape reserved by ADR-0012:
   `{format, plugin_uid, plugin_version, chunk_kind, chunk_len, crc32, data}` keyed by
-  `(node_id, chunk_kind)`.
+  `(node_id, chunk_kind)`, where `node_id` is the persistent 16-byte node Entity ID stored in the
+  bundle, not the runtime 32-bit `NodeId` used inside `CompiledGraph`.
 - Restore validates `chunk_len` and `crc32` before handing bytes to the plugin child. A corrupt or
   missing chunk loads the plugin at defaults and marks the state unreadable; it must not crash open,
   block the audio thread, or mutate the original bytes in place.

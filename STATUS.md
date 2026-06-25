@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — ADR-0013 worker green locally; review/fix next
+**Current horizon:** **H3 (mixer + plugin hosting)** — ADR-0013 review/fix green locally; plugin-state chunk gate next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,29 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 ADR-0013 plugin state + hosting isolation is green locally.**
+  Reviewed ADR-0013 against `STATUS.md`, the H3 plan/roadmap/deepening notes, ADR index/template,
+  ADR-0002/0006/0007/0008/0009/0012, `CONTEXT.md`, and the current Node / EventStream / Runtime /
+  CompiledGraph / GraphBuilder / ProjectBundle / CMake/test contracts. Found one narrow documentation
+  defect and fixed it: ADR-0013 now explicitly says `plugin_state_chunks.node_id` is the persistent
+  16-byte node Entity ID stored in the bundle, not the runtime 32-bit `NodeId` used inside
+  `CompiledGraph`; `CONTEXT.md` mirrors that glossary-level wording for Plugin state chunk. No
+  plugin-host code, scanner code, plugin UI, CLAP loading, export UX, H4 work, golden edits, broad
+  graph rewiring, schema implementation changes, sampled/pixel/snapped/derived Project truth, or
+  `[[clang::nonblocking]]` edits were made. The ADR worker commit `3b00db8` is green in remote CI run
+  `28151834609` across Windows, Linux, macOS, RTSan, and TSan. Local gate via documented Windows
+  DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (142/142).
+  Remote CI is pending until this review/fix commit is pushed.
+  **Next:** WORKER H3 plugin state chunk storage/header gate: add the smallest headless persistence
+  surface and self-asserting tests for ADR-0013 plugin-state chunks on top of the existing
+  `plugin_state_chunks` reservation. Prove the bundle stores opaque bytes with host-owned metadata,
+  uses the persistent 16-byte node Entity ID as the storage key, validates `chunk_len` + `crc32` before
+  restore handoff, preserves original bytes, restores VST3 component before controller ordering at the
+  storage/API boundary, and degrades corrupt/missing chunks to an unreadable/default-state result
+  without crashing. Keep it storage/header-only: do not start plugin-host code, scanner code, plugin
+  UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph rewiring,
+  sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run the documented
+  gate, update `STATUS.md`, commit/push, check CI, then create the follow-up REVIEW/FIX thread if green.
 - **Latest: WORKER H3 ADR-0013 plugin state + hosting isolation is green locally.**
   Added `docs/adr/0013-plugin-state-and-hosting-isolation.md` to lock plugin state as opaque
   host-wrapped chunks, VST3 + AU first then CLAP, out-of-process/sandboxed hosting from the start,
@@ -1026,13 +1049,18 @@ worklog.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: REVIEW/FIX H3 ADR-0013 plugin state + hosting isolation.** Pull, read `AGENTS.md` +
-  this handoff first, then verify ADR-0013 against `STATUS.md`, H3 plan/roadmap/deepening notes, the
-  ADR index, and current code contracts. Fix only proven doc defects. Run the documented gate:
-  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`,
-  commit/push, check CI, then create the next WORKER thread from `STATUS.md`. The loop continues
-  worker -> review/fix -> worker until H3 exit gates are green, then stops for Dan's horizon-boundary
-  review.
+- **Next chunk: WORKER H3 plugin state chunk storage/header gate.** Pull, read `AGENTS.md` + this
+  handoff first, then add the smallest headless persistence surface and self-asserting tests for
+  ADR-0013 plugin-state chunks on top of the existing `plugin_state_chunks` reservation. Prove opaque
+  bytes + host metadata storage, persistent 16-byte node Entity ID keying, `chunk_len` + `crc32`
+  validation, original-byte preservation, VST3 component-before-controller restore ordering at the
+  storage/API boundary, and corrupt/missing chunk default-state fallback. Keep it storage/header-only:
+  no plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4
+  work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth, or
+  `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI,
+  then create the follow-up REVIEW/FIX thread. The loop continues worker -> review/fix -> worker until
+  H3 exit gates are green, then stops for Dan's horizon-boundary review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
