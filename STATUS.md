@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — edit-sequence undo/redo property gate worker green; review/fix next
+**Current horizon:** **H2 (editing-first)** — edit-sequence undo/redo property gate reviewed; split-with-crossfade render gate next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,32 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 edit-sequence undo/redo property gate found no defects.**
+  Reviewed worker commit `af31e8e` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
+  plan/deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests.
+  The deterministic headless sequence generator stays Project-local and command+diff only: it drives
+  `moveClip`, `trimClip`, `splitClip`, `setClipGain`, and `setClipFades` through explicit
+  `ProjectUndoStack` transaction-group boundaries, accepted/rejected group boundaries, grouped
+  compatible coalescing, ungrouped same-verb separation, split-plus-right-Clip follow-up edits, and
+  invalid gain/source-window commands. The gate proves apply-all / undo-all returns the live in-memory
+  `Project` to the bit-identical original value and redo-all returns it to the bit-identical edited
+  value. The slice remains command+diff and Project-local only: no SQLite undo journaling, autosave
+  durability semantics, UI gesture timing, export, plugin hosting, H3 work, ADR edits, roadmap edits,
+  golden edits, waveform cache changes, broad render rewiring, schema semantics,
+  sampled/pixel/snapped/derived values as Project truth, or `[[clang::nonblocking]]` edits. Local gate
+  via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (141/141). Remote CI is pending until this status-only review/fix commit is
+  pushed.
+  **Next:** WORKER H2 split-with-crossfade RT/offline render gate: add the smallest self-asserting
+  headless Project render gate for a split Clip with crossfade-compatible existing gain/fade metadata,
+  proving the same valid Project renders identically through RT playback and offline Render while
+  Assets remain immutable and Project truth stays metadata-only. Use current Clip edit helpers and
+  existing envelope evaluation where possible. Keep sampled/pixel/snapped/derived values out of Project
+  truth. Do not expand into SQLite undo journaling, autosave durability semantics, UI gesture timing,
+  export UX, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes,
+  broad render rewiring, schema semantics, or `[[clang::nonblocking]]` edits. If crossfade
+  curve/shared-ramp representation, timeline projection semantics, export scope, undo persistence, or
+  any ADR-level decision rises, stop and report.
 - **Latest: WORKER H2 edit-sequence undo/redo property gate is green locally.**
   Added the smallest deterministic headless sequence generator over the current Project-local Clip edit
   command surface and explicit `ProjectUndoStack` transaction-group boundaries. The new
@@ -898,16 +924,19 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 edit-sequence undo/redo property gate.** Pull, read `AGENTS.md` + this
-  handoff first, then review/fix only the worker gate named above. Verify the deterministic headless
-  sequence generator against the current Project-local Clip edit helpers, explicit transaction-group
-  boundaries, valid/invalid command handling, grouping semantics, and bit-identical live `Project`
-  apply/undo-all and redo-all proof. Do not expand into SQLite undo journaling, autosave durability
-  semantics, UI gesture timing, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits,
-  waveform cache changes, broad render rewiring, schema semantics, sampled/pixel/snapped/derived values
-  as Project truth, or `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
+- **Next chunk: WORKER H2 split-with-crossfade RT/offline render gate.** Pull, read `AGENTS.md` + this
+  handoff first, then implement only the worker gate named above. Add the smallest self-asserting
+  headless Project render gate for a split Clip with crossfade-compatible existing gain/fade metadata,
+  proving the same valid Project renders identically through RT playback and offline Render while
+  Assets remain immutable and Project truth stays metadata-only. Use current Clip edit helpers and
+  existing envelope evaluation where possible. Keep sampled/pixel/snapped/derived values out of Project
+  truth. Do not expand into SQLite undo journaling, autosave durability semantics, UI gesture timing,
+  export UX, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes,
+  broad render rewiring, schema semantics, or `[[clang::nonblocking]]` edits. If crossfade
+  curve/shared-ramp representation, timeline projection semantics, export scope, undo persistence, or
+  any ADR-level decision rises, stop and report. Run the documented gate: `cmake --preset ci`;
   `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI,
-  then create the following WORKER thread.
+  then create the following REVIEW/FIX thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
