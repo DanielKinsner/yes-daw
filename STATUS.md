@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — mixer Send/Return graph-edge worker green locally; review/fix next
+**Current horizon:** **H3 (mixer + plugin hosting)** — mixer Send/Return review/fix green locally; mixer policy ADR next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,31 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 mixer Send/Return graph-edge foundation found no defects.**
+  Reviewed worker commit `14d2a1b` plus the status-only closeout `e2f1d36` against `STATUS.md`,
+  ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes,
+  and the current `MixerGraphProjection` / `GraphBuilder` / `CompiledGraph` / `Node` contracts.
+  The implementation stays in the intended headless/control-thread-only slice: Send is a graph edge to
+  a Bus `SumNode`, `PreFader` / `PostFader` taps are relative to `FaderNode`, each Bus Return feeds the
+  master bus, and PDC/duplicate/missing/latency validation remain owned by `GraphBuilder`. No proven
+  production-code defect was found, so this is a status-only closeout. Focused local check:
+  `ctest --preset ci -R "Mixer projection" --output-on-failure` passed (9/9). Full local gate via
+  documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`
+  passed (155/155). Remote CI is pending until this review/fix status commit is pushed. No Sidechain
+  input-pin semantics, SIP solo/solo-safe policy, solo/mute policy, Project or persistence schema shape,
+  plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4
+  work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth, or
+  `[[clang::nonblocking]]` edits were made.
+  **Next:** WORKER H3 mixer policy ADR for the remaining mixer graph semantics: write the narrow
+  decision record needed before coding solo/mute/SIP solo-safe behavior and Sidechain input-pin
+  semantics. Verify it against `STATUS.md`, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0013,
+  the H3 plan/roadmap/deepening notes, `CONTEXT.md`, and current `CompiledGraph` mute-mask /
+  `GraphBuilder` PDC contracts. Update `docs/adr/README.md` and `CONTEXT.md` only if the ADR changes
+  shared terms. Do not write mixer implementation code, Project or persistence schema shape, plugin-host
+  code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden
+  edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]`
+  edits. Run the documented gate, update `STATUS.md`, commit/push, check CI, then create the follow-up
+  REVIEW/FIX thread if green.
 - **Latest: WORKER H3 mixer Send/Return graph-edge foundation is green locally.**
   Extended the pure headless `MixerGraphProjection` helper with the plan/ADR-0007 Send/Return graph
   shape only: `MixerSendProjection` is an edge to a Bus `SumNode`, `PreFader` / `PostFader` chooses
@@ -873,7 +898,8 @@ worklog.
 > placeholder and the offender is blacklisted, without an audio dropout or audio-thread wait.
 - [x] **ADR-0013 plugin state + hosting isolation. First chunk.** Lock opaque plugin-state chunks and
   out-of-process/sandboxed hosting before any H3 plugin-host code lands.
-- [ ] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter, solo/mute mask, Sidechain input pins.
+- [~] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter are headless and green; mixer policy
+  ADR for solo/mute/SIP solo-safe behavior and Sidechain input pins is next.
 - [ ] Automation lanes honoring per-Block offsets through the graph projection.
 - [ ] Out-of-process plugin scanner with persistent blacklist and hang watchdog.
 - [ ] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
@@ -1146,18 +1172,18 @@ worklog.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: REVIEW/FIX H3 mixer Send/Return graph-edge foundation.** Pull, read `AGENTS.md` + this
-  handoff first, then verify the worker implementation against `STATUS.md`, ADR-0007, ADR-0008,
-  ADR-0009, ADR-0010, ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, and current
-  `MixerGraphProjection` / `GraphBuilder` / `CompiledGraph` / `Node` contracts. Fix only proven defects;
-  keep it headless/control-thread-only and do not start Sidechain input-pin semantics, SIP solo/
-  solo-safe policy, solo/mute policy, Project or persistence schema shape, plugin-host code, scanner
-  code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad
-  graph rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run
-  the documented gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green,
-  update `STATUS.md`, commit/push, check CI, then create the next WORKER thread from `STATUS.md`. The
-  loop continues worker -> review/fix -> worker until H3 exit gates are green, then stops for Dan's
-  horizon-boundary review.
+- **Next chunk: WORKER H3 mixer policy ADR.** Pull, read `AGENTS.md` + this handoff first, then write
+  the narrow decision record needed before coding solo/mute/SIP solo-safe behavior and Sidechain
+  input-pin semantics. Verify it against `STATUS.md`, ADR-0007, ADR-0008, ADR-0009, ADR-0010,
+  ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, `CONTEXT.md`, and current `CompiledGraph`
+  mute-mask / `GraphBuilder` PDC contracts. Update `docs/adr/README.md` and `CONTEXT.md` only if the
+  ADR changes shared terms. Do not write mixer implementation code, Project or persistence schema shape,
+  plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4
+  work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth, or
+  `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the follow-up
+  REVIEW/FIX thread. The loop continues worker -> review/fix -> worker until H3 exit gates are green,
+  then stops for Dan's horizon-boundary review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
