@@ -3,11 +3,11 @@
 // Imports real audio bytes into a `.yesdaw` bundle, reopens the Project snapshot, decodes the bundled
 // Asset file, and feeds Clip source windows through the graph/Render path without mutating Asset bytes.
 
+#include "engine/ClipEnvelope.h"
 #include "engine/GraphBuilder.h"
 #include "engine/Project.h"
 #include "engine/Runtime.h"
 #include "engine/nodes/DecodedClipNode.h"
-#include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "persistence/ProjectBundle.h"
 #include "persistence/WaveformPeakCache.h"
@@ -35,7 +35,6 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::DecodedClipNode;
 using yesdaw::engine::EntityId;
-using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::GraphId;
@@ -45,7 +44,9 @@ using yesdaw::engine::NodeId;
 using yesdaw::engine::Project;
 using yesdaw::engine::Runtime;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::WaveformPeakCacheStatus;
@@ -162,6 +163,23 @@ std::vector<float> decodeFullAssetChannelMajorFromBundle (const std::filesystem:
     return std::vector<float> (channel, channel + static_cast<std::ptrdiff_t> (asset.frames));
 }
 
+bool applyClipGainEnvelopeToDecodedWindow (const Clip& clip, std::vector<float>& decoded)
+{
+    for (std::size_t frame = 0; frame < decoded.size(); ++frame)
+    {
+        if (frame > static_cast<std::size_t> (std::numeric_limits<Tick>::max()))
+            return false;
+
+        const auto envelope = evaluateClipGainEnvelope (clip, static_cast<Tick> (frame));
+        if (! envelope.valid)
+            return false;
+
+        decoded[frame] *= envelope.gain;
+    }
+
+    return true;
+}
+
 std::unique_ptr<CompiledGraph> buildBundleClipProjection (const ProjectBundleDb& db,
                                                           const Project& project,
                                                           GraphId graphId)
@@ -177,27 +195,25 @@ std::unique_ptr<CompiledGraph> buildBundleClipProjection (const ProjectBundleDb&
 
     std::vector<Node*> masterInputs;
     masterInputs.reserve (project.clips.size());
-    inputs.nodes.reserve (project.clips.size() * 2u + 1u);
+    inputs.nodes.reserve (project.clips.size() + 1u);
 
     for (std::size_t i = 0; i < project.clips.size(); ++i)
     {
         const Clip& clip = project.clips[i];
         const Asset* const asset = project.findAsset (clip.assetId);
-        if (asset == nullptr || ! std::isfinite (clip.gain))
+        if (asset == nullptr)
             return nullptr;
 
         std::vector<float> decoded = decodeClipWindowFromBundle (db.bundlePath(), *asset, clip);
+        if (! applyClipGainEnvelopeToDecodedWindow (clip, decoded))
+            return nullptr;
+
         auto source = std::make_unique<DecodedClipNode> (static_cast<NodeId> (3000u + i), std::move (decoded), 1);
-        auto fader = std::make_unique<FaderNode> (static_cast<NodeId> (4000u + i), 1);
 
         DecodedClipNode* const sourcePtr = source.get();
-        FaderNode* const       faderPtr = fader.get();
-        faderPtr->setInput (sourcePtr);
-        faderPtr->setTargetGain (clip.gain);
 
         inputs.nodes.push_back (std::move (source));
-        inputs.nodes.push_back (std::move (fader));
-        masterInputs.push_back (faderPtr);
+        masterInputs.push_back (sourcePtr);
     }
 
     auto master = std::make_unique<MasterNode> (kBundleRenderMasterId, 1);
@@ -280,6 +296,24 @@ std::vector<float> expectedClipSum (const ProjectBundleDb& db, const Project& pr
         const Asset* const asset = project.findAsset (clip.assetId);
         REQUIRE (asset != nullptr);
 
+        std::vector<float> decoded = decodeClipWindowFromBundle (db.bundlePath(), *asset, clip);
+        REQUIRE (applyClipGainEnvelopeToDecodedWindow (clip, decoded));
+        for (std::size_t i = 0; i < expected.size() && i < decoded.size(); ++i)
+            expected[i] += decoded[i];
+    }
+
+    return expected;
+}
+
+std::vector<float> constantGainClipSum (const ProjectBundleDb& db, const Project& project)
+{
+    std::vector<float> expected (static_cast<std::size_t> (kRenderFrames), 0.0f);
+
+    for (const Clip& clip : project.clips)
+    {
+        const Asset* const asset = project.findAsset (clip.assetId);
+        REQUIRE (asset != nullptr);
+
         const std::vector<float> decoded = decodeClipWindowFromBundle (db.bundlePath(), *asset, clip);
         for (std::size_t i = 0; i < expected.size() && i < decoded.size(); ++i)
             expected[i] += decoded[i] * clip.gain;
@@ -290,7 +324,7 @@ std::vector<float> expectedClipSum (const ProjectBundleDb& db, const Project& pr
 
 } // namespace
 
-TEST_CASE ("bundled Asset bytes decode through Clip indirection into graph Render", "[render][bundle][asset][clip]")
+TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into graph Render", "[render][bundle][asset][clip][envelope]")
 {
     const std::uint64_t base = CompiledGraph::aliveCount();
     const auto bundlePath = makeTempBundlePath ("bundle-render");
@@ -314,20 +348,24 @@ TEST_CASE ("bundled Asset bytes decode through Clip indirection into graph Rende
         first.id = idFromLowByte (20);
         first.assetId = imported.id;
         first.timelineStart = 0;
-        first.timelineLength = 15360;
+        first.timelineLength = 256;
         first.srcOffset = 1000;
         first.srcLen = 256;
         first.gain = 0.50f;
+        first.fadeIn = 64;
+        first.fadeOut = 96;
         first.timeBase = TimeBase::SampleLocked;
 
         Clip second;
         second.id = idFromLowByte (21);
         second.assetId = imported.id;
         second.timelineStart = 0;
-        second.timelineLength = 15360;
+        second.timelineLength = 128;
         second.srcOffset = 1200;
         second.srcLen = 128;
         second.gain = 0.25f;
+        second.fadeIn = 32;
+        second.fadeOut = 64;
         second.timeBase = TimeBase::SampleLocked;
 
         Project project;
@@ -351,28 +389,40 @@ TEST_CASE ("bundled Asset bytes decode through Clip indirection into graph Rende
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (project.assets.front().contentHash);
     const std::vector<std::uint8_t> bytesBefore = readBytes (bundledAssetPath);
+    const Project projectBeforeRender = project;
 
     const std::vector<float> rt = renderRealtimePath (reopened, project);
     const std::vector<float> offline = renderOfflinePath (reopened, project);
     const std::vector<float> expected = expectedClipSum (reopened, project);
+    const std::vector<float> constantGain = constantGainClipSum (reopened, project);
     REQUIRE (rt.size() == offline.size());
     REQUIRE (offline.size() == expected.size());
+    REQUIRE (constantGain.size() == expected.size());
 
     double maxRtOfflineDiff = 0.0;
     double maxExpectedDiff = 0.0;
+    double maxConstantGainDiff = 0.0;
     double peak = 0.0;
     for (std::size_t i = 0; i < offline.size(); ++i)
     {
         maxRtOfflineDiff = std::max (maxRtOfflineDiff, std::fabs (static_cast<double> (rt[i] - offline[i])));
         maxExpectedDiff = std::max (maxExpectedDiff, std::fabs (static_cast<double> (offline[i] - expected[i])));
+        maxConstantGainDiff = std::max (maxConstantGainDiff,
+                                        std::fabs (static_cast<double> (constantGain[i] - expected[i])));
         peak = std::max (peak, std::fabs (static_cast<double> (offline[i])));
     }
 
     INFO ("RT/offline diff = " << maxRtOfflineDiff);
     INFO ("expected decoded Clip diff = " << maxExpectedDiff);
+    INFO ("old constant-gain projection diff = " << maxConstantGainDiff);
     REQUIRE (peak > 0.01);
     REQUIRE (maxRtOfflineDiff <= kTolerance);
     REQUIRE (maxExpectedDiff <= kTolerance);
+    REQUIRE (maxConstantGainDiff > 1.0e-3);
+    REQUIRE (project.id == projectBeforeRender.id);
+    REQUIRE (project.sampleRate == projectBeforeRender.sampleRate);
+    REQUIRE (project.assets == projectBeforeRender.assets);
+    REQUIRE (project.clips == projectBeforeRender.clips);
     REQUIRE (readBytes (bundledAssetPath) == bytesBefore);
 
     REQUIRE (CompiledGraph::aliveCount() == base);

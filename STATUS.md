@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — Clip gain/fade envelope evaluator review/fix green; render projection worker next
+**Current horizon:** **H2 (editing-first)** — Clip gain/fade envelope render projection worker green; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,20 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 Clip gain/fade/crossfade envelope render projection foundation is green locally.**
+  Updated `YesDawBundleRenderCheck` so the decoded Clip projection uses the existing
+  `evaluateClipGainEnvelope` result before RT/offline graph rendering: existing Clip `gain`, `fadeIn`,
+  and `fadeOut` metadata now affects rendered decoded samples deterministically. The gate compares
+  Runtime and offline Render output against evaluator-derived expected samples and proves the previous
+  constant-gain-only projection differs, so the envelope path is mechanically covered. Project truth
+  stays metadata-only: Assets and bundled bytes are unchanged; no sampled, pixel, snapped, or derived
+  sample values are stored back into Project truth. Crossfade remains adjacent per-Clip envelopes over
+  existing metadata only; no shared-ramp representation, `curve_type`, schema semantics, undo/redo, UI
+  interaction, export, plugin hosting, H3 work, ADRs, roadmap, goldens, waveform cache, or
+  `[[clang::nonblocking]]` annotations were touched. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (135/135). Remote CI is
+  pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H2 Clip gain/fade/crossfade envelope render projection foundation.
 - **Latest: REVIEW/FIX H2 Clip gain/fade/crossfade envelope evaluation foundation found no defects.**
   Reviewed worker commit `e4bb7ae` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening
   notes, and the current Time / Project / ProjectBundle / render and persistence tests. The evaluator
@@ -773,17 +787,15 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 Clip gain/fade/crossfade envelope render projection foundation.** Pull, read
-  `AGENTS.md` + this handoff first, then implement only the smallest headless RT/offline Project
-  projection gate that uses `evaluateClipGainEnvelope` for decoded Clips, so existing Clip `gain`,
-  `fadeIn`, and `fadeOut` metadata affects rendered samples deterministically. Keep Project truth
-  metadata-only, Assets immutable, and sampled/pixel/snapped/derived sample values derived rather than
-  stored. Do not invent a shared crossfade object, `curve_type`, schema semantics, undo/redo, UI
-  interaction, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache
-  changes, or `[[clang::nonblocking]]` edits; if curve/shared-ramp representation semantics rise to ADR
-  level, stop and report. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the following
-  REVIEW/FIX thread.
+- **Next chunk: REVIEW/FIX H2 Clip gain/fade/crossfade envelope render projection foundation.** Pull,
+  read `AGENTS.md` + this handoff first, then review/fix only the worker commit that made decoded Clip
+  projection use `evaluateClipGainEnvelope` for existing Clip `gain`, `fadeIn`, and `fadeOut` metadata.
+  Verify Project truth stays metadata-only, Assets immutable, sampled/pixel/snapped/derived values are
+  not stored, and no shared crossfade object, `curve_type`, schema semantics, undo/redo, UI interaction,
+  export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, or
+  `[[clang::nonblocking]]` edits slipped in. Run the documented gate: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check
+  CI, then create the following WORKER thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
