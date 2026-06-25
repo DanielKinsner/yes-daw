@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — split-with-crossfade render gate reviewed; H2 exit-gate closeout next
+**Current horizon:** **H2 (editing-first)** — exit gates green; awaiting Dan horizon-boundary review
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,23 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 exit-gate closeout / CI-truth pass is green locally.**
+  Verified from current repo truth that the H2 exit gates are represented by self-asserting tests:
+  command/diff edit-sequence undo/redo returns the live `Project` to the bit-identical original value
+  and redoes to the bit-identical edited value (`YesDawProjectCheck`); split-with-crossfade Project
+  rendering is green through both Runtime and offline graph paths with exact adjacent Tick/source-frame
+  windows, `evaluateClipGainEnvelope`-derived expected samples, and unchanged Asset/Project truth
+  (`YesDawBundleRenderCheck`); and kill-mid-import bundle recovery is green via open-time
+  DB/filesystem reconciliation, committed Asset hash verification, stale intent cleanup, and no orphan
+  audio files (`YesDawPersistenceCheck`). Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (142/142). Latest pushed
+  remote CI before this closeout, run `28146299670` for `9fe162f`, is green across Windows, Linux,
+  macOS, RTSan, and TSan; this status-only closeout commit will be pushed and checked before handoff.
+  No H3, UI shell, export UX, plugin hosting, ADR edits, roadmap edits, golden edits, broad render
+  rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
+  `[[clang::nonblocking]]` edits were made.
+  **Next:** Dan's H2 horizon-boundary review. Only Dan advances H2->H3; do not create an H3 worker
+  unless `STATUS.md` is explicitly changed to say so.
 - **Latest: REVIEW/FIX H2 split-with-crossfade RT/offline render gate found no defects.**
   Reviewed worker commit `63c855a` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
   plan/deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests.
@@ -949,15 +966,9 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 exit-gate closeout / CI-truth pass.** Pull, read `AGENTS.md` + this handoff
-  first, then verify only the H2 exit gates from current repo truth and latest pushed CI: command/diff
-  edit-sequence undo/redo returns the Project bit-identical, split-with-crossfade Project RT/offline
-  render is green, and kill-mid-import bundle consistency is green with assets hash-verified/no
-  orphans. Do not start H3, UI shell, export UX, plugin hosting, ADR edits, roadmap edits, golden edits,
-  broad render rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
-  `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
-  `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md` for Dan's H2
-  horizon-boundary review, commit/push, check CI, and stop; only Dan advances H2->H3.
+- **Next state: Dan's H2 horizon-boundary review.** H2's mechanical exit gates are green from current
+  repo truth and the local `ci` gate. Stop here: only Dan advances H2->H3. Do not create an H3 worker
+  unless `STATUS.md` is explicitly changed to say so.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
