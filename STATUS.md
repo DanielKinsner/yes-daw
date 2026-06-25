@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip gain/fade worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — Clip gain/fade worker CI green; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,7 +17,7 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H2 Clip gain/fade/crossfade metadata foundation is green locally.** Added the
+- **Latest: WORKER H2 Clip gain/fade/crossfade metadata foundation is green.** Added the
   smallest headless Project-level edit helpers for the existing Clip envelope metadata:
   `setClipGain` and `setClipFades`. The slice stays pure metadata over the current
   Asset→Clip→Project value surface: only existing Clip `gain`, `fadeIn`, and `fadeOut` values change;
@@ -30,7 +30,8 @@ worklog.
   Clip metadata without Project mutation. `YesDawPersistenceCheck` proves edited gain/fade metadata
   writes and reads back exactly through the current SQLite snapshot. Local gate via documented Windows
   DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (132/132).
-  Remote CI is pending until this worker commit is pushed.
+  Remote CI run `28139588321` for worker commit `c3819cc` is green across Windows, Linux, macOS,
+  RTSan, and TSan.
   **Next:** REVIEW/FIX H2 Clip gain/fade/crossfade metadata foundation.
 - **Latest: REVIEW/FIX H2 Clip split/trim/move metadata foundation is green.** Reviewed worker
   commit `a081414` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening notes, and the
