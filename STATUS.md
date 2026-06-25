@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — plugin-state storage/header proof gate green locally; mixer projection next
+**Current horizon:** **H3 (mixer + plugin hosting)** — mixer graph projection foundation green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,28 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 mixer graph projection foundation is green locally.**
+  Added a pure headless `MixerGraphProjection` helper that projects mono track sources into the existing
+  `FaderNode -> PanNode -> MeterNode -> SumNode(master bus) -> MasterNode` graph shape and hands the
+  result to `GraphBuilder`. The slice stays control-thread-only and uses the frozen `Node` /
+  `CompiledGraph` contracts; it does not add Send/Return/Sidechain semantics, solo/mute policy, Project
+  or persistence schema shape, plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process
+  runtime IPC, export UX, H4 work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived
+  Project truth, or `[[clang::nonblocking]]` edits. New `YesDawMixerProjectionCheck` coverage proves
+  empty mixer silence, two-track fader/pan/meter-to-master summing, existing `CompiledGraph` SetGain /
+  SetPan scalar routing, and rejection of non-mono sources plus invalid gain/pan values before graph
+  build. The previous plugin-state proof-gate commit `a79c432` is green in remote CI run `28182281472`.
+  Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (151/151). Remote CI is pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H3 mixer graph projection foundation: verify the worker implementation against
+  `STATUS.md`, ADR-0007, ADR-0008, ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, and current
+  `GraphBuilder` / `CompiledGraph` / `Node` contracts. Fix only proven defects; keep it as a headless
+  mixer projection foundation and do not start Send/Return/Sidechain policy, solo/mute policy, Project
+  or persistence schema shape, plugin-host code, scanner code, plugin UI, CLAP loading,
+  out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph rewiring,
+  sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run the documented
+  gate, update `STATUS.md`, commit/push, check CI, then create the next WORKER thread from `STATUS.md`
+  if green.
 - **Latest: REVIEW/FIX H3 plugin state chunk storage/header proof gate is green locally.**
   Reviewed the current `main` implementation (worker commit `85a29a7`, hardening commit `9d26b7b`,
   and status closeout commit `459e507`) against `STATUS.md`, ADR-0013, ADR-0012, ADR-0011, the H3
@@ -1098,16 +1120,17 @@ worklog.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: WORKER H3 mixer graph projection foundation.** Pull, read `AGENTS.md` + this handoff
-  first, then add the smallest headless mixer projection over the frozen graph/Node contracts, using
-  the existing Fader/Pan/Sum/Send/Return/Meter building blocks where they already exist and stopping if
-  a new ADR-level mixer decision appears. Prove it with self-asserting tests only. Keep it headless and
-  do not start plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC,
+- **Next chunk: REVIEW/FIX H3 mixer graph projection foundation.** Pull, read `AGENTS.md` + this
+  handoff first, then verify the worker implementation against `STATUS.md`, ADR-0007, ADR-0008,
+  ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, and current `GraphBuilder` /
+  `CompiledGraph` / `Node` contracts. Fix only proven defects; keep it as a headless mixer projection
+  foundation and do not start Send/Return/Sidechain policy, solo/mute policy, Project or persistence
+  schema shape, plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC,
   export UX, H4 work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth,
   or `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
   `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI,
-  then create the follow-up REVIEW/FIX thread. The loop continues worker -> review/fix -> worker until
-  H3 exit gates are green, then stops for Dan's horizon-boundary review.
+  then create the next WORKER thread from `STATUS.md`. The loop continues worker -> review/fix ->
+  worker until H3 exit gates are green, then stops for Dan's horizon-boundary review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

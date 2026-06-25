@@ -260,6 +260,13 @@ target_link_libraries(YesDawMeterCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawMeterCheck)
 catch_discover_tests(YesDawMeterCheck)
 
+# --- Mixer projection check (H3; pure headless mixer-as-graph foundation) ---
+add_executable(YesDawMixerProjectionCheck tests/mixer_projection_tests.cpp)
+target_include_directories(YesDawMixerProjectionCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawMixerProjectionCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawMixerProjectionCheck)
+catch_discover_tests(YesDawMixerProjectionCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
