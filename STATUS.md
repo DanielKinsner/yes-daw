@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip metadata worker CI green; review/fix next
+**Current horizon:** **H2 (editing-first)** — Clip metadata review/fix green locally; gain/fade worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,25 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 Clip split/trim/move metadata foundation is green locally.** Reviewed worker
+  commit `a081414` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening notes, and the
+  current Time / Project / ProjectBundle / render and persistence tests. Found and fixed one narrow
+  storage-facing validity gap: the edit helpers now refuse to mutate a Project whose existing Clip
+  metadata would be rejected by schema v1, including negative timeline lengths and invalid `timeBase`
+  values. The slice stays pure metadata: only Tick timeline starts/lengths and source-frame windows are
+  edited; Assets remain immutable; snapped sample/pixel values are not stored as Project truth; and
+  there are no schema, undo/redo, UI, export, plugin hosting, H3, ADR, roadmap, golden,
+  waveform-cache, or `[[clang::nonblocking]]` edits. `YesDawProjectCheck` now also proves these
+  storage-invalid Clip metadata inputs are rejected without Project mutation. Local gate via documented
+  Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass
+  (131/131). Remote CI is pending until this review/fix commit is pushed.
+  **Next:** WORKER H2 Clip gain/fade/crossfade metadata foundation: add the smallest headless
+  Project-level edit helpers and self-asserting gates for existing Clip `gain`, `fadeIn`, and `fadeOut`
+  metadata, keeping edits storage-safe, Assets immutable, and sampled/pixel/snapped values derived
+  rather than Project truth. Treat crossfade as adjacent Clip envelope metadata only if the current ADR
+  and H2 deepening notes are sufficient; if representation or curve semantics rise to ADR level, stop
+  and report. Do not start undo/redo, UI interaction, export, plugin hosting, H3 work, ADR edits,
+  roadmap edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]` edits.
 - **Latest: WORKER H2 Clip split/trim/move metadata foundation is green locally.** Added the smallest
   headless Project-level edit helpers over the existing Asset→Clip value surface: `splitClip`,
   `trimClip`, and `moveClip`. The slice stays pure metadata: only Tick timeline starts/lengths and
@@ -679,13 +698,14 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 Clip split/trim/move metadata foundation.** Pull, read `AGENTS.md` + this
-  handoff first, then review the worker slice against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2
-  deepening notes, and the current Time / Project / ProjectBundle / render tests. Verify the edit
-  helpers stay storage-safe and metadata-only: Tick timeline positions/lengths and source-frame windows
-  only, Assets immutable, and no snapped sample/pixel Project truth. Fix only real defects you can prove.
-  Do not start gain/fade/crossfade, undo/redo, UI, export, plugin hosting, H3 work, ADR edits, roadmap
-  edits, golden edits, waveform cache changes, or `[[clang::nonblocking]]` edits.
+- **Next chunk: WORKER H2 Clip gain/fade/crossfade metadata foundation.** Pull, read `AGENTS.md` + this
+  handoff first, then add the smallest headless Project-level edit helpers and self-asserting gates for
+  existing Clip `gain`, `fadeIn`, and `fadeOut` metadata. Keep the chunk pure metadata: storage-safe
+  Clip values only, Assets immutable, and no sampled/pixel/snapped values stored as Project truth. Treat
+  crossfade as adjacent Clip envelope metadata only if the current ADR and H2 deepening notes are enough;
+  if representation or curve semantics rise to ADR level, stop and report. Do not start undo/redo, UI
+  interaction, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache
+  changes, or `[[clang::nonblocking]]` edits.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

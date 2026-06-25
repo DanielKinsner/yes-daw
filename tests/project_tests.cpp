@@ -386,4 +386,20 @@ TEST_CASE ("Project clip edit operations reject invalid input without mutating P
         REQUIRE (moveClip (invalid, clipId, 123) == ProjectEditStatus::InvalidProject);
         requireProjectValueUnchanged (invalid, before);
     }
+
+    {
+        Project invalid = project;
+        invalid.clips.front().timelineLength = -1;
+        const Project before = invalid;
+        REQUIRE (moveClip (invalid, clipId, 123) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
+
+    {
+        Project invalid = project;
+        invalid.clips.front().timeBase = static_cast<TimeBase> (255);
+        const Project before = invalid;
+        REQUIRE (splitClip (invalid, clipId, newClipId, 100, 100) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
 }

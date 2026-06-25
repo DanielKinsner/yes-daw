@@ -361,11 +361,30 @@ namespace detail {
     return asset != nullptr && clip.sourceWindowFits (*asset);
 }
 
+[[nodiscard]] inline bool clipEditMetadataIsStorageSafe (const Clip& clip) noexcept
+{
+    return clip.timelineLength >= 0 && clip.fadeIn >= 0 && clip.fadeOut >= 0 && clip.gain >= 0.0f
+           && clip.gain <= std::numeric_limits<float>::max()
+           && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
+}
+
+[[nodiscard]] inline bool projectCanApplyClipEdit (const Project& project) noexcept
+{
+    if (! project.hasValidAssetClipIndirection())
+        return false;
+
+    for (const Clip& clip : project.clips)
+        if (! clipEditMetadataIsStorageSafe (clip))
+            return false;
+
+    return true;
+}
+
 } // namespace detail
 
 [[nodiscard]] inline ProjectEditStatus moveClip (Project& project, EntityId clipId, Tick newTimelineStart) noexcept
 {
-    if (! project.hasValidAssetClipIndirection())
+    if (! detail::projectCanApplyClipEdit (project))
         return ProjectEditStatus::InvalidProject;
 
     if (! clipId.isValid())
@@ -386,7 +405,7 @@ namespace detail {
                                                  std::uint64_t newSrcOffset,
                                                  std::uint64_t newSrcLen) noexcept
 {
-    if (! project.hasValidAssetClipIndirection())
+    if (! detail::projectCanApplyClipEdit (project))
         return ProjectEditStatus::InvalidProject;
 
     if (! clipId.isValid())
@@ -418,7 +437,7 @@ namespace detail {
                                                   Tick leftTimelineLength,
                                                   std::uint64_t leftSourceLength)
 {
-    if (! project.hasValidAssetClipIndirection())
+    if (! detail::projectCanApplyClipEdit (project))
         return ProjectEditStatus::InvalidProject;
 
     if (! clipId.isValid() || ! rightClipId.isValid())
