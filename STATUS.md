@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — plugin-state storage/header review/fix green locally; mixer projection next
+**Current horizon:** **H3 (mixer + plugin hosting)** — plugin-state storage/header proof gate green locally; mixer projection next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,20 +17,25 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX H3 plugin state chunk storage/header gate is green locally.**
-  Reviewed the current `main` implementation (worker commit `85a29a7` plus hardening commit `9d26b7b`)
-  against `STATUS.md`, ADR-0013, ADR-0012, ADR-0011, the H3 plan/roadmap/deepening notes, and current
-  persistence contracts. Found no further defects: the surface stays storage/header-only, uses the
-  persistent 16-byte node Entity ID as the key, stores opaque plugin bytes with host-owned metadata,
-  computes CRC32 at the bundle boundary, validates SQLite storage classes plus `chunk_len` and `crc32`
-  before restore handoff, preserves unreadable bytes in place, reports missing/corrupt chunks as
-  default-state restore outcomes, and returns VST3 component state before controller state. The current
-  hardening commit `9d26b7b` is green in remote CI run `28181189197` across Windows, Linux, macOS,
-  RTSan, and TSan. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
-  `cmake --build --preset ci`; `ctest --preset ci` pass (145/145). No plugin-host code, scanner code,
-  plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph
-  rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits were made.
-  Remote CI is pending until this status-only review/fix closeout commit is pushed.
+- **Latest: REVIEW/FIX H3 plugin state chunk storage/header proof gate is green locally.**
+  Reviewed the current `main` implementation (worker commit `85a29a7`, hardening commit `9d26b7b`,
+  and status closeout commit `459e507`) against `STATUS.md`, ADR-0013, ADR-0012, ADR-0011, the H3
+  plan/roadmap/deepening notes, and current persistence contracts. Found one narrow mechanical proof
+  gap, not a production-code defect: the restore path rejected non-canonical SQLite storage classes for
+  plugin-state headers, but the persistence gate only proved `chunk_len`/`crc32` corruption fallback.
+  Added `YesDawPersistenceCheck` coverage that mutates plugin-state header fields to non-canonical
+  SQLite storage classes plus embedded-NUL format text, then proves restore reports
+  `Unreadable`/default-state, hands no bytes to plugin restore, and leaves the stored opaque bytes in
+  place. The surface stays storage/header-only, uses the persistent 16-byte node Entity ID as the key,
+  stores opaque plugin bytes with host-owned metadata, computes CRC32 at the bundle boundary, validates
+  SQLite storage classes plus `chunk_len` and `crc32` before restore handoff, preserves unreadable bytes
+  in place, reports missing/corrupt chunks as default-state restore outcomes, and returns VST3 component
+  state before controller state. The hardening commit `9d26b7b` is green in remote CI run `28181189197`
+  across Windows, Linux, macOS, RTSan, and TSan. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (146/146). No plugin-host
+  code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden
+  edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]`
+  edits were made. Remote CI is pending until this proof-gate review/fix commit is pushed.
   **Next:** WORKER H3 mixer graph projection foundation: add the smallest headless mixer projection over
   the frozen graph/Node contracts, using the existing Fader/Pan/Sum/Send/Return/Meter building blocks
   where they already exist and stopping if a new ADR-level mixer decision appears. Prove it with

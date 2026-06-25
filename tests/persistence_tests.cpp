@@ -878,6 +878,66 @@ TEST_CASE ("Plugin state restore validates headers and degrades corrupt or missi
     REQUIRE (readRawPluginStateBytes (path, nodeId, PluginStateChunkKind::Vst3Component) == bytes);
 }
 
+TEST_CASE ("Plugin state restore rejects non-canonical SQLite header storage classes", "[persistence][plugin-state]")
+{
+    const auto path = makeTempBundlePath ("plugin-state-storage-classes");
+    ProjectBundleDb db = openFreshBundle (path);
+
+    const EntityId nodeId = EntityId::fromBigEndianParts (0x1234000012340000ull, 0x5678000056780000ull);
+    const std::vector<std::uint8_t> bytes { 0x41u, 0x42u, 0x43u, 0x44u };
+    const PluginStateChunkRecord record {
+        nodeId,
+        PluginStateFormat::Vst3,
+        "com.yesdaw.test.storage-classes",
+        "1.0",
+        PluginStateChunkKind::Vst3Component,
+        bytes,
+    };
+
+    const auto resetRecord = [&]
+    {
+        REQUIRE (db.executeSql ("DELETE FROM plugin_state_chunks WHERE node_id = " + blobLiteral (nodeId) + ";").ok());
+        REQUIRE (db.writePluginStateChunk (record).ok());
+    };
+
+    const auto requireUnreadableAfter = [&] (std::string_view updateSql)
+    {
+        resetRecord();
+        REQUIRE (db.executeSql (
+                    "PRAGMA ignore_check_constraints = ON; "
+                    + std::string (updateSql)
+                    + " PRAGMA ignore_check_constraints = OFF;")
+                     .ok());
+
+        PluginStateRestoreChunk chunk;
+        REQUIRE (db.readPluginStateChunk (nodeId, PluginStateChunkKind::Vst3Component, chunk).ok());
+        REQUIRE (chunk.status == PluginStateRestoreStatus::Unreadable);
+        REQUIRE_FALSE (chunk.ready());
+        REQUIRE (chunk.chunk.bytes.empty());
+        REQUIRE (readRawPluginStateBytes (path, nodeId, PluginStateChunkKind::Vst3Component) == bytes);
+    };
+
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET format = X'76737433' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET format = CAST(X'76737433006a756e6b' AS TEXT) WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET plugin_uid = X'75736572' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET plugin_version = X'312e30' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET chunk_len = X'00000004' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET crc32 = X'00000000' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+    requireUnreadableAfter ("UPDATE plugin_state_chunks SET data = 'ABCD' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;");
+
+    resetRecord();
+    REQUIRE (db.executeSql (
+                "UPDATE plugin_state_chunks SET chunk_kind = X'00' WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0;")
+                 .ok());
+
+    std::vector<PluginStateRestoreChunk> chunks;
+    REQUIRE (db.readPluginStateChunksForNode (nodeId, chunks).ok());
+    REQUIRE (chunks.size() == 1u);
+    REQUIRE (chunks[0].status == PluginStateRestoreStatus::Unreadable);
+    REQUIRE_FALSE (chunks[0].ready());
+    REQUIRE (chunks[0].chunk.bytes.empty());
+}
+
 TEST_CASE ("Waveform peak cache builds deterministic min max and RMS tiers", "[persistence][asset][peaks]")
 {
     Asset asset;
