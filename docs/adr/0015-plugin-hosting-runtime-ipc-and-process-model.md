@@ -75,12 +75,16 @@ must be provable by a deterministic, dependency-free CI gate.
   (ADR-0009), and a small control word block (Block index, ready/sequence counters, validated
   plugin-reported latency, status). Bounded and allocated on the control thread at plugin
   prepare/load (`maxBlockSize` × channels × the double buffer); never resized on the audio thread.
-- **One-Block pipeline (ADR-0013), made concrete:** the region is double-buffered. The host writes Block
-  `N` inputs and signals the child through an OS wakeup primitive (event/semaphore) from a **non-audio**
-  thread; the child runs `processBlock` under `ScopedNoDenormals` and publishes Block `N` outputs with a
-  release-store of its ready counter. The audio thread does a single acquire-load of the ready counter for
-  the Block it expects and consumes the already-published result — it **never** signals, waits, allocates,
-  or syscalls.
+- **One-Block pipeline (ADR-0013), made concrete:** the region is double-buffered. Inside
+  `PluginNode::process()` the audio thread writes Block `N`'s input into the input ring and reads Block
+  `N-1`'s already-published output from the output ring — both are lock-free stores/loads on shared memory,
+  the audio thread's **only** IPC contact, with a release-store of the input sequence counter and an
+  acquire-load of the output ready counter. It never signals, waits, allocates, logs, does I/O, or
+  syscalls. **Waking the child** to process the freshly-written Block happens off the audio thread — either
+  the child polls the input sequence counter, or a coordinator I/O thread posts an OS event/semaphore
+  (an implementation choice within this invariant, never on the audio thread). The child runs
+  `processBlock` under `ScopedNoDenormals` and publishes Block `N`'s output with a release-store of its
+  ready counter, which the audio thread acquire-loads the following Block.
 - **Fail-open (ADR-0002 / ADR-0013):** if the expected Block's output is not ready within the Block
   budget, the audio thread substitutes last-good output (if valid), then silence, then bypass/placeholder
   after repeated misses — all branch-only, no allocation/lock/log/I-O/wait.
