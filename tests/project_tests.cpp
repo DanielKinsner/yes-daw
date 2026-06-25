@@ -3,8 +3,10 @@
 // This locks the storage-facing EntityId/Asset/Clip/Project surface before SQLite schema v1 starts
 // serializing it.
 
+#include "engine/ClipEnvelope.h"
 #include "engine/Project.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
@@ -12,9 +14,11 @@
 #include <limits>
 #include <type_traits>
 
+using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
+using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
 using yesdaw::engine::kMaxUlidTimestampMs;
@@ -94,6 +98,13 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.sampleRate == expected.sampleRate);
     REQUIRE (actual.assets == expected.assets);
     REQUIRE (actual.clips == expected.clips);
+}
+
+double expectedEqualPowerGain (double x)
+{
+    const double bend = x * (1.0 - x);
+    const double shaped = bend * (1.0 + 1.4186 * bend) + x;
+    return shaped * shaped;
 }
 
 } // namespace
@@ -349,6 +360,87 @@ TEST_CASE ("Project setClipGain and setClipFades edit only envelope metadata", "
     REQUIRE (edited.fadeOut == 1920);
     REQUIRE (project.assets.front() == originalAsset);
     REQUIRE (project.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Clip gain envelope derives equal-power fade gain without mutating Project", "[project][clip-envelope]")
+{
+    Project project = makeEditableProject();
+    project.clips.front().timelineLength = 200;
+    project.clips.front().gain = 0.5f;
+    project.clips.front().fadeIn = 100;
+    project.clips.front().fadeOut = 100;
+
+    const Project before = project;
+    const Clip& clip = project.clips.front();
+
+    const auto beforeClip = evaluateClipGainEnvelope (clip, -1);
+    REQUIRE_FALSE (beforeClip.valid);
+
+    const auto start = evaluateClipGainEnvelope (clip, 0);
+    REQUIRE (start.valid);
+    REQUIRE (start.gain == Approx (0.0f).margin (1.0e-7f));
+
+    const auto fadeInMid = evaluateClipGainEnvelope (clip, 50);
+    REQUIRE (fadeInMid.valid);
+    REQUIRE (fadeInMid.gain == Approx (0.5 * expectedEqualPowerGain (0.5)).margin (1.0e-6));
+
+    const auto steady = evaluateClipGainEnvelope (clip, 100);
+    REQUIRE (steady.valid);
+    REQUIRE (steady.gain == Approx (0.5f).margin (1.0e-7f));
+
+    const auto fadeOutMid = evaluateClipGainEnvelope (clip, 150);
+    REQUIRE (fadeOutMid.valid);
+    REQUIRE (fadeOutMid.gain == Approx (fadeInMid.gain).margin (1.0e-7f));
+
+    const auto afterClip = evaluateClipGainEnvelope (clip, clip.timelineLength);
+    REQUIRE_FALSE (afterClip.valid);
+
+    requireProjectValueUnchanged (project, before);
+}
+
+TEST_CASE ("Adjacent Clip envelopes derive crossfade-compatible gains from existing metadata only", "[project][clip-envelope][crossfade]")
+{
+    Clip left = makeEditableProject().clips.front();
+    left.timelineLength = 200;
+    left.gain = 1.0f;
+    left.fadeIn = 0;
+    left.fadeOut = 100;
+
+    Clip right = left;
+    right.timelineStart = left.timelineStart + 100;
+    right.fadeIn = 100;
+    right.fadeOut = 0;
+
+    const auto leftMidpoint = evaluateClipGainEnvelope (left, 150);
+    const auto rightMidpoint = evaluateClipGainEnvelope (right, 50);
+
+    REQUIRE (leftMidpoint.valid);
+    REQUIRE (rightMidpoint.valid);
+    REQUIRE (leftMidpoint.gain == Approx (rightMidpoint.gain).margin (1.0e-7f));
+    REQUIRE (leftMidpoint.gain == Approx (expectedEqualPowerGain (0.5)).margin (1.0e-6));
+}
+
+TEST_CASE ("Clip gain envelope rejects invalid metadata and out-of-range positions", "[project][clip-envelope][invalid]")
+{
+    const Clip valid = makeEditableProject().clips.front();
+
+    Clip invalidTimeline = valid;
+    invalidTimeline.timelineLength = -1;
+    REQUIRE_FALSE (evaluateClipGainEnvelope (invalidTimeline, 0).valid);
+
+    Clip invalidGain = valid;
+    invalidGain.gain = std::numeric_limits<float>::quiet_NaN();
+    REQUIRE_FALSE (evaluateClipGainEnvelope (invalidGain, 0).valid);
+
+    invalidGain.gain = -0.1f;
+    REQUIRE_FALSE (evaluateClipGainEnvelope (invalidGain, 0).valid);
+
+    Clip invalidFade = valid;
+    invalidFade.fadeOut = -1;
+    REQUIRE_FALSE (evaluateClipGainEnvelope (invalidFade, 0).valid);
+
+    REQUIRE_FALSE (evaluateClipGainEnvelope (valid, -1).valid);
+    REQUIRE_FALSE (evaluateClipGainEnvelope (valid, valid.timelineLength).valid);
 }
 
 TEST_CASE ("Project clip edit operations reject invalid input without mutating Project", "[project][clip-edit][invalid]")
