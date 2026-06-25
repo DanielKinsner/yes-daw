@@ -941,6 +941,8 @@ inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
         return out;
     };
 
+    if (sqlite3_column_type (stmt, 0) != SQLITE_BLOB)
+        return unreadable ("plugin state node_id is not stored as a blob");
     const int nodeBytes = sqlite3_column_bytes (stmt, 0);
     const void* nodeRaw = sqlite3_column_blob (stmt, 0);
     if (nodeBytes != static_cast<int> (engine::EntityId::kNumBytes) || nodeRaw == nullptr)
@@ -950,23 +952,36 @@ inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
     for (std::size_t i = 0; i < out.chunk.nodeId.bytes.size(); ++i)
         out.chunk.nodeId.bytes[i] = nodeData[i];
 
+    if (sqlite3_column_type (stmt, 1) != SQLITE_TEXT)
+        return unreadable ("plugin state format is not stored as text");
     const unsigned char* formatText = sqlite3_column_text (stmt, 1);
     if (formatText == nullptr)
         return unreadable ("plugin state format is missing");
-    const std::string_view formatView { reinterpret_cast<const char*> (formatText) };
+    const std::string_view formatView {
+        reinterpret_cast<const char*> (formatText),
+        static_cast<std::size_t> (sqlite3_column_bytes (stmt, 1)),
+    };
     if (! pluginStateFormatFromStorage (formatView, out.chunk.format))
         return unreadable ("plugin state format is unknown");
 
+    if (sqlite3_column_type (stmt, 2) != SQLITE_TEXT)
+        return unreadable ("plugin state plugin_uid is not stored as text");
     const unsigned char* uidText = sqlite3_column_text (stmt, 2);
     if (uidText == nullptr)
         return unreadable ("plugin state plugin_uid is missing");
-    out.chunk.pluginUid = reinterpret_cast<const char*> (uidText);
+    out.chunk.pluginUid.assign (reinterpret_cast<const char*> (uidText),
+                                static_cast<std::size_t> (sqlite3_column_bytes (stmt, 2)));
 
+    if (sqlite3_column_type (stmt, 3) != SQLITE_TEXT)
+        return unreadable ("plugin state plugin_version is not stored as text");
     const unsigned char* versionText = sqlite3_column_text (stmt, 3);
     if (versionText == nullptr)
         return unreadable ("plugin state plugin_version is missing");
-    out.chunk.pluginVersion = reinterpret_cast<const char*> (versionText);
+    out.chunk.pluginVersion.assign (reinterpret_cast<const char*> (versionText),
+                                    static_cast<std::size_t> (sqlite3_column_bytes (stmt, 3)));
 
+    if (sqlite3_column_type (stmt, 4) != SQLITE_INTEGER)
+        return unreadable ("plugin state chunk_kind is not stored as an integer");
     const sqlite3_int64 rawKind = sqlite3_column_int64 (stmt, 4);
     if (! pluginStateChunkKindIsKnown (rawKind))
         return unreadable ("plugin state chunk_kind is unknown");
@@ -974,14 +989,20 @@ inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
     if (! pluginStateChunkKindMatchesFormat (out.chunk.format, out.chunk.chunkKind))
         return unreadable ("plugin state chunk_kind does not match format");
 
+    if (sqlite3_column_type (stmt, 5) != SQLITE_INTEGER)
+        return unreadable ("plugin state chunk_len is not stored as an integer");
     const sqlite3_int64 declaredLen = sqlite3_column_int64 (stmt, 5);
     if (declaredLen < 0)
         return unreadable ("plugin state chunk_len is negative");
 
+    if (sqlite3_column_type (stmt, 6) != SQLITE_INTEGER)
+        return unreadable ("plugin state crc32 is not stored as an integer");
     const sqlite3_int64 storedCrc = sqlite3_column_int64 (stmt, 6);
     if (storedCrc < 0 || storedCrc > static_cast<sqlite3_int64> (std::numeric_limits<std::uint32_t>::max()))
         return unreadable ("plugin state crc32 is outside uint32 range");
 
+    if (sqlite3_column_type (stmt, 7) != SQLITE_BLOB)
+        return unreadable ("plugin state data is not stored as a blob");
     const int dataBytes = sqlite3_column_bytes (stmt, 7);
     if (declaredLen != static_cast<sqlite3_int64> (dataBytes))
         return unreadable ("plugin state chunk_len does not match data length");
