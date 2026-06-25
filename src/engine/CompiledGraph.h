@@ -284,6 +284,15 @@ public:
         return (muteMask_.load (std::memory_order_relaxed) & (1ull << node->muteBit)) != 0;
     }
 
+    // True iff `id` is a compiled node that can carry a mute bit (exists and within the 64-bit mask). The
+    // mixer mute policy pre-checks every target with this so it can fail before publishing a partial mask,
+    // rather than silently leaving a target unmutable (ADR-0014).
+    [[nodiscard]] bool isMuteCapable (NodeId id) const noexcept
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        return node != nullptr && node->muteBit < 64u;
+    }
+
     [[nodiscard]] bool applySetGain (NodeId id, float linearGain) const noexcept YESDAW_RT_HOT
     {
         const CompiledNode* const node = findCompiledNode (id);

@@ -267,6 +267,13 @@ target_link_libraries(YesDawMixerProjectionCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawMixerProjectionCheck)
 catch_discover_tests(YesDawMixerProjectionCheck)
 
+# --- Mixer mute policy check (H3; mute / SIP-solo / solo-safe -> post-compile mute mask, ADR-0014) ---
+add_executable(YesDawMixerMutePolicyCheck tests/mixer_mute_policy_tests.cpp)
+target_include_directories(YesDawMixerMutePolicyCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawMixerMutePolicyCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawMixerMutePolicyCheck)
+catch_discover_tests(YesDawMixerMutePolicyCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
