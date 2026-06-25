@@ -18,6 +18,31 @@ and green locally; Sidechain input pins next
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 mixer mute mask found no proven defect.**
+  Reviewed `MixerMutePolicy` + `CompiledGraph::isMuteCapable` (worker commit `62fba52`) against `STATUS.md`,
+  ADR-0014, ADR-0007 (mask flipped without recompile), ADR-0008 (frozen Node contract), the H3
+  plan/deepening notes, and the live `CompiledGraph` mute machinery. The effective-mute truth table matches
+  ADR-0014 (explicit Mute wins; SIP solo active only on an unmuted soloed target; solo-safe exempts from
+  solo-muting but never from explicit Mute); the mute-point mapping is correct (a Track's source node gates
+  its direct path AND its Send taps; a Return's Bus SumNode gates the whole Return); and the policy
+  pre-validates all targets so a non-mute-capable target fails with the mask unchanged. The mask updates as
+  a short burst of control-thread atomic flips (far shorter than one audio block, self-healing within a
+  block) and writes every target's bit each call with non-targets never muted, so there are no stale bits;
+  a single atomic whole-mask publish is a noted future refinement (tighter solo-toggle transient), not a
+  proven defect, so green code was left unchanged. Worker commit `62fba52` is green in remote CI run
+  `28194248828` across Windows, Linux, macOS, RTSan, and TSan. No code changes; status-only closeout. Local
+  gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (167/167).
+  **Next:** WORKER H3 Sidechain input pins — add Sidechain input pins as real compiler-visible graph inputs
+  with PDC: ordered auxiliary inputs on sidechain-capable Nodes whose edges are visible to GraphBuilder
+  before topo / PDC / buffer-liveness / last-reader analysis, converging through an explicit `SumNode` / Bus
+  when multiple sources feed one pin, while keeping ADR-0008's `Node` base contract and `ProcessArgs` shape
+  frozen (pin roles are graph/compiler metadata or adapter binding). A sidechain-capable consumer is a PDC
+  convergence point between its main input and every Sidechain pin (GraphBuilder delays the shorter paths),
+  and any Event/automation carried with a Sidechain path shifts by the same per-path PDC. Prove each with
+  self-asserting tests. STOP and surface to Dan at any new ADR-level decision (e.g. if the pin
+  representation cannot be expressed as metadata over the frozen Node contract). No Project/persistence
+  schema, plugin-host runtime, golden, or `[[clang::nonblocking]]` shortcut edits.
 - **Latest: WORKER H3 mixer mute mask (mute / SIP-solo / solo-safe) is green locally.**
   First completed the queued **REVIEW/FIX H3 mixer policy ADR-0014**: verified ADR-0014 (including the new
   bus-Return stereo-width addendum) against `STATUS.md`, ADR-0007 (mask flipped without recompile / compile
