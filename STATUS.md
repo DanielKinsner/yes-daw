@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — plugin-state storage/header gate green locally; review/fix next
+**Current horizon:** **H3 (mixer + plugin hosting)** — plugin-state storage/header review/fix green locally; mixer projection next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,27 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 plugin state chunk storage/header gate is green locally.**
+  Reviewed the current `main` implementation (worker commit `85a29a7` plus hardening commit `9d26b7b`)
+  against `STATUS.md`, ADR-0013, ADR-0012, ADR-0011, the H3 plan/roadmap/deepening notes, and current
+  persistence contracts. Found no further defects: the surface stays storage/header-only, uses the
+  persistent 16-byte node Entity ID as the key, stores opaque plugin bytes with host-owned metadata,
+  computes CRC32 at the bundle boundary, validates SQLite storage classes plus `chunk_len` and `crc32`
+  before restore handoff, preserves unreadable bytes in place, reports missing/corrupt chunks as
+  default-state restore outcomes, and returns VST3 component state before controller state. The current
+  hardening commit `9d26b7b` is green in remote CI run `28181189197` across Windows, Linux, macOS,
+  RTSan, and TSan. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (145/145). No plugin-host code, scanner code,
+  plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph
+  rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits were made.
+  Remote CI is pending until this status-only review/fix closeout commit is pushed.
+  **Next:** WORKER H3 mixer graph projection foundation: add the smallest headless mixer projection over
+  the frozen graph/Node contracts, using the existing Fader/Pan/Sum/Send/Return/Meter building blocks
+  where they already exist and stopping if a new ADR-level mixer decision appears. Prove it with
+  self-asserting tests only. Keep it headless and out of plugin-host code, scanner code, plugin UI,
+  CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph rewiring,
+  sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run the documented
+  gate, update `STATUS.md`, commit/push, check CI, then create the follow-up REVIEW/FIX thread if green.
 - **Latest: WORKER H3 plugin state chunk storage/header gate is green locally.**
   Added the smallest headless persistence surface for ADR-0013 plugin-state chunks on top of the
   existing `plugin_state_chunks` table reservation. `ProjectBundleDb` now writes opaque plugin bytes
@@ -797,7 +818,7 @@ worklog.
 > (PDC impulse test passes against the live plugin); pluginval L8-10 + `auval` pass in CI; and a
 > plugin that crashes or hangs mid-session is isolated so the session survives with a crashed-plugin
 > placeholder and the offender is blacklisted, without an audio dropout or audio-thread wait.
-- [ ] **ADR-0013 plugin state + hosting isolation. First chunk.** Lock opaque plugin-state chunks and
+- [x] **ADR-0013 plugin state + hosting isolation. First chunk.** Lock opaque plugin-state chunks and
   out-of-process/sandboxed hosting before any H3 plugin-host code lands.
 - [ ] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter, solo/mute mask, Sidechain input pins.
 - [ ] Automation lanes honoring per-Block offsets through the graph projection.
@@ -805,7 +826,7 @@ worklog.
 - [ ] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
   thread wait on child process.
 - [ ] VST3 + AU hosting behind `PluginNode`; CLAP comes after VST3/AU.
-- [ ] Opaque plugin-state persistence and corrupt-chunk graceful fallback.
+- [x] Opaque plugin-state persistence and corrupt-chunk graceful fallback.
 - [ ] H3 mechanical gates: live high-latency-plugin PDC impulse, pluginval L8-10, `auval`, and
   crash/hang isolation with blacklist and no-dropout/nonblocking proof.
 
@@ -1072,16 +1093,16 @@ worklog.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: REVIEW/FIX H3 plugin state chunk storage/header gate.** Pull, read `AGENTS.md` + this
-  handoff first, then review the worker implementation against `STATUS.md`, ADR-0013, ADR-0012,
-  ADR-0011, the H3 plan/roadmap/deepening notes, and current persistence contracts. Fix only proven
-  defects; keep it storage/header-only and do not start plugin-host code, scanner code, plugin UI, CLAP
-  loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph rewiring,
-  sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run the documented
-  gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green, update
-  `STATUS.md`, commit/push, check CI, then create the next WORKER thread from `STATUS.md`. The loop
-  continues worker -> review/fix -> worker until H3 exit gates are green, then stops for Dan's
-  horizon-boundary review.
+- **Next chunk: WORKER H3 mixer graph projection foundation.** Pull, read `AGENTS.md` + this handoff
+  first, then add the smallest headless mixer projection over the frozen graph/Node contracts, using
+  the existing Fader/Pan/Sum/Send/Return/Meter building blocks where they already exist and stopping if
+  a new ADR-level mixer decision appears. Prove it with self-asserting tests only. Keep it headless and
+  do not start plugin-host code, scanner code, plugin UI, CLAP loading, out-of-process runtime IPC,
+  export UX, H4 work, golden edits, broad graph rewiring, sampled/pixel/snapped/derived Project truth,
+  or `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI,
+  then create the follow-up REVIEW/FIX thread. The loop continues worker -> review/fix -> worker until
+  H3 exit gates are green, then stops for Dan's horizon-boundary review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
