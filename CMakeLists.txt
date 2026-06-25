@@ -291,6 +291,16 @@ target_link_libraries(YesDawPluginIpcCheck PRIVATE Catch2::Catch2WithMain Thread
 yesdaw_harden(YesDawPluginIpcCheck)
 catch_discover_tests(YesDawPluginIpcCheck)
 
+# --- PluginNode IPC-proxy check (H3; the graph-visible Node adapter over the RT-lane ring — ADR-0015) ---
+# Pure C++ (the "plugin" is an in-process stub child — NO JUCE hosting yet), built UNCONDITIONALLY so the
+# RTSan leg covers PluginNode::process() (exchangeBlock on the audio thread) and the TSan leg covers it too.
+# The stub child is pumped synchronously by the test, so no platform threads library is needed here.
+add_executable(YesDawPluginNodeCheck tests/plugin_node_tests.cpp)
+target_include_directories(YesDawPluginNodeCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawPluginNodeCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawPluginNodeCheck)
+catch_discover_tests(YesDawPluginNodeCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the

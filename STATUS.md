@@ -11,7 +11,8 @@ worklog.
 **Last updated:** 2026-06-25
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
-primitive) is built, reviewed clean, and green across all five CI legs; the `PluginNode` IPC proxy is next
+primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built green locally and
+queued for REVIEW/FIX
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -19,6 +20,60 @@ primitive) is built, reviewed clean, and green across all five CI legs; the `Plu
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 `PluginNode` IPC proxy over the RT-lane ring is green locally — hosting reaches the graph.**
+  Built ADR-0015's graph-visible plugin adapter: new header-only `src/engine/plugin/PluginNode.h`, a `Node`
+  (ADR-0008) that owns an `RtLaneRing` and exposes a hosted plugin to the compiler **without any change to
+  the frozen `Node` base contract, `ProcessArgs`, `GraphBuilder`, or `CompiledGraph`**. Key architecture
+  win: it slots straight into the EXISTING `CompiledNodeKind::Plugin` — `GraphBuilder::detectKind` already
+  returns `Plugin` as its fallback for any unrecognised `Node*`, and `CompiledGraph::process` already feeds a
+  single-input non-bus node its producer's audio in-place (copies producer output into the node's own slot,
+  then calls `process()` with that slot as both in and out). So adding hosting is the pure adapter ADR-0002
+  #3 promised. **Audio thread (`process()`, `YESDAW_RT_HOT`, noexcept):** exactly one
+  `RtLaneRing::exchangeBlock` for this Block — the same in-place buffer is passed as BOTH ring input and
+  output (safe: exchangeBlock fully captures the input into the ring before it overwrites the output with
+  Block N-1's result), failing open last-good -> silence -> bypass; it never allocates/locks/logs/does
+  I/O/signals/waits. **Latency/PDC (ADR-0007/0015):** `properties().latencySamples` = one pipeline Block
+  (the ring's deterministic single-Block delay) + the plugin's VALIDATED latency. Validation lives in the
+  node so a bogus claim can't reach PDC: negatives quarantine to zero, absurd values clamp to
+  `kMaxValidatedLatencySamples` (~57 s @192k, kept under `GraphBuilder::kMaxLatencyCap` so a clamped report
+  is accepted/compensated, not rejected), channels clamp to `[1, 8]`. The pipeline Block size is fixed at
+  construction because the compiler reads `properties()` before `prepare()`; the ring is sized only in
+  `prepare()` (the one allocation). **Headless (this chunk):** the "plugin" is the ring's child role driven
+  by an in-process stub processor (identity by default; settable to a gain/latency stand-in), pumped
+  synchronously by the test via `serviceStubChild()` to model the real child process publishing off the
+  audio thread. NO real child process, `YesDawPluginHost` worker exe, JUCE hosting, scanner, watchdog, or
+  coordinator — and PluginNode contains NO `juce::AudioProcessor`, so ADR-0008's engine⇏hosting layering
+  boundary holds. New pure-C++ test target **`YesDawPluginNodeCheck`** (built unconditionally so the RTSan
+  leg covers `PluginNode::process()`/exchangeBlock and the TSan leg covers it), written **test-first
+  (TDD red -> green)**, 5 self-asserting tests through the **REAL `GraphBuilder` + `CompiledGraph`**: (1) a
+  PluginNode in a compiled graph delivers its stub child's output EXACTLY one Block late, proven with a
+  per-Block-varying signal so a wrong delay can't pass; (2) the fail-open ladder last-good -> silence ->
+  bypass + recovery to Fresh when the child catches up, the audio thread never blocking and never emitting
+  garbage; (3) the reported latency DRIVES PDC convergence — alignment-sensitive (a one-shot impulse lands
+  at exactly one (Block, frame) only because PDC spliced a `LatencyNode(oneBlock)` onto the parallel
+  sidechain path) PLUS structural (`totalLatency() == B`, a LatencyNode was spliced); (4) latency/channel
+  validation + reporting (one Block + L; negative quarantined; absurd clamped; channels clamped); and (5) a
+  hostile `INT64_MAX` latency claim builds successfully with the clamped value rather than overflowing the
+  PDC walk. Scope held to the adapter: no `GraphBuilder`/`CompiledGraph`/`Node`-contract changes, no real
+  shared memory, host exe, scanner, watchdog, JUCE, ADR, golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT`
+  annotation edits; LF endings. Local gate via the documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (185/185, +5 new). RTSan/TSan are Clang-20/Linux
+  CI-only (cannot run locally on Windows) — pushing so remote CI gates the audio-thread RT-safety + protocol
+  race-freedom. Remote CI is pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H3 `PluginNode` IPC proxy — verify `src/engine/plugin/PluginNode.h` +
+  `tests/plugin_node_tests.cpp` against `STATUS.md`, ADR-0015 (RT lane / one-Block pipeline / fail-open /
+  validated latency), ADR-0013 (`PluginNode` as the out-of-process IPC proxy), ADR-0007 (PDC = deterministic
+  single-Block latency; validated plugin latency can't overflow the walk), ADR-0008 (the `Node` base
+  contract + `ProcessArgs` stay frozen; engine⇏hosting layering), ADR-0009 (Events), and the RT-safety rules
+  (the audio thread never allocates/locks/logs/syscalls; in-place exchangeBlock is safe; fail-open is
+  branch-only; no torn/garbage delivery). Fix only proven defects. Keep it the headless adapter — do NOT
+  start the `YesDawPluginHost` `ChildProcessWorker` target, real shared memory (mmap/`CreateFileMapping`),
+  the coordinator watchdog, the crash-test plugin, the scanner, or JUCE; no ADR, golden, or
+  `[[clang::nonblocking]]`/`YESDAW_RT_HOT` edits. Confirm the one-Block-late delivery, fail-open ladder, and
+  PDC alignment tests are non-vacuous and assert the right thing, and that the latency/channel validation
+  truly bounds what reaches the compiler. Run the gate, update `STATUS.md`, commit/push, check CI, then
+  create the next WORKER thread (the `YesDawPluginHost` worker exe + engine-doesn't-link-hosting layering
+  check) only if green.
 - **Latest: REVIEW/FIX H3 RT-lane shared-memory ring found no defects — review clean, ring is solid.**
   Ran an independent formal review of the post-fix ring (`src/engine/plugin/RtLaneRing.h` +
   `tests/rt_lane_tests.cpp`) against the LITERAL text of ADR-0015 (RT lane / one-Block pipeline /
