@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — Dan approved H2->H3; ADR-0013 worker next
+**Current horizon:** **H3 (mixer + plugin hosting)** — ADR-0013 worker green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,24 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 ADR-0013 plugin state + hosting isolation is green locally.**
+  Added `docs/adr/0013-plugin-state-and-hosting-isolation.md` to lock plugin state as opaque
+  host-wrapped chunks, VST3 + AU first then CLAP, out-of-process/sandboxed hosting from the start,
+  `PluginNode` as the IPC proxy over serializable audio/Event buffers, one-Block nonblocking
+  fail-open behavior, scanner watchdog/blacklist/cache behavior, and pluginval / `auval` /
+  host-isolation gates. Updated `docs/adr/README.md` so engine decisions #11 and #12 are recorded by
+  ADR-0013, and updated `CONTEXT.md` for the new shared plugin-hosting vocabulary. No plugin-host code,
+  scanner code, plugin UI, CLAP loading, export UX, H4 work, golden edits, broad graph rewiring, schema
+  implementation changes, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]`
+  edits were made. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (142/142). Remote CI is pending until this ADR
+  worker commit is pushed.
+  **Next:** REVIEW/FIX H3 ADR-0013 plugin state + hosting isolation: verify ADR-0013 against
+  `STATUS.md`, the H3 plan/roadmap/deepening notes, ADR index, and current contracts. Fix only proven
+  doc defects; do not start plugin-host code, scanner code, plugin UI, CLAP loading, export UX, H4
+  work, golden edits, broad graph rewiring, schema implementation changes, sampled/pixel/snapped/derived
+  Project truth, or `[[clang::nonblocking]]` edits. Run the documented gate, update `STATUS.md`,
+  commit/push, check CI, then create the next WORKER thread from `STATUS.md` if green.
 - **Latest: Dan approved the H2->H3 horizon boundary; H3 loop handoff is being opened.**
   H2's mechanical exit gates are green locally and in remote CI: command/diff edit-sequence undo/redo
   returns the live `Project` to bit-identical states, split-with-crossfade Project render matches
@@ -1008,13 +1026,13 @@ worklog.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: WORKER H3 ADR-0013 plugin state + hosting isolation.** Pull, read `AGENTS.md` + this
-  handoff first, then write the narrow ADR that H3 code depends on. No plugin-host code before the ADR
-  is accepted. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the follow-up
-  REVIEW/FIX H3 ADR-0013 thread. That review/fix thread creates the next worker only after a green
-  review. The loop continues worker -> review/fix -> worker until H3 exit gates are green, then stops
-  for Dan's horizon-boundary review.
+- **Next chunk: REVIEW/FIX H3 ADR-0013 plugin state + hosting isolation.** Pull, read `AGENTS.md` +
+  this handoff first, then verify ADR-0013 against `STATUS.md`, H3 plan/roadmap/deepening notes, the
+  ADR index, and current code contracts. Fix only proven doc defects. Run the documented gate:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`,
+  commit/push, check CI, then create the next WORKER thread from `STATUS.md`. The loop continues
+  worker -> review/fix -> worker until H3 exit gates are green, then stops for Dan's horizon-boundary
+  review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

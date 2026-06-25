@@ -58,6 +58,20 @@ _Avoid_: processor, effect, module
 A node that wraps third-party code (CLAP / VST3 / AU). A kind of node.
 _Avoid_: calling built-in nodes "plugins"
 
+**PluginNode**:
+The node adapter that represents a hosted plugin inside the graph. It behaves like any other Node to
+the engine, while hosting details stay behind the adapter boundary.
+
+**Plugin host child**:
+The separate process that runs one hosted plugin. The audio thread never waits on it.
+_Avoid_: plugin process (when you mean the graph-visible PluginNode)
+
+**Plugin scanner**:
+The non-audio discovery pass that inspects installed plugins and records what can be loaded.
+
+**Plugin blacklist**:
+The persistent quarantine for plugins that crash, hang, fail validation, or report unsafe properties.
+
 **Graph**:
 The one-way flow of nodes from inputs to outputs; never loops back on itself.
 _Avoid_: chain (when the routing branches or merges), pipeline
@@ -142,6 +156,10 @@ _Avoid_: session, set, document
 **Project bundle**:
 The folder/package on disk holding the project's database, copied assets, and caches.
 Working extension `.yesdaw` (not final).
+
+**Plugin state chunk**:
+Opaque saved bytes returned by a plugin, wrapped by YES DAW metadata before storage. It is restored as
+plugin-owned state, not rebuilt from parameter values.
 
 **Waveform cache**:
 Regenerable visual peak data for drawing waveforms, built in the background.
