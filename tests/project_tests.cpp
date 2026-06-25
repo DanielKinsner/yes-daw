@@ -124,6 +124,115 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.clips == expected.clips);
 }
 
+enum class GeneratedUndoSequenceStepKind : std::uint8_t
+{
+    BeginGroup = 0,
+    EndGroup,
+    ApplyCommand
+};
+
+struct GeneratedUndoSequenceStep
+{
+    GeneratedUndoSequenceStepKind kind = GeneratedUndoSequenceStepKind::ApplyCommand;
+    ProjectEditCommand command;
+    ProjectEditStatus expectedEditStatus = ProjectEditStatus::Applied;
+    bool expectedBoundaryResult = false;
+    bool expectedRecorded = false;
+    bool expectedCoalesced = false;
+    bool expectedGroupOpen = false;
+    std::size_t expectedUndoDepth = 0;
+};
+
+GeneratedUndoSequenceStep generatedBeginGroup (std::size_t expectedUndoDepth,
+                                               bool expectedBoundaryResult = true,
+                                               bool expectedGroupOpen = true)
+{
+    return {
+        GeneratedUndoSequenceStepKind::BeginGroup,
+        {},
+        ProjectEditStatus::Applied,
+        expectedBoundaryResult,
+        false,
+        false,
+        expectedGroupOpen,
+        expectedUndoDepth,
+    };
+}
+
+GeneratedUndoSequenceStep generatedEndGroup (std::size_t expectedUndoDepth,
+                                             bool expectedBoundaryResult = true,
+                                             bool expectedGroupOpen = false)
+{
+    return {
+        GeneratedUndoSequenceStepKind::EndGroup,
+        {},
+        ProjectEditStatus::Applied,
+        expectedBoundaryResult,
+        false,
+        false,
+        expectedGroupOpen,
+        expectedUndoDepth,
+    };
+}
+
+GeneratedUndoSequenceStep generatedApplyCommand (ProjectEditCommand command,
+                                                 bool expectedGroupOpen,
+                                                 std::size_t expectedUndoDepth,
+                                                 bool expectedCoalesced = false,
+                                                 ProjectEditStatus expectedEditStatus = ProjectEditStatus::Applied,
+                                                 bool expectedRecorded = true)
+{
+    return {
+        GeneratedUndoSequenceStepKind::ApplyCommand,
+        command,
+        expectedEditStatus,
+        false,
+        expectedRecorded,
+        expectedCoalesced,
+        expectedGroupOpen,
+        expectedUndoDepth,
+    };
+}
+
+std::array<GeneratedUndoSequenceStep, 21> generateProjectUndoEditSequence (EntityId firstId,
+                                                                           EntityId secondId,
+                                                                           EntityId rightId)
+{
+    return {
+        generatedBeginGroup (0),
+        generatedBeginGroup (0, false, true),
+        generatedApplyCommand (ProjectEditCommand::moveClip (firstId, 1'000), true, 1),
+        generatedApplyCommand (ProjectEditCommand::moveClip (firstId, 1'100), true, 1, true),
+        generatedApplyCommand (ProjectEditCommand::setClipGain (firstId, 0.50f), true, 2),
+        generatedApplyCommand (ProjectEditCommand::setClipGain (firstId, 0.875f), true, 2, true),
+        generatedApplyCommand (ProjectEditCommand::setClipGain (firstId, -0.01f),
+                               true,
+                               2,
+                               false,
+                               ProjectEditStatus::InvalidClipEnvelope,
+                               false),
+        generatedEndGroup (2),
+        generatedEndGroup (2, false, false),
+        generatedApplyCommand (ProjectEditCommand::moveClip (firstId, 1'200), false, 3),
+        generatedApplyCommand (ProjectEditCommand::moveClip (firstId, 1'300), false, 4),
+        generatedBeginGroup (4),
+        generatedApplyCommand (ProjectEditCommand::trimClip (secondId, 88'000, 22'000, 10, 350), true, 5),
+        generatedApplyCommand (ProjectEditCommand::trimClip (secondId, 87'000, 21'000, 20, 340), true, 5, true),
+        generatedApplyCommand (ProjectEditCommand::setClipFades (secondId, 10, 20), true, 6),
+        generatedApplyCommand (ProjectEditCommand::setClipFades (secondId, 30, 40), true, 6, true),
+        generatedApplyCommand (ProjectEditCommand::splitClip (firstId, rightId, 18'000, 300), true, 7),
+        generatedApplyCommand (ProjectEditCommand::setClipGain (rightId, 0.25f), true, 8),
+        generatedApplyCommand (ProjectEditCommand::setClipGain (rightId, 0.50f), true, 8, true),
+        generatedApplyCommand (ProjectEditCommand::trimClip (secondId, 87'000, 1'000, 1'500, 1),
+                               true,
+                               8,
+                               false,
+                               ProjectEditStatus::InvalidSourceWindow,
+                               false),
+        generatedEndGroup (8),
+    };
+}
+
 double expectedEqualPowerGain (double x)
 {
     const double bend = x * (1.0 - x);
@@ -680,6 +789,89 @@ TEST_CASE ("Project undo stack rejects failed commands and mismatched live Proje
     const Project beforeMismatch = externallyChanged;
     REQUIRE (undo.undo (externallyChanged) == ProjectUndoStatus::ProjectMismatch);
     requireProjectValueUnchanged (externallyChanged, beforeMismatch);
+    REQUIRE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
+}
+
+TEST_CASE ("Project generated edit sequence undo redo returns bit-identical Project values", "[project][clip-edit][undo][sequence]")
+{
+    Project project = makeTwoClipEditableProject();
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project original = project;
+    const EntityId firstId = project.clips[0].id;
+    const EntityId secondId = project.clips[1].id;
+    const EntityId rightId = idFromLowByte (35);
+
+    ProjectUndoStack undo;
+    const auto sequence = generateProjectUndoEditSequence (firstId, secondId, rightId);
+
+    for (const GeneratedUndoSequenceStep& step : sequence)
+    {
+        const Project beforeStep = project;
+
+        switch (step.kind)
+        {
+            case GeneratedUndoSequenceStepKind::BeginGroup:
+                REQUIRE (undo.beginTransactionGroup() == step.expectedBoundaryResult);
+                break;
+
+            case GeneratedUndoSequenceStepKind::EndGroup:
+                REQUIRE (undo.endTransactionGroup() == step.expectedBoundaryResult);
+                break;
+
+            case GeneratedUndoSequenceStepKind::ApplyCommand:
+            {
+                const auto result = undo.apply (project, step.command);
+                REQUIRE (result.editStatus == step.expectedEditStatus);
+                REQUIRE (result.recorded == step.expectedRecorded);
+                REQUIRE (result.coalesced == step.expectedCoalesced);
+
+                if (! step.expectedRecorded)
+                    requireProjectValueUnchanged (project, beforeStep);
+                else
+                    REQUIRE (project.hasValidAssetClipIndirection());
+
+                break;
+            }
+        }
+
+        REQUIRE (undo.transactionGroupOpen() == step.expectedGroupOpen);
+        REQUIRE (undo.undoDepth() == step.expectedUndoDepth);
+        REQUIRE_FALSE (undo.canRedo());
+    }
+
+    REQUIRE_FALSE (undo.transactionGroupOpen());
+    const Project edited = project;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+    REQUIRE (edited.clips.size() == 3u);
+    REQUIRE (edited.clips[0].id == firstId);
+    REQUIRE (edited.clips[1].id == rightId);
+    REQUIRE (edited.clips[2].id == secondId);
+    REQUIRE (edited.clips[1].srcOffset == edited.clips[0].srcOffset + edited.clips[0].srcLen);
+
+    std::size_t undoCount = 0;
+    while (undo.canUndo())
+    {
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+        ++undoCount;
+    }
+
+    REQUIRE (undoCount == 8u);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE (undo.canRedo());
+    REQUIRE (undo.redoDepth() == 8u);
+
+    std::size_t redoCount = 0;
+    while (undo.canRedo())
+    {
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+        ++redoCount;
+    }
+
+    REQUIRE (redoCount == undoCount);
+    requireProjectValueUnchanged (project, edited);
     REQUIRE (undo.canUndo());
     REQUIRE_FALSE (undo.canRedo());
 }
