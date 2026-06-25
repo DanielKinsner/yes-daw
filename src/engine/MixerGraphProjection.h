@@ -1,8 +1,9 @@
 // YES DAW - H3 mixer graph projection foundation.
 //
 // Control-thread-only helper: project/mixer state is projected into the frozen Node/GraphBuilder
-// contracts. This first slice intentionally covers mono track sources through Fader -> Pan -> Meter ->
-// master Sum -> Master. Sends/returns/sidechains/solo stay future H3 projection work.
+// contracts. This slice covers mono track sources through Fader -> Pan -> Meter -> master Sum ->
+// Master, plus Send edges into Bus SumNodes whose Returns feed the master bus. Sidechains/solo stay
+// future H3 projection work.
 
 #pragma once
 
@@ -32,12 +33,26 @@ struct MixerProjectionError
         UnsupportedTrackSource,
         InvalidTrackGain,
         InvalidTrackPan,
+        InvalidSendDestination,
         GraphBuildFailed
     };
 
     Code            code       = Code::None;
     std::size_t     trackIndex = 0;
+    std::size_t     sendIndex  = 0;
     GraphBuildError graphError;
+};
+
+enum class MixerSendTap
+{
+    PreFader,
+    PostFader
+};
+
+struct MixerSendProjection
+{
+    std::size_t  busIndex = 0;
+    MixerSendTap tap      = MixerSendTap::PostFader;
 };
 
 struct MixerTrackProjection
@@ -48,6 +63,12 @@ struct MixerTrackProjection
     NodeId meterNodeId = 0;
     float  linearGain  = 1.0f;
     float  pan         = 0.0f;
+    std::vector<MixerSendProjection> sends;
+};
+
+struct MixerBusProjection
+{
+    NodeId sumNodeId = 0;
 };
 
 struct MixerProjectionInputs
@@ -59,6 +80,7 @@ struct MixerProjectionInputs
     int     maxBlockSize    = 512;
     const CompiledGraph* previousForCarryOver = nullptr;
     std::vector<MixerTrackProjection> tracks;
+    std::vector<MixerBusProjection> buses;
 };
 
 [[nodiscard]] inline bool mixerGainIsValid (float gain) noexcept
@@ -83,10 +105,12 @@ struct MixerProjectionInputs
     inputs.sampleRate = projection.sampleRate;
     inputs.maxBlockSize = projection.maxBlockSize;
     inputs.previousForCarryOver = projection.previousForCarryOver;
-    inputs.nodes.reserve (projection.tracks.size() * 4u + 2u);
+    inputs.nodes.reserve (projection.tracks.size() * 4u + projection.buses.size() + 2u);
 
     std::vector<Node*> masterBusInputs;
-    masterBusInputs.reserve (projection.tracks.size());
+    masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
+
+    std::vector<std::vector<Node*>> busInputs (projection.buses.size());
 
     for (std::size_t i = 0; i < projection.tracks.size(); ++i)
     {
@@ -139,6 +163,24 @@ struct MixerProjectionInputs
         faderPtr->setInput (sourcePtr);
         faderPtr->setTargetGain (track.linearGain);
 
+        for (std::size_t sendIndex = 0; sendIndex < track.sends.size(); ++sendIndex)
+        {
+            const MixerSendProjection& send = track.sends[sendIndex];
+            if (send.busIndex >= projection.buses.size())
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::InvalidSendDestination;
+                    error->trackIndex = i;
+                    error->sendIndex = sendIndex;
+                }
+                return nullptr;
+            }
+
+            Node* const tap = send.tap == MixerSendTap::PreFader ? sourcePtr : static_cast<Node*> (faderPtr);
+            busInputs[send.busIndex].push_back (tap);
+        }
+
         auto pan = std::make_unique<PanNode> (track.panNodeId);
         PanNode* const panPtr = pan.get();
         panPtr->setInput (faderPtr);
@@ -153,6 +195,16 @@ struct MixerProjectionInputs
         inputs.nodes.push_back (std::move (pan));
         inputs.nodes.push_back (std::move (meter));
         masterBusInputs.push_back (meterPtr);
+    }
+
+    for (std::size_t i = 0; i < projection.buses.size(); ++i)
+    {
+        auto busSum = std::make_unique<SumNode> (projection.buses[i].sumNodeId, 1);
+        SumNode* const busSumPtr = busSum.get();
+        busSum->setInputNodes (std::move (busInputs[i]));
+
+        inputs.nodes.push_back (std::move (busSum));
+        masterBusInputs.push_back (busSumPtr);
     }
 
     auto masterSum = std::make_unique<SumNode> (projection.masterSumNodeId, 2);

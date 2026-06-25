@@ -1,7 +1,8 @@
 // YES DAW - H3 headless mixer graph projection checks.
 //
-// Proves the first mixer-as-graph foundation using existing Nodes only:
-// source -> FaderNode -> PanNode -> MeterNode -> SumNode(master bus) -> MasterNode.
+// Proves the mixer-as-graph foundation using existing Nodes only:
+// source -> FaderNode -> PanNode -> MeterNode -> SumNode(master bus) -> MasterNode,
+// with Send edges to Bus SumNodes whose Returns feed the master bus.
 
 #include "engine/MixerGraphProjection.h"
 #include "engine/nodes/IdentityDcNode.h"
@@ -11,7 +12,9 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -22,10 +25,16 @@ using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
 using yesdaw::engine::IdentityDcNode;
+using yesdaw::engine::MixerBusProjection;
 using yesdaw::engine::MixerProjectionError;
 using yesdaw::engine::MixerProjectionInputs;
+using yesdaw::engine::MixerSendProjection;
+using yesdaw::engine::MixerSendTap;
 using yesdaw::engine::MixerTrackProjection;
+using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
+using yesdaw::engine::NodeProperties;
+using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::buildMixerGraphProjection;
 
 namespace {
@@ -34,6 +43,43 @@ constexpr NodeId kMasterSumId = 61000;
 constexpr NodeId kMasterId    = 61001;
 constexpr int    kMaxBlock    = 512;
 constexpr float  kCenterGain  = 0.70710677f;
+
+class LatentImpulseSource final : public Node
+{
+public:
+    LatentImpulseSource (NodeId id, std::int64_t latencySamples) noexcept
+        : id_ (id), latencySamples_ (latencySamples)
+    {
+    }
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { true, false, 1, latencySamples_, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (args.audio.numChannels < 1)
+            return;
+
+        float* const out = args.audio.channels[0];
+        for (int i = 0; i < args.numFrames; ++i)
+            out[i] = 0.0f;
+
+        if (latencySamples_ >= 0 && latencySamples_ < static_cast<std::int64_t> (args.numFrames))
+            out[static_cast<std::size_t> (latencySamples_)] = 1.0f;
+    }
+
+    void reset() noexcept override {}
+    void release() override {}
+
+private:
+    NodeId       id_ = 0;
+    std::int64_t latencySamples_ = 0;
+};
 
 MixerProjectionInputs baseProjection (GraphId graphId)
 {
@@ -56,6 +102,24 @@ MixerTrackProjection makeTrack (NodeId sourceId,
 {
     MixerTrackProjection track;
     track.source = std::make_unique<IdentityDcNode> (sourceId, dc, 1);
+    track.faderNodeId = faderId;
+    track.panNodeId = panId;
+    track.meterNodeId = meterId;
+    track.linearGain = gain;
+    track.pan = pan;
+    return track;
+}
+
+MixerTrackProjection makeImpulseTrack (NodeId sourceId,
+                                       std::int64_t latencySamples,
+                                       NodeId faderId,
+                                       NodeId panId,
+                                       NodeId meterId,
+                                       float gain,
+                                       float pan)
+{
+    MixerTrackProjection track;
+    track.source = std::make_unique<LatentImpulseSource> (sourceId, latencySamples);
     track.faderNodeId = faderId;
     track.panNodeId = panId;
     track.meterNodeId = meterId;
@@ -134,6 +198,136 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
         REQUIRE (v == Approx (expectedLeft).margin (1.0e-4f));
 }
 
+TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "[mixer][projection][send]")
+{
+    MixerProjectionInputs inputs = baseProjection (7);
+    inputs.buses.push_back (MixerBusProjection { 62000 });
+
+    MixerTrackProjection pre = makeTrack (150, 1.0f, 250, 350, 450, 0.0f, 0.0f);
+    pre.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+    MixerTrackProjection post = makeTrack (151, 1.0f, 251, 351, 451, 0.0f, 0.0f);
+    post.sends.push_back (MixerSendProjection { 0, MixerSendTap::PostFader });
+
+    inputs.tracks.push_back (std::move (pre));
+    inputs.tracks.push_back (std::move (post));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->debugMultiInputNodesBound());
+
+    const CompiledNode* const bus = compiledNodeById (*graph, 62000);
+    const CompiledNode* const masterSum = compiledNodeById (*graph, kMasterSumId);
+    REQUIRE (bus != nullptr);
+    REQUIRE (masterSum != nullptr);
+    REQUIRE (bus->kind == CompiledNodeKind::Sum);
+    REQUIRE (bus->numInputs == 2u);
+    REQUIRE (masterSum->numInputs == 3u);
+
+    const std::vector<float> out = render (*graph, kMaxBlock);
+    for (float v : out)
+        REQUIRE (v == Approx (1.0f).margin (1.0e-4f));
+}
+
+TEST_CASE ("Mixer projection bus Return summing is deterministic across declaration order", "[mixer][projection][send]")
+{
+    auto build = [] (bool reversed)
+    {
+        MixerProjectionInputs inputs = baseProjection (8);
+        inputs.buses.push_back (MixerBusProjection { 62010 });
+
+        constexpr float kHuge = 1.0e20f;
+
+        MixerTrackProjection big = makeTrack (160, kHuge, 260, 360, 460, 0.0f, 0.0f);
+        big.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+        MixerTrackProjection negBig = makeTrack (161, -kHuge, 261, 361, 461, 0.0f, 0.0f);
+        negBig.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+        MixerTrackProjection small = makeTrack (162, 1.0f, 262, 362, 462, 0.0f, 0.0f);
+        small.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+        if (reversed)
+        {
+            inputs.tracks.push_back (std::move (small));
+            inputs.tracks.push_back (std::move (negBig));
+            inputs.tracks.push_back (std::move (big));
+        }
+        else
+        {
+            inputs.tracks.push_back (std::move (big));
+            inputs.tracks.push_back (std::move (negBig));
+            inputs.tracks.push_back (std::move (small));
+        }
+
+        MixerProjectionError error;
+        std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code == MixerProjectionError::Code::None);
+        return graph;
+    };
+
+    std::unique_ptr<CompiledGraph> normal = build (false);
+    std::unique_ptr<CompiledGraph> reversed = build (true);
+
+    const std::vector<float> normalOut = render (*normal, kMaxBlock);
+    const std::vector<float> reversedOut = render (*reversed, kMaxBlock);
+
+    REQUIRE (normalOut.size() == reversedOut.size());
+    for (std::size_t i = 0; i < normalOut.size(); ++i)
+    {
+        REQUIRE (normalOut[i] == Approx (1.0f).margin (0.0f));
+        REQUIRE (reversedOut[i] == Approx (normalOut[i]).margin (0.0f));
+    }
+}
+
+TEST_CASE ("Mixer projection lets GraphBuilder align Return convergence with PDC", "[mixer][projection][send][pdc]")
+{
+    constexpr int kLatency = 5;
+    constexpr int kFrames = 24;
+
+    MixerProjectionInputs inputs = baseProjection (9);
+    inputs.maxBlockSize = kFrames;
+    inputs.buses.push_back (MixerBusProjection { 62020 });
+
+    MixerTrackProjection direct = makeImpulseTrack (170, 0, 270, 370, 470, 0.0f, -1.0f);
+    direct.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+    MixerTrackProjection latent = makeImpulseTrack (171, kLatency, 271, 371, 471, 0.0f, -1.0f);
+    latent.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+    inputs.tracks.push_back (std::move (direct));
+    inputs.tracks.push_back (std::move (latent));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) >= 1u);
+
+    const CompiledNode* const bus = compiledNodeById (*graph, 62020);
+    REQUIRE (bus != nullptr);
+    REQUIRE (bus->kind == CompiledNodeKind::Sum);
+    REQUIRE (bus->numInputs == 2u);
+    REQUIRE (bus->pathLatency == kLatency);
+
+    const std::vector<float> out = render (*graph, kFrames);
+    int nonZeroFrames = 0;
+    for (int i = 0; i < kFrames; ++i)
+    {
+        const float expected = i == kLatency ? 2.0f : 0.0f;
+        REQUIRE (out[static_cast<std::size_t> (i)] == Approx (expected).margin (1.0e-4f));
+        if (std::fabs (out[static_cast<std::size_t> (i)]) > 1.0e-5f)
+            ++nonZeroFrames;
+    }
+    REQUIRE (nonZeroFrames == 1);
+}
+
 TEST_CASE ("Mixer projection exposes fader and pan nodes to existing scalar routing", "[mixer][projection][scalar]")
 {
     constexpr NodeId kFaderId = 220;
@@ -204,4 +398,21 @@ TEST_CASE ("Mixer projection rejects invalid scalar values before graph build", 
         REQUIRE (error.code == MixerProjectionError::Code::InvalidTrackPan);
         REQUIRE (error.trackIndex == 0u);
     }
+}
+
+TEST_CASE ("Mixer projection rejects Sends to missing buses before graph build", "[mixer][projection][invalid]")
+{
+    MixerProjectionInputs inputs = baseProjection (10);
+
+    MixerTrackProjection track = makeTrack (180, 0.5f, 280, 380, 480, 1.0f, 0.0f);
+    track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PostFader });
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::InvalidSendDestination);
+    REQUIRE (error.trackIndex == 0u);
+    REQUIRE (error.sendIndex == 0u);
 }
