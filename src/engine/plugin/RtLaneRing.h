@@ -47,7 +47,6 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <span>
 #include <vector>
 
@@ -318,19 +317,21 @@ private:
         w[base].store     (static_cast<std::uint32_t> (v & 0xffffffffu), std::memory_order_relaxed);
         w[base + 1].store (static_cast<std::uint32_t> (v >> 32),         std::memory_order_relaxed);
     }
+    // Events are trivially copyable (ADR-0009) but NOT trivial (NSDMIs), so memcpy trips GCC's
+    // -Wclass-memaccess; std::bit_cast packs/unpacks the fixed-size Event to/from ring words cleanly.
+    using EventWords = std::array<std::uint32_t, kEventWords>;
+    static_assert (sizeof (EventWords) == sizeof (Event), "Event must bit_cast losslessly to ring words");
+
     static Event loadEventWord (const std::vector<std::atomic<std::uint32_t>>& w, std::size_t base) noexcept
     {
-        std::array<std::uint32_t, kEventWords> tmp{};
+        EventWords tmp{};
         for (std::size_t i = 0; i < kEventWords; ++i)
             tmp[i] = w[base + i].load (std::memory_order_relaxed);
-        Event e{};
-        std::memcpy (&e, tmp.data(), sizeof (Event));
-        return e;
+        return std::bit_cast<Event> (tmp);
     }
     static void storeEventWord (std::vector<std::atomic<std::uint32_t>>& w, std::size_t base, const Event& e) noexcept
     {
-        std::array<std::uint32_t, kEventWords> tmp{};
-        std::memcpy (tmp.data(), &e, sizeof (Event));
+        const EventWords tmp = std::bit_cast<EventWords> (e);
         for (std::size_t i = 0; i < kEventWords; ++i)
             w[base + i].store (tmp[i], std::memory_order_relaxed);
     }
