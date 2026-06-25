@@ -18,20 +18,20 @@ worklog.
 
 ## Now — between chunks (every engine commit to date is CI-green)
 - **Latest: WORKER H3 mixer policy ADR is green locally.**
-  Added ADR-0014 to lock the remaining H3 mixer policy before implementation code: explicit mute wins
-  over solo and solo-safe; SIP solo is the default and is computed as a control-thread audible closure
-  over the normal graph; solo-safe paths are immune to solo auto-mute but not explicit mute; Sidechain
-  is a typed extra input pin and a real graph edge seen by GraphBuilder before topo, PDC, and buffer
-  liveness; Sidechain feeds follow the effective state of their source tap, so explicit mute and SIP
-  solo-mute silence them unless a later key-listen or sidechain monitor mode is decided. The ADR also
-  requires mechanical failure if a policy target cannot be represented by mute-capable compiled
-  contribution points. Updated `docs/adr/README.md` and
+  Added `docs/adr/0014-mixer-policy-solo-mute-sidechain.md` to lock the remaining H3 mixer policy before
+  implementation code: SIP solo is the H3 solo mode (PFL/AFL deferred to a later monitor bus), explicit
+  Mute wins over Solo and Solo-safe, solo-safe protects a Track/Bus Return only from solo-induced muting,
+  and solo-safe Returns do not open unrelated source Sends into the soloed mix. Sidechain input pins are
+  non-audible, ordered auxiliary inputs on sidechain-capable Nodes/PluginNodes; their edges must be
+  visible to GraphBuilder before topo/PDC/buffer-liveness analysis, keep ADR-0008's `Node` base contract
+  frozen, converge through explicit `SumNode` / Bus fan-in when multiple sources feed one pin, and carry
+  Event/automation offsets with the same per-path PDC as audio. Updated `docs/adr/README.md` and
   `CONTEXT.md` for the new Mute / Solo / SIP solo / Solo-safe vocabulary and Sidechain input-pin
   wording. No mixer implementation code, Project or persistence schema shape, plugin-host code, scanner
   code, plugin UI, CLAP loading, out-of-process runtime IPC, export UX, H4 work, golden edits, broad
   graph rewiring, sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits were
   made. Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci` passed (155/155). Remote CI is pending until this ADR worker commit is pushed.
+  `ctest --preset ci` passed (155/155). Remote CI is pending until this worker/status tip is pushed.
   **Next:** REVIEW/FIX H3 mixer policy ADR: verify ADR-0014 against `STATUS.md`, ADR-0007, ADR-0008,
   ADR-0009, ADR-0010, ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, `CONTEXT.md`, and current
   `MixerGraphProjection` / `GraphBuilder` / `CompiledGraph` / `Node` contracts. Fix only proven doc
