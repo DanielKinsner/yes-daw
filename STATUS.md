@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — Clip gain/fade envelope render projection review/fix green; undo/redo worker next
+**Current horizon:** **H2 (editing-first)** — command/diff undo/redo worker green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,21 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 command/diff undo/redo foundation is green locally.**
+  Added the smallest headless in-memory command/diff undo/redo surface for the current H2 Clip edit
+  helpers: `moveClip`, `trimClip`, `splitClip`, `setClipGain`, and `setClipFades`. `ProjectEditCommand`
+  records the named edit intent, and `ProjectUndoStack` records exact Clip row before/after diffs on
+  successful commands so a live in-memory `Project` can undo back to the bit-identical original value
+  and redo back to the edited value. Invalid commands and mismatched live Project state are rejected
+  without mutation. The slice stays metadata-only: Assets remain immutable; SQLite undo journaling,
+  autosave durability semantics, UI interaction, export, plugin hosting, H3 work, ADR edits, roadmap
+  edits, golden edits, waveform cache changes, broad render rewiring, schema semantics,
+  sampled/pixel/snapped/derived values as Project truth, and `[[clang::nonblocking]]` edits are
+  untouched. `YesDawProjectCheck` now proves a mixed sequence of all five current Clip edit helpers can
+  apply, undo to the exact original `Project`, and redo to the exact edited `Project`. Local gate via
+  documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci` pass (137/137). Remote CI is pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H2 command/diff undo/redo foundation.
 - **Latest: REVIEW/FIX H2 Clip gain/fade/crossfade envelope render projection foundation found no defects.**
   Reviewed worker commit `232e384` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
   plan/deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests.

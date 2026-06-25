@@ -5,6 +5,7 @@
 
 #include "engine/ClipEnvelope.h"
 #include "engine/Project.h"
+#include "engine/ProjectUndo.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -24,7 +25,11 @@ using yesdaw::engine::EntityIdAllocator;
 using yesdaw::engine::kMaxUlidTimestampMs;
 using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
+using yesdaw::engine::ProjectEditCommand;
 using yesdaw::engine::ProjectEditStatus;
+using yesdaw::engine::ProjectEditVerb;
+using yesdaw::engine::ProjectUndoStack;
+using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
@@ -41,6 +46,7 @@ static_assert (std::is_trivially_copyable_v<EntityId>);
 static_assert (std::is_trivially_copyable_v<AssetContentHash>);
 static_assert (std::is_trivially_copyable_v<Asset>);
 static_assert (std::is_trivially_copyable_v<Clip>);
+static_assert (std::is_trivially_copyable_v<ProjectEditCommand>);
 
 namespace {
 
@@ -360,6 +366,106 @@ TEST_CASE ("Project setClipGain and setClipFades edit only envelope metadata", "
     REQUIRE (edited.fadeOut == 1920);
     REQUIRE (project.assets.front() == originalAsset);
     REQUIRE (project.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project undo stack records command diffs for clip metadata edits", "[project][clip-edit][undo]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+    const EntityId rightId = idFromLowByte (32);
+
+    ProjectUndoStack undo;
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::NothingToUndo);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::NothingToRedo);
+
+    auto result = undo.apply (project, ProjectEditCommand::moveClip (clipId, 1'024));
+    REQUIRE (result.applied());
+    REQUIRE (undo.undoDepth() == 1u);
+    REQUIRE (undo.redoDepth() == 0u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveClip);
+    REQUIRE (undo.nextUndo()->diff.before.size() == 1u);
+    REQUIRE (undo.nextUndo()->diff.after.size() == 1u);
+
+    result = undo.apply (project, ProjectEditCommand::trimClip (clipId, 1'024, 20'000, 150, 600));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::setClipGain (clipId, 1.25f));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::setClipFades (clipId, 240, 480));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::splitClip (clipId, rightId, 8'000, 300));
+    REQUIRE (result.applied());
+    REQUIRE (undo.undoDepth() == 5u);
+    REQUIRE_FALSE (undo.canRedo());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SplitClip);
+    REQUIRE (undo.nextUndo()->diff.before.size() == 1u);
+    REQUIRE (undo.nextUndo()->diff.after.size() == 2u);
+    REQUIRE (undo.nextUndo()->diff.after[0].id == clipId);
+    REQUIRE (undo.nextUndo()->diff.after[1].id == rightId);
+
+    const Project edited = project;
+    REQUIRE (edited.assets == original.assets);
+    REQUIRE (edited.clips.size() == 2u);
+    REQUIRE (edited.clips[0].id == clipId);
+    REQUIRE (edited.clips[1].id == rightId);
+    REQUIRE (edited.clips[0].timelineStart == 1'024);
+    REQUIRE (edited.clips[0].timelineLength == 8'000);
+    REQUIRE (edited.clips[1].timelineStart == 9'024);
+    REQUIRE (edited.clips[0].srcOffset == 150u);
+    REQUIRE (edited.clips[0].srcLen == 300u);
+    REQUIRE (edited.clips[1].srcOffset == 450u);
+    REQUIRE (edited.clips[0].gain == 1.25f);
+    REQUIRE (edited.clips[1].gain == 1.25f);
+    REQUIRE (edited.clips[0].fadeIn == 240);
+    REQUIRE (edited.clips[1].fadeOut == 480);
+    REQUIRE (edited.hasValidAssetClipIndirection());
+
+    for (int i = 0; i < 5; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE (undo.canRedo());
+    REQUIRE (undo.redoDepth() == 5u);
+
+    for (int i = 0; i < 5; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+    REQUIRE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
+    REQUIRE (undo.redoDepth() == 0u);
+}
+
+TEST_CASE ("Project undo stack rejects failed commands and mismatched live Project state", "[project][clip-edit][undo][invalid]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+
+    ProjectUndoStack undo;
+    const auto rejected = undo.apply (project, ProjectEditCommand::setClipGain (clipId, -0.01f));
+    REQUIRE (rejected.editStatus == ProjectEditStatus::InvalidClipEnvelope);
+    REQUIRE_FALSE (rejected.recorded);
+    REQUIRE_FALSE (undo.canUndo());
+    requireProjectValueUnchanged (project, original);
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::moveClip (clipId, 2'048)).applied());
+    Project externallyChanged = project;
+    externallyChanged.clips.front().timelineStart = 4'096;
+
+    const Project beforeMismatch = externallyChanged;
+    REQUIRE (undo.undo (externallyChanged) == ProjectUndoStatus::ProjectMismatch);
+    requireProjectValueUnchanged (externallyChanged, beforeMismatch);
+    REQUIRE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
 }
 
 TEST_CASE ("Clip gain envelope derives equal-power fade gain without mutating Project", "[project][clip-envelope]")
