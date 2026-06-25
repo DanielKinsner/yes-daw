@@ -42,11 +42,15 @@ using yesdaw::engine::MasterNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::Project;
+using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::Runtime;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::evaluateClipGainEnvelope;
+using yesdaw::engine::setClipFades;
+using yesdaw::engine::setClipGain;
+using yesdaw::engine::splitClip;
 using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::WaveformPeakCacheStatus;
@@ -415,6 +419,141 @@ TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into gr
     INFO ("RT/offline diff = " << maxRtOfflineDiff);
     INFO ("expected decoded Clip diff = " << maxExpectedDiff);
     INFO ("old constant-gain projection diff = " << maxConstantGainDiff);
+    REQUIRE (peak > 0.01);
+    REQUIRE (maxRtOfflineDiff <= kTolerance);
+    REQUIRE (maxExpectedDiff <= kTolerance);
+    REQUIRE (maxConstantGainDiff > 1.0e-3);
+    REQUIRE (project.id == projectBeforeRender.id);
+    REQUIRE (project.sampleRate == projectBeforeRender.sampleRate);
+    REQUIRE (project.assets == projectBeforeRender.assets);
+    REQUIRE (project.clips == projectBeforeRender.clips);
+    REQUIRE (readBytes (bundledAssetPath) == bytesBefore);
+
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("split Clip with crossfade metadata renders identically through RT and offline paths", "[render][bundle][asset][clip][split][crossfade]")
+{
+    const std::uint64_t base = CompiledGraph::aliveCount();
+    const auto bundlePath = makeTempBundlePath ("split-crossfade-render");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    Asset imported;
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+
+        const AssetImportRequest import {
+            fixturePath,
+            idFromLowByte (40),
+            4096,
+            SampleRate { 48000.0 },
+            1,
+        };
+        REQUIRE (db.importAssetBytes (import, imported).ok());
+
+        Clip original;
+        original.id = idFromLowByte (41);
+        original.assetId = imported.id;
+        original.timelineStart = 512;
+        original.timelineLength = 256;
+        original.srcOffset = 960;
+        original.srcLen = 256;
+        original.gain = 1.0f;
+        original.fadeIn = 0;
+        original.fadeOut = 0;
+        original.timeBase = TimeBase::SampleLocked;
+
+        Project project;
+        project.id = idFromLowByte (42);
+        project.sampleRate = SampleRate { 48000.0 };
+        project.assets.push_back (imported);
+        project.clips.push_back (original);
+        REQUIRE (project.hasValidAssetClipIndirection());
+
+        const Asset immutableAsset = project.assets.front();
+        const EntityId rightId = idFromLowByte (43);
+        constexpr Tick crossfadeTicks = 64;
+        REQUIRE (setClipGain (project, original.id, 0.625f) == ProjectEditStatus::Applied);
+        REQUIRE (splitClip (project, original.id, rightId, 128, 128) == ProjectEditStatus::Applied);
+        REQUIRE (setClipFades (project, original.id, 0, crossfadeTicks) == ProjectEditStatus::Applied);
+        REQUIRE (setClipFades (project, rightId, crossfadeTicks, 0) == ProjectEditStatus::Applied);
+
+        REQUIRE (project.assets.size() == 1u);
+        REQUIRE (project.assets.front() == immutableAsset);
+        REQUIRE (project.clips.size() == 2u);
+        REQUIRE (project.hasValidAssetClipIndirection());
+
+        const Clip& left = project.clips[0];
+        const Clip& right = project.clips[1];
+        REQUIRE (left.id == original.id);
+        REQUIRE (right.id == rightId);
+        REQUIRE (left.assetId == imported.id);
+        REQUIRE (right.assetId == imported.id);
+        REQUIRE (right.timelineStart == left.timelineStart + left.timelineLength);
+        REQUIRE (right.srcOffset == left.srcOffset + left.srcLen);
+        REQUIRE (left.timelineLength == 128);
+        REQUIRE (right.timelineLength == 128);
+        REQUIRE (left.srcLen == 128u);
+        REQUIRE (right.srcLen == 128u);
+        REQUIRE (left.gain == right.gain);
+        REQUIRE (left.fadeOut == crossfadeTicks);
+        REQUIRE (right.fadeIn == crossfadeTicks);
+
+        const auto leftMidpoint = evaluateClipGainEnvelope (left, left.timelineLength - (crossfadeTicks / 2));
+        const auto rightMidpoint = evaluateClipGainEnvelope (right, crossfadeTicks / 2);
+        REQUIRE (leftMidpoint.valid);
+        REQUIRE (rightMidpoint.valid);
+        REQUIRE (std::fabs (static_cast<double> (leftMidpoint.gain - rightMidpoint.gain)) <= 1.0e-6);
+
+        const Project projectBeforeWrite = project;
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        REQUIRE (project.id == projectBeforeWrite.id);
+        REQUIRE (project.sampleRate == projectBeforeWrite.sampleRate);
+        REQUIRE (project.assets == projectBeforeWrite.assets);
+        REQUIRE (project.clips == projectBeforeWrite.clips);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, reopened).ok());
+
+    Project project;
+    REQUIRE (reopened.readProjectSnapshot (project).ok());
+    REQUIRE (project.assets.size() == 1u);
+    REQUIRE (project.clips.size() == 2u);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.clips[1].timelineStart == project.clips[0].timelineStart + project.clips[0].timelineLength);
+    REQUIRE (project.clips[1].srcOffset == project.clips[0].srcOffset + project.clips[0].srcLen);
+
+    const std::filesystem::path bundledAssetPath =
+        bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (project.assets.front().contentHash);
+    const std::vector<std::uint8_t> bytesBefore = readBytes (bundledAssetPath);
+    const Project projectBeforeRender = project;
+
+    const std::vector<float> rt = renderRealtimePath (reopened, project);
+    const std::vector<float> offline = renderOfflinePath (reopened, project);
+    const std::vector<float> expected = expectedClipSum (reopened, project);
+    const std::vector<float> constantGain = constantGainClipSum (reopened, project);
+    REQUIRE (rt.size() == offline.size());
+    REQUIRE (offline.size() == expected.size());
+    REQUIRE (constantGain.size() == expected.size());
+
+    double maxRtOfflineDiff = 0.0;
+    double maxExpectedDiff = 0.0;
+    double maxConstantGainDiff = 0.0;
+    double peak = 0.0;
+    for (std::size_t i = 0; i < offline.size(); ++i)
+    {
+        maxRtOfflineDiff = std::max (maxRtOfflineDiff, std::fabs (static_cast<double> (rt[i] - offline[i])));
+        maxExpectedDiff = std::max (maxExpectedDiff, std::fabs (static_cast<double> (offline[i] - expected[i])));
+        maxConstantGainDiff = std::max (maxConstantGainDiff,
+                                        std::fabs (static_cast<double> (constantGain[i] - expected[i])));
+        peak = std::max (peak, std::fabs (static_cast<double> (offline[i])));
+    }
+
+    INFO ("split crossfade RT/offline diff = " << maxRtOfflineDiff);
+    INFO ("split crossfade expected decoded Clip diff = " << maxExpectedDiff);
+    INFO ("split crossfade old constant-gain projection diff = " << maxConstantGainDiff);
     REQUIRE (peak > 0.01);
     REQUIRE (maxRtOfflineDiff <= kTolerance);
     REQUIRE (maxExpectedDiff <= kTolerance);
