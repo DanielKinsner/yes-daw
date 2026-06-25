@@ -10,7 +10,8 @@ worklog.
 
 **Last updated:** 2026-06-25
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
-(ADR-0015) written + reviewed; implementation (RT-lane IPC ring first) is next
+(ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
+primitive) is built and green locally
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -18,6 +19,46 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 plugin-hosting RT-lane shared-memory ring is green locally — first hosting code lands.**
+  Built ADR-0015's RT lane as a headless, in-process primitive: new header-only `src/engine/plugin/RtLaneRing.h`,
+  the lock-free, double-buffered audio + Event ring that implements the one-Block plugin handshake. It is
+  **bytes-location-agnostic** — the exact atomic protocol that will later live in OS shared memory — so it
+  does NOT do real cross-process mmap/`CreateFileMapping` yet, and there is no JUCE, no `PluginNode`, no
+  child process (the "child" is a second test thread that polls). Per direction it has a DOUBLE buffer of
+  slots plus the ADR-named control words: `inputSeq` (release-stored by the audio thread after writing
+  Block N's input+Events), `outputSeq` (acquire-loaded by the audio thread as the output-ready counter),
+  `validatedLatency`, and `status`. The **audio-thread role** `exchangeBlock` (`YESDAW_RT_HOT`, the future
+  `PluginNode::process()`) writes Block N's input then release-stores `inputSeq`, then reads Block **N-1**'s
+  output **deterministically** (exactly one Block of latency, for ADR-0007 PDC) with the **fail-open ladder**
+  — last-good -> silence -> bypass, all branch-only; it never signals/waits/allocates/logs/syscalls. The
+  **child role** `pollOnce` (off the audio thread) polls `inputSeq`, processes the newest input, and
+  release-stores `outputSeq`. Race-freedom: a strict double buffer + a never-blocking audio thread cannot be
+  race-free under arbitrary timing (the lock-free-mailbox result that otherwise forces triple buffering), so
+  each slot carries a **seqlock version** (odd while writing, even when stable) and its payload words are
+  **relaxed atomics** — a concurrent lap is therefore well-defined (not UB) and simply discarded as a miss.
+  That keeps ADR-0015's pinned double-buffer + sequence-counter mechanism intact AND makes the protocol
+  formally TSan-safe; all cross-thread state is atomic, everything else is endpoint-thread-local (allocated
+  only in `prepare`). New pure-C++ test target **`YesDawPluginIpcCheck`** (built unconditionally so the RTSan
+  leg covers `exchangeBlock` and the TSan leg covers the protocol), 6 self-asserting tests: one-Block-delay
+  identity across Blocks; the fail-open ladder (last-good -> silence -> bypass) + recovery; the control words
+  (validated latency + status); the Event ring carrying a `ParameterChange` sample-accurately (the child
+  applies it from its `timeInBlock` offset) one Block late; correctness across channel counts + varying Block
+  sizes; and a concurrent producer/consumer stress test in two modes — **flat-out** (the audio thread outruns
+  the child -> same-slot lapping reads, the case the seqlock + relaxed atomics must keep race-free for TSan)
+  and **paced** (sustained, exactly-one-Block-late delivery). Scope held to a primitive: no real shared
+  memory, `PluginNode`, scanner, watchdog, JUCE, ADR, golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT`
+  annotation edits. Local gate via the documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (175/175). RTSan/TSan are Clang-20/Linux CI-only
+  (cannot run locally on Windows), so they are the remote gate; remote CI is pending until this worker is pushed.
+  **Next:** REVIEW/FIX H3 RT-lane shared-memory ring — verify `RtLaneRing` + `tests/rt_lane_tests.cpp` against
+  `STATUS.md`, ADR-0015 (RT lane / one-Block pipeline / fail-open), ADR-0013, ADR-0007 (PDC = deterministic
+  single-Block latency), ADR-0008 (the `Node` base contract stays untouched), ADR-0009 (serializable Events),
+  and the RT-safety rules (the audio thread never allocates/locks/logs/syscalls; release/acquire + seqlock
+  correctness; no torn/garbage delivery). Fix only proven defects. Keep it a primitive — do NOT start real
+  shared memory (mmap/`CreateFileMapping`), the `PluginNode` IPC proxy, the `YesDawPluginHost`
+  `ChildProcessWorker` target, the coordinator watchdog, the crash-test plugin, the scanner, or JUCE; no ADR,
+  golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT` edits. Run the gate, update `STATUS.md`, commit/push,
+  check CI, then create the next WORKER thread (`PluginNode` IPC proxy over the ring) only if green.
 - **Latest: ADR-0015 plugin-hosting runtime written + reviewed (one fix) — kicks off the H3 hosting half.**
   Dan chose the ADR-first path. `docs/adr/0015-plugin-hosting-runtime-ipc-and-process-model.md` refines
   ADR-0013's deferred implementation choices (it explicitly left the shared-memory/ring details, per-OS

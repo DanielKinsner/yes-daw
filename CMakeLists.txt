@@ -281,6 +281,16 @@ target_link_libraries(YesDawSidechainCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawSidechainCheck)
 catch_discover_tests(YesDawSidechainCheck)
 
+# --- RT-lane IPC ring check (H3; pure, the lock-free double-buffered audio+Event ring — ADR-0015) ---
+# Built UNCONDITIONALLY (no JUCE) so the RTSan leg covers the audio-thread role (exchangeBlock) under
+# -fsanitize=realtime and the TSan leg covers the producer/consumer release/acquire protocol under
+# -fsanitize=thread. The free-running stress test needs the platform threads library.
+add_executable(YesDawPluginIpcCheck tests/rt_lane_tests.cpp)
+target_include_directories(YesDawPluginIpcCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawPluginIpcCheck PRIVATE Catch2::Catch2WithMain Threads::Threads)
+yesdaw_harden(YesDawPluginIpcCheck)
+catch_discover_tests(YesDawPluginIpcCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
