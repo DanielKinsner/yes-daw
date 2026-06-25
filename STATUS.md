@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — edit-sequence undo/redo property gate worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — edit-sequence undo/redo property gate worker green; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -29,8 +29,8 @@ worklog.
   export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, broad
   render rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
   `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
-  `cmake --build --preset ci`; `ctest --preset ci` pass (141/141). Remote CI is pending until this
-  worker commit is pushed.
+  `cmake --build --preset ci`; `ctest --preset ci` pass (141/141). Remote CI run `28144622776` for
+  worker commit `af31e8e` is green across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 edit-sequence undo/redo property gate: review the worker gate against
   `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2 plan/deepening notes, and the current Time /
   Project / ProjectBundle / render and persistence tests. Verify the sequence generator is only a
