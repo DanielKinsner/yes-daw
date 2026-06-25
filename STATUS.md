@@ -9,8 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — clearing 2 latent mixer-projection defects from the
-adversarial review, then resuming the mixer-policy ADR review/fix loop
+**Current horizon:** **H3 (mixer + plugin hosting)** — both latent mixer-projection defects from the
+adversarial review are cleared (green locally); resuming the mixer-policy ADR-0014 review/fix loop next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -18,6 +18,32 @@ adversarial review, then resuming the mixer-policy ADR review/fix loop
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: FIX H3 mixer bus-Return stereo width (ADR-0014) is green locally — both review defects cleared.**
+  Cleared the second latent defect from the adversarial review. ADR-0014 never specified a Bus Return's
+  channel width, so the earlier Send/Return projection summed Send taps into a **mono** `SumNode` wired
+  straight into the stereo master, making a `Send->Bus->Return` audible in the master's LEFT channel only
+  (a mono producer fills only channel 0 of a stereo consumer; `SumNode` skips the null channel-1 pointer).
+  Dan chose (multiple-choice) the recommended fix: a Bus Return is stereo and centred, mirroring the Track
+  chain. Wrote the decision into ADR-0014 first (`docs(adr)` commit `e3f9448`), then each Bus Return now
+  widens to centred stereo through its own `PanNode -> MeterNode` (the Bus `SumNode` still sums mono Send
+  taps; the Return centres at the equal-power ×0.707 gain like a Track), default centre, pannable later;
+  `MixerBusProjection` gained `panNodeId`/`meterNodeId`/`pan` and the build validates the Return pan.
+  Made the mixer test harness **stereo-aware**: a test-only `CompiledGraph::debugMasterChannel` exposes the
+  master's channel 1 (`process()` computes it into the pool but only ever surfaced channel 0 — which is why
+  CI was blind to this); `render()` now captures BOTH channels; every Send/Return test asserts L and R, the
+  scalar test proves a hard-left pan silences R, and a dedicated regression guard proves a Send->Bus->Return
+  is centred and non-zero in both channels (not left-only). No solo/mute policy, Sidechain, Project/
+  persistence schema, plugin-host, golden, or `[[clang::nonblocking]]` edits — only the bus-Return projection,
+  a test-only debug accessor, and the ADR addendum. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (159/159). Remote CI is pending
+  until this fix + status tip is pushed (gh auth unavailable in this shell, so the green check needs a glance).
+  **Next:** resume Codex's queued H3 loop — REVIEW/FIX H3 mixer policy ADR-0014: verify it against `STATUS.md`,
+  ADR-0007/0008/0009/0013, the H3 plan/deepening notes, `CONTEXT.md`, and the current `MixerGraphProjection`
+  / `GraphBuilder` / `CompiledGraph` / `Node` contracts (the bus-Return addendum is now part of it); fix only
+  proven doc defects. Then WORKER: implement the ADR-0014 mixer policy — derive the post-compile mute mask
+  from mute / SIP-solo / solo-safe state (no graph rewrite on a solo toggle; the audio thread only reads the
+  published mask) and Sidechain input pins as real compiler-visible graph inputs with PDC, each proven with
+  self-asserting tests. Stop at any new ADR-level decision.
 - **Latest: FIX H3 mixer gain-validator tautology + FaderNode SetGain clamp is green locally.**
   Cleared the first of two latent defects an adversarial review of `435d320..ba235d1` found in the headless
   `MixerGraphProjection` (only tests call it, so neither was user-reachable, and both were invisible to the
