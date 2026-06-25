@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — undo transaction grouping worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — undo transaction grouping review/fix green locally; property gate worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,30 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 undo transaction grouping/property gate foundation is green locally.**
+  Reviewed worker commit `3670bd8` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
+  plan/deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests.
+  Found and fixed one narrow mechanical proof gap: `YesDawProjectCheck` now directly proves grouped
+  same-verb/different-Clip edits stay separate, while compatible `trimClip` and `setClipFades`
+  sequences coalesce inside an explicit transaction group and still undo/redo back to bit-identical
+  live `Project` values. The implementation stays explicit and headless: only compatible consecutive
+  same-verb/same-Clip one-row diffs coalesce inside an active group; `splitClip`, unrelated verbs,
+  unrelated targets, and ungrouped edits stay separate. The slice remains command+diff and Project-local
+  only: no SQLite undo journaling, autosave durability semantics, UI gesture timing, export, plugin
+  hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, broad render
+  rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
+  `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (140/140). Remote CI run `28143357400` for
+  worker commit `3670bd8` is green. Remote CI is pending until this review/fix commit is pushed.
+  **Next:** WORKER H2 edit-sequence undo/redo property gate: add the smallest self-asserting headless
+  sequence generator over the current Clip edit helpers and explicit transaction groups, proving
+  apply/undo-all returns the live in-memory `Project` to the bit-identical original and redo-all returns
+  it to the edited value. Keep it Project-local command+diff only; no SQLite undo journaling, autosave
+  durability semantics, UI gesture timing, export, plugin hosting, H3 work, ADR edits, roadmap edits,
+  golden edits, waveform cache changes, broad render rewiring, schema semantics, sampled, pixel,
+  snapped, or derived values as Project truth, or `[[clang::nonblocking]]` edits. If property-test framework choice,
+  undo persistence/autosave semantics, coalescing semantics, crossfade curve/shared-ramp representation,
+  or any ADR-level decision rises, stop and report.
 - **Latest: WORKER H2 undo transaction grouping/property gate foundation is green locally.**
   Added the smallest headless transaction grouping layer on top of the live in-memory command/diff undo
   stack for the current H2 Clip edit helpers. `ProjectUndoStack` now has explicit
@@ -32,7 +56,7 @@ worklog.
   depth, unrelated grouped edits stay separate, ungrouped compatible edits stay separate, and grouped
   plus ungrouped sequences undo/redo back to bit-identical `Project` values. Local gate via documented
   Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass
-  (139/139). Remote CI is pending until this worker commit is pushed.
+  (139/139). Remote CI run `28143357400` is green.
   **Next:** REVIEW/FIX H2 undo transaction grouping/property gate foundation.
 - **Latest: REVIEW/FIX H2 command/diff undo/redo foundation found no defects.**
   Reviewed worker commit `8caf091` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
@@ -850,20 +874,18 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 undo transaction grouping/property gate foundation.** Pull, read
-  `AGENTS.md` + this handoff first, then review only the worker chunk that added headless transaction
-  grouping on top of the live in-memory command/diff undo stack for `moveClip`, `trimClip`,
-  `splitClip`, `setClipGain`, and `setClipFades`. Verify the implementation stays explicit and
-  headless; coalesces only compatible consecutive same-verb/same-Clip one-row edits within an active
-  group; keeps `splitClip`, unrelated verbs, unrelated targets, and ungrouped edits as separate undo
-  entries; and preserves bit-identical undo/redo over live in-memory `Project` values. Keep the review
-  narrow: no SQLite undo journaling, autosave durability semantics, UI gesture timing, export, plugin
-  hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, broad render
-  rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
-  `[[clang::nonblocking]]` edits. If undo persistence/autosave semantics, coalescing semantics,
-  crossfade curve/shared-ramp representation, or any ADR-level decision rises, stop and report. Run
-  the documented gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green,
-  update `STATUS.md`, commit/push, check CI, then create the following WORKER thread.
+- **Next chunk: WORKER H2 edit-sequence undo/redo property gate.** Pull, read `AGENTS.md` + this
+  handoff first, then implement only the smallest self-asserting headless sequence generator over the
+  current Clip edit helpers and explicit transaction groups, proving apply/undo-all returns the live
+  in-memory `Project` to the bit-identical original and redo-all returns it to the edited value. Keep it
+  Project-local command+diff only; no SQLite undo journaling, autosave durability semantics, UI gesture
+  timing, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache
+  changes, broad render rewiring, schema semantics, sampled/pixel/snapped/derived values as Project
+  truth, or `[[clang::nonblocking]]` edits. If property-test framework choice, undo persistence/autosave
+  semantics, coalescing semantics, crossfade curve/shared-ramp representation, or any ADR-level decision
+  rises, stop and report. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the following
+  REVIEW/FIX thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

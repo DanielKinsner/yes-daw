@@ -553,6 +553,83 @@ TEST_CASE ("Project undo stack groups compatible headless clip edit transactions
     REQUIRE_FALSE (undo.canRedo());
 }
 
+TEST_CASE ("Project undo stack separates targets and groups trim and fade edits", "[project][clip-edit][undo][group]")
+{
+    Project project = makeTwoClipEditableProject();
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project original = project;
+    const EntityId firstId = project.clips[0].id;
+    const EntityId secondId = project.clips[1].id;
+
+    ProjectUndoStack undo;
+    REQUIRE (undo.beginTransactionGroup());
+
+    auto result = undo.apply (project, ProjectEditCommand::moveClip (firstId, 1'000));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+
+    result = undo.apply (project, ProjectEditCommand::moveClip (secondId, 2'000));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+
+    result = undo.apply (project, ProjectEditCommand::moveClip (secondId, 3'000));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveClip);
+    REQUIRE (undo.nextUndo()->diff.before[0] == original.clips[1]);
+    REQUIRE (undo.nextUndo()->diff.after[0] == project.clips[1]);
+
+    const Project beforeTrim = project;
+    result = undo.apply (project, ProjectEditCommand::trimClip (firstId, 1'500, 20'000, 150, 500));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 3u);
+
+    result = undo.apply (project, ProjectEditCommand::trimClip (firstId, 1'750, 21'000, 160, 510));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 3u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::TrimClip);
+    REQUIRE (undo.nextUndo()->diff.before[0] == beforeTrim.clips[0]);
+    REQUIRE (undo.nextUndo()->diff.after[0] == project.clips[0]);
+
+    const Project beforeFades = project;
+    result = undo.apply (project, ProjectEditCommand::setClipFades (firstId, 120, 240));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 4u);
+
+    result = undo.apply (project, ProjectEditCommand::setClipFades (firstId, 360, 480));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 4u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetClipFades);
+    REQUIRE (undo.nextUndo()->diff.before[0] == beforeFades.clips[0]);
+    REQUIRE (undo.nextUndo()->diff.after[0] == project.clips[0]);
+
+    REQUIRE (undo.endTransactionGroup());
+
+    const Project edited = project;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+}
+
 TEST_CASE ("Project undo stack keeps compatible edits separate outside transaction groups", "[project][clip-edit][undo][group]")
 {
     Project project = makeEditableProject();
