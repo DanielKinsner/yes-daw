@@ -31,7 +31,8 @@ worklog.
   rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, or
   `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
   `cmake --build --preset ci`; `ctest --preset ci` pass (140/140). Remote CI run `28143357400` for
-  worker commit `3670bd8` is green. Remote CI is pending until this review/fix commit is pushed.
+  worker commit `3670bd8` is green. Remote CI run `28143828792` for review/fix commit `385bb36`
+  is green across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** WORKER H2 edit-sequence undo/redo property gate: add the smallest self-asserting headless
   sequence generator over the current Clip edit helpers and explicit transaction groups, proving
   apply/undo-all returns the live in-memory `Project` to the bit-identical original and redo-all returns
