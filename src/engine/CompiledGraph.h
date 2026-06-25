@@ -27,6 +27,7 @@
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 #include "rt/RtHot.h"
 
@@ -65,6 +66,7 @@ enum class CompiledNodeKind : std::uint8_t
     Delay,
     Latency,
     Master,
+    Sidechain,
     Plugin
 };
 
@@ -358,6 +360,12 @@ public:
             {
                 const MasterNode* const master = dynamic_cast<const MasterNode*> (cn.node);
                 if (master == nullptr || ! master->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Sidechain)
+            {
+                const SidechainGainNode* const sc = dynamic_cast<const SidechainGainNode*> (cn.node);
+                if (sc == nullptr || ! sc->isBound())
                     return false;
             }
             else if (cn.numInputs > 1u)

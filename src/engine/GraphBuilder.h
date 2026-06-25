@@ -14,6 +14,7 @@
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
@@ -273,6 +274,8 @@ private:
             return CompiledNodeKind::Delay;
         if (dynamic_cast<MasterNode*> (&node) != nullptr)
             return CompiledNodeKind::Master;
+        if (dynamic_cast<SidechainGainNode*> (&node) != nullptr)
+            return CompiledNodeKind::Sidechain;
         return CompiledNodeKind::Plugin;
     }
 
@@ -556,8 +559,13 @@ private:
                 ++nextDoubleSlot;
             }
 
+            // Multi-input nodes record their inputs in a canonical producer-id order so the output is
+            // bit-identical across recompiles regardless of declaration order (SumNode/Master re-sort too,
+            // and summing is commutative). A Sidechain consumer is the exception: input 0 is the MAIN and
+            // input 1 the sidechain, so order is semantic. Keep its declared (directInputs) order, which the
+            // PDC pass preserves positionally even when it splices a LatencyNode onto the shorter path.
             std::vector<std::size_t> orderedInputs = item.inputs;
-            if (orderedInputs.size() > 1u)
+            if (orderedInputs.size() > 1u && item.kind != CompiledNodeKind::Sidechain)
             {
                 std::sort (orderedInputs.begin(), orderedInputs.end(),
                            [&items] (std::size_t a, std::size_t b)
@@ -729,6 +737,11 @@ private:
                 if (MasterNode* master = dynamic_cast<MasterNode*> (cn.node))
                     master->bindInputs (masterInputsFor (payload, cn));
             }
+            else if (cn.kind == CompiledNodeKind::Sidechain)
+            {
+                if (SidechainGainNode* sc = dynamic_cast<SidechainGainNode*> (cn.node))
+                    sc->bindInputs (sidechainInputsFor (payload, cn));
+            }
         }
     }
 
@@ -746,6 +759,12 @@ private:
             {
                 const MasterNode* const master = dynamic_cast<const MasterNode*> (cn.node);
                 if (master == nullptr || ! master->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Sidechain)
+            {
+                const SidechainGainNode* const sc = dynamic_cast<const SidechainGainNode*> (cn.node);
+                if (sc == nullptr || ! sc->isBound())
                     return false;
             }
             else if (cn.numInputs > 1u)
@@ -820,6 +839,28 @@ private:
             const CompiledNode& producer = payload.compiledNodes[slot.producerNodeIdx];
 
             MasterNode::Input input;
+            input.producerId = producer.id;
+            fillInputChannels (payload, slot.fromSlot, producer.numChannels, input.channels);
+            inputs.push_back (input);
+        }
+
+        return inputs;
+    }
+
+    // Resolved inputs for a Sidechain consumer, in the SAME order they appear in inputSlotIndices. Because
+    // the slot loop skips its producer-id sort for the Sidechain kind, that order is the declared
+    // directInputs() order: index 0 is the main signal, index 1 the sidechain pin.
+    static std::vector<SidechainGainNode::Input> sidechainInputsFor (const CompiledGraph::Payload& payload, const CompiledNode& cn)
+    {
+        std::vector<SidechainGainNode::Input> inputs;
+        inputs.reserve (cn.numInputs);
+
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t> (cn.numInputs); ++i)
+        {
+            const InputSlot& slot = payload.inputSlotIndices[static_cast<std::size_t> (cn.inputsBegin) + i];
+            const CompiledNode& producer = payload.compiledNodes[slot.producerNodeIdx];
+
+            SidechainGainNode::Input input;
             input.producerId = producer.id;
             fillInputChannels (payload, slot.fromSlot, producer.numChannels, input.channels);
             inputs.push_back (input);

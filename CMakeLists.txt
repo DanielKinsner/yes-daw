@@ -274,6 +274,13 @@ target_link_libraries(YesDawMixerMutePolicyCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawMixerMutePolicyCheck)
 catch_discover_tests(YesDawMixerMutePolicyCheck)
 
+# --- Sidechain input pin check (H3; ordered aux inputs + PDC convergence, ADR-0014) ---
+add_executable(YesDawSidechainCheck tests/sidechain_tests.cpp)
+target_include_directories(YesDawSidechainCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawSidechainCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawSidechainCheck)
+catch_discover_tests(YesDawSidechainCheck)
+
 # --- WAV load + scrub check (spike #1; links JUCE, so guarded + headless-but-CI-run) ---
 # Decodes a committed fixture WAV and golden-diffs/scrubs it — no listening. Links juce_audio_formats
 # (file decode only, no device/display), so it joins the normal matrix + ctest but is skipped on the
