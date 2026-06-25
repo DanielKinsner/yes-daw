@@ -11,11 +11,17 @@ worklog.
 **Last updated:** 2026-06-25
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
-primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built green locally and
-queued for REVIEW/FIX
+primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
+rolling-baton REVIEW/FIX of `PluginNode` is next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
+>
+> **Rolling baton loop.** Each baton thread first REVIEW/FIXES the previous checkpoint, then, only if that
+> review is clean/green, WORKS the next small checkpoint in the same thread. The baton may create exactly
+> one successor baton only after its own `STATUS.md` update, commit, push, and CI result are complete and
+> green. Do not create separate reviewer/worker threads in parallel, and never spawn ahead while CI is
+> pending, stuck, red, or being rerun.
 
 ---
 
@@ -58,8 +64,8 @@ queued for REVIEW/FIX
   shared memory, host exe, scanner, watchdog, JUCE, ADR, golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT`
   annotation edits; LF endings. Local gate via the documented Windows DevShell flow: `cmake --preset ci`;
   `cmake --build --preset ci`; `ctest --preset ci` pass (185/185, +5 new). RTSan/TSan are Clang-20/Linux
-  CI-only (cannot run locally on Windows) — pushing so remote CI gates the audio-thread RT-safety + protocol
-  race-freedom. Remote CI is pending until this worker commit is pushed.
+  CI-only (cannot run locally on Windows). Remote CI is **GREEN across all five legs** for commit `822d404`
+  (run `28207115401`: Windows, Linux, macOS, RTSan, TSan).
   **Next:** REVIEW/FIX H3 `PluginNode` IPC proxy — verify `src/engine/plugin/PluginNode.h` +
   `tests/plugin_node_tests.cpp` against `STATUS.md`, ADR-0015 (RT lane / one-Block pipeline / fail-open /
   validated latency), ADR-0013 (`PluginNode` as the out-of-process IPC proxy), ADR-0007 (PDC = deterministic
@@ -71,9 +77,11 @@ queued for REVIEW/FIX
   the coordinator watchdog, the crash-test plugin, the scanner, or JUCE; no ADR, golden, or
   `[[clang::nonblocking]]`/`YESDAW_RT_HOT` edits. Confirm the one-Block-late delivery, fail-open ladder, and
   PDC alignment tests are non-vacuous and assert the right thing, and that the latency/channel validation
-  truly bounds what reaches the compiler. Run the gate, update `STATUS.md`, commit/push, check CI, then
-  create the next WORKER thread (the `YesDawPluginHost` worker exe + engine-doesn't-link-hosting layering
-  check) only if green.
+  truly bounds what reaches the compiler. Run the gate, update `STATUS.md`, commit/push, and check CI. If
+  the review is clean/green, continue in the SAME rolling-baton thread to the next worker chunk: the
+  `YesDawPluginHost` worker exe + engine-doesn't-link-hosting layering check. Create the successor baton
+  only after that worker chunk has its own updated `STATUS.md`, commit, push, and green CI result. Do not
+  spawn a successor while this review or CI is still pending, red, stuck, or being rerun.
 - **Latest: REVIEW/FIX H3 RT-lane shared-memory ring found no defects — review clean, ring is solid.**
   Ran an independent formal review of the post-fix ring (`src/engine/plugin/RtLaneRing.h` +
   `tests/rt_lane_tests.cpp`) against the LITERAL text of ADR-0015 (RT lane / one-Block pipeline /
@@ -1268,8 +1276,8 @@ queued for REVIEW/FIX
   ADR for solo/mute/SIP solo-safe behavior and Sidechain input pins is next.
 - [ ] Automation lanes honoring per-Block offsets through the graph projection.
 - [ ] Out-of-process plugin scanner with persistent blacklist and hang watchdog.
-- [ ] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
-  thread wait on child process.
+- [~] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
+  thread wait on child process — headless adapter built and CI-green; rolling-baton REVIEW/FIX is next.
 - [ ] VST3 + AU hosting behind `PluginNode`; CLAP comes after VST3/AU.
 - [x] Opaque plugin-state persistence and corrupt-chunk graceful fallback.
 - [ ] H3 mechanical gates: live high-latency-plugin PDC impulse, pluginval L8-10, `auval`, and
@@ -1538,17 +1546,15 @@ queued for REVIEW/FIX
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next chunk: REVIEW/FIX H3 mixer policy ADR.** Pull, read `AGENTS.md` + this handoff first, then
-  verify ADR-0014 against `STATUS.md`, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0013, the
-  H3 plan/roadmap/deepening notes, `CONTEXT.md`, and current `MixerGraphProjection` / `GraphBuilder` /
-  `CompiledGraph` / `Node` contracts. Fix only proven doc defects; do not write mixer implementation
-  code, Project or persistence schema shape, plugin-host code, scanner code, plugin UI, CLAP loading,
-  out-of-process runtime IPC, export UX, H4 work, golden edits, broad graph rewiring,
-  sampled/pixel/snapped/derived Project truth, or `[[clang::nonblocking]]` edits. Run the documented
-  gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green, update
-  `STATUS.md`, commit/push, check CI, then create the next WORKER thread from `STATUS.md`. The loop
-  continues worker -> review/fix -> worker until H3 exit gates are green, then stops for Dan's
-  horizon-boundary review.
+- **Next rolling baton: REVIEW/FIX H3 `PluginNode` IPC proxy, then WORKER H3 host-worker layering if green.**
+  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/plugin/PluginNode.h` and
+  `tests/plugin_node_tests.cpp` against ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety
+  rules. Fix only proven defects. If the review is clean/green, continue in the same baton thread to the
+  next worker chunk: `YesDawPluginHost` worker exe + engine-doesn't-link-hosting layering check. Run the
+  documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`) for each
+  checkpoint that changes code. Update `STATUS.md`, commit/push, and wait for green CI before creating
+  exactly one successor baton. Never create separate reviewer/worker threads in parallel, and never spawn a
+  successor while CI is pending, stuck, red, or being rerun.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
