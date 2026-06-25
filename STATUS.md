@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — command/diff undo/redo worker green locally; review/fix next
+**Current horizon:** **H2 (editing-first)** — command/diff undo/redo review/fix green locally; transaction-grouping worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,21 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 command/diff undo/redo foundation found no defects.**
+  Reviewed worker commit `8caf091` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
+  plan/deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests.
+  `ProjectEditCommand` stays a named edit intent, and `ProjectUndoStack` records exact Clip row
+  before/after diffs for `moveClip`, `trimClip`, `splitClip`, `setClipGain`, and `setClipFades`.
+  Undo applies the recorded before rows; redo applies the recorded after rows; invalid commands and
+  mismatched live Clip rows reject without Project mutation. The slice stays live in-memory Project
+  only: Assets remain immutable; SQLite undo journaling, autosave durability semantics, UI interaction,
+  export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes,
+  broad render rewiring, schema semantics, sampled/pixel/snapped/derived values as Project truth, and
+  `[[clang::nonblocking]]` edits are untouched. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (137/137). Remote CI run
+  `28142543112` for worker commit `8caf091` is green across Windows, Linux, macOS, RTSan, and TSan.
+  Remote CI is pending until this status-only review/fix commit is pushed.
+  **Next:** WORKER H2 undo transaction grouping/property gate foundation.
 - **Latest: WORKER H2 command/diff undo/redo foundation is green locally.**
   Added the smallest headless in-memory command/diff undo/redo surface for the current H2 Clip edit
   helpers: `moveClip`, `trimClip`, `splitClip`, `setClipGain`, and `setClipFades`. `ProjectEditCommand`
@@ -30,7 +45,8 @@ worklog.
   untouched. `YesDawProjectCheck` now proves a mixed sequence of all five current Clip edit helpers can
   apply, undo to the exact original `Project`, and redo to the exact edited `Project`. Local gate via
   documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci` pass (137/137). Remote CI is pending until this worker commit is pushed.
+  `ctest --preset ci` pass (137/137). Remote CI run `28142543112` is green across Windows, Linux,
+  macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H2 command/diff undo/redo foundation.
 - **Latest: REVIEW/FIX H2 Clip gain/fade/crossfade envelope render projection foundation found no defects.**
   Reviewed worker commit `232e384` against `STATUS.md`, ADR-0010, ADR-0011, ADR-0012, the H2
@@ -817,17 +833,21 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 command/diff undo/redo foundation.** Pull, read `AGENTS.md` + this handoff
-  first, then implement only the smallest headless in-memory command/diff undo/redo surface for the
-  current H2 Clip edit helpers (`moveClip`, `trimClip`, `splitClip`, `setClipGain`, `setClipFades`) so
-  a sequence of existing pure-metadata edits can be applied, undone back to a bit-identical Project
-  value, and redone mechanically. Keep it command+diff and live in-memory Project only; do not journal
-  undo to SQLite, add UI interaction, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden
-  edits, waveform cache changes, broad render rewiring, schema semantics, sampled/pixel/snapped/derived
-  values as Project truth, or `[[clang::nonblocking]]` edits. If undo persistence/autosave semantics,
-  crossfade curve/shared-ramp representation, or any ADR-level decision rises, stop and report. Run the
-  documented gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`. If green,
-  update `STATUS.md`, commit/push, check CI, then create the following REVIEW/FIX thread.
+- **Next chunk: WORKER H2 undo transaction grouping/property gate foundation.** Pull, read
+  `AGENTS.md` + this handoff first, then implement only the smallest headless transaction grouping
+  layer on top of the current live in-memory command/diff undo stack for the existing Clip edit helpers
+  (`moveClip`, `trimClip`, `splitClip`, `setClipGain`, `setClipFades`). Use explicit headless group
+  boundaries or an equivalent non-UI gesture model; coalesce only compatible same-verb/same-target edit
+  sequences, keep unrelated verbs/targets as separate undo entries, and add the first self-asserting
+  bit-identical undo/redo gate for grouped and ungrouped edit sequences. Keep it command+diff and live
+  in-memory Project only; do not journal undo to SQLite, add autosave durability semantics, UI
+  interaction/gesture timing, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits,
+  waveform cache changes, broad render rewiring, schema semantics, sampled/pixel/snapped/derived values
+  as Project truth, or `[[clang::nonblocking]]` edits. If undo persistence/autosave semantics,
+  coalescing semantics, crossfade curve/shared-ramp representation, or any ADR-level decision rises,
+  stop and report. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the following
+  REVIEW/FIX thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
