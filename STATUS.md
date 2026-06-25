@@ -18,6 +18,34 @@ Sidechain input pins, both green locally); plugin-hosting runtime (ADR-0013) is 
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 Sidechain input pins found no proven defect — mixer-policy half of H3 is complete.**
+  Reviewed `SidechainGainNode` + the GraphBuilder/CompiledGraph changes (worker commit `3211f5e`) against
+  `STATUS.md`, ADR-0014, ADR-0007 (PDC convergence / buffer last-reader), ADR-0008 (frozen Node contract),
+  the H3 plan/deepening notes, and the live contracts. Main-first input ordering is robust (sort skipped for
+  the Sidechain kind; the PDC pass preserves input position even when it splices a `LatencyNode`, so matching
+  by producer id — which the splice changes — is correctly avoided); the consumer gets a fresh, non-aliased
+  output slot and the per-sample read-then-write is safe even under aliasing; determinism holds (Sum/Master
+  keep canonical producer-id order, the 167 prior tests are unchanged, and a sidechain node's
+  `[main, single-pin]` order is stable because multiple sources converge through a `SumNode` first). One
+  observation, not a defect: a Sidechain node wired with no sidechain input outputs silence (safe, no
+  crash); an explicit "require exactly two inputs" build-time validation is a noted future option. Worker
+  commit `3211f5e` is green in remote CI run `28199783306` across Windows, Linux, macOS, RTSan, and TSan.
+  Status-only closeout. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (170/170).
+
+  **H3 status:** the **mixer-policy half is done and CI-green** — bus-Return stereo centering, the
+  mute / SIP-solo / solo-safe post-compile mute mask, and Sidechain input pins with PDC. The **remaining H3
+  half is the plugin-hosting runtime (ADR-0013)**: out-of-process `PluginNode` IPC proxy over serializable
+  audio/Event buffers, one-Block nonblocking fail-open, plugin scanner watchdog/blacklist/cache, and
+  pluginval / `auval` / host-isolation gates. That is a large new subsystem (process isolation + IPC +
+  real VST3/AU SDK integration) whose first step is effectively ADR-level (IPC transport / process model /
+  SDK + sandbox approach per OS), so it should be scoped with Dan before code lands rather than started
+  autonomously.
+  **Next:** Dan's call on the plugin-hosting approach (ADR-0013 set the principles; the implementation
+  needs the IPC/process/SDK specifics pinned as an ADR refinement first). Then WORKER plugin-hosting in
+  small green chunks (likely: scanner skeleton -> PluginNode adapter -> out-of-process IPC -> fail-open ->
+  pluginval/auval/host-isolation gates), REVIEW/FIX between each, until the H3 exit gates are green, then
+  hard-stop for Dan's H3->H4 horizon-boundary review.
 - **Latest: WORKER H3 Sidechain input pins (graph edges + PDC convergence) is green locally.**
   Implemented Sidechain input pins as real compiler-visible graph inputs with no change to ADR-0008's
   frozen `Node` base contract or `ProcessArgs`: a sidechain pin is an ordered auxiliary input, and a node
