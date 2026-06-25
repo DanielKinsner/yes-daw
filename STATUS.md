@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip gain/fade worker CI green; review/fix next
+**Current horizon:** **H2 (editing-first)** — Clip gain/fade review/fix green locally; envelope worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,27 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H2 Clip gain/fade/crossfade metadata foundation found no defects.** Reviewed
+  worker commit `c3819cc` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening notes, and
+  the current Time / Project / ProjectBundle / render and persistence tests. The helpers stay pure
+  metadata over the existing Clip fields: `setClipGain` / `setClipFades` mutate only storage-safe
+  `gain`, `fadeIn`, and `fadeOut`; Assets, timeline Tick placement, source-frame windows, `timeBase`,
+  schema, sampled/pixel/snapped values, undo/redo, UI, export, plugin hosting, H3 work, ADRs, roadmap,
+  goldens, waveform cache, and `[[clang::nonblocking]]` annotations are untouched. Invalid requested
+  envelope values and invalid pre-existing storage-unsafe Clip metadata are rejected without Project
+  mutation; the persistence proof covers exact schema v1 write/read of edited gain/fade metadata.
+  Crossfade remains adjacent per-Clip envelope metadata only; no representation or curve semantics were
+  invented. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (132/132). Remote CI is pending until this
+  status-only review/fix commit is pushed.
+  **Next:** WORKER H2 Clip gain/fade/crossfade envelope evaluation foundation: add the smallest
+  headless derived evaluator/gate for existing Clip `gain`, `fadeIn`, and `fadeOut` metadata so
+  RT/offline Project projection can later apply one per-Clip gain envelope. Keep Project truth
+  metadata-only, Assets immutable, and sampled/pixel/snapped values derived rather than Project truth.
+  Treat crossfade as adjacent Clip envelopes only if the current ADR and H2 deepening notes are
+  sufficient; if curve/shared-ramp representation semantics rise to ADR level, stop and report. Do not
+  start undo/redo, UI interaction, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden
+  edits, waveform cache changes, or `[[clang::nonblocking]]` edits.
 - **Latest: WORKER H2 Clip gain/fade/crossfade metadata foundation is green.** Added the
   smallest headless Project-level edit helpers for the existing Clip envelope metadata:
   `setClipGain` and `setClipFades`. The slice stays pure metadata over the current
@@ -715,15 +736,17 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: REVIEW/FIX H2 Clip gain/fade/crossfade metadata foundation.** Pull, read `AGENTS.md` +
-  this handoff first, then review only the worker chunk that added `setClipGain` / `setClipFades` and
-  the focused Project/persistence gates. Verify against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2
-  deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests. Keep
-  the review narrow: pure metadata only, storage-safe Clip `gain`/`fadeIn`/`fadeOut`, Assets immutable,
-  no sampled/pixel/snapped values stored as Project truth, and no invented crossfade representation or
-  curve semantics. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the following
-  WORKER thread.
+- **Next chunk: WORKER H2 Clip gain/fade/crossfade envelope evaluation foundation.** Pull, read
+  `AGENTS.md` + this handoff first, then add only the smallest headless derived evaluator/gate for
+  existing Clip `gain`, `fadeIn`, and `fadeOut` metadata so RT/offline Project projection can later
+  apply one per-Clip gain envelope. Keep Project truth metadata-only, Assets immutable, and
+  sampled/pixel/snapped values derived rather than Project truth. Treat crossfade as adjacent Clip
+  envelopes only if the current ADR and H2 deepening notes are sufficient; if curve/shared-ramp
+  representation semantics rise to ADR level, stop and report. Do not start undo/redo, UI interaction,
+  export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache changes, or
+  `[[clang::nonblocking]]` edits. Run the documented gate: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI,
+  then create the following REVIEW/FIX thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
