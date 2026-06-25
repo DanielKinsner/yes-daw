@@ -9,8 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — mixer mute mask (mute/SIP-solo/solo-safe) implemented
-and green locally; Sidechain input pins next
+**Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete (mute/SIP-solo/solo-safe mask +
+Sidechain input pins, both green locally); plugin-hosting runtime (ADR-0013) is the remaining H3 half
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -18,6 +18,38 @@ and green locally; Sidechain input pins next
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 Sidechain input pins (graph edges + PDC convergence) is green locally.**
+  Implemented Sidechain input pins as real compiler-visible graph inputs with no change to ADR-0008's
+  frozen `Node` base contract or `ProcessArgs`: a sidechain pin is an ordered auxiliary input, and a node
+  interprets its bound inputs positionally (input 0 = main, input 1 = sidechain) — sidechain-ness is binding
+  metadata, exactly as ADR-0014 decided. New `SidechainGainNode` is a minimal sidechain-capable built-in
+  (its main signal is gain-modulated sample-by-sample by its sidechain; multi-input like `SumNode`, own
+  `bindInputs`, no allocation in `process()`). GraphBuilder gained a `CompiledNodeKind::Sidechain`
+  (`detectKind`), a bind path (`sidechainInputsFor` + the node's `bindInputs`), and accepts it in the
+  multi-input-bound check; the producer-id input sort is SKIPPED for the Sidechain kind so `[main,
+  sidechain]` order survives — the PDC pass preserves input position even when it splices a `LatencyNode`
+  onto the shorter path, so the fragile alternative of matching by producer id (which the splice changes) is
+  avoided. PDC came for free: the convergence pass already splices `LatencyNode`s for any >=2-input node, so
+  a sidechain consumer's main and sidechain auto-align; the buffer-pool last-reader analysis already counted
+  sidechain/multi-input readers (CompiledGraph contract R4). 3 self-asserting tests through the real
+  GraphBuilder + CompiledGraph: `out = main * sidechain`; PDC alignment proven by an alignment-sensitive
+  multiply of two impulses (main lat 0, sidechain lat 5 -> a `LatencyNode` is spliced, both impulses land on
+  frame 5, exactly one non-zero output frame — misalignment would be silent); and multiple sources
+  converging through an explicit `SumNode` into one pin (ADR-0014). The 167 prior tests are unchanged, so
+  the sort-skip is scoped to the Sidechain kind only (Sum/Master keep their canonical producer-id order /
+  bit-identical recompiles). No Project/persistence schema, plugin-host runtime, golden, or
+  `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (170/170). Remote CI is pending until this worker +
+  status tip is pushed.
+  **Next:** REVIEW/FIX H3 Sidechain input pins: verify `SidechainGainNode` + the GraphBuilder/CompiledGraph
+  changes against `STATUS.md`, ADR-0014, ADR-0007/0008, the H3 plan/deepening notes, and current contracts
+  (frozen Node contract; main-first ordering robust to PDC splicing; multi-input bound checks; last-reader
+  analysis). Fix only proven defects. Then assess the **H3 exit gates**: the mixer-policy half (mute /
+  SIP-solo / solo-safe mask + Sidechain pins) is now done; the remaining H3 half is the **plugin-hosting
+  runtime** (ADR-0013: out-of-process `PluginNode` IPC proxy, scanner watchdog/blacklist, one-Block
+  fail-open, pluginval/`auval`/host-isolation gates). That is a large new area — start it as its own
+  WORKER/REVIEW loop and STOP at any new ADR-level decision; surface scope to Dan at the H3 horizon
+  boundary.
 - **Latest: REVIEW/FIX H3 mixer mute mask found no proven defect.**
   Reviewed `MixerMutePolicy` + `CompiledGraph::isMuteCapable` (worker commit `62fba52`) against `STATUS.md`,
   ADR-0014, ADR-0007 (mask flipped without recompile), ADR-0008 (frozen Node contract), the H3
