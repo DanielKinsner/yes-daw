@@ -31,7 +31,8 @@ worklog.
   or `[[clang::nonblocking]]` edits were made. The prior review/fix closeout commit `990e2ca` is green
   in remote CI run `28183565440` across Windows, Linux, macOS, RTSan, and TSan. Local gate via documented
   Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass
-  (155/155). Remote CI is pending until this worker commit is pushed.
+  (155/155). Remote CI run `28184654241` for worker commit `14d2a1b` is green across Windows, Linux,
+  macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H3 mixer Send/Return graph-edge foundation: verify the worker implementation
   against `STATUS.md`, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0013, the H3 plan/roadmap/
   deepening notes, and current `MixerGraphProjection` / `GraphBuilder` / `CompiledGraph` / `Node`
