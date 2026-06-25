@@ -9,8 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — both latent mixer-projection defects from the
-adversarial review are cleared (green locally); resuming the mixer-policy ADR-0014 review/fix loop next
+**Current horizon:** **H3 (mixer + plugin hosting)** — mixer mute mask (mute/SIP-solo/solo-safe) implemented
+and green locally; Sidechain input pins next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -18,6 +18,36 @@ adversarial review are cleared (green locally); resuming the mixer-policy ADR-00
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 mixer mute mask (mute / SIP-solo / solo-safe) is green locally.**
+  First completed the queued **REVIEW/FIX H3 mixer policy ADR-0014**: verified ADR-0014 (including the new
+  bus-Return stereo-width addendum) against `STATUS.md`, ADR-0007 (mask flipped without recompile / compile
+  pass 5), ADR-0008 (frozen Node base contract), ADR-0009 (PDC shifts the event stream by per-path latency),
+  ADR-0013 (sidechain pins on PluginNode), the H3 plan/deepening notes (Returns and sidechain consumers are
+  PDC convergence points), `CONTEXT.md`, and the live `CompiledGraph` `setMuted`/`isMuted`/`muteBit`
+  machinery (proven by `YesDawBuilderCheck`). Found **no proven doc defect**, so this is a clean review.
+  Then implemented the policy: new header-only `MixerMutePolicy` derives the post-compile mute mask from
+  per-target mute / SIP-solo / solo-safe state on the control thread and publishes it through the existing
+  mute seam — the audio thread never evaluates the policy and the graph is never recompiled to mute.
+  `mixerAnyActiveSolo` (SIP solo active iff some unmuted target is soloed), `mixerTargetIsEffectivelyMuted`
+  (explicit Mute wins; under active solo only soloed/solo-safe stay audible; solo-safe never overrides Mute),
+  and `applyMixerMutePolicy` (pre-validates every target via the new `CompiledGraph::isMuteCapable`, then
+  publishes; fails with the mask UNCHANGED if any target is not mute-capable — never a partial mask). Mute
+  point mapping (mixer-projection work per ADR-0014): a Track's target is its SOURCE node, so zeroing it
+  removes the direct path AND every Send tap; a Return's target is its Bus SumNode. 8 self-asserting tests:
+  the ADR-0014 effective-mute truth table (pure), plus built-graph proofs that muting a Track silences its
+  direct path in both channels, muting a Track removes its Send contribution from a Return, SIP solo leaves
+  only the soloed Track audible, a solo-safe Return stays audible WITHOUT leaking a non-soloed Track's send,
+  and a non-mute-capable target fails with the mask unchanged. No Sidechain code, Project/persistence schema,
+  plugin-host code, golden, or `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell
+  flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (167/167). Remote CI is
+  pending until this worker + status tip is pushed.
+  **Next:** REVIEW/FIX H3 mixer mute mask: verify `MixerMutePolicy` + `CompiledGraph::isMuteCapable` against
+  `STATUS.md`, ADR-0014, ADR-0007/0008, the H3 plan/deepening notes, and current contracts; fix only proven
+  defects (no Project/persistence schema, plugin-host, Sidechain, golden, or `[[clang::nonblocking]]` edits).
+  Then WORKER: Sidechain input pins as real compiler-visible graph inputs with PDC (ordered auxiliary inputs
+  on sidechain-capable Nodes; edges visible to GraphBuilder before topo/PDC/buffer-liveness; converge through
+  explicit SumNode/Bus when multiple sources feed one pin; keep ADR-0008's Node base contract frozen). Prove
+  with self-asserting tests; stop at any new ADR-level decision.
 - **Latest: FIX H3 mixer bus-Return stereo width (ADR-0014) is green locally — both review defects cleared.**
   Cleared the second latent defect from the adversarial review. ADR-0014 never specified a Bus Return's
   channel width, so the earlier Send/Return projection summed Send taps into a **mono** `SumNode` wired
