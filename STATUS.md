@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip metadata review/fix green locally; gain/fade worker next
+**Current horizon:** **H2 (editing-first)** — Clip metadata review/fix CI green; gain/fade worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,7 +17,7 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: REVIEW/FIX H2 Clip split/trim/move metadata foundation is green locally.** Reviewed worker
+- **Latest: REVIEW/FIX H2 Clip split/trim/move metadata foundation is green.** Reviewed worker
   commit `a081414` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening notes, and the
   current Time / Project / ProjectBundle / render and persistence tests. Found and fixed one narrow
   storage-facing validity gap: the edit helpers now refuse to mutate a Project whose existing Clip
@@ -28,7 +28,8 @@ worklog.
   waveform-cache, or `[[clang::nonblocking]]` edits. `YesDawProjectCheck` now also proves these
   storage-invalid Clip metadata inputs are rejected without Project mutation. Local gate via documented
   Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass
-  (131/131). Remote CI is pending until this review/fix commit is pushed.
+  (131/131). Remote CI run `28138884108` for review/fix commit `189e2ac` is green across Windows,
+  Linux, macOS, RTSan, and TSan.
   **Next:** WORKER H2 Clip gain/fade/crossfade metadata foundation: add the smallest headless
   Project-level edit helpers and self-asserting gates for existing Clip `gain`, `fadeIn`, and `fadeOut`
   metadata, keeping edits storage-safe, Assets immutable, and sampled/pixel/snapped values derived
