@@ -99,6 +99,48 @@ struct AssetImportRequest
     std::uint16_t         channels = 0;
 };
 
+enum class PluginStateFormat : std::uint8_t
+{
+    Vst3 = 0,
+    AudioUnit,
+    Clap
+};
+
+enum class PluginStateChunkKind : std::int32_t
+{
+    Vst3Component = 0,
+    Vst3Controller = 1,
+    AudioUnitState = 2,
+    ClapState = 3
+};
+
+enum class PluginStateRestoreStatus : std::uint8_t
+{
+    Ready = 0,
+    Missing,
+    Unreadable
+};
+
+struct PluginStateChunkRecord
+{
+    engine::EntityId           nodeId;
+    PluginStateFormat          format = PluginStateFormat::Vst3;
+    std::string                pluginUid;
+    std::string                pluginVersion;
+    PluginStateChunkKind       chunkKind = PluginStateChunkKind::Vst3Component;
+    std::vector<std::uint8_t>  bytes;
+    std::uint32_t              crc32 = 0;
+};
+
+struct PluginStateRestoreChunk
+{
+    PluginStateRestoreStatus status = PluginStateRestoreStatus::Missing;
+    PluginStateChunkRecord   chunk;
+    std::string              message;
+
+    [[nodiscard]] bool ready() const noexcept { return status == PluginStateRestoreStatus::Ready; }
+};
+
 namespace detail {
 
 inline BundleResult ok (int userVersion = kCodeSchemaVersion)
@@ -365,6 +407,102 @@ inline engine::AssetContentHash sha256Bytes (std::span<const std::uint8_t> bytes
     Sha256 sha;
     sha.update (bytes.data(), bytes.size());
     return sha.finalize();
+}
+
+inline std::uint32_t crc32Bytes (std::span<const std::uint8_t> bytes) noexcept
+{
+    std::uint32_t crc = 0xFFFFFFFFu;
+    for (const std::uint8_t byte : bytes)
+    {
+        crc ^= static_cast<std::uint32_t> (byte);
+        for (int bit = 0; bit < 8; ++bit)
+        {
+            if ((crc & 1u) != 0u)
+                crc = (crc >> 1u) ^ 0xEDB88320u;
+            else
+                crc >>= 1u;
+        }
+    }
+
+    return crc ^ 0xFFFFFFFFu;
+}
+
+inline bool pluginStateFormatIsKnown (PluginStateFormat format) noexcept
+{
+    switch (format)
+    {
+        case PluginStateFormat::Vst3:
+        case PluginStateFormat::AudioUnit:
+        case PluginStateFormat::Clap:
+            return true;
+    }
+
+    return false;
+}
+
+inline std::string_view pluginStateFormatStorageName (PluginStateFormat format) noexcept
+{
+    switch (format)
+    {
+        case PluginStateFormat::Vst3:
+            return "vst3";
+        case PluginStateFormat::AudioUnit:
+            return "au";
+        case PluginStateFormat::Clap:
+            return "clap";
+    }
+
+    return {};
+}
+
+inline bool pluginStateFormatFromStorage (std::string_view text, PluginStateFormat& out) noexcept
+{
+    if (text == "vst3")
+    {
+        out = PluginStateFormat::Vst3;
+        return true;
+    }
+    if (text == "au")
+    {
+        out = PluginStateFormat::AudioUnit;
+        return true;
+    }
+    if (text == "clap")
+    {
+        out = PluginStateFormat::Clap;
+        return true;
+    }
+
+    return false;
+}
+
+inline bool pluginStateChunkKindIsKnown (sqlite3_int64 kind) noexcept
+{
+    switch (kind)
+    {
+        case static_cast<sqlite3_int64> (PluginStateChunkKind::Vst3Component):
+        case static_cast<sqlite3_int64> (PluginStateChunkKind::Vst3Controller):
+        case static_cast<sqlite3_int64> (PluginStateChunkKind::AudioUnitState):
+        case static_cast<sqlite3_int64> (PluginStateChunkKind::ClapState):
+            return true;
+    }
+
+    return false;
+}
+
+inline bool pluginStateChunkKindMatchesFormat (PluginStateFormat format, PluginStateChunkKind kind) noexcept
+{
+    switch (format)
+    {
+        case PluginStateFormat::Vst3:
+            return kind == PluginStateChunkKind::Vst3Component || kind == PluginStateChunkKind::Vst3Controller;
+        case PluginStateFormat::AudioUnit:
+            return kind == PluginStateChunkKind::AudioUnitState;
+        case PluginStateFormat::Clap:
+            return kind == PluginStateChunkKind::ClapState;
+    }
+
+    return false;
 }
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out)
@@ -791,6 +929,84 @@ inline constexpr std::array<SchemaMigration, 1> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
 };
 
+inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
+{
+    PluginStateRestoreChunk out;
+    out.status = PluginStateRestoreStatus::Unreadable;
+
+    const auto unreadable = [&out] (std::string message)
+    {
+        out.chunk.bytes.clear();
+        out.message = std::move (message);
+        return out;
+    };
+
+    const int nodeBytes = sqlite3_column_bytes (stmt, 0);
+    const void* nodeRaw = sqlite3_column_blob (stmt, 0);
+    if (nodeBytes != static_cast<int> (engine::EntityId::kNumBytes) || nodeRaw == nullptr)
+        return unreadable ("plugin state node_id is not a persistent 16-byte Entity ID");
+
+    const auto* nodeData = static_cast<const std::uint8_t*> (nodeRaw);
+    for (std::size_t i = 0; i < out.chunk.nodeId.bytes.size(); ++i)
+        out.chunk.nodeId.bytes[i] = nodeData[i];
+
+    const unsigned char* formatText = sqlite3_column_text (stmt, 1);
+    if (formatText == nullptr)
+        return unreadable ("plugin state format is missing");
+    const std::string_view formatView { reinterpret_cast<const char*> (formatText) };
+    if (! pluginStateFormatFromStorage (formatView, out.chunk.format))
+        return unreadable ("plugin state format is unknown");
+
+    const unsigned char* uidText = sqlite3_column_text (stmt, 2);
+    if (uidText == nullptr)
+        return unreadable ("plugin state plugin_uid is missing");
+    out.chunk.pluginUid = reinterpret_cast<const char*> (uidText);
+
+    const unsigned char* versionText = sqlite3_column_text (stmt, 3);
+    if (versionText == nullptr)
+        return unreadable ("plugin state plugin_version is missing");
+    out.chunk.pluginVersion = reinterpret_cast<const char*> (versionText);
+
+    const sqlite3_int64 rawKind = sqlite3_column_int64 (stmt, 4);
+    if (! pluginStateChunkKindIsKnown (rawKind))
+        return unreadable ("plugin state chunk_kind is unknown");
+    out.chunk.chunkKind = static_cast<PluginStateChunkKind> (rawKind);
+    if (! pluginStateChunkKindMatchesFormat (out.chunk.format, out.chunk.chunkKind))
+        return unreadable ("plugin state chunk_kind does not match format");
+
+    const sqlite3_int64 declaredLen = sqlite3_column_int64 (stmt, 5);
+    if (declaredLen < 0)
+        return unreadable ("plugin state chunk_len is negative");
+
+    const sqlite3_int64 storedCrc = sqlite3_column_int64 (stmt, 6);
+    if (storedCrc < 0 || storedCrc > static_cast<sqlite3_int64> (std::numeric_limits<std::uint32_t>::max()))
+        return unreadable ("plugin state crc32 is outside uint32 range");
+
+    const int dataBytes = sqlite3_column_bytes (stmt, 7);
+    if (declaredLen != static_cast<sqlite3_int64> (dataBytes))
+        return unreadable ("plugin state chunk_len does not match data length");
+
+    const void* dataRaw = sqlite3_column_blob (stmt, 7);
+    if (dataBytes > 0 && dataRaw == nullptr)
+        return unreadable ("plugin state data is missing");
+
+    std::vector<std::uint8_t> bytes (static_cast<std::size_t> (dataBytes));
+    if (dataBytes > 0)
+    {
+        const auto* data = static_cast<const std::uint8_t*> (dataRaw);
+        std::copy (data, data + dataBytes, bytes.begin());
+    }
+
+    out.chunk.crc32 = static_cast<std::uint32_t> (storedCrc);
+    if (crc32Bytes (std::span<const std::uint8_t> (bytes.data(), bytes.size())) != out.chunk.crc32)
+        return unreadable ("plugin state crc32 does not match data");
+
+    out.status = PluginStateRestoreStatus::Ready;
+    out.chunk.bytes = std::move (bytes);
+    out.message.clear();
+    return out;
+}
+
 inline BundleResult applyMigration (sqlite3* db, SchemaMigration migration, std::string_view appBuild)
 {
     if (auto result = exec (db, "BEGIN IMMEDIATE;", BundleStatus::MigrationFailed); ! result.ok())
@@ -960,6 +1176,112 @@ public:
     [[nodiscard]] BundleResult queryText (std::string_view sql, std::string& out) const
     {
         return detail::queryText (db_, sql, out);
+    }
+
+    [[nodiscard]] BundleResult writePluginStateChunk (const PluginStateChunkRecord& chunk)
+    {
+        if (! chunk.nodeId.isValid()
+            || ! detail::pluginStateFormatIsKnown (chunk.format)
+            || ! detail::pluginStateChunkKindIsKnown (static_cast<sqlite3_int64> (chunk.chunkKind))
+            || ! detail::pluginStateChunkKindMatchesFormat (chunk.format, chunk.chunkKind)
+            || chunk.pluginUid.empty()
+            || ! detail::fitsSqliteInteger (static_cast<std::uint64_t> (chunk.bytes.size())))
+        {
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Plugin state chunk metadata violates ADR-0013" };
+        }
+
+        const std::uint32_t crc = detail::crc32Bytes (std::span<const std::uint8_t> (chunk.bytes.data(), chunk.bytes.size()));
+
+        detail::Statement stmt (
+            db_,
+            "INSERT INTO plugin_state_chunks(node_id, format, plugin_uid, plugin_version, chunk_kind, chunk_len, crc32, data) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(node_id, chunk_kind) DO UPDATE SET "
+            "format = excluded.format, "
+            "plugin_uid = excluded.plugin_uid, "
+            "plugin_version = excluded.plugin_version, "
+            "chunk_len = excluded.chunk_len, "
+            "crc32 = excluded.crc32, "
+            "data = excluded.data;");
+
+        if (auto result = stmt.bindBlob (1, chunk.nodeId.bytes); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (2, detail::pluginStateFormatStorageName (chunk.format)); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (3, chunk.pluginUid); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (4, chunk.pluginVersion); ! result.ok())
+            return result;
+        if (auto result = stmt.bindInt64 (5, static_cast<sqlite3_int64> (chunk.chunkKind)); ! result.ok())
+            return result;
+        if (auto result = stmt.bindInt64 (6, static_cast<sqlite3_int64> (chunk.bytes.size())); ! result.ok())
+            return result;
+        if (auto result = stmt.bindInt64 (7, static_cast<sqlite3_int64> (crc)); ! result.ok())
+            return result;
+        if (auto result = stmt.bindBlob (8, std::span<const std::uint8_t> (chunk.bytes.data(), chunk.bytes.size())); ! result.ok())
+            return result;
+
+        return detail::expectDone (db_, stmt);
+    }
+
+    [[nodiscard]] BundleResult readPluginStateChunk (engine::EntityId nodeId,
+                                                     PluginStateChunkKind chunkKind,
+                                                     PluginStateRestoreChunk& out) const
+    {
+        out = {};
+        out.status = PluginStateRestoreStatus::Missing;
+        out.chunk.nodeId = nodeId;
+        out.chunk.chunkKind = chunkKind;
+
+        if (! nodeId.isValid() || ! detail::pluginStateChunkKindIsKnown (static_cast<sqlite3_int64> (chunkKind)))
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Plugin state lookup metadata violates ADR-0013" };
+
+        detail::Statement stmt (
+            db_,
+            "SELECT node_id, format, plugin_uid, plugin_version, chunk_kind, chunk_len, crc32, data "
+            "FROM plugin_state_chunks WHERE node_id = ? AND chunk_kind = ?;");
+        if (auto result = stmt.bindBlob (1, nodeId.bytes); ! result.ok())
+            return result;
+        if (auto result = stmt.bindInt64 (2, static_cast<sqlite3_int64> (chunkKind)); ! result.ok())
+            return result;
+
+        const int step = stmt.step();
+        if (step == SQLITE_DONE)
+        {
+            out.message = "plugin state chunk is missing; plugin should load defaults";
+            return detail::ok();
+        }
+        if (step != SQLITE_ROW)
+            return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+        out = detail::decodePluginStateChunkRow (stmt.get());
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult readPluginStateChunksForNode (engine::EntityId nodeId, std::vector<PluginStateRestoreChunk>& out) const
+    {
+        out.clear();
+        if (! nodeId.isValid())
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Plugin state node_id violates ADR-0013" };
+
+        detail::Statement stmt (
+            db_,
+            "SELECT node_id, format, plugin_uid, plugin_version, chunk_kind, chunk_len, crc32, data "
+            "FROM plugin_state_chunks WHERE node_id = ? "
+            "ORDER BY CASE chunk_kind WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END, chunk_kind;");
+        if (auto result = stmt.bindBlob (1, nodeId.bytes); ! result.ok())
+            return result;
+
+        while (true)
+        {
+            const int step = stmt.step();
+            if (step == SQLITE_DONE)
+                return detail::ok();
+            if (step != SQLITE_ROW)
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+            out.push_back (detail::decodePluginStateChunkRow (stmt.get()));
+        }
     }
 
     [[nodiscard]] BundleResult importAssetBytes (const AssetImportRequest& request, engine::Asset& out)

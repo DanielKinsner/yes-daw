@@ -8,6 +8,7 @@
 
 #include <sqlite3.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -34,6 +35,11 @@ using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::BundleStatus;
 using yesdaw::persistence::PendingFsOp;
 using yesdaw::persistence::PendingFsOpKind;
+using yesdaw::persistence::PluginStateChunkKind;
+using yesdaw::persistence::PluginStateChunkRecord;
+using yesdaw::persistence::PluginStateFormat;
+using yesdaw::persistence::PluginStateRestoreChunk;
+using yesdaw::persistence::PluginStateRestoreStatus;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::buildWaveformPeakCache;
 using yesdaw::persistence::detail::SchemaMigration;
@@ -134,6 +140,25 @@ std::string utf8Path (const std::filesystem::path& path)
     return std::string (utf8.begin(), utf8.end());
 }
 
+std::string blobLiteral (std::span<const std::uint8_t> bytes)
+{
+    constexpr char digits[] = "0123456789abcdef";
+    std::string out = "X'";
+    out.reserve (3u + bytes.size() * 2u);
+    for (const std::uint8_t byte : bytes)
+    {
+        out.push_back (digits[(byte >> 4u) & 0x0Fu]);
+        out.push_back (digits[byte & 0x0Fu]);
+    }
+    out.push_back ('\'');
+    return out;
+}
+
+std::string blobLiteral (EntityId id)
+{
+    return blobLiteral (std::span<const std::uint8_t> (id.bytes.data(), id.bytes.size()));
+}
+
 void requireRawExec (sqlite3* db, std::string_view sql)
 {
     char* rawError = nullptr;
@@ -144,6 +169,46 @@ void requireRawExec (sqlite3* db, std::string_view sql)
 
     INFO (message);
     REQUIRE (rc == SQLITE_OK);
+}
+
+std::vector<std::uint8_t> readRawPluginStateBytes (const std::filesystem::path& bundlePath,
+                                                   EntityId nodeId,
+                                                   PluginStateChunkKind kind)
+{
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (bundlePath / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK);
+
+    sqlite3_stmt* stmt = nullptr;
+    REQUIRE (sqlite3_prepare_v2 (
+                 rawDb,
+                 "SELECT data FROM plugin_state_chunks WHERE node_id = ? AND chunk_kind = ?;",
+                 -1,
+                 &stmt,
+                 nullptr)
+             == SQLITE_OK);
+    REQUIRE (sqlite3_bind_blob (stmt,
+                                1,
+                                nodeId.bytes.data(),
+                                static_cast<int> (nodeId.bytes.size()),
+                                SQLITE_TRANSIENT)
+             == SQLITE_OK);
+    REQUIRE (sqlite3_bind_int64 (stmt, 2, static_cast<sqlite3_int64> (kind)) == SQLITE_OK);
+    REQUIRE (sqlite3_step (stmt) == SQLITE_ROW);
+
+    const int bytes = sqlite3_column_bytes (stmt, 0);
+    const void* raw = sqlite3_column_blob (stmt, 0);
+    std::vector<std::uint8_t> out (static_cast<std::size_t> (bytes));
+    if (bytes > 0)
+    {
+        REQUIRE (raw != nullptr);
+        const auto* data = static_cast<const std::uint8_t*> (raw);
+        std::copy (data, data + bytes, out.begin());
+    }
+
+    REQUIRE (sqlite3_finalize (stmt) == SQLITE_OK);
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+    return out;
 }
 
 Asset makeAsset (EntityId id, std::uint64_t frames = 48000)
@@ -676,6 +741,141 @@ TEST_CASE ("Opening a bundle rejects committed Asset rows with missing or corrup
 
     ProjectBundleDb corruptReopen;
     REQUIRE (ProjectBundleDb::openExistingBundle (corruptPath, corruptReopen).status == BundleStatus::IntegrityFailed);
+}
+
+TEST_CASE ("Plugin state chunks persist opaque bytes with host metadata and VST3 restore ordering", "[persistence][plugin-state]")
+{
+    const auto path = makeTempBundlePath ("plugin-state-vst3");
+    ProjectBundleDb db = openFreshBundle (path);
+
+    const EntityId nodeId = EntityId::fromBigEndianParts (0x1122334455667788ull, 0x99AABBCCDDEEFF00ull);
+    const std::vector<std::uint8_t> componentBytes { 0x10u, 0x20u, 0x30u, 0x40u, 0x50u };
+    const std::vector<std::uint8_t> controllerBytes { 0xCCu, 0xBBu, 0xAAu, 0x99u };
+
+    PluginStateChunkRecord controller {
+        nodeId,
+        PluginStateFormat::Vst3,
+        "com.yesdaw.test.delay",
+        "1.2.3",
+        PluginStateChunkKind::Vst3Controller,
+        controllerBytes,
+    };
+    PluginStateChunkRecord component = controller;
+    component.chunkKind = PluginStateChunkKind::Vst3Component;
+    component.bytes = componentBytes;
+
+    REQUIRE (db.writePluginStateChunk (controller).ok());
+    REQUIRE (db.writePluginStateChunk (component).ok());
+
+    sqlite3_int64 count = 0;
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM plugin_state_chunks WHERE node_id = " + blobLiteral (nodeId) + ";", count).ok());
+    REQUIRE (count == 2);
+
+    sqlite3_int64 storedLength = 0;
+    REQUIRE (db.queryInt64 (
+                "SELECT chunk_len FROM plugin_state_chunks WHERE node_id = " + blobLiteral (nodeId)
+                    + " AND chunk_kind = 0;",
+                storedLength)
+                 .ok());
+    REQUIRE (storedLength == static_cast<sqlite3_int64> (componentBytes.size()));
+
+    sqlite3_int64 storedCrc = 0;
+    REQUIRE (db.queryInt64 (
+                "SELECT crc32 FROM plugin_state_chunks WHERE node_id = " + blobLiteral (nodeId)
+                    + " AND chunk_kind = 0;",
+                storedCrc)
+                 .ok());
+    REQUIRE (storedCrc == static_cast<sqlite3_int64> (yesdaw::persistence::detail::crc32Bytes (
+                              std::span<const std::uint8_t> (componentBytes.data(), componentBytes.size()))));
+
+    std::vector<PluginStateRestoreChunk> chunks;
+    REQUIRE (db.readPluginStateChunksForNode (nodeId, chunks).ok());
+    REQUIRE (chunks.size() == 2u);
+    REQUIRE (chunks[0].ready());
+    REQUIRE (chunks[1].ready());
+    REQUIRE (chunks[0].chunk.chunkKind == PluginStateChunkKind::Vst3Component);
+    REQUIRE (chunks[1].chunk.chunkKind == PluginStateChunkKind::Vst3Controller);
+    REQUIRE (chunks[0].chunk.bytes == componentBytes);
+    REQUIRE (chunks[1].chunk.bytes == controllerBytes);
+    REQUIRE (chunks[0].chunk.format == PluginStateFormat::Vst3);
+    REQUIRE (chunks[0].chunk.pluginUid == "com.yesdaw.test.delay");
+    REQUIRE (chunks[0].chunk.pluginVersion == "1.2.3");
+}
+
+TEST_CASE ("Plugin state chunks are keyed by the persistent 16-byte node Entity ID", "[persistence][plugin-state]")
+{
+    const auto path = makeTempBundlePath ("plugin-state-node-id");
+    ProjectBundleDb db = openFreshBundle (path);
+
+    const EntityId firstNode = EntityId::fromBigEndianParts (0x0102030405060708ull, 0xDEADBEEF12345678ull);
+    const EntityId secondNode = EntityId::fromBigEndianParts (0xF1E2D3C4B5A69788ull, 0xDEADBEEF12345678ull);
+    const std::vector<std::uint8_t> firstBytes { 0x01u, 0x02u, 0x03u };
+    const std::vector<std::uint8_t> secondBytes { 0xA0u, 0xB0u, 0xC0u, 0xD0u };
+
+    REQUIRE (db.writePluginStateChunk ({ firstNode, PluginStateFormat::Clap, "org.yesdaw.same-low-node", "7", PluginStateChunkKind::ClapState, firstBytes }).ok());
+    REQUIRE (db.writePluginStateChunk ({ secondNode, PluginStateFormat::Clap, "org.yesdaw.same-low-node", "7", PluginStateChunkKind::ClapState, secondBytes }).ok());
+
+    sqlite3_int64 count = 0;
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM plugin_state_chunks;", count).ok());
+    REQUIRE (count == 2);
+
+    PluginStateRestoreChunk first;
+    REQUIRE (db.readPluginStateChunk (firstNode, PluginStateChunkKind::ClapState, first).ok());
+    REQUIRE (first.ready());
+    REQUIRE (first.chunk.bytes == firstBytes);
+
+    PluginStateRestoreChunk second;
+    REQUIRE (db.readPluginStateChunk (secondNode, PluginStateChunkKind::ClapState, second).ok());
+    REQUIRE (second.ready());
+    REQUIRE (second.chunk.bytes == secondBytes);
+}
+
+TEST_CASE ("Plugin state restore validates headers and degrades corrupt or missing chunks to defaults", "[persistence][plugin-state]")
+{
+    const auto path = makeTempBundlePath ("plugin-state-corrupt");
+    ProjectBundleDb db = openFreshBundle (path);
+
+    const EntityId nodeId = EntityId::fromBigEndianParts (0xABCDEF0001020304ull, 0x05060708090A0B0Cull);
+    const std::vector<std::uint8_t> bytes { 0x42u, 0x24u, 0x66u, 0x18u };
+    REQUIRE (yesdaw::persistence::detail::crc32Bytes (std::span<const std::uint8_t> (bytes.data(), bytes.size())) != 0u);
+    REQUIRE (db.writePluginStateChunk ({ nodeId, PluginStateFormat::Vst3, "com.yesdaw.test.synth", "2026.6", PluginStateChunkKind::Vst3Component, bytes }).ok());
+
+    PluginStateRestoreChunk ready;
+    REQUIRE (db.readPluginStateChunk (nodeId, PluginStateChunkKind::Vst3Component, ready).ok());
+    REQUIRE (ready.ready());
+    REQUIRE (ready.chunk.bytes == bytes);
+
+    PluginStateRestoreChunk missing;
+    REQUIRE (db.readPluginStateChunk (nodeId, PluginStateChunkKind::Vst3Controller, missing).ok());
+    REQUIRE (missing.status == PluginStateRestoreStatus::Missing);
+    REQUIRE_FALSE (missing.ready());
+    REQUIRE (missing.chunk.bytes.empty());
+
+    REQUIRE (db.executeSql (
+                "PRAGMA ignore_check_constraints = ON; "
+                "UPDATE plugin_state_chunks SET chunk_len = 99 WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0; "
+                "PRAGMA ignore_check_constraints = OFF;")
+                 .ok());
+
+    PluginStateRestoreChunk badLength;
+    REQUIRE (db.readPluginStateChunk (nodeId, PluginStateChunkKind::Vst3Component, badLength).ok());
+    REQUIRE (badLength.status == PluginStateRestoreStatus::Unreadable);
+    REQUIRE_FALSE (badLength.ready());
+    REQUIRE (badLength.chunk.bytes.empty());
+    REQUIRE (readRawPluginStateBytes (path, nodeId, PluginStateChunkKind::Vst3Component) == bytes);
+
+    REQUIRE (db.executeSql (
+                "PRAGMA ignore_check_constraints = ON; "
+                "UPDATE plugin_state_chunks SET chunk_len = 4, crc32 = 0 WHERE node_id = " + blobLiteral (nodeId) + " AND chunk_kind = 0; "
+                "PRAGMA ignore_check_constraints = OFF;")
+                 .ok());
+
+    PluginStateRestoreChunk badCrc;
+    REQUIRE (db.readPluginStateChunk (nodeId, PluginStateChunkKind::Vst3Component, badCrc).ok());
+    REQUIRE (badCrc.status == PluginStateRestoreStatus::Unreadable);
+    REQUIRE_FALSE (badCrc.ready());
+    REQUIRE (badCrc.chunk.bytes.empty());
+    REQUIRE (readRawPluginStateBytes (path, nodeId, PluginStateChunkKind::Vst3Component) == bytes);
 }
 
 TEST_CASE ("Waveform peak cache builds deterministic min max and RMS tiers", "[persistence][asset][peaks]")
