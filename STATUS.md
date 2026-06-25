@@ -9,8 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete (mute/SIP-solo/solo-safe mask +
-Sidechain input pins, both green locally); plugin-hosting runtime (ADR-0013) is the remaining H3 half
+**Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
+(ADR-0015) written + reviewed; implementation (RT-lane IPC ring first) is next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -18,6 +18,36 @@ Sidechain input pins, both green locally); plugin-hosting runtime (ADR-0013) is 
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: ADR-0015 plugin-hosting runtime written + reviewed (one fix) — kicks off the H3 hosting half.**
+  Dan chose the ADR-first path. `docs/adr/0015-plugin-hosting-runtime-ipc-and-process-model.md` refines
+  ADR-0013's deferred implementation choices (it explicitly left the shared-memory/ring details, per-OS
+  sandbox, plugin UI embedding, and CI fixtures open) without revising ADR-0013. It pins: one dedicated
+  **plugin host child** per plugin via JUCE `ChildProcessCoordinator`/`ChildProcessWorker` (a single
+  `YesDawPluginHost` worker exe, the ONLY target that links JUCE hosting — engine stays hosting-free,
+  layering-checked); a control-thread **Plugin host coordinator** + watchdog (hang -> kill -> blacklist ->
+  bypass/placeholder + recompile; same mechanism backs the scanner); a two-lane IPC seam (control lane =
+  coordinator message channel; RT lane = a per-`PluginNode` shared-memory region with input/output audio +
+  Event ring + control words, double-buffered for the one-Block pipeline) where the **audio thread only
+  does lock-free release/acquire stores/loads and fails open within the Block budget**, never
+  signalling/waiting/syscalling (child wakeup is off the audio thread); latency/PDC reuse ADR-0007 with
+  validated plugin latency + coalesced rate-limited recompiles; the **process boundary + watchdog is H3's
+  isolation guarantee** (OS-level sandbox hardening, provenance/signature, plugin UI embedding, CLAP, and a
+  shared-process pool are sequenced as follow-ups); and a deterministic **in-repo crash-test plugin**
+  (passthrough/NaN/hang/crash) is the always-on **host-isolation exit gate**, with pluginval L8-10 / `auval`
+  as external-binary gates (license gate keeps GPL out of the linked binary). Updated the ADR index and
+  added **Plugin host coordinator** to `CONTEXT.md`. REVIEW/FIX fixed one imprecision (the one-Block
+  pipeline wording wrongly implied a non-audio thread writes the plugin input; `PluginNode::process()` runs
+  on the audio thread and writes it there as a lock-free store — corrected). Docs-only; the 170/170 gate is
+  unchanged. Remote CI pending until pushed.
+  **Next:** WORKER H3 plugin-hosting **RT-lane shared-memory ring** — the first, most foundational
+  implementation chunk and fully headless/testable in-process before any real child process or JUCE: a
+  lock-free, double-buffered audio + Event ring with release/acquire sequence counters implementing the
+  one-Block handshake and the fail-open read (last-good -> silence -> bypass within budget), proven by a
+  same-process producer/consumer test (RTSan/TSan-covered). Then later chunks, REVIEW/FIX between each:
+  `PluginNode` IPC proxy over the ring -> `YesDawPluginHost` `ChildProcessWorker` target + the
+  engine-doesn't-link-hosting layering check -> coordinator watchdog kill->bypass->recompile -> the in-repo
+  crash-test plugin + the host-isolation no-dropout/nonblocking exit gate -> scanner blacklist/cache ->
+  pluginval/`auval` + license gates. Stop at any new ADR-level decision.
 - **Latest: REVIEW/FIX H3 Sidechain input pins found no proven defect — mixer-policy half of H3 is complete.**
   Reviewed `SidechainGainNode` + the GraphBuilder/CompiledGraph changes (worker commit `3211f5e`) against
   `STATUS.md`, ADR-0014, ADR-0007 (PDC convergence / buffer last-reader), ADR-0008 (frozen Node contract),
