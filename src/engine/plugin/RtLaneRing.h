@@ -214,7 +214,10 @@ public:
         for (std::uint32_t i = 0; i < evCount; ++i)
             childEvents_[i] = loadEventWord (in.words, eventBase_ + static_cast<std::size_t> (i) * kEventWords);
 
-        const std::uint64_t v2 = in.version.load (std::memory_order_acquire);
+        // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read so a concurrent lap can't
+        // sink a payload load past it (the portable-seqlock requirement). v2 may then be relaxed.
+        std::atomic_thread_fence (std::memory_order_acquire);
+        const std::uint64_t v2 = in.version.load (std::memory_order_relaxed);
         if (v1 != v2 || blockIndex != newest)
             return false;                                   // torn / lapped read -> try again later
 
@@ -337,15 +340,20 @@ private:
     }
 
     // Single-writer seqlock write of a slot: bump version odd, write payload, bump version even.
+    // The fences make the seqlock portable (the Boehm result): without the release fence below, the
+    // relaxed payload stores could become visible BEFORE the odd "write in progress" marker, so a reader
+    // could read new payload while still seeing the old even version. (TSan can't see this — it treats
+    // relaxed atomics as race-free — but it is real on weaker memory models and in shared memory.)
     void beginWrite (Slot& s) noexcept
     {
         const std::uint64_t stable = s.version.load (std::memory_order_relaxed);
-        s.version.store (stable + 1, std::memory_order_release);
+        s.version.store (stable + 1, std::memory_order_relaxed);   // mark odd: write in progress
+        std::atomic_thread_fence (std::memory_order_release);      // odd version visible BEFORE any payload store
     }
     void endWrite (Slot& s) noexcept
     {
         const std::uint64_t odd = s.version.load (std::memory_order_relaxed);
-        s.version.store (odd + 1, std::memory_order_release);
+        s.version.store (odd + 1, std::memory_order_release);      // payload visible BEFORE the new even version
     }
 
     void writeInputSlot (Slot& s, std::uint64_t blockIndex,
@@ -407,7 +415,9 @@ private:
                     for (int f = 0; f < wn; ++f)
                         out[c][f] = loadFloatWord (s.words, audioWord (c, f));
 
-                const std::uint64_t v2 = s.version.load (std::memory_order_acquire);
+                // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read (portable seqlock).
+                std::atomic_thread_fence (std::memory_order_acquire);
+                const std::uint64_t v2 = s.version.load (std::memory_order_relaxed);
                 if (v1 == v2 && bi == expectedBlock)   // consistent snapshot AND the Block we wanted
                 {
                     fresh = true;
