@@ -15,7 +15,9 @@
 #include "engine/Node.h"
 #include "dsp/LinearRamp.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <span>
 
 namespace yesdaw::engine {
@@ -24,6 +26,13 @@ class FaderNode final : public Node
 {
 public:
     static constexpr ParameterId kGainParameterId = 1;
+
+    // Generous-but-bounded linear-gain ceiling (1000x == +60 dB). No musical fader, trim, or clip gain
+    // ever approaches this, yet it is small enough that the per-frame multiply can never overflow a
+    // float from any finite signal — so a pathological SetGain cannot inject inf/NaN into the mix. The
+    // mixer projection's build-time validator (mixerGainIsValid) shares this exact ceiling.
+    static constexpr float kMaxLinearGain = 1.0e3f;
+
     static_assert (std::atomic<std::uint64_t>::is_always_lock_free,
                    "FaderNode command revision must stay lock-free on the audio thread");
 
@@ -82,13 +91,22 @@ public:
     // Control-thread setters (the SetGain seam, ADR-0006). Builder wires the input.
     void setTargetGain (float linearGain) noexcept
     {
-        requestedGain_.store (linearGain, std::memory_order_relaxed);
+        requestedGain_.store (clampGain (linearGain), std::memory_order_relaxed);
         requestedGainVersion_.fetch_add (1, std::memory_order_release);
     }
     void setInput (Node* in) noexcept { input_ = in; }
 
 private:
     static constexpr double kRampSeconds = 0.005;
+
+    // Defensive clamp, mirroring PanNode::setPan: a control- or audio-thread SetGain can never push a
+    // non-finite or out-of-range gain onto the ramp, where the per-frame multiply would inject inf/NaN
+    // into the mix. Non-finite folds to silence; finite values are bounded to [0, kMaxLinearGain]. Pure
+    // arithmetic, so it stays RT-safe on the SetGain seam (applySetGain is RT-hot).
+    [[nodiscard]] static float clampGain (float linearGain) noexcept
+    {
+        return std::isfinite (linearGain) ? std::clamp (linearGain, 0.0f, kMaxLinearGain) : 0.0f;
+    }
 
     void syncControlTarget() noexcept YESDAW_RT_HOT
     {

@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <span>
 #include <utility>
@@ -398,6 +399,65 @@ TEST_CASE ("Mixer projection rejects invalid scalar values before graph build", 
         REQUIRE (error.code == MixerProjectionError::Code::InvalidTrackPan);
         REQUIRE (error.trackIndex == 0u);
     }
+}
+
+TEST_CASE ("Mixer projection validator rejects non-finite and out-of-range track gain", "[mixer][projection][invalid][gain]")
+{
+    using yesdaw::engine::mixerGainIsValid;
+
+    // Musical gains pass: silence, unity, and a generous-but-bounded ceiling.
+    REQUIRE (mixerGainIsValid (0.0f));
+    REQUIRE (mixerGainIsValid (1.0f));
+    REQUIRE (mixerGainIsValid (FaderNode::kMaxLinearGain));
+
+    // Non-finite and negative gains are rejected.
+    REQUIRE_FALSE (mixerGainIsValid (std::numeric_limits<float>::infinity()));
+    REQUIRE_FALSE (mixerGainIsValid (-std::numeric_limits<float>::infinity()));
+    REQUIRE_FALSE (mixerGainIsValid (std::numeric_limits<float>::quiet_NaN()));
+    REQUIRE_FALSE (mixerGainIsValid (-0.001f));
+
+    // A finite-but-absurd linear gain must be rejected too. Before the fix the validator's
+    // `<= float max` upper bound was a tautology, so any finite value slipped through.
+    REQUIRE_FALSE (mixerGainIsValid (std::nextafter (FaderNode::kMaxLinearGain, 1.0e30f)));
+    REQUIRE_FALSE (mixerGainIsValid (1.0e30f));
+}
+
+TEST_CASE ("Mixer projection rejects an absurd track gain before graph build", "[mixer][projection][invalid][gain]")
+{
+    MixerProjectionInputs inputs = baseProjection (40);
+    inputs.tracks.push_back (makeTrack (1400, 0.5f, 2400, 3400, 4400, 1.0e30f, 0.0f));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::InvalidTrackGain);
+    REQUIRE (error.trackIndex == 0u);
+}
+
+TEST_CASE ("Mixer projection clamps a runtime SetGain so no inf or NaN reaches the output", "[mixer][projection][gain][rt]")
+{
+    constexpr NodeId kFaderId = 2410;
+
+    MixerProjectionInputs inputs = baseProjection (41);
+    // A large but finite source amplitude. Combined with an unclamped pathological runtime gain this
+    // would overflow float to +inf at the FaderNode multiply (1e20 * 1e30 == +inf), poisoning the mix.
+    inputs.tracks.push_back (makeTrack (1410, 1.0e20f, kFaderId, 3410, 4410, 1.0f, 0.0f));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+
+    // Drive a pathological gain through the SetGain seam (the same path the audio thread takes).
+    REQUIRE (graph->applySetGain (kFaderId, 1.0e30f));
+
+    const std::vector<float> out = render (*graph, kMaxBlock);
+    for (float v : out)
+        REQUIRE (std::isfinite (v));
+
+    // The gain is clamped to the ceiling, so the settled value is source * ceiling * centre pan.
+    const float expected = 1.0e20f * FaderNode::kMaxLinearGain * kCenterGain;
+    REQUIRE (out.back() == Approx (expected).margin (std::fabs (expected) * 1.0e-4f));
 }
 
 TEST_CASE ("Mixer projection rejects Sends to missing buses before graph build", "[mixer][projection][invalid]")
