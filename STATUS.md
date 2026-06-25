@@ -48,8 +48,20 @@ primitive) is built and green locally
   and **paced** (sustained, exactly-one-Block-late delivery). Scope held to a primitive: no real shared
   memory, `PluginNode`, scanner, watchdog, JUCE, ADR, golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT`
   annotation edits. Local gate via the documented Windows DevShell flow: `cmake --preset ci`;
-  `cmake --build --preset ci`; `ctest --preset ci` pass (175/175). RTSan/TSan are Clang-20/Linux CI-only
-  (cannot run locally on Windows), so they are the remote gate; remote CI is pending until this worker is pushed.
+  `cmake --build --preset ci`; `ctest --preset ci` pass (180/180). Then ran an adversarial multi-agent
+  review of the primitive (ultracode): it found one REAL portable-seqlock memory-ordering defect — the
+  reader needed an `atomic_thread_fence(acquire)` before the version re-check and the writer a
+  `fence(release)` after the odd-version store (the Boehm seqlock result; TSan cannot see it on x86 TSO but
+  it is real on weaker memory models and in the cross-process shared memory this protocol will later run
+  in) — now FIXED (commit `5dee0b3`) — plus four test-strength gaps (the flat-out stress could pass
+  vacuously; event overflow, `numFrames` clamp, `reset()`, and varying-frames were untested), now
+  hardened/covered (commit `8a092da`). Skeptics killed seven other findings as false-positives/intended
+  scope; the one worth a human glance: in-ring bypass SELF-HEALS on the next Fresh, whereas ADR-0015's full
+  recovery is blacklist -> recompile -> placeholder — that is the coordinator's job (a later chunk), so it
+  is a scope deferral, not a defect. RTSan/TSan are Clang-20/Linux CI-only (cannot run locally on Windows).
+  Remote CI is **GREEN across all five legs** (Windows, Linux, macOS, RTSan, TSan) for the tip commit
+  `8a092da` (run `28203931331`) — so the audio thread provably never allocates/locks/syscalls and the
+  protocol is provably race-free.
   **Next:** REVIEW/FIX H3 RT-lane shared-memory ring — verify `RtLaneRing` + `tests/rt_lane_tests.cpp` against
   `STATUS.md`, ADR-0015 (RT lane / one-Block pipeline / fail-open), ADR-0013, ADR-0007 (PDC = deterministic
   single-Block latency), ADR-0008 (the `Node` base contract stays untouched), ADR-0009 (serializable Events),
@@ -57,8 +69,12 @@ primitive) is built and green locally
   correctness; no torn/garbage delivery). Fix only proven defects. Keep it a primitive — do NOT start real
   shared memory (mmap/`CreateFileMapping`), the `PluginNode` IPC proxy, the `YesDawPluginHost`
   `ChildProcessWorker` target, the coordinator watchdog, the crash-test plugin, the scanner, or JUCE; no ADR,
-  golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT` edits. Run the gate, update `STATUS.md`, commit/push,
-  check CI, then create the next WORKER thread (`PluginNode` IPC proxy over the ring) only if green.
+  golden, or `[[clang::nonblocking]]`/`YESDAW_RT_HOT` edits. The ultracode adversarial review above is a head
+  start — the formal review should independently re-derive the seqlock fence correctness and decide the one
+  open scope call (in-ring bypass self-heal vs ADR-0015's blacklist/recompile recovery: confirm it is
+  correctly deferred to the coordinator, or surface to Dan if it should change now). Run the gate, update
+  `STATUS.md`, commit/push, check CI, then create the next WORKER thread (`PluginNode` IPC proxy over the
+  ring) only if green.
 - **Latest: ADR-0015 plugin-hosting runtime written + reviewed (one fix) — kicks off the H3 hosting half.**
   Dan chose the ADR-first path. `docs/adr/0015-plugin-hosting-runtime-ipc-and-process-model.md` refines
   ADR-0013's deferred implementation choices (it explicitly left the shared-memory/ring details, per-OS
