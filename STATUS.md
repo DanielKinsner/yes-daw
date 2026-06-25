@@ -29,7 +29,8 @@ worklog.
   SetPan scalar routing, and rejection of non-mono sources plus invalid gain/pan values before graph
   build. The previous plugin-state proof-gate commit `a79c432` is green in remote CI run `28182281472`.
   Local gate via documented Windows DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`;
-  `ctest --preset ci` pass (151/151). Remote CI is pending until this worker commit is pushed.
+  `ctest --preset ci` pass (151/151). Remote CI run `28182841578` for worker commit `ddeaea9` is
+  green across Windows, Linux, macOS, RTSan, and TSan.
   **Next:** REVIEW/FIX H3 mixer graph projection foundation: verify the worker implementation against
   `STATUS.md`, ADR-0007, ADR-0008, ADR-0011, ADR-0013, the H3 plan/roadmap/deepening notes, and current
   `GraphBuilder` / `CompiledGraph` / `Node` contracts. Fix only proven defects; keep it as a headless
