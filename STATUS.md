@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H2 (editing-first)** — exit gates green; awaiting Dan horizon-boundary review
+**Current horizon:** **H3 (mixer + plugin hosting)** — Dan approved H2->H3; ADR-0013 worker next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,28 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: Dan approved the H2->H3 horizon boundary; H3 loop handoff is being opened.**
+  H2's mechanical exit gates are green locally and in remote CI: command/diff edit-sequence undo/redo
+  returns the live `Project` to bit-identical states, split-with-crossfade Project render matches
+  Runtime/offline graph paths, and kill-mid-import bundle recovery is DB/filesystem consistent with
+  committed Asset hash verification and no orphan audio files. Remote CI run `28146655906` for H2
+  closeout commit `435d320` is green across Windows, Linux, macOS, RTSan, and TSan. Dan explicitly
+  approved advancing to H3. H3 code must not start before its pending ADR is written: ADR index decision
+  #11 plugin state as opaque chunks and #12 out-of-process/sandboxed hosting both point to ADR-0013.
+  This status-only parent handoff passed the documented local Windows DevShell gate:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` (142/142). Remote CI is
+  pending until this handoff commit is pushed.
+  **Next:** WORKER H3 ADR-0013 plugin state + hosting isolation: write the narrow ADR only, covering
+  opaque plugin-state chunks, VST3+AU first then CLAP, `PluginNode` as an out-of-process IPC proxy,
+  one-block nonblocking fail-open audio behavior, scanner crash/hang blacklist behavior, pluginval /
+  `auval` gates, and the host-isolation test implied by the H3 exit criterion. Update the ADR index and
+  `CONTEXT.md` only if the ADR changes shared terms. Do not write plugin-host code, scanner code,
+  plugin UI, CLAP loading, export UX, H4 work, golden edits, broad graph rewiring, schema semantics
+  beyond ADR wording, or `[[clang::nonblocking]]` edits. After a green ADR worker commit, that worker
+  must create the follow-up REVIEW/FIX H3 ADR-0013 thread. The review/fix thread must verify the ADR
+  against the plan, deepening notes, ADR index, and existing code contracts, then create the next worker
+  only if the review is green. Continue worker -> review/fix -> worker until H3 exit gates are green,
+  then hard-stop for Dan's next horizon-boundary review.
 - **Latest: WORKER H2 exit-gate closeout / CI-truth pass is green locally.**
   Verified from current repo truth that the H2 exit gates are represented by self-asserting tests:
   command/diff edit-sequence undo/redo returns the live `Project` to the bit-identical original value
@@ -706,7 +728,24 @@ worklog.
 - **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
   into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
-## Current-horizon checklist — H2 (editing-first; plain English, small steps)
+## Current-horizon checklist — H3 (mixer + plugin hosting; plain English, small steps)
+> Exit gate: two parallel paths, one with a real high-latency plugin, stay sample-aligned
+> (PDC impulse test passes against the live plugin); pluginval L8-10 + `auval` pass in CI; and a
+> plugin that crashes or hangs mid-session is isolated so the session survives with a crashed-plugin
+> placeholder and the offender is blacklisted, without an audio dropout or audio-thread wait.
+- [ ] **ADR-0013 plugin state + hosting isolation. First chunk.** Lock opaque plugin-state chunks and
+  out-of-process/sandboxed hosting before any H3 plugin-host code lands.
+- [ ] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter, solo/mute mask, Sidechain input pins.
+- [ ] Automation lanes honoring per-Block offsets through the graph projection.
+- [ ] Out-of-process plugin scanner with persistent blacklist and hang watchdog.
+- [ ] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
+  thread wait on child process.
+- [ ] VST3 + AU hosting behind `PluginNode`; CLAP comes after VST3/AU.
+- [ ] Opaque plugin-state persistence and corrupt-chunk graceful fallback.
+- [ ] H3 mechanical gates: live high-latency-plugin PDC impulse, pluginval L8-10, `auval`, and
+  crash/hang isolation with blacklist and no-dropout/nonblocking proof.
+
+## Previous-horizon checklist — H2 (closed by Dan boundary review; editing-first)
 > Exit gate (all green in CI): any edit sequence + full undo returns the document bit-identical; a
 > split-with-crossfade Project's RT playback matches offline Render; **and** a kill mid-import recovers
 > with the bundle's DB↔filesystem consistent (assets hash-verified, no orphans).
@@ -720,8 +759,9 @@ worklog.
   — split-with-crossfade RT/offline coverage is green; export UX is not part of this exit gate.
 - [ ] Single-window timeline-primary shell with remappable keymap; native GPU render shell / frame-time
   gate comes here as the folded H0 UI carry-over.
-- [~] **Exit gates green:** property undo · split-crossfade RT-vs-offline · kill-mid-import bundle
-  consistency. Local gate is green; remote CI for this status-only review/fix commit is pending.
+- [x] **Exit gates green:** property undo · split-crossfade RT-vs-offline · kill-mid-import bundle
+  consistency. Local gate is green; remote CI run `28146655906` for closeout commit `435d320` is green
+  across Windows, Linux, macOS, RTSan, and TSan. Dan approved H2->H3.
 
 ## Previous-horizon checklist — H1 (closed; spine)
 > Exit gate (all green in CI): a Project round-trips (tempo/meter map, markers, clips intact); the RT
@@ -966,9 +1006,15 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next state: Dan's H2 horizon-boundary review.** H2's mechanical exit gates are green from current
-  repo truth and the local `ci` gate. Stop here: only Dan advances H2->H3. Do not create an H3 worker
-  unless `STATUS.md` is explicitly changed to say so.
+- ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
+  split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
+- **Next chunk: WORKER H3 ADR-0013 plugin state + hosting isolation.** Pull, read `AGENTS.md` + this
+  handoff first, then write the narrow ADR that H3 code depends on. No plugin-host code before the ADR
+  is accepted. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the follow-up
+  REVIEW/FIX H3 ADR-0013 thread. That review/fix thread creates the next worker only after a green
+  review. The loop continues worker -> review/fix -> worker until H3 exit gates are green, then stops
+  for Dan's horizon-boundary review.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
