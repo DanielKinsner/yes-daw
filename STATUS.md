@@ -9,7 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-25
-**Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy ADR green locally; review/fix next
+**Current horizon:** **H3 (mixer + plugin hosting)** — clearing 2 latent mixer-projection defects from the
+adversarial review, then resuming the mixer-policy ADR review/fix loop
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +18,27 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: FIX H3 mixer gain-validator tautology + FaderNode SetGain clamp is green locally.**
+  Cleared the first of two latent defects an adversarial review of `435d320..ba235d1` found in the headless
+  `MixerGraphProjection` (only tests call it, so neither was user-reachable, and both were invisible to the
+  prior tests, which used sane values). `mixerGainIsValid`'s `gain <= float max` upper bound was a tautology
+  that rejected nothing, so a finite-but-absurd gain (e.g. 1e30) passed validation, reached
+  `FaderNode::processRange` (`x[i] *= g`), and produced inf/NaN; and `FaderNode::setTargetGain` stored the
+  raw value with no clamp (unlike `PanNode::setPan`), so a runtime `applySetGain` (RT-hot) could bypass the
+  build-time gate. Bounded the validator to FaderNode's shared `kMaxLinearGain` ceiling (+60 dB / 1000x) and
+  added a defensive RT-safe clamp in `setTargetGain` (non-finite -> silence, finite -> [0, ceiling]). New
+  self-asserting coverage proves the validator rejects non-finite/out-of-range/absurd gain, that build
+  rejects a 1e30 track gain, and that a runtime SetGain of 1e30 against a 1e20 source stays finite (no inf
+  reaches the output) and settles at the clamped ceiling. No ADR, golden, schema, plugin-host,
+  Sidechain/solo-policy, or `[[clang::nonblocking]]` edits. Local gate via documented Windows DevShell flow:
+  `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (158/158). Remote CI is pending
+  until this fix + status tip is pushed.
+  **Next:** FIX H3 mixer bus-Return stereo width (the second latent defect): a Bus Return is built mono
+  (`SumNode(..., 1)`) and wired into the stereo master, so a Send->Bus->Return is audible in the master's
+  LEFT channel only (the right is silent); a mono signal into a stereo master must be centered, not
+  hard-left. This is ADR-level — ADR-0014 never specifies Bus-Return channel width — so the decision is
+  being surfaced to Dan before the code fix + stereo-aware test harness. Then resume the queued REVIEW/FIX
+  H3 mixer policy ADR-0014 -> WORKER implement-the-policy loop.
 - **Latest: WORKER H3 mixer policy ADR is green locally.**
   Added `docs/adr/0014-mixer-policy-solo-mute-sidechain.md` to lock the remaining H3 mixer policy before
   implementation code: SIP solo is the H3 solo mode (PFL/AFL deferred to a later monitor bus), explicit
