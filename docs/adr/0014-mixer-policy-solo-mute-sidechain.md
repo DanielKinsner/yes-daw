@@ -79,6 +79,28 @@ behavior and future saved Projects, so they need an ADR before implementation.
   reverb Return from leaking non-soloed Tracks into the soloed mix.
 - Explicitly muting a Return silences that Return regardless of source solo state.
 
+**A Bus Return is stereo and centered, mirroring the Track chain.**
+
+This decision was deferred when the Send/Return graph edge first landed; the original projection summed
+Send taps into a **mono** `SumNode` and wired that straight into the stereo master bus. A mono producer
+fills only channel 0 of a stereo consumer, so a `Send -> Bus -> Return` was audible in the master's **left
+channel only** — the right was silent. A mono signal entering a stereo master must be **centered**, the
+same way the project centers a mono Track (its `PanNode` places centre at the equal-power gain ×0.707 on
+both sides), not hard-left.
+
+- A Bus `SumNode` keeps summing its (mono) Send taps in mono. The **Return then widens to stereo through
+  its own `PanNode` -> `MeterNode`**, exactly mirroring the Track chain (`FaderNode -> PanNode ->
+  MeterNode`), before feeding the master bus. No new Node type is introduced; the Return reuses the same
+  building blocks as a Track.
+- The Return's pan **defaults to centre** and uses the **same equal-power pan law as a Track**, so a
+  centred Return and a centred Track share one gain convention (×0.707 L/R) and a mono Send is never
+  hard-left. Per-Return pan is then a free later extension (the `PanNode` already exists).
+- The Return gets a `MeterNode` like a Track, so a Return has level metering. A **Return fader is
+  deferred** — Returns currently have no level control of their own; a dedicated return fader (and richer
+  return routing) is a later mixer feature, not an H3 decision.
+- Width beyond stereo (true multichannel Returns / Buses) is out of H3 scope; H3 Buses and Returns are
+  stereo, consistent with the stereo master.
+
 **A Sidechain input pin is a real graph input, not an audible Send/Return.**
 
 - A Sidechain input pin is an ordered auxiliary input on a sidechain-capable `Node` / `PluginNode`. The
@@ -109,10 +131,13 @@ behavior and future saved Projects, so they need an ADR before implementation.
 
 - **Positive:** solo/mute stays RT-safe and cheap; solo-safe FX Returns have defined behavior; Sidechain
   routing participates in the same DAG/PDC/buffer/event machinery as normal audio; plugin sidechains
-  remain additive over the ADR-0008 `Node` contract.
+  remain additive over the ADR-0008 `Node` contract. Bus Returns are stereo-correct and centred, sharing
+  one equal-power centering convention with Tracks and reusing `PanNode`/`MeterNode` rather than a new
+  Node type.
 - **Negative / accepted costs:** the mixer projection must compute effective mute points, not just pass
   through user flags; Send contribution gating needs explicit tests; sidechain-capable nodes need
-  compiler-visible pin metadata/binding instead of a hidden plugin shortcut.
+  compiler-visible pin metadata/binding instead of a hidden plugin shortcut. Each Bus Return now carries a
+  `PanNode` + `MeterNode` (cheap, control-thread build only); a dedicated return fader is deferred.
 - **Follow-ups:** implement a self-asserting mixer policy gate for the effective mute table, mute-mask
   capacity/coverage, SIP Return leakage prevention, and Sidechain PDC/event-offset alignment. PFL/AFL,
   key-listen, sidechain monitor modes, Project/persistence schema shape, and UI affordances remain later
