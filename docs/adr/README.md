@@ -32,6 +32,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0012](0012-sqlite-bundle-schema-and-atomicity.md) | SQLite `.yesdaw` bundle, schema v1 + migrations | Accepted |
 | [0013](0013-plugin-state-and-hosting-isolation.md) | Plugin state chunks + out-of-process hosting isolation | Accepted |
 | [0014](0014-mixer-policy-solo-mute-sidechain.md) | Mixer policy: mute, SIP solo, solo-safe, and Sidechain pins | Accepted |
+| [0015](0015-plugin-hosting-runtime-ipc-and-process-model.md) | Plugin hosting runtime: process model, IPC transport, isolation gates | Accepted |
 
 ## Decision status (the five research forks)
 
@@ -68,7 +69,7 @@ below start at **0006** (shifted up one from an earlier draft to avoid colliding
 | 9 | Variable / renegotiable Block size | 0007 ✅ | H1 |
 | 10 | SQLite `.yesdaw` bundle, normalized tables, migrations (+ bundle-atomicity) | 0012 ✅ | H1 |
 | 11 | Plugin state as opaque chunks | 0013 ✅ | H3 |
-| 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0013 ✅ | H3 |
+| 12 | Hosting isolation (**out-of-process / sandboxed**, resolved) | 0013 ✅ (runtime impl: 0015 ✅) | H3 |
 | 13 | f64 Bus summing | 0007 ✅ | H1 |
 | 14 | Sample-rate policy | 0010 ✅ | H1 |
 | 15 | Automation curve representation | 0009 ✅ | H1 |

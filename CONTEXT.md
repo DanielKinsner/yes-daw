@@ -66,6 +66,11 @@ the engine, while hosting details stay behind the adapter boundary.
 The separate process that runs one hosted plugin. The audio thread never waits on it.
 _Avoid_: plugin process (when you mean the graph-visible PluginNode)
 
+**Plugin host coordinator**:
+The control-thread supervisor in the main process that spawns, watchdogs, and tears down plugin host
+children and owns the control-lane message channel. It is also what kills a hung child and escalates it
+to the Plugin blacklist. The audio thread never talks to it.
+
 **Plugin scanner**:
 The non-audio discovery pass that inspects installed plugins and records what can be loaded.
 
