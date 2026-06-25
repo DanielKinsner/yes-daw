@@ -25,6 +25,8 @@ using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::setClipFades;
+using yesdaw::engine::setClipGain;
 using yesdaw::engine::splitClip;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::trimClip;
@@ -372,8 +374,13 @@ TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "
     REQUIRE (splitClip (project, splitTarget, rightId, 4096, 333) == ProjectEditStatus::Applied);
     REQUIRE (moveClip (project, trimmedTarget, 64'000) == ProjectEditStatus::Applied);
     REQUIRE (trimClip (project, trimmedTarget, 64'000, 2048, 12, 64) == ProjectEditStatus::Applied);
+    REQUIRE (setClipGain (project, splitTarget, 1.125f) == ProjectEditStatus::Applied);
+    REQUIRE (setClipFades (project, splitTarget, 240, 480) == ProjectEditStatus::Applied);
     REQUIRE (project.hasValidAssetClipIndirection());
     REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[0].gain == 1.125f);
+    REQUIRE (project.clips[0].fadeIn == 240);
+    REQUIRE (project.clips[0].fadeOut == 480);
     REQUIRE (project.clips[1].id == rightId);
     REQUIRE (project.clips[1].srcOffset == project.clips[0].srcOffset + project.clips[0].srcLen);
 
@@ -389,6 +396,9 @@ TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, project);
+    REQUIRE (readback.clips[0].gain == 1.125f);
+    REQUIRE (readback.clips[0].fadeIn == 240);
+    REQUIRE (readback.clips[0].fadeOut == 480);
     REQUIRE (readback.clips[1].srcOffset == readback.clips[0].srcOffset + readback.clips[0].srcLen);
 }
 

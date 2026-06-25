@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-24
-**Current horizon:** **H2 (editing-first)** — Clip metadata review/fix CI green; gain/fade worker next
+**Current horizon:** **H2 (editing-first)** — Clip gain/fade worker green locally; review/fix next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -17,6 +17,21 @@ worklog.
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H2 Clip gain/fade/crossfade metadata foundation is green locally.** Added the
+  smallest headless Project-level edit helpers for the existing Clip envelope metadata:
+  `setClipGain` and `setClipFades`. The slice stays pure metadata over the current
+  Asset→Clip→Project value surface: only existing Clip `gain`, `fadeIn`, and `fadeOut` values change;
+  Assets remain immutable; timeline Tick placement, source-frame windows, `timeBase`, snapped
+  sample/pixel values, schema, undo/redo, UI, export, plugin hosting, H3 work, ADRs, roadmap, goldens,
+  waveform cache, and `[[clang::nonblocking]]` annotations are untouched. Crossfade-specific
+  representation/curve semantics were not invented; this worker only exposes the existing adjacent
+  per-Clip envelope fields that current ADRs already store. `YesDawProjectCheck` proves gain/fade
+  edits mutate only envelope metadata and reject invalid requested or pre-existing storage-unsafe
+  Clip metadata without Project mutation. `YesDawPersistenceCheck` proves edited gain/fade metadata
+  writes and reads back exactly through the current SQLite snapshot. Local gate via documented Windows
+  DevShell flow: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` pass (132/132).
+  Remote CI is pending until this worker commit is pushed.
+  **Next:** REVIEW/FIX H2 Clip gain/fade/crossfade metadata foundation.
 - **Latest: REVIEW/FIX H2 Clip split/trim/move metadata foundation is green.** Reviewed worker
   commit `a081414` against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2 deepening notes, and the
   current Time / Project / ProjectBundle / render and persistence tests. Found and fixed one narrow
@@ -699,14 +714,15 @@ worklog.
 ## Next
 - ✅ **H1 approved and closed.** H1 contracts, graph/runtime spine, built-in Nodes, persistence,
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
-- **Next chunk: WORKER H2 Clip gain/fade/crossfade metadata foundation.** Pull, read `AGENTS.md` + this
-  handoff first, then add the smallest headless Project-level edit helpers and self-asserting gates for
-  existing Clip `gain`, `fadeIn`, and `fadeOut` metadata. Keep the chunk pure metadata: storage-safe
-  Clip values only, Assets immutable, and no sampled/pixel/snapped values stored as Project truth. Treat
-  crossfade as adjacent Clip envelope metadata only if the current ADR and H2 deepening notes are enough;
-  if representation or curve semantics rise to ADR level, stop and report. Do not start undo/redo, UI
-  interaction, export, plugin hosting, H3 work, ADR edits, roadmap edits, golden edits, waveform cache
-  changes, or `[[clang::nonblocking]]` edits.
+- **Next chunk: REVIEW/FIX H2 Clip gain/fade/crossfade metadata foundation.** Pull, read `AGENTS.md` +
+  this handoff first, then review only the worker chunk that added `setClipGain` / `setClipFades` and
+  the focused Project/persistence gates. Verify against H2 scope, ADR-0010, ADR-0011, ADR-0012, the H2
+  deepening notes, and the current Time / Project / ProjectBundle / render and persistence tests. Keep
+  the review narrow: pure metadata only, storage-safe Clip `gain`/`fadeIn`/`fadeOut`, Assets immutable,
+  no sampled/pixel/snapped values stored as Project truth, and no invented crossfade representation or
+  curve semantics. Run the documented gate: `cmake --preset ci`; `cmake --build --preset ci`;
+  `ctest --preset ci`. If green, update `STATUS.md`, commit/push, check CI, then create the following
+  WORKER thread.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

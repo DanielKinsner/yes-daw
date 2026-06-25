@@ -22,6 +22,8 @@ using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::setClipFades;
+using yesdaw::engine::setClipGain;
 using yesdaw::engine::splitClip;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Tick;
@@ -325,6 +327,30 @@ TEST_CASE ("Project trimClip and moveClip edit only placement metadata", "[proje
     REQUIRE (project.hasValidAssetClipIndirection());
 }
 
+TEST_CASE ("Project setClipGain and setClipFades edit only envelope metadata", "[project][clip-edit][gain][fade]")
+{
+    Project project = makeEditableProject();
+    const Asset originalAsset = project.assets.front();
+    const Clip original = project.clips.front();
+
+    REQUIRE (setClipGain (project, original.id, 1.25f) == ProjectEditStatus::Applied);
+    REQUIRE (setClipFades (project, original.id, 960, 1920) == ProjectEditStatus::Applied);
+
+    const Clip& edited = project.clips.front();
+    REQUIRE (edited.id == original.id);
+    REQUIRE (edited.assetId == original.assetId);
+    REQUIRE (edited.timelineStart == original.timelineStart);
+    REQUIRE (edited.timelineLength == original.timelineLength);
+    REQUIRE (edited.srcOffset == original.srcOffset);
+    REQUIRE (edited.srcLen == original.srcLen);
+    REQUIRE (edited.timeBase == original.timeBase);
+    REQUIRE (edited.gain == 1.25f);
+    REQUIRE (edited.fadeIn == 960);
+    REQUIRE (edited.fadeOut == 1920);
+    REQUIRE (project.assets.front() == originalAsset);
+    REQUIRE (project.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Project clip edit operations reject invalid input without mutating Project", "[project][clip-edit][invalid]")
 {
     Project project = makeEditableProject();
@@ -380,6 +406,48 @@ TEST_CASE ("Project clip edit operations reject invalid input without mutating P
     }
 
     {
+        const Project before = project;
+        REQUIRE (setClipGain (project, idFromLowByte (99), 1.0f) == ProjectEditStatus::ClipNotFound);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipFades (project, {}, 10, 10) == ProjectEditStatus::InvalidClipId);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipGain (project, clipId, -0.01f) == ProjectEditStatus::InvalidClipEnvelope);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipGain (project, clipId, std::numeric_limits<float>::infinity()) == ProjectEditStatus::InvalidClipEnvelope);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipGain (project, clipId, std::numeric_limits<float>::quiet_NaN()) == ProjectEditStatus::InvalidClipEnvelope);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipFades (project, clipId, -1, 10) == ProjectEditStatus::InvalidClipEnvelope);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
+        const Project before = project;
+        REQUIRE (setClipFades (project, clipId, 10, -1) == ProjectEditStatus::InvalidClipEnvelope);
+        requireProjectValueUnchanged (project, before);
+    }
+
+    {
         Project invalid = project;
         invalid.sampleRate = SampleRate { 0.0 };
         const Project before = invalid;
@@ -392,6 +460,22 @@ TEST_CASE ("Project clip edit operations reject invalid input without mutating P
         invalid.clips.front().timelineLength = -1;
         const Project before = invalid;
         REQUIRE (moveClip (invalid, clipId, 123) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
+
+    {
+        Project invalid = project;
+        invalid.clips.front().gain = -1.0f;
+        const Project before = invalid;
+        REQUIRE (setClipFades (invalid, clipId, 10, 10) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
+
+    {
+        Project invalid = project;
+        invalid.clips.front().fadeIn = -1;
+        const Project before = invalid;
+        REQUIRE (setClipGain (invalid, clipId, 1.0f) == ProjectEditStatus::InvalidProject);
         requireProjectValueUnchanged (invalid, before);
     }
 

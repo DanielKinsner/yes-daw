@@ -222,7 +222,8 @@ enum class ProjectEditStatus : std::uint8_t
     ClipNotFound,
     DuplicateEntityId,
     InvalidTimelineWindow,
-    InvalidSourceWindow
+    InvalidSourceWindow,
+    InvalidClipEnvelope
 };
 
 struct Project
@@ -361,10 +362,21 @@ namespace detail {
     return asset != nullptr && clip.sourceWindowFits (*asset);
 }
 
+[[nodiscard]] inline bool clipGainIsStorageSafe (float gain) noexcept
+{
+    return gain >= 0.0f && gain <= std::numeric_limits<float>::max();
+}
+
+[[nodiscard]] inline bool clipFadesAreStorageSafe (Tick fadeIn, Tick fadeOut) noexcept
+{
+    return fadeIn >= 0 && fadeOut >= 0;
+}
+
 [[nodiscard]] inline bool clipEditMetadataIsStorageSafe (const Clip& clip) noexcept
 {
-    return clip.timelineLength >= 0 && clip.fadeIn >= 0 && clip.fadeOut >= 0 && clip.gain >= 0.0f
-           && clip.gain <= std::numeric_limits<float>::max()
+    return clip.timelineLength >= 0
+           && clipGainIsStorageSafe (clip.gain)
+           && clipFadesAreStorageSafe (clip.fadeIn, clip.fadeOut)
            && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
 }
 
@@ -395,6 +407,48 @@ namespace detail {
         return ProjectEditStatus::ClipNotFound;
 
     clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setClipGain (Project& project, EntityId clipId, float newGain) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipGainIsStorageSafe (newGain))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    clip->gain = newGain;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setClipFades (Project& project,
+                                                     EntityId clipId,
+                                                     Tick newFadeIn,
+                                                     Tick newFadeOut) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipFadesAreStorageSafe (newFadeIn, newFadeOut))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    clip->fadeIn = newFadeIn;
+    clip->fadeOut = newFadeOut;
     return ProjectEditStatus::Applied;
 }
 
