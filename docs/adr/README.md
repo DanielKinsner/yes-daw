@@ -31,6 +31,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0011](0011-asset-clip-project-and-ids.md) | Asset→Clip→Project indirection + 128-bit ULID | Accepted |
 | [0012](0012-sqlite-bundle-schema-and-atomicity.md) | SQLite `.yesdaw` bundle, schema v1 + migrations | Accepted |
 | [0013](0013-plugin-state-and-hosting-isolation.md) | Plugin state chunks + out-of-process hosting isolation | Accepted |
+| [0014](0014-mixer-policy-solo-mute-sidechain.md) | Mixer policy: mute, SIP solo, solo-safe, and Sidechain pins | Accepted |
 
 ## Decision status (the five research forks)
 

@@ -87,8 +87,28 @@ _Avoid_: main, output bus, master channel
 **Send / Return**:
 A tap that routes a copy of a signal to a separate Return node for parallel processing.
 
+**Mute**:
+A mixer state that silences a track or bus path without deleting routing. Explicit mute wins over Solo
+and Solo-safe.
+
+**Solo**:
+A mixer state that listens to selected paths by muting other audible paths.
+
+**SIP solo**:
+Solo-in-place. Solo that keeps the normal graph and master route, rather than switching to a separate
+solo bus.
+_Avoid_: solo bus (when you mean SIP solo)
+
+**Solo-safe**:
+A path that Solo does not automatically mute. Explicit mute still silences it.
+
 **Sidechain**:
-A second input that controls how a node treats its main input.
+A non-audible control route into a Sidechain input pin. It controls how a node treats its main input;
+it is not a Send/Return or Bus.
+
+**Sidechain input pin**:
+An auxiliary input on a sidechain-capable Node. It is a graph input for timing and routing, but it is
+not an audible mixer target.
 
 **Plugin delay compensation (PDC)**:
 Automatically aligning paths so nodes that add delay stay in time with nodes that don't.
