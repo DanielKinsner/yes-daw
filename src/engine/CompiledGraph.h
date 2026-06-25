@@ -366,6 +366,23 @@ public:
     std::span<const DelayCacheEntry> debugDelayCache() const noexcept { return delayCache_; }
     std::uint64_t debugMuteMask() const noexcept { return muteMask_.load (std::memory_order_relaxed); }
 
+    int debugMasterChannels() const noexcept { return static_cast<int> (masterChannels_); }
+
+    // Test/debug only: the master output slot's channel-`channel` buffer, valid immediately after a
+    // process() call returns (single-threaded). process() copies channel 0 to its mono `out`; the full
+    // master width is computed into the pool but never surfaced, so this exposes it so a test can assert
+    // stereo placement (e.g. a centred bus Return must be present in BOTH L and R). Returns nullptr if the
+    // channel is out of range or the master is silent.
+    const float* debugMasterChannel (int channel) const noexcept
+    {
+        if (channel < 0 || channel >= static_cast<int> (masterChannels_)
+            || masterOutputSlot_ == kSilenceSlot || floatSlotPtrs_.empty())
+            return nullptr;
+
+        const std::size_t maxCh = poolLayout_.maxChannelsPerSlot;
+        return floatSlotPtrs_[static_cast<std::size_t> (masterOutputSlot_) * maxCh + static_cast<std::size_t> (channel)];
+    }
+
     std::size_t debugCountNodesOfKind (CompiledNodeKind kind) const noexcept
     {
         std::size_t count = 0;

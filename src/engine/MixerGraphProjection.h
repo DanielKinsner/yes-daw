@@ -34,12 +34,14 @@ struct MixerProjectionError
         InvalidTrackGain,
         InvalidTrackPan,
         InvalidSendDestination,
+        InvalidBusPan,
         GraphBuildFailed
     };
 
     Code            code       = Code::None;
     std::size_t     trackIndex = 0;
     std::size_t     sendIndex  = 0;
+    std::size_t     busIndex   = 0;
     GraphBuildError graphError;
 };
 
@@ -68,7 +70,10 @@ struct MixerTrackProjection
 
 struct MixerBusProjection
 {
-    NodeId sumNodeId = 0;
+    NodeId sumNodeId   = 0;
+    NodeId panNodeId   = 0;
+    NodeId meterNodeId = 0;
+    float  pan         = 0.0f;   // centre by default; equal-power, like a Track Return (ADR-0014)
 };
 
 struct MixerProjectionInputs
@@ -109,7 +114,7 @@ struct MixerProjectionInputs
     inputs.sampleRate = projection.sampleRate;
     inputs.maxBlockSize = projection.maxBlockSize;
     inputs.previousForCarryOver = projection.previousForCarryOver;
-    inputs.nodes.reserve (projection.tracks.size() * 4u + projection.buses.size() + 2u);
+    inputs.nodes.reserve (projection.tracks.size() * 4u + projection.buses.size() * 3u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -203,12 +208,39 @@ struct MixerProjectionInputs
 
     for (std::size_t i = 0; i < projection.buses.size(); ++i)
     {
-        auto busSum = std::make_unique<SumNode> (projection.buses[i].sumNodeId, 1);
+        const MixerBusProjection& bus = projection.buses[i];
+
+        if (! mixerPanIsValid (bus.pan))
+        {
+            if (error != nullptr)
+            {
+                error->code = MixerProjectionError::Code::InvalidBusPan;
+                error->busIndex = i;
+            }
+            return nullptr;
+        }
+
+        // The Bus sums its (mono) Send taps in mono; the Return then widens to centred stereo through its
+        // own Pan -> Meter, mirroring the Track chain (ADR-0014). A mono Return summed straight into the
+        // stereo master is audible in the left channel only — a mono signal into a stereo master must be
+        // centred, the way a mono Track centres via its Pan node.
+        auto busSum = std::make_unique<SumNode> (bus.sumNodeId, 1);
         SumNode* const busSumPtr = busSum.get();
         busSum->setInputNodes (std::move (busInputs[i]));
 
+        auto busPan = std::make_unique<PanNode> (bus.panNodeId);
+        PanNode* const busPanPtr = busPan.get();
+        busPanPtr->setInput (busSumPtr);
+        busPanPtr->setPan (bus.pan);
+
+        auto busMeter = std::make_unique<MeterNode> (bus.meterNodeId, 2);
+        MeterNode* const busMeterPtr = busMeter.get();
+        busMeterPtr->setInput (busPanPtr);
+
         inputs.nodes.push_back (std::move (busSum));
-        masterBusInputs.push_back (busSumPtr);
+        inputs.nodes.push_back (std::move (busPan));
+        inputs.nodes.push_back (std::move (busMeter));
+        masterBusInputs.push_back (busMeterPtr);
     }
 
     auto masterSum = std::make_unique<SumNode> (projection.masterSumNodeId, 2);

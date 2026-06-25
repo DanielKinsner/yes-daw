@@ -129,11 +129,27 @@ MixerTrackProjection makeImpulseTrack (NodeId sourceId,
     return track;
 }
 
-std::vector<float> render (CompiledGraph& graph, int frames)
+struct StereoCapture
 {
-    std::vector<float> out (static_cast<std::size_t> (frames), -999.0f);
-    graph.process (out.data(), frames);
-    return out;
+    std::vector<float> left;
+    std::vector<float> right;
+};
+
+// Renders one block and captures BOTH master channels. process() fills the buffer it is handed with the
+// master's channel 0 (left) and computes channel 1 (right) into the pool; debugMasterChannel(1) exposes
+// the right so the gate can no longer be blind to a left-only bug. A silent/absent right reads as zeros.
+StereoCapture render (CompiledGraph& graph, int frames)
+{
+    StereoCapture cap;
+    cap.left.assign (static_cast<std::size_t> (frames), -999.0f);
+    graph.process (cap.left.data(), frames);
+
+    cap.right.assign (static_cast<std::size_t> (frames), 0.0f);
+    if (const float* const r = graph.debugMasterChannel (1))
+        for (int i = 0; i < frames; ++i)
+            cap.right[static_cast<std::size_t> (i)] = r[i];
+
+    return cap;
 }
 
 const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
@@ -163,8 +179,10 @@ TEST_CASE ("Mixer projection renders an empty master bus as silence", "[mixer][p
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sum) == 1u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Master) == 1u);
 
-    const std::vector<float> out = render (*graph, 64);
-    for (float v : out)
+    const StereoCapture out = render (*graph, 64);
+    for (float v : out.left)
+        REQUIRE (v == 0.0f);
+    for (float v : out.right)
         REQUIRE (v == 0.0f);
 }
 
@@ -193,16 +211,19 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
     REQUIRE (masterSum->numInputs == 2u);
     REQUIRE (master->numInputs == 1u);
 
-    const float expectedLeft = (0.25f * 0.5f + 0.50f * 0.25f) * kCenterGain;
-    const std::vector<float> out = render (*graph, kMaxBlock);
-    for (float v : out)
-        REQUIRE (v == Approx (expectedLeft).margin (1.0e-4f));
+    // Both tracks are centre-panned, so the master must carry the same summed value in L and R.
+    const float expectedCenter = (0.25f * 0.5f + 0.50f * 0.25f) * kCenterGain;
+    const StereoCapture out = render (*graph, kMaxBlock);
+    for (float v : out.left)
+        REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
+    for (float v : out.right)
+        REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
 }
 
 TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "[mixer][projection][send]")
 {
     MixerProjectionInputs inputs = baseProjection (7);
-    inputs.buses.push_back (MixerBusProjection { 62000 });
+    inputs.buses.push_back (MixerBusProjection { 62000, 62001, 62002 });
 
     MixerTrackProjection pre = makeTrack (150, 1.0f, 250, 350, 450, 0.0f, 0.0f);
     pre.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -228,9 +249,44 @@ TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "
     REQUIRE (bus->numInputs == 2u);
     REQUIRE (masterSum->numInputs == 3u);
 
-    const std::vector<float> out = render (*graph, kMaxBlock);
-    for (float v : out)
-        REQUIRE (v == Approx (1.0f).margin (1.0e-4f));
+    // The bus Return is centre-widened, so the summed Send (1.0) reaches the master equally in L and R at
+    // the equal-power centre gain — NOT hard-left. Before the fix the mono Return put it in L only.
+    const float expectedCenter = 1.0f * kCenterGain;
+    const StereoCapture out = render (*graph, kMaxBlock);
+    for (float v : out.left)
+        REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
+    for (float v : out.right)
+        REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
+}
+
+TEST_CASE ("Mixer projection bus Return is centred and audible in both master channels not left only", "[mixer][projection][send][stereo]")
+{
+    // Direct regression guard for the latent left-only defect. A single mono Track (direct path silenced
+    // by gain 0) sends pre-fader into one Bus, whose Return feeds the master, so the master hears ONLY the
+    // bus Return. A mono Return summed straight into the stereo master would be audible in L only (R
+    // silent); the centre-widened Return must place the signal equally in L and R.
+    constexpr float kSourceDc = 0.5f;
+
+    MixerProjectionInputs inputs = baseProjection (42);
+    inputs.buses.push_back (MixerBusProjection { 62030, 62031, 62032 });
+
+    MixerTrackProjection track = makeTrack (1420, kSourceDc, 2420, 3420, 4420, 0.0f, 0.0f);
+    track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+
+    const StereoCapture out = render (*graph, kMaxBlock);
+
+    const float expected = kSourceDc * kCenterGain;   // pre-fader Send (0.5) widened to centre
+    REQUIRE (out.left.back() == Approx (expected).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (expected).margin (1.0e-4f));
+    // The anti-"left-only" assertions: the right channel is NOT silent, and it matches the left exactly.
+    REQUIRE (out.right.back() > 1.0e-3f);
+    REQUIRE (out.right.back() == Approx (out.left.back()).margin (1.0e-6f));
 }
 
 TEST_CASE ("Mixer projection bus Return summing is deterministic across declaration order", "[mixer][projection][send]")
@@ -238,7 +294,7 @@ TEST_CASE ("Mixer projection bus Return summing is deterministic across declarat
     auto build = [] (bool reversed)
     {
         MixerProjectionInputs inputs = baseProjection (8);
-        inputs.buses.push_back (MixerBusProjection { 62010 });
+        inputs.buses.push_back (MixerBusProjection { 62010, 62011, 62012 });
 
         constexpr float kHuge = 1.0e20f;
 
@@ -274,14 +330,19 @@ TEST_CASE ("Mixer projection bus Return summing is deterministic across declarat
     std::unique_ptr<CompiledGraph> normal = build (false);
     std::unique_ptr<CompiledGraph> reversed = build (true);
 
-    const std::vector<float> normalOut = render (*normal, kMaxBlock);
-    const std::vector<float> reversedOut = render (*reversed, kMaxBlock);
+    const StereoCapture normalOut = render (*normal, kMaxBlock);
+    const StereoCapture reversedOut = render (*reversed, kMaxBlock);
 
-    REQUIRE (normalOut.size() == reversedOut.size());
-    for (std::size_t i = 0; i < normalOut.size(); ++i)
+    REQUIRE (normalOut.left.size() == reversedOut.left.size());
+    const float expectedCenter = 1.0f * kCenterGain;
+    for (std::size_t i = 0; i < normalOut.left.size(); ++i)
     {
-        REQUIRE (normalOut[i] == Approx (1.0f).margin (0.0f));
-        REQUIRE (reversedOut[i] == Approx (normalOut[i]).margin (0.0f));
+        // Centre-widened Return: present equally in L and R at the equal-power centre gain.
+        REQUIRE (normalOut.left[i] == Approx (expectedCenter).margin (1.0e-4f));
+        REQUIRE (normalOut.right[i] == Approx (normalOut.left[i]).margin (0.0f));
+        // Determinism: canonical sum order makes the result independent of declaration order, bit-exact.
+        REQUIRE (reversedOut.left[i] == Approx (normalOut.left[i]).margin (0.0f));
+        REQUIRE (reversedOut.right[i] == Approx (normalOut.right[i]).margin (0.0f));
     }
 }
 
@@ -292,7 +353,7 @@ TEST_CASE ("Mixer projection lets GraphBuilder align Return convergence with PDC
 
     MixerProjectionInputs inputs = baseProjection (9);
     inputs.maxBlockSize = kFrames;
-    inputs.buses.push_back (MixerBusProjection { 62020 });
+    inputs.buses.push_back (MixerBusProjection { 62020, 62021, 62022 });
 
     MixerTrackProjection direct = makeImpulseTrack (170, 0, 270, 370, 470, 0.0f, -1.0f);
     direct.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -317,16 +378,23 @@ TEST_CASE ("Mixer projection lets GraphBuilder align Return convergence with PDC
     REQUIRE (bus->numInputs == 2u);
     REQUIRE (bus->pathLatency == kLatency);
 
-    const std::vector<float> out = render (*graph, kFrames);
-    int nonZeroFrames = 0;
+    const StereoCapture out = render (*graph, kFrames);
+    int nonZeroLeft = 0;
+    int nonZeroRight = 0;
     for (int i = 0; i < kFrames; ++i)
     {
-        const float expected = i == kLatency ? 2.0f : 0.0f;
-        REQUIRE (out[static_cast<std::size_t> (i)] == Approx (expected).margin (1.0e-4f));
-        if (std::fabs (out[static_cast<std::size_t> (i)]) > 1.0e-5f)
-            ++nonZeroFrames;
+        // Two PDC-aligned impulses sum to 2.0 in the mono bus, then the centre-widened Return places that
+        // equally in L and R at the equal-power centre gain.
+        const float expected = i == kLatency ? 2.0f * kCenterGain : 0.0f;
+        REQUIRE (out.left[static_cast<std::size_t> (i)] == Approx (expected).margin (1.0e-4f));
+        REQUIRE (out.right[static_cast<std::size_t> (i)] == Approx (expected).margin (1.0e-4f));
+        if (std::fabs (out.left[static_cast<std::size_t> (i)]) > 1.0e-5f)
+            ++nonZeroLeft;
+        if (std::fabs (out.right[static_cast<std::size_t> (i)]) > 1.0e-5f)
+            ++nonZeroRight;
     }
-    REQUIRE (nonZeroFrames == 1);
+    REQUIRE (nonZeroLeft == 1);
+    REQUIRE (nonZeroRight == 1);
 }
 
 TEST_CASE ("Mixer projection exposes fader and pan nodes to existing scalar routing", "[mixer][projection][scalar]")
@@ -345,16 +413,20 @@ TEST_CASE ("Mixer projection exposes fader and pan nodes to existing scalar rout
     REQUIRE_FALSE (graph->applySetGain (kPanId, 0.25f));
     REQUIRE_FALSE (graph->applySetPan (kFaderId, -1.0f));
 
-    std::vector<float> out = render (*graph, kMaxBlock);
-    REQUIRE (out.back() == Approx (kCenterGain).margin (1.0e-4f));
+    StereoCapture out = render (*graph, kMaxBlock);
+    REQUIRE (out.left.back() == Approx (kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (kCenterGain).margin (1.0e-4f));
 
     REQUIRE (graph->applySetGain (kFaderId, 0.25f));
     out = render (*graph, kMaxBlock);
-    REQUIRE (out.back() == Approx (0.25f * kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.left.back() == Approx (0.25f * kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (0.25f * kCenterGain).margin (1.0e-4f));
 
+    // Pan hard left: the equal-power law puts the full signal in L and silences R.
     REQUIRE (graph->applySetPan (kPanId, -1.0f));
     out = render (*graph, kMaxBlock);
-    REQUIRE (out.back() == Approx (0.25f).margin (1.0e-4f));
+    REQUIRE (out.left.back() == Approx (0.25f).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (0.0f).margin (1.0e-4f));
 }
 
 TEST_CASE ("Mixer projection rejects non-mono track sources before graph build", "[mixer][projection][invalid]")
@@ -451,13 +523,17 @@ TEST_CASE ("Mixer projection clamps a runtime SetGain so no inf or NaN reaches t
     // Drive a pathological gain through the SetGain seam (the same path the audio thread takes).
     REQUIRE (graph->applySetGain (kFaderId, 1.0e30f));
 
-    const std::vector<float> out = render (*graph, kMaxBlock);
-    for (float v : out)
+    const StereoCapture out = render (*graph, kMaxBlock);
+    for (float v : out.left)
+        REQUIRE (std::isfinite (v));
+    for (float v : out.right)
         REQUIRE (std::isfinite (v));
 
-    // The gain is clamped to the ceiling, so the settled value is source * ceiling * centre pan.
+    // The gain is clamped to the ceiling, so the settled value is source * ceiling * centre pan, present
+    // equally in L and R (the source track is centre-panned).
     const float expected = 1.0e20f * FaderNode::kMaxLinearGain * kCenterGain;
-    REQUIRE (out.back() == Approx (expected).margin (std::fabs (expected) * 1.0e-4f));
+    REQUIRE (out.left.back() == Approx (expected).margin (std::fabs (expected) * 1.0e-4f));
+    REQUIRE (out.right.back() == Approx (expected).margin (std::fabs (expected) * 1.0e-4f));
 }
 
 TEST_CASE ("Mixer projection rejects Sends to missing buses before graph build", "[mixer][projection][invalid]")
