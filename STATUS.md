@@ -11,7 +11,7 @@ worklog.
 **Last updated:** 2026-06-25
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
-primitive) is built and green locally
+primitive) is built, reviewed clean, and green across all five CI legs; the `PluginNode` IPC proxy is next
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -19,6 +19,44 @@ primitive) is built and green locally
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 RT-lane shared-memory ring found no defects — review clean, ring is solid.**
+  Ran an independent formal review of the post-fix ring (`src/engine/plugin/RtLaneRing.h` +
+  `tests/rt_lane_tests.cpp`) against the LITERAL text of ADR-0015 (RT lane / one-Block pipeline /
+  fail-open), ADR-0007 (deterministic single-Block latency for PDC), ADR-0008 (frozen `Node` contract),
+  ADR-0009 (serializable Events), and the RT-safety rules — three independent reviewers, all PASS, zero
+  defects. (1) Memory model: re-derived from `[atomics.fences]` that the seqlock is now portably correct
+  AND complete — both readers fence-acquire between the relaxed payload loads and the v2 re-read, the
+  writer fence-releases after the odd-version store, v1/endWrite pair correctly, and NO payload+version
+  site is missing its fences. (2) Spec conformance: every pinned RT-lane requirement is present (double
+  buffer; input audio + Event ring + output audio + control words; the audio thread release-stores
+  inputSeq / acquire-loads outputSeq / reads Block N-1 deterministically / never
+  allocates-locks-logs-IO-syscalls; fail-open last-good -> silence -> bypass; child poll off the audio
+  thread); the `Node` contract is untouched and Events stay ADR-0009. (3) No regression from the worker's
+  own fixes: `bit_cast` is a lossless memcpy-equivalent, the fences are pure barriers (RTSan-clean), and
+  the 10 tests assert the right thing without vacuity or flakiness. DECISION on the one open scope call:
+  the ring's in-ring bypass SELF-HEAL (clears on the next Fresh) is NOT a contradiction of ADR-0015 and NOT
+  an ADR-level issue — ADR-0015 separates the audio-thread branch-only fail-open (this primitive) from the
+  control-thread coordinator's kill -> blacklist -> recompile -> placeholder (a later chunk), and the
+  coordinator's real trigger is its own watchdog TIMER, so a transiently-late plugin correctly resumes
+  rather than being permanently condemned (ADR-0002 no-dropout). Recorded the one nuance as a code comment:
+  `bypassActive()` is a transient, self-clearing signal, NOT the authoritative crash verdict — the future
+  coordinator must drive kill/blacklist from its watchdog, not this flag. Status-only closeout plus that
+  one-line doc comment. Local gate via the documented Windows DevShell flow: `cmake --preset ci`;
+  `cmake --build --preset ci`; `ctest --preset ci` pass (180/180). The reviewed worker tip `8a092da` is
+  green in remote CI across all five legs (Windows, Linux, macOS, RTSan, TSan); remote CI for this closeout
+  is pending until pushed.
+  **Next:** WORKER H3 `PluginNode` IPC proxy over the RT-lane ring — the graph-visible `Node` adapter
+  (ADR-0008 / ADR-0013 / ADR-0015) that, inside `process()` on the audio thread, drives
+  `RtLaneRing::exchangeBlock` for its Block and reports the validated one pipeline Block + plugin latency to
+  the compiler (ADR-0007 PDC). Keep it HEADLESS — the "plugin" is the in-process ring's child role / a stub
+  processor; NO real child process, `YesDawPluginHost` worker exe, JUCE hosting, scanner, or watchdog yet
+  (those are the chunks after). Keep ADR-0008's `Node` base contract frozen (the adapter wraps the ring
+  behind the existing `properties`/`directInputs`/`prepare`/`process`/`reset`/`release` shape; allocate the
+  ring only in `prepare`). Validate plugin-reported latency/channels before they reach the compiler
+  (ADR-0015: clamp, reject impossible values). Prove with self-asserting tests (RTSan/TSan-covered): a
+  `PluginNode` inside a real compiled graph delivers its child's one-Block-delayed output, fails open
+  without dropouts, and its latency drives PDC. STOP at any new ADR-level decision. Then REVIEW/FIX, and
+  continue the worker -> review loop toward the H3 hosting exit gates.
 - **Latest: WORKER H3 plugin-hosting RT-lane shared-memory ring is green locally — first hosting code lands.**
   Built ADR-0015's RT lane as a headless, in-process primitive: new header-only `src/engine/plugin/RtLaneRing.h`,
   the lock-free, double-buffered audio + Event ring that implements the one-Block plugin handshake. It is

@@ -243,6 +243,10 @@ public:
     {
         return static_cast<RtLaneOutput> (control_.status.load (std::memory_order_relaxed));
     }
+    // Transient, self-clearing: the audio-thread bypass latch sets after repeated misses and CLEARS on the
+    // next Fresh Block. It is the branch-only fail-open signal, NOT the authoritative crash verdict — the
+    // future Plugin host coordinator must drive kill/blacklist/recompile from its own watchdog timer
+    // (ADR-0015), not from this flag (a hung child never produces output but also never "crashes" here).
     [[nodiscard]] bool bypassActive() const noexcept { return bypassLatched_; }
 
     [[nodiscard]] std::int64_t validatedLatencySamples() const noexcept
