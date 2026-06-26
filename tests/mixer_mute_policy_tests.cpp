@@ -14,10 +14,13 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <span>
 #include <vector>
 
 using Catch::Approx;
@@ -293,4 +296,97 @@ TEST_CASE ("Mixer mute policy: a non-mute-capable target fails and leaves the ma
     REQUIRE_FALSE (applyMixerMutePolicy (*graph, targets));
     REQUIRE (graph->debugMuteMask() == 0u);   // unchanged: nothing was applied
     REQUIRE_FALSE (graph->isMuted (kSrc));
+}
+
+TEST_CASE ("Mixer mute policy scales past the 64-compiled-node ceiling", "[mixer][mute][policy][scale]")
+{
+    // ADR-0016 regression guard. A pro-class project of 200 tracks + 50 bus Returns is ~952 compiled
+    // nodes — far past the old single-uint64 mask's 64-node ceiling. Before ADR-0016 the mute bit was
+    // keyed by compiled index and clamped to <64, so isMuteCapable failed at ~the 17th target and the
+    // all-or-nothing apply silently disabled mute/solo for the WHOLE project. This proves it scales.
+    constexpr int kNumTracks = 200;
+    constexpr int kNumBuses  = 50;
+
+    MixerProjectionInputs inputs = baseProjection (9);
+
+    std::vector<NodeId> trackSrcIds;
+    trackSrcIds.reserve (static_cast<std::size_t> (kNumTracks));
+    for (int t = 0; t < kNumTracks; ++t)
+    {
+        const NodeId src = static_cast<NodeId> (10000 + t * 10);
+        trackSrcIds.push_back (src);
+        inputs.tracks.push_back (makeTrack (src, 1.0f, src + 1, src + 2, src + 3, 1.0f));   // dc=1, gain=1
+    }
+
+    std::vector<NodeId> busSumIds;
+    busSumIds.reserve (static_cast<std::size_t> (kNumBuses));
+    for (int b = 0; b < kNumBuses; ++b)
+    {
+        const NodeId sum = static_cast<NodeId> (50000 + b * 10);
+        busSumIds.push_back (sum);
+        inputs.buses.push_back (MixerBusProjection { sum, sum + 1, sum + 2 });
+    }
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+
+    // (1) Regression: EVERY Track source and EVERY bus Return is mute-capable past the old cliff.
+    //     On the pre-ADR-0016 build this REQUIRE fails at roughly the 17th target.
+    for (const NodeId src : trackSrcIds)
+        REQUIRE (graph->isMuteCapable (src));
+    for (const NodeId sum : busSumIds)
+        REQUIRE (graph->isMuteCapable (sum));
+
+    // (2) Determinism / bit-identity: every compiled node's muteBit equals its compiled index, and the
+    //     mask genuinely spans more than one 64-bit word.
+    std::uint32_t maxMuteBit = 0;
+    {
+        std::uint32_t idx = 0;
+        for (const auto& cn : graph->debugCompiledNodes())
+        {
+            REQUIRE (cn.muteBit == idx);
+            maxMuteBit = std::max (maxMuteBit, cn.muteBit);
+            ++idx;
+        }
+    }
+    REQUIRE (maxMuteBit >= 64u);   // we will exercise a bit beyond the first 64-bit word
+
+    // The all-or-nothing publish now succeeds for the whole project (no silent capacity failure).
+    std::vector<MixerMuteTarget> targets;
+    targets.reserve (trackSrcIds.size() + busSumIds.size());
+    for (const NodeId src : trackSrcIds) targets.push_back (muteTarget (src, false, false, false));
+    for (const NodeId sum : busSumIds)   targets.push_back (muteTarget (sum, false, false, false));
+    REQUIRE (applyMixerMutePolicy (*graph, std::span<const MixerMuteTarget> (targets)));
+
+    // Pick the Track source whose compiled muteBit is highest, so we KNOW we are gating a bit beyond word 0.
+    auto muteBitOf = [&graph] (NodeId id) -> std::uint32_t
+    {
+        for (const auto& cn : graph->debugCompiledNodes())
+            if (cn.id == id)
+                return cn.muteBit;
+        return 0u;
+    };
+    NodeId highSrc = trackSrcIds.front();
+    for (const NodeId src : trackSrcIds)
+        if (muteBitOf (src) > muteBitOf (highSrc))
+            highSrc = src;
+    REQUIRE (muteBitOf (highSrc) >= 64u);
+
+    // (3) Audio: every track (dc=1, gain=1, centre) contributes one kCenterGain unit to both channels;
+    //     muting one high-index track removes exactly its unit — proving a bit beyond word 0 gates audio.
+    const StereoCapture before = render (*graph, kBlock);
+    REQUIRE (before.left.back() == Approx (static_cast<float> (kNumTracks) * kCenterGain).margin (0.05f));
+
+    for (auto& t : targets)
+        if (t.muteNodeId == highSrc)
+            t.muted = true;
+    REQUIRE (applyMixerMutePolicy (*graph, std::span<const MixerMuteTarget> (targets)));
+    REQUIRE (graph->isMuted (highSrc));
+    REQUIRE_FALSE (graph->isMuted (trackSrcIds.front() == highSrc ? trackSrcIds.back() : trackSrcIds.front()));
+
+    const StereoCapture after = render (*graph, kBlock);
+    REQUIRE ((before.left.back()  - after.left.back())  == Approx (kCenterGain).margin (1.0e-2f));
+    REQUIRE ((before.right.back() - after.right.back()) == Approx (kCenterGain).margin (1.0e-2f));
 }
