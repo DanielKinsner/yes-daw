@@ -807,6 +807,15 @@ public:
         return deferredBlacklistPolicyDecisionOutcomeHandlingStatusLocked();
     }
 
+    DeferredBlacklistPolicyDecisionOutcomeHandlingStatus
+    acknowledgeDeferredBlacklistPolicyDecisionOutcomeHandlingStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredBlacklistPolicyDecisionOutcomeHandlingResult_ = {};
+        deferredBlacklistPolicyDecisionOutcomeHandlingRecorded_ = false;
+        return deferredBlacklistPolicyDecisionOutcomeHandlingStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
