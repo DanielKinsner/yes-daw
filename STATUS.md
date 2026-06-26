@@ -52,7 +52,7 @@ H3 close-out gate scaffold is CI-green; the first real synthetic `juce::AudioPro
 oracle is locally green; the OS-backed RT-lane shared-memory clause is built/reviewed/green; the
 coordinator RT-lane load/control-lane identity transfer is built/reviewed/green; the worker mapped
 RT-lane `pollOnce` hosted-processor path is locally green; the item-2 RT-lane reset/channel-count
-hardening fixes are locally green
+hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -75,34 +75,29 @@ hardening fixes are locally green
   hosted-plugin oracle, the OS-backed shared-memory RT lane, the coordinator-to-worker RT-lane identity
   transfer over the control lane, and worker `pollOnce` processing through the hosted processor path. Item
   2's two gate-blocking hardening fixes (quiescent reset vs live child, release-safe channel clamp) are
-  locally fixed and negative-controlled. The remaining clauses must be replaced one by one with real evidence. The
-  three review fixes (fader clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX + WORKER H3 item 2 close-out hardening is locally green.** The item-2c worker
-  mapped RT-lane `pollOnce` checkpoint was reviewed against the close-out plan + ADR-0015/0013/code and no
-  proven defect was found. This checkpoint then closed item 2's two remaining gate-blocking hardening
-  findings: `RtLaneRing::reset()` now re-primes only the local audio endpoint so it does not rewind shared
-  sequence/version words under an attached worker child, and the stopped-endpoint full shared reset is
-  explicit; `exchangeBlock()` now clamps caller-supplied input/output channel counts in the release path,
-  zero-filling missing input channels and writing only supplied output channels instead of relying on a
-  debug-only `YESDAW_RT_ASSERT`. Negative controls: temporarily making `reset()` clear the shared protocol
-  made `reset() is endpoint-local and does not rewind a live shared RT lane` fail with `inputSeq() == 0`;
-  temporarily making missing input channels nonzero made `caller channel counts are clamped in the
-  release-safe exchange path` fail with a `1000.0f` output mismatch. This remains headless: no
-  PlaceholderNode, Runtime projection, running watchdog kill/recovery, blacklist persistence, scanner,
-  pluginval/auval, UI embedding, automation lanes, ADR edits, goldens, item 3+, or `[!shouldfail]` removal.
-  The aggregate H3 gate still stays `[!shouldfail]` because `Runtime` publish, tri-stream hosted PDC,
-  watchdog kill/recovery, no-deadline-miss fail-open, ordered Placeholder swap, persisted blacklist, and
-  cross-process opaque state clauses are still real gaps. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci`; `ctest --preset ci -I 166,177 --output-on-failure`; VS DevShell
-  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `ctest --preset ci --output-on-failure` passed **193/193**.
-  **Next:** REVIEW/FIX this item-2 hardening checkpoint against the close-out plan + ADR-0015/0013/code.
-  Verify `src/engine/plugin/RtLaneRing.h`, `tests/rt_lane_tests.cpp`, `src/engine/plugin/PluginNode.h`,
-  the item-2c worker/coordinator surfaces, and relevant CMake. Confirm reset is endpoint-local for live
-  workers, stopped-endpoint shared reset is explicit, channel-count clamping is release-safe and
-  allocation-free on the audio path, item-2c guarantees still hold, and `[!shouldfail]` remains until the
-  whole H3 host-isolation gate is genuinely green. If clean, continue depth-first to close-out plan item
-  3a (`CompiledNodeKind::Placeholder`) as the next worker checkpoint.
+  reviewed/green, and item 3a now has a real Placeholder compiled-node kind. The remaining clauses must be
+  replaced one by one with real evidence. The three review fixes (fader clamp, ADR-0016 mute mask,
+  PluginNode block-size) are landed + CI-green.
+- **Latest: REVIEW/FIX item 2 + WORKER H3 item 3a Placeholder is locally green.** The item-2 hardening
+  checkpoint was reviewed against the close-out plan + ADR-0015/0013/0007/0008/code and no proven defect
+  was found: reset stays endpoint-local for a live worker child, stopped-endpoint shared reset is explicit,
+  channel-count clamping is release-safe/allocation-free on the audio path, item-2c still proves worker
+  `pollOnce` through the hosted processor path, and `[!shouldfail]` remains on the aggregate H3 gate. This
+  checkpoint then added `PlaceholderNode` and `CompiledNodeKind::Placeholder`, with GraphBuilder detecting
+  the kind through the frozen Node contract and rendering it as silence in the real compiled graph. Negative
+  control: temporarily removing the GraphBuilder Placeholder detection made `GraphBuilder compiles
+  PlaceholderNode as a silent graph node` fail with `0 == 1` for the Placeholder-kind count; restored code
+  passes. Still out of scope: Runtime projection, running watchdog kill/recovery, ordered publish swap,
+  blacklist persistence, scanner, pluginval/auval, UI embedding, automation lanes, ADR edits, goldens, item
+  3b+, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
+  VS DevShell `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
+  `ctest --preset ci --output-on-failure` passed **194/194**; `git diff --check` passed.
+  **Next:** REVIEW/FIX this item-3a Placeholder checkpoint first. Verify `src/engine/nodes/PlaceholderNode.h`,
+  `src/engine/CompiledGraph.h`, `src/engine/GraphBuilder.h`, and `tests/builder_tests.cpp` against the
+  close-out plan + ADR-0015/0013/0007/0008. Confirm Placeholder preserves the frozen Node contract,
+  compiles as `CompiledNodeKind::Placeholder`, emits silence through the real graph, does not start Runtime
+  projection or watchdog policy, and leaves `[!shouldfail]` in place. If clean, continue depth-first to
+  close-out plan item 3b (running watchdog on the live child) as the next worker checkpoint.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

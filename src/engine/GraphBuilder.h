@@ -14,6 +14,7 @@
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/PlaceholderNode.h"
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/plugin/PluginNode.h"
 #include "engine/nodes/SumNode.h"
@@ -291,6 +292,8 @@ private:
             return CompiledNodeKind::Master;
         if (dynamic_cast<SidechainGainNode*> (&node) != nullptr)
             return CompiledNodeKind::Sidechain;
+        if (dynamic_cast<PlaceholderNode*> (&node) != nullptr)
+            return CompiledNodeKind::Placeholder;
         return CompiledNodeKind::Plugin;
     }
 

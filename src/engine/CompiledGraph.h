@@ -74,6 +74,7 @@ enum class CompiledNodeKind : std::uint8_t
     Latency,
     Master,
     Sidechain,
+    Placeholder,
     Plugin
 };
 

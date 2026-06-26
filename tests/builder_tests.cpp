@@ -11,6 +11,7 @@
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/PlaceholderNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <catch2/catch_approx.hpp>
@@ -46,6 +47,7 @@ using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::OscillatorNode;
 using yesdaw::engine::PanNode;
+using yesdaw::engine::PlaceholderNode;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::SumNode;
 using Catch::Approx;
@@ -67,6 +69,28 @@ GraphBuilder::Inputs inputsWithMaster (std::unique_ptr<Node> source)
     inputs.sampleRate   = 48000.0;
     inputs.maxBlockSize = 512;
     inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
+}
+
+GraphBuilder::Inputs placeholderInputs (float sourceValue, NodeId placeholderId)
+{
+    auto source = std::make_unique<IdentityDcNode> (1, sourceValue, 1);
+    auto placeholder = std::make_unique<PlaceholderNode> (placeholderId, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    PlaceholderNode* const placeholderPtr = placeholder.get();
+    placeholderPtr->setInput (sourcePtr);
+    master->setInputNodes ({ placeholderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 78;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = 48000.0;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (placeholder));
     inputs.nodes.push_back (std::move (master));
     return inputs;
 }
@@ -340,6 +364,29 @@ TEST_CASE ("GraphBuilder renders Oscillator through Master as non-DC", "[builder
     }
 
     REQUIRE (maxSample - minSample > 0.001f);
+}
+
+TEST_CASE ("GraphBuilder compiles PlaceholderNode as a silent graph node", "[builder][placeholder]")
+{
+    constexpr NodeId kPlaceholderId = 41;
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph =
+        GraphBuilder::build (placeholderInputs (0.75f, kPlaceholderId), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Placeholder) == 1u);
+
+    const CompiledNode* const placeholder = compiledNodeById (*graph, kPlaceholderId);
+    REQUIRE (placeholder != nullptr);
+    REQUIRE (placeholder->kind == CompiledNodeKind::Placeholder);
+    REQUIRE (placeholder->numInputs == 1u);
+    REQUIRE (graph->isMuteCapable (kPlaceholderId));
+
+    const std::vector<float> out = render (*graph, 64);
+    for (float v : out)
+        REQUIRE (v == 0.0f);
 }
 
 TEST_CASE ("GraphBuilder renders an empty project as silence", "[builder][render][silence]")
