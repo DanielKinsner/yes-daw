@@ -45,6 +45,22 @@ public:
         unexpectedResponse
     };
 
+    enum class CrashStatus
+    {
+        notStarted,
+        launchFailed,
+        readyTimeout,
+        connectionLost,
+        observationTimeout
+    };
+
+    enum class HostFailureKind
+    {
+        none,
+        crash,
+        watchdogTimeout
+    };
+
     enum class ChildState
     {
         idle,
@@ -79,18 +95,38 @@ public:
         bool connectionLostSeen { false };
     };
 
+    struct CrashResult
+    {
+        CrashStatus status { CrashStatus::notStarted };
+        bool readySeen { false };
+        bool crashObservationRequested { false };
+        bool connectionLostSeen { false };
+        HostFailureKind failureKind { HostFailureKind::none };
+    };
+
+    struct HostFailureReport
+    {
+        HostFailureKind kind { HostFailureKind::none };
+        bool connectionLostSeen { false };
+        bool watchdogTimedOut { false };
+        bool watchdogKillRequested { false };
+    };
+
     struct ChildStatus
     {
         ChildState state { ChildState::idle };
         HandshakeStatus handshakeStatus { HandshakeStatus::notStarted };
         StopStatus stopStatus { StopStatus::notStarted };
         WatchdogStatus watchdogStatus { WatchdogStatus::notStarted };
+        CrashStatus crashStatus { CrashStatus::notStarted };
+        HostFailureKind failureKind { HostFailureKind::none };
         bool launchAttempted { false };
         bool readySeen { false };
         bool probeEchoed { false };
         bool stopRequested { false };
         bool watchdogTimedOut { false };
         bool watchdogKillRequested { false };
+        bool crashObservationRequested { false };
         bool connectionLostSeen { false };
     };
 
@@ -195,6 +231,40 @@ public:
         return watchdogResult (WatchdogStatus::timeoutKilled);
     }
 
+    CrashResult launchAndExpectCrash (const juce::File& workerExecutable)
+    {
+        stop();
+        resetState();
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            launchAttempted_ = true;
+            childState_ = ChildState::launching;
+        }
+
+        if (! launchWorkerProcess (workerExecutable, kWorkerCommandLineId, static_cast<int> (timeout_.count())))
+            return crashResult (CrashStatus::launchFailed);
+
+        if (! waitFor ([this] { return readySeen_ || connectionLost_; }))
+            return crashResult (CrashStatus::readyTimeout);
+
+        if (connectionLost())
+            return crashResult (CrashStatus::connectionLost);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            childState_ = ChildState::stopping;
+            crashObservationRequested_ = true;
+        }
+
+        killWorkerProcess();
+
+        if (! waitFor ([this] { return connectionLost_; }))
+            return crashResult (CrashStatus::observationTimeout);
+
+        return crashResult (CrashStatus::connectionLost);
+    }
+
     StopResult requestStopAndWait()
     {
         {
@@ -219,8 +289,15 @@ public:
     ChildStatus status() const
     {
         std::lock_guard<std::mutex> lock (mutex_);
-        return { childState_, handshakeStatus_, stopStatus_, watchdogStatus_, launchAttempted_, readySeen_,
-                 probeEchoed_, stopRequested_, watchdogTimedOut_, watchdogKillRequested_, connectionLost_ };
+        return { childState_, handshakeStatus_, stopStatus_, watchdogStatus_, crashStatus_, failureKind_,
+                 launchAttempted_, readySeen_, probeEchoed_, stopRequested_, watchdogTimedOut_,
+                 watchdogKillRequested_, crashObservationRequested_, connectionLost_ };
+    }
+
+    HostFailureReport hostFailureReport() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return hostFailureReportLocked();
     }
 
     void handleMessageFromWorker (const juce::MemoryBlock& message) override
@@ -248,6 +325,11 @@ public:
         {
             std::lock_guard<std::mutex> lock (mutex_);
             connectionLost_ = true;
+            if (watchdogKillRequested_)
+                failureKind_ = HostFailureKind::watchdogTimeout;
+            else if (! stopRequested_)
+                failureKind_ = HostFailureKind::crash;
+
             childState_ = stopRequested_ ? ChildState::stopped : ChildState::lost;
         }
 
@@ -290,10 +372,13 @@ private:
         stopRequested_ = false;
         watchdogTimedOut_ = false;
         watchdogKillRequested_ = false;
+        crashObservationRequested_ = false;
         childState_ = ChildState::idle;
         handshakeStatus_ = HandshakeStatus::notStarted;
         stopStatus_ = StopStatus::notStarted;
         watchdogStatus_ = WatchdogStatus::notStarted;
+        crashStatus_ = CrashStatus::notStarted;
+        failureKind_ = HostFailureKind::none;
     }
 
     bool connectionLost() const
@@ -327,6 +412,18 @@ private:
         return { status, readySeen_, watchdogTimedOut_, watchdogKillRequested_, connectionLost_ };
     }
 
+    CrashResult crashResult (CrashStatus status)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        crashStatus_ = status;
+        return { status, readySeen_, crashObservationRequested_, connectionLost_, failureKind_ };
+    }
+
+    HostFailureReport hostFailureReportLocked() const
+    {
+        return { failureKind_, connectionLost_, watchdogTimedOut_, watchdogKillRequested_ };
+    }
+
     const std::chrono::milliseconds timeout_;
     const std::chrono::milliseconds watchdogTimeout_;
     mutable std::mutex mutex_;
@@ -335,12 +432,15 @@ private:
     HandshakeStatus handshakeStatus_ { HandshakeStatus::notStarted };
     StopStatus stopStatus_ { StopStatus::notStarted };
     WatchdogStatus watchdogStatus_ { WatchdogStatus::notStarted };
+    CrashStatus crashStatus_ { CrashStatus::notStarted };
+    HostFailureKind failureKind_ { HostFailureKind::none };
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
     bool stopRequested_ { false };
     bool watchdogTimedOut_ { false };
     bool watchdogKillRequested_ { false };
+    bool crashObservationRequested_ { false };
     bool connectionLost_ { false };
 };
 

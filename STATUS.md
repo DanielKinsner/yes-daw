@@ -16,7 +16,8 @@ primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is
 checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
 CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
 coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
-shell is built and CI-green
+shell is built and CI-green; the minimal coordinator host-failure report shell is green locally and
+awaiting remote CI
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -30,43 +31,44 @@ shell is built and CI-green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator watchdog-timeout shell is CI-green — the coordinator can
-  now detect, kill, and report a deterministic hung-child control-lane path.**
-  First, REVIEW/FIX of the previous minimal coordinator-side child-state/status surface found no proven
-  defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
-  `ChildStatus` covers launch attempt, ready, handshake, stop request, stopped, and connection-lost
-  observation; `YesDawPluginHostCoordinatorCheck` is non-vacuous because it launches `YesDawPluginHost`,
-  observes ready, sends a probe, receives the echo, checks running/success status, asks the coordinator to
-  stop the worker, and observes stopped + connection-lost status; the coordinator/check target still links
-  `juce::juce_events` but not `juce_audio_processors`; `YesDawPluginHost` remains the only owner of JUCE
-  plugin-hosting format registration; Apple framework links remain scoped to `YesDawPluginHost`; and the
-  `YESDAW_BUILD_APPS=OFF` RTSan/TSan pure configurations remain outside the JUCE app/host targets.
-  Then WORKER added the smallest coordinator watchdog-timeout shell: `PluginHostCoordinator` now exposes a
-  `WatchdogStatus` / `WatchdogResult` path and status bits for watchdog timeout, kill request, and observed
-  connection loss; the worker understands a narrow internal watchdog probe by becoming control-lane
-  unresponsive; and `YesDawPluginHostCoordinatorCheck` now fails unless the coordinator launches that
-  worker, observes ready, times out waiting for the watchdog probe response, kills the child, and reports
-  stopped + connection-lost status. Scope held: no real plugin load, scanner, watchdog blacklist policy,
-  blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP,
-  ADR edits, goldens, broad graph rewiring, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
+- **Latest: WORKER H3 minimal coordinator host-failure report shell is green locally — the coordinator can
+  classify crash vs watchdog-timeout observations for the future bypass/recompile policy surface.**
+  First, REVIEW/FIX of the previous watchdog-timeout shell found no proven defects against `STATUS.md`,
+  ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the watchdog path is coordinator-side,
+  headless, and testable; `ChildStatus` reports launch attempt, ready, handshake timeout, watchdog
+  timeout, watchdog kill request, stopped, and connection-lost observation; `YesDawPluginHostCoordinatorCheck`
+  is non-vacuous because it launches `YesDawPluginHost`, observes ready, verifies probe/echo/stop, then
+  deterministically drives the watchdog probe, times out, kills the child, and observes stopped +
+  connection-lost status. The coordinator/check target still links `juce::juce_events` but not
+  `juce_audio_processors`; `YesDawPluginHost` remains the only owner of JUCE plugin-hosting format
+  registration; Apple framework links remain scoped to `YesDawPluginHost`; and the `YESDAW_BUILD_APPS=OFF`
+  RTSan/TSan pure configurations remain outside the JUCE app/host targets.
+  Then WORKER added the smallest coordinator host-failure report shell: `PluginHostCoordinator` now exposes
+  `HostFailureKind` / `HostFailureReport` plus a crash-observation result path; `handleConnectionLost()`
+  classifies an expected stop as no failure, a watchdog kill as `watchdogTimeout`, and an unrequested
+  lost-child observation as `crash`; and `YesDawPluginHostCoordinatorCheck` fails unless the normal stop,
+  watchdog-timeout, and crash-observation reports are mechanically distinguished. Scope held: no real
+  plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin, plugin
+  UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, or
+  `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28212288528` is green across Windows,
-  Linux, macOS, RTSan, and TSan for commit `5547691`.
-  **Next:** REVIEW/FIX H3 minimal coordinator watchdog-timeout shell — verify
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint commit.
+  **Next:** REVIEW/FIX H3 minimal coordinator host-failure report shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
-  against ADR-0015 (coordinator/worker process model, control-lane status, watchdog kill/reporting, and
-  host-worker ownership), ADR-0013 (out-of-process host child boundary and hung-child kill), ADR-0008
+  against ADR-0015 (coordinator/worker process model, control-lane status, crash/watchdog reporting,
+  host-worker ownership), ADR-0013 (out-of-process host child boundary and crash/hung-child kill), ADR-0008
   (engine targets must not link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm
-  the watchdog self-check is non-vacuous, the coordinator target still does not own JUCE plugin-hosting
-  modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected, and no scanner/blacklist
-  policy/shared-memory/plugin-load semantics snuck in. Fix only proven defects. If clean and green,
-  continue in the SAME baton to the next small worker chunk: a minimal coordinator host-failure report
-  shell that classifies crash vs watchdog-timeout observations for the future bypass/recompile policy
-  surface (still no real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence,
-  crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or goldens). Stop at
-  any new ADR-level decision. Create exactly one successor baton only after this checkpoint's `STATUS.md`
-  update, commit, push, and remote CI are green.
+  the failure-report self-check is non-vacuous, expected stop is not classified as host failure,
+  watchdog-timeout and crash observations stay distinct, the coordinator target still does not own JUCE
+  plugin-hosting modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected, and no
+  scanner/blacklist policy/shared-memory/plugin-load semantics snuck in. Fix only proven defects. If clean
+  and green, continue in the SAME baton to the next small worker chunk: a minimal coordinator failure-action
+  request shell that records the future bypass/recompile request surface from a host-failure report (still
+  no real graph recompile, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test
+  plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or goldens). Stop at any new
+  ADR-level decision. Create exactly one successor baton only after this checkpoint's `STATUS.md` update,
+  commit, push, and remote CI are green.
 - **Latest: WORKER H3 `YesDawPluginHost` worker exe + engine-hosting layering check is green locally — the host boundary exists.**
   First, REVIEW/FIX of the previous `PluginNode` IPC-proxy checkpoint found no proven defects against
   `STATUS.md`, ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety rules: `process()` stays
