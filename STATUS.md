@@ -40,7 +40,8 @@ blacklist policy-decision outcome handling receipt/status shell is built/reviewe
 coordinator deferred blacklist policy-decision outcome handling acknowledge/clear-status shell is
 built/reviewed/green; the minimal coordinator blacklist-handling request/status shell is built/reviewed/green;
 the minimal coordinator pending blacklist-handling request queue/drain shell is built/reviewed/green; the
-minimal coordinator blacklist-handling request drain-to-control-thread command shell is locally green
+minimal coordinator blacklist-handling request drain-to-control-thread command shell is built/reviewed/green;
+the minimal coordinator deferred blacklist-handling command receipt/status shell is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -54,50 +55,50 @@ minimal coordinator blacklist-handling request drain-to-control-thread command s
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator blacklist-handling request drain-to-control-thread command
-  shell is locally green — the coordinator can drain a pending future blacklist-handling request into a
-  control-thread command shell without applying blacklist policy or persistence.**
-  REVIEW/FIX of the previous minimal coordinator pending blacklist-handling request queue/drain shell
-  found no proven defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety / layering
-  rules: the shell is coordinator-side, headless, and non-vacuous; derives pending requests only from a
-  valid deferred outcome-handling receipt; preserves watchdog-timeout vs crash distinction through queue,
-  pending, drain, and after-drain empty paths; leaves initial/empty and acknowledged/cleared paths
-  empty/no-record; keeps no-policy/no-persistence flags false; does not enforce blacklist policy,
-  persist/cache blacklist state, scan/load plugins, execute graph rewiring, or claim graph recompile
-  execution; existing deferred graph-change acknowledge/clear behavior remains intact; `YesDawPluginHost`
-  remains the only JUCE plugin-hosting owner; the coordinator/check target does not link
-  `juce_audio_processors`; Apple framework links stay scoped to `YesDawPluginHost`; and
-  `YESDAW_BUILD_APPS=OFF` pure sanitizer configs are unaffected. Then WORKER added the smallest
-  drain-to-control-thread command shell:
-  `BlacklistHandlingCommand`, `BlacklistHandlingCommandResult`, and
-  `drainPendingBlacklistHandlingRequestToControlCommand()`. The coordinator self-check now proves
-  initial/empty command-drain paths stay empty; valid watchdog-timeout and crash pending requests drain
-  into distinct future control-thread commands; after-drain and acknowledged/cleared paths stay
-  empty/no-record; no blacklist policy is applied; no blacklist state is persisted; and no scanner,
+- **Latest: WORKER H3 minimal coordinator deferred blacklist-handling command receipt/status shell is
+  locally green — the coordinator can record and inspect a future control-thread blacklist-handling
+  command result without applying blacklist policy or persistence.**
+  REVIEW/FIX of the previous minimal coordinator blacklist-handling request drain-to-control-thread
+  command shell found no proven defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the
+  RT-safety / layering rules: the shell is coordinator-side, headless, and non-vacuous; drains commands
+  only from a valid pending blacklist-handling request; preserves watchdog-timeout vs crash distinction
+  through command, pending-consumed, after-drain, and acknowledged/cleared empty paths; keeps
+  no-policy/no-persistence flags false; does not enforce blacklist policy, persist/cache blacklist state,
+  scan/load plugins, execute graph rewiring, or claim graph recompile execution; existing deferred
+  graph-change acknowledge/clear behavior remains intact; `YesDawPluginHost` remains the only JUCE
+  plugin-hosting owner; the coordinator/check target does not link `juce_audio_processors`; Apple
+  framework links stay scoped to `YesDawPluginHost`; and `YESDAW_BUILD_APPS=OFF` pure sanitizer configs
+  are unaffected. Then WORKER added the smallest deferred blacklist-handling command receipt/status
+  shell: `DeferredBlacklistHandlingCommandStatus`, `recordDeferredBlacklistHandlingCommandResult()`, and
+  `deferredBlacklistHandlingCommandStatus()`. The coordinator self-check now proves initial/empty command
+  receipt/status paths stay empty/no-record; valid watchdog-timeout and crash command results record and
+  inspect distinct future control-thread blacklist-handling command receipts; no-action, unconsumed,
+  policy-applied, persistence-claimed, missing-control, mismatched, and already-drained command results
+  stay empty/no-record; no blacklist policy is applied; no blacklist state is persisted; and no scanner,
   plugin loading, graph rewiring, graph recompile execution, ADR edits, goldens, subjective checks, or
   `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits were introduced. Local gate:
   `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell `ctest --preset ci` passed
   **187/187**.
-  **Next:** REVIEW/FIX H3 minimal coordinator blacklist-handling request drain-to-control-thread command shell —
+  **Next:** REVIEW/FIX H3 minimal coordinator deferred blacklist-handling command receipt/status shell —
   verify `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant
   CMake against ADR-0015 (watchdog/crash attribution, future blacklist escalation, future blacklist
   policy, future control-thread blacklist handling, and host-worker ownership), ADR-0013 (runtime
   crash/hang attribution escalates into the same blacklist later), ADR-0008 (engine targets must not link
-  hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the command shell is
-  coordinator-side, headless, and non-vacuous; drains commands only from a valid pending blacklist-handling
-  request; preserves watchdog-timeout vs crash distinction through command, pending-consumed, after-drain,
-  and acknowledged/cleared empty paths; keeps no-policy/no-persistence flags false; does not enforce
-  blacklist policy, persist/cache blacklist state, scan/load plugins, execute graph rewiring, or claim
-  graph recompile execution; keeps JUCE hosting confined to `YesDawPluginHost`; and leaves
-  `YESDAW_BUILD_APPS=OFF` pure sanitizer configs unaffected.
+  hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the receipt/status shell is
+  coordinator-side, headless, and non-vacuous; records only a valid drained blacklist-handling command
+  result; preserves watchdog-timeout vs crash distinction through command, receipt, inspection, and empty
+  paths; keeps no-policy/no-persistence flags false; does not enforce blacklist policy, persist/cache
+  blacklist state, scan/load plugins, execute graph rewiring, or claim graph recompile execution; keeps
+  JUCE hosting confined to `YesDawPluginHost`; and leaves `YESDAW_BUILD_APPS=OFF` pure sanitizer configs
+  unaffected.
   Fix only proven defects. If clean and green, continue in the SAME baton to the next small worker chunk:
-  a minimal coordinator deferred blacklist-handling command receipt/status shell for future control-thread
-  blacklist handling, still without applying/enforcing blacklist policy, persistence/cache, scanner,
-  plugin loading, real graph rewiring, crash-test plugin, plugin UI, real shared memory, pluginval/auval,
-  CLAP, ADR edits, goldens, subjective checks, or RT-hot annotation edits. Stop for any new ADR-level
-  decision. Create exactly one successor baton only after that checkpoint's `STATUS.md` update, commit,
-  push, and remote CI are green.
+  a minimal coordinator deferred blacklist-handling command acknowledge/clear-status shell for future
+  control-thread blacklist handling, still without applying/enforcing blacklist policy, persistence/cache,
+  scanner, plugin loading, real graph rewiring, crash-test plugin, plugin UI, real shared memory,
+  pluginval/auval, CLAP, ADR edits, goldens, subjective checks, or RT-hot annotation edits. Stop for any
+  new ADR-level decision. Create exactly one successor baton only after that checkpoint's `STATUS.md`
+  update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 minimal coordinator blacklist-handling request/status shell is locally green — the
   coordinator can expose a future blacklist-handling request from the most recent deferred outcome-handling
   receipt without applying blacklist policy or persistence.**
