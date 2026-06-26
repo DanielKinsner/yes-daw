@@ -79,6 +79,12 @@ public:
         commandReady
     };
 
+    enum class BlacklistEscalationStatus
+    {
+        noAction,
+        escalationReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -138,6 +144,14 @@ public:
         bool watchdogTimeoutCandidate { false };
     };
 
+    struct BlacklistEscalation
+    {
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadEscalationRequested { false };
+    };
+
     struct FailureActionRequest
     {
         FailureActionKind action { FailureActionKind::none };
@@ -169,6 +183,16 @@ public:
         GraphChangeCommandResult lastResult;
         bool commandRecorded { false };
         bool graphRecompileExecuted { false };
+    };
+
+    struct BlacklistEscalationResult
+    {
+        BlacklistEscalationStatus status { BlacklistEscalationStatus::noAction };
+        BlacklistCandidateStatus drainedCandidate;
+        BlacklistEscalation escalation;
+        bool pendingCandidateConsumed { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
     };
 
     struct ChildStatus
@@ -468,6 +492,23 @@ public:
         return status;
     }
 
+    BlacklistEscalationResult drainPendingBlacklistCandidateToControlEscalation()
+    {
+        const auto candidate = drainPendingBlacklistCandidateStatus();
+        if (! canCreateBlacklistEscalation (candidate))
+            return {};
+
+        return { BlacklistEscalationStatus::escalationReady,
+                 candidate,
+                 { candidate.failureKind,
+                   candidate.crashCandidate,
+                   candidate.watchdogTimeoutCandidate,
+                   true },
+                 true,
+                 false,
+                 false };
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -560,6 +601,11 @@ private:
             return false;
 
         return blacklistCandidateMatches (status, blacklistCandidateStatusFor ({ status.failureKind, true, false, false }));
+    }
+
+    static bool canCreateBlacklistEscalation (BlacklistCandidateStatus status) noexcept
+    {
+        return canQueueBlacklistCandidate (status);
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,

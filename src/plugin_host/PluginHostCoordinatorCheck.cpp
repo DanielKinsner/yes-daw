@@ -124,6 +124,19 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeC
     return "unknown";
 }
 
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus;
+
+    switch (status)
+    {
+        case Status::noAction:          return "noAction";
+        case Status::escalationReady:   return "escalationReady";
+    }
+
+    return "unknown";
+}
+
 const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState state) noexcept
 {
     using State = yesdaw::plugin_host::PluginHostCoordinator::ChildState;
@@ -180,6 +193,27 @@ bool blacklistCandidateMatches (yesdaw::plugin_host::PluginHostCoordinator::Blac
         && actual.watchdogTimeoutCandidate == expected.watchdogTimeoutCandidate;
 }
 
+bool blacklistEscalationMatches (yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalation actual,
+                                 yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalation expected) noexcept
+{
+    return actual.failureKind == expected.failureKind
+        && actual.crashCandidate == expected.crashCandidate
+        && actual.watchdogTimeoutCandidate == expected.watchdogTimeoutCandidate
+        && actual.controlThreadEscalationRequested == expected.controlThreadEscalationRequested;
+}
+
+bool blacklistEscalationResultMatches (
+    yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationResult actual,
+    yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationResult expected) noexcept
+{
+    return actual.status == expected.status
+        && blacklistCandidateMatches (actual.drainedCandidate, expected.drainedCandidate)
+        && blacklistEscalationMatches (actual.escalation, expected.escalation)
+        && actual.pendingCandidateConsumed == expected.pendingCandidateConsumed
+        && actual.blacklistPolicyApplied == expected.blacklistPolicyApplied
+        && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -203,6 +237,7 @@ int main (int argc, char** argv)
     const auto initialDeferredCommandStatus = coordinator.deferredGraphChangeCommandStatus();
     const auto initialBlacklistCandidate = coordinator.blacklistCandidateStatus();
     const auto initialPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
+    const auto initialBlacklistEscalationResult = coordinator.drainPendingBlacklistCandidateToControlEscalation();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -283,6 +318,29 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    if (initialBlacklistEscalationResult.status != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::noAction
+        || ! blacklistCandidateMatches (initialBlacklistEscalationResult.drainedCandidate, {})
+        || ! blacklistEscalationMatches (initialBlacklistEscalationResult.escalation, {})
+        || initialBlacklistEscalationResult.pendingCandidateConsumed
+        || initialBlacklistEscalationResult.blacklistPolicyApplied
+        || initialBlacklistEscalationResult.blacklistStatePersisted)
+    {
+        std::printf ("FAIL: plugin host coordinator initial blacklist escalation result is wrong: status=%s drained=%s/%d/%d/%d escalation=%s/%d/%d/%d consumed=%d policy=%d persisted=%d\n",
+                     statusName (initialBlacklistEscalationResult.status),
+                     statusName (initialBlacklistEscalationResult.drainedCandidate.failureKind),
+                     initialBlacklistEscalationResult.drainedCandidate.candidate ? 1 : 0,
+                     initialBlacklistEscalationResult.drainedCandidate.crashCandidate ? 1 : 0,
+                     initialBlacklistEscalationResult.drainedCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (initialBlacklistEscalationResult.escalation.failureKind),
+                     initialBlacklistEscalationResult.escalation.crashCandidate ? 1 : 0,
+                     initialBlacklistEscalationResult.escalation.watchdogTimeoutCandidate ? 1 : 0,
+                     initialBlacklistEscalationResult.escalation.controlThreadEscalationRequested ? 1 : 0,
+                     initialBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     initialBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     initialBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator noneFailureCoordinator;
     const auto queuedNoneFailureAction = noneFailureCoordinator.queueFailureActionRequest (
         { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
@@ -318,11 +376,17 @@ int main (int argc, char** argv)
     const auto drainedNoneBlacklistCandidate = noneFailureCoordinator.drainPendingBlacklistCandidateStatus();
     const auto queuedInconsistentBlacklistCandidate = noneFailureCoordinator.queueBlacklistCandidate (
         { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash, true, true, true });
+    const auto inconsistentBlacklistEscalationResult =
+        noneFailureCoordinator.drainPendingBlacklistCandidateToControlEscalation();
     if (! blacklistCandidateMatches (queuedNoneBlacklistCandidate, {})
         || ! blacklistCandidateMatches (drainedNoneBlacklistCandidate, {})
-        || ! blacklistCandidateMatches (queuedInconsistentBlacklistCandidate, {}))
+        || ! blacklistCandidateMatches (queuedInconsistentBlacklistCandidate, {})
+        || inconsistentBlacklistEscalationResult.status != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::noAction
+        || inconsistentBlacklistEscalationResult.pendingCandidateConsumed
+        || inconsistentBlacklistEscalationResult.blacklistPolicyApplied
+        || inconsistentBlacklistEscalationResult.blacklistStatePersisted)
     {
-        std::printf ("FAIL: plugin host coordinator accepted an invalid pending blacklist candidate: none=%s/%d/%d/%d drained=%s/%d/%d/%d inconsistent=%s/%d/%d/%d\n",
+        std::printf ("FAIL: plugin host coordinator accepted an invalid pending blacklist candidate/escalation: none=%s/%d/%d/%d drained=%s/%d/%d/%d inconsistent=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
                      statusName (queuedNoneBlacklistCandidate.failureKind),
                      queuedNoneBlacklistCandidate.candidate ? 1 : 0,
                      queuedNoneBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -334,7 +398,11 @@ int main (int argc, char** argv)
                      statusName (queuedInconsistentBlacklistCandidate.failureKind),
                      queuedInconsistentBlacklistCandidate.candidate ? 1 : 0,
                      queuedInconsistentBlacklistCandidate.crashCandidate ? 1 : 0,
-                     queuedInconsistentBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+                     queuedInconsistentBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (inconsistentBlacklistEscalationResult.status),
+                     inconsistentBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     inconsistentBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     inconsistentBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
         return 2;
     }
 
@@ -460,11 +528,17 @@ int main (int argc, char** argv)
     const auto normalStopQueuedBlacklistCandidate = coordinator.queueBlacklistCandidateForCurrentFailure();
     const auto normalStopPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
     const auto normalStopDrainedBlacklistCandidate = coordinator.drainPendingBlacklistCandidateStatus();
+    const auto normalStopBlacklistEscalationResult =
+        coordinator.drainPendingBlacklistCandidateToControlEscalation();
     if (! blacklistCandidateMatches (normalStopQueuedBlacklistCandidate, {})
         || ! blacklistCandidateMatches (normalStopPendingBlacklistCandidate, {})
-        || ! blacklistCandidateMatches (normalStopDrainedBlacklistCandidate, {}))
+        || ! blacklistCandidateMatches (normalStopDrainedBlacklistCandidate, {})
+        || normalStopBlacklistEscalationResult.status != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::noAction
+        || normalStopBlacklistEscalationResult.pendingCandidateConsumed
+        || normalStopBlacklistEscalationResult.blacklistPolicyApplied
+        || normalStopBlacklistEscalationResult.blacklistStatePersisted)
     {
-        std::printf ("FAIL: plugin host coordinator normal stop pending blacklist candidate should remain empty: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d\n",
+        std::printf ("FAIL: plugin host coordinator normal stop pending blacklist candidate/escalation should remain empty: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
                      statusName (normalStopQueuedBlacklistCandidate.failureKind),
                      normalStopQueuedBlacklistCandidate.candidate ? 1 : 0,
                      normalStopQueuedBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -476,7 +550,11 @@ int main (int argc, char** argv)
                      statusName (normalStopDrainedBlacklistCandidate.failureKind),
                      normalStopDrainedBlacklistCandidate.candidate ? 1 : 0,
                      normalStopDrainedBlacklistCandidate.crashCandidate ? 1 : 0,
-                     normalStopDrainedBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+                     normalStopDrainedBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (normalStopBlacklistEscalationResult.status),
+                     normalStopBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     normalStopBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     normalStopBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
         return 2;
     }
 
@@ -628,12 +706,27 @@ int main (int argc, char** argv)
     const auto pendingWatchdogBlacklistCandidate = watchdogCoordinator.pendingBlacklistCandidateStatus();
     const auto drainedWatchdogBlacklistCandidate = watchdogCoordinator.drainPendingBlacklistCandidateStatus();
     const auto afterWatchdogBlacklistCandidateDrain = watchdogCoordinator.pendingBlacklistCandidateStatus();
+    const auto queuedWatchdogBlacklistEscalationCandidate =
+        watchdogCoordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto watchdogBlacklistEscalationResult =
+        watchdogCoordinator.drainPendingBlacklistCandidateToControlEscalation();
+    const auto afterWatchdogBlacklistEscalationDrain = watchdogCoordinator.pendingBlacklistCandidateStatus();
     if (! blacklistCandidateMatches (queuedWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
         || ! blacklistCandidateMatches (pendingWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
         || ! blacklistCandidateMatches (drainedWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
-        || ! blacklistCandidateMatches (afterWatchdogBlacklistCandidateDrain, {}))
+        || ! blacklistCandidateMatches (afterWatchdogBlacklistCandidateDrain, {})
+        || ! blacklistCandidateMatches (queuedWatchdogBlacklistEscalationCandidate, watchdogBlacklistCandidate)
+        || ! blacklistEscalationResultMatches (
+            watchdogBlacklistEscalationResult,
+            { yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::escalationReady,
+              watchdogBlacklistCandidate,
+              { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout, false, true, true },
+              true,
+              false,
+              false })
+        || ! blacklistCandidateMatches (afterWatchdogBlacklistEscalationDrain, {}))
     {
-        std::printf ("FAIL: plugin host coordinator watchdog pending blacklist candidate queue/drain is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d\n",
+        std::printf ("FAIL: plugin host coordinator watchdog pending blacklist candidate escalation is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d escalationQueued=%s/%d/%d/%d escalation=%s drained=%s/%d/%d/%d escalated=%s/%d/%d/%d consumed=%d policy=%d persisted=%d afterEscalation=%s/%d/%d/%d\n",
                      statusName (queuedWatchdogBlacklistCandidate.failureKind),
                      queuedWatchdogBlacklistCandidate.candidate ? 1 : 0,
                      queuedWatchdogBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -649,7 +742,27 @@ int main (int argc, char** argv)
                      statusName (afterWatchdogBlacklistCandidateDrain.failureKind),
                      afterWatchdogBlacklistCandidateDrain.candidate ? 1 : 0,
                      afterWatchdogBlacklistCandidateDrain.crashCandidate ? 1 : 0,
-                     afterWatchdogBlacklistCandidateDrain.watchdogTimeoutCandidate ? 1 : 0);
+                     afterWatchdogBlacklistCandidateDrain.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (queuedWatchdogBlacklistEscalationCandidate.failureKind),
+                     queuedWatchdogBlacklistEscalationCandidate.candidate ? 1 : 0,
+                     queuedWatchdogBlacklistEscalationCandidate.crashCandidate ? 1 : 0,
+                     queuedWatchdogBlacklistEscalationCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (watchdogBlacklistEscalationResult.status),
+                     statusName (watchdogBlacklistEscalationResult.drainedCandidate.failureKind),
+                     watchdogBlacklistEscalationResult.drainedCandidate.candidate ? 1 : 0,
+                     watchdogBlacklistEscalationResult.drainedCandidate.crashCandidate ? 1 : 0,
+                     watchdogBlacklistEscalationResult.drainedCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (watchdogBlacklistEscalationResult.escalation.failureKind),
+                     watchdogBlacklistEscalationResult.escalation.crashCandidate ? 1 : 0,
+                     watchdogBlacklistEscalationResult.escalation.watchdogTimeoutCandidate ? 1 : 0,
+                     watchdogBlacklistEscalationResult.escalation.controlThreadEscalationRequested ? 1 : 0,
+                     watchdogBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     watchdogBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     watchdogBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0,
+                     statusName (afterWatchdogBlacklistEscalationDrain.failureKind),
+                     afterWatchdogBlacklistEscalationDrain.candidate ? 1 : 0,
+                     afterWatchdogBlacklistEscalationDrain.crashCandidate ? 1 : 0,
+                     afterWatchdogBlacklistEscalationDrain.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -831,13 +944,30 @@ int main (int argc, char** argv)
     const auto pendingCrashBlacklistCandidate = crashCoordinator.pendingBlacklistCandidateStatus();
     const auto drainedCrashBlacklistCandidate = crashCoordinator.drainPendingBlacklistCandidateStatus();
     const auto afterCrashBlacklistCandidateDrain = crashCoordinator.pendingBlacklistCandidateStatus();
+    const auto queuedCrashBlacklistEscalationCandidate =
+        crashCoordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto crashBlacklistEscalationResult =
+        crashCoordinator.drainPendingBlacklistCandidateToControlEscalation();
+    const auto afterCrashBlacklistEscalationDrain = crashCoordinator.pendingBlacklistCandidateStatus();
     if (! blacklistCandidateMatches (queuedCrashBlacklistCandidate, crashBlacklistCandidate)
         || ! blacklistCandidateMatches (pendingCrashBlacklistCandidate, crashBlacklistCandidate)
         || ! blacklistCandidateMatches (drainedCrashBlacklistCandidate, crashBlacklistCandidate)
         || ! blacklistCandidateMatches (afterCrashBlacklistCandidateDrain, {})
-        || drainedCrashBlacklistCandidate.failureKind == drainedWatchdogBlacklistCandidate.failureKind)
+        || drainedCrashBlacklistCandidate.failureKind == drainedWatchdogBlacklistCandidate.failureKind
+        || ! blacklistCandidateMatches (queuedCrashBlacklistEscalationCandidate, crashBlacklistCandidate)
+        || ! blacklistEscalationResultMatches (
+            crashBlacklistEscalationResult,
+            { yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::escalationReady,
+              crashBlacklistCandidate,
+              { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash, true, false, true },
+              true,
+              false,
+              false })
+        || crashBlacklistEscalationResult.escalation.failureKind
+            == watchdogBlacklistEscalationResult.escalation.failureKind
+        || ! blacklistCandidateMatches (afterCrashBlacklistEscalationDrain, {}))
     {
-        std::printf ("FAIL: plugin host coordinator crash pending blacklist candidate queue/drain is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d watchdog=%s\n",
+        std::printf ("FAIL: plugin host coordinator crash pending blacklist candidate escalation is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d watchdog=%s escalationQueued=%s/%d/%d/%d escalation=%s drained=%s/%d/%d/%d escalated=%s/%d/%d/%d watchdogEscalation=%s consumed=%d policy=%d persisted=%d afterEscalation=%s/%d/%d/%d\n",
                      statusName (queuedCrashBlacklistCandidate.failureKind),
                      queuedCrashBlacklistCandidate.candidate ? 1 : 0,
                      queuedCrashBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -854,7 +984,28 @@ int main (int argc, char** argv)
                      afterCrashBlacklistCandidateDrain.candidate ? 1 : 0,
                      afterCrashBlacklistCandidateDrain.crashCandidate ? 1 : 0,
                      afterCrashBlacklistCandidateDrain.watchdogTimeoutCandidate ? 1 : 0,
-                     statusName (drainedWatchdogBlacklistCandidate.failureKind));
+                     statusName (drainedWatchdogBlacklistCandidate.failureKind),
+                     statusName (queuedCrashBlacklistEscalationCandidate.failureKind),
+                     queuedCrashBlacklistEscalationCandidate.candidate ? 1 : 0,
+                     queuedCrashBlacklistEscalationCandidate.crashCandidate ? 1 : 0,
+                     queuedCrashBlacklistEscalationCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (crashBlacklistEscalationResult.status),
+                     statusName (crashBlacklistEscalationResult.drainedCandidate.failureKind),
+                     crashBlacklistEscalationResult.drainedCandidate.candidate ? 1 : 0,
+                     crashBlacklistEscalationResult.drainedCandidate.crashCandidate ? 1 : 0,
+                     crashBlacklistEscalationResult.drainedCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (crashBlacklistEscalationResult.escalation.failureKind),
+                     crashBlacklistEscalationResult.escalation.crashCandidate ? 1 : 0,
+                     crashBlacklistEscalationResult.escalation.watchdogTimeoutCandidate ? 1 : 0,
+                     crashBlacklistEscalationResult.escalation.controlThreadEscalationRequested ? 1 : 0,
+                     statusName (watchdogBlacklistEscalationResult.escalation.failureKind),
+                     crashBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     crashBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     crashBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0,
+                     statusName (afterCrashBlacklistEscalationDrain.failureKind),
+                     afterCrashBlacklistEscalationDrain.candidate ? 1 : 0,
+                     afterCrashBlacklistEscalationDrain.crashCandidate ? 1 : 0,
+                     afterCrashBlacklistEscalationDrain.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -995,6 +1146,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }
