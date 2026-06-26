@@ -130,6 +130,14 @@ public:
         bool watchdogKillRequested { false };
     };
 
+    struct BlacklistCandidateStatus
+    {
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool candidate { false };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+    };
+
     struct FailureActionRequest
     {
         FailureActionKind action { FailureActionKind::none };
@@ -356,6 +364,11 @@ public:
         return failureActionRequestFor (hostFailureReport());
     }
 
+    BlacklistCandidateStatus blacklistCandidateStatus() const
+    {
+        return blacklistCandidateStatusFor (hostFailureReport());
+    }
+
     FailureActionRequest queueFailureActionRequest (FailureActionRequest request)
     {
         std::lock_guard<std::mutex> lock (mutex_);
@@ -435,6 +448,17 @@ public:
             return {};
 
         return { FailureActionKind::bypassAndRecompile, report.kind, true, true };
+    }
+
+    static BlacklistCandidateStatus blacklistCandidateStatusFor (HostFailureReport report) noexcept
+    {
+        if (report.kind == HostFailureKind::crash)
+            return { report.kind, true, true, false };
+
+        if (report.kind == HostFailureKind::watchdogTimeout)
+            return { report.kind, true, false, true };
+
+        return {};
     }
 
     void handleMessageFromWorker (const juce::MemoryBlock& message) override

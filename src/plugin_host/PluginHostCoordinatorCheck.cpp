@@ -171,6 +171,15 @@ bool commandResultMatches (yesdaw::plugin_host::PluginHostCoordinator::GraphChan
         && actual.graphRecompileExecuted == expected.graphRecompileExecuted;
 }
 
+bool blacklistCandidateMatches (yesdaw::plugin_host::PluginHostCoordinator::BlacklistCandidateStatus actual,
+                                yesdaw::plugin_host::PluginHostCoordinator::BlacklistCandidateStatus expected) noexcept
+{
+    return actual.failureKind == expected.failureKind
+        && actual.candidate == expected.candidate
+        && actual.crashCandidate == expected.crashCandidate
+        && actual.watchdogTimeoutCandidate == expected.watchdogTimeoutCandidate;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -192,6 +201,7 @@ int main (int argc, char** argv)
     const auto initialStatus = coordinator.status();
     const auto initialPendingAction = coordinator.pendingFailureActionRequest();
     const auto initialDeferredCommandStatus = coordinator.deferredGraphChangeCommandStatus();
+    const auto initialBlacklistCandidate = coordinator.blacklistCandidateStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -249,6 +259,16 @@ int main (int argc, char** argv)
                      statusName (initialDeferredCommandStatus.lastResult.status),
                      initialDeferredCommandStatus.commandRecorded ? 1 : 0,
                      initialDeferredCommandStatus.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
+    if (! blacklistCandidateMatches (initialBlacklistCandidate, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator initial blacklist-candidate status is wrong: failure=%s candidate=%d crash=%d watchdog=%d\n",
+                     statusName (initialBlacklistCandidate.failureKind),
+                     initialBlacklistCandidate.candidate ? 1 : 0,
+                     initialBlacklistCandidate.crashCandidate ? 1 : 0,
+                     initialBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -390,6 +410,17 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto normalStopBlacklistCandidate = coordinator.blacklistCandidateStatus();
+    if (! blacklistCandidateMatches (normalStopBlacklistCandidate, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop should not be a blacklist candidate: failure=%s candidate=%d crash=%d watchdog=%d\n",
+                     statusName (normalStopBlacklistCandidate.failureKind),
+                     normalStopBlacklistCandidate.candidate ? 1 : 0,
+                     normalStopBlacklistCandidate.crashCandidate ? 1 : 0,
+                     normalStopBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+        return 2;
+    }
+
     const auto normalStopAction = coordinator.failureActionRequest();
     if (normalStopAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
         || normalStopAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
@@ -518,6 +549,19 @@ int main (int argc, char** argv)
                      watchdogFailure.connectionLostSeen ? 1 : 0,
                      watchdogFailure.watchdogTimedOut ? 1 : 0,
                      watchdogFailure.watchdogKillRequested ? 1 : 0);
+        return 2;
+    }
+
+    const auto watchdogBlacklistCandidate = watchdogCoordinator.blacklistCandidateStatus();
+    if (! blacklistCandidateMatches (
+            watchdogBlacklistCandidate,
+            { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout, true, false, true }))
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog blacklist-candidate status is wrong: failure=%s candidate=%d crash=%d watchdog=%d\n",
+                     statusName (watchdogBlacklistCandidate.failureKind),
+                     watchdogBlacklistCandidate.candidate ? 1 : 0,
+                     watchdogBlacklistCandidate.crashCandidate ? 1 : 0,
+                     watchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -680,6 +724,21 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto crashBlacklistCandidate = crashCoordinator.blacklistCandidateStatus();
+    if (! blacklistCandidateMatches (
+            crashBlacklistCandidate,
+            { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash, true, true, false })
+        || crashBlacklistCandidate.failureKind == watchdogBlacklistCandidate.failureKind)
+    {
+        std::printf ("FAIL: plugin host coordinator crash blacklist-candidate status is wrong: failure=%s candidate=%d crash=%d watchdog=%d watchdogFailure=%s\n",
+                     statusName (crashBlacklistCandidate.failureKind),
+                     crashBlacklistCandidate.candidate ? 1 : 0,
+                     crashBlacklistCandidate.crashCandidate ? 1 : 0,
+                     crashBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (watchdogBlacklistCandidate.failureKind));
+        return 2;
+    }
+
     const auto crashAction = crashCoordinator.failureActionRequest();
     if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
@@ -817,6 +876,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed future blacklist-candidate status, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }
