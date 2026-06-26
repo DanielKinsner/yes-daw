@@ -388,3 +388,51 @@ TEST_CASE ("a plugin reporting an absurd latency cannot overflow the PDC walk", 
     REQUIRE (error.code() == GraphBuildError::Code::None);
     REQUIRE (graph->totalLatency() == B + PluginNode::kMaxValidatedLatencySamples);
 }
+
+TEST_CASE ("PluginNode pipeline Block must equal the graph maxBlockSize or the build fails", "[plugin][graph][validation][blocksize]")
+{
+    // The compiler reads properties()/locks PDC BEFORE prepare() learns the real maxBlockSize, so the
+    // node's one-Block IPC latency is only correct when its construction-time pipeline Block equals the
+    // graph's maxBlockSize. A mismatch is a silent fixed phase error against every other path; GraphBuilder
+    // must reject it loudly instead (ADR-0015 / ADR-0007).
+    constexpr NodeId kSrc = 320, kPlugin = 321;
+    constexpr int    B = 64;
+
+    auto buildWith = [] (int pipelineBlock, int maxBlockSize, GraphBuildError& error)
+        -> std::unique_ptr<CompiledGraph>
+    {
+        auto src    = std::make_unique<BlockSignalSource> (kSrc, 1);
+        auto plugin = std::make_unique<PluginNode> (kPlugin, 1, pipelineBlock);
+        plugin->setInput (src.get());
+        auto master = std::make_unique<MasterNode> (kMasterId, 1);
+        master->setInputNodes ({ plugin.get() });
+
+        GraphBuilder::Inputs inputs;
+        inputs.id = 5;
+        inputs.masterNodeId = kMasterId;
+        inputs.maxBlockSize = maxBlockSize;
+        inputs.nodes.push_back (std::move (src));
+        inputs.nodes.push_back (std::move (plugin));
+        inputs.nodes.push_back (std::move (master));
+        return GraphBuilder::build (std::move (inputs), &error);
+    };
+
+    // Matched: pipeline Block == maxBlockSize -> builds, exactly one Block of latency.
+    {
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = buildWith (B, B, error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code() == GraphBuildError::Code::None);
+        REQUIRE (graph->totalLatency() == B);
+    }
+
+    // Mismatched: the node would report B*2 of pipeline latency while the ring really delays one B-sample
+    // Block. The build is REJECTED with a specific error rather than silently mis-compensating PDC.
+    {
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = buildWith (B * 2, B, error);
+        REQUIRE (graph == nullptr);
+        REQUIRE (error.code() == GraphBuildError::Code::PluginBlockSizeMismatch);
+        REQUIRE (error.nodeId() == kPlugin);
+    }
+}

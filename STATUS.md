@@ -83,7 +83,14 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
     `CompiledNode` stays trivially-copyable. 4 green commits (ADR → widen `muteBit` → multi-word storage →
     drop the clamp + a **negative-controlled 200-track scaling test** that fails on the pre-fix build at ~the
     17th target). `MixerMutePolicy` and the `Node` contract untouched. Local: Graph/Builder/MutePolicy/
-    Projection/Render/Runtime checks green; full RTSan/TSan/3-OS matrix on CI at push.
+    Projection/Render/Runtime checks green; full RTSan/TSan/3-OS matrix on CI green (`e5eb741`).
+  - **LANDED (review finding C) — PluginNode PDC latency vs block size.** A `PluginNode` reports its one-Block
+    IPC latency for a construction-time pipeline Block, but the compiler reads `properties()`/locks PDC
+    *before* `prepare()` learns the real `maxBlockSize` — so a mismatch was a silent fixed phase error. Now
+    `GraphBuilder::build` rejects it loudly with a dedicated `GraphBuildError::PluginBlockSizeMismatch`
+    (typed `dynamic_cast` check, exception-free, consistent with the existing Sidechain casts; engine stays
+    JUCE-free). Negative-controlled test in `plugin_node_tests.cpp` (matched builds; mismatched is rejected
+    with the node id) — proven to fail without the check.
 - **Latest: WORKER H3 minimal coordinator deferred blacklist-handling outcome handling acknowledge/clear-status
   shell is locally green — the coordinator can clear a recorded future control-thread
   blacklist-handling outcome handling result without applying blacklist policy or persistence.**

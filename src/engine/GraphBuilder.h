@@ -15,6 +15,7 @@
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
 #include "engine/nodes/SidechainGainNode.h"
+#include "engine/plugin/PluginNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
@@ -38,8 +39,9 @@ struct GraphBuildError
     struct LatencyOutOfRange { NodeId nodeId = 0; };
     struct CyclicGraph       { NodeId nodeId = 0; };
     struct GraphTooLarge     { NodeId nodeId = 0; };
+    struct PluginBlockSizeMismatch { NodeId nodeId = 0; };
 
-    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge>;
+    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge, PluginBlockSizeMismatch>;
 
     enum class Code
     {
@@ -48,7 +50,8 @@ struct GraphBuildError
         MissingNode,
         LatencyOutOfRange,
         CyclicGraph,
-        GraphTooLarge
+        GraphTooLarge,
+        PluginBlockSizeMismatch
     };
 
     Detail detail;
@@ -59,6 +62,7 @@ struct GraphBuildError
     GraphBuildError (LatencyOutOfRange e) : detail (e) {}
     GraphBuildError (CyclicGraph e)       : detail (e) {}
     GraphBuildError (GraphTooLarge e)     : detail (e) {}
+    GraphBuildError (PluginBlockSizeMismatch e) : detail (e) {}
 
     Code code() const noexcept
     {
@@ -69,6 +73,7 @@ struct GraphBuildError
             case 3: return Code::LatencyOutOfRange;
             case 4: return Code::CyclicGraph;
             case 5: return Code::GraphTooLarge;
+            case 6: return Code::PluginBlockSizeMismatch;
             default: return Code::None;
         }
     }
@@ -83,6 +88,7 @@ struct GraphBuildError
             NodeId operator() (LatencyOutOfRange e) const noexcept { return e.nodeId; }
             NodeId operator() (CyclicGraph e) const noexcept { return e.nodeId; }
             NodeId operator() (GraphTooLarge e) const noexcept { return e.nodeId; }
+            NodeId operator() (PluginBlockSizeMismatch e) const noexcept { return e.nodeId; }
         };
 
         return std::visit (Visitor{}, detail);
@@ -200,6 +206,15 @@ public:
             return nullptr;
         bindBusNodes (payload);
         assert (allMultiInputNodesBound (payload));
+
+        // A PluginNode reports its one-Block IPC latency for a construction-time pipeline Block, but the
+        // compiler reads properties() and locks PDC BEFORE prepare() learns the real maxBlockSize. So that
+        // latency is only correct when the node's pipeline Block equals the graph's maxBlockSize; a mismatch
+        // would be a silent, fixed phase error against every other path. Reject it loudly here (ADR-0015).
+        for (const CompiledNode& cn : payload.compiledNodes)
+            if (const auto* const plugin = dynamic_cast<const PluginNode*> (cn.node))
+                if (plugin->pipelineBlockSamples() != maxBlockSize)
+                    return fail (error, GraphBuildError::PluginBlockSizeMismatch { cn.id });
 
         for (CompiledNode& cn : payload.compiledNodes)
             if (cn.node != nullptr)

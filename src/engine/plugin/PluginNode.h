@@ -147,6 +147,11 @@ public:
     bool         bypassActive()     const noexcept { return ring_.bypassActive(); }
     int          channels()         const noexcept { return channels_; }
 
+    // The pipeline Block this node reported its one-Block IPC latency for (fixed at construction). The
+    // compiler reads properties()/locks PDC BEFORE prepare(), so the reported latency is only correct when
+    // this equals the graph's maxBlockSize; GraphBuilder enforces that equality at build (ADR-0015).
+    int          pipelineBlockSamples() const noexcept { return pipelineBlock_; }
+
 private:
     static constexpr std::uint32_t kDefaultMaxEventsPerBlock = 64;
     // Default fail-open thresholds mirror RtLaneConfig's (last-good held 2 Blocks; bypass after 8 misses).
