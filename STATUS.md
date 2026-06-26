@@ -61,6 +61,12 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **▶ DIRECTION — H3 is being closed to its exit gate (no more breadth-first shells).** New builder?
+  Read **`loop/PROMPT.md`** → **`loop/horizon.md`** (the gate = definition of done) →
+  **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
+  plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
+  NOT close until that gate is green. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
+  block-size) are landed + CI-green.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
