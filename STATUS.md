@@ -15,7 +15,8 @@ primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is
 `PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
 checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
 CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
-coordinator child-state/status surface is built and CI-green
+coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
+shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -29,7 +30,7 @@ coordinator child-state/status surface is built and CI-green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator watchdog-timeout shell is green locally — the coordinator can
+- **Latest: WORKER H3 minimal coordinator watchdog-timeout shell is CI-green — the coordinator can
   now detect, kill, and report a deterministic hung-child control-lane path.**
   First, REVIEW/FIX of the previous minimal coordinator-side child-state/status surface found no proven
   defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
@@ -49,7 +50,8 @@ coordinator child-state/status surface is built and CI-green
   blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP,
   ADR edits, goldens, broad graph rewiring, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint.
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28212288528` is green across Windows,
+  Linux, macOS, RTSan, and TSan for commit `5547691`.
   **Next:** REVIEW/FIX H3 minimal coordinator watchdog-timeout shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
