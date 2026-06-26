@@ -103,6 +103,12 @@ public:
         commandReady
     };
 
+    enum class BlacklistPolicyDecisionOutcomeStatus
+    {
+        noAction,
+        outcomeReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -257,6 +263,17 @@ public:
         BlacklistPolicyDecisionCommandStatus status { BlacklistPolicyDecisionCommandStatus::noAction };
         BlacklistPolicyDecisionCommandResult lastResult;
         bool commandRecorded { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistPolicyDecisionOutcome
+    {
+        BlacklistPolicyDecisionOutcomeStatus status { BlacklistPolicyDecisionOutcomeStatus::noAction };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadPolicyDecisionInspected { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -684,6 +701,12 @@ public:
         return deferredBlacklistPolicyDecisionCommandStatusLocked();
     }
 
+    BlacklistPolicyDecisionOutcome blacklistPolicyDecisionOutcomeStatus() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return blacklistPolicyDecisionOutcomeFor (deferredBlacklistPolicyDecisionCommandStatusLocked());
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -853,6 +876,32 @@ private:
             && result.command.watchdogTimeoutCandidate == result.drainedRequest.watchdogTimeoutCandidate
             && result.command.controlThreadPolicyDecisionRequested
                 == result.drainedRequest.controlThreadPolicyDecisionRequested;
+    }
+
+    static BlacklistPolicyDecisionOutcome blacklistPolicyDecisionOutcomeFor (
+        DeferredBlacklistPolicyDecisionCommandStatus status) noexcept
+    {
+        if (! canCreateBlacklistPolicyDecisionOutcome (status))
+            return {};
+
+        const auto command = status.lastResult.command;
+        return { BlacklistPolicyDecisionOutcomeStatus::outcomeReady,
+                 command.failureKind,
+                 command.crashCandidate,
+                 command.watchdogTimeoutCandidate,
+                 true,
+                 false,
+                 false };
+    }
+
+    static bool canCreateBlacklistPolicyDecisionOutcome (
+        DeferredBlacklistPolicyDecisionCommandStatus status) noexcept
+    {
+        return status.status == BlacklistPolicyDecisionCommandStatus::commandReady
+            && status.commandRecorded
+            && ! status.blacklistPolicyApplied
+            && ! status.blacklistStatePersisted
+            && canRecordBlacklistPolicyDecisionCommandResult (status.lastResult);
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
