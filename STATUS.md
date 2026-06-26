@@ -17,7 +17,7 @@ checkpoint is built and CI-green; the plugin-host coordinator launch/handshake s
 CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
 coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
 shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green; the
-minimal coordinator failure-action request shell is built and local-gate green, with remote CI pending
+minimal coordinator failure-action request shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -30,8 +30,8 @@ minimal coordinator failure-action request shell is built and local-gate green, 
 
 ---
 
-## Now — between chunks (every engine commit to date is CI-green; latest checkpoint remote CI pending)
-- **Latest: WORKER H3 minimal coordinator failure-action request shell is local-gate green — the
+## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 minimal coordinator failure-action request shell is CI-green — the
   coordinator can now turn a host-failure report into a future bypass/recompile request without performing
   the graph change yet.**
   First, REVIEW/FIX of the previous host-failure report shell found no proven defects against `STATUS.md`,
@@ -54,9 +54,9 @@ minimal coordinator failure-action request shell is built and local-gate green, 
   memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, graph recompile execution, or
   `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint.
-  **Next:** After this checkpoint's commit, push, and remote CI are green, create exactly one successor
-  baton. The successor starts with REVIEW/FIX H3 minimal coordinator failure-action request shell — verify
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28213916724` is green across Windows,
+  Linux, macOS, RTSan, and TSan for commit `c7db7e2`.
+  **Next:** REVIEW/FIX H3 minimal coordinator failure-action request shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
   against ADR-0015 (coordinator/worker process model, crash/watchdog reporting, future bypass/recompile
