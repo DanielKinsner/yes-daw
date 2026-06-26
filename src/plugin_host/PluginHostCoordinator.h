@@ -121,6 +121,18 @@ public:
         requestReady
     };
 
+    enum class BlacklistHandlingCommandKind
+    {
+        none,
+        handleBlacklistRequest
+    };
+
+    enum class BlacklistHandlingCommandStatus
+    {
+        noAction,
+        commandReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -328,6 +340,25 @@ public:
         bool crashCandidate { false };
         bool watchdogTimeoutCandidate { false };
         bool controlThreadBlacklistHandlingRequested { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistHandlingCommand
+    {
+        BlacklistHandlingCommandKind command { BlacklistHandlingCommandKind::none };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadBlacklistHandlingRequested { false };
+    };
+
+    struct BlacklistHandlingCommandResult
+    {
+        BlacklistHandlingCommandStatus status { BlacklistHandlingCommandStatus::noAction };
+        BlacklistHandlingRequest drainedRequest;
+        BlacklistHandlingCommand command;
+        bool pendingRequestConsumed { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -861,6 +892,24 @@ public:
         return request;
     }
 
+    BlacklistHandlingCommandResult drainPendingBlacklistHandlingRequestToControlCommand()
+    {
+        const auto request = drainPendingBlacklistHandlingRequest();
+        if (! canCreateBlacklistHandlingCommand (request))
+            return {};
+
+        return { BlacklistHandlingCommandStatus::commandReady,
+                 request,
+                 { BlacklistHandlingCommandKind::handleBlacklistRequest,
+                   request.failureKind,
+                   request.crashCandidate,
+                   request.watchdogTimeoutCandidate,
+                   request.controlThreadBlacklistHandlingRequested },
+                 true,
+                 false,
+                 false };
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -1115,6 +1164,24 @@ private:
             && ! status.blacklistPolicyApplied
             && ! status.blacklistStatePersisted
             && canRecordBlacklistPolicyDecisionOutcomeHandlingResult (status.lastResult);
+    }
+
+    static bool canCreateBlacklistHandlingCommand (BlacklistHandlingRequest request) noexcept
+    {
+        if (request.status != BlacklistHandlingRequestStatus::requestReady
+            || request.failureKind == HostFailureKind::none
+            || ! request.controlThreadBlacklistHandlingRequested
+            || request.blacklistPolicyApplied
+            || request.blacklistStatePersisted)
+            return false;
+
+        if (request.failureKind == HostFailureKind::crash)
+            return request.crashCandidate && ! request.watchdogTimeoutCandidate;
+
+        if (request.failureKind == HostFailureKind::watchdogTimeout)
+            return ! request.crashCandidate && request.watchdogTimeoutCandidate;
+
+        return false;
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
