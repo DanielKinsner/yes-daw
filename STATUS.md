@@ -8,7 +8,7 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-**Last updated:** 2026-06-25
+**Last updated:** 2026-06-26
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
@@ -28,37 +28,39 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-gre
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal plugin-host lifecycle/lost-child shell is CI-green — the coordinator can
-  stop the worker and observe the lost-child signal.**
-  First, REVIEW/FIX of the previous plugin-host coordinator launch/handshake checkpoint found no proven
-  defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
+- **Latest: WORKER H3 minimal coordinator-side child-state/status surface is green locally — remote CI
+  still pending for this checkpoint.**
+  First, REVIEW/FIX of the previous minimal plugin-host lifecycle/lost-child shell found no proven defects
+  against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
   `YesDawPluginHostCoordinatorCheck` launches `YesDawPluginHost`, requires the worker `ready` message,
-  sends a probe over JUCE's control message channel, and requires the echoed probe; the coordinator target
-  links `juce::juce_events` but not `juce_audio_processors`; `YesDawPluginHost` remains the only owner of
-  JUCE plugin-hosting format registration; Apple framework links remain scoped to `YesDawPluginHost`; and
-  the `YESDAW_BUILD_APPS=OFF` RTSan/TSan pure configurations remain outside the JUCE app/host targets.
-  Then WORKER added the smallest ADR-0015 lifecycle/lost-child shell: `PluginHostCoordinator` now exposes
-  a self-asserting stop result around JUCE `killWorkerProcess()` and `handleConnectionLost()`, and
-  `YesDawPluginHostCoordinatorCheck` now fails unless the coordinator launches the worker, completes the
-  ready/echo handshake, stops the worker, and observes the connection-lost callback. Scope held: no real
-  plugin load, scanner, watchdog policy, blacklist/cache, crash-test plugin, plugin UI, real shared memory,
-  pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, or `[[clang::nonblocking]]` /
-  `YESDAW_RT_HOT` annotation edits. Local gate: `cmake --preset ci`; documented VS DevShell
-  `cmake --build --preset ci`; documented VS DevShell `ctest --preset ci` passed **187/187**. Remote CI run
-  `28210444203` is green across Windows, Linux, macOS, RTSan, and TSan for commit `2dabeef`.
-  **Next:** REVIEW/FIX H3 minimal plugin-host lifecycle/lost-child shell — verify
+  sends a probe over JUCE's control message channel, requires the echoed probe, asks the coordinator to
+  stop the worker, and observes the `handleConnectionLost()` path; the coordinator/check target links
+  `juce::juce_events` but not `juce_audio_processors`; `YesDawPluginHost` remains the only owner of JUCE
+  plugin-hosting format registration; Apple framework links remain scoped to `YesDawPluginHost`; and the
+  `YESDAW_BUILD_APPS=OFF` RTSan/TSan pure configurations remain outside the JUCE app/host targets.
+  Then WORKER added the smallest ADR-0015 coordinator-side status surface: `PluginHostCoordinator` now
+  exposes a `ChildStatus` snapshot covering launch attempt, ready, handshake, stop request, stopped, and
+  connection-lost reporting, with explicit child states for the future control-lane policy surface.
+  `YesDawPluginHostCoordinatorCheck` now fails unless the status starts idle/not-started, reports the
+  ready/echo handshake as running/successful, then reports the requested stop plus lost-child observation
+  as stopped. Scope held: no real plugin load, scanner, watchdog policy, blacklist/cache persistence,
+  crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph
+  rewiring, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits. Local gate:
+  `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS DevShell
+  `ctest --preset ci` passed **187/187**.
+  **Next:** REVIEW/FIX H3 minimal coordinator-side child-state/status surface — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`, and
-  `src/plugin_host/PluginHostMain.cpp` against ADR-0015 (coordinator/worker process model and control
-  lane), ADR-0013 (out-of-process host child boundary), ADR-0008 (engine targets must not link hosting /
-  `Node` contract unchanged), and the rolling-baton rule. Confirm the lifecycle self-check is non-vacuous,
-  the coordinator target still does not own JUCE plugin-hosting modules, `YESDAW_BUILD_APPS=OFF` pure
-  sanitizer configuration is unaffected, and no scanner/watchdog policy/shared-memory/plugin-load
-  semantics snuck in. Fix only proven defects. If clean and green, continue in the SAME baton to the next
-  small worker chunk: a minimal coordinator-side child-state/status surface for launch/stop/lost-child
-  reporting (still no real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence,
-  crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or goldens). Stop at
-  any new ADR-level decision. Create exactly one successor baton only after this checkpoint's `STATUS.md`
-  update, commit, push, and remote CI are green.
+  directly relevant CMake/host-worker code against ADR-0015 (coordinator/worker process model, control
+  lane status, and host-worker ownership), ADR-0013 (out-of-process host child boundary), ADR-0008 (engine
+  targets must not link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the
+  status self-check is non-vacuous, the coordinator target still does not own JUCE plugin-hosting modules,
+  `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected, and no scanner/watchdog
+  policy/shared-memory/plugin-load semantics snuck in. Fix only proven defects. If clean and green,
+  continue in the SAME baton to the next small worker chunk: a minimal coordinator watchdog-timeout shell
+  for hung-child kill/reporting (still no real plugin load, scanner, watchdog blacklist policy,
+  blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP,
+  ADR edits, or goldens). Stop at any new ADR-level decision. Create exactly one successor baton only
+  after this checkpoint's `STATUS.md` update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 `YesDawPluginHost` worker exe + engine-hosting layering check is green locally — the host boundary exists.**
   First, REVIEW/FIX of the previous `PluginNode` IPC-proxy checkpoint found no proven defects against
   `STATUS.md`, ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety rules: `process()` stays

@@ -10,6 +10,7 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::HandshakeSta
 
     switch (status)
     {
+        case Status::notStarted:      return "notStarted";
         case Status::success:         return "success";
         case Status::launchFailed:    return "launchFailed";
         case Status::readyTimeout:    return "readyTimeout";
@@ -27,8 +28,28 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::StopStatus s
 
     switch (status)
     {
+        case Status::notStarted:  return "notStarted";
         case Status::stopped:     return "stopped";
         case Status::stopTimeout: return "stopTimeout";
+    }
+
+    return "unknown";
+}
+
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState state) noexcept
+{
+    using State = yesdaw::plugin_host::PluginHostCoordinator::ChildState;
+
+    switch (state)
+    {
+        case State::idle:        return "idle";
+        case State::launching:   return "launching";
+        case State::ready:       return "ready";
+        case State::handshaking: return "handshaking";
+        case State::running:     return "running";
+        case State::stopping:    return "stopping";
+        case State::stopped:     return "stopped";
+        case State::lost:        return "lost";
     }
 
     return "unknown";
@@ -52,6 +73,29 @@ int main (int argc, char** argv)
     }
 
     yesdaw::plugin_host::PluginHostCoordinator coordinator;
+    const auto initialStatus = coordinator.status();
+
+    if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
+        || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
+        || initialStatus.stopStatus != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::notStarted
+        || initialStatus.launchAttempted
+        || initialStatus.readySeen
+        || initialStatus.probeEchoed
+        || initialStatus.stopRequested
+        || initialStatus.connectionLostSeen)
+    {
+        std::printf ("FAIL: plugin host coordinator initial status is not idle: state=%s handshake=%s stop=%s launch=%d ready=%d echo=%d stopRequested=%d connectionLost=%d\n",
+                     statusName (initialStatus.state),
+                     statusName (initialStatus.handshakeStatus),
+                     statusName (initialStatus.stopStatus),
+                     initialStatus.launchAttempted ? 1 : 0,
+                     initialStatus.readySeen ? 1 : 0,
+                     initialStatus.probeEchoed ? 1 : 0,
+                     initialStatus.stopRequested ? 1 : 0,
+                     initialStatus.connectionLostSeen ? 1 : 0);
+        return 2;
+    }
+
     const auto handshake = coordinator.launchAndHandshake (workerExecutable);
 
     if (handshake.status != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::success)
@@ -60,6 +104,29 @@ int main (int argc, char** argv)
                      statusName (handshake.status),
                      handshake.readySeen ? 1 : 0,
                      handshake.probeEchoed ? 1 : 0);
+        return 2;
+    }
+
+    const auto runningStatus = coordinator.status();
+
+    if (runningStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::running
+        || runningStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::success
+        || runningStatus.stopStatus != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::notStarted
+        || ! runningStatus.launchAttempted
+        || ! runningStatus.readySeen
+        || ! runningStatus.probeEchoed
+        || runningStatus.stopRequested
+        || runningStatus.connectionLostSeen)
+    {
+        std::printf ("FAIL: plugin host coordinator running status is wrong: state=%s handshake=%s stop=%s launch=%d ready=%d echo=%d stopRequested=%d connectionLost=%d\n",
+                     statusName (runningStatus.state),
+                     statusName (runningStatus.handshakeStatus),
+                     statusName (runningStatus.stopStatus),
+                     runningStatus.launchAttempted ? 1 : 0,
+                     runningStatus.readySeen ? 1 : 0,
+                     runningStatus.probeEchoed ? 1 : 0,
+                     runningStatus.stopRequested ? 1 : 0,
+                     runningStatus.connectionLostSeen ? 1 : 0);
         return 2;
     }
 
@@ -74,6 +141,29 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, completed ready/echo handshake, stopped worker, and observed connection loss\n");
+    const auto stoppedStatus = coordinator.status();
+
+    if (stoppedStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::stopped
+        || stoppedStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::success
+        || stoppedStatus.stopStatus != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped
+        || ! stoppedStatus.launchAttempted
+        || ! stoppedStatus.readySeen
+        || ! stoppedStatus.probeEchoed
+        || ! stoppedStatus.stopRequested
+        || ! stoppedStatus.connectionLostSeen)
+    {
+        std::printf ("FAIL: plugin host coordinator stopped status is wrong: state=%s handshake=%s stop=%s launch=%d ready=%d echo=%d stopRequested=%d connectionLost=%d\n",
+                     statusName (stoppedStatus.state),
+                     statusName (stoppedStatus.handshakeStatus),
+                     statusName (stoppedStatus.stopStatus),
+                     stoppedStatus.launchAttempted ? 1 : 0,
+                     stoppedStatus.readySeen ? 1 : 0,
+                     stoppedStatus.probeEchoed ? 1 : 0,
+                     stoppedStatus.stopRequested ? 1 : 0,
+                     stoppedStatus.connectionLostSeen ? 1 : 0);
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, and reported connection loss\n");
     return 0;
 }
