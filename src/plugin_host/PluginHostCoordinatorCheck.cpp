@@ -21,6 +21,19 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::HandshakeSta
     return "unknown";
 }
 
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::StopStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::PluginHostCoordinator::StopStatus;
+
+    switch (status)
+    {
+        case Status::stopped:     return "stopped";
+        case Status::stopTimeout: return "stopTimeout";
+    }
+
+    return "unknown";
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -50,6 +63,17 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker and completed ready/echo handshake\n");
+    const auto stop = coordinator.requestStopAndWait();
+
+    if (stop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped
+        || ! stop.connectionLostSeen)
+    {
+        std::printf ("FAIL: plugin host coordinator stop/lost-child check failed: status=%s connectionLost=%d\n",
+                     statusName (stop.status),
+                     stop.connectionLostSeen ? 1 : 0);
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, completed ready/echo handshake, stopped worker, and observed connection loss\n");
     return 0;
 }

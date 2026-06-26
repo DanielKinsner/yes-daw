@@ -25,11 +25,23 @@ public:
         connectionLost
     };
 
+    enum class StopStatus
+    {
+        stopped,
+        stopTimeout
+    };
+
     struct HandshakeResult
     {
         HandshakeStatus status { HandshakeStatus::launchFailed };
         bool readySeen { false };
         bool probeEchoed { false };
+    };
+
+    struct StopResult
+    {
+        StopStatus status { StopStatus::stopTimeout };
+        bool connectionLostSeen { false };
     };
 
     explicit PluginHostCoordinator (std::chrono::milliseconds timeout = std::chrono::milliseconds (4000))
@@ -66,6 +78,16 @@ public:
             return result (HandshakeStatus::connectionLost);
 
         return result (HandshakeStatus::success);
+    }
+
+    StopResult requestStopAndWait()
+    {
+        killWorkerProcess();
+
+        if (! waitFor ([this] { return connectionLost_; }))
+            return stopResult (StopStatus::stopTimeout);
+
+        return stopResult (StopStatus::stopped);
     }
 
     void stop()
@@ -129,6 +151,12 @@ private:
     {
         std::lock_guard<std::mutex> lock (mutex_);
         return { status, readySeen_, probeEchoed_ };
+    }
+
+    StopResult stopResult (StopStatus status) const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return { status, connectionLost_ };
     }
 
     const std::chrono::milliseconds timeout_;
