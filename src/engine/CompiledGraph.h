@@ -54,6 +54,13 @@ inline constexpr SlotIndex kSilenceSlot = 0;
 inline constexpr SlotIndex kNoSlot      = 0xFFFFu;
 inline constexpr std::uint32_t kNoMuteBit = 0xFFFFFFFFu;
 
+// Number of 64-bit words a mute mask needs to carry one bit per compiled node (ADR-0016). Sized once on
+// the control thread at CompiledGraph construction; the audio thread only ever loads from it.
+[[nodiscard]] inline constexpr std::size_t muteWordCount (std::size_t numNodes) noexcept
+{
+    return (numNodes + 63u) / 64u;
+}
+
 enum class CompiledNodeKind : std::uint8_t
 {
     IdentityDc,
@@ -131,7 +138,6 @@ public:
         std::vector<double*>                            doubleSlotPtrs;
         BufferPoolLayout                                poolLayout;
         std::int64_t                                    totalLatency    = 0;
-        std::uint64_t                                   muteMask        = 0;
         SlotIndex                                       masterOutputSlot = kSilenceSlot;
         std::uint16_t                                   masterChannels   = 1;
         std::vector<std::pair<NodeId, std::uint32_t>>   idIndex;
@@ -155,7 +161,7 @@ public:
           doubleSlotPtrs_ (std::move (payload.doubleSlotPtrs)),
           poolLayout_ (payload.poolLayout),
           totalLatency_ (payload.totalLatency),
-          muteMask_ (payload.muteMask),
+          muteWords_ (muteWordCount (compiledNodes_.size())),
           masterOutputSlot_ (payload.masterOutputSlot),
           masterChannels_ (payload.masterChannels),
           idIndex_ (std::move (payload.idIndex)),
@@ -207,7 +213,7 @@ public:
         const InputSlot* const    inputs  = inputSlotIndices_.data();
         float* const* const       slots   = floatSlotPtrs_.data();
         const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
-        const std::uint64_t       muteMask = muteMask_.load (std::memory_order_relaxed);
+        const std::atomic<std::uint64_t>* const muteWords = muteWords_.data();   // ceil(nNodes/64) words; loads only
 
 #if ! defined (NDEBUG) || defined (YESDAW_TEST_DEBUG_POOL_PAINT)
         debugPaintPooledSlots (slots, poolLayout_.numFloatSlots, maxCh, numFrames);
@@ -220,7 +226,8 @@ public:
                 continue;
 
             float* const* const outChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
-            const bool muted = cn.muteBit < 64u && ((muteMask & (1ull << cn.muteBit)) != 0);
+            const bool muted = cn.muteBit != kNoMuteBit
+                && (muteWords[cn.muteBit >> 6u].load (std::memory_order_relaxed) & (1ull << (cn.muteBit & 63u))) != 0;
 
             if (! cn.aliasOk || muted)
                 zeroChannels (outChannels, cn.numChannels, numFrames);
@@ -264,14 +271,15 @@ public:
     [[nodiscard]] bool setMuted (NodeId id, bool muted) noexcept
     {
         const CompiledNode* const node = findCompiledNode (id);
-        if (node == nullptr || node->muteBit >= 64u)
+        if (node == nullptr || node->muteBit == kNoMuteBit)
             return false;
 
-        const std::uint64_t bit = 1ull << node->muteBit;
+        const std::uint64_t          bit  = 1ull << (node->muteBit & 63u);
+        std::atomic<std::uint64_t>&  word = muteWords_[node->muteBit >> 6u];
         if (muted)
-            muteMask_.fetch_or (bit, std::memory_order_relaxed);
+            word.fetch_or (bit, std::memory_order_relaxed);
         else
-            muteMask_.fetch_and (~bit, std::memory_order_relaxed);
+            word.fetch_and (~bit, std::memory_order_relaxed);
 
         return true;
     }
@@ -279,10 +287,10 @@ public:
     [[nodiscard]] bool isMuted (NodeId id) const noexcept
     {
         const CompiledNode* const node = findCompiledNode (id);
-        if (node == nullptr || node->muteBit >= 64u)
+        if (node == nullptr || node->muteBit == kNoMuteBit)
             return false;
 
-        return (muteMask_.load (std::memory_order_relaxed) & (1ull << node->muteBit)) != 0;
+        return (muteWords_[node->muteBit >> 6u].load (std::memory_order_relaxed) & (1ull << (node->muteBit & 63u))) != 0;
     }
 
     // True iff `id` is a compiled node that can carry a mute bit (exists and within the 64-bit mask). The
@@ -291,7 +299,7 @@ public:
     [[nodiscard]] bool isMuteCapable (NodeId id) const noexcept
     {
         const CompiledNode* const node = findCompiledNode (id);
-        return node != nullptr && node->muteBit < 64u;
+        return node != nullptr && node->muteBit != kNoMuteBit;
     }
 
     [[nodiscard]] bool applySetGain (NodeId id, float linearGain) const noexcept YESDAW_RT_HOT
@@ -380,7 +388,7 @@ public:
     std::span<const CompiledNode> debugCompiledNodes() const noexcept { return compiledNodes_; }
     std::span<const InputSlot> debugInputSlots() const noexcept { return inputSlotIndices_; }
     std::span<const DelayCacheEntry> debugDelayCache() const noexcept { return delayCache_; }
-    std::uint64_t debugMuteMask() const noexcept { return muteMask_.load (std::memory_order_relaxed); }
+    std::uint64_t debugMuteMask() const noexcept { return muteWords_.empty() ? 0ull : muteWords_[0].load (std::memory_order_relaxed); }
 
     int debugMasterChannels() const noexcept { return static_cast<int> (masterChannels_); }
 
@@ -490,7 +498,7 @@ private:
     std::vector<double*>                          doubleSlotPtrs_;
     BufferPoolLayout                              poolLayout_;
     std::int64_t                                  totalLatency_     = 0;
-    std::atomic<std::uint64_t>                    muteMask_         { 0 };
+    std::vector<std::atomic<std::uint64_t>>       muteWords_;   // ceil(numNodes/64) words; bit i = node i (ADR-0016)
     SlotIndex                                     masterOutputSlot_ = kSilenceSlot;
     std::uint16_t                                 masterChannels_   = 1;
     std::vector<std::pair<NodeId, std::uint32_t>> idIndex_;
