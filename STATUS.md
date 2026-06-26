@@ -28,8 +28,8 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-gre
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator-side child-state/status surface is green locally — remote CI
-  still pending for this checkpoint.**
+- **Latest: WORKER H3 minimal coordinator-side child-state/status surface is CI-green — the coordinator
+  now reports launch/ready/handshake/stop/lost-child status.**
   First, REVIEW/FIX of the previous minimal plugin-host lifecycle/lost-child shell found no proven defects
   against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
   `YesDawPluginHostCoordinatorCheck` launches `YesDawPluginHost`, requires the worker `ready` message,
@@ -47,7 +47,8 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-gre
   crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph
   rewiring, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits. Local gate:
   `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS DevShell
-  `ctest --preset ci` passed **187/187**.
+  `ctest --preset ci` passed **187/187**. Remote CI run `28211204781` is green across Windows, Linux,
+  macOS, RTSan, and TSan for commit `7a57c3b`.
   **Next:** REVIEW/FIX H3 minimal coordinator-side child-state/status surface — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`, and
   directly relevant CMake/host-worker code against ADR-0015 (coordinator/worker process model, control
