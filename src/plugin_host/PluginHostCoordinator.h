@@ -943,6 +943,14 @@ public:
         return deferredBlacklistHandlingCommandStatusLocked();
     }
 
+    DeferredBlacklistHandlingCommandStatus acknowledgeDeferredBlacklistHandlingCommandStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredBlacklistHandlingCommandResult_ = {};
+        deferredBlacklistHandlingCommandRecorded_ = false;
+        return deferredBlacklistHandlingCommandStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
