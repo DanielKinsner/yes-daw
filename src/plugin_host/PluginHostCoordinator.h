@@ -442,6 +442,32 @@ public:
         return deferredGraphChangeCommandStatusLocked();
     }
 
+    BlacklistCandidateStatus queueBlacklistCandidate (BlacklistCandidateStatus status)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        pendingBlacklistCandidate_ = canQueueBlacklistCandidate (status) ? status : BlacklistCandidateStatus {};
+        return pendingBlacklistCandidate_;
+    }
+
+    BlacklistCandidateStatus queueBlacklistCandidateForCurrentFailure()
+    {
+        return queueBlacklistCandidate (blacklistCandidateStatus());
+    }
+
+    BlacklistCandidateStatus pendingBlacklistCandidateStatus() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return pendingBlacklistCandidate_;
+    }
+
+    BlacklistCandidateStatus drainPendingBlacklistCandidateStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        const auto status = pendingBlacklistCandidate_;
+        pendingBlacklistCandidate_ = {};
+        return status;
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -526,6 +552,23 @@ private:
             && result.command.failureKind == result.drainedRequest.failureKind
             && result.command.bypassRequested == result.drainedRequest.bypassRequested
             && result.command.recompileRequested == result.drainedRequest.recompileRequested;
+    }
+
+    static bool canQueueBlacklistCandidate (BlacklistCandidateStatus status) noexcept
+    {
+        if (! status.candidate)
+            return false;
+
+        return blacklistCandidateMatches (status, blacklistCandidateStatusFor ({ status.failureKind, true, false, false }));
+    }
+
+    static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
+                                           BlacklistCandidateStatus expected) noexcept
+    {
+        return actual.failureKind == expected.failureKind
+            && actual.candidate == expected.candidate
+            && actual.crashCandidate == expected.crashCandidate
+            && actual.watchdogTimeoutCandidate == expected.watchdogTimeoutCandidate;
     }
 
     template <typename Predicate>
@@ -623,6 +666,7 @@ private:
     CrashStatus crashStatus_ { CrashStatus::notStarted };
     HostFailureKind failureKind_ { HostFailureKind::none };
     FailureActionRequest pendingFailureAction_;
+    BlacklistCandidateStatus pendingBlacklistCandidate_;
     GraphChangeCommandResult lastDeferredGraphChangeCommandResult_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };

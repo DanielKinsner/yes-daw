@@ -202,6 +202,7 @@ int main (int argc, char** argv)
     const auto initialPendingAction = coordinator.pendingFailureActionRequest();
     const auto initialDeferredCommandStatus = coordinator.deferredGraphChangeCommandStatus();
     const auto initialBlacklistCandidate = coordinator.blacklistCandidateStatus();
+    const auto initialPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -272,6 +273,16 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    if (! blacklistCandidateMatches (initialPendingBlacklistCandidate, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator initial pending blacklist-candidate status is wrong: failure=%s candidate=%d crash=%d watchdog=%d\n",
+                     statusName (initialPendingBlacklistCandidate.failureKind),
+                     initialPendingBlacklistCandidate.candidate ? 1 : 0,
+                     initialPendingBlacklistCandidate.crashCandidate ? 1 : 0,
+                     initialPendingBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator noneFailureCoordinator;
     const auto queuedNoneFailureAction = noneFailureCoordinator.queueFailureActionRequest (
         { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
@@ -299,6 +310,31 @@ int main (int argc, char** argv)
                      statusName (noneFailureCommandResult.command.failureKind),
                      noneFailureCommandResult.pendingRequestConsumed ? 1 : 0,
                      noneFailureCommandResult.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
+    const auto queuedNoneBlacklistCandidate = noneFailureCoordinator.queueBlacklistCandidate (
+        { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none, true, true, false });
+    const auto drainedNoneBlacklistCandidate = noneFailureCoordinator.drainPendingBlacklistCandidateStatus();
+    const auto queuedInconsistentBlacklistCandidate = noneFailureCoordinator.queueBlacklistCandidate (
+        { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash, true, true, true });
+    if (! blacklistCandidateMatches (queuedNoneBlacklistCandidate, {})
+        || ! blacklistCandidateMatches (drainedNoneBlacklistCandidate, {})
+        || ! blacklistCandidateMatches (queuedInconsistentBlacklistCandidate, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator accepted an invalid pending blacklist candidate: none=%s/%d/%d/%d drained=%s/%d/%d/%d inconsistent=%s/%d/%d/%d\n",
+                     statusName (queuedNoneBlacklistCandidate.failureKind),
+                     queuedNoneBlacklistCandidate.candidate ? 1 : 0,
+                     queuedNoneBlacklistCandidate.crashCandidate ? 1 : 0,
+                     queuedNoneBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (drainedNoneBlacklistCandidate.failureKind),
+                     drainedNoneBlacklistCandidate.candidate ? 1 : 0,
+                     drainedNoneBlacklistCandidate.crashCandidate ? 1 : 0,
+                     drainedNoneBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (queuedInconsistentBlacklistCandidate.failureKind),
+                     queuedInconsistentBlacklistCandidate.candidate ? 1 : 0,
+                     queuedInconsistentBlacklistCandidate.crashCandidate ? 1 : 0,
+                     queuedInconsistentBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -418,6 +454,29 @@ int main (int argc, char** argv)
                      normalStopBlacklistCandidate.candidate ? 1 : 0,
                      normalStopBlacklistCandidate.crashCandidate ? 1 : 0,
                      normalStopBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+        return 2;
+    }
+
+    const auto normalStopQueuedBlacklistCandidate = coordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto normalStopPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
+    const auto normalStopDrainedBlacklistCandidate = coordinator.drainPendingBlacklistCandidateStatus();
+    if (! blacklistCandidateMatches (normalStopQueuedBlacklistCandidate, {})
+        || ! blacklistCandidateMatches (normalStopPendingBlacklistCandidate, {})
+        || ! blacklistCandidateMatches (normalStopDrainedBlacklistCandidate, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop pending blacklist candidate should remain empty: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d\n",
+                     statusName (normalStopQueuedBlacklistCandidate.failureKind),
+                     normalStopQueuedBlacklistCandidate.candidate ? 1 : 0,
+                     normalStopQueuedBlacklistCandidate.crashCandidate ? 1 : 0,
+                     normalStopQueuedBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (normalStopPendingBlacklistCandidate.failureKind),
+                     normalStopPendingBlacklistCandidate.candidate ? 1 : 0,
+                     normalStopPendingBlacklistCandidate.crashCandidate ? 1 : 0,
+                     normalStopPendingBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (normalStopDrainedBlacklistCandidate.failureKind),
+                     normalStopDrainedBlacklistCandidate.candidate ? 1 : 0,
+                     normalStopDrainedBlacklistCandidate.crashCandidate ? 1 : 0,
+                     normalStopDrainedBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -562,6 +621,35 @@ int main (int argc, char** argv)
                      watchdogBlacklistCandidate.candidate ? 1 : 0,
                      watchdogBlacklistCandidate.crashCandidate ? 1 : 0,
                      watchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0);
+        return 2;
+    }
+
+    const auto queuedWatchdogBlacklistCandidate = watchdogCoordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto pendingWatchdogBlacklistCandidate = watchdogCoordinator.pendingBlacklistCandidateStatus();
+    const auto drainedWatchdogBlacklistCandidate = watchdogCoordinator.drainPendingBlacklistCandidateStatus();
+    const auto afterWatchdogBlacklistCandidateDrain = watchdogCoordinator.pendingBlacklistCandidateStatus();
+    if (! blacklistCandidateMatches (queuedWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
+        || ! blacklistCandidateMatches (pendingWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
+        || ! blacklistCandidateMatches (drainedWatchdogBlacklistCandidate, watchdogBlacklistCandidate)
+        || ! blacklistCandidateMatches (afterWatchdogBlacklistCandidateDrain, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog pending blacklist candidate queue/drain is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d\n",
+                     statusName (queuedWatchdogBlacklistCandidate.failureKind),
+                     queuedWatchdogBlacklistCandidate.candidate ? 1 : 0,
+                     queuedWatchdogBlacklistCandidate.crashCandidate ? 1 : 0,
+                     queuedWatchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (pendingWatchdogBlacklistCandidate.failureKind),
+                     pendingWatchdogBlacklistCandidate.candidate ? 1 : 0,
+                     pendingWatchdogBlacklistCandidate.crashCandidate ? 1 : 0,
+                     pendingWatchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (drainedWatchdogBlacklistCandidate.failureKind),
+                     drainedWatchdogBlacklistCandidate.candidate ? 1 : 0,
+                     drainedWatchdogBlacklistCandidate.crashCandidate ? 1 : 0,
+                     drainedWatchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (afterWatchdogBlacklistCandidateDrain.failureKind),
+                     afterWatchdogBlacklistCandidateDrain.candidate ? 1 : 0,
+                     afterWatchdogBlacklistCandidateDrain.crashCandidate ? 1 : 0,
+                     afterWatchdogBlacklistCandidateDrain.watchdogTimeoutCandidate ? 1 : 0);
         return 2;
     }
 
@@ -739,6 +827,37 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto queuedCrashBlacklistCandidate = crashCoordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto pendingCrashBlacklistCandidate = crashCoordinator.pendingBlacklistCandidateStatus();
+    const auto drainedCrashBlacklistCandidate = crashCoordinator.drainPendingBlacklistCandidateStatus();
+    const auto afterCrashBlacklistCandidateDrain = crashCoordinator.pendingBlacklistCandidateStatus();
+    if (! blacklistCandidateMatches (queuedCrashBlacklistCandidate, crashBlacklistCandidate)
+        || ! blacklistCandidateMatches (pendingCrashBlacklistCandidate, crashBlacklistCandidate)
+        || ! blacklistCandidateMatches (drainedCrashBlacklistCandidate, crashBlacklistCandidate)
+        || ! blacklistCandidateMatches (afterCrashBlacklistCandidateDrain, {})
+        || drainedCrashBlacklistCandidate.failureKind == drainedWatchdogBlacklistCandidate.failureKind)
+    {
+        std::printf ("FAIL: plugin host coordinator crash pending blacklist candidate queue/drain is wrong: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d after=%s/%d/%d/%d watchdog=%s\n",
+                     statusName (queuedCrashBlacklistCandidate.failureKind),
+                     queuedCrashBlacklistCandidate.candidate ? 1 : 0,
+                     queuedCrashBlacklistCandidate.crashCandidate ? 1 : 0,
+                     queuedCrashBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (pendingCrashBlacklistCandidate.failureKind),
+                     pendingCrashBlacklistCandidate.candidate ? 1 : 0,
+                     pendingCrashBlacklistCandidate.crashCandidate ? 1 : 0,
+                     pendingCrashBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (drainedCrashBlacklistCandidate.failureKind),
+                     drainedCrashBlacklistCandidate.candidate ? 1 : 0,
+                     drainedCrashBlacklistCandidate.crashCandidate ? 1 : 0,
+                     drainedCrashBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (afterCrashBlacklistCandidateDrain.failureKind),
+                     afterCrashBlacklistCandidateDrain.candidate ? 1 : 0,
+                     afterCrashBlacklistCandidateDrain.crashCandidate ? 1 : 0,
+                     afterCrashBlacklistCandidateDrain.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (drainedWatchdogBlacklistCandidate.failureKind));
+        return 2;
+    }
+
     const auto crashAction = crashCoordinator.failureActionRequest();
     if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
@@ -876,6 +995,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed future blacklist-candidate status, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

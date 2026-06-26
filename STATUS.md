@@ -22,7 +22,8 @@ failure-action queue/drain shell is built and CI-green; the minimal coordinator 
 drain-to-control-thread command shell is built and CI-green; the minimal coordinator deferred
 graph-change command receipt/status shell is built and CI-green; the minimal coordinator deferred
 graph-change command acknowledge/clear-status shell is built and CI-green; the minimal coordinator
-blacklist-candidate status shell is locally green
+blacklist-candidate status shell is built/reviewed/green; the minimal coordinator pending
+blacklist-candidate queue/drain shell is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -36,6 +37,45 @@ blacklist-candidate status shell is locally green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 minimal coordinator pending blacklist-candidate queue/drain shell is locally green
+  — the coordinator can queue and drain one future blacklist candidate after inspection without enforcing
+  blacklist policy or persistence.**
+  REVIEW/FIX of the previous blacklist-candidate status shell found no proven defects against
+  `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the status shell is
+  coordinator-side, headless, and testable; initial/empty status and normal stop stay not candidates;
+  watchdog-timeout and crash host failures become future blacklist candidates while preserving their
+  distinct causes; existing deferred graph-change acknowledge/clear behavior still rejects execution
+  claims; `YesDawPluginHost` remains the only JUCE plugin-hosting owner; the coordinator/check target
+  does not link `juce_audio_processors`; Apple framework links stay scoped to `YesDawPluginHost`; and
+  `YESDAW_BUILD_APPS=OFF` pure sanitizer configs are unaffected. Then WORKER added the smallest pending
+  blacklist-candidate queue/drain shell: `queueBlacklistCandidateForCurrentFailure()` queues only the
+  current real crash/watchdog candidate status, `pendingBlacklistCandidateStatus()` exposes it for
+  inspection, and `drainPendingBlacklistCandidateStatus()` clears it after inspection. The coordinator
+  self-check now proves initial and normal-stop paths remain empty, invalid/manual inconsistent
+  candidates are rejected, watchdog and crash candidates queue/drain distinctly, and drain clears the
+  pending slot. Scope held: no real plugin load, scanner, watchdog blacklist policy/enforcement,
+  blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP,
+  ADR edits, goldens, broad graph rewiring, graph recompile execution, subjective checks, or
+  `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
+  Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
+  DevShell `ctest --preset ci` passed **187/187**.
+  **Next:** REVIEW/FIX H3 minimal coordinator pending blacklist-candidate queue/drain shell
+  — verify `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
+  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
+  against ADR-0015 (watchdog/crash attribution, future blacklist escalation, and host-worker ownership),
+  ADR-0013 (runtime crash/hang attribution escalates into the same blacklist later), ADR-0008 (engine
+  targets must not link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the
+  queue/drain shell is coordinator-side, headless, and non-vacuous; queues nothing for initial/empty status
+  or normal stop; rejects invalid/inconsistent candidates; queues and drains watchdog-timeout and crash
+  candidates while preserving their distinction; does not enforce blacklist policy, persist/cache blacklist
+  state, scan/load plugins, or execute graph rewiring; keeps JUCE hosting confined to `YesDawPluginHost`;
+  and leaves `YESDAW_BUILD_APPS=OFF` pure sanitizer configs unaffected. Fix only proven defects. If clean
+  and green, continue in the SAME baton to the next small worker chunk: a minimal coordinator
+  blacklist-candidate drain-to-control-thread escalation shell for future blacklist handling, still without
+  real blacklist policy/enforcement, persistence/cache, scanner, plugin loading, real graph rewiring,
+  crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, subjective
+  checks, or RT-hot annotation edits. Stop for any new ADR-level decision. Create exactly one successor
+  baton only after that checkpoint's `STATUS.md` update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 minimal coordinator blacklist-candidate status shell is locally green — the
   coordinator can identify whether the latest real crash/watchdog host failure is a future blacklist
   candidate without enforcing blacklist policy or persistence.**
