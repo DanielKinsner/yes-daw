@@ -541,6 +541,14 @@ public:
         return deferredBlacklistEscalationStatusLocked();
     }
 
+    DeferredBlacklistEscalationStatus acknowledgeDeferredBlacklistEscalationStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredBlacklistEscalationResult_ = {};
+        deferredBlacklistEscalationRecorded_ = false;
+        return deferredBlacklistEscalationStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)

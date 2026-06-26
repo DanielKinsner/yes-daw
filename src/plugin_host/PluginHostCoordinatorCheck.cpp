@@ -250,6 +250,8 @@ int main (int argc, char** argv)
     const auto initialPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
     const auto initialBlacklistEscalationResult = coordinator.drainPendingBlacklistCandidateToControlEscalation();
     const auto initialDeferredBlacklistEscalationStatus = coordinator.deferredBlacklistEscalationStatus();
+    const auto initialDeferredBlacklistEscalationAcknowledgement =
+        coordinator.acknowledgeDeferredBlacklistEscalationStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -361,6 +363,17 @@ int main (int argc, char** argv)
                      initialDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
                      initialDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
                      initialDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
+    if (! deferredBlacklistEscalationStatusMatches (initialDeferredBlacklistEscalationAcknowledgement, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator initial deferred blacklist escalation acknowledge/clear status is wrong: status=%s last=%s recorded=%d policy=%d persisted=%d\n",
+                     statusName (initialDeferredBlacklistEscalationAcknowledgement.status),
+                     statusName (initialDeferredBlacklistEscalationAcknowledgement.lastResult.status),
+                     initialDeferredBlacklistEscalationAcknowledgement.escalationRecorded ? 1 : 0,
+                     initialDeferredBlacklistEscalationAcknowledgement.blacklistPolicyApplied ? 1 : 0,
+                     initialDeferredBlacklistEscalationAcknowledgement.blacklistStatePersisted ? 1 : 0);
         return 2;
     }
 
@@ -1142,6 +1155,25 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto acknowledgedDeferredBlacklistEscalationStatus =
+        blacklistReceiptCoordinator.acknowledgeDeferredBlacklistEscalationStatus();
+    const auto afterAcknowledgedDeferredBlacklistEscalationStatus =
+        blacklistReceiptCoordinator.deferredBlacklistEscalationStatus();
+    if (! deferredBlacklistEscalationStatusMatches (acknowledgedDeferredBlacklistEscalationStatus, {})
+        || ! deferredBlacklistEscalationStatusMatches (afterAcknowledgedDeferredBlacklistEscalationStatus, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator deferred blacklist escalation acknowledge/clear status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d policy=%d persisted=%d inspectedPolicy=%d inspectedPersisted=%d\n",
+                     statusName (acknowledgedDeferredBlacklistEscalationStatus.status),
+                     statusName (afterAcknowledgedDeferredBlacklistEscalationStatus.status),
+                     acknowledgedDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
+                     afterAcknowledgedDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
+                     acknowledgedDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
+                     acknowledgedDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0,
+                     afterAcknowledgedDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
+                     afterAcknowledgedDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     const auto crashAction = crashCoordinator.failureActionRequest();
     if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
@@ -1279,6 +1311,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded deferred blacklist escalation receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }
