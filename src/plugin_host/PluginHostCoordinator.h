@@ -115,6 +115,12 @@ public:
         handlingReady
     };
 
+    enum class BlacklistHandlingRequestStatus
+    {
+        noAction,
+        requestReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -311,6 +317,17 @@ public:
         };
         BlacklistPolicyDecisionOutcomeHandlingResult lastResult;
         bool handlingRecorded { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistHandlingRequest
+    {
+        BlacklistHandlingRequestStatus status { BlacklistHandlingRequestStatus::noAction };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadBlacklistHandlingRequested { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -816,6 +833,12 @@ public:
         return deferredBlacklistPolicyDecisionOutcomeHandlingStatusLocked();
     }
 
+    BlacklistHandlingRequest blacklistHandlingRequest() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return blacklistHandlingRequestFor (deferredBlacklistPolicyDecisionOutcomeHandlingStatusLocked());
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -1044,6 +1067,32 @@ private:
             && result.handling.failureKind == result.drainedOutcome.failureKind
             && result.handling.crashCandidate == result.drainedOutcome.crashCandidate
             && result.handling.watchdogTimeoutCandidate == result.drainedOutcome.watchdogTimeoutCandidate;
+    }
+
+    static BlacklistHandlingRequest blacklistHandlingRequestFor (
+        DeferredBlacklistPolicyDecisionOutcomeHandlingStatus status) noexcept
+    {
+        if (! canCreateBlacklistHandlingRequest (status))
+            return {};
+
+        const auto handling = status.lastResult.handling;
+        return { BlacklistHandlingRequestStatus::requestReady,
+                 handling.failureKind,
+                 handling.crashCandidate,
+                 handling.watchdogTimeoutCandidate,
+                 handling.controlThreadBlacklistHandlingRequested,
+                 false,
+                 false };
+    }
+
+    static bool canCreateBlacklistHandlingRequest (
+        DeferredBlacklistPolicyDecisionOutcomeHandlingStatus status) noexcept
+    {
+        return status.status == BlacklistPolicyDecisionOutcomeHandlingStatus::handlingReady
+            && status.handlingRecorded
+            && ! status.blacklistPolicyApplied
+            && ! status.blacklistStatePersisted
+            && canRecordBlacklistPolicyDecisionOutcomeHandlingResult (status.lastResult);
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
