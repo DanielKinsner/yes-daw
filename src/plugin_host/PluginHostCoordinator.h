@@ -109,6 +109,12 @@ public:
         outcomeReady
     };
 
+    enum class BlacklistPolicyDecisionOutcomeHandlingStatus
+    {
+        noAction,
+        handlingReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -274,6 +280,26 @@ public:
         bool crashCandidate { false };
         bool watchdogTimeoutCandidate { false };
         bool controlThreadPolicyDecisionInspected { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistPolicyDecisionOutcomeHandling
+    {
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadBlacklistHandlingRequested { false };
+    };
+
+    struct BlacklistPolicyDecisionOutcomeHandlingResult
+    {
+        BlacklistPolicyDecisionOutcomeHandlingStatus status {
+            BlacklistPolicyDecisionOutcomeHandlingStatus::noAction
+        };
+        BlacklistPolicyDecisionOutcome drainedOutcome;
+        BlacklistPolicyDecisionOutcomeHandling handling;
+        bool pendingOutcomeConsumed { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -729,6 +755,23 @@ public:
         return outcome;
     }
 
+    BlacklistPolicyDecisionOutcomeHandlingResult drainPendingBlacklistPolicyDecisionOutcomeToControlHandling()
+    {
+        const auto outcome = drainPendingBlacklistPolicyDecisionOutcomeStatus();
+        if (! canCreateBlacklistPolicyDecisionOutcomeHandling (outcome))
+            return {};
+
+        return { BlacklistPolicyDecisionOutcomeHandlingStatus::handlingReady,
+                 outcome,
+                 { outcome.failureKind,
+                   outcome.crashCandidate,
+                   outcome.watchdogTimeoutCandidate,
+                   true },
+                 true,
+                 false,
+                 false };
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -924,6 +967,25 @@ private:
             && ! status.blacklistPolicyApplied
             && ! status.blacklistStatePersisted
             && canRecordBlacklistPolicyDecisionCommandResult (status.lastResult);
+    }
+
+    static bool canCreateBlacklistPolicyDecisionOutcomeHandling (
+        BlacklistPolicyDecisionOutcome outcome) noexcept
+    {
+        if (outcome.status != BlacklistPolicyDecisionOutcomeStatus::outcomeReady
+            || outcome.failureKind == HostFailureKind::none
+            || ! outcome.controlThreadPolicyDecisionInspected
+            || outcome.blacklistPolicyApplied
+            || outcome.blacklistStatePersisted)
+            return false;
+
+        if (outcome.failureKind == HostFailureKind::crash)
+            return outcome.crashCandidate && ! outcome.watchdogTimeoutCandidate;
+
+        if (outcome.failureKind == HostFailureKind::watchdogTimeout)
+            return ! outcome.crashCandidate && outcome.watchdogTimeoutCandidate;
+
+        return false;
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
