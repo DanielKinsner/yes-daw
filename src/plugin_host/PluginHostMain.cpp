@@ -1,12 +1,13 @@
 // YES DAW - minimal plugin host child executable (ADR-0015).
 //
-// This is only the worker/layering checkpoint: it proves there is a separate executable that owns JUCE
-// plugin-hosting modules. It does not scan, load plugins, mmap shared memory, launch from the app, or run
-// real plugin watchdog policy yet.
+// This is a worker/layering checkpoint: it proves there is a separate executable that owns JUCE
+// plugin-hosting modules and can receive an RT-lane shared-memory identity. It does not scan/load
+// plugins, run RT-lane processing, launch from the app, or run real plugin watchdog policy yet.
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_events/juce_events.h>
 
+#include "engine/plugin/RtLaneRing.h"
 #include "plugin_host/PluginHostProtocol.h"
 
 #include <atomic>
@@ -15,6 +16,8 @@
 #include <cstring>
 #include <cstdio>
 #include <limits>
+#include <memory>
+#include <string>
 #include <thread>
 
 namespace {
@@ -193,6 +196,13 @@ public:
             return;
         }
 
+        yesdaw::plugin_host::RtLaneLoadMessage rtLaneLoadMessage;
+        if (yesdaw::plugin_host::copyRtLaneLoadMessage (message.getData(), message.getSize(), rtLaneLoadMessage))
+        {
+            handleRtLaneLoadMessage (rtLaneLoadMessage);
+            return;
+        }
+
         if (controlLaneHung_.load (std::memory_order_acquire))
             return;
 
@@ -210,8 +220,40 @@ public:
     }
 
 private:
+    void handleRtLaneLoadMessage (const yesdaw::plugin_host::RtLaneLoadMessage& message)
+    {
+        if (! yesdaw::plugin_host::isValidRtLaneLoadMessage (message))
+        {
+            const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
+                yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedInvalidIdentity, {});
+            sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+            rtLane_.reset();
+            return;
+        }
+
+        const std::string sharedMemoryName = yesdaw::plugin_host::rtLaneSharedMemoryName (message);
+        auto endpoint = std::make_unique<yesdaw::engine::RtLaneRing>();
+        if (! endpoint->attachSharedMemory (sharedMemoryName))
+        {
+            const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
+                yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedAttachFailed,
+                sharedMemoryName,
+                static_cast<std::int32_t> (endpoint->lastAttachFailure()),
+                endpoint->lastAttachSystemError());
+            sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+            rtLane_.reset();
+            return;
+        }
+
+        rtLane_ = std::move (endpoint);
+        const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
+            yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted, sharedMemoryName);
+        sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+    }
+
     std::atomic<bool> shouldQuit_ { false };
     std::atomic<bool> controlLaneHung_ { false };
+    std::unique_ptr<yesdaw::engine::RtLaneRing> rtLane_;
 };
 
 int runSelfCheck()

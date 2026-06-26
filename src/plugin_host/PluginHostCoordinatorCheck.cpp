@@ -1,6 +1,7 @@
 #include "plugin_host/PluginHostCoordinator.h"
 
 #include <cstdio>
+#include <string>
 
 namespace {
 
@@ -296,6 +297,57 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState s
     return "unknown";
 }
 
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus;
+
+    switch (status)
+    {
+        case Status::notStarted:       return "notStarted";
+        case Status::launchFailed:     return "launchFailed";
+        case Status::readyTimeout:     return "readyTimeout";
+        case Status::allocationFailed: return "allocationFailed";
+        case Status::messageSendFailed: return "messageSendFailed";
+        case Status::replyTimeout:     return "replyTimeout";
+        case Status::connectionLost:   return "connectionLost";
+        case Status::workerRejected:   return "workerRejected";
+        case Status::success:          return "success";
+    }
+
+    return "unknown";
+}
+
+const char* statusName (yesdaw::plugin_host::RtLaneLoadReplyStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::RtLaneLoadReplyStatus;
+
+    switch (status)
+    {
+        case Status::none:                    return "none";
+        case Status::accepted:                return "accepted";
+        case Status::rejectedInvalidIdentity: return "rejectedInvalidIdentity";
+        case Status::rejectedAttachFailed:    return "rejectedAttachFailed";
+    }
+
+    return "unknown";
+}
+
+const char* statusName (yesdaw::engine::RtLaneAttachFailure failure) noexcept
+{
+    using Failure = yesdaw::engine::RtLaneAttachFailure;
+
+    switch (failure)
+    {
+        case Failure::None:           return "None";
+        case Failure::OpenFailed:     return "OpenFailed";
+        case Failure::RegionTooSmall: return "RegionTooSmall";
+        case Failure::HeaderMismatch: return "HeaderMismatch";
+        case Failure::SizeMismatch:   return "SizeMismatch";
+    }
+
+    return "unknown";
+}
+
 bool requestMatches (yesdaw::plugin_host::PluginHostCoordinator::FailureActionRequest actual,
                      yesdaw::plugin_host::PluginHostCoordinator::FailureActionRequest expected) noexcept
 {
@@ -565,6 +617,127 @@ int main (int argc, char** argv)
     if (! workerExecutable.existsAsFile())
     {
         std::printf ("FAIL: worker executable does not exist: %s\n", argv[1]);
+        return 2;
+    }
+
+    yesdaw::engine::RtLaneConfig rtLaneConfig;
+    rtLaneConfig.channels = 1;
+    rtLaneConfig.maxBlockSize = 8;
+    rtLaneConfig.maxEventsPerBlock = 2;
+
+    yesdaw::plugin_host::PluginHostCoordinator rtLaneLoadCoordinator;
+    const auto rtLaneLoad = rtLaneLoadCoordinator.launchAndLoadRtLane (workerExecutable, rtLaneConfig);
+    const auto activeRtLaneIdentity = rtLaneLoadCoordinator.activeRtLaneLoadIdentity();
+    const bool activeRtLaneUsesOsSharedMemory = rtLaneLoadCoordinator.activeRtLaneUsesOsSharedMemory();
+    const auto rtLaneLoadStop = rtLaneLoadCoordinator.requestStopAndWait();
+    if (rtLaneLoad.status != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::success
+        || rtLaneLoad.workerReplyStatus != yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted
+        || rtLaneLoad.workerAttachFailure != yesdaw::engine::RtLaneAttachFailure::None
+        || ! rtLaneLoad.readySeen
+        || ! rtLaneLoad.loadMessageSent
+        || ! rtLaneLoad.loadReplySeen
+        || ! rtLaneLoad.coordinatorAllocated
+        || ! rtLaneLoad.coordinatorUsesOsSharedMemory
+        || ! rtLaneLoad.workerAccepted
+        || rtLaneLoad.identity.sharedMemoryName.empty()
+        || activeRtLaneIdentity.sharedMemoryName != rtLaneLoad.identity.sharedMemoryName
+        || ! activeRtLaneUsesOsSharedMemory
+        || rtLaneLoadStop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped)
+    {
+        std::printf ("FAIL: plugin host coordinator RT-lane load/control transfer is wrong: status=%s reply=%s attach=%s/%d ready=%d sent=%d replySeen=%d allocated=%d os=%d accepted=%d name=%s active=%s activeOs=%d stop=%s\n",
+                     statusName (rtLaneLoad.status),
+                     statusName (rtLaneLoad.workerReplyStatus),
+                     statusName (rtLaneLoad.workerAttachFailure),
+                     rtLaneLoad.workerAttachSystemError,
+                     rtLaneLoad.readySeen ? 1 : 0,
+                     rtLaneLoad.loadMessageSent ? 1 : 0,
+                     rtLaneLoad.loadReplySeen ? 1 : 0,
+                     rtLaneLoad.coordinatorAllocated ? 1 : 0,
+                     rtLaneLoad.coordinatorUsesOsSharedMemory ? 1 : 0,
+                     rtLaneLoad.workerAccepted ? 1 : 0,
+                     rtLaneLoad.identity.sharedMemoryName.c_str(),
+                     activeRtLaneIdentity.sharedMemoryName.c_str(),
+                     activeRtLaneUsesOsSharedMemory ? 1 : 0,
+                     statusName (rtLaneLoadStop.status));
+        return 2;
+    }
+
+    const yesdaw::plugin_host::RtLaneLoadConfig rtLaneLoadConfig {
+        1u,
+        8u,
+        2u,
+        rtLaneConfig.lastGoodHoldBlocks,
+        rtLaneConfig.bypassAfterMisses
+    };
+
+    yesdaw::plugin_host::PluginHostCoordinator missingRtLaneIdentityCoordinator;
+    const auto missingRtLaneIdentity =
+        missingRtLaneIdentityCoordinator.launchAndSendRtLaneLoadIdentity (
+            workerExecutable,
+            { {}, rtLaneLoadConfig });
+    const auto missingRtLaneStop = missingRtLaneIdentityCoordinator.requestStopAndWait();
+    if (missingRtLaneIdentity.status
+            != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::workerRejected
+        || missingRtLaneIdentity.workerReplyStatus
+            != yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedInvalidIdentity
+        || missingRtLaneIdentity.workerAttachFailure != yesdaw::engine::RtLaneAttachFailure::None
+        || ! missingRtLaneIdentity.readySeen
+        || ! missingRtLaneIdentity.loadMessageSent
+        || ! missingRtLaneIdentity.loadReplySeen
+        || missingRtLaneIdentity.coordinatorAllocated
+        || missingRtLaneIdentity.coordinatorUsesOsSharedMemory
+        || missingRtLaneIdentity.workerAccepted
+        || missingRtLaneStop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped)
+    {
+        std::printf ("FAIL: plugin host worker accepted or fabricated storage for a missing RT-lane identity: status=%s reply=%s attach=%s/%d ready=%d sent=%d replySeen=%d allocated=%d os=%d accepted=%d stop=%s\n",
+                     statusName (missingRtLaneIdentity.status),
+                     statusName (missingRtLaneIdentity.workerReplyStatus),
+                     statusName (missingRtLaneIdentity.workerAttachFailure),
+                     missingRtLaneIdentity.workerAttachSystemError,
+                     missingRtLaneIdentity.readySeen ? 1 : 0,
+                     missingRtLaneIdentity.loadMessageSent ? 1 : 0,
+                     missingRtLaneIdentity.loadReplySeen ? 1 : 0,
+                     missingRtLaneIdentity.coordinatorAllocated ? 1 : 0,
+                     missingRtLaneIdentity.coordinatorUsesOsSharedMemory ? 1 : 0,
+                     missingRtLaneIdentity.workerAccepted ? 1 : 0,
+                     statusName (missingRtLaneStop.status));
+        return 2;
+    }
+
+    yesdaw::plugin_host::PluginHostCoordinator absentRtLaneIdentityCoordinator;
+    const std::string absentRtLaneName = yesdaw::engine::RtLaneRing::makeUniqueSharedMemoryName();
+    const auto absentRtLaneIdentity =
+        absentRtLaneIdentityCoordinator.launchAndSendRtLaneLoadIdentity (
+            workerExecutable,
+            { absentRtLaneName, rtLaneLoadConfig });
+    const auto absentRtLaneStop = absentRtLaneIdentityCoordinator.requestStopAndWait();
+    if (absentRtLaneIdentity.status
+            != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::workerRejected
+        || absentRtLaneIdentity.workerReplyStatus
+            != yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedAttachFailed
+        || absentRtLaneIdentity.workerAttachFailure != yesdaw::engine::RtLaneAttachFailure::OpenFailed
+        || ! absentRtLaneIdentity.readySeen
+        || ! absentRtLaneIdentity.loadMessageSent
+        || ! absentRtLaneIdentity.loadReplySeen
+        || absentRtLaneIdentity.coordinatorAllocated
+        || absentRtLaneIdentity.coordinatorUsesOsSharedMemory
+        || absentRtLaneIdentity.workerAccepted
+        || absentRtLaneIdentity.identity.sharedMemoryName != absentRtLaneName
+        || absentRtLaneStop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped)
+    {
+        std::printf ("FAIL: plugin host worker accepted or fabricated storage for an absent RT-lane region: status=%s reply=%s attach=%s/%d ready=%d sent=%d replySeen=%d allocated=%d os=%d accepted=%d name=%s stop=%s\n",
+                     statusName (absentRtLaneIdentity.status),
+                     statusName (absentRtLaneIdentity.workerReplyStatus),
+                     statusName (absentRtLaneIdentity.workerAttachFailure),
+                     absentRtLaneIdentity.workerAttachSystemError,
+                     absentRtLaneIdentity.readySeen ? 1 : 0,
+                     absentRtLaneIdentity.loadMessageSent ? 1 : 0,
+                     absentRtLaneIdentity.loadReplySeen ? 1 : 0,
+                     absentRtLaneIdentity.coordinatorAllocated ? 1 : 0,
+                     absentRtLaneIdentity.coordinatorUsesOsSharedMemory ? 1 : 0,
+                     absentRtLaneIdentity.workerAccepted ? 1 : 0,
+                     absentRtLaneIdentity.identity.sharedMemoryName.c_str(),
+                     statusName (absentRtLaneStop.status));
         return 2;
     }
 
@@ -3534,6 +3707,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, allocated an OS-backed RT-lane shared-memory region, passed its identity over the control lane, observed worker attachment, rejected missing/absent RT-lane identities without fallback storage, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

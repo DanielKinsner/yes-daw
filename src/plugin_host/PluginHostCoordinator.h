@@ -1,13 +1,17 @@
 #pragma once
 
+#include "engine/plugin/RtLaneRing.h"
 #include "plugin_host/PluginHostProtocol.h"
 
 #include <juce_events/juce_events.h>
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
+#include <memory>
 #include <mutex>
+#include <string>
 #include <utility>
 
 namespace yesdaw::plugin_host {
@@ -155,6 +159,19 @@ public:
         stopping,
         stopped,
         lost
+    };
+
+    enum class RtLaneLoadStatus
+    {
+        notStarted,
+        launchFailed,
+        readyTimeout,
+        allocationFailed,
+        messageSendFailed,
+        replyTimeout,
+        connectionLost,
+        workerRejected,
+        success
     };
 
     struct HandshakeResult
@@ -444,6 +461,29 @@ public:
         bool connectionLostSeen { false };
     };
 
+    struct RtLaneLoadIdentity
+    {
+        std::string sharedMemoryName;
+        RtLaneLoadConfig config;
+    };
+
+    struct RtLaneLoadResult
+    {
+        RtLaneLoadStatus status { RtLaneLoadStatus::notStarted };
+        RtLaneLoadIdentity identity;
+        RtLaneLoadReplyStatus workerReplyStatus { RtLaneLoadReplyStatus::none };
+        yesdaw::engine::RtLaneAttachFailure workerAttachFailure {
+            yesdaw::engine::RtLaneAttachFailure::None
+        };
+        int workerAttachSystemError { 0 };
+        bool readySeen { false };
+        bool loadMessageSent { false };
+        bool loadReplySeen { false };
+        bool coordinatorAllocated { false };
+        bool coordinatorUsesOsSharedMemory { false };
+        bool workerAccepted { false };
+    };
+
     explicit PluginHostCoordinator (std::chrono::milliseconds timeout = std::chrono::milliseconds (4000),
                                     std::chrono::milliseconds watchdogTimeout = std::chrono::milliseconds (250))
         : timeout_ (timeout),
@@ -491,6 +531,35 @@ public:
             return result (HandshakeStatus::connectionLost);
 
         return result (HandshakeStatus::success);
+    }
+
+    RtLaneLoadResult launchAndLoadRtLane (const juce::File& workerExecutable,
+                                          yesdaw::engine::RtLaneConfig config)
+    {
+        const std::string sharedMemoryName = yesdaw::engine::RtLaneRing::makeUniqueSharedMemoryName();
+        RtLaneLoadIdentity identity { sharedMemoryName, rtLaneLoadConfigFor (config) };
+
+        auto ownerEndpoint = std::make_unique<yesdaw::engine::RtLaneRing>();
+        try
+        {
+            ownerEndpoint->prepareSharedMemory (config, sharedMemoryName);
+        }
+        catch (...)
+        {
+            return rtLaneLoadResult (RtLaneLoadStatus::allocationFailed, identity, false, false);
+        }
+
+        if (! ownerEndpoint->usesOsSharedMemory())
+            return rtLaneLoadResult (RtLaneLoadStatus::allocationFailed, identity, false, false);
+
+        return launchAndSendRtLaneLoadIdentityInternal (workerExecutable, std::move (identity),
+                                                       std::move (ownerEndpoint));
+    }
+
+    RtLaneLoadResult launchAndSendRtLaneLoadIdentity (const juce::File& workerExecutable,
+                                                      RtLaneLoadIdentity identity)
+    {
+        return launchAndSendRtLaneLoadIdentityInternal (workerExecutable, std::move (identity), nullptr);
     }
 
     WatchdogResult launchAndExpectWatchdogTimeout (const juce::File& workerExecutable)
@@ -606,6 +675,18 @@ public:
         return { childState_, handshakeStatus_, stopStatus_, watchdogStatus_, crashStatus_, failureKind_,
                  launchAttempted_, readySeen_, probeEchoed_, stopRequested_, watchdogTimedOut_,
                  watchdogKillRequested_, crashObservationRequested_, connectionLost_ };
+    }
+
+    RtLaneLoadIdentity activeRtLaneLoadIdentity() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return activeRtLaneLoadIdentity_;
+    }
+
+    bool activeRtLaneUsesOsSharedMemory() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return activeRtLane_ != nullptr && activeRtLane_->usesOsSharedMemory();
     }
 
     HostFailureReport hostFailureReport() const
@@ -1106,7 +1187,18 @@ public:
         {
             std::lock_guard<std::mutex> lock (mutex_);
 
-            if (messageMatches (message, kWorkerReadyMessage))
+            RtLaneLoadReplyMessage rtLaneLoadReply;
+            if (copyRtLaneLoadReplyMessage (message.getData(), message.getSize(), rtLaneLoadReply))
+            {
+                rtLaneLoadReplySeen_ = true;
+                lastRtLaneLoadReplyStatus_ = rtLaneLoadReply.status;
+                lastRtLaneLoadAttachFailure_ =
+                    static_cast<yesdaw::engine::RtLaneAttachFailure> (rtLaneLoadReply.attachFailure);
+                lastRtLaneLoadAttachSystemError_ = rtLaneLoadReply.attachSystemError;
+                if (rtLaneLoadReply.status == RtLaneLoadReplyStatus::accepted)
+                    childState_ = ChildState::running;
+            }
+            else if (messageMatches (message, kWorkerReadyMessage))
             {
                 readySeen_ = true;
                 childState_ = ChildState::ready;
@@ -1141,6 +1233,107 @@ private:
     static juce::MemoryBlock makeMessage (const char* text)
     {
         return juce::MemoryBlock (text, std::strlen (text) + 1);
+    }
+
+    static juce::MemoryBlock makeMessage (const RtLaneLoadMessage& message)
+    {
+        return juce::MemoryBlock (&message, sizeof (message));
+    }
+
+    static RtLaneLoadConfig rtLaneLoadConfigFor (yesdaw::engine::RtLaneConfig config) noexcept
+    {
+        return { static_cast<std::uint32_t> (std::max (1, config.channels)),
+                 static_cast<std::uint32_t> (std::max (1, config.maxBlockSize)),
+                 config.maxEventsPerBlock,
+                 config.lastGoodHoldBlocks,
+                 config.bypassAfterMisses };
+    }
+
+    RtLaneLoadResult launchAndSendRtLaneLoadIdentityInternal (
+        const juce::File& workerExecutable,
+        RtLaneLoadIdentity identity,
+        std::unique_ptr<yesdaw::engine::RtLaneRing> ownerEndpoint)
+    {
+        const bool coordinatorAllocated = ownerEndpoint != nullptr;
+        const bool coordinatorUsesOsSharedMemory = ownerEndpoint != nullptr && ownerEndpoint->usesOsSharedMemory();
+
+        stop();
+        resetState();
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            launchAttempted_ = true;
+            childState_ = ChildState::launching;
+            pendingRtLaneLoadIdentity_ = identity;
+        }
+
+        if (! launchWorkerProcess (workerExecutable, kWorkerCommandLineId, static_cast<int> (timeout_.count())))
+            return rtLaneLoadResult (RtLaneLoadStatus::launchFailed, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        if (! waitFor ([this] { return readySeen_ || connectionLost_; }))
+            return rtLaneLoadResult (RtLaneLoadStatus::readyTimeout, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        if (connectionLost())
+            return rtLaneLoadResult (RtLaneLoadStatus::connectionLost, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            childState_ = ChildState::handshaking;
+        }
+
+        const RtLaneLoadMessage loadMessage = makeRtLaneLoadMessage (identity.sharedMemoryName, identity.config);
+        if (! sendMessageToWorker (makeMessage (loadMessage)))
+            return rtLaneLoadResult (RtLaneLoadStatus::messageSendFailed, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            rtLaneLoadMessageSent_ = true;
+        }
+
+        if (! waitFor ([this] { return rtLaneLoadReplySeen_ || connectionLost_; }))
+            return rtLaneLoadResult (RtLaneLoadStatus::replyTimeout, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        if (connectionLost())
+            return rtLaneLoadResult (RtLaneLoadStatus::connectionLost, identity,
+                                     coordinatorAllocated, coordinatorUsesOsSharedMemory);
+
+        bool workerAccepted = false;
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            workerAccepted = lastRtLaneLoadReplyStatus_ == RtLaneLoadReplyStatus::accepted;
+            if (workerAccepted && ownerEndpoint != nullptr)
+            {
+                activeRtLane_ = std::move (ownerEndpoint);
+                activeRtLaneLoadIdentity_ = identity;
+            }
+        }
+
+        return rtLaneLoadResult (workerAccepted ? RtLaneLoadStatus::success : RtLaneLoadStatus::workerRejected,
+                                 identity, coordinatorAllocated, coordinatorUsesOsSharedMemory);
+    }
+
+    RtLaneLoadResult rtLaneLoadResult (RtLaneLoadStatus status,
+                                       RtLaneLoadIdentity identity,
+                                       bool coordinatorAllocated,
+                                       bool coordinatorUsesOsSharedMemory) const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return { status,
+                 std::move (identity),
+                 lastRtLaneLoadReplyStatus_,
+                 lastRtLaneLoadAttachFailure_,
+                 lastRtLaneLoadAttachSystemError_,
+                 readySeen_,
+                 rtLaneLoadMessageSent_,
+                 rtLaneLoadReplySeen_,
+                 coordinatorAllocated,
+                 coordinatorUsesOsSharedMemory,
+                 lastRtLaneLoadReplyStatus_ == RtLaneLoadReplyStatus::accepted };
     }
 
     static bool messageMatches (const juce::MemoryBlock& message, const char* text) noexcept
@@ -1468,6 +1661,14 @@ private:
         watchdogStatus_ = WatchdogStatus::notStarted;
         crashStatus_ = CrashStatus::notStarted;
         failureKind_ = HostFailureKind::none;
+        activeRtLane_.reset();
+        activeRtLaneLoadIdentity_ = {};
+        pendingRtLaneLoadIdentity_ = {};
+        rtLaneLoadMessageSent_ = false;
+        rtLaneLoadReplySeen_ = false;
+        lastRtLaneLoadReplyStatus_ = RtLaneLoadReplyStatus::none;
+        lastRtLaneLoadAttachFailure_ = yesdaw::engine::RtLaneAttachFailure::None;
+        lastRtLaneLoadAttachSystemError_ = 0;
     }
 
     bool connectionLost() const
@@ -1600,6 +1801,9 @@ private:
     BlacklistPolicyDecisionOutcomeHandlingResult lastDeferredBlacklistPolicyDecisionOutcomeHandlingResult_;
     BlacklistHandlingCommandResult lastDeferredBlacklistHandlingCommandResult_;
     BlacklistHandlingOutcomeHandlingResult lastDeferredBlacklistHandlingOutcomeHandlingResult_;
+    std::unique_ptr<yesdaw::engine::RtLaneRing> activeRtLane_;
+    RtLaneLoadIdentity activeRtLaneLoadIdentity_;
+    RtLaneLoadIdentity pendingRtLaneLoadIdentity_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
@@ -1614,6 +1818,13 @@ private:
     bool deferredBlacklistPolicyDecisionOutcomeHandlingRecorded_ { false };
     bool deferredBlacklistHandlingCommandRecorded_ { false };
     bool deferredBlacklistHandlingOutcomeHandlingRecorded_ { false };
+    bool rtLaneLoadMessageSent_ { false };
+    bool rtLaneLoadReplySeen_ { false };
+    RtLaneLoadReplyStatus lastRtLaneLoadReplyStatus_ { RtLaneLoadReplyStatus::none };
+    yesdaw::engine::RtLaneAttachFailure lastRtLaneLoadAttachFailure_ {
+        yesdaw::engine::RtLaneAttachFailure::None
+    };
+    int lastRtLaneLoadAttachSystemError_ { 0 };
 };
 
 } // namespace yesdaw::plugin_host

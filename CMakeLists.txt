@@ -163,8 +163,8 @@ if (YESDAW_BUILD_APPS)
 
   # --- Plugin host coordinator launch/handshake shell (H3; ADR-0015 control lane) ---
   # The coordinator owns process launch + JUCE's control message channel, but not plugin-hosting modules.
-  # This self-check proves the worker boundary with a ready/echo handshake; no plugin load, scanner,
-  # blacklist/cache, real shared memory, plugin watchdog policy, or UI embedding is introduced here.
+  # This self-check proves the worker boundary with a ready/echo handshake and RT-lane identity transfer;
+  # no scanner, blacklist/cache, RT processing loop, plugin watchdog policy, or UI embedding is introduced here.
   juce_add_console_app(YesDawPluginHostCoordinatorCheck PRODUCT_NAME "YesDawPluginHostCoordinatorCheck")
   target_sources(YesDawPluginHostCoordinatorCheck PRIVATE src/plugin_host/PluginHostCoordinatorCheck.cpp)
   target_include_directories(YesDawPluginHostCoordinatorCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -183,7 +183,8 @@ if (YESDAW_BUILD_APPS)
   # finish line is honestly red. Flip the test to blocking when the hosted-process path exists.
   add_executable(YesDawHostIsolationCheck tests/host_isolation_tests.cpp)
   target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
-  target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain)
+  target_compile_definitions(YesDawHostIsolationCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain juce::juce_events)
   add_dependencies(YesDawHostIsolationCheck YesDawPluginHost)
   yesdaw_harden(YesDawHostIsolationCheck)
   add_test(NAME YesDawHostIsolationCheck

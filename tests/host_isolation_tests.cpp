@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "engine/plugin/RtLaneRing.h"
+#include "plugin_host/PluginHostCoordinator.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -22,6 +23,9 @@ using yesdaw::engine::RtLaneAttachFailure;
 using yesdaw::engine::RtLaneExchangeResult;
 using yesdaw::engine::RtLaneOutput;
 using yesdaw::engine::RtLaneRing;
+using yesdaw::plugin_host::PluginHostCoordinator;
+using yesdaw::plugin_host::RtLaneLoadConfig;
+using yesdaw::plugin_host::RtLaneLoadReplyStatus;
 
 namespace {
 
@@ -29,6 +33,7 @@ struct HostIsolationGateState
 {
     bool syntheticProcessorRunsInWorkerChild = false;
     bool rtLaneUsesOsSharedMemory             = false;
+    bool rtLaneIdentityPassesControlLane      = false;
     bool mixerProjectionPublishesToRuntime    = false;
     bool triStreamPdcThroughHostedPlugin      = false;
     bool watchdogKillsHungOrCrashedChild      = false;
@@ -201,11 +206,159 @@ RtLaneSharedMemoryProof proveRtLaneUsesOsSharedMemory()
     return proof;
 }
 
+struct RtLaneControlLoadProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    PluginHostCoordinator::RtLaneLoadStatus loadStatus {
+        PluginHostCoordinator::RtLaneLoadStatus::notStarted
+    };
+    RtLaneLoadReplyStatus loadReplyStatus = RtLaneLoadReplyStatus::none;
+    RtLaneAttachFailure loadAttachFailure = RtLaneAttachFailure::None;
+    PluginHostCoordinator::StopStatus loadStopStatus {
+        PluginHostCoordinator::StopStatus::notStarted
+    };
+    PluginHostCoordinator::RtLaneLoadStatus missingStatus {
+        PluginHostCoordinator::RtLaneLoadStatus::notStarted
+    };
+    RtLaneLoadReplyStatus missingReplyStatus = RtLaneLoadReplyStatus::none;
+    RtLaneAttachFailure missingAttachFailure = RtLaneAttachFailure::None;
+    PluginHostCoordinator::RtLaneLoadStatus absentStatus {
+        PluginHostCoordinator::RtLaneLoadStatus::notStarted
+    };
+    RtLaneLoadReplyStatus absentReplyStatus = RtLaneLoadReplyStatus::none;
+    RtLaneAttachFailure absentAttachFailure = RtLaneAttachFailure::None;
+    std::string loadName;
+    std::string activeName;
+    bool loadMessageSent = false;
+    bool loadReplySeen = false;
+    bool coordinatorAllocated = false;
+    bool coordinatorUsesOsSharedMemory = false;
+    bool workerAccepted = false;
+    bool activeUsesOsSharedMemory = false;
+};
+
+RtLaneControlLoadProof computeRtLaneIdentityPassesControlLane()
+{
+    RtLaneControlLoadProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    const std::string workerPath = workerPathFromEnvironment();
+    if (workerPath.empty())
+        return fail ("YESDAW_PLUGIN_HOST_PATH is missing");
+
+    const std::filesystem::path worker (workerPath);
+    if (! std::filesystem::exists (worker))
+        return fail ("worker executable path does not exist");
+
+    RtLaneConfig cfg;
+    cfg.channels = 1;
+    cfg.maxBlockSize = 8;
+    cfg.maxEventsPerBlock = 2;
+
+    PluginHostCoordinator loadCoordinator;
+    const auto load = loadCoordinator.launchAndLoadRtLane (juce::File (juce::String (workerPath)), cfg);
+    const auto activeIdentity = loadCoordinator.activeRtLaneLoadIdentity();
+    const bool activeUsesOsSharedMemory = loadCoordinator.activeRtLaneUsesOsSharedMemory();
+    const auto loadStop = loadCoordinator.requestStopAndWait();
+
+    proof.loadStatus = load.status;
+    proof.loadReplyStatus = load.workerReplyStatus;
+    proof.loadAttachFailure = load.workerAttachFailure;
+    proof.loadStopStatus = loadStop.status;
+    proof.loadName = load.identity.sharedMemoryName;
+    proof.activeName = activeIdentity.sharedMemoryName;
+    proof.loadMessageSent = load.loadMessageSent;
+    proof.loadReplySeen = load.loadReplySeen;
+    proof.coordinatorAllocated = load.coordinatorAllocated;
+    proof.coordinatorUsesOsSharedMemory = load.coordinatorUsesOsSharedMemory;
+    proof.workerAccepted = load.workerAccepted;
+    proof.activeUsesOsSharedMemory = activeUsesOsSharedMemory;
+
+    if (load.status != PluginHostCoordinator::RtLaneLoadStatus::success
+        || load.workerReplyStatus != RtLaneLoadReplyStatus::accepted
+        || load.workerAttachFailure != RtLaneAttachFailure::None
+        || ! load.readySeen
+        || ! load.loadMessageSent
+        || ! load.loadReplySeen
+        || ! load.coordinatorAllocated
+        || ! load.coordinatorUsesOsSharedMemory
+        || ! load.workerAccepted
+        || load.identity.sharedMemoryName.empty()
+        || activeIdentity.sharedMemoryName != load.identity.sharedMemoryName
+        || ! activeUsesOsSharedMemory
+        || loadStop.status != PluginHostCoordinator::StopStatus::stopped)
+        return fail ("coordinator did not allocate/pass an accepted RT-lane identity");
+
+    const RtLaneLoadConfig loadConfig {
+        1u,
+        8u,
+        2u,
+        cfg.lastGoodHoldBlocks,
+        cfg.bypassAfterMisses
+    };
+
+    PluginHostCoordinator missingCoordinator;
+    const auto missing =
+        missingCoordinator.launchAndSendRtLaneLoadIdentity (juce::File (juce::String (workerPath)),
+                                                            { {}, loadConfig });
+    const auto missingStop = missingCoordinator.requestStopAndWait();
+    proof.missingStatus = missing.status;
+    proof.missingReplyStatus = missing.workerReplyStatus;
+    proof.missingAttachFailure = missing.workerAttachFailure;
+    if (missing.status != PluginHostCoordinator::RtLaneLoadStatus::workerRejected
+        || missing.workerReplyStatus != RtLaneLoadReplyStatus::rejectedInvalidIdentity
+        || missing.workerAttachFailure != RtLaneAttachFailure::None
+        || ! missing.loadMessageSent
+        || ! missing.loadReplySeen
+        || missing.coordinatorAllocated
+        || missing.coordinatorUsesOsSharedMemory
+        || missing.workerAccepted
+        || missingStop.status != PluginHostCoordinator::StopStatus::stopped)
+        return fail ("worker did not reject a missing RT-lane identity");
+
+    const std::string absentName = RtLaneRing::makeUniqueSharedMemoryName();
+    PluginHostCoordinator absentCoordinator;
+    const auto absent =
+        absentCoordinator.launchAndSendRtLaneLoadIdentity (juce::File (juce::String (workerPath)),
+                                                           { absentName, loadConfig });
+    const auto absentStop = absentCoordinator.requestStopAndWait();
+    proof.absentStatus = absent.status;
+    proof.absentReplyStatus = absent.workerReplyStatus;
+    proof.absentAttachFailure = absent.workerAttachFailure;
+    if (absent.status != PluginHostCoordinator::RtLaneLoadStatus::workerRejected
+        || absent.workerReplyStatus != RtLaneLoadReplyStatus::rejectedAttachFailed
+        || absent.workerAttachFailure != RtLaneAttachFailure::OpenFailed
+        || ! absent.loadMessageSent
+        || ! absent.loadReplySeen
+        || absent.coordinatorAllocated
+        || absent.coordinatorUsesOsSharedMemory
+        || absent.workerAccepted
+        || absent.identity.sharedMemoryName != absentName
+        || absentStop.status != PluginHostCoordinator::StopStatus::stopped)
+        return fail ("worker did not reject an absent RT-lane region");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
+RtLaneControlLoadProof proveRtLaneIdentityPassesControlLane()
+{
+    static const RtLaneControlLoadProof proof = computeRtLaneIdentityPassesControlLane();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
     state.syntheticProcessorRunsInWorkerChild = runSyntheticWorkerSelfCheck();
     state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory().passed;
+    state.rtLaneIdentityPassesControlLane = proveRtLaneIdentityPassesControlLane().passed;
     return state;
 }
 
@@ -213,6 +366,7 @@ bool hostIsolationGateSatisfied (HostIsolationGateState s) noexcept
 {
     return s.syntheticProcessorRunsInWorkerChild
         && s.rtLaneUsesOsSharedMemory
+        && s.rtLaneIdentityPassesControlLane
         && s.mixerProjectionPublishesToRuntime
         && s.triStreamPdcThroughHostedPlugin
         && s.watchdogKillsHungOrCrashedChild
@@ -249,12 +403,39 @@ TEST_CASE ("RT lane uses OS-backed shared memory between parent and worker endpo
     REQUIRE (proof.passed);
 }
 
+TEST_CASE ("coordinator passes RT-lane shared-memory identity over the control lane",
+           "[h3][host-isolation][rtlane][control-lane]")
+{
+    const RtLaneControlLoadProof proof = proveRtLaneIdentityPassesControlLane();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.loadStatus),
+             static_cast<int> (proof.loadReplyStatus),
+             static_cast<int> (proof.loadAttachFailure),
+             static_cast<int> (proof.loadStopStatus),
+             static_cast<int> (proof.missingStatus),
+             static_cast<int> (proof.missingReplyStatus),
+             static_cast<int> (proof.missingAttachFailure),
+             static_cast<int> (proof.absentStatus),
+             static_cast<int> (proof.absentReplyStatus),
+             static_cast<int> (proof.absentAttachFailure),
+             proof.loadName,
+             proof.activeName,
+             proof.loadMessageSent,
+             proof.loadReplySeen,
+             proof.coordinatorAllocated,
+             proof.coordinatorUsesOsSharedMemory,
+             proof.workerAccepted,
+             proof.activeUsesOsSharedMemory);
+    REQUIRE (proof.passed);
+}
+
 TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")
 {
     const HostIsolationGateState gate = currentHostIsolationGateState();
 
     CHECK (gate.syntheticProcessorRunsInWorkerChild);
     CHECK (gate.rtLaneUsesOsSharedMemory);
+    CHECK (gate.rtLaneIdentityPassesControlLane);
     CHECK (gate.mixerProjectionPublishesToRuntime);
     CHECK (gate.triStreamPdcThroughHostedPlugin);
     CHECK (gate.watchdogKillsHungOrCrashedChild);

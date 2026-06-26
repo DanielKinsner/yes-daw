@@ -49,7 +49,8 @@ blacklist-handling outcome drain-to-control-thread handling shell is built/revie
 coordinator deferred blacklist-handling outcome handling receipt/status shell is built/reviewed/green; the minimal
 coordinator deferred blacklist-handling outcome handling acknowledge/clear-status shell is locally green; the
 H3 close-out gate scaffold is CI-green; the first real synthetic `juce::AudioProcessor` worker-child
-oracle is locally green; the OS-backed RT-lane shared-memory clause is locally green
+oracle is locally green; the OS-backed RT-lane shared-memory clause is built/reviewed/green; the
+coordinator RT-lane load/control-lane identity transfer is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -68,35 +69,35 @@ oracle is locally green; the OS-backed RT-lane shared-memory clause is locally g
   **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
   plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
   NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
-  to `ctest -R YesDawHostIsolationCheck`; the first two clauses now have real evidence: the in-repo
-  hosted-plugin oracle and the OS-backed shared-memory RT lane. The remaining clauses must be replaced one
-  by one with real evidence. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
-  block-size) are landed + CI-green.
-- **Latest: H3 host-isolation gate now has a real OS-backed RT-lane shared-memory proof locally green.**
-  `RtLaneRing` now creates a named OS shared-memory region (`CreateFileMapping` on Windows; `shm_open` +
-  `mmap` on POSIX) for the fixed control/slot layout. A separate worker-side `RtLaneRing` can attach by
-  name and poll the same region; the host-isolation test proves parent/RT and child/worker endpoints
-  exchange a one-Block-late processed block through that mapping, and the negative control rejects an
-  invalid mapping name instead of falling back to in-process storage. `YesDawHostIsolationCheck` now has a
-  normal passing Catch2 test for the OS-backed RT-lane clause. A follow-up hardening fix shortened POSIX
-  shared-memory names, retries stale owner names after unlinking, and makes the absent-region negative
-  control use its own fresh never-created name so the proof does not depend on platform-specific overlong
-  name behavior; the mapped region now placement-constructs its shared header before publishing layout
-  metadata, and the H3 proof captures the exact failing shared-memory step plus attach category/system
-  error if a platform regresses. macOS reported a larger page-rounded mapped size than the logical RT-lane
-  layout, so attach validation now accepts mapped sizes that are at least the header-published layout size.
-  The
-  aggregate H3 gate still stays
-  `[!shouldfail]` because `Runtime` publish, tri-stream hosted PDC, watchdog kill/recovery,
-  no-deadline-miss fail-open, ordered Placeholder swap, persisted blacklist, and cross-process opaque
-  state clauses are still real gaps. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci`; VS DevShell
+  to `ctest -R YesDawHostIsolationCheck`; the first three clauses now have real evidence: the in-repo
+  hosted-plugin oracle, the OS-backed shared-memory RT lane, and the coordinator-to-worker RT-lane identity
+  transfer over the control lane. The remaining clauses must be replaced one by one with real evidence. The
+  three review fixes (fader clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
+- **Latest: WORKER H3 item 2b is locally green — the coordinator allocates an OS-backed RT-lane region and
+  passes its identity over the control lane at plugin load.** The previous REVIEW/FIX for the OS-backed
+  shared-memory checkpoint found no proven defects and made no repo changes. This checkpoint adds a typed
+  RT-lane load control message/reply, keeps the coordinator-owned `RtLaneRing` mapping alive after an
+  accepted worker reply, and teaches `YesDawPluginHost` to receive the RT-lane identity by name. The worker
+  attaches only to the named OS shared-memory region and explicitly rejects both a missing identity and a
+  fresh never-created region name; it does not fabricate in-process storage. `YesDawHostIsolationCheck` now
+  has a normal passing control-lane item-2b clause, and `YesDawPluginHostCoordinatorCheck` proves the same
+  path plus negative controls through the real worker process. This remains headless: no item 2c worker
+  `pollOnce` processing, hosted processor RT loop, PlaceholderNode, running watchdog, blacklist persistence,
+  Runtime projection, automation lanes, scanner, pluginval/auval, UI embedding, ADR edits, goldens, or
+  `[!shouldfail]` removal. The aggregate H3 gate still stays `[!shouldfail]` because `Runtime` publish,
+  tri-stream hosted PDC, watchdog kill/recovery, no-deadline-miss fail-open, ordered Placeholder swap,
+  persisted blacklist, and cross-process opaque state clauses are still real gaps. Local gate:
+  `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell
   `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
   `ctest --preset ci --output-on-failure` passed **191/191**.
-  **Next:** REVIEW/FIX this shared-memory checkpoint against the close-out plan + ADR-0015/0013/code. If
-  clean/green, create the next worker for item 2b: coordinator allocates + passes the RT-lane region handle
-  over the control channel at plugin load. Do not remove `[!shouldfail]` until the whole H3 host-isolation
-  gate is genuinely green.
+  **Next:** REVIEW/FIX this item-2b coordinator RT-lane load/control-lane checkpoint against the close-out
+  plan + ADR-0015/0013/code. Verify `src/plugin_host/PluginHostProtocol.h`,
+  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostMain.cpp`,
+  `src/plugin_host/PluginHostCoordinatorCheck.cpp`, `tests/host_isolation_tests.cpp`, and relevant CMake.
+  Confirm the coordinator allocates and retains the OS-backed RT-lane owner mapping, sends only the
+  region identity over the control channel, observes worker-side attach/reject replies, rejects
+  missing/absent identities without fallback storage, keeps worker processing/item 2c out of scope, and
+  leaves `[!shouldfail]` in place until the whole H3 host-isolation gate is genuinely green.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
