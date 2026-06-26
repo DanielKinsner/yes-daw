@@ -361,6 +361,8 @@ int main (int argc, char** argv)
             initialBlacklistPolicyDecisionCommandResult);
     const auto initialDeferredBlacklistPolicyDecisionCommandInspection =
         coordinator.deferredBlacklistPolicyDecisionCommandStatus();
+    const auto initialDeferredBlacklistPolicyDecisionCommandAcknowledgement =
+        coordinator.acknowledgeDeferredBlacklistPolicyDecisionCommandStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -498,9 +500,11 @@ int main (int argc, char** argv)
         || ! deferredBlacklistPolicyDecisionCommandStatusMatches (
             initialDeferredBlacklistPolicyDecisionCommandRecord, {})
         || ! deferredBlacklistPolicyDecisionCommandStatusMatches (
-            initialDeferredBlacklistPolicyDecisionCommandInspection, {}))
+            initialDeferredBlacklistPolicyDecisionCommandInspection, {})
+        || ! deferredBlacklistPolicyDecisionCommandStatusMatches (
+            initialDeferredBlacklistPolicyDecisionCommandAcknowledgement, {}))
     {
-        std::printf ("FAIL: plugin host coordinator initial blacklist policy-decision request/command should be empty: before=%s/%s/%d/%d/%d queued=%s/%s pending=%s/%s drained=%s/%s after=%s/%s/%d/%d/%d afterDrain=%s/%s command=%s/%s/%s consumed=%d receipt=%s recorded=%d inspected=%s inspectedRecorded=%d policy=%d persisted=%d afterPolicy=%d afterPersisted=%d commandPolicy=%d commandPersisted=%d receiptPolicy=%d receiptPersisted=%d inspectedPolicy=%d inspectedPersisted=%d\n",
+        std::printf ("FAIL: plugin host coordinator initial blacklist policy-decision request/command should be empty: before=%s/%s/%d/%d/%d queued=%s/%s pending=%s/%s drained=%s/%s after=%s/%s/%d/%d/%d afterDrain=%s/%s command=%s/%s/%s consumed=%d receipt=%s recorded=%d inspected=%s inspectedRecorded=%d acknowledged=%s acknowledgedRecorded=%d policy=%d persisted=%d afterPolicy=%d afterPersisted=%d commandPolicy=%d commandPersisted=%d receiptPolicy=%d receiptPersisted=%d inspectedPolicy=%d inspectedPersisted=%d acknowledgedPolicy=%d acknowledgedPersisted=%d\n",
                      statusName (initialBlacklistPolicyDecisionRequest.status),
                      statusName (initialBlacklistPolicyDecisionRequest.failureKind),
                      initialBlacklistPolicyDecisionRequest.crashCandidate ? 1 : 0,
@@ -527,6 +531,8 @@ int main (int argc, char** argv)
                      initialDeferredBlacklistPolicyDecisionCommandRecord.commandRecorded ? 1 : 0,
                      statusName (initialDeferredBlacklistPolicyDecisionCommandInspection.status),
                      initialDeferredBlacklistPolicyDecisionCommandInspection.commandRecorded ? 1 : 0,
+                     statusName (initialDeferredBlacklistPolicyDecisionCommandAcknowledgement.status),
+                     initialDeferredBlacklistPolicyDecisionCommandAcknowledgement.commandRecorded ? 1 : 0,
                      initialBlacklistPolicyDecisionRequest.blacklistPolicyApplied ? 1 : 0,
                      initialBlacklistPolicyDecisionRequest.blacklistStatePersisted ? 1 : 0,
                      initialAfterAcknowledgedBlacklistPolicyDecisionRequest.blacklistPolicyApplied ? 1 : 0,
@@ -536,7 +542,9 @@ int main (int argc, char** argv)
                      initialDeferredBlacklistPolicyDecisionCommandRecord.blacklistPolicyApplied ? 1 : 0,
                      initialDeferredBlacklistPolicyDecisionCommandRecord.blacklistStatePersisted ? 1 : 0,
                      initialDeferredBlacklistPolicyDecisionCommandInspection.blacklistPolicyApplied ? 1 : 0,
-                     initialDeferredBlacklistPolicyDecisionCommandInspection.blacklistStatePersisted ? 1 : 0);
+                     initialDeferredBlacklistPolicyDecisionCommandInspection.blacklistStatePersisted ? 1 : 0,
+                     initialDeferredBlacklistPolicyDecisionCommandAcknowledgement.blacklistPolicyApplied ? 1 : 0,
+                     initialDeferredBlacklistPolicyDecisionCommandAcknowledgement.blacklistStatePersisted ? 1 : 0);
         return 2;
     }
 
@@ -1164,6 +1172,27 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.acknowledgeDeferredBlacklistPolicyDecisionCommandStatus();
+    const auto afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistPolicyDecisionCommandStatus();
+    if (! deferredBlacklistPolicyDecisionCommandStatusMatches (
+            acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus, {})
+        || ! deferredBlacklistPolicyDecisionCommandStatusMatches (
+            afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog deferred blacklist policy-decision command acknowledge/clear status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d policy=%d persisted=%d inspectedPolicy=%d inspectedPersisted=%d\n",
+                     statusName (acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.status),
+                     statusName (afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.status),
+                     acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.commandRecorded ? 1 : 0,
+                     afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.commandRecorded ? 1 : 0,
+                     acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.blacklistPolicyApplied ? 1 : 0,
+                     acknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.blacklistStatePersisted ? 1 : 0,
+                     afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.blacklistPolicyApplied ? 1 : 0,
+                     afterAcknowledgedWatchdogDeferredBlacklistPolicyDecisionCommandStatus.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator invalidBlacklistReceiptCoordinator;
     yesdaw::plugin_host::PluginHostCoordinator invalidBlacklistPolicyCommandReceiptCoordinator;
     auto unconsumedBlacklistEscalationResult = watchdogBlacklistEscalationResult;
@@ -1706,6 +1735,27 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.acknowledgeDeferredBlacklistPolicyDecisionCommandStatus();
+    const auto afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistPolicyDecisionCommandStatus();
+    if (! deferredBlacklistPolicyDecisionCommandStatusMatches (
+            acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus, {})
+        || ! deferredBlacklistPolicyDecisionCommandStatusMatches (
+            afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator crash deferred blacklist policy-decision command acknowledge/clear status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d policy=%d persisted=%d inspectedPolicy=%d inspectedPersisted=%d\n",
+                     statusName (acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.status),
+                     statusName (afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.status),
+                     acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.commandRecorded ? 1 : 0,
+                     afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.commandRecorded ? 1 : 0,
+                     acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.blacklistPolicyApplied ? 1 : 0,
+                     acknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.blacklistStatePersisted ? 1 : 0,
+                     afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.blacklistPolicyApplied ? 1 : 0,
+                     afterAcknowledgedCrashDeferredBlacklistPolicyDecisionCommandStatus.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     const auto acknowledgedDeferredBlacklistEscalationStatus =
         blacklistReceiptCoordinator.acknowledgeDeferredBlacklistEscalationStatus();
     const auto afterAcknowledgedDeferredBlacklistEscalationStatus =
@@ -1872,6 +1922,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded deferred blacklist policy-decision command receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

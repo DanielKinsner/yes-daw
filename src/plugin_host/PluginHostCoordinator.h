@@ -676,6 +676,14 @@ public:
         return deferredBlacklistPolicyDecisionCommandStatusLocked();
     }
 
+    DeferredBlacklistPolicyDecisionCommandStatus acknowledgeDeferredBlacklistPolicyDecisionCommandStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredBlacklistPolicyDecisionCommandResult_ = {};
+        deferredBlacklistPolicyDecisionCommandRecorded_ = false;
+        return deferredBlacklistPolicyDecisionCommandStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
