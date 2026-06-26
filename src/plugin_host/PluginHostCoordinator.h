@@ -67,6 +67,18 @@ public:
         bypassAndRecompile
     };
 
+    enum class GraphChangeCommandKind
+    {
+        none,
+        bypassAndRecompile
+    };
+
+    enum class GraphChangeCommandStatus
+    {
+        noAction,
+        commandReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -124,6 +136,23 @@ public:
         HostFailureKind failureKind { HostFailureKind::none };
         bool bypassRequested { false };
         bool recompileRequested { false };
+    };
+
+    struct GraphChangeCommand
+    {
+        GraphChangeCommandKind command { GraphChangeCommandKind::none };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool bypassRequested { false };
+        bool recompileRequested { false };
+    };
+
+    struct GraphChangeCommandResult
+    {
+        GraphChangeCommandStatus status { GraphChangeCommandStatus::noAction };
+        FailureActionRequest drainedRequest;
+        GraphChangeCommand command;
+        bool pendingRequestConsumed { false };
+        bool graphRecompileExecuted { false };
     };
 
     struct ChildStatus
@@ -343,6 +372,22 @@ public:
         const auto request = pendingFailureAction_;
         pendingFailureAction_ = {};
         return request;
+    }
+
+    GraphChangeCommandResult drainPendingFailureActionRequestToControlCommand()
+    {
+        const auto request = drainPendingFailureActionRequest();
+        if (request.action == FailureActionKind::none)
+            return {};
+
+        return { GraphChangeCommandStatus::commandReady,
+                 request,
+                 { GraphChangeCommandKind::bypassAndRecompile,
+                   request.failureKind,
+                   request.bypassRequested,
+                   request.recompileRequested },
+                 true,
+                 false };
     }
 
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept

@@ -18,7 +18,8 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-gre
 coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
 shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green; the
 minimal coordinator failure-action request shell is built and CI-green; the minimal coordinator pending
-failure-action queue/drain shell is built and CI-green
+failure-action queue/drain shell is built and CI-green; the minimal coordinator failure-action
+drain-to-control-thread command shell is locally green and awaiting remote CI
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -31,48 +32,49 @@ failure-action queue/drain shell is built and CI-green
 
 ---
 
-## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator pending failure-action queue/drain shell is CI-green — the
-  coordinator can now hold and clear one future bypass/recompile request without performing the graph
-  change yet.**
-  First, REVIEW/FIX of the previous failure-action request shell found no proven defects against
-  `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the action-request surface
-  is coordinator-side, headless, and testable; expected stop / `HostFailureKind::none` requests no action;
-  watchdog-timeout and lost-child crash observations stay mechanically distinct while both request future
-  bypass/recompile; `YesDawPluginHostCoordinatorCheck` checks normal ready/probe/echo/stop, watchdog
-  timeout/kill, and crash-observation paths; the coordinator/check target still links `juce::juce_events`
-  but not `juce_audio_processors`; `YesDawPluginHost` remains the only owner of JUCE plugin-hosting format
-  registration; Apple framework links remain scoped to `YesDawPluginHost`; and the
-  `YESDAW_BUILD_APPS=OFF` RTSan/TSan pure configurations remain outside the JUCE app/host targets.
-  Then WORKER added the smallest pending request shell: `PluginHostCoordinator` now exposes
-  `queueFailureActionRequest()`, `queueFailureActionRequestForCurrentFailure()`,
-  `pendingFailureActionRequest()`, and `drainPendingFailureActionRequest()`; pending storage keeps a single
-  coordinator-side `FailureActionRequest` until drained, clears back to no-action on drain, and preserves
-  the distinct watchdog-timeout vs crash cause. `YesDawPluginHostCoordinatorCheck` now fails unless the
-  initial pending action is empty, normal stop cannot queue an action, watchdog timeout queues/drains a
-  bypass/recompile request with watchdog cause, and crash/lost-child observation queues/drains a
-  bypass/recompile request with crash cause. Scope held: no real plugin load, scanner, watchdog blacklist
+## Now — current checkpoint (latest worker is local-green; remote CI pending)
+- **Latest: WORKER H3 minimal coordinator failure-action drain-to-control-thread command shell is
+  local-green — the coordinator can consume one pending bypass/recompile request into an inspectable
+  future graph-change command/result without executing a real graph recompile.**
+  First, REVIEW/FIX of the previous pending failure-action queue/drain shell found no proven defects
+  against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the pending action
+  shell is coordinator-side, headless, and testable; it uses the existing `HostFailureReport` ->
+  `FailureActionRequest` surface; expected stop / `HostFailureKind::none` leaves no pending action;
+  watchdog-timeout and crash causes remain mechanically distinct through queue/drain; the coordinator/check
+  target still links `juce::juce_events` but not `juce_audio_processors`; `YesDawPluginHost` remains the
+  only owner of JUCE plugin-hosting format registration; Apple framework links remain scoped to
+  `YesDawPluginHost`; and the `YESDAW_BUILD_APPS=OFF` RTSan/TSan pure configurations remain outside the
+  JUCE app/host targets.
+  Then WORKER added the smallest control-thread command shell: `PluginHostCoordinator` now exposes
+  `GraphChangeCommandKind`, `GraphChangeCommandStatus`, `GraphChangeCommand`,
+  `GraphChangeCommandResult`, and `drainPendingFailureActionRequestToControlCommand()`. The command shell
+  drains the existing pending `FailureActionRequest`, maps watchdog-timeout and crash bypass/recompile
+  requests to an inspectable future graph-change command, clears pending storage, and keeps
+  `graphRecompileExecuted=false`. `YesDawPluginHostCoordinatorCheck` now fails unless normal stop produces
+  no command, watchdog timeout drains a bypass/recompile command with watchdog cause, crash/lost-child
+  observation drains a bypass/recompile command with crash cause, both causes stay distinct, and no command
+  path claims to execute a graph recompile. Scope held: no real plugin load, scanner, watchdog blacklist
   policy, blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval,
   CLAP, ADR edits, goldens, broad graph rewiring, graph recompile execution, or `[[clang::nonblocking]]` /
   `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28214634766` is green across Windows,
-  Linux, macOS, RTSan, and TSan for commit `f17e115`.
-  **Next:** REVIEW/FIX H3 minimal coordinator pending failure-action queue/drain shell — verify
-  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
-  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
-  against ADR-0015 (coordinator/worker process model, crash/watchdog reporting, future bypass/recompile
-  request surface, host-worker ownership), ADR-0013 (out-of-process host child boundary and crash/hung-child
-  kill leading to placeholder/bypass + recompile on the control side), ADR-0008 (engine targets must not
-  link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the pending action
-  self-check is non-vacuous, expected stop cannot leave a pending action, watchdog-timeout and crash causes
-  remain distinct through queue/drain, the coordinator target still does not own JUCE plugin-hosting
-  modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected, and no scanner/blacklist
-  policy/shared-memory/plugin-load or real graph-recompile semantics snuck in. Fix only proven defects. If
-  clean and green, continue in the SAME baton to the next small worker chunk: a minimal coordinator
-  failure-action drain-to-control-thread command shell that consumes the pending bypass/recompile request
-  into an inspectable future graph-change command/result without executing a real graph recompile (still no
-  real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin,
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint commit.
+  **Next after remote CI green:** REVIEW/FIX H3 minimal coordinator failure-action
+  drain-to-control-thread command shell — verify `src/plugin_host/PluginHostCoordinator.h`,
+  `src/plugin_host/PluginHostCoordinatorCheck.cpp`, `src/plugin_host/PluginHostMain.cpp`,
+  `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake against ADR-0015 (coordinator/worker
+  process model, crash/watchdog reporting, future bypass/recompile command surface, host-worker ownership),
+  ADR-0013 (out-of-process host child boundary and crash/hung-child kill leading to placeholder/bypass +
+  recompile on the control side), ADR-0008 (engine targets must not link hosting / `Node` contract
+  unchanged), and the rolling-baton rule. Confirm the command shell is non-vacuous, expected stop cannot
+  produce a command, watchdog-timeout and crash causes remain distinct through drain-to-command, the
+  command result remains inspectable without executing graph recompile, the coordinator target still does
+  not own JUCE plugin-hosting modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected,
+  and no scanner/blacklist policy/shared-memory/plugin-load or real graph-recompile semantics snuck in. Fix
+  only proven defects. If clean and green, continue in the SAME baton to the next small worker chunk: a
+  minimal coordinator deferred graph-change command receipt/status shell that records the most recent
+  deferred command/result for inspection without executing real graph rewiring or policy enforcement (still
+  no real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin,
   plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or goldens). Stop at any new ADR-level
   decision. Create exactly one successor baton only after that checkpoint's `STATUS.md` update, commit,
   push, and remote CI are green.

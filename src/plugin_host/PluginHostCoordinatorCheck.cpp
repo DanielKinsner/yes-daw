@@ -98,6 +98,32 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::FailureActio
     return "unknown";
 }
 
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind command) noexcept
+{
+    using Command = yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind;
+
+    switch (command)
+    {
+        case Command::none:                return "none";
+        case Command::bypassAndRecompile:  return "bypassAndRecompile";
+    }
+
+    return "unknown";
+}
+
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus;
+
+    switch (status)
+    {
+        case Status::noAction:      return "noAction";
+        case Status::commandReady:  return "commandReady";
+    }
+
+    return "unknown";
+}
+
 const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState state) noexcept
 {
     using State = yesdaw::plugin_host::PluginHostCoordinator::ChildState;
@@ -121,6 +147,15 @@ bool requestMatches (yesdaw::plugin_host::PluginHostCoordinator::FailureActionRe
                      yesdaw::plugin_host::PluginHostCoordinator::FailureActionRequest expected) noexcept
 {
     return actual.action == expected.action
+        && actual.failureKind == expected.failureKind
+        && actual.bypassRequested == expected.bypassRequested
+        && actual.recompileRequested == expected.recompileRequested;
+}
+
+bool commandMatches (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommand actual,
+                     yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommand expected) noexcept
+{
+    return actual.command == expected.command
         && actual.failureKind == expected.failureKind
         && actual.bypassRequested == expected.bypassRequested
         && actual.recompileRequested == expected.recompileRequested;
@@ -330,6 +365,24 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto normalStopCommandResult = coordinator.drainPendingFailureActionRequestToControlCommand();
+    if (normalStopCommandResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || normalStopCommandResult.drainedRequest.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || normalStopCommandResult.command.command != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind::none
+        || normalStopCommandResult.pendingRequestConsumed
+        || normalStopCommandResult.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop control command should remain empty: status=%s drained=%s/%s command=%s/%s consumed=%d executed=%d\n",
+                     statusName (normalStopCommandResult.status),
+                     statusName (normalStopCommandResult.drainedRequest.action),
+                     statusName (normalStopCommandResult.drainedRequest.failureKind),
+                     statusName (normalStopCommandResult.command.command),
+                     statusName (normalStopCommandResult.command.failureKind),
+                     normalStopCommandResult.pendingRequestConsumed ? 1 : 0,
+                     normalStopCommandResult.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator watchdogCoordinator;
     const auto watchdog = watchdogCoordinator.launchAndExpectWatchdogTimeout (workerExecutable);
 
@@ -432,6 +485,39 @@ int main (int argc, char** argv)
                      statusName (drainedWatchdogAction.failureKind),
                      statusName (afterWatchdogDrainAction.action),
                      statusName (afterWatchdogDrainAction.failureKind));
+        return 2;
+    }
+
+    const auto queuedWatchdogCommandAction = watchdogCoordinator.queueFailureActionRequestForCurrentFailure();
+    const auto watchdogCommandResult = watchdogCoordinator.drainPendingFailureActionRequestToControlCommand();
+    const auto afterWatchdogCommandDrainAction = watchdogCoordinator.pendingFailureActionRequest();
+    if (! requestMatches (queuedWatchdogCommandAction, watchdogAction)
+        || watchdogCommandResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! requestMatches (watchdogCommandResult.drainedRequest, watchdogAction)
+        || ! commandMatches (watchdogCommandResult.command,
+                             { yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind::bypassAndRecompile,
+                               yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout,
+                               true,
+                               true })
+        || ! watchdogCommandResult.pendingRequestConsumed
+        || watchdogCommandResult.graphRecompileExecuted
+        || afterWatchdogCommandDrainAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || afterWatchdogCommandDrainAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || afterWatchdogCommandDrainAction.bypassRequested
+        || afterWatchdogCommandDrainAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog control command shell is wrong: queued=%s/%s status=%s drained=%s/%s command=%s/%s consumed=%d executed=%d afterDrain=%s/%s\n",
+                     statusName (queuedWatchdogCommandAction.action),
+                     statusName (queuedWatchdogCommandAction.failureKind),
+                     statusName (watchdogCommandResult.status),
+                     statusName (watchdogCommandResult.drainedRequest.action),
+                     statusName (watchdogCommandResult.drainedRequest.failureKind),
+                     statusName (watchdogCommandResult.command.command),
+                     statusName (watchdogCommandResult.command.failureKind),
+                     watchdogCommandResult.pendingRequestConsumed ? 1 : 0,
+                     watchdogCommandResult.graphRecompileExecuted ? 1 : 0,
+                     statusName (afterWatchdogCommandDrainAction.action),
+                     statusName (afterWatchdogCommandDrainAction.failureKind));
         return 2;
     }
 
@@ -542,6 +628,41 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, and queued/drained pending failure actions\n");
+    const auto queuedCrashCommandAction = crashCoordinator.queueFailureActionRequestForCurrentFailure();
+    const auto crashCommandResult = crashCoordinator.drainPendingFailureActionRequestToControlCommand();
+    const auto afterCrashCommandDrainAction = crashCoordinator.pendingFailureActionRequest();
+    if (! requestMatches (queuedCrashCommandAction, crashAction)
+        || crashCommandResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! requestMatches (crashCommandResult.drainedRequest, crashAction)
+        || ! commandMatches (crashCommandResult.command,
+                             { yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind::bypassAndRecompile,
+                               yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash,
+                               true,
+                               true })
+        || ! crashCommandResult.pendingRequestConsumed
+        || crashCommandResult.graphRecompileExecuted
+        || crashCommandResult.command.failureKind == watchdogCommandResult.command.failureKind
+        || afterCrashCommandDrainAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || afterCrashCommandDrainAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || afterCrashCommandDrainAction.bypassRequested
+        || afterCrashCommandDrainAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator crash control command shell is wrong: queued=%s/%s status=%s drained=%s/%s command=%s/%s watchdogCommand=%s consumed=%d executed=%d afterDrain=%s/%s\n",
+                     statusName (queuedCrashCommandAction.action),
+                     statusName (queuedCrashCommandAction.failureKind),
+                     statusName (crashCommandResult.status),
+                     statusName (crashCommandResult.drainedRequest.action),
+                     statusName (crashCommandResult.drainedRequest.failureKind),
+                     statusName (crashCommandResult.command.command),
+                     statusName (crashCommandResult.command.failureKind),
+                     statusName (watchdogCommandResult.command.failureKind),
+                     crashCommandResult.pendingRequestConsumed ? 1 : 0,
+                     crashCommandResult.graphRecompileExecuted ? 1 : 0,
+                     statusName (afterCrashCommandDrainAction.action),
+                     statusName (afterCrashCommandDrainAction.failureKind));
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, and drained future control-thread graph-change command shells without executing graph recompiles\n");
     return 0;
 }
