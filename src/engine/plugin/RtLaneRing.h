@@ -1,10 +1,10 @@
 // YES DAW — RT-lane shared-memory ring (ADR-0015): the lock-free, double-buffered audio + Event ring
 // that implements the one-Block plugin-hosting handshake between the audio thread and a plugin host child.
 //
-// This is the FIRST plugin-hosting implementation chunk: a HEADLESS, in-process primitive. The atomic
-// protocol here is exactly the one that will later live in OS shared memory — bytes-location-agnostic —
-// so it deliberately does NOT do real cross-process mmap/CreateFileMapping yet (a later chunk), and there
-// is no JUCE, no PluginNode, no child process. The "child" is simulated by a second thread that polls.
+// This is the FIRST plugin-hosting implementation chunk: a HEADLESS primitive whose control words and
+// slot payloads live in real OS shared memory (mmap/shm_open or CreateFileMapping). There is still no
+// JUCE, no PluginNode-owned real child process, and no coordinator handle-passing yet; tests can attach a
+// second RtLaneRing endpoint to the named region and poll it like the future worker child will.
 //
 // Pure C++ — no JUCE — so the whole protocol is covered by the RTSan leg (exchangeBlock, the audio-thread
 // role, under -fsanitize=realtime: it must never allocate/lock/log/syscall) and the TSan leg (a
@@ -47,8 +47,33 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <new>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
+
+#if defined (_WIN32)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <windows.h>
+    #ifdef small
+        #undef small
+    #endif
+#else
+    #include <cerrno>
+    #include <fcntl.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <unistd.h>
+#endif
 
 namespace yesdaw::engine {
 
@@ -86,6 +111,7 @@ class RtLaneRing
 {
 public:
     RtLaneRing() = default;
+    ~RtLaneRing() = default;
 
     RtLaneRing (const RtLaneRing&)            = delete;
     RtLaneRing& operator= (const RtLaneRing&) = delete;
@@ -96,6 +122,13 @@ public:
     // place the ring allocates (mirrors Node::prepare). Not RT-safe.
     void prepare (const RtLaneConfig& cfg)
     {
+        prepareSharedMemory (cfg, makeUniqueSharedMemoryName());
+    }
+
+    // CONTROL THREAD. Create a named OS-backed shared-memory region and bind this endpoint to it.
+    // A future worker endpoint may attach by name. Not RT-safe.
+    void prepareSharedMemory (const RtLaneConfig& cfg, std::string_view sharedMemoryName)
+    {
         cfg_       = cfg;
         channels_  = std::max (1, cfg.channels);
         maxBlock_  = std::max (1, cfg.maxBlockSize);
@@ -105,44 +138,98 @@ public:
         eventBase_ = audioBase_ + static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_);
         totalWords_ = eventBase_ + static_cast<std::size_t> (maxEvents_) * kEventWords;
 
-        for (Slot& s : inputSlots_)  s.allocate (totalWords_);
-        for (Slot& s : outputSlots_) s.allocate (totalWords_);
+        const Layout layout = computeLayout (totalWords_);
+        region_.create (sharedMemoryName, layout.regionBytes);
+        sharedMemoryName_ = std::string (sharedMemoryName);
+        bindSharedLayout (layout);
+        initialiseSharedLayout (layout);
 
-        childAudio_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
-        childOut_.assign   (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
-        childInPtrs_.resize  (static_cast<std::size_t> (channels_));
-        childOutPtrs_.resize (static_cast<std::size_t> (channels_));
-        for (int c = 0; c < channels_; ++c)
-        {
-            childInPtrs_[c]  = childAudio_.data() + static_cast<std::size_t> (c) * maxBlock_;
-            childOutPtrs_[c] = childOut_.data()   + static_cast<std::size_t> (c) * maxBlock_;
-        }
-        childEvents_.assign (std::max<std::size_t> (1, maxEvents_), Event{});
-
-        lastGood_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
-
+        prepareEndpointScratch();
         reset();
+    }
+
+    // CONTROL THREAD. Attach this endpoint to an existing OS-backed region. Returns false when the name is
+    // absent or the header is not an RtLaneRing region; it never fabricates an in-process fallback.
+    bool attachSharedMemory (std::string_view sharedMemoryName)
+    {
+        MappedRegion candidate;
+        if (! candidate.open (sharedMemoryName))
+            return false;
+
+        if (candidate.size() < sizeof (SharedHeader))
+            return false;
+
+        const auto* const header = reinterpret_cast<const SharedHeader*> (candidate.data());
+        if (header->magic != kSharedMagic || header->version != kSharedVersion)
+            return false;
+        if (header->regionBytes != candidate.size())
+            return false;
+
+        region_ = std::move (candidate);
+        sharedMemoryName_ = std::string (sharedMemoryName);
+
+        cfg_.channels = static_cast<int> (header->channels);
+        cfg_.maxBlockSize = static_cast<int> (header->maxBlockSize);
+        cfg_.maxEventsPerBlock = header->maxEventsPerBlock;
+        cfg_.lastGoodHoldBlocks = header->lastGoodHoldBlocks;
+        cfg_.bypassAfterMisses = header->bypassAfterMisses;
+
+        channels_ = std::max (1, cfg_.channels);
+        maxBlock_ = std::max (1, cfg_.maxBlockSize);
+        maxEvents_ = cfg_.maxEventsPerBlock;
+        audioBase_ = header->audioBaseWords;
+        eventBase_ = header->eventBaseWords;
+        totalWords_ = header->totalSlotWords;
+
+        Layout layout;
+        layout.regionBytes = header->regionBytes;
+        layout.controlOffset = header->controlOffset;
+        for (std::size_t i = 0; i < 2; ++i)
+        {
+            layout.inputVersionOffsets[i] = header->inputVersionOffsets[i];
+            layout.inputWordsOffsets[i] = header->inputWordsOffsets[i];
+            layout.outputVersionOffsets[i] = header->outputVersionOffsets[i];
+            layout.outputWordsOffsets[i] = header->outputWordsOffsets[i];
+        }
+
+        bindSharedLayout (layout);
+        prepareEndpointScratch();
+        return true;
+    }
+
+    [[nodiscard]] bool usesOsSharedMemory() const noexcept { return region_.isMapped(); }
+    [[nodiscard]] const std::string& sharedMemoryName() const noexcept { return sharedMemoryName_; }
+
+    [[nodiscard]] static std::string makeUniqueSharedMemoryName()
+    {
+        static std::atomic<std::uint64_t> counter { 0 };
+        const std::uint64_t n = counter.fetch_add (1, std::memory_order_relaxed);
+
+#if defined (_WIN32)
+        return "Local\\yesdaw_rt_lane_" + std::to_string (GetCurrentProcessId()) + "_" + std::to_string (n);
+#else
+        return "/yesdaw_rt_lane_" + std::to_string (static_cast<long long> (::getpid())) + "_" + std::to_string (n);
+#endif
     }
 
     // CONTROL THREAD (or between test runs; both endpoints stopped). Clear the protocol back to "primed".
     void reset() noexcept
     {
-        control_.inputSeq.store (0, std::memory_order_relaxed);
-        control_.outputSeq.store (0, std::memory_order_relaxed);
-        control_.status.store (static_cast<std::uint32_t> (RtLaneOutput::Silence), std::memory_order_relaxed);
+        if (control_ != nullptr)
+        {
+            control_->inputSeq.store (0, std::memory_order_relaxed);
+            control_->outputSeq.store (0, std::memory_order_relaxed);
+            control_->status.store (static_cast<std::uint32_t> (RtLaneOutput::Silence), std::memory_order_relaxed);
 
-        for (Slot& s : inputSlots_)  s.version.store (0, std::memory_order_relaxed);
-        for (Slot& s : outputSlots_) s.version.store (0, std::memory_order_relaxed);
+            for (Slot& s : inputSlots_)
+                if (s.version != nullptr)
+                    s.version->store (0, std::memory_order_relaxed);
+            for (Slot& s : outputSlots_)
+                if (s.version != nullptr)
+                    s.version->store (0, std::memory_order_relaxed);
+        }
 
-        inputBlocksSubmitted_ = 0;
-
-        lastProcessedInput_ = 0;
-        childHasProcessed_  = false;
-
-        consecutiveMisses_ = 0;
-        bypassLatched_     = false;
-        lastGoodValid_     = false;
-        lastGoodNumFrames_ = 0;
+        resetEndpointState();
     }
 
     [[nodiscard]] const RtLaneConfig& config() const noexcept { return cfg_; }
@@ -166,7 +253,7 @@ public:
 
         // (1) write input Block N into the UNpublished slot, then (2) release-store the input seq counter.
         writeInputSlot (inputSlots_[static_cast<std::size_t> (n & 1u)], n, inputChannels, ch, nf, inputEvents);
-        control_.inputSeq.store (n + 1, std::memory_order_release);
+        control_->inputSeq.store (n + 1, std::memory_order_release);
         inputBlocksSubmitted_ = n + 1;
         res.inputBlockIndex = n;
 
@@ -176,7 +263,7 @@ public:
         const std::uint64_t expectedBlock = hasExpected ? (n - 1) : 0;
         readOutputFailOpen (outputChannels, ch, nf, hasExpected, expectedBlock, res);
 
-        control_.status.store (static_cast<std::uint32_t> (res.source), std::memory_order_relaxed);
+        control_->status.store (static_cast<std::uint32_t> (res.source), std::memory_order_relaxed);
         return res;
     }
 
@@ -188,7 +275,7 @@ public:
     template <typename ProcessFn>
     bool pollOnce (ProcessFn&& process) noexcept
     {
-        const std::uint64_t s = control_.inputSeq.load (std::memory_order_acquire);
+        const std::uint64_t s = control_->inputSeq.load (std::memory_order_acquire);
         if (s == 0)
             return false;                                   // nothing published yet
 
@@ -199,7 +286,7 @@ public:
         Slot& in = inputSlots_[static_cast<std::size_t> (newest & 1u)];
 
         // Seqlock-validated read of the newest input slot.
-        const std::uint64_t v1 = in.version.load (std::memory_order_acquire);
+        const std::uint64_t v1 = in.version->load (std::memory_order_acquire);
         if ((v1 & 1u) != 0u)
             return false;                                   // writer mid-write -> try again later
 
@@ -217,7 +304,7 @@ public:
         // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read so a concurrent lap can't
         // sink a payload load past it (the portable-seqlock requirement). v2 may then be relaxed.
         std::atomic_thread_fence (std::memory_order_acquire);
-        const std::uint64_t v2 = in.version.load (std::memory_order_relaxed);
+        const std::uint64_t v2 = in.version->load (std::memory_order_relaxed);
         if (v1 != v2 || blockIndex != newest)
             return false;                                   // torn / lapped read -> try again later
 
@@ -229,7 +316,7 @@ public:
 
         writeOutputSlot (outputSlots_[static_cast<std::size_t> (blockIndex & 1u)],
                          blockIndex, childOutPtrs_.data(), channels_, inFrames, evCount);
-        control_.outputSeq.store (blockIndex + 1, std::memory_order_release);
+        control_->outputSeq.store (blockIndex + 1, std::memory_order_release);
 
         lastProcessedInput_ = blockIndex;
         childHasProcessed_  = true;
@@ -237,11 +324,13 @@ public:
     }
 
     // ── Diagnostics / control words (any thread) ────────────────────────────────────────────────────
-    [[nodiscard]] std::uint64_t inputSeq()  const noexcept { return control_.inputSeq.load (std::memory_order_acquire); }
-    [[nodiscard]] std::uint64_t outputSeq() const noexcept { return control_.outputSeq.load (std::memory_order_acquire); }
+    [[nodiscard]] std::uint64_t inputSeq()  const noexcept { return control_ != nullptr ? control_->inputSeq.load (std::memory_order_acquire) : 0; }
+    [[nodiscard]] std::uint64_t outputSeq() const noexcept { return control_ != nullptr ? control_->outputSeq.load (std::memory_order_acquire) : 0; }
     [[nodiscard]] RtLaneOutput  lastStatus() const noexcept
     {
-        return static_cast<RtLaneOutput> (control_.status.load (std::memory_order_relaxed));
+        return control_ != nullptr
+             ? static_cast<RtLaneOutput> (control_->status.load (std::memory_order_relaxed))
+             : RtLaneOutput::Silence;
     }
     // Transient, self-clearing: the audio-thread bypass latch sets after repeated misses and CLEARS on the
     // next Fresh Block. It is the branch-only fail-open signal, NOT the authoritative crash verdict — the
@@ -251,11 +340,12 @@ public:
 
     [[nodiscard]] std::int64_t validatedLatencySamples() const noexcept
     {
-        return control_.validatedLatency.load (std::memory_order_acquire);
+        return control_ != nullptr ? control_->validatedLatency.load (std::memory_order_acquire) : 0;
     }
     void setValidatedLatencySamples (std::int64_t latency) noexcept
     {
-        control_.validatedLatency.store (latency, std::memory_order_release);
+        if (control_ != nullptr)
+            control_->validatedLatency.store (latency, std::memory_order_release);
     }
 
 private:
@@ -269,19 +359,8 @@ private:
     static_assert (sizeof (Event) % sizeof (std::uint32_t) == 0, "Event must pack into 32-bit ring words");
     static constexpr std::size_t kEventWords = sizeof (Event) / sizeof (std::uint32_t);
 
-    struct Slot
-    {
-        // Seqlock version: even == stable generation, odd == a write is in progress.
-        std::atomic<std::uint64_t> version { 0 };
-        // Payload words, all relaxed-atomic so a concurrent lapping write is well-defined, not UB.
-        std::vector<std::atomic<std::uint32_t>> words;
-
-        void allocate (std::size_t n)
-        {
-            words = std::vector<std::atomic<std::uint32_t>> (n);   // value-inits each atomic to 0 (C++20)
-            version.store (0, std::memory_order_relaxed);
-        }
-    };
+    static constexpr std::uint32_t kSharedMagic = 0x59445254u;   // "YDRT"
+    static constexpr std::uint32_t kSharedVersion = 1;
 
     // The "control word block" (ADR-0015): the seam's atomics. Grouped to mirror the shared-memory layout.
     struct Control
@@ -291,6 +370,313 @@ private:
         std::atomic<std::int64_t>  validatedLatency{ 0 };   // child/plugin-reported latency, validated upstream
         std::atomic<std::uint32_t> status          { 0 };   // last RtLaneOutput delivered to the audio thread
     };
+
+    struct SharedHeader
+    {
+        std::uint32_t magic = 0;
+        std::uint32_t version = 0;
+        std::uint64_t regionBytes = 0;
+        std::uint32_t channels = 0;
+        std::uint32_t maxBlockSize = 0;
+        std::uint32_t maxEventsPerBlock = 0;
+        std::uint32_t lastGoodHoldBlocks = 0;
+        std::uint32_t bypassAfterMisses = 0;
+        std::uint32_t totalSlotWords = 0;
+        std::uint32_t audioBaseWords = 0;
+        std::uint32_t eventBaseWords = 0;
+        std::uint32_t reserved = 0;
+        std::uint64_t controlOffset = 0;
+        std::array<std::uint64_t, 2> inputVersionOffsets {};
+        std::array<std::uint64_t, 2> inputWordsOffsets {};
+        std::array<std::uint64_t, 2> outputVersionOffsets {};
+        std::array<std::uint64_t, 2> outputWordsOffsets {};
+    };
+
+    struct Layout
+    {
+        std::size_t regionBytes = 0;
+        std::size_t controlOffset = 0;
+        std::array<std::size_t, 2> inputVersionOffsets {};
+        std::array<std::size_t, 2> inputWordsOffsets {};
+        std::array<std::size_t, 2> outputVersionOffsets {};
+        std::array<std::size_t, 2> outputWordsOffsets {};
+    };
+
+    static std::size_t alignUp (std::size_t value, std::size_t alignment) noexcept
+    {
+        const std::size_t mask = alignment - 1u;
+        return (value + mask) & ~mask;
+    }
+
+    static Layout computeLayout (std::size_t totalWords) noexcept
+    {
+        Layout layout;
+        std::size_t offset = alignUp (sizeof (SharedHeader), alignof (Control));
+        layout.controlOffset = offset;
+        offset += sizeof (Control);
+
+        auto addSlot = [&] (std::size_t& versionOffset, std::size_t& wordsOffset)
+        {
+            offset = alignUp (offset, alignof (std::atomic<std::uint64_t>));
+            versionOffset = offset;
+            offset += sizeof (std::atomic<std::uint64_t>);
+            offset = alignUp (offset, alignof (std::atomic<std::uint32_t>));
+            wordsOffset = offset;
+            offset += totalWords * sizeof (std::atomic<std::uint32_t>);
+        };
+
+        for (std::size_t i = 0; i < 2; ++i)
+            addSlot (layout.inputVersionOffsets[i], layout.inputWordsOffsets[i]);
+        for (std::size_t i = 0; i < 2; ++i)
+            addSlot (layout.outputVersionOffsets[i], layout.outputWordsOffsets[i]);
+
+        layout.regionBytes = alignUp (offset, alignof (std::max_align_t));
+        return layout;
+    }
+
+    class MappedRegion
+    {
+    public:
+        MappedRegion() = default;
+        ~MappedRegion() { reset(); }
+
+        MappedRegion (const MappedRegion&) = delete;
+        MappedRegion& operator= (const MappedRegion&) = delete;
+
+        MappedRegion (MappedRegion&& other) noexcept { moveFrom (other); }
+        MappedRegion& operator= (MappedRegion&& other) noexcept
+        {
+            if (this != &other)
+            {
+                reset();
+                moveFrom (other);
+            }
+            return *this;
+        }
+
+        void create (std::string_view name, std::size_t bytes)
+        {
+            reset();
+            name_ = std::string (name);
+            size_ = bytes;
+
+#if defined (_WIN32)
+            handle_ = ::CreateFileMappingA (INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+                                            static_cast<DWORD> (bytes >> 32),
+                                            static_cast<DWORD> (bytes & 0xffffffffu),
+                                            name_.c_str());
+            if (handle_ == nullptr)
+                throw std::runtime_error ("RtLaneRing CreateFileMapping failed");
+
+            data_ = static_cast<std::byte*> (::MapViewOfFile (handle_, FILE_MAP_ALL_ACCESS, 0, 0, bytes));
+            if (data_ == nullptr)
+                throw std::runtime_error ("RtLaneRing MapViewOfFile failed");
+#else
+            fd_ = ::shm_open (name_.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
+            if (fd_ < 0)
+                throw std::runtime_error ("RtLaneRing shm_open create failed");
+
+            owner_ = true;
+            if (::ftruncate (fd_, static_cast<off_t> (bytes)) != 0)
+                throw std::runtime_error ("RtLaneRing ftruncate failed");
+
+            void* mapped = ::mmap (nullptr, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+            if (mapped == MAP_FAILED)
+                throw std::runtime_error ("RtLaneRing mmap create failed");
+            data_ = static_cast<std::byte*> (mapped);
+#endif
+
+            std::fill_n (data_, size_, std::byte { 0 });
+        }
+
+        bool open (std::string_view name)
+        {
+            reset();
+            name_ = std::string (name);
+
+#if defined (_WIN32)
+            handle_ = ::OpenFileMappingA (FILE_MAP_ALL_ACCESS, FALSE, name_.c_str());
+            if (handle_ == nullptr)
+                return false;
+
+            data_ = static_cast<std::byte*> (::MapViewOfFile (handle_, FILE_MAP_ALL_ACCESS, 0, 0, 0));
+            if (data_ == nullptr)
+            {
+                reset();
+                return false;
+            }
+
+            const auto* const header = reinterpret_cast<const SharedHeader*> (data_);
+            size_ = static_cast<std::size_t> (header->regionBytes);
+#else
+            fd_ = ::shm_open (name_.c_str(), O_RDWR, 0600);
+            if (fd_ < 0)
+                return false;
+
+            struct stat st {};
+            if (::fstat (fd_, &st) != 0 || st.st_size <= 0)
+            {
+                reset();
+                return false;
+            }
+
+            size_ = static_cast<std::size_t> (st.st_size);
+            void* mapped = ::mmap (nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+            if (mapped == MAP_FAILED)
+            {
+                reset();
+                return false;
+            }
+            data_ = static_cast<std::byte*> (mapped);
+#endif
+
+            return true;
+        }
+
+        void reset() noexcept
+        {
+#if defined (_WIN32)
+            if (data_ != nullptr)
+                ::UnmapViewOfFile (data_);
+            if (handle_ != nullptr)
+                ::CloseHandle (handle_);
+            handle_ = nullptr;
+#else
+            if (data_ != nullptr)
+                ::munmap (data_, size_);
+            if (fd_ >= 0)
+                ::close (fd_);
+            if (owner_ && ! name_.empty())
+                ::shm_unlink (name_.c_str());
+            fd_ = -1;
+            owner_ = false;
+#endif
+            data_ = nullptr;
+            size_ = 0;
+            name_.clear();
+        }
+
+        [[nodiscard]] bool isMapped() const noexcept { return data_ != nullptr; }
+        [[nodiscard]] std::byte* data() const noexcept { return data_; }
+        [[nodiscard]] std::size_t size() const noexcept { return size_; }
+
+    private:
+        void moveFrom (MappedRegion& other) noexcept
+        {
+            data_ = other.data_;
+            size_ = other.size_;
+            name_ = std::move (other.name_);
+#if defined (_WIN32)
+            handle_ = other.handle_;
+            other.handle_ = nullptr;
+#else
+            fd_ = other.fd_;
+            owner_ = other.owner_;
+            other.fd_ = -1;
+            other.owner_ = false;
+#endif
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
+
+        std::byte* data_ = nullptr;
+        std::size_t size_ = 0;
+        std::string name_;
+#if defined (_WIN32)
+        HANDLE handle_ = nullptr;
+#else
+        int fd_ = -1;
+        bool owner_ = false;
+#endif
+    };
+
+    struct Slot
+    {
+        // Seqlock version: even == stable generation, odd == a write is in progress.
+        std::atomic<std::uint64_t>* version = nullptr;
+        // Payload words, all relaxed-atomic so a concurrent lapping write is well-defined, not UB.
+        std::atomic<std::uint32_t>* words = nullptr;
+
+        void bind (std::byte* base, std::size_t versionOffset, std::size_t wordsOffset)
+        {
+            version = reinterpret_cast<std::atomic<std::uint64_t>*> (base + versionOffset);
+            words = reinterpret_cast<std::atomic<std::uint32_t>*> (base + wordsOffset);
+        }
+    };
+
+    void bindSharedLayout (const Layout& layout) noexcept
+    {
+        std::byte* const base = region_.data();
+        control_ = reinterpret_cast<Control*> (base + layout.controlOffset);
+        for (std::size_t i = 0; i < 2; ++i)
+        {
+            inputSlots_[i].bind (base, layout.inputVersionOffsets[i], layout.inputWordsOffsets[i]);
+            outputSlots_[i].bind (base, layout.outputVersionOffsets[i], layout.outputWordsOffsets[i]);
+        }
+    }
+
+    void initialiseSharedLayout (const Layout& layout)
+    {
+        new (control_) Control {};
+
+        auto initialiseSlot = [this] (Slot& slot)
+        {
+            new (slot.version) std::atomic<std::uint64_t> { 0 };
+            for (std::size_t i = 0; i < totalWords_; ++i)
+                new (&slot.words[i]) std::atomic<std::uint32_t> { 0 };
+        };
+
+        for (Slot& s : inputSlots_)  initialiseSlot (s);
+        for (Slot& s : outputSlots_) initialiseSlot (s);
+
+        auto* const header = reinterpret_cast<SharedHeader*> (region_.data());
+        header->magic = kSharedMagic;
+        header->version = kSharedVersion;
+        header->regionBytes = layout.regionBytes;
+        header->channels = static_cast<std::uint32_t> (channels_);
+        header->maxBlockSize = static_cast<std::uint32_t> (maxBlock_);
+        header->maxEventsPerBlock = maxEvents_;
+        header->lastGoodHoldBlocks = cfg_.lastGoodHoldBlocks;
+        header->bypassAfterMisses = cfg_.bypassAfterMisses;
+        header->totalSlotWords = static_cast<std::uint32_t> (totalWords_);
+        header->audioBaseWords = static_cast<std::uint32_t> (audioBase_);
+        header->eventBaseWords = static_cast<std::uint32_t> (eventBase_);
+        header->controlOffset = layout.controlOffset;
+        for (std::size_t i = 0; i < 2; ++i)
+        {
+            header->inputVersionOffsets[i] = layout.inputVersionOffsets[i];
+            header->inputWordsOffsets[i] = layout.inputWordsOffsets[i];
+            header->outputVersionOffsets[i] = layout.outputVersionOffsets[i];
+            header->outputWordsOffsets[i] = layout.outputWordsOffsets[i];
+        }
+    }
+
+    void prepareEndpointScratch()
+    {
+        childAudio_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
+        childOut_.assign   (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
+        childInPtrs_.resize  (static_cast<std::size_t> (channels_));
+        childOutPtrs_.resize (static_cast<std::size_t> (channels_));
+        for (int c = 0; c < channels_; ++c)
+        {
+            childInPtrs_[c]  = childAudio_.data() + static_cast<std::size_t> (c) * maxBlock_;
+            childOutPtrs_[c] = childOut_.data()   + static_cast<std::size_t> (c) * maxBlock_;
+        }
+        childEvents_.assign (std::max<std::size_t> (1, maxEvents_), Event{});
+        lastGood_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
+        resetEndpointState();
+    }
+
+    void resetEndpointState() noexcept
+    {
+        inputBlocksSubmitted_ = 0;
+        lastProcessedInput_ = 0;
+        childHasProcessed_ = false;
+        consecutiveMisses_ = 0;
+        bypassLatched_ = false;
+        lastGoodValid_ = false;
+        lastGoodNumFrames_ = 0;
+    }
 
     [[nodiscard]] int clampFrames (std::uint32_t nf) const noexcept
     {
@@ -306,20 +692,20 @@ private:
              + static_cast<std::size_t> (frame);
     }
 
-    static float loadFloatWord (const std::vector<std::atomic<std::uint32_t>>& w, std::size_t i) noexcept
+    static float loadFloatWord (const std::atomic<std::uint32_t>* w, std::size_t i) noexcept
     {
         return std::bit_cast<float> (w[i].load (std::memory_order_relaxed));
     }
-    static void storeFloatWord (std::vector<std::atomic<std::uint32_t>>& w, std::size_t i, float v) noexcept
+    static void storeFloatWord (std::atomic<std::uint32_t>* w, std::size_t i, float v) noexcept
     {
         w[i].store (std::bit_cast<std::uint32_t> (v), std::memory_order_relaxed);
     }
-    static std::uint64_t loadU64 (const std::vector<std::atomic<std::uint32_t>>& w, std::size_t base) noexcept
+    static std::uint64_t loadU64 (const std::atomic<std::uint32_t>* w, std::size_t base) noexcept
     {
         return static_cast<std::uint64_t> (w[base].load (std::memory_order_relaxed))
              | (static_cast<std::uint64_t> (w[base + 1].load (std::memory_order_relaxed)) << 32);
     }
-    static void storeU64 (std::vector<std::atomic<std::uint32_t>>& w, std::size_t base, std::uint64_t v) noexcept
+    static void storeU64 (std::atomic<std::uint32_t>* w, std::size_t base, std::uint64_t v) noexcept
     {
         w[base].store     (static_cast<std::uint32_t> (v & 0xffffffffu), std::memory_order_relaxed);
         w[base + 1].store (static_cast<std::uint32_t> (v >> 32),         std::memory_order_relaxed);
@@ -329,14 +715,14 @@ private:
     using EventWords = std::array<std::uint32_t, kEventWords>;
     static_assert (sizeof (EventWords) == sizeof (Event), "Event must bit_cast losslessly to ring words");
 
-    static Event loadEventWord (const std::vector<std::atomic<std::uint32_t>>& w, std::size_t base) noexcept
+    static Event loadEventWord (const std::atomic<std::uint32_t>* w, std::size_t base) noexcept
     {
         EventWords tmp{};
         for (std::size_t i = 0; i < kEventWords; ++i)
             tmp[i] = w[base + i].load (std::memory_order_relaxed);
         return std::bit_cast<Event> (tmp);
     }
-    static void storeEventWord (std::vector<std::atomic<std::uint32_t>>& w, std::size_t base, const Event& e) noexcept
+    static void storeEventWord (std::atomic<std::uint32_t>* w, std::size_t base, const Event& e) noexcept
     {
         const EventWords tmp = std::bit_cast<EventWords> (e);
         for (std::size_t i = 0; i < kEventWords; ++i)
@@ -350,14 +736,14 @@ private:
     // relaxed atomics as race-free — but it is real on weaker memory models and in shared memory.)
     void beginWrite (Slot& s) noexcept
     {
-        const std::uint64_t stable = s.version.load (std::memory_order_relaxed);
-        s.version.store (stable + 1, std::memory_order_relaxed);   // mark odd: write in progress
+        const std::uint64_t stable = s.version->load (std::memory_order_relaxed);
+        s.version->store (stable + 1, std::memory_order_relaxed);   // mark odd: write in progress
         std::atomic_thread_fence (std::memory_order_release);      // odd version visible BEFORE any payload store
     }
     void endWrite (Slot& s) noexcept
     {
-        const std::uint64_t odd = s.version.load (std::memory_order_relaxed);
-        s.version.store (odd + 1, std::memory_order_release);      // payload visible BEFORE the new even version
+        const std::uint64_t odd = s.version->load (std::memory_order_relaxed);
+        s.version->store (odd + 1, std::memory_order_release);      // payload visible BEFORE the new even version
     }
 
     void writeInputSlot (Slot& s, std::uint64_t blockIndex,
@@ -403,11 +789,11 @@ private:
 
         // The "output ready counter" (ADR-0015): acquire-load it; the child has published Block
         // `expectedBlock` once ready > expectedBlock (blocks 0..expectedBlock are all published).
-        const std::uint64_t ready = control_.outputSeq.load (std::memory_order_acquire);
+        const std::uint64_t ready = control_->outputSeq.load (std::memory_order_acquire);
         if (hasExpected && ready > expectedBlock)
         {
             Slot& s = outputSlots_[static_cast<std::size_t> (expectedBlock & 1u)];
-            const std::uint64_t v1 = s.version.load (std::memory_order_acquire);
+            const std::uint64_t v1 = s.version->load (std::memory_order_acquire);
             if ((v1 & 1u) == 0u)
             {
                 const std::uint64_t bi = loadU64 (s.words, kHdrBlockLo);
@@ -421,7 +807,7 @@ private:
 
                 // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read (portable seqlock).
                 std::atomic_thread_fence (std::memory_order_acquire);
-                const std::uint64_t v2 = s.version.load (std::memory_order_relaxed);
+                const std::uint64_t v2 = s.version->load (std::memory_order_relaxed);
                 if (v1 == v2 && bi == expectedBlock)   // consistent snapshot AND the Block we wanted
                 {
                     fresh = true;
@@ -497,7 +883,9 @@ private:
     std::size_t eventBase_  = kHdrWords;
     std::size_t totalWords_ = kHdrWords;
 
-    Control                control_;
+    MappedRegion           region_;
+    std::string            sharedMemoryName_;
+    Control*               control_ = nullptr;
     std::array<Slot, 2>    inputSlots_;
     std::array<Slot, 2>    outputSlots_;
 

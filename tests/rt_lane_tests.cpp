@@ -5,9 +5,10 @@
 // -fsanitize=realtime proves the audio-thread role never allocates/locks/syscalls) AND the TSan leg
 // (the free-running producer/consumer stress test proves the release/acquire protocol is race-free).
 //
-// This is a HEADLESS, in-process primitive: the same atomic protocol that will later live in OS shared
-// memory, exercised here with the "child" simulated by a second thread. No real cross-process mmap,
-// PluginNode, scanner, watchdog, or JUCE yet — those are later chunks (STATUS.md "Next").
+// This is a HEADLESS primitive: the atomic protocol lives in an OS shared-memory region, and most tests
+// exercise one endpoint with the "child" role simulated by the same object or a second thread. The
+// host-isolation gate also attaches a separate worker endpoint to the same named region. No PluginNode
+// real child process, scanner, watchdog, or JUCE here.
 
 #include "engine/plugin/RtLaneRing.h"
 

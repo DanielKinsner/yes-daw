@@ -7,9 +7,19 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "engine/plugin/RtLaneRing.h"
+
 #include <cstdlib>
 #include <filesystem>
+#include <span>
 #include <string>
+#include <vector>
+
+using yesdaw::engine::Event;
+using yesdaw::engine::RtLaneConfig;
+using yesdaw::engine::RtLaneExchangeResult;
+using yesdaw::engine::RtLaneOutput;
+using yesdaw::engine::RtLaneRing;
 
 namespace {
 
@@ -76,10 +86,80 @@ bool runSyntheticWorkerSelfCheck()
     return result;
 }
 
+bool proveRtLaneUsesOsSharedMemory()
+{
+    const std::string regionName = RtLaneRing::makeUniqueSharedMemoryName();
+
+    RtLaneConfig cfg;
+    cfg.channels = 1;
+    cfg.maxBlockSize = 8;
+    cfg.maxEventsPerBlock = 2;
+
+    RtLaneRing parentRtSide;
+    parentRtSide.prepareSharedMemory (cfg, regionName);
+    if (! parentRtSide.usesOsSharedMemory())
+        return false;
+
+    RtLaneRing childWorkerSide;
+    if (! childWorkerSide.attachSharedMemory (regionName))
+        return false;
+    if (! childWorkerSide.usesOsSharedMemory())
+        return false;
+
+    RtLaneRing invalidAttach;
+    if (invalidAttach.attachSharedMemory (regionName + "_missing_negative_control"))
+        return false;
+
+    constexpr int numFrames = 8;
+    std::vector<float> in (numFrames, 0.0f);
+    std::vector<float> out (numFrames, -1.0f);
+    float* inCh[1] = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    auto fillInput = [&] (std::uint64_t block)
+    {
+        for (int frame = 0; frame < numFrames; ++frame)
+            in[static_cast<std::size_t> (frame)] = static_cast<float> (block * 100u + static_cast<std::uint64_t> (frame));
+    };
+
+    auto doubleProcess = [] (std::span<const Event>,
+                             const float* const* input, float* const* output, int channels, int frames) noexcept
+    {
+        for (int channel = 0; channel < channels; ++channel)
+            for (int frame = 0; frame < frames; ++frame)
+                output[channel][frame] = input[channel][frame] * 2.0f;
+    };
+
+    fillInput (0);
+    const RtLaneExchangeResult r0 = parentRtSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    if (r0.source != RtLaneOutput::Silence || parentRtSide.inputSeq() != 1)
+        return false;
+
+    if (! childWorkerSide.pollOnce (doubleProcess))
+        return false;
+    if (parentRtSide.outputSeq() != 1)
+        return false;
+
+    fillInput (1);
+    const RtLaneExchangeResult r1 = parentRtSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    if (r1.source != RtLaneOutput::Fresh || r1.outputBlockIndex != 0)
+        return false;
+
+    for (int frame = 0; frame < numFrames; ++frame)
+    {
+        const float expected = static_cast<float> (frame) * 2.0f;
+        if (out[static_cast<std::size_t> (frame)] != expected)
+            return false;
+    }
+
+    return true;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
     state.syntheticProcessorRunsInWorkerChild = runSyntheticWorkerSelfCheck();
+    state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory();
     return state;
 }
 
@@ -101,6 +181,12 @@ bool hostIsolationGateSatisfied (HostIsolationGateState s) noexcept
 TEST_CASE ("synthetic hosted processor runs in the plugin host child", "[h3][host-isolation][synthetic]")
 {
     REQUIRE (runSyntheticWorkerSelfCheck());
+}
+
+TEST_CASE ("RT lane uses OS-backed shared memory between parent and worker endpoints",
+           "[h3][host-isolation][rtlane][shared-memory]")
+{
+    REQUIRE (proveRtLaneUsesOsSharedMemory());
 }
 
 TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")

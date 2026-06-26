@@ -49,7 +49,7 @@ blacklist-handling outcome drain-to-control-thread handling shell is built/revie
 coordinator deferred blacklist-handling outcome handling receipt/status shell is built/reviewed/green; the minimal
 coordinator deferred blacklist-handling outcome handling acknowledge/clear-status shell is locally green; the
 H3 close-out gate scaffold is CI-green; the first real synthetic `juce::AudioProcessor` worker-child
-oracle is locally green
+oracle is locally green; the OS-backed RT-lane shared-memory clause is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -68,25 +68,27 @@ oracle is locally green
   **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
   plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
   NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
-  to `ctest -R YesDawHostIsolationCheck`; the first clause now has a real in-repo hosted-plugin oracle,
-  while the remaining clauses must be replaced one by one with real evidence. The three review fixes
-  (fader clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: H3 host-isolation gate now has its first real worker-child oracle locally green.**
-  `YesDawPluginHost --synthetic-plugin-self-check` instantiates and runs a headless synthetic
-  `juce::AudioProcessor` inside the worker executable, covering passthrough, fixed reported latency,
-  emit-NaN, addressable hang/crash modes, and an opaque state chunk round-trip inside the worker process.
-  `YesDawHostIsolationCheck` now has a normal passing Catch2 test for that worker self-check, and the
-  aggregate H3 gate still stays `[!shouldfail]` because the OS shared-memory RT lane, `Runtime` publish,
-  tri-stream hosted PDC, watchdog kill/recovery, no-deadline-miss fail-open, ordered Placeholder swap,
-  persisted blacklist, and cross-process opaque state clauses are still real gaps. Direct compact run:
-  **2 test cases** (1 passed, 1 failed as expected), **11 assertions** (2 passed, 9 failed as expected);
-  the synthetic-worker clause no longer fails. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci`; direct `YesDawPluginHost --synthetic-plugin-self-check`; VS DevShell
+  to `ctest -R YesDawHostIsolationCheck`; the first two clauses now have real evidence: the in-repo
+  hosted-plugin oracle and the OS-backed shared-memory RT lane. The remaining clauses must be replaced one
+  by one with real evidence. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
+  block-size) are landed + CI-green.
+- **Latest: H3 host-isolation gate now has a real OS-backed RT-lane shared-memory proof locally green.**
+  `RtLaneRing` now creates a named OS shared-memory region (`CreateFileMapping` on Windows; `shm_open` +
+  `mmap` on POSIX) for the fixed control/slot layout. A separate worker-side `RtLaneRing` can attach by
+  name and poll the same region; the host-isolation test proves parent/RT and child/worker endpoints
+  exchange a one-Block-late processed block through that mapping, and the negative control rejects an
+  invalid mapping name instead of falling back to in-process storage. `YesDawHostIsolationCheck` now has a
+  normal passing Catch2 test for the OS-backed RT-lane clause. The aggregate H3 gate still stays
+  `[!shouldfail]` because `Runtime` publish, tri-stream hosted PDC, watchdog kill/recovery,
+  no-deadline-miss fail-open, ordered Placeholder swap, persisted blacklist, and cross-process opaque
+  state clauses are still real gaps. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci`; VS DevShell
   `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
   `ctest --preset ci --output-on-failure` passed **191/191**.
-  **Next:** continue close-out-plan item 2 depth-first: replace the in-process stub RT ring with a real
-  OS-backed shared-memory lane and promote that second gate clause from expected-red to real green. Do
-  not remove `[!shouldfail]` until the whole H3 host-isolation gate is genuinely green.
+  **Next:** REVIEW/FIX this shared-memory checkpoint against the close-out plan + ADR-0015/0013/code. If
+  clean/green, create the next worker for item 2b: coordinator allocates + passes the RT-lane region handle
+  over the control channel at plugin load. Do not remove `[!shouldfail]` until the whole H3 host-isolation
+  gate is genuinely green.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
