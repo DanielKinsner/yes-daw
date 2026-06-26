@@ -82,7 +82,8 @@ oracle is locally green; the OS-backed RT-lane shared-memory clause is locally g
   shared-memory names, retries stale owner names after unlinking, and makes the absent-region negative
   control use its own fresh never-created name so the proof does not depend on platform-specific overlong
   name behavior; the mapped region now placement-constructs its shared header before publishing layout
-  metadata, and the H3 proof captures the exact failing shared-memory step if a platform regresses. The
+  metadata, and the H3 proof captures the exact failing shared-memory step plus attach category/system
+  error if a platform regresses. The
   aggregate H3 gate still stays
   `[!shouldfail]` because `Runtime` publish, tri-stream hosted PDC, watchdog kill/recovery,
   no-deadline-miss fail-open, ordered Placeholder swap, persisted blacklist, and cross-process opaque

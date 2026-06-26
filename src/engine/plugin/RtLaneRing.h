@@ -86,6 +86,15 @@ enum class RtLaneOutput : std::uint8_t
     Bypass   = 3    // repeated misses -> latched bypass/placeholder (zeros + a flag for the coordinator)
 };
 
+enum class RtLaneAttachFailure : std::uint8_t
+{
+    None           = 0,
+    OpenFailed     = 1,
+    RegionTooSmall = 2,
+    HeaderMismatch = 3,
+    SizeMismatch   = 4
+};
+
 struct RtLaneConfig
 {
     int           channels          = 1;
@@ -152,18 +161,34 @@ public:
     // absent or the header is not an RtLaneRing region; it never fabricates an in-process fallback.
     bool attachSharedMemory (std::string_view sharedMemoryName)
     {
+        lastAttachFailure_ = RtLaneAttachFailure::None;
+        lastAttachSystemError_ = 0;
+
         MappedRegion candidate;
         if (! candidate.open (sharedMemoryName))
+        {
+            lastAttachFailure_ = RtLaneAttachFailure::OpenFailed;
+            lastAttachSystemError_ = candidate.lastSystemError();
             return false;
+        }
 
         if (candidate.size() < sizeof (SharedHeader))
+        {
+            lastAttachFailure_ = RtLaneAttachFailure::RegionTooSmall;
             return false;
+        }
 
         const auto* const header = reinterpret_cast<const SharedHeader*> (candidate.data());
         if (header->magic != kSharedMagic || header->version != kSharedVersion)
+        {
+            lastAttachFailure_ = RtLaneAttachFailure::HeaderMismatch;
             return false;
+        }
         if (header->regionBytes != candidate.size())
+        {
+            lastAttachFailure_ = RtLaneAttachFailure::SizeMismatch;
             return false;
+        }
 
         region_ = std::move (candidate);
         sharedMemoryName_ = std::string (sharedMemoryName);
@@ -199,6 +224,8 @@ public:
 
     [[nodiscard]] bool usesOsSharedMemory() const noexcept { return region_.isMapped(); }
     [[nodiscard]] const std::string& sharedMemoryName() const noexcept { return sharedMemoryName_; }
+    [[nodiscard]] RtLaneAttachFailure lastAttachFailure() const noexcept { return lastAttachFailure_; }
+    [[nodiscard]] int lastAttachSystemError() const noexcept { return lastAttachSystemError_; }
 
     [[nodiscard]] static std::string makeUniqueSharedMemoryName()
     {
@@ -498,15 +525,20 @@ private:
         {
             reset();
             name_ = std::string (name);
+            lastSystemError_ = 0;
 
 #if defined (_WIN32)
             handle_ = ::OpenFileMappingA (FILE_MAP_ALL_ACCESS, FALSE, name_.c_str());
             if (handle_ == nullptr)
+            {
+                lastSystemError_ = static_cast<int> (::GetLastError());
                 return false;
+            }
 
             data_ = static_cast<std::byte*> (::MapViewOfFile (handle_, FILE_MAP_ALL_ACCESS, 0, 0, 0));
             if (data_ == nullptr)
             {
+                lastSystemError_ = static_cast<int> (::GetLastError());
                 reset();
                 return false;
             }
@@ -516,11 +548,15 @@ private:
 #else
             fd_ = ::shm_open (name_.c_str(), O_RDWR, 0600);
             if (fd_ < 0)
+            {
+                lastSystemError_ = errno;
                 return false;
+            }
 
             struct stat st {};
             if (::fstat (fd_, &st) != 0 || st.st_size <= 0)
             {
+                lastSystemError_ = errno;
                 reset();
                 return false;
             }
@@ -529,6 +565,7 @@ private:
             void* mapped = ::mmap (nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
             if (mapped == MAP_FAILED)
             {
+                lastSystemError_ = errno;
                 reset();
                 return false;
             }
@@ -564,6 +601,7 @@ private:
         [[nodiscard]] bool isMapped() const noexcept { return data_ != nullptr; }
         [[nodiscard]] std::byte* data() const noexcept { return data_; }
         [[nodiscard]] std::size_t size() const noexcept { return size_; }
+        [[nodiscard]] int lastSystemError() const noexcept { return lastSystemError_; }
 
     private:
         void moveFrom (MappedRegion& other) noexcept
@@ -587,6 +625,7 @@ private:
         std::byte* data_ = nullptr;
         std::size_t size_ = 0;
         std::string name_;
+        int lastSystemError_ = 0;
 #if defined (_WIN32)
         HANDLE handle_ = nullptr;
 #else
@@ -891,6 +930,8 @@ private:
 
     MappedRegion           region_;
     std::string            sharedMemoryName_;
+    RtLaneAttachFailure    lastAttachFailure_ = RtLaneAttachFailure::None;
+    int                    lastAttachSystemError_ = 0;
     Control*               control_ = nullptr;
     std::array<Slot, 2>    inputSlots_;
     std::array<Slot, 2>    outputSlots_;

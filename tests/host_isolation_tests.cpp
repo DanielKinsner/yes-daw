@@ -18,6 +18,7 @@
 
 using yesdaw::engine::Event;
 using yesdaw::engine::RtLaneConfig;
+using yesdaw::engine::RtLaneAttachFailure;
 using yesdaw::engine::RtLaneExchangeResult;
 using yesdaw::engine::RtLaneOutput;
 using yesdaw::engine::RtLaneRing;
@@ -95,6 +96,10 @@ struct RtLaneSharedMemoryProof
     std::uint64_t outputSeq = 0;
     RtLaneOutput r0Source = RtLaneOutput::Silence;
     RtLaneOutput r1Source = RtLaneOutput::Silence;
+    RtLaneAttachFailure childAttachFailure = RtLaneAttachFailure::None;
+    int childAttachSystemError = 0;
+    RtLaneAttachFailure negativeAttachFailure = RtLaneAttachFailure::None;
+    int negativeAttachSystemError = 0;
     std::uint64_t r1OutputBlockIndex = 0;
     int failedFrame = -1;
     float observed = 0.0f;
@@ -124,7 +129,11 @@ RtLaneSharedMemoryProof proveRtLaneUsesOsSharedMemory()
 
     RtLaneRing childWorkerSide;
     if (! childWorkerSide.attachSharedMemory (regionName))
+    {
+        proof.childAttachFailure = childWorkerSide.lastAttachFailure();
+        proof.childAttachSystemError = childWorkerSide.lastAttachSystemError();
         return fail ("child endpoint could not attach named shared memory");
+    }
     if (! childWorkerSide.usesOsSharedMemory())
         return fail ("child endpoint attached without OS shared memory");
 
@@ -132,6 +141,8 @@ RtLaneSharedMemoryProof proveRtLaneUsesOsSharedMemory()
     RtLaneRing invalidAttach;
     if (invalidAttach.attachSharedMemory (missingRegionName))
         return fail ("negative control unexpectedly attached missing shared memory");
+    proof.negativeAttachFailure = invalidAttach.lastAttachFailure();
+    proof.negativeAttachSystemError = invalidAttach.lastAttachSystemError();
 
     constexpr int numFrames = 8;
     std::vector<float> in (numFrames, 0.0f);
@@ -227,6 +238,10 @@ TEST_CASE ("RT lane uses OS-backed shared memory between parent and worker endpo
              proof.outputSeq,
              static_cast<int> (proof.r0Source),
              static_cast<int> (proof.r1Source),
+             static_cast<int> (proof.childAttachFailure),
+             proof.childAttachSystemError,
+             static_cast<int> (proof.negativeAttachFailure),
+             proof.negativeAttachSystemError,
              proof.r1OutputBlockIndex,
              proof.failedFrame,
              proof.observed,
