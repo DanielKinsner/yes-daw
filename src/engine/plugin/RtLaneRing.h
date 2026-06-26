@@ -635,6 +635,7 @@ private:
         for (Slot& s : outputSlots_) initialiseSlot (s);
 
         auto* const header = reinterpret_cast<SharedHeader*> (region_.data());
+        new (header) SharedHeader {};
         header->magic = kSharedMagic;
         header->version = kSharedVersion;
         header->regionBytes = layout.regionBytes;

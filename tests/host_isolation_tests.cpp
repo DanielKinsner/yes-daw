@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 using yesdaw::engine::Event;
@@ -86,8 +87,29 @@ bool runSyntheticWorkerSelfCheck()
     return result;
 }
 
-bool proveRtLaneUsesOsSharedMemory()
+struct RtLaneSharedMemoryProof
 {
+    bool passed = false;
+    std::string failureStep = "not-run";
+    std::uint64_t inputSeq = 0;
+    std::uint64_t outputSeq = 0;
+    RtLaneOutput r0Source = RtLaneOutput::Silence;
+    RtLaneOutput r1Source = RtLaneOutput::Silence;
+    std::uint64_t r1OutputBlockIndex = 0;
+    int failedFrame = -1;
+    float observed = 0.0f;
+    float expected = 0.0f;
+};
+
+RtLaneSharedMemoryProof proveRtLaneUsesOsSharedMemory()
+{
+    RtLaneSharedMemoryProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
     const std::string regionName = RtLaneRing::makeUniqueSharedMemoryName();
 
     RtLaneConfig cfg;
@@ -98,18 +120,18 @@ bool proveRtLaneUsesOsSharedMemory()
     RtLaneRing parentRtSide;
     parentRtSide.prepareSharedMemory (cfg, regionName);
     if (! parentRtSide.usesOsSharedMemory())
-        return false;
+        return fail ("parent endpoint did not map OS shared memory");
 
     RtLaneRing childWorkerSide;
     if (! childWorkerSide.attachSharedMemory (regionName))
-        return false;
+        return fail ("child endpoint could not attach named shared memory");
     if (! childWorkerSide.usesOsSharedMemory())
-        return false;
+        return fail ("child endpoint attached without OS shared memory");
 
     const std::string missingRegionName = RtLaneRing::makeUniqueSharedMemoryName();
     RtLaneRing invalidAttach;
     if (invalidAttach.attachSharedMemory (missingRegionName))
-        return false;
+        return fail ("negative control unexpectedly attached missing shared memory");
 
     constexpr int numFrames = 8;
     std::vector<float> in (numFrames, 0.0f);
@@ -133,34 +155,46 @@ bool proveRtLaneUsesOsSharedMemory()
 
     fillInput (0);
     const RtLaneExchangeResult r0 = parentRtSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    proof.r0Source = r0.source;
+    proof.inputSeq = parentRtSide.inputSeq();
     if (r0.source != RtLaneOutput::Silence || parentRtSide.inputSeq() != 1)
-        return false;
+        return fail ("parent failed to publish block zero into shared memory");
 
     if (! childWorkerSide.pollOnce (doubleProcess))
-        return false;
-    if (parentRtSide.outputSeq() != 1)
-        return false;
+        return fail ("child could not poll block zero from shared memory");
+    proof.outputSeq = parentRtSide.outputSeq();
+    if (proof.outputSeq != 1)
+        return fail ("child output sequence was not visible to parent");
 
     fillInput (1);
     const RtLaneExchangeResult r1 = parentRtSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    proof.r1Source = r1.source;
+    proof.r1OutputBlockIndex = r1.outputBlockIndex;
     if (r1.source != RtLaneOutput::Fresh || r1.outputBlockIndex != 0)
-        return false;
+        return fail ("parent did not receive fresh processed block zero");
 
     for (int frame = 0; frame < numFrames; ++frame)
     {
         const float expected = static_cast<float> (frame) * 2.0f;
         if (out[static_cast<std::size_t> (frame)] != expected)
-            return false;
+        {
+            proof.failedFrame = frame;
+            proof.observed = out[static_cast<std::size_t> (frame)];
+            proof.expected = expected;
+            return fail ("processed shared-memory sample mismatch");
+        }
     }
 
-    return true;
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
 }
 
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
     state.syntheticProcessorRunsInWorkerChild = runSyntheticWorkerSelfCheck();
-    state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory();
+    state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory().passed;
     return state;
 }
 
@@ -187,7 +221,17 @@ TEST_CASE ("synthetic hosted processor runs in the plugin host child", "[h3][hos
 TEST_CASE ("RT lane uses OS-backed shared memory between parent and worker endpoints",
            "[h3][host-isolation][rtlane][shared-memory]")
 {
-    REQUIRE (proveRtLaneUsesOsSharedMemory());
+    const RtLaneSharedMemoryProof proof = proveRtLaneUsesOsSharedMemory();
+    CAPTURE (proof.failureStep,
+             proof.inputSeq,
+             proof.outputSeq,
+             static_cast<int> (proof.r0Source),
+             static_cast<int> (proof.r1Source),
+             proof.r1OutputBlockIndex,
+             proof.failedFrame,
+             proof.observed,
+             proof.expected);
+    REQUIRE (proof.passed);
 }
 
 TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")
