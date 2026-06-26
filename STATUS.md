@@ -47,7 +47,9 @@ the minimal coordinator blacklist-handling outcome/status shell is built/reviewe
 pending blacklist-handling outcome queue/drain shell is built/reviewed/green; the minimal coordinator
 blacklist-handling outcome drain-to-control-thread handling shell is built/reviewed/green; the minimal
 coordinator deferred blacklist-handling outcome handling receipt/status shell is built/reviewed/green; the minimal
-coordinator deferred blacklist-handling outcome handling acknowledge/clear-status shell is locally green
+coordinator deferred blacklist-handling outcome handling acknowledge/clear-status shell is locally green; the
+H3 close-out gate scaffold is CI-green; the first real synthetic `juce::AudioProcessor` worker-child
+oracle is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -66,22 +68,25 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
   **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
   plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
   NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
-  to `ctest -R YesDawHostIsolationCheck`; next work replaces each placeholder clause with the real
-  in-repo hosted-plugin oracle. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
-  block-size) are landed + CI-green.
-- **Latest: H3 close-out gate scaffold is locally green and correctly RED-by-design.**
-  `YesDawHostIsolationCheck` is now a CI-wired Catch2 target. It currently asserts the real H3 exit
-  artifacts as false (hosted synthetic processor in worker child, OS shared-memory RT lane, mixer
-  projection through `Runtime`, tri-stream PDC, watchdog kill/recovery, no deadline misses,
-  Placeholder swap, persisted blacklist, and opaque state round-trip), and `[!shouldfail]` keeps `main`
-  green while every clause is intentionally unmet. Direct run proves 10/10 assertions fail as expected;
-  local gate: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell
+  to `ctest -R YesDawHostIsolationCheck`; the first clause now has a real in-repo hosted-plugin oracle,
+  while the remaining clauses must be replaced one by one with real evidence. The three review fixes
+  (fader clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
+- **Latest: H3 host-isolation gate now has its first real worker-child oracle locally green.**
+  `YesDawPluginHost --synthetic-plugin-self-check` instantiates and runs a headless synthetic
+  `juce::AudioProcessor` inside the worker executable, covering passthrough, fixed reported latency,
+  emit-NaN, addressable hang/crash modes, and an opaque state chunk round-trip inside the worker process.
+  `YesDawHostIsolationCheck` now has a normal passing Catch2 test for that worker self-check, and the
+  aggregate H3 gate still stays `[!shouldfail]` because the OS shared-memory RT lane, `Runtime` publish,
+  tri-stream hosted PDC, watchdog kill/recovery, no-deadline-miss fail-open, ordered Placeholder swap,
+  persisted blacklist, and cross-process opaque state clauses are still real gaps. Direct compact run:
+  **2 test cases** (1 passed, 1 failed as expected), **11 assertions** (2 passed, 9 failed as expected);
+  the synthetic-worker clause no longer fails. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci`; direct `YesDawPluginHost --synthetic-plugin-self-check`; VS DevShell
   `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
   `ctest --preset ci --output-on-failure` passed **191/191**.
-  **Next:** continue close-out-plan item 1 depth-first by adding the in-repo synthetic hosted
-  `juce::AudioProcessor` mode surface in `YesDawPluginHost` / `YesDawHostIsolationCheck`, then replace
-  the first placeholder assertion with a real negative-controlled hosted-worker check. Do not remove
-  `[!shouldfail]` until the whole H3 host-isolation gate is genuinely green.
+  **Next:** continue close-out-plan item 2 depth-first: replace the in-process stub RT ring with a real
+  OS-backed shared-memory lane and promote that second gate clause from expected-red to real green. Do
+  not remove `[!shouldfail]` until the whole H3 host-isolation gate is genuinely green.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

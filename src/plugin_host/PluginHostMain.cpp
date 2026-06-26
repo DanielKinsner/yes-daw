@@ -11,8 +11,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <cstdio>
+#include <limits>
 #include <thread>
 
 namespace {
@@ -42,6 +44,137 @@ juce::String commandLineFromArgv (int argc, char** argv)
 
     return args.joinIntoString (" ");
 }
+
+enum class SyntheticProcessorMode
+{
+    passthrough,
+    fixedReportedLatency,
+    emitNan,
+    hangAfterHandshake,
+    crashOnCue
+};
+
+class SyntheticTestProcessor final : public juce::AudioProcessor
+{
+public:
+    static constexpr int kFixedLatencySamples = 96;
+
+    explicit SyntheticTestProcessor (SyntheticProcessorMode mode)
+        : juce::AudioProcessor (juce::AudioProcessor::BusesProperties()
+                                    .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                                    .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+          mode_ (mode)
+    {
+    }
+
+    const juce::String getName() const override
+    {
+        return "YES DAW Synthetic Test Plugin";
+    }
+
+    void prepareToPlay (double sampleRate, int maximumExpectedSamplesPerBlock) override
+    {
+        prepared_ = sampleRate > 0.0 && maximumExpectedSamplesPerBlock > 0;
+        setLatencySamples (mode_ == SyntheticProcessorMode::fixedReportedLatency ? kFixedLatencySamples : 0);
+    }
+
+    void releaseResources() override {}
+
+    void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
+    {
+        if (! prepared_)
+            return;
+
+        if (mode_ == SyntheticProcessorMode::emitNan && buffer.getNumChannels() > 0 && buffer.getNumSamples() > 0)
+            buffer.setSample (0, 0, std::numeric_limits<float>::quiet_NaN());
+    }
+
+    bool acceptsMidi() const override
+    {
+        return true;
+    }
+
+    bool producesMidi() const override
+    {
+        return false;
+    }
+
+    bool isMidiEffect() const override
+    {
+        return false;
+    }
+
+    double getTailLengthSeconds() const override
+    {
+        return 0.0;
+    }
+
+    juce::AudioProcessorEditor* createEditor() override
+    {
+        return nullptr;
+    }
+
+    bool hasEditor() const override
+    {
+        return false;
+    }
+
+    int getNumPrograms() override
+    {
+        return 1;
+    }
+
+    int getCurrentProgram() override
+    {
+        return 0;
+    }
+
+    void setCurrentProgram (int index) override
+    {
+        (void) index;
+    }
+
+    const juce::String getProgramName (int index) override
+    {
+        (void) index;
+        return "Default";
+    }
+
+    void changeProgramName (int index, const juce::String& newName) override
+    {
+        (void) index;
+        (void) newName;
+    }
+
+    void getStateInformation (juce::MemoryBlock& destData) override
+    {
+        static constexpr char kStateChunk[] = "yesdaw-synthetic-state-v1";
+        destData.setSize (sizeof (kStateChunk));
+        std::memcpy (destData.getData(), kStateChunk, sizeof (kStateChunk));
+    }
+
+    void setStateInformation (const void* data, int sizeInBytes) override
+    {
+        static constexpr char kStateChunk[] = "yesdaw-synthetic-state-v1";
+        stateAccepted_ = sizeInBytes == static_cast<int> (sizeof (kStateChunk))
+            && std::memcmp (data, kStateChunk, sizeof (kStateChunk)) == 0;
+    }
+
+    bool stateAccepted() const noexcept
+    {
+        return stateAccepted_;
+    }
+
+    SyntheticProcessorMode mode() const noexcept
+    {
+        return mode_;
+    }
+
+private:
+    SyntheticProcessorMode mode_;
+    bool prepared_ = false;
+    bool stateAccepted_ = false;
+};
 
 class PluginHostWorker final : public juce::ChildProcessWorker
 {
@@ -97,6 +230,75 @@ int runSelfCheck()
     return 0;
 }
 
+bool sampleEquals (float actual, float expected) noexcept
+{
+    return std::abs (actual - expected) < 0.000001f;
+}
+
+int failSyntheticCheck (const char* reason)
+{
+    std::printf ("FAIL: synthetic hosted AudioProcessor check failed: %s\n", reason);
+    return 2;
+}
+
+int runSyntheticPluginSelfCheck()
+{
+    juce::AudioBuffer<float> buffer (2, 8);
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            buffer.setSample (channel, sample, static_cast<float> ((channel + 1) * 100 + sample));
+
+    SyntheticTestProcessor passthrough (SyntheticProcessorMode::passthrough);
+    passthrough.prepareToPlay (48000.0, buffer.getNumSamples());
+
+    juce::MidiBuffer midi;
+    passthrough.processBlock (buffer, midi);
+
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            if (! sampleEquals (buffer.getSample (channel, sample),
+                                static_cast<float> ((channel + 1) * 100 + sample)))
+                return failSyntheticCheck ("passthrough mode changed audio");
+
+    if (passthrough.getLatencySamples() != 0)
+        return failSyntheticCheck ("passthrough mode reported latency");
+
+    SyntheticTestProcessor fixedLatency (SyntheticProcessorMode::fixedReportedLatency);
+    fixedLatency.prepareToPlay (48000.0, buffer.getNumSamples());
+
+    if (fixedLatency.getLatencySamples() != SyntheticTestProcessor::kFixedLatencySamples)
+        return failSyntheticCheck ("fixed-latency mode did not report its latency");
+
+    juce::MemoryBlock state;
+    passthrough.getStateInformation (state);
+
+    SyntheticTestProcessor restored (SyntheticProcessorMode::passthrough);
+    restored.setStateInformation (state.getData(), static_cast<int> (state.getSize()));
+
+    if (! restored.stateAccepted())
+        return failSyntheticCheck ("opaque state chunk did not round-trip inside worker executable");
+
+    buffer.clear();
+    SyntheticTestProcessor nanEmitter (SyntheticProcessorMode::emitNan);
+    nanEmitter.prepareToPlay (48000.0, buffer.getNumSamples());
+    nanEmitter.processBlock (buffer, midi);
+
+    if (std::isfinite (buffer.getSample (0, 0)))
+        return failSyntheticCheck ("emit-NaN mode did not produce a non-finite sample");
+
+    const SyntheticTestProcessor hangMode (SyntheticProcessorMode::hangAfterHandshake);
+    const SyntheticTestProcessor crashMode (SyntheticProcessorMode::crashOnCue);
+    if (hangMode.mode() != SyntheticProcessorMode::hangAfterHandshake
+        || crashMode.mode() != SyntheticProcessorMode::crashOnCue)
+        return failSyntheticCheck ("terminal synthetic modes are not addressable");
+
+    std::printf ("PASS: synthetic hosted AudioProcessor ran in YesDawPluginHost; modes=passthrough,"
+                 "fixed-reported-latency,emit-NaN,hang-after-handshake,crash-on-cue; latency=%d; state-bytes=%zu\n",
+                 SyntheticTestProcessor::kFixedLatencySamples,
+                 state.getSize());
+    return 0;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -105,6 +307,9 @@ int main (int argc, char** argv)
 
     if (hasFlag (argc, argv, "--self-check"))
         return runSelfCheck();
+
+    if (hasFlag (argc, argv, "--synthetic-plugin-self-check"))
+        return runSyntheticPluginSelfCheck();
 
     PluginHostWorker worker;
     if (! worker.initialiseFromCommandLine (commandLineFromArgv (argc, argv),

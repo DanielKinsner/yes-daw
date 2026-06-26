@@ -7,6 +7,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstdlib>
+#include <filesystem>
+#include <string>
+
 namespace {
 
 struct HostIsolationGateState
@@ -22,12 +26,61 @@ struct HostIsolationGateState
     bool opaqueStateRoundTripsAcrossProcess   = false;
 };
 
-HostIsolationGateState currentHostIsolationGateState() noexcept
+std::string quotedWorkerSelfCheckCommand (const std::filesystem::path& worker)
 {
-    // Ground truth as of the close-out pivot:
-    // PluginNode still uses an in-process stub ring, the worker loads no AudioProcessor,
-    // blacklist/policy/recompile outcomes are metadata-only, and the exit gate has no real oracle yet.
-    return {};
+    std::string command = "\"";
+
+    for (const char ch : worker.string())
+    {
+        if (ch == '"')
+            command += "\\\"";
+        else
+            command += ch;
+    }
+
+    command += "\" --synthetic-plugin-self-check";
+    return command;
+}
+
+std::string workerPathFromEnvironment()
+{
+#if defined (_WIN32)
+    char* value = nullptr;
+    size_t valueSize = 0;
+    if (_dupenv_s (&value, &valueSize, "YESDAW_PLUGIN_HOST_PATH") != 0 || value == nullptr)
+        return {};
+
+    std::string result (value);
+    std::free (value);
+    return result;
+#else
+    const char* const value = std::getenv ("YESDAW_PLUGIN_HOST_PATH");
+    return value == nullptr ? std::string() : std::string (value);
+#endif
+}
+
+bool runSyntheticWorkerSelfCheck()
+{
+    static const bool result = [] {
+        const std::string workerPath = workerPathFromEnvironment();
+        if (workerPath.empty())
+            return false;
+
+        const std::filesystem::path worker (workerPath);
+        if (! std::filesystem::exists (worker))
+            return false;
+
+        return std::system (quotedWorkerSelfCheckCommand (worker).c_str()) == 0;
+    }();
+
+    return result;
+}
+
+HostIsolationGateState currentHostIsolationGateState()
+{
+    HostIsolationGateState state;
+    state.syntheticProcessorRunsInWorkerChild = runSyntheticWorkerSelfCheck();
+    return state;
 }
 
 bool hostIsolationGateSatisfied (HostIsolationGateState s) noexcept
@@ -44,6 +97,11 @@ bool hostIsolationGateSatisfied (HostIsolationGateState s) noexcept
 }
 
 } // namespace
+
+TEST_CASE ("synthetic hosted processor runs in the plugin host child", "[h3][host-isolation][synthetic]")
+{
+    REQUIRE (runSyntheticWorkerSelfCheck());
+}
 
 TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")
 {

@@ -184,8 +184,12 @@ if (YESDAW_BUILD_APPS)
   add_executable(YesDawHostIsolationCheck tests/host_isolation_tests.cpp)
   target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
   target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain)
+  add_dependencies(YesDawHostIsolationCheck YesDawPluginHost)
   yesdaw_harden(YesDawHostIsolationCheck)
-  add_test(NAME YesDawHostIsolationCheck COMMAND $<TARGET_FILE:YesDawHostIsolationCheck>)
+  add_test(NAME YesDawHostIsolationCheck
+           COMMAND ${CMAKE_COMMAND} -E env
+                   "YESDAW_PLUGIN_HOST_PATH=$<TARGET_FILE:YesDawPluginHost>"
+                   $<TARGET_FILE:YesDawHostIsolationCheck>)
 endif()
 
 add_executable(YesDawCheck tests/dsp_tests.cpp)
