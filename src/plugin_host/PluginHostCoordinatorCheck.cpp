@@ -1,7 +1,10 @@
 #include "plugin_host/PluginHostCoordinator.h"
 
+#include <chrono>
 #include <cstdio>
 #include <string>
+#include <thread>
+#include <vector>
 
 namespace {
 
@@ -603,6 +606,27 @@ bool deferredBlacklistHandlingOutcomeHandlingStatusMatches (
         && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
 }
 
+bool waitForOutputSeqAtLeast (yesdaw::engine::RtLaneRing& ring, std::uint64_t expected)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (2);
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        if (ring.outputSeq() >= expected)
+            return true;
+
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+
+    return ring.outputSeq() >= expected;
+}
+
+float workerPollSampleFor (int channel, std::uint64_t block, int frame) noexcept
+{
+    return static_cast<float> ((channel + 1) * 1000)
+        + static_cast<float> (block * 100u)
+        + static_cast<float> (frame);
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -659,6 +683,166 @@ int main (int argc, char** argv)
                      activeRtLaneIdentity.sharedMemoryName.c_str(),
                      activeRtLaneUsesOsSharedMemory ? 1 : 0,
                      statusName (rtLaneLoadStop.status));
+        return 2;
+    }
+
+    yesdaw::engine::RtLaneConfig rtLanePollConfig;
+    rtLanePollConfig.channels = 2;
+    rtLanePollConfig.maxBlockSize = 8;
+    rtLanePollConfig.maxEventsPerBlock = 2;
+
+    yesdaw::plugin_host::PluginHostCoordinator rtLanePollCoordinator;
+    const auto rtLanePollLoad =
+        rtLanePollCoordinator.launchAndLoadRtLane (workerExecutable, rtLanePollConfig);
+    const auto rtLanePollActiveIdentity = rtLanePollCoordinator.activeRtLaneLoadIdentity();
+    const bool rtLanePollActiveUsesOsSharedMemory = rtLanePollCoordinator.activeRtLaneUsesOsSharedMemory();
+
+    yesdaw::engine::RtLaneRing rtLaneAudioEndpoint;
+    bool rtLaneAudioEndpointAttached = false;
+    yesdaw::engine::RtLaneAttachFailure rtLaneAudioAttachFailure =
+        yesdaw::engine::RtLaneAttachFailure::None;
+    int rtLaneAudioAttachSystemError = 0;
+    std::uint64_t rtLanePollInitialOutputSeq = 0;
+    std::uint64_t rtLanePollOutputSeqAfterPoll = 0;
+    yesdaw::engine::RtLaneExchangeResult rtLanePollR0;
+    yesdaw::engine::RtLaneExchangeResult rtLanePollR1;
+    bool rtLanePollOutputReady = false;
+    bool rtLanePollSamplesMatch = false;
+    int rtLanePollFailedChannel = -1;
+    int rtLanePollFailedFrame = -1;
+    float rtLanePollObserved = 0.0f;
+    float rtLanePollExpected = 0.0f;
+
+    if (rtLanePollLoad.status
+            == yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::success
+        && rtLanePollLoad.workerReplyStatus == yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted
+        && rtLanePollLoad.workerAttachFailure == yesdaw::engine::RtLaneAttachFailure::None
+        && rtLanePollLoad.readySeen
+        && rtLanePollLoad.loadMessageSent
+        && rtLanePollLoad.loadReplySeen
+        && rtLanePollLoad.coordinatorAllocated
+        && rtLanePollLoad.coordinatorUsesOsSharedMemory
+        && rtLanePollLoad.workerAccepted
+        && rtLanePollActiveIdentity.sharedMemoryName == rtLanePollLoad.identity.sharedMemoryName
+        && rtLanePollActiveUsesOsSharedMemory)
+    {
+        rtLaneAudioEndpointAttached =
+            rtLaneAudioEndpoint.attachSharedMemory (rtLanePollActiveIdentity.sharedMemoryName);
+        rtLaneAudioAttachFailure = rtLaneAudioEndpoint.lastAttachFailure();
+        rtLaneAudioAttachSystemError = rtLaneAudioEndpoint.lastAttachSystemError();
+
+        if (rtLaneAudioEndpointAttached)
+        {
+            rtLanePollInitialOutputSeq = rtLaneAudioEndpoint.outputSeq();
+
+            constexpr int pollChannels = 2;
+            constexpr int pollFrames = 8;
+            std::vector<float> pollInput (static_cast<std::size_t> (pollChannels * pollFrames), 0.0f);
+            std::vector<float> pollOutput (static_cast<std::size_t> (pollChannels * pollFrames), -1.0f);
+            std::vector<float*> pollInputChannels (pollChannels);
+            std::vector<float*> pollOutputChannels (pollChannels);
+            for (int channel = 0; channel < pollChannels; ++channel)
+            {
+                pollInputChannels[static_cast<std::size_t> (channel)] =
+                    pollInput.data() + static_cast<std::size_t> (channel * pollFrames);
+                pollOutputChannels[static_cast<std::size_t> (channel)] =
+                    pollOutput.data() + static_cast<std::size_t> (channel * pollFrames);
+            }
+
+            auto fillPollInput = [&] (std::uint64_t block)
+            {
+                for (int channel = 0; channel < pollChannels; ++channel)
+                    for (int frame = 0; frame < pollFrames; ++frame)
+                        pollInput[static_cast<std::size_t> (channel * pollFrames + frame)] =
+                            workerPollSampleFor (channel, block, frame);
+            };
+
+            fillPollInput (0);
+            rtLanePollR0 = rtLaneAudioEndpoint.exchangeBlock (
+                pollInputChannels.data(), pollChannels, pollFrames, {},
+                pollOutputChannels.data(), pollChannels);
+
+            rtLanePollOutputReady = waitForOutputSeqAtLeast (rtLaneAudioEndpoint, 1);
+            rtLanePollOutputSeqAfterPoll = rtLaneAudioEndpoint.outputSeq();
+
+            fillPollInput (1);
+            rtLanePollR1 = rtLaneAudioEndpoint.exchangeBlock (
+                pollInputChannels.data(), pollChannels, pollFrames, {},
+                pollOutputChannels.data(), pollChannels);
+
+            rtLanePollSamplesMatch = true;
+            for (int channel = 0; channel < pollChannels && rtLanePollSamplesMatch; ++channel)
+            {
+                for (int frame = 0; frame < pollFrames; ++frame)
+                {
+                    const float expected = workerPollSampleFor (channel, 0, frame);
+                    const float observed =
+                        pollOutput[static_cast<std::size_t> (channel * pollFrames + frame)];
+                    if (observed != expected)
+                    {
+                        rtLanePollSamplesMatch = false;
+                        rtLanePollFailedChannel = channel;
+                        rtLanePollFailedFrame = frame;
+                        rtLanePollObserved = observed;
+                        rtLanePollExpected = expected;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    const auto rtLanePollStop = rtLanePollCoordinator.requestStopAndWait();
+    if (rtLanePollLoad.status != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::success
+        || rtLanePollLoad.workerReplyStatus != yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted
+        || rtLanePollLoad.workerAttachFailure != yesdaw::engine::RtLaneAttachFailure::None
+        || ! rtLanePollLoad.readySeen
+        || ! rtLanePollLoad.loadMessageSent
+        || ! rtLanePollLoad.loadReplySeen
+        || ! rtLanePollLoad.coordinatorAllocated
+        || ! rtLanePollLoad.coordinatorUsesOsSharedMemory
+        || ! rtLanePollLoad.workerAccepted
+        || rtLanePollActiveIdentity.sharedMemoryName != rtLanePollLoad.identity.sharedMemoryName
+        || ! rtLanePollActiveUsesOsSharedMemory
+        || ! rtLaneAudioEndpointAttached
+        || rtLaneAudioAttachFailure != yesdaw::engine::RtLaneAttachFailure::None
+        || rtLanePollInitialOutputSeq != 0
+        || rtLanePollR0.source != yesdaw::engine::RtLaneOutput::Silence
+        || ! rtLanePollOutputReady
+        || rtLanePollOutputSeqAfterPoll < 1
+        || rtLanePollR1.source != yesdaw::engine::RtLaneOutput::Fresh
+        || rtLanePollR1.outputBlockIndex != 0
+        || ! rtLanePollSamplesMatch
+        || rtLanePollStop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped)
+    {
+        std::printf ("FAIL: plugin host worker did not poll the mapped RT lane through the hosted processor path: status=%s reply=%s attach=%s/%d ready=%d sent=%d replySeen=%d allocated=%d os=%d accepted=%d active=%s activeOs=%d audioAttached=%d audioAttach=%s/%d initialOutputSeq=%llu r0=%d outputReady=%d outputSeq=%llu r1=%d block=%llu sampleMatch=%d failed=%d/%d observed=%f expected=%f stop=%s\n",
+                     statusName (rtLanePollLoad.status),
+                     statusName (rtLanePollLoad.workerReplyStatus),
+                     statusName (rtLanePollLoad.workerAttachFailure),
+                     rtLanePollLoad.workerAttachSystemError,
+                     rtLanePollLoad.readySeen ? 1 : 0,
+                     rtLanePollLoad.loadMessageSent ? 1 : 0,
+                     rtLanePollLoad.loadReplySeen ? 1 : 0,
+                     rtLanePollLoad.coordinatorAllocated ? 1 : 0,
+                     rtLanePollLoad.coordinatorUsesOsSharedMemory ? 1 : 0,
+                     rtLanePollLoad.workerAccepted ? 1 : 0,
+                     rtLanePollActiveIdentity.sharedMemoryName.c_str(),
+                     rtLanePollActiveUsesOsSharedMemory ? 1 : 0,
+                     rtLaneAudioEndpointAttached ? 1 : 0,
+                     statusName (rtLaneAudioAttachFailure),
+                     rtLaneAudioAttachSystemError,
+                     static_cast<unsigned long long> (rtLanePollInitialOutputSeq),
+                     static_cast<int> (rtLanePollR0.source),
+                     rtLanePollOutputReady ? 1 : 0,
+                     static_cast<unsigned long long> (rtLanePollOutputSeqAfterPoll),
+                     static_cast<int> (rtLanePollR1.source),
+                     static_cast<unsigned long long> (rtLanePollR1.outputBlockIndex),
+                     rtLanePollSamplesMatch ? 1 : 0,
+                     rtLanePollFailedChannel,
+                     rtLanePollFailedFrame,
+                     static_cast<double> (rtLanePollObserved),
+                     static_cast<double> (rtLanePollExpected),
+                     statusName (rtLanePollStop.status));
         return 2;
     }
 
@@ -3707,6 +3891,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, allocated an OS-backed RT-lane shared-memory region, passed its identity over the control lane, observed worker attachment, rejected missing/absent RT-lane identities without fallback storage, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, allocated an OS-backed RT-lane shared-memory region, passed its identity over the control lane, observed worker attachment, proved the worker polls the mapped RT lane through the hosted processor path, rejected missing/absent RT-lane identities without fallback storage, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

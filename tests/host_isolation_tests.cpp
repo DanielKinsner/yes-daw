@@ -10,10 +10,12 @@
 #include "engine/plugin/RtLaneRing.h"
 #include "plugin_host/PluginHostCoordinator.h"
 
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <span>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -34,6 +36,7 @@ struct HostIsolationGateState
     bool syntheticProcessorRunsInWorkerChild = false;
     bool rtLaneUsesOsSharedMemory             = false;
     bool rtLaneIdentityPassesControlLane      = false;
+    bool workerPollsHostedProcessorOverRtLane = false;
     bool mixerProjectionPublishesToRuntime    = false;
     bool triStreamPdcThroughHostedPlugin      = false;
     bool watchdogKillsHungOrCrashedChild      = false;
@@ -353,12 +356,194 @@ RtLaneControlLoadProof proveRtLaneIdentityPassesControlLane()
     return proof;
 }
 
+struct RtLaneWorkerPollProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    PluginHostCoordinator::RtLaneLoadStatus loadStatus {
+        PluginHostCoordinator::RtLaneLoadStatus::notStarted
+    };
+    RtLaneLoadReplyStatus loadReplyStatus = RtLaneLoadReplyStatus::none;
+    RtLaneAttachFailure loadAttachFailure = RtLaneAttachFailure::None;
+    PluginHostCoordinator::StopStatus stopStatus {
+        PluginHostCoordinator::StopStatus::notStarted
+    };
+    RtLaneAttachFailure audioAttachFailure = RtLaneAttachFailure::None;
+    int audioAttachSystemError = 0;
+    std::uint64_t initialOutputSeq = 0;
+    std::uint64_t outputSeqAfterPoll = 0;
+    RtLaneOutput r0Source = RtLaneOutput::Silence;
+    RtLaneOutput r1Source = RtLaneOutput::Silence;
+    std::uint64_t r1OutputBlockIndex = 0;
+    int failedChannel = -1;
+    int failedFrame = -1;
+    float observed = 0.0f;
+    float expected = 0.0f;
+};
+
+bool waitForOutputSeqAtLeast (RtLaneRing& ring, std::uint64_t expected)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (2);
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        if (ring.outputSeq() >= expected)
+            return true;
+
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+
+    return ring.outputSeq() >= expected;
+}
+
+RtLaneWorkerPollProof computeWorkerPollsHostedProcessorOverRtLane()
+{
+    RtLaneWorkerPollProof proof;
+    PluginHostCoordinator loadCoordinator;
+    bool workerMayBeRunning = false;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        if (workerMayBeRunning)
+            proof.stopStatus = loadCoordinator.requestStopAndWait().status;
+        return proof;
+    };
+
+    const std::string workerPath = workerPathFromEnvironment();
+    if (workerPath.empty())
+        return fail ("YESDAW_PLUGIN_HOST_PATH is missing");
+
+    const std::filesystem::path worker (workerPath);
+    if (! std::filesystem::exists (worker))
+        return fail ("worker executable path does not exist");
+
+    RtLaneConfig cfg;
+    cfg.channels = 2;
+    cfg.maxBlockSize = 8;
+    cfg.maxEventsPerBlock = 2;
+
+    const auto load = loadCoordinator.launchAndLoadRtLane (juce::File (juce::String (workerPath)), cfg);
+    workerMayBeRunning = load.readySeen;
+    const auto activeIdentity = loadCoordinator.activeRtLaneLoadIdentity();
+    proof.loadStatus = load.status;
+    proof.loadReplyStatus = load.workerReplyStatus;
+    proof.loadAttachFailure = load.workerAttachFailure;
+
+    if (load.status != PluginHostCoordinator::RtLaneLoadStatus::success
+        || load.workerReplyStatus != RtLaneLoadReplyStatus::accepted
+        || load.workerAttachFailure != RtLaneAttachFailure::None
+        || ! load.readySeen
+        || ! load.loadMessageSent
+        || ! load.loadReplySeen
+        || ! load.coordinatorAllocated
+        || ! load.coordinatorUsesOsSharedMemory
+        || ! load.workerAccepted
+        || activeIdentity.sharedMemoryName != load.identity.sharedMemoryName
+        || ! loadCoordinator.activeRtLaneUsesOsSharedMemory())
+        return fail ("coordinator did not load an accepted RT-lane identity for worker polling");
+
+    RtLaneRing audioRtSide;
+    if (! audioRtSide.attachSharedMemory (activeIdentity.sharedMemoryName))
+    {
+        proof.audioAttachFailure = audioRtSide.lastAttachFailure();
+        proof.audioAttachSystemError = audioRtSide.lastAttachSystemError();
+        return fail ("test audio endpoint could not attach the coordinator-owned RT lane");
+    }
+
+    proof.initialOutputSeq = audioRtSide.outputSeq();
+    if (proof.initialOutputSeq != 0)
+        return fail ("worker produced output before any RT-lane input was published");
+
+    constexpr int channels = 2;
+    constexpr int numFrames = 8;
+    std::vector<float> in (static_cast<std::size_t> (channels * numFrames), 0.0f);
+    std::vector<float> out (static_cast<std::size_t> (channels * numFrames), -1.0f);
+    std::vector<float*> inCh (channels);
+    std::vector<float*> outCh (channels);
+    for (int channel = 0; channel < channels; ++channel)
+    {
+        inCh[static_cast<std::size_t> (channel)] =
+            in.data() + static_cast<std::size_t> (channel * numFrames);
+        outCh[static_cast<std::size_t> (channel)] =
+            out.data() + static_cast<std::size_t> (channel * numFrames);
+    }
+
+    auto sampleFor = [] (int channel, std::uint64_t block, int frame) noexcept
+    {
+        return static_cast<float> ((channel + 1) * 1000)
+            + static_cast<float> (block * 100u)
+            + static_cast<float> (frame);
+    };
+
+    auto fillInput = [&] (std::uint64_t block)
+    {
+        for (int channel = 0; channel < channels; ++channel)
+            for (int frame = 0; frame < numFrames; ++frame)
+                in[static_cast<std::size_t> (channel * numFrames + frame)] =
+                    sampleFor (channel, block, frame);
+    };
+
+    fillInput (0);
+    const RtLaneExchangeResult r0 =
+        audioRtSide.exchangeBlock (inCh.data(), channels, numFrames, {}, outCh.data(), channels);
+    proof.r0Source = r0.source;
+    if (r0.source != RtLaneOutput::Silence || r0.inputBlockIndex != 0)
+        return fail ("first RT-lane exchange did not prime the one-Block pipeline");
+
+    if (! waitForOutputSeqAtLeast (audioRtSide, 1))
+    {
+        proof.outputSeqAfterPoll = audioRtSide.outputSeq();
+        return fail ("worker did not pollOnce and publish hosted processor output for block zero");
+    }
+    proof.outputSeqAfterPoll = audioRtSide.outputSeq();
+
+    fillInput (1);
+    const RtLaneExchangeResult r1 =
+        audioRtSide.exchangeBlock (inCh.data(), channels, numFrames, {}, outCh.data(), channels);
+    proof.r1Source = r1.source;
+    proof.r1OutputBlockIndex = r1.outputBlockIndex;
+    if (r1.source != RtLaneOutput::Fresh || r1.outputBlockIndex != 0)
+        return fail ("second RT-lane exchange did not receive fresh worker-processed block zero");
+
+    for (int channel = 0; channel < channels; ++channel)
+    {
+        for (int frame = 0; frame < numFrames; ++frame)
+        {
+            const float expected = sampleFor (channel, 0, frame);
+            const float observed = out[static_cast<std::size_t> (channel * numFrames + frame)];
+            if (observed != expected)
+            {
+                proof.failedChannel = channel;
+                proof.failedFrame = frame;
+                proof.observed = observed;
+                proof.expected = expected;
+                return fail ("worker-hosted processor output did not match block zero input");
+            }
+        }
+    }
+
+    proof.stopStatus = loadCoordinator.requestStopAndWait().status;
+    workerMayBeRunning = false;
+    if (proof.stopStatus != PluginHostCoordinator::StopStatus::stopped)
+        return fail ("worker did not stop after RT-lane poll proof");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
+RtLaneWorkerPollProof proveWorkerPollsHostedProcessorOverRtLane()
+{
+    static const RtLaneWorkerPollProof proof = computeWorkerPollsHostedProcessorOverRtLane();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
     state.syntheticProcessorRunsInWorkerChild = runSyntheticWorkerSelfCheck();
     state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory().passed;
     state.rtLaneIdentityPassesControlLane = proveRtLaneIdentityPassesControlLane().passed;
+    state.workerPollsHostedProcessorOverRtLane = proveWorkerPollsHostedProcessorOverRtLane().passed;
     return state;
 }
 
@@ -367,6 +552,7 @@ bool hostIsolationGateSatisfied (HostIsolationGateState s) noexcept
     return s.syntheticProcessorRunsInWorkerChild
         && s.rtLaneUsesOsSharedMemory
         && s.rtLaneIdentityPassesControlLane
+        && s.workerPollsHostedProcessorOverRtLane
         && s.mixerProjectionPublishesToRuntime
         && s.triStreamPdcThroughHostedPlugin
         && s.watchdogKillsHungOrCrashedChild
@@ -429,6 +615,29 @@ TEST_CASE ("coordinator passes RT-lane shared-memory identity over the control l
     REQUIRE (proof.passed);
 }
 
+TEST_CASE ("worker polls mapped RT lane through the hosted processor path",
+           "[h3][host-isolation][rtlane][worker-poll]")
+{
+    const RtLaneWorkerPollProof proof = proveWorkerPollsHostedProcessorOverRtLane();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.loadStatus),
+             static_cast<int> (proof.loadReplyStatus),
+             static_cast<int> (proof.loadAttachFailure),
+             static_cast<int> (proof.stopStatus),
+             static_cast<int> (proof.audioAttachFailure),
+             proof.audioAttachSystemError,
+             proof.initialOutputSeq,
+             proof.outputSeqAfterPoll,
+             static_cast<int> (proof.r0Source),
+             static_cast<int> (proof.r1Source),
+             proof.r1OutputBlockIndex,
+             proof.failedChannel,
+             proof.failedFrame,
+             proof.observed,
+             proof.expected);
+    REQUIRE (proof.passed);
+}
+
 TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")
 {
     const HostIsolationGateState gate = currentHostIsolationGateState();
@@ -436,6 +645,7 @@ TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!sh
     CHECK (gate.syntheticProcessorRunsInWorkerChild);
     CHECK (gate.rtLaneUsesOsSharedMemory);
     CHECK (gate.rtLaneIdentityPassesControlLane);
+    CHECK (gate.workerPollsHostedProcessorOverRtLane);
     CHECK (gate.mixerProjectionPublishesToRuntime);
     CHECK (gate.triStreamPdcThroughHostedPlugin);
     CHECK (gate.watchdogKillsHungOrCrashedChild);

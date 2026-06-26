@@ -1,8 +1,9 @@
 // YES DAW - minimal plugin host child executable (ADR-0015).
 //
 // This is a worker/layering checkpoint: it proves there is a separate executable that owns JUCE
-// plugin-hosting modules and can receive an RT-lane shared-memory identity. It does not scan/load
-// plugins, run RT-lane processing, launch from the app, or run real plugin watchdog policy yet.
+// plugin-hosting modules, can receive an RT-lane shared-memory identity, and can poll that mapped
+// region through the hosted synthetic AudioProcessor. It does not scan/load external plugins, launch
+// from the app, or run real plugin watchdog policy yet.
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_events/juce_events.h>
@@ -10,6 +11,7 @@
 #include "engine/plugin/RtLaneRing.h"
 #include "plugin_host/PluginHostProtocol.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -17,6 +19,8 @@
 #include <cstdio>
 #include <limits>
 #include <memory>
+#include <mutex>
+#include <span>
 #include <string>
 #include <thread>
 
@@ -219,6 +223,21 @@ public:
         return shouldQuit_.load (std::memory_order_acquire);
     }
 
+    bool pollRtLaneOnce() noexcept
+    {
+        std::lock_guard<std::mutex> lock (rtLaneMutex_);
+        if (rtLane_ == nullptr || hostedProcessor_ == nullptr)
+            return false;
+
+        return rtLane_->pollOnce (
+            [this] (std::span<const yesdaw::engine::Event> events,
+                    const float* const* input, float* const* output,
+                    int channels, int numFrames) noexcept
+            {
+                processHostedBlock (events, input, output, channels, numFrames);
+            });
+    }
+
 private:
     void handleRtLaneLoadMessage (const yesdaw::plugin_host::RtLaneLoadMessage& message)
     {
@@ -227,7 +246,7 @@ private:
             const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
                 yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedInvalidIdentity, {});
             sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
-            rtLane_.reset();
+            resetHostedRtLane();
             return;
         }
 
@@ -241,19 +260,75 @@ private:
                 static_cast<std::int32_t> (endpoint->lastAttachFailure()),
                 endpoint->lastAttachSystemError());
             sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
-            rtLane_.reset();
+            resetHostedRtLane();
             return;
         }
 
-        rtLane_ = std::move (endpoint);
+        {
+            std::lock_guard<std::mutex> lock (rtLaneMutex_);
+            const int channels = static_cast<int> (std::max (1u, message.config.channels));
+            const int maxBlockSize = static_cast<int> (std::max (1u, message.config.maxBlockSize));
+
+            hostedProcessor_ = std::make_unique<SyntheticTestProcessor> (SyntheticProcessorMode::passthrough);
+            hostedProcessorBuffer_.setSize (channels, maxBlockSize);
+            hostedProcessorBuffer_.clear();
+            hostedMidi_.clear();
+            hostedProcessor_->prepareToPlay (48000.0, maxBlockSize);
+            rtLane_ = std::move (endpoint);
+        }
+
         const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
             yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted, sharedMemoryName);
         sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
     }
 
+    void resetHostedRtLane()
+    {
+        std::lock_guard<std::mutex> lock (rtLaneMutex_);
+        rtLane_.reset();
+        hostedProcessor_.reset();
+        hostedProcessorBuffer_.clear();
+        hostedMidi_.clear();
+    }
+
+    void processHostedBlock (std::span<const yesdaw::engine::Event> events,
+                             const float* const* input,
+                             float* const* output,
+                             int channels,
+                             int numFrames) noexcept
+    {
+        (void) events;
+
+        const int bufferChannels = hostedProcessorBuffer_.getNumChannels();
+        const int bufferFrames = hostedProcessorBuffer_.getNumSamples();
+        const int channelsToProcess = std::min (channels, bufferChannels);
+        const int framesToProcess = std::min (numFrames, bufferFrames);
+
+        hostedProcessorBuffer_.clear();
+        for (int channel = 0; channel < channelsToProcess; ++channel)
+            for (int frame = 0; frame < framesToProcess; ++frame)
+                hostedProcessorBuffer_.setSample (channel, frame, input[channel][frame]);
+
+        hostedMidi_.clear();
+        {
+            const juce::ScopedNoDenormals noDenormals;
+            hostedProcessor_->processBlock (hostedProcessorBuffer_, hostedMidi_);
+        }
+
+        for (int channel = 0; channel < channels; ++channel)
+            for (int frame = 0; frame < numFrames; ++frame)
+                output[channel][frame] = channel < channelsToProcess && frame < framesToProcess
+                    ? hostedProcessorBuffer_.getSample (channel, frame)
+                    : 0.0f;
+    }
+
     std::atomic<bool> shouldQuit_ { false };
     std::atomic<bool> controlLaneHung_ { false };
+    std::mutex rtLaneMutex_;
     std::unique_ptr<yesdaw::engine::RtLaneRing> rtLane_;
+    std::unique_ptr<SyntheticTestProcessor> hostedProcessor_;
+    juce::AudioBuffer<float> hostedProcessorBuffer_;
+    juce::MidiBuffer hostedMidi_;
 };
 
 int runSelfCheck()
@@ -363,7 +438,8 @@ int main (int argc, char** argv)
     }
 
     while (! worker.shouldQuit())
-        std::this_thread::sleep_for (std::chrono::milliseconds (50));
+        if (! worker.pollRtLaneOnce())
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
 
     return 0;
 }
