@@ -16,8 +16,7 @@ primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is
 checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
 CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
 coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
-shell is built and CI-green; the minimal coordinator host-failure report shell is green locally and
-awaiting remote CI
+shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -31,7 +30,7 @@ awaiting remote CI
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator host-failure report shell is green locally — the coordinator can
+- **Latest: WORKER H3 minimal coordinator host-failure report shell is CI-green — the coordinator can
   classify crash vs watchdog-timeout observations for the future bypass/recompile policy surface.**
   First, REVIEW/FIX of the previous watchdog-timeout shell found no proven defects against `STATUS.md`,
   ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the watchdog path is coordinator-side,
@@ -52,7 +51,8 @@ awaiting remote CI
   UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, or
   `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint commit.
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28213223267` is green across Windows,
+  Linux, macOS, RTSan, and TSan for commit `3c044f1`.
   **Next:** REVIEW/FIX H3 minimal coordinator host-failure report shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
