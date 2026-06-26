@@ -73,31 +73,35 @@ hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is l
   NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
   to `ctest -R YesDawHostIsolationCheck`; the first four clauses now have real evidence: the in-repo
   hosted-plugin oracle, the OS-backed shared-memory RT lane, the coordinator-to-worker RT-lane identity
-  transfer over the control lane, and worker `pollOnce` processing through the hosted processor path. Item
-  2's two gate-blocking hardening fixes (quiescent reset vs live child, release-safe channel clamp) are
-  reviewed/green, and item 3a now has a real Placeholder compiled-node kind. The remaining clauses must be
-  replaced one by one with real evidence. The three review fixes (fader clamp, ADR-0016 mute mask,
-  PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX item 2 + WORKER H3 item 3a Placeholder is locally green.** The item-2 hardening
-  checkpoint was reviewed against the close-out plan + ADR-0015/0013/0007/0008/code and no proven defect
-  was found: reset stays endpoint-local for a live worker child, stopped-endpoint shared reset is explicit,
-  channel-count clamping is release-safe/allocation-free on the audio path, item-2c still proves worker
-  `pollOnce` through the hosted processor path, and `[!shouldfail]` remains on the aggregate H3 gate. This
-  checkpoint then added `PlaceholderNode` and `CompiledNodeKind::Placeholder`, with GraphBuilder detecting
-  the kind through the frozen Node contract and rendering it as silence in the real compiled graph. Negative
-  control: temporarily removing the GraphBuilder Placeholder detection made `GraphBuilder compiles
-  PlaceholderNode as a silent graph node` fail with `0 == 1` for the Placeholder-kind count; restored code
-  passes. Still out of scope: Runtime projection, running watchdog kill/recovery, ordered publish swap,
-  blacklist persistence, scanner, pluginval/auval, UI embedding, automation lanes, ADR edits, goldens, item
-  3b+, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
-  VS DevShell `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
+  transfer over the control lane, worker `pollOnce` processing through the hosted processor path, a real
+  Placeholder compiled-node kind, and a narrow running RT-lane watchdog that kills a live child when output
+  sequence progress stalls with input backlog. The remaining clauses must be replaced one by one with real
+  evidence. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode block-size) are landed +
+  CI-green.
+- **Latest: REVIEW/FIX item 3a + WORKER H3 item 3b running RT-lane watchdog is locally green.** The item-3a
+  Placeholder checkpoint was reviewed against the close-out plan + ADR-0015/0013/0007/0008/code and no
+  proven defect was found: `PlaceholderNode` preserves the frozen Node contract, compiles as
+  `CompiledNodeKind::Placeholder`, preserves graph metadata, renders silence through the real compiled graph
+  path, does not start Runtime projection or watchdog policy, and leaves `YesDawHostIsolationCheck`
+  `[!shouldfail]` unchanged. This checkpoint then added the smallest item-3b running watchdog surface:
+  the coordinator can launch/load a live RT-lane child, receive a deterministic synthetic RT-lane hang ack,
+  publish one outstanding watchdog Block, observe `inputSeq > outputSeq` with no output progress, kill the
+  child, and classify it as `HostFailureKind::watchdogTimeout`. The shell still does not execute graph
+  recompiles or apply/persist blacklist policy. Negative control: temporarily removing the worker-side
+  RT-lane hang latch made `YesDawPluginHostCoordinatorCheck` fail with `status=unexpectedResponse`,
+  `progress=1`, and `inputSeq == outputSeq`; restored code passes. Still out of scope: Runtime projection,
+  watchdog recovery auto-enqueue/swap, ordered publish swap, blacklist persistence, scanner, pluginval/auval,
+  UI embedding, automation lanes, ADR edits, goldens, item 3c+, and `[!shouldfail]` removal. Local gate:
+  `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell
+  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
   `ctest --preset ci --output-on-failure` passed **194/194**; `git diff --check` passed.
-  **Next:** REVIEW/FIX this item-3a Placeholder checkpoint first. Verify `src/engine/nodes/PlaceholderNode.h`,
-  `src/engine/CompiledGraph.h`, `src/engine/GraphBuilder.h`, and `tests/builder_tests.cpp` against the
-  close-out plan + ADR-0015/0013/0007/0008. Confirm Placeholder preserves the frozen Node contract,
-  compiles as `CompiledNodeKind::Placeholder`, emits silence through the real graph, does not start Runtime
-  projection or watchdog policy, and leaves `[!shouldfail]` in place. If clean, continue depth-first to
-  close-out plan item 3b (running watchdog on the live child) as the next worker checkpoint.
+  **Next:** REVIEW/FIX this item-3b running-watchdog checkpoint first. Verify
+  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
+  `src/plugin_host/PluginHostMain.cpp`, and `src/plugin_host/PluginHostProtocol.h` against the close-out
+  plan + ADR-0015/0013/0008. Confirm the watchdog is coordinator/control-side, based on RT-lane
+  `outputSeq` progress while processing, distinguishes watchdog timeout from crash, leaves policy/persistence
+  and graph recompile execution false, and keeps `[!shouldfail]` in place. If clean, continue depth-first to
+  close-out plan item 3c (crash/hang -> kill -> auto-enqueue bypass + recompile that swaps Placeholder).
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

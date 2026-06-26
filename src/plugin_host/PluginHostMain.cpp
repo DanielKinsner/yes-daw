@@ -200,6 +200,14 @@ public:
             return;
         }
 
+        if (messageMatches (message, yesdaw::plugin_host::kRunningWatchdogRtLaneHangMessage))
+        {
+            const char* const ack = yesdaw::plugin_host::kRunningWatchdogRtLaneHangAckMessage;
+            sendMessageToCoordinator (juce::MemoryBlock (ack, std::strlen (ack) + 1));
+            rtLaneHung_.store (true, std::memory_order_release);
+            return;
+        }
+
         yesdaw::plugin_host::RtLaneLoadMessage rtLaneLoadMessage;
         if (yesdaw::plugin_host::copyRtLaneLoadMessage (message.getData(), message.getSize(), rtLaneLoadMessage))
         {
@@ -225,6 +233,9 @@ public:
 
     bool pollRtLaneOnce() noexcept
     {
+        if (rtLaneHung_.load (std::memory_order_acquire))
+            return false;
+
         std::lock_guard<std::mutex> lock (rtLaneMutex_);
         if (rtLane_ == nullptr || hostedProcessor_ == nullptr)
             return false;
@@ -324,6 +335,7 @@ private:
 
     std::atomic<bool> shouldQuit_ { false };
     std::atomic<bool> controlLaneHung_ { false };
+    std::atomic<bool> rtLaneHung_ { false };
     std::mutex rtLaneMutex_;
     std::unique_ptr<yesdaw::engine::RtLaneRing> rtLane_;
     std::unique_ptr<SyntheticTestProcessor> hostedProcessor_;

@@ -846,6 +846,107 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    yesdaw::engine::RtLaneConfig runningWatchdogConfig;
+    runningWatchdogConfig.channels = 1;
+    runningWatchdogConfig.maxBlockSize = 8;
+    runningWatchdogConfig.maxEventsPerBlock = 2;
+
+    yesdaw::plugin_host::PluginHostCoordinator runningWatchdogCoordinator {
+        std::chrono::milliseconds (500),
+        std::chrono::milliseconds (25)
+    };
+    const auto runningWatchdog =
+        runningWatchdogCoordinator.launchAndExpectRunningWatchdogTimeout (
+            workerExecutable, runningWatchdogConfig);
+    const auto runningWatchdogStatus = runningWatchdogCoordinator.status();
+    const auto runningWatchdogFailure = runningWatchdogCoordinator.hostFailureReport();
+    const auto runningWatchdogAction = runningWatchdogCoordinator.failureActionRequest();
+    const auto queuedRunningWatchdogAction =
+        runningWatchdogCoordinator.queueFailureActionRequestForCurrentFailure();
+    const auto runningWatchdogCommandResult =
+        runningWatchdogCoordinator.drainPendingFailureActionRequestToControlCommand();
+    const auto queuedRunningWatchdogBlacklistCandidate =
+        runningWatchdogCoordinator.queueBlacklistCandidateForCurrentFailure();
+    const auto runningWatchdogBlacklistEscalationResult =
+        runningWatchdogCoordinator.drainPendingBlacklistCandidateToControlEscalation();
+    if (runningWatchdog.status
+            != yesdaw::plugin_host::PluginHostCoordinator::WatchdogStatus::timeoutKilled
+        || ! runningWatchdog.readySeen
+        || ! runningWatchdog.watchdogTimedOut
+        || ! runningWatchdog.killRequested
+        || ! runningWatchdog.connectionLostSeen
+        || ! runningWatchdog.runningRtLaneBacklogSeen
+        || runningWatchdog.runningRtLaneInputSeq <= runningWatchdog.runningRtLaneOutputSeq
+        || runningWatchdogStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::stopped
+        || runningWatchdogStatus.watchdogStatus
+            != yesdaw::plugin_host::PluginHostCoordinator::WatchdogStatus::timeoutKilled
+        || runningWatchdogStatus.failureKind
+            != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        || ! runningWatchdogStatus.watchdogTimedOut
+        || ! runningWatchdogStatus.watchdogKillRequested
+        || ! runningWatchdogStatus.connectionLostSeen
+        || runningWatchdogFailure.kind
+            != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        || ! runningWatchdogFailure.connectionLostSeen
+        || ! runningWatchdogFailure.watchdogTimedOut
+        || ! runningWatchdogFailure.watchdogKillRequested
+        || ! requestMatches (
+            runningWatchdogAction,
+            { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
+              yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout,
+              true,
+              true })
+        || ! requestMatches (queuedRunningWatchdogAction, runningWatchdogAction)
+        || runningWatchdogCommandResult.status
+            != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! runningWatchdogCommandResult.pendingRequestConsumed
+        || runningWatchdogCommandResult.graphRecompileExecuted
+        || runningWatchdogCommandResult.command.failureKind
+            != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        || ! blacklistCandidateMatches (
+            queuedRunningWatchdogBlacklistCandidate,
+            { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout,
+              true,
+              false,
+              true })
+        || runningWatchdogBlacklistEscalationResult.status
+            != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::escalationReady
+        || ! runningWatchdogBlacklistEscalationResult.pendingCandidateConsumed
+        || runningWatchdogBlacklistEscalationResult.blacklistPolicyApplied
+        || runningWatchdogBlacklistEscalationResult.blacklistStatePersisted)
+    {
+        std::printf ("FAIL: plugin host coordinator running RT-lane watchdog is wrong: status=%s ready=%d timedOut=%d kill=%d lost=%d backlog=%d progress=%d inputSeq=%llu outputSeq=%llu state=%s watchdogStatus=%s failure=%s action=%s/%s queued=%s/%s command=%s/%s consumed=%d executed=%d blacklist=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
+                     statusName (runningWatchdog.status),
+                     runningWatchdog.readySeen ? 1 : 0,
+                     runningWatchdog.watchdogTimedOut ? 1 : 0,
+                     runningWatchdog.killRequested ? 1 : 0,
+                     runningWatchdog.connectionLostSeen ? 1 : 0,
+                     runningWatchdog.runningRtLaneBacklogSeen ? 1 : 0,
+                     runningWatchdog.runningRtLaneOutputProgressSeen ? 1 : 0,
+                     static_cast<unsigned long long> (runningWatchdog.runningRtLaneInputSeq),
+                     static_cast<unsigned long long> (runningWatchdog.runningRtLaneOutputSeq),
+                     statusName (runningWatchdogStatus.state),
+                     statusName (runningWatchdogStatus.watchdogStatus),
+                     statusName (runningWatchdogFailure.kind),
+                     statusName (runningWatchdogAction.action),
+                     statusName (runningWatchdogAction.failureKind),
+                     statusName (queuedRunningWatchdogAction.action),
+                     statusName (queuedRunningWatchdogAction.failureKind),
+                     statusName (runningWatchdogCommandResult.command.command),
+                     statusName (runningWatchdogCommandResult.command.failureKind),
+                     runningWatchdogCommandResult.pendingRequestConsumed ? 1 : 0,
+                     runningWatchdogCommandResult.graphRecompileExecuted ? 1 : 0,
+                     statusName (queuedRunningWatchdogBlacklistCandidate.failureKind),
+                     queuedRunningWatchdogBlacklistCandidate.candidate ? 1 : 0,
+                     queuedRunningWatchdogBlacklistCandidate.crashCandidate ? 1 : 0,
+                     queuedRunningWatchdogBlacklistCandidate.watchdogTimeoutCandidate ? 1 : 0,
+                     statusName (runningWatchdogBlacklistEscalationResult.status),
+                     runningWatchdogBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
+                     runningWatchdogBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
+                     runningWatchdogBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     const yesdaw::plugin_host::RtLaneLoadConfig rtLaneLoadConfig {
         1u,
         8u,
@@ -3891,6 +3992,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, allocated an OS-backed RT-lane shared-memory region, passed its identity over the control lane, observed worker attachment, proved the worker polls the mapped RT lane through the hosted processor path, rejected missing/absent RT-lane identities without fallback storage, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, allocated an OS-backed RT-lane shared-memory region, passed its identity over the control lane, observed worker attachment, proved the worker polls the mapped RT lane through the hosted processor path, killed a live child when the running RT-lane output sequence stopped advancing with input backlog, rejected missing/absent RT-lane identities without fallback storage, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

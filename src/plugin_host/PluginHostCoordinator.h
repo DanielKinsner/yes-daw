@@ -12,7 +12,9 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
+#include <vector>
 
 namespace yesdaw::plugin_host {
 
@@ -194,6 +196,10 @@ public:
         bool watchdogTimedOut { false };
         bool killRequested { false };
         bool connectionLostSeen { false };
+        bool runningRtLaneBacklogSeen { false };
+        bool runningRtLaneOutputProgressSeen { false };
+        std::uint64_t runningRtLaneInputSeq { 0 };
+        std::uint64_t runningRtLaneOutputSeq { 0 };
     };
 
     struct CrashResult
@@ -484,6 +490,12 @@ public:
         bool workerAccepted { false };
     };
 
+    struct RtLaneProgress
+    {
+        std::uint64_t inputSeq { 0 };
+        std::uint64_t outputSeq { 0 };
+    };
+
     explicit PluginHostCoordinator (std::chrono::milliseconds timeout = std::chrono::milliseconds (4000),
                                     std::chrono::milliseconds watchdogTimeout = std::chrono::milliseconds (250))
         : timeout_ (timeout),
@@ -612,6 +624,113 @@ public:
             return watchdogResult (WatchdogStatus::killObservationTimeout);
 
         return watchdogResult (WatchdogStatus::timeoutKilled);
+    }
+
+    WatchdogResult launchAndExpectRunningWatchdogTimeout (const juce::File& workerExecutable,
+                                                          yesdaw::engine::RtLaneConfig config)
+    {
+        const RtLaneLoadResult load = launchAndLoadRtLane (workerExecutable, config);
+        if (load.status == RtLaneLoadStatus::launchFailed)
+            return watchdogResult (WatchdogStatus::launchFailed);
+        if (load.status == RtLaneLoadStatus::readyTimeout)
+            return watchdogResult (WatchdogStatus::readyTimeout);
+        if (load.status == RtLaneLoadStatus::connectionLost)
+            return watchdogResult (WatchdogStatus::connectionLost);
+        if (load.status != RtLaneLoadStatus::success)
+            return watchdogResult (WatchdogStatus::unexpectedResponse);
+
+        if (! sendMessageToWorker (makeMessage (kRunningWatchdogRtLaneHangMessage)))
+            return watchdogResult (WatchdogStatus::probeSendFailed);
+
+        if (! waitFor ([this] { return runningRtLaneHangAckSeen_ || connectionLost_; }))
+            return watchdogResult (WatchdogStatus::unexpectedResponse);
+
+        if (connectionLost())
+            return watchdogResult (WatchdogStatus::connectionLost);
+
+        const int channels = std::max (1, config.channels);
+        const int frames = std::max (1, config.maxBlockSize);
+        std::vector<float> input (static_cast<std::size_t> (channels) * static_cast<std::size_t> (frames), 0.0f);
+        std::vector<float> output (input.size(), 0.0f);
+        std::vector<float*> inputChannels (static_cast<std::size_t> (channels));
+        std::vector<float*> outputChannels (static_cast<std::size_t> (channels));
+        for (int channel = 0; channel < channels; ++channel)
+        {
+            inputChannels[static_cast<std::size_t> (channel)] =
+                input.data() + static_cast<std::size_t> (channel) * static_cast<std::size_t> (frames);
+            outputChannels[static_cast<std::size_t> (channel)] =
+                output.data() + static_cast<std::size_t> (channel) * static_cast<std::size_t> (frames);
+        }
+
+        RtLaneProgress progress = activeRtLaneProgress();
+        std::uint64_t lastOutputSeq = progress.outputSeq;
+        bool outputProgressSeen = false;
+        bool backlogSeen = false;
+
+        auto lastProgressAt = std::chrono::steady_clock::now();
+        const auto deadline = lastProgressAt + timeout_;
+        while (std::chrono::steady_clock::now() < deadline)
+        {
+            progress = activeRtLaneProgress();
+            if (progress.inputSeq <= progress.outputSeq)
+            {
+                publishActiveRtLaneWatchdogBlock (inputChannels.data(), channels, frames,
+                                                  outputChannels.data(), channels);
+                progress = activeRtLaneProgress();
+            }
+
+            if (progress.outputSeq > lastOutputSeq)
+            {
+                lastOutputSeq = progress.outputSeq;
+                outputProgressSeen = true;
+                lastProgressAt = std::chrono::steady_clock::now();
+            }
+
+            if (progress.inputSeq > progress.outputSeq)
+                backlogSeen = true;
+
+            if (backlogSeen && std::chrono::steady_clock::now() - lastProgressAt >= watchdogTimeout_)
+                break;
+
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+
+        progress = activeRtLaneProgress();
+        if (! backlogSeen || progress.inputSeq <= progress.outputSeq)
+        {
+            WatchdogResult noTimeout = watchdogResult (WatchdogStatus::unexpectedResponse);
+            noTimeout.runningRtLaneBacklogSeen = backlogSeen;
+            noTimeout.runningRtLaneOutputProgressSeen = outputProgressSeen;
+            noTimeout.runningRtLaneInputSeq = progress.inputSeq;
+            noTimeout.runningRtLaneOutputSeq = progress.outputSeq;
+            return noTimeout;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            watchdogTimedOut_ = true;
+            watchdogKillRequested_ = true;
+            childState_ = ChildState::stopping;
+        }
+
+        killWorkerProcess();
+
+        if (! waitFor ([this] { return connectionLost_; }))
+        {
+            WatchdogResult failed = watchdogResult (WatchdogStatus::killObservationTimeout);
+            failed.runningRtLaneBacklogSeen = backlogSeen;
+            failed.runningRtLaneOutputProgressSeen = outputProgressSeen;
+            failed.runningRtLaneInputSeq = progress.inputSeq;
+            failed.runningRtLaneOutputSeq = progress.outputSeq;
+            return failed;
+        }
+
+        WatchdogResult killed = watchdogResult (WatchdogStatus::timeoutKilled);
+        killed.runningRtLaneBacklogSeen = backlogSeen;
+        killed.runningRtLaneOutputProgressSeen = outputProgressSeen;
+        killed.runningRtLaneInputSeq = progress.inputSeq;
+        killed.runningRtLaneOutputSeq = progress.outputSeq;
+        return killed;
     }
 
     CrashResult launchAndExpectCrash (const juce::File& workerExecutable)
@@ -1208,6 +1327,10 @@ public:
                 probeEchoed_ = true;
                 childState_ = ChildState::running;
             }
+            else if (messageMatches (message, kRunningWatchdogRtLaneHangAckMessage))
+            {
+                runningRtLaneHangAckSeen_ = true;
+            }
         }
 
         cv_.notify_all();
@@ -1247,6 +1370,25 @@ private:
                  config.maxEventsPerBlock,
                  config.lastGoodHoldBlocks,
                  config.bypassAfterMisses };
+    }
+
+    RtLaneProgress activeRtLaneProgress() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (activeRtLane_ == nullptr)
+            return {};
+
+        return { activeRtLane_->inputSeq(), activeRtLane_->outputSeq() };
+    }
+
+    void publishActiveRtLaneWatchdogBlock (float* const* inputChannels, int inputChannelCount,
+                                           int frames,
+                                           float* const* outputChannels, int outputChannelCount)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (activeRtLane_ != nullptr)
+            (void) activeRtLane_->exchangeBlock (inputChannels, inputChannelCount, frames, {},
+                                                 outputChannels, outputChannelCount);
     }
 
     RtLaneLoadResult launchAndSendRtLaneLoadIdentityInternal (
@@ -1666,6 +1808,7 @@ private:
         pendingRtLaneLoadIdentity_ = {};
         rtLaneLoadMessageSent_ = false;
         rtLaneLoadReplySeen_ = false;
+        runningRtLaneHangAckSeen_ = false;
         lastRtLaneLoadReplyStatus_ = RtLaneLoadReplyStatus::none;
         lastRtLaneLoadAttachFailure_ = yesdaw::engine::RtLaneAttachFailure::None;
         lastRtLaneLoadAttachSystemError_ = 0;
@@ -1820,6 +1963,7 @@ private:
     bool deferredBlacklistHandlingOutcomeHandlingRecorded_ { false };
     bool rtLaneLoadMessageSent_ { false };
     bool rtLaneLoadReplySeen_ { false };
+    bool runningRtLaneHangAckSeen_ { false };
     RtLaneLoadReplyStatus lastRtLaneLoadReplyStatus_ { RtLaneLoadReplyStatus::none };
     yesdaw::engine::RtLaneAttachFailure lastRtLaneLoadAttachFailure_ {
         yesdaw::engine::RtLaneAttachFailure::None

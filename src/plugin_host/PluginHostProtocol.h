@@ -13,6 +13,10 @@ inline constexpr const char* kWorkerCommandLineId = "yesdawpluginhost";
 inline constexpr const char* kWorkerReadyMessage = "ready";
 inline constexpr const char* kHandshakeProbeMessage = "yesdaw-host-handshake-v1";
 inline constexpr const char* kWatchdogProbeMessage = "yesdaw-host-watchdog-timeout-v1";
+inline constexpr const char* kRunningWatchdogRtLaneHangMessage =
+    "yesdaw-host-running-watchdog-rt-lane-hang-v1";
+inline constexpr const char* kRunningWatchdogRtLaneHangAckMessage =
+    "yesdaw-host-running-watchdog-rt-lane-hang-ack-v1";
 
 inline constexpr std::uint32_t kRtLaneLoadMessageMagic = 0x59445254u; // YDRT
 inline constexpr std::uint32_t kRtLaneLoadReplyMagic = 0x59445252u;   // YDRR
