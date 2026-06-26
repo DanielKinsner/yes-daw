@@ -546,7 +546,7 @@ private:
             cn.outputSlot  = outputSlot;
             cn.pathLatency = item.pathLatency;
             cn.delayCacheKey = item.delayCacheKey;
-            cn.muteBit     = compiledIdx < 64u ? static_cast<std::uint8_t> (compiledIdx) : kNoMuteBit;
+            cn.muteBit     = compiledIdx < 64u ? static_cast<std::uint32_t> (compiledIdx) : kNoMuteBit;
             cn.kind        = item.kind;
             cn.aliasOk     = aliasOk;
 

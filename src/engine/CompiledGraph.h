@@ -52,7 +52,7 @@ using DSlotIndex = std::uint16_t;
 
 inline constexpr SlotIndex kSilenceSlot = 0;
 inline constexpr SlotIndex kNoSlot      = 0xFFFFu;
-inline constexpr std::uint8_t kNoMuteBit = 0xFFu;
+inline constexpr std::uint32_t kNoMuteBit = 0xFFFFFFFFu;
 
 enum class CompiledNodeKind : std::uint8_t
 {
@@ -87,10 +87,9 @@ struct CompiledNode
     DSlotIndex       busAccumSlot  = kNoSlot;
     std::int64_t     pathLatency   = 0;
     DelayCacheKey    delayCacheKey = 0;
-    std::uint8_t     muteBit       = 0;
+    std::uint32_t    muteBit       = 0;   // == this node's compiled index; indexes the mute-mask words (ADR-0016)
     CompiledNodeKind kind          = CompiledNodeKind::IdentityDc;
     bool             aliasOk       = false;
-    std::uint8_t     _pad          = 0;
 };
 
 static_assert (sizeof (CompiledNode) <= 64, "CompiledNode must stay cache-small for the audio thread");
