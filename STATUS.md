@@ -75,10 +75,15 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
     reached the ramp and injected inf/NaN. Added a **negative-controlled** regression test in `fader_tests.cpp`
     (proven to FAIL without the clamp). Local gate: `YesDawFaderCheck` = 5 cases / 7439 assertions green;
     full RTSan/TSan/3-OS matrix on CI at push.
-  - **TOP DEFERRED — needs a decision before the mixer is wired to a runtime:** the mute mask is a single
-    `uint64_t` keyed by compiled-node index (`GraphBuilder.h:549`); the projection emits ~4 nodes/track, so a
-    project past ~16 tracks silently loses **all** mute/solo (`applyMixerMutePolicy` is all-or-nothing). This
-    is ADR-level (wider mask / bits only on mute-eligible nodes / other) — **grilling the ADR next.**
+  - **LANDED (ADR-0016) — the mute-mask 64-node ceiling is fixed.** The mask was a single `uint64_t` keyed by
+    compiled-node index, so a project past ~16 tracks silently lost **all** mute/solo (`applyMixerMutePolicy`
+    is all-or-nothing). ADR-0016 (grilled + accepted) replaces it with a compile-time-sized
+    `std::vector<std::atomic<uint64_t>>` word array; `muteBit` (now `uint32`) `= compiledIdx` indexes it, so
+    mute/solo is **unbounded**, the audio read stays branch-only, recompiles stay bit-identical, and
+    `CompiledNode` stays trivially-copyable. 4 green commits (ADR → widen `muteBit` → multi-word storage →
+    drop the clamp + a **negative-controlled 200-track scaling test** that fails on the pre-fix build at ~the
+    17th target). `MixerMutePolicy` and the `Node` contract untouched. Local: Graph/Builder/MutePolicy/
+    Projection/Render/Runtime checks green; full RTSan/TSan/3-OS matrix on CI at push.
 - **Latest: WORKER H3 minimal coordinator deferred blacklist-handling outcome handling acknowledge/clear-status
   shell is locally green — the coordinator can clear a recorded future control-thread
   blacklist-handling outcome handling result without applying blacklist policy or persistence.**
