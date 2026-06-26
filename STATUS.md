@@ -46,8 +46,10 @@ checkpoint is built locally and awaiting push/CI
   build lacked Windows SDK/MSVC include paths, so the documented VS DevShell flow was used for
   `cmake --build --preset ci` and `ctest --preset ci`; full ctest passed **186/186** (+1 host self-check).
   First remote CI run for commit `0014557` went green on Windows, Linux, RTSan, and TSan but red on macOS
-  at the host-worker link step: AU hosting referenced `AUGenericView` without the `AudioUnit` framework.
-  Follow-up fix links `AudioUnit` only for `YesDawPluginHost` on Apple; remote CI is pending for that fix.
+  at the host-worker link step: AU hosting referenced `AUGenericView`. Commit `33fd70a` linked `AudioUnit`
+  only for `YesDawPluginHost` on Apple, but run `28208630326` proved that was still red on macOS because
+  `AUGenericView` resolves from `CoreAudioKit`. Follow-up fix links both `AudioUnit` and `CoreAudioKit` only
+  for `YesDawPluginHost` on Apple; remote CI is pending for that fix.
   **Next:** REVIEW/FIX H3 `YesDawPluginHost` worker exe + engine-hosting layering check — verify
   `CMakeLists.txt` and `src/plugin_host/PluginHostMain.cpp` against ADR-0015 (single host worker target,
   coordinator/worker process model, host owns JUCE hosting), ADR-0013 (out-of-process host child boundary),

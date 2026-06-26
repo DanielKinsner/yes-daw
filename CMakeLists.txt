@@ -155,7 +155,7 @@ if (YESDAW_BUILD_APPS)
       juce::juce_audio_processors
       juce::juce_recommended_config_flags)
   if (APPLE)
-    target_link_libraries(YesDawPluginHost PRIVATE "-framework AudioUnit")
+    target_link_libraries(YesDawPluginHost PRIVATE "-framework AudioUnit" "-framework CoreAudioKit")
   endif()
   yesdaw_harden(YesDawPluginHost)
   add_test(NAME YesDawPluginHostSelfCheck COMMAND $<TARGET_FILE:YesDawPluginHost> --self-check)
