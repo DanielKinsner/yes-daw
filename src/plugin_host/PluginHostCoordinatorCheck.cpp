@@ -876,6 +876,7 @@ int main (int argc, char** argv)
         || ! runningWatchdog.killRequested
         || ! runningWatchdog.connectionLostSeen
         || ! runningWatchdog.runningRtLaneBacklogSeen
+        || ! runningWatchdog.runningRtLaneOutputProgressSeen
         || runningWatchdog.runningRtLaneInputSeq <= runningWatchdog.runningRtLaneOutputSeq
         || runningWatchdogStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::stopped
         || runningWatchdogStatus.watchdogStatus

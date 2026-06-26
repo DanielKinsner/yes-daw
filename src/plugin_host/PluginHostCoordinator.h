@@ -639,15 +639,6 @@ public:
         if (load.status != RtLaneLoadStatus::success)
             return watchdogResult (WatchdogStatus::unexpectedResponse);
 
-        if (! sendMessageToWorker (makeMessage (kRunningWatchdogRtLaneHangMessage)))
-            return watchdogResult (WatchdogStatus::probeSendFailed);
-
-        if (! waitFor ([this] { return runningRtLaneHangAckSeen_ || connectionLost_; }))
-            return watchdogResult (WatchdogStatus::unexpectedResponse);
-
-        if (connectionLost())
-            return watchdogResult (WatchdogStatus::connectionLost);
-
         const int channels = std::max (1, config.channels);
         const int frames = std::max (1, config.maxBlockSize);
         std::vector<float> input (static_cast<std::size_t> (channels) * static_cast<std::size_t> (frames), 0.0f);
@@ -666,6 +657,45 @@ public:
         std::uint64_t lastOutputSeq = progress.outputSeq;
         bool outputProgressSeen = false;
         bool backlogSeen = false;
+
+        publishActiveRtLaneWatchdogBlock (inputChannels.data(), channels, frames,
+                                          outputChannels.data(), channels);
+
+        const auto liveChildProgressDeadline = std::chrono::steady_clock::now() + timeout_;
+        while (std::chrono::steady_clock::now() < liveChildProgressDeadline)
+        {
+            progress = activeRtLaneProgress();
+            if (progress.outputSeq > lastOutputSeq)
+            {
+                lastOutputSeq = progress.outputSeq;
+                outputProgressSeen = true;
+                break;
+            }
+
+            if (connectionLost())
+                return watchdogResult (WatchdogStatus::connectionLost);
+
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+
+        if (! outputProgressSeen)
+        {
+            WatchdogResult noProgress = watchdogResult (WatchdogStatus::unexpectedResponse);
+            noProgress.runningRtLaneBacklogSeen = progress.inputSeq > progress.outputSeq;
+            noProgress.runningRtLaneOutputProgressSeen = false;
+            noProgress.runningRtLaneInputSeq = progress.inputSeq;
+            noProgress.runningRtLaneOutputSeq = progress.outputSeq;
+            return noProgress;
+        }
+
+        if (! sendMessageToWorker (makeMessage (kRunningWatchdogRtLaneHangMessage)))
+            return watchdogResult (WatchdogStatus::probeSendFailed);
+
+        if (! waitFor ([this] { return runningRtLaneHangAckSeen_ || connectionLost_; }))
+            return watchdogResult (WatchdogStatus::unexpectedResponse);
+
+        if (connectionLost())
+            return watchdogResult (WatchdogStatus::connectionLost);
 
         auto lastProgressAt = std::chrono::steady_clock::now();
         const auto deadline = lastProgressAt + timeout_;
