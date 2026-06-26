@@ -13,7 +13,7 @@ worklog.
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
 `PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
-checkpoint is built locally and awaiting push/CI
+checkpoint is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -48,8 +48,9 @@ checkpoint is built locally and awaiting push/CI
   First remote CI run for commit `0014557` went green on Windows, Linux, RTSan, and TSan but red on macOS
   at the host-worker link step: AU hosting referenced `AUGenericView`. Commit `33fd70a` linked `AudioUnit`
   only for `YesDawPluginHost` on Apple, but run `28208630326` proved that was still red on macOS because
-  `AUGenericView` resolves from `CoreAudioKit`. Follow-up fix links both `AudioUnit` and `CoreAudioKit` only
-  for `YesDawPluginHost` on Apple; remote CI is pending for that fix.
+  `AUGenericView` resolves from `CoreAudioKit`. Commit `a5b7781` links both `AudioUnit` and `CoreAudioKit`
+  only for `YesDawPluginHost` on Apple; remote CI run `28208956977` is green across Windows, Linux, macOS,
+  RTSan, and TSan.
   **Next:** REVIEW/FIX H3 `YesDawPluginHost` worker exe + engine-hosting layering check — verify
   `CMakeLists.txt` and `src/plugin_host/PluginHostMain.cpp` against ADR-0015 (single host worker target,
   coordinator/worker process model, host owns JUCE hosting), ADR-0013 (out-of-process host child boundary),
