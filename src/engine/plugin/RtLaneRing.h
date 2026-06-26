@@ -184,7 +184,7 @@ public:
             lastAttachFailure_ = RtLaneAttachFailure::HeaderMismatch;
             return false;
         }
-        if (header->regionBytes != candidate.size())
+        if (candidate.size() < header->regionBytes)
         {
             lastAttachFailure_ = RtLaneAttachFailure::SizeMismatch;
             return false;
