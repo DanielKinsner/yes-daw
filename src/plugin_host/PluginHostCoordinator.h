@@ -1074,6 +1074,14 @@ public:
         return deferredBlacklistHandlingOutcomeHandlingStatusLocked();
     }
 
+    DeferredBlacklistHandlingOutcomeHandlingStatus acknowledgeDeferredBlacklistHandlingOutcomeHandlingStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredBlacklistHandlingOutcomeHandlingResult_ = {};
+        deferredBlacklistHandlingOutcomeHandlingRecorded_ = false;
+        return deferredBlacklistHandlingOutcomeHandlingStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
