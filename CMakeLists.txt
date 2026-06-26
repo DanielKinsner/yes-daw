@@ -169,6 +169,7 @@ if (YESDAW_BUILD_APPS)
   juce_add_console_app(YesDawPluginHostCoordinatorCheck PRODUCT_NAME "YesDawPluginHostCoordinatorCheck")
   target_sources(YesDawPluginHostCoordinatorCheck PRIVATE src/plugin_host/PluginHostCoordinatorCheck.cpp)
   target_include_directories(YesDawPluginHostCoordinatorCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawPluginHostCoordinatorCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawPluginHostCoordinatorCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
   target_link_libraries(YesDawPluginHostCoordinatorCheck
     PRIVATE
@@ -184,6 +185,7 @@ if (YESDAW_BUILD_APPS)
   # finish line is honestly red. Flip the test to blocking when the hosted-process path exists.
   add_executable(YesDawHostIsolationCheck tests/host_isolation_tests.cpp)
   target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawHostIsolationCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawHostIsolationCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
   target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain juce::juce_events)
   add_dependencies(YesDawHostIsolationCheck YesDawPluginHost)

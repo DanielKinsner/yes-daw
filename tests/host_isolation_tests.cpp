@@ -11,8 +11,10 @@
 #include "plugin_host/PluginHostCoordinator.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <span>
 #include <string>
 #include <thread>
@@ -20,16 +22,108 @@
 #include <vector>
 
 using yesdaw::engine::Event;
+using yesdaw::engine::GraphBuildError;
+using yesdaw::engine::GraphBuilder;
+using yesdaw::engine::GraphId;
+using yesdaw::engine::IdentityDcNode;
+using yesdaw::engine::MasterNode;
+using yesdaw::engine::Node;
+using yesdaw::engine::NodeId;
+using yesdaw::engine::NodeProperties;
+using yesdaw::engine::PlaceholderNode;
+using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::RtLaneConfig;
 using yesdaw::engine::RtLaneAttachFailure;
 using yesdaw::engine::RtLaneExchangeResult;
 using yesdaw::engine::RtLaneOutput;
 using yesdaw::engine::RtLaneRing;
+using yesdaw::engine::Runtime;
 using yesdaw::plugin_host::PluginHostCoordinator;
 using yesdaw::plugin_host::RtLaneLoadConfig;
 using yesdaw::plugin_host::RtLaneLoadReplyStatus;
 
 namespace {
+
+class SimulatedHostedPluginNode final : public Node
+{
+public:
+    explicit SimulatedHostedPluginNode (NodeId id, int channels = 1) noexcept
+        : id_ (id), channels_ (channels > 0 ? channels : 1)
+    {
+    }
+
+    NodeProperties properties() const noexcept override
+    {
+        return { true, false, channels_, 0, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double, int) override {}
+    void process (const ProcessArgs&) noexcept YESDAW_RT_HOT override {}
+    void reset() noexcept override {}
+    void release() override {}
+
+    void setInput (Node* input) noexcept
+    {
+        input_ = input;
+    }
+
+private:
+    NodeId id_;
+    int channels_;
+    Node* input_ = nullptr;
+};
+
+constexpr NodeId kRecoverySourceId = 72001;
+constexpr NodeId kRecoveryOffenderId = 72002;
+constexpr NodeId kRecoveryMasterId = 72003;
+
+GraphBuilder::Inputs recoveryGraphInputs (bool placeholder, GraphId graphId)
+{
+    GraphBuilder::Inputs inputs;
+    inputs.id = graphId;
+    inputs.masterNodeId = kRecoveryMasterId;
+    inputs.maxBlockSize = 8;
+
+    auto source = std::make_unique<IdentityDcNode> (kRecoverySourceId, 0.75f, 1);
+    Node* const sourcePtr = source.get();
+
+    std::unique_ptr<Node> offender;
+    if (placeholder)
+    {
+        auto replacement = std::make_unique<PlaceholderNode> (kRecoveryOffenderId, 1);
+        replacement->setInput (sourcePtr);
+        offender = std::move (replacement);
+    }
+    else
+    {
+        auto hosted = std::make_unique<SimulatedHostedPluginNode> (kRecoveryOffenderId, 1);
+        hosted->setInput (sourcePtr);
+        offender = std::move (hosted);
+    }
+
+    Node* const offenderPtr = offender.get();
+    auto master = std::make_unique<MasterNode> (kRecoveryMasterId, 1);
+    master->setInputNodes ({ offenderPtr });
+
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (offender));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
+}
+
+bool allSamplesNear (const std::vector<float>& values, float expected) noexcept
+{
+    for (const float value : values)
+        if (std::abs (value - expected) > 0.000001f)
+            return false;
+
+    return true;
+}
 
 struct HostIsolationGateState
 {
@@ -537,6 +631,160 @@ RtLaneWorkerPollProof proveWorkerPollsHostedProcessorOverRtLane()
     return proof;
 }
 
+struct WatchdogRecoveryProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    PluginHostCoordinator::WatchdogStatus watchdogStatus {
+        PluginHostCoordinator::WatchdogStatus::notStarted
+    };
+    PluginHostCoordinator::CrashStatus crashStatus {
+        PluginHostCoordinator::CrashStatus::notStarted
+    };
+    PluginHostCoordinator::HostFailureKind watchdogFailure {
+        PluginHostCoordinator::HostFailureKind::none
+    };
+    PluginHostCoordinator::HostFailureKind crashFailure {
+        PluginHostCoordinator::HostFailureKind::none
+    };
+    PluginHostCoordinator::GraphRecompileStatus recoveryStatus {
+        PluginHostCoordinator::GraphRecompileStatus::noAction
+    };
+    PluginHostCoordinator::GraphRecompileStatus missingPlaceholderStatus {
+        PluginHostCoordinator::GraphRecompileStatus::noAction
+    };
+    bool watchdogAutoQueued = false;
+    bool crashAutoQueued = false;
+    bool liveGraphPublished = false;
+    bool liveGraphAudible = false;
+    bool placeholderCompiled = false;
+    bool orderedPublishAccepted = false;
+    bool graphRecompileExecuted = false;
+    bool placeholderOutputSilent = false;
+    bool missingPlaceholderRejected = false;
+    std::size_t reclaimedGraphs = 0;
+};
+
+WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
+{
+    WatchdogRecoveryProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    const std::string workerPath = workerPathFromEnvironment();
+    if (workerPath.empty())
+        return fail ("YESDAW_PLUGIN_HOST_PATH is missing");
+
+    const std::filesystem::path worker (workerPath);
+    if (! std::filesystem::exists (worker))
+        return fail ("worker executable path does not exist");
+
+    RtLaneConfig cfg;
+    cfg.channels = 1;
+    cfg.maxBlockSize = 8;
+    cfg.maxEventsPerBlock = 2;
+
+    PluginHostCoordinator watchdogCoordinator { std::chrono::milliseconds (500),
+                                                std::chrono::milliseconds (25) };
+    const auto watchdog =
+        watchdogCoordinator.launchAndExpectRunningWatchdogTimeout (juce::File (juce::String (workerPath)), cfg);
+    proof.watchdogStatus = watchdog.status;
+    proof.watchdogFailure = watchdogCoordinator.hostFailureReport().kind;
+    if (watchdog.status != PluginHostCoordinator::WatchdogStatus::timeoutKilled
+        || ! watchdog.runningRtLaneBacklogSeen
+        || ! watchdog.runningRtLaneOutputProgressSeen
+        || watchdog.runningRtLaneInputSeq <= watchdog.runningRtLaneOutputSeq
+        || proof.watchdogFailure != PluginHostCoordinator::HostFailureKind::watchdogTimeout)
+        return fail ("running watchdog did not kill a live child after RT-lane progress stalled");
+
+    const auto watchdogAction = watchdogCoordinator.pendingFailureActionRequest();
+    proof.watchdogAutoQueued =
+        watchdogAction.action == PluginHostCoordinator::FailureActionKind::bypassAndRecompile
+        && watchdogAction.failureKind == PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        && watchdogAction.bypassRequested
+        && watchdogAction.recompileRequested;
+    if (! proof.watchdogAutoQueued)
+        return fail ("watchdog failure did not auto-enqueue bypass/recompile");
+
+    Runtime runtime;
+    std::vector<float> out (8u, 0.0f);
+    GraphBuildError liveBuildError;
+    auto liveGraph = GraphBuilder::build (recoveryGraphInputs (false, 11), &liveBuildError);
+    proof.liveGraphPublished = liveGraph != nullptr
+        && liveBuildError.code() == GraphBuildError::Code::None
+        && runtime.publish (std::move (liveGraph));
+    if (! proof.liveGraphPublished)
+        return fail ("live simulated plugin graph did not publish through Runtime");
+
+    runtime.processBlock (out.data(), static_cast<int> (out.size()));
+    proof.liveGraphAudible = allSamplesNear (out, 0.75f);
+    if (! proof.liveGraphAudible)
+        return fail ("live simulated plugin graph was not audible before recovery");
+
+    const auto recovery =
+        watchdogCoordinator.executePendingFailureActionRequestToPlaceholderGraph (
+            runtime, recoveryGraphInputs (true, 12), kRecoveryOffenderId);
+    proof.recoveryStatus = recovery.status;
+    proof.placeholderCompiled = recovery.placeholderCompiled;
+    proof.orderedPublishAccepted = recovery.orderedPublishAccepted;
+    proof.graphRecompileExecuted = recovery.graphRecompileExecuted
+        && recovery.commandResult.graphRecompileExecuted;
+    if (recovery.status != PluginHostCoordinator::GraphRecompileStatus::graphPublished
+        || ! proof.placeholderCompiled
+        || ! proof.orderedPublishAccepted
+        || ! proof.graphRecompileExecuted)
+        return fail ("placeholder graph recompile was not published");
+
+    runtime.processBlock (out.data(), static_cast<int> (out.size()));
+    proof.placeholderOutputSilent = allSamplesNear (out, 0.0f);
+    proof.reclaimedGraphs = runtime.reclaim();
+    if (! proof.placeholderOutputSilent || proof.reclaimedGraphs == 0u)
+        return fail ("placeholder recovery did not replace the live graph through ordered publish");
+
+    PluginHostCoordinator missingPlaceholderCoordinator;
+    (void) missingPlaceholderCoordinator.queueFailureActionRequest (watchdogAction);
+    Runtime missingPlaceholderRuntime;
+    const auto missingPlaceholder =
+        missingPlaceholderCoordinator.executePendingFailureActionRequestToPlaceholderGraph (
+            missingPlaceholderRuntime, recoveryGraphInputs (false, 13), kRecoveryOffenderId);
+    proof.missingPlaceholderStatus = missingPlaceholder.status;
+    proof.missingPlaceholderRejected =
+        missingPlaceholder.status == PluginHostCoordinator::GraphRecompileStatus::missingPlaceholder
+        && ! missingPlaceholder.placeholderCompiled
+        && ! missingPlaceholder.orderedPublishAccepted
+        && ! missingPlaceholder.graphRecompileExecuted;
+    if (! proof.missingPlaceholderRejected)
+        return fail ("negative control accepted a non-placeholder recovery graph");
+
+    PluginHostCoordinator crashCoordinator;
+    const auto crash = crashCoordinator.launchAndExpectCrash (juce::File (juce::String (workerPath)));
+    proof.crashStatus = crash.status;
+    proof.crashFailure = crashCoordinator.hostFailureReport().kind;
+    const auto crashAction = crashCoordinator.pendingFailureActionRequest();
+    proof.crashAutoQueued =
+        crash.status == PluginHostCoordinator::CrashStatus::connectionLost
+        && proof.crashFailure == PluginHostCoordinator::HostFailureKind::crash
+        && crashAction.action == PluginHostCoordinator::FailureActionKind::bypassAndRecompile
+        && crashAction.failureKind == PluginHostCoordinator::HostFailureKind::crash
+        && crashAction.bypassRequested
+        && crashAction.recompileRequested;
+    if (! proof.crashAutoQueued)
+        return fail ("crash failure did not auto-enqueue bypass/recompile");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
+WatchdogRecoveryProof proveWatchdogRecoverySwapsPlaceholder()
+{
+    static const WatchdogRecoveryProof proof = computeWatchdogRecoverySwapsPlaceholder();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
@@ -544,6 +792,11 @@ HostIsolationGateState currentHostIsolationGateState()
     state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory().passed;
     state.rtLaneIdentityPassesControlLane = proveRtLaneIdentityPassesControlLane().passed;
     state.workerPollsHostedProcessorOverRtLane = proveWorkerPollsHostedProcessorOverRtLane().passed;
+    const WatchdogRecoveryProof recovery = proveWatchdogRecoverySwapsPlaceholder();
+    state.watchdogKillsHungOrCrashedChild =
+        recovery.watchdogAutoQueued && recovery.crashAutoQueued;
+    state.placeholderSwapUsesOrderedPublish =
+        recovery.placeholderCompiled && recovery.orderedPublishAccepted && recovery.graphRecompileExecuted;
     return state;
 }
 
@@ -635,6 +888,30 @@ TEST_CASE ("worker polls mapped RT lane through the hosted processor path",
              proof.failedFrame,
              proof.observed,
              proof.expected);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("coordinator watchdog/crash recovery swaps a Placeholder through Runtime",
+           "[h3][host-isolation][watchdog][placeholder]")
+{
+    const WatchdogRecoveryProof proof = proveWatchdogRecoverySwapsPlaceholder();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.watchdogStatus),
+             static_cast<int> (proof.crashStatus),
+             static_cast<int> (proof.watchdogFailure),
+             static_cast<int> (proof.crashFailure),
+             static_cast<int> (proof.recoveryStatus),
+             static_cast<int> (proof.missingPlaceholderStatus),
+             proof.watchdogAutoQueued,
+             proof.crashAutoQueued,
+             proof.liveGraphPublished,
+             proof.liveGraphAudible,
+             proof.placeholderCompiled,
+             proof.orderedPublishAccepted,
+             proof.graphRecompileExecuted,
+             proof.placeholderOutputSilent,
+             proof.missingPlaceholderRejected,
+             proof.reclaimedGraphs);
     REQUIRE (proof.passed);
 }
 

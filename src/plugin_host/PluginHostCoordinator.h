@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/GraphBuilder.h"
+#include "engine/Runtime.h"
 #include "engine/plugin/RtLaneRing.h"
 #include "plugin_host/PluginHostProtocol.h"
 
@@ -83,6 +85,15 @@ public:
     {
         noAction,
         commandReady
+    };
+
+    enum class GraphRecompileStatus
+    {
+        noAction,
+        compileFailed,
+        missingPlaceholder,
+        publishFailed,
+        graphPublished
     };
 
     enum class BlacklistEscalationStatus
@@ -265,6 +276,20 @@ public:
         GraphChangeCommandStatus status { GraphChangeCommandStatus::noAction };
         GraphChangeCommandResult lastResult;
         bool commandRecorded { false };
+        bool graphRecompileExecuted { false };
+    };
+
+    struct PlaceholderGraphRecompileResult
+    {
+        GraphRecompileStatus status { GraphRecompileStatus::noAction };
+        GraphChangeCommandResult commandResult;
+        yesdaw::engine::NodeId offenderNodeId { 0 };
+        yesdaw::engine::GraphBuildError::Code buildError {
+            yesdaw::engine::GraphBuildError::Code::None
+        };
+        bool pendingRequestConsumed { false };
+        bool placeholderCompiled { false };
+        bool orderedPublishAccepted { false };
         bool graphRecompileExecuted { false };
     };
 
@@ -896,6 +921,50 @@ public:
                  false };
     }
 
+    PlaceholderGraphRecompileResult executePendingFailureActionRequestToPlaceholderGraph (
+        yesdaw::engine::Runtime& runtime,
+        yesdaw::engine::GraphBuilder::Inputs inputs,
+        yesdaw::engine::NodeId offenderNodeId)
+    {
+        PlaceholderGraphRecompileResult result;
+        result.commandResult = drainPendingFailureActionRequestToControlCommand();
+        result.offenderNodeId = offenderNodeId;
+        result.pendingRequestConsumed = result.commandResult.pendingRequestConsumed;
+
+        if (result.commandResult.status != GraphChangeCommandStatus::commandReady)
+            return result;
+
+        yesdaw::engine::GraphBuildError buildError;
+        std::unique_ptr<yesdaw::engine::CompiledGraph> graph =
+            yesdaw::engine::GraphBuilder::build (std::move (inputs), &buildError);
+        result.buildError = buildError.code();
+
+        if (graph == nullptr)
+        {
+            result.status = GraphRecompileStatus::compileFailed;
+            return result;
+        }
+
+        result.placeholderCompiled = compiledGraphHasPlaceholderFor (*graph, offenderNodeId);
+        if (! result.placeholderCompiled)
+        {
+            result.status = GraphRecompileStatus::missingPlaceholder;
+            return result;
+        }
+
+        result.orderedPublishAccepted = runtime.publish (std::move (graph));
+        if (! result.orderedPublishAccepted)
+        {
+            result.status = GraphRecompileStatus::publishFailed;
+            return result;
+        }
+
+        result.status = GraphRecompileStatus::graphPublished;
+        result.graphRecompileExecuted = true;
+        result.commandResult.graphRecompileExecuted = true;
+        return result;
+    }
+
     DeferredGraphChangeCommandStatus recordDeferredGraphChangeCommandResult (GraphChangeCommandResult result)
     {
         std::lock_guard<std::mutex> lock (mutex_);
@@ -1376,6 +1445,9 @@ public:
             else if (! stopRequested_)
                 failureKind_ = HostFailureKind::crash;
 
+            if (failureKind_ != HostFailureKind::none)
+                pendingFailureAction_ = failureActionRequestFor (hostFailureReportLocked());
+
             childState_ = stopRequested_ ? ChildState::stopped : ChildState::lost;
         }
 
@@ -1519,6 +1591,16 @@ private:
     {
         return request.action == FailureActionKind::bypassAndRecompile
             && request.failureKind != HostFailureKind::none;
+    }
+
+    static bool compiledGraphHasPlaceholderFor (const yesdaw::engine::CompiledGraph& graph,
+                                                yesdaw::engine::NodeId offenderNodeId) noexcept
+    {
+        for (const yesdaw::engine::CompiledNode& node : graph.debugCompiledNodes())
+            if (node.id == offenderNodeId && node.kind == yesdaw::engine::CompiledNodeKind::Placeholder)
+                return true;
+
+        return false;
     }
 
     static bool canRecordGraphChangeCommandResult (GraphChangeCommandResult result) noexcept
@@ -1833,6 +1915,24 @@ private:
         watchdogStatus_ = WatchdogStatus::notStarted;
         crashStatus_ = CrashStatus::notStarted;
         failureKind_ = HostFailureKind::none;
+        pendingFailureAction_ = {};
+        pendingBlacklistCandidate_ = {};
+        pendingBlacklistPolicyDecisionRequest_ = {};
+        pendingBlacklistPolicyDecisionOutcome_ = {};
+        pendingBlacklistHandlingRequest_ = {};
+        pendingBlacklistHandlingOutcome_ = {};
+        lastDeferredGraphChangeCommandResult_ = {};
+        lastDeferredBlacklistEscalationResult_ = {};
+        lastDeferredBlacklistPolicyDecisionCommandResult_ = {};
+        lastDeferredBlacklistPolicyDecisionOutcomeHandlingResult_ = {};
+        lastDeferredBlacklistHandlingCommandResult_ = {};
+        lastDeferredBlacklistHandlingOutcomeHandlingResult_ = {};
+        deferredGraphChangeCommandRecorded_ = false;
+        deferredBlacklistEscalationRecorded_ = false;
+        deferredBlacklistPolicyDecisionCommandRecorded_ = false;
+        deferredBlacklistPolicyDecisionOutcomeHandlingRecorded_ = false;
+        deferredBlacklistHandlingCommandRecorded_ = false;
+        deferredBlacklistHandlingOutcomeHandlingRecorded_ = false;
         activeRtLane_.reset();
         activeRtLaneLoadIdentity_ = {};
         pendingRtLaneLoadIdentity_ = {};

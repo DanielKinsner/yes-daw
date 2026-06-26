@@ -53,7 +53,8 @@ oracle is locally green; the OS-backed RT-lane shared-memory clause is built/rev
 coordinator RT-lane load/control-lane identity transfer is built/reviewed/green; the worker mapped
 RT-lane `pollOnce` hosted-processor path is locally green; the item-2 RT-lane reset/channel-count
 hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is locally green; item
-3b running RT-lane watchdog same-child progress hardening is locally green
+3b running RT-lane watchdog same-child progress hardening is reviewed/green; item 3c crash/hang
+auto-enqueue + Placeholder recovery publish is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -72,40 +73,46 @@ hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is l
   **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
   plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
   NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
-  to `ctest -R YesDawHostIsolationCheck`; the first four clauses now have real evidence: the in-repo
+  to `ctest -R YesDawHostIsolationCheck`; the early clauses now have real evidence: the in-repo
   hosted-plugin oracle, the OS-backed shared-memory RT lane, the coordinator-to-worker RT-lane identity
   transfer over the control lane, worker `pollOnce` processing through the hosted processor path, a real
   Placeholder compiled-node kind, and a narrow running RT-lane watchdog that first proves same-child
-  `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog.
+  `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog,
+  plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures and
+  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX item 3b running RT-lane watchdog progress proof is locally green.** Review found one
-  proven item-3b proof gap: the watchdog path could pass after launch/load and synthetic hang ack without
-  proving that the same child had advanced the RT-lane `outputSeq` before the induced hang. The fix keeps
-  the slice narrow: the coordinator primes the live RT lane with one block, waits for `outputSeq` to advance
-  on that child, then arms the synthetic hang, publishes one outstanding watchdog block, observes
-  `inputSeq > outputSeq` with no further output progress, kills the child, and classifies
-  `HostFailureKind::watchdogTimeout`. `YesDawPluginHostCoordinatorCheck` now asserts
-  `runningRtLaneOutputProgressSeen` as well as backlog/kill/failure-kind evidence. The shell still does not
-  execute graph recompiles or apply/persist blacklist policy. Negative control: temporarily disabling the
-  live-child priming publish made `YesDawPluginHostCoordinatorCheck` fail with
-  `status=unexpectedResponse`, `progress=0`, `inputSeq=0`, and `outputSeq=0`; restored code passes. Still
-  out of scope: Runtime projection, watchdog recovery auto-enqueue/swap, ordered publish swap, blacklist
-  persistence, scanner, pluginval/auval, UI embedding, automation lanes, ADR edits, goldens, item 3c+, and
-  `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci --target YesDawPluginHostCoordinatorCheck`; VS DevShell
+- **Latest: WORKER item 3c crash/hang -> auto-enqueue -> Placeholder recovery publish is locally green.**
+  REVIEW/FIX of item 3b found no further proven defects against `STATUS.md`, the close-out plan,
+  ADR-0015, ADR-0013, ADR-0008, and the coordinator/worker/protocol/CMake surfaces: the watchdog remains
+  coordinator/control-side; proves same-child RT-lane `outputSeq` progress before the induced hang; then
+  proves input backlog/no further output progress, kills the child, classifies watchdog timeout distinctly
+  from crash, keeps `[!shouldfail]`, and does not apply blacklist policy or persistence. Then WORKER added
+  the narrow item 3c recovery slice: `handleConnectionLost()` auto-enqueues bypass/recompile for both
+  watchdog-timeout and crash failures; `resetState()` clears stale pending/deferred recovery pipelines before
+  a fresh launch; and the coordinator can consume the auto-queued action, compile a graph with the offender's
+  node id replaced by `CompiledNodeKind::Placeholder`, publish it through `Runtime`'s ordered `SwapGraph`
+  queue, and reclaim the old graph on the janitor side. `YesDawHostIsolationCheck` now has a standalone
+  passing proof for watchdog/crash recovery while the aggregate H3 gate remains `[!shouldfail]`.
+  Negative control: temporarily bypassing the Placeholder-kind guard made
+  `YesDawPluginHostCoordinatorCheck` fail because the non-placeholder recovery graph was accepted as
+  `graphPublished`; restored code rejects it as `missingPlaceholder` and passes. Still out of scope:
+  persistent blacklist store/schema/policy enforcement, scanner, pluginval/auval, UI embedding, automation
+  lanes, ADR edits, goldens, item 4+, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`;
+  VS DevShell `cmake --build --preset ci --target YesDawPluginHostCoordinatorCheck`; VS DevShell
   `ctest --preset ci -R YesDawPluginHostCoordinatorCheck --output-on-failure`; negative control as above;
-  `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell
+  VS DevShell `cmake --build --preset ci --target YesDawHostIsolationCheck`; VS DevShell
   `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `ctest --preset ci --output-on-failure` passed **194/194**; `git diff --check` passed.
-  **Next:** REVIEW/FIX this item-3b watchdog progress-hardening checkpoint first. Verify
+  `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed **194/194**;
+  `git diff --check` passed. **Next:** REVIEW/FIX this item 3c recovery checkpoint first. Verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
-  `src/plugin_host/PluginHostMain.cpp`, and `src/plugin_host/PluginHostProtocol.h` against the close-out
-  plan + ADR-0015/0013/0008. Confirm the watchdog is coordinator/control-side, based on RT-lane
-  same-child `outputSeq` progress before the hang plus input backlog after the hang, distinguishes watchdog
-  timeout from crash, leaves policy/persistence and graph recompile execution false, and keeps
-  `[!shouldfail]` in place. If clean, continue depth-first to close-out plan item 3c (crash/hang -> kill ->
-  auto-enqueue bypass + recompile that swaps Placeholder).
+  `tests/host_isolation_tests.cpp`, `src/plugin_host/PluginHostMain.cpp`,
+  `src/plugin_host/PluginHostProtocol.h`, `src/engine/GraphBuilder.h`, `src/engine/Runtime.h`, and relevant
+  CMake against the close-out plan + ADR-0015/0013/0006/0008. Confirm auto-enqueue is truly failure-driven,
+  Placeholder replacement is real and published through ordered `SwapGraph`, stale recovery queues clear on
+  reset, crash/watchdog remain distinct, policy/persistence stay out of scope, and `[!shouldfail]` remains.
+  If clean, continue depth-first to close-out plan item 3d: persistent blacklist store + schema keyed
+  `{format, plugin_uid, plugin_version}` with survival across restart.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

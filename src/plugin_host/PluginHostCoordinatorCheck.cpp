@@ -1,7 +1,10 @@
 #include "plugin_host/PluginHostCoordinator.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
+#include <memory>
+#include <span>
 #include <string>
 #include <thread>
 #include <vector>
@@ -123,6 +126,22 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeC
     {
         case Status::noAction:      return "noAction";
         case Status::commandReady:  return "commandReady";
+    }
+
+    return "unknown";
+}
+
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::GraphRecompileStatus status) noexcept
+{
+    using Status = yesdaw::plugin_host::PluginHostCoordinator::GraphRecompileStatus;
+
+    switch (status)
+    {
+        case Status::noAction:            return "noAction";
+        case Status::compileFailed:       return "compileFailed";
+        case Status::missingPlaceholder:  return "missingPlaceholder";
+        case Status::publishFailed:       return "publishFailed";
+        case Status::graphPublished:      return "graphPublished";
     }
 
     return "unknown";
@@ -377,6 +396,87 @@ bool commandResultMatches (yesdaw::plugin_host::PluginHostCoordinator::GraphChan
         && commandMatches (actual.command, expected.command)
         && actual.pendingRequestConsumed == expected.pendingRequestConsumed
         && actual.graphRecompileExecuted == expected.graphRecompileExecuted;
+}
+
+class SimulatedHostedPluginNode final : public yesdaw::engine::Node
+{
+public:
+    explicit SimulatedHostedPluginNode (yesdaw::engine::NodeId id, int channels = 1) noexcept
+        : id_ (id), channels_ (channels > 0 ? channels : 1)
+    {
+    }
+
+    yesdaw::engine::NodeProperties properties() const noexcept override
+    {
+        return { true, false, channels_, 0, id_ };
+    }
+
+    std::span<yesdaw::engine::Node* const> directInputs() const noexcept override
+    {
+        return std::span<yesdaw::engine::Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double, int) override {}
+    void process (const yesdaw::engine::ProcessArgs&) noexcept YESDAW_RT_HOT override {}
+    void reset() noexcept override {}
+    void release() override {}
+
+    void setInput (yesdaw::engine::Node* input) noexcept
+    {
+        input_ = input;
+    }
+
+private:
+    yesdaw::engine::NodeId id_;
+    int channels_;
+    yesdaw::engine::Node* input_ = nullptr;
+};
+
+constexpr yesdaw::engine::NodeId kRecoverySourceId = 71001;
+constexpr yesdaw::engine::NodeId kRecoveryOffenderId = 71002;
+constexpr yesdaw::engine::NodeId kRecoveryMasterId = 71003;
+
+yesdaw::engine::GraphBuilder::Inputs recoveryGraphInputs (bool placeholder, yesdaw::engine::GraphId graphId)
+{
+    yesdaw::engine::GraphBuilder::Inputs inputs;
+    inputs.id = graphId;
+    inputs.masterNodeId = kRecoveryMasterId;
+    inputs.maxBlockSize = 8;
+
+    auto source = std::make_unique<yesdaw::engine::IdentityDcNode> (kRecoverySourceId, 0.75f, 1);
+    yesdaw::engine::Node* const sourcePtr = source.get();
+
+    std::unique_ptr<yesdaw::engine::Node> offender;
+    if (placeholder)
+    {
+        auto replacement = std::make_unique<yesdaw::engine::PlaceholderNode> (kRecoveryOffenderId, 1);
+        replacement->setInput (sourcePtr);
+        offender = std::move (replacement);
+    }
+    else
+    {
+        auto hosted = std::make_unique<SimulatedHostedPluginNode> (kRecoveryOffenderId, 1);
+        hosted->setInput (sourcePtr);
+        offender = std::move (hosted);
+    }
+
+    yesdaw::engine::Node* const offenderPtr = offender.get();
+    auto master = std::make_unique<yesdaw::engine::MasterNode> (kRecoveryMasterId, 1);
+    master->setInputNodes ({ offenderPtr });
+
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (offender));
+    inputs.nodes.push_back (std::move (master));
+    return inputs;
+}
+
+bool allSamplesNear (const std::vector<float>& values, float expected) noexcept
+{
+    for (const float value : values)
+        if (std::abs (value - expected) > 0.000001f)
+            return false;
+
+    return true;
 }
 
 bool blacklistCandidateMatches (yesdaw::plugin_host::PluginHostCoordinator::BlacklistCandidateStatus actual,
@@ -861,6 +961,43 @@ int main (int argc, char** argv)
     const auto runningWatchdogStatus = runningWatchdogCoordinator.status();
     const auto runningWatchdogFailure = runningWatchdogCoordinator.hostFailureReport();
     const auto runningWatchdogAction = runningWatchdogCoordinator.failureActionRequest();
+    const auto autoQueuedRunningWatchdogAction =
+        runningWatchdogCoordinator.pendingFailureActionRequest();
+
+    yesdaw::engine::Runtime placeholderRecoveryRuntime;
+    std::vector<float> placeholderRecoveryOut (8u, 0.0f);
+    yesdaw::engine::GraphBuildError liveRecoveryBuildError;
+    auto liveRecoveryGraph =
+        yesdaw::engine::GraphBuilder::build (recoveryGraphInputs (false, 1), &liveRecoveryBuildError);
+    const bool liveRecoveryGraphBuilt = liveRecoveryGraph != nullptr;
+    const bool liveRecoveryPublishAccepted =
+        liveRecoveryGraphBuilt && placeholderRecoveryRuntime.publish (std::move (liveRecoveryGraph));
+    if (liveRecoveryPublishAccepted)
+        placeholderRecoveryRuntime.processBlock (placeholderRecoveryOut.data(),
+                                                 static_cast<int> (placeholderRecoveryOut.size()));
+    const bool liveRecoveryOutputAudible = allSamplesNear (placeholderRecoveryOut, 0.75f);
+
+    const auto placeholderRecoveryResult =
+        runningWatchdogCoordinator.executePendingFailureActionRequestToPlaceholderGraph (
+            placeholderRecoveryRuntime,
+            recoveryGraphInputs (true, 2),
+            kRecoveryOffenderId);
+    if (placeholderRecoveryResult.orderedPublishAccepted)
+        placeholderRecoveryRuntime.processBlock (placeholderRecoveryOut.data(),
+                                                 static_cast<int> (placeholderRecoveryOut.size()));
+    const bool placeholderRecoveryOutputSilent = allSamplesNear (placeholderRecoveryOut, 0.0f);
+    const std::size_t placeholderRecoveryReclaimed = placeholderRecoveryRuntime.reclaim();
+
+    yesdaw::plugin_host::PluginHostCoordinator missingPlaceholderRecoveryCoordinator;
+    const auto missingPlaceholderQueuedAction =
+        missingPlaceholderRecoveryCoordinator.queueFailureActionRequest (runningWatchdogAction);
+    yesdaw::engine::Runtime missingPlaceholderRuntime;
+    const auto missingPlaceholderRecoveryResult =
+        missingPlaceholderRecoveryCoordinator.executePendingFailureActionRequestToPlaceholderGraph (
+            missingPlaceholderRuntime,
+            recoveryGraphInputs (false, 3),
+            kRecoveryOffenderId);
+
     const auto queuedRunningWatchdogAction =
         runningWatchdogCoordinator.queueFailureActionRequestForCurrentFailure();
     const auto runningWatchdogCommandResult =
@@ -897,6 +1034,28 @@ int main (int argc, char** argv)
               yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout,
               true,
               true })
+        || ! requestMatches (autoQueuedRunningWatchdogAction, runningWatchdogAction)
+        || ! liveRecoveryGraphBuilt
+        || liveRecoveryBuildError.code() != yesdaw::engine::GraphBuildError::Code::None
+        || ! liveRecoveryPublishAccepted
+        || ! liveRecoveryOutputAudible
+        || placeholderRecoveryResult.status
+            != yesdaw::plugin_host::PluginHostCoordinator::GraphRecompileStatus::graphPublished
+        || ! placeholderRecoveryResult.pendingRequestConsumed
+        || ! placeholderRecoveryResult.placeholderCompiled
+        || ! placeholderRecoveryResult.orderedPublishAccepted
+        || ! placeholderRecoveryResult.graphRecompileExecuted
+        || ! placeholderRecoveryResult.commandResult.graphRecompileExecuted
+        || placeholderRecoveryResult.commandResult.command.failureKind
+            != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        || ! placeholderRecoveryOutputSilent
+        || placeholderRecoveryReclaimed == 0u
+        || ! requestMatches (missingPlaceholderQueuedAction, runningWatchdogAction)
+        || missingPlaceholderRecoveryResult.status
+            != yesdaw::plugin_host::PluginHostCoordinator::GraphRecompileStatus::missingPlaceholder
+        || missingPlaceholderRecoveryResult.placeholderCompiled
+        || missingPlaceholderRecoveryResult.orderedPublishAccepted
+        || missingPlaceholderRecoveryResult.graphRecompileExecuted
         || ! requestMatches (queuedRunningWatchdogAction, runningWatchdogAction)
         || runningWatchdogCommandResult.status
             != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
@@ -916,7 +1075,7 @@ int main (int argc, char** argv)
         || runningWatchdogBlacklistEscalationResult.blacklistPolicyApplied
         || runningWatchdogBlacklistEscalationResult.blacklistStatePersisted)
     {
-        std::printf ("FAIL: plugin host coordinator running RT-lane watchdog is wrong: status=%s ready=%d timedOut=%d kill=%d lost=%d backlog=%d progress=%d inputSeq=%llu outputSeq=%llu state=%s watchdogStatus=%s failure=%s action=%s/%s queued=%s/%s command=%s/%s consumed=%d executed=%d blacklist=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
+        std::printf ("FAIL: plugin host coordinator running RT-lane watchdog is wrong: status=%s ready=%d timedOut=%d kill=%d lost=%d backlog=%d progress=%d inputSeq=%llu outputSeq=%llu state=%s watchdogStatus=%s failure=%s action=%s/%s autoQueued=%s/%s recovery=%s consumed=%d placeholder=%d published=%d executed=%d outputSilent=%d reclaimed=%zu liveBuilt=%d liveBuildError=%d livePublished=%d liveOutput=%d missingQueued=%s/%s missingRecovery=%s missingPlaceholder=%d missingPublished=%d missingExecuted=%d queued=%s/%s command=%s/%s consumed=%d executed=%d blacklist=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
                      statusName (runningWatchdog.status),
                      runningWatchdog.readySeen ? 1 : 0,
                      runningWatchdog.watchdogTimedOut ? 1 : 0,
@@ -931,6 +1090,25 @@ int main (int argc, char** argv)
                      statusName (runningWatchdogFailure.kind),
                      statusName (runningWatchdogAction.action),
                      statusName (runningWatchdogAction.failureKind),
+                     statusName (autoQueuedRunningWatchdogAction.action),
+                     statusName (autoQueuedRunningWatchdogAction.failureKind),
+                     statusName (placeholderRecoveryResult.status),
+                     placeholderRecoveryResult.pendingRequestConsumed ? 1 : 0,
+                     placeholderRecoveryResult.placeholderCompiled ? 1 : 0,
+                     placeholderRecoveryResult.orderedPublishAccepted ? 1 : 0,
+                     placeholderRecoveryResult.graphRecompileExecuted ? 1 : 0,
+                     placeholderRecoveryOutputSilent ? 1 : 0,
+                     placeholderRecoveryReclaimed,
+                     liveRecoveryGraphBuilt ? 1 : 0,
+                     static_cast<int> (liveRecoveryBuildError.code()),
+                     liveRecoveryPublishAccepted ? 1 : 0,
+                     liveRecoveryOutputAudible ? 1 : 0,
+                     statusName (missingPlaceholderQueuedAction.action),
+                     statusName (missingPlaceholderQueuedAction.failureKind),
+                     statusName (missingPlaceholderRecoveryResult.status),
+                     missingPlaceholderRecoveryResult.placeholderCompiled ? 1 : 0,
+                     missingPlaceholderRecoveryResult.orderedPublishAccepted ? 1 : 0,
+                     missingPlaceholderRecoveryResult.graphRecompileExecuted ? 1 : 0,
                      statusName (queuedRunningWatchdogAction.action),
                      statusName (queuedRunningWatchdogAction.failureKind),
                      statusName (runningWatchdogCommandResult.command.command),
@@ -945,6 +1123,71 @@ int main (int argc, char** argv)
                      runningWatchdogBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
                      runningWatchdogBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
                      runningWatchdogBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
+    yesdaw::plugin_host::PluginHostCoordinator resetStateCoordinator;
+    const auto staleQueuedAction =
+        resetStateCoordinator.queueFailureActionRequest (runningWatchdogAction);
+    const auto staleCommandResult =
+        resetStateCoordinator.drainPendingFailureActionRequestToControlCommand();
+    const auto staleDeferredCommandStatus =
+        resetStateCoordinator.recordDeferredGraphChangeCommandResult (staleCommandResult);
+    const auto staleQueuedActionAfterDeferred =
+        resetStateCoordinator.queueFailureActionRequest (runningWatchdogAction);
+    const auto staleQueuedBlacklistCandidate =
+        resetStateCoordinator.queueBlacklistCandidate (
+            { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout,
+              true,
+              false,
+              true });
+    const auto resetHandshake = resetStateCoordinator.launchAndHandshake (workerExecutable);
+    const auto resetPendingAction = resetStateCoordinator.pendingFailureActionRequest();
+    const auto resetDeferredCommandStatus = resetStateCoordinator.deferredGraphChangeCommandStatus();
+    const auto resetPendingBlacklistCandidate = resetStateCoordinator.pendingBlacklistCandidateStatus();
+    const auto resetStop = resetStateCoordinator.requestStopAndWait();
+    if (! requestMatches (staleQueuedAction, runningWatchdogAction)
+        || staleCommandResult.status
+            != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! staleDeferredCommandStatus.commandRecorded
+        || ! requestMatches (staleQueuedActionAfterDeferred, runningWatchdogAction)
+        || ! staleQueuedBlacklistCandidate.candidate
+        || resetHandshake.status != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::success
+        || resetPendingAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || resetPendingAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || resetPendingAction.bypassRequested
+        || resetPendingAction.recompileRequested
+        || resetDeferredCommandStatus.status
+            != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || resetDeferredCommandStatus.commandRecorded
+        || resetDeferredCommandStatus.graphRecompileExecuted
+        || resetPendingBlacklistCandidate.candidate
+        || resetPendingBlacklistCandidate.failureKind
+            != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || resetStop.status != yesdaw::plugin_host::PluginHostCoordinator::StopStatus::stopped)
+    {
+        std::printf ("FAIL: plugin host coordinator resetState left stale recovery pipelines: staleAction=%s/%s staleCommand=%s/%s staleDeferred=%s/%d staleQueuedAgain=%s/%s staleBlacklist=%s/%d handshake=%s pending=%s/%s/%d/%d deferred=%s/%d/%d blacklist=%s/%d stop=%s\n",
+                     statusName (staleQueuedAction.action),
+                     statusName (staleQueuedAction.failureKind),
+                     statusName (staleCommandResult.status),
+                     statusName (staleCommandResult.command.failureKind),
+                     statusName (staleDeferredCommandStatus.status),
+                     staleDeferredCommandStatus.commandRecorded ? 1 : 0,
+                     statusName (staleQueuedActionAfterDeferred.action),
+                     statusName (staleQueuedActionAfterDeferred.failureKind),
+                     statusName (staleQueuedBlacklistCandidate.failureKind),
+                     staleQueuedBlacklistCandidate.candidate ? 1 : 0,
+                     statusName (resetHandshake.status),
+                     statusName (resetPendingAction.action),
+                     statusName (resetPendingAction.failureKind),
+                     resetPendingAction.bypassRequested ? 1 : 0,
+                     resetPendingAction.recompileRequested ? 1 : 0,
+                     statusName (resetDeferredCommandStatus.status),
+                     resetDeferredCommandStatus.commandRecorded ? 1 : 0,
+                     resetDeferredCommandStatus.graphRecompileExecuted ? 1 : 0,
+                     statusName (resetPendingBlacklistCandidate.failureKind),
+                     resetPendingBlacklistCandidate.candidate ? 1 : 0,
+                     statusName (resetStop.status));
         return 2;
     }
 
@@ -2945,16 +3188,20 @@ int main (int argc, char** argv)
     }
 
     const auto watchdogAction = watchdogCoordinator.failureActionRequest();
+    const auto autoQueuedWatchdogAction = watchdogCoordinator.pendingFailureActionRequest();
     if (watchdogAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || watchdogAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
         || ! watchdogAction.bypassRequested
-        || ! watchdogAction.recompileRequested)
+        || ! watchdogAction.recompileRequested
+        || ! requestMatches (autoQueuedWatchdogAction, watchdogAction))
     {
-        std::printf ("FAIL: plugin host coordinator watchdog action request is wrong: action=%s failure=%s bypass=%d recompile=%d\n",
+        std::printf ("FAIL: plugin host coordinator watchdog action request is wrong: action=%s failure=%s bypass=%d recompile=%d autoQueued=%s/%s\n",
                      statusName (watchdogAction.action),
                      statusName (watchdogAction.failureKind),
                      watchdogAction.bypassRequested ? 1 : 0,
-                     watchdogAction.recompileRequested ? 1 : 0);
+                     watchdogAction.recompileRequested ? 1 : 0,
+                     statusName (autoQueuedWatchdogAction.action),
+                     statusName (autoQueuedWatchdogAction.failureKind));
         return 2;
     }
 
@@ -3857,18 +4104,22 @@ int main (int argc, char** argv)
     }
 
     const auto crashAction = crashCoordinator.failureActionRequest();
+    const auto autoQueuedCrashAction = crashCoordinator.pendingFailureActionRequest();
     if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
         || ! crashAction.bypassRequested
         || ! crashAction.recompileRequested
-        || crashAction.failureKind == watchdogAction.failureKind)
+        || crashAction.failureKind == watchdogAction.failureKind
+        || ! requestMatches (autoQueuedCrashAction, crashAction))
     {
-        std::printf ("FAIL: plugin host coordinator crash action request is wrong: action=%s failure=%s bypass=%d recompile=%d watchdogFailure=%s\n",
+        std::printf ("FAIL: plugin host coordinator crash action request is wrong: action=%s failure=%s bypass=%d recompile=%d watchdogFailure=%s autoQueued=%s/%s\n",
                      statusName (crashAction.action),
                      statusName (crashAction.failureKind),
                      crashAction.bypassRequested ? 1 : 0,
                      crashAction.recompileRequested ? 1 : 0,
-                     statusName (watchdogAction.failureKind));
+                     statusName (watchdogAction.failureKind),
+                     statusName (autoQueuedCrashAction.action),
+                     statusName (autoQueuedCrashAction.failureKind));
         return 2;
     }
 
