@@ -540,6 +540,17 @@ bool blacklistHandlingOutcomeHandlingResultMatches (
         && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
 }
 
+bool deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+    yesdaw::plugin_host::PluginHostCoordinator::DeferredBlacklistHandlingOutcomeHandlingStatus actual,
+    yesdaw::plugin_host::PluginHostCoordinator::DeferredBlacklistHandlingOutcomeHandlingStatus expected) noexcept
+{
+    return actual.status == expected.status
+        && blacklistHandlingOutcomeHandlingResultMatches (actual.lastResult, expected.lastResult)
+        && actual.handlingRecorded == expected.handlingRecorded
+        && actual.blacklistPolicyApplied == expected.blacklistPolicyApplied
+        && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -871,6 +882,13 @@ int main (int argc, char** argv)
         coordinator.pendingBlacklistHandlingOutcomeStatus();
     const auto initialBlacklistHandlingOutcomeHandlingResult =
         coordinator.drainPendingBlacklistHandlingOutcomeToControlHandling();
+    const auto initialDeferredBlacklistHandlingOutcomeHandlingStatus =
+        coordinator.deferredBlacklistHandlingOutcomeHandlingStatus();
+    const auto initialDeferredBlacklistHandlingOutcomeHandlingRecord =
+        coordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            initialBlacklistHandlingOutcomeHandlingResult);
+    const auto initialDeferredBlacklistHandlingOutcomeHandlingInspection =
+        coordinator.deferredBlacklistHandlingOutcomeHandlingStatus();
     const auto initialAcknowledgedDeferredBlacklistHandlingCommandStatus =
         coordinator.acknowledgeDeferredBlacklistHandlingCommandStatus();
     const auto initialAfterAcknowledgedDeferredBlacklistHandlingCommandStatus =
@@ -899,9 +917,15 @@ int main (int argc, char** argv)
         || ! blacklistHandlingOutcomeMatches (initialAfterDrainedBlacklistHandlingOutcome, {})
         || ! blacklistHandlingOutcomeHandlingResultMatches (
             initialBlacklistHandlingOutcomeHandlingResult, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            initialDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            initialDeferredBlacklistHandlingOutcomeHandlingRecord, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            initialDeferredBlacklistHandlingOutcomeHandlingInspection, {})
         || ! blacklistHandlingOutcomeMatches (initialAfterAcknowledgedBlacklistHandlingOutcome, {}))
     {
-        std::printf ("FAIL: plugin host coordinator initial pending blacklist-handling request/outcome should be empty: queued=%s/%s pending=%s/%s drained=%s/%s after=%s/%s command=%s/%s receipt=%s recorded=%d receiptRecord=%s receiptRecordRecorded=%d receiptInspection=%s receiptInspectionRecorded=%d outcome=%s/%s/%d/%d/%d queuedOutcome=%s/%s pendingOutcome=%s/%s drainedOutcome=%s/%s afterDrainedOutcome=%s/%s handling=%s/%d receiptAck=%s receiptAckRecorded=%d afterReceiptAck=%s afterReceiptAckRecorded=%d afterOutcome=%s/%s/%d/%d/%d receiptPolicy=%d receiptPersisted=%d outcomePolicy=%d outcomePersisted=%d handlingPolicy=%d handlingPersisted=%d afterOutcomePolicy=%d afterOutcomePersisted=%d\n",
+        std::printf ("FAIL: plugin host coordinator initial pending blacklist-handling request/outcome should be empty: queued=%s/%s pending=%s/%s drained=%s/%s after=%s/%s command=%s/%s receipt=%s recorded=%d receiptRecord=%s receiptRecordRecorded=%d receiptInspection=%s receiptInspectionRecorded=%d outcome=%s/%s/%d/%d/%d queuedOutcome=%s/%s pendingOutcome=%s/%s drainedOutcome=%s/%s afterDrainedOutcome=%s/%s handling=%s/%d handlingReceipt=%s handlingRecorded=%d handlingReceiptRecord=%s handlingReceiptRecordRecorded=%d handlingReceiptInspection=%s handlingReceiptInspectionRecorded=%d receiptAck=%s receiptAckRecorded=%d afterReceiptAck=%s afterReceiptAckRecorded=%d afterOutcome=%s/%s/%d/%d/%d receiptPolicy=%d receiptPersisted=%d outcomePolicy=%d outcomePersisted=%d handlingPolicy=%d handlingPersisted=%d handlingReceiptPolicy=%d handlingReceiptPersisted=%d afterOutcomePolicy=%d afterOutcomePersisted=%d\n",
                      statusName (initialQueuedBlacklistHandlingRequest.status),
                      statusName (initialQueuedBlacklistHandlingRequest.failureKind),
                      statusName (initialPendingBlacklistHandlingRequest.status),
@@ -931,9 +955,15 @@ int main (int argc, char** argv)
                      statusName (initialDrainedBlacklistHandlingOutcome.failureKind),
                      statusName (initialAfterDrainedBlacklistHandlingOutcome.status),
                      statusName (initialAfterDrainedBlacklistHandlingOutcome.failureKind),
-                     statusName (initialBlacklistHandlingOutcomeHandlingResult.status),
-                     initialBlacklistHandlingOutcomeHandlingResult.pendingOutcomeConsumed ? 1 : 0,
-                     statusName (initialAcknowledgedDeferredBlacklistHandlingCommandStatus.status),
+                      statusName (initialBlacklistHandlingOutcomeHandlingResult.status),
+                      initialBlacklistHandlingOutcomeHandlingResult.pendingOutcomeConsumed ? 1 : 0,
+                      statusName (initialDeferredBlacklistHandlingOutcomeHandlingStatus.status),
+                      initialDeferredBlacklistHandlingOutcomeHandlingStatus.handlingRecorded ? 1 : 0,
+                      statusName (initialDeferredBlacklistHandlingOutcomeHandlingRecord.status),
+                      initialDeferredBlacklistHandlingOutcomeHandlingRecord.handlingRecorded ? 1 : 0,
+                      statusName (initialDeferredBlacklistHandlingOutcomeHandlingInspection.status),
+                      initialDeferredBlacklistHandlingOutcomeHandlingInspection.handlingRecorded ? 1 : 0,
+                      statusName (initialAcknowledgedDeferredBlacklistHandlingCommandStatus.status),
                      initialAcknowledgedDeferredBlacklistHandlingCommandStatus.commandRecorded ? 1 : 0,
                      statusName (initialAfterAcknowledgedDeferredBlacklistHandlingCommandStatus.status),
                      initialAfterAcknowledgedDeferredBlacklistHandlingCommandStatus.commandRecorded ? 1 : 0,
@@ -945,11 +975,13 @@ int main (int argc, char** argv)
                      initialDeferredBlacklistHandlingCommandRecord.blacklistPolicyApplied ? 1 : 0,
                      initialDeferredBlacklistHandlingCommandRecord.blacklistStatePersisted ? 1 : 0,
                      initialBlacklistHandlingOutcome.blacklistPolicyApplied ? 1 : 0,
-                     initialBlacklistHandlingOutcome.blacklistStatePersisted ? 1 : 0,
-                     initialBlacklistHandlingOutcomeHandlingResult.blacklistPolicyApplied ? 1 : 0,
-                     initialBlacklistHandlingOutcomeHandlingResult.blacklistStatePersisted ? 1 : 0,
-                     initialAfterAcknowledgedBlacklistHandlingOutcome.blacklistPolicyApplied ? 1 : 0,
-                     initialAfterAcknowledgedBlacklistHandlingOutcome.blacklistStatePersisted ? 1 : 0);
+                      initialBlacklistHandlingOutcome.blacklistStatePersisted ? 1 : 0,
+                      initialBlacklistHandlingOutcomeHandlingResult.blacklistPolicyApplied ? 1 : 0,
+                      initialBlacklistHandlingOutcomeHandlingResult.blacklistStatePersisted ? 1 : 0,
+                      initialDeferredBlacklistHandlingOutcomeHandlingRecord.blacklistPolicyApplied ? 1 : 0,
+                      initialDeferredBlacklistHandlingOutcomeHandlingRecord.blacklistStatePersisted ? 1 : 0,
+                      initialAfterAcknowledgedBlacklistHandlingOutcome.blacklistPolicyApplied ? 1 : 0,
+                      initialAfterAcknowledgedBlacklistHandlingOutcome.blacklistStatePersisted ? 1 : 0);
         return 2;
     }
 
@@ -1756,6 +1788,13 @@ int main (int argc, char** argv)
         blacklistPolicyCommandReceiptCoordinator.drainPendingBlacklistHandlingOutcomeToControlHandling();
     const auto afterWatchdogHandlingDeferredBlacklistHandlingCommandStatus =
         blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingCommandStatus();
+    const auto watchdogDeferredBlacklistHandlingOutcomeHandlingStatus =
+        blacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            watchdogBlacklistHandlingOutcomeHandlingResult);
+    const auto watchdogDeferredBlacklistHandlingOutcomeHandlingInspection =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingOutcomeHandlingStatus();
+    const auto afterWatchdogHandlingReceiptDeferredBlacklistHandlingCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingCommandStatus();
     const auto acknowledgedWatchdogDeferredBlacklistHandlingCommandStatus =
         blacklistPolicyCommandReceiptCoordinator.acknowledgeDeferredBlacklistHandlingCommandStatus();
     const auto afterAcknowledgedWatchdogDeferredBlacklistHandlingCommandStatus =
@@ -1909,6 +1948,19 @@ int main (int argc, char** argv)
             afterWatchdogHandlingSecondBlacklistHandlingOutcomeHandlingResult, {})
         || ! deferredBlacklistHandlingCommandStatusMatches (
             afterWatchdogHandlingDeferredBlacklistHandlingCommandStatus,
+            watchdogDeferredBlacklistHandlingCommandStatus)
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            watchdogDeferredBlacklistHandlingOutcomeHandlingStatus,
+            { yesdaw::plugin_host::PluginHostCoordinator::BlacklistHandlingOutcomeHandlingStatus::handlingReady,
+              watchdogBlacklistHandlingOutcomeHandlingResult,
+              true,
+              false,
+              false })
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            watchdogDeferredBlacklistHandlingOutcomeHandlingInspection,
+            watchdogDeferredBlacklistHandlingOutcomeHandlingStatus)
+        || ! deferredBlacklistHandlingCommandStatusMatches (
+            afterWatchdogHandlingReceiptDeferredBlacklistHandlingCommandStatus,
             watchdogDeferredBlacklistHandlingCommandStatus)
         || ! deferredBlacklistHandlingCommandStatusMatches (
             acknowledgedWatchdogDeferredBlacklistHandlingCommandStatus, {})
@@ -2197,6 +2249,43 @@ int main (int argc, char** argv)
         invalidBlacklistPolicyCommandReceiptCoordinator.drainPendingBlacklistHandlingOutcomeStatus();
     const auto invalidBlacklistHandlingOutcomeHandlingResult =
         invalidBlacklistPolicyCommandReceiptCoordinator.drainPendingBlacklistHandlingOutcomeToControlHandling();
+    auto unconsumedBlacklistHandlingOutcomeHandlingResult =
+        watchdogBlacklistHandlingOutcomeHandlingResult;
+    unconsumedBlacklistHandlingOutcomeHandlingResult.pendingOutcomeConsumed = false;
+    auto policyAppliedBlacklistHandlingOutcomeHandlingResult =
+        watchdogBlacklistHandlingOutcomeHandlingResult;
+    policyAppliedBlacklistHandlingOutcomeHandlingResult.blacklistPolicyApplied = true;
+    auto persistedBlacklistHandlingOutcomeHandlingResult =
+        watchdogBlacklistHandlingOutcomeHandlingResult;
+    persistedBlacklistHandlingOutcomeHandlingResult.blacklistStatePersisted = true;
+    auto missingControlBlacklistHandlingOutcomeHandlingResult =
+        watchdogBlacklistHandlingOutcomeHandlingResult;
+    missingControlBlacklistHandlingOutcomeHandlingResult.handling.controlThreadBlacklistHandlingRequested =
+        false;
+    auto mismatchedBlacklistHandlingOutcomeHandlingResult =
+        watchdogBlacklistHandlingOutcomeHandlingResult;
+    mismatchedBlacklistHandlingOutcomeHandlingResult.handling.failureKind =
+        yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash;
+    const auto invalidDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingOutcomeHandlingStatus();
+    const auto noActionDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            invalidBlacklistHandlingOutcomeHandlingResult);
+    const auto unconsumedDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            unconsumedBlacklistHandlingOutcomeHandlingResult);
+    const auto policyAppliedDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            policyAppliedBlacklistHandlingOutcomeHandlingResult);
+    const auto persistedDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            persistedBlacklistHandlingOutcomeHandlingResult);
+    const auto missingControlDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            missingControlBlacklistHandlingOutcomeHandlingResult);
+    const auto mismatchedDeferredBlacklistHandlingOutcomeHandlingStatus =
+        invalidBlacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            mismatchedBlacklistHandlingOutcomeHandlingResult);
     if (! deferredBlacklistEscalationStatusMatches (unconsumedDeferredBlacklistEscalationStatus, {})
         || ! deferredBlacklistEscalationStatusMatches (policyAppliedDeferredBlacklistEscalationStatus, {})
         || ! deferredBlacklistEscalationStatusMatches (persistedDeferredBlacklistEscalationStatus, {})
@@ -2261,7 +2350,21 @@ int main (int argc, char** argv)
         || ! blacklistHandlingOutcomeMatches (invalidPendingBlacklistHandlingOutcome, {})
         || ! blacklistHandlingOutcomeMatches (invalidDrainedBlacklistHandlingOutcome, {})
         || ! blacklistHandlingOutcomeHandlingResultMatches (
-            invalidBlacklistHandlingOutcomeHandlingResult, {}))
+            invalidBlacklistHandlingOutcomeHandlingResult, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            invalidDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            noActionDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            unconsumedDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            policyAppliedDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            persistedDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            missingControlDeferredBlacklistHandlingOutcomeHandlingStatus, {})
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            mismatchedDeferredBlacklistHandlingOutcomeHandlingStatus, {}))
     {
         std::printf ("FAIL: plugin host coordinator accepted invalid deferred blacklist escalation result/policy request command/outcome/handling receipt/request/command receipt/outcome queue/handling: unconsumed=%s policy=%s persisted=%s missingControl=%s mismatched=%s request=%s/%s/%d/%d/%d queued=%s/%s drained=%s/%s command=%s/%s/%s consumed=%d commandReceiptUnconsumed=%s commandReceiptPolicy=%s commandReceiptPersisted=%s commandReceiptMissingControl=%s commandReceiptMismatched=%s commandReceiptAlreadyDrained=%s outcome=%s/%s/%d/%d/%d queuedOutcome=%s/%s pendingOutcome=%s/%s drainedOutcome=%s/%s handling=%s handlingConsumed=%d handlingReceiptInitial=%s handlingReceiptNoAction=%s handlingReceiptUnconsumed=%s handlingReceiptPolicy=%s handlingReceiptPersisted=%s handlingReceiptMissingControl=%s handlingReceiptMismatched=%s blacklistRequest=%s/%s/%d/%d/%d handlingCommand=%s/%s/%s consumed=%d handlingCommandReceiptInitial=%s handlingCommandReceiptNoAction=%s handlingCommandReceiptUnconsumed=%s handlingCommandReceiptPolicy=%s handlingCommandReceiptPersisted=%s handlingCommandReceiptMissingControl=%s handlingCommandReceiptMismatched=%s handlingCommandReceiptAlreadyDrained=%s handlingOutcome=%s/%s queuedHandlingOutcome=%s/%s pendingHandlingOutcome=%s/%s drainedHandlingOutcome=%s/%s handlingResult=%s/%d requestPolicy=%d requestPersisted=%d commandPolicy=%d commandPersisted=%d outcomePolicy=%d outcomePersisted=%d handlingPolicy=%d handlingPersisted=%d blacklistRequestPolicy=%d blacklistRequestPersisted=%d handlingCommandPolicy=%d handlingCommandPersisted=%d handlingResultPolicy=%d handlingResultPersisted=%d\n",
                      statusName (unconsumedDeferredBlacklistEscalationStatus.status),
@@ -2934,6 +3037,13 @@ int main (int argc, char** argv)
         blacklistPolicyCommandReceiptCoordinator.drainPendingBlacklistHandlingOutcomeToControlHandling();
     const auto afterCrashHandlingDeferredBlacklistHandlingCommandStatus =
         blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingCommandStatus();
+    const auto crashDeferredBlacklistHandlingOutcomeHandlingStatus =
+        blacklistPolicyCommandReceiptCoordinator.recordDeferredBlacklistHandlingOutcomeHandlingResult (
+            crashBlacklistHandlingOutcomeHandlingResult);
+    const auto crashDeferredBlacklistHandlingOutcomeHandlingInspection =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingOutcomeHandlingStatus();
+    const auto afterCrashHandlingReceiptDeferredBlacklistHandlingCommandStatus =
+        blacklistPolicyCommandReceiptCoordinator.deferredBlacklistHandlingCommandStatus();
     const auto acknowledgedCrashDeferredBlacklistHandlingCommandStatus =
         blacklistPolicyCommandReceiptCoordinator.acknowledgeDeferredBlacklistHandlingCommandStatus();
     const auto afterAcknowledgedCrashDeferredBlacklistHandlingCommandStatus =
@@ -3059,6 +3169,19 @@ int main (int argc, char** argv)
         || ! deferredBlacklistHandlingCommandStatusMatches (
             afterCrashHandlingDeferredBlacklistHandlingCommandStatus,
             crashDeferredBlacklistHandlingCommandStatus)
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            crashDeferredBlacklistHandlingOutcomeHandlingStatus,
+            { yesdaw::plugin_host::PluginHostCoordinator::BlacklistHandlingOutcomeHandlingStatus::handlingReady,
+              crashBlacklistHandlingOutcomeHandlingResult,
+              true,
+              false,
+              false })
+        || ! deferredBlacklistHandlingOutcomeHandlingStatusMatches (
+            crashDeferredBlacklistHandlingOutcomeHandlingInspection,
+            crashDeferredBlacklistHandlingOutcomeHandlingStatus)
+        || ! deferredBlacklistHandlingCommandStatusMatches (
+            afterCrashHandlingReceiptDeferredBlacklistHandlingCommandStatus,
+            crashDeferredBlacklistHandlingCommandStatus)
         || ! deferredBlacklistHandlingCommandStatusMatches (
             acknowledgedCrashDeferredBlacklistHandlingCommandStatus, {})
         || ! deferredBlacklistHandlingCommandStatusMatches (
@@ -3073,6 +3196,8 @@ int main (int argc, char** argv)
         || drainedCrashBlacklistHandlingOutcome.failureKind == drainedWatchdogBlacklistHandlingOutcome.failureKind
         || crashBlacklistHandlingOutcomeHandlingResult.handling.failureKind
             == watchdogBlacklistHandlingOutcomeHandlingResult.handling.failureKind
+        || crashDeferredBlacklistHandlingOutcomeHandlingInspection.lastResult.handling.failureKind
+            == watchdogDeferredBlacklistHandlingOutcomeHandlingInspection.lastResult.handling.failureKind
         || crashBlacklistHandlingOutcomeHandlingResult.drainedOutcome.failureKind
             == watchdogBlacklistHandlingOutcomeHandlingResult.drainedOutcome.failureKind
         || drainedCrashBlacklistHandlingRequest.failureKind == drainedWatchdogBlacklistHandlingRequest.failureKind)
@@ -3366,6 +3491,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded and acknowledged/cleared deferred blacklist escalation receipt/status without policy or persistence, derived and queued/drained future blacklist policy-decision requests only from valid deferred escalation receipts, drained future control-thread blacklist policy-decision command shells, recorded and acknowledged/cleared deferred blacklist policy-decision command receipt/status without policy or persistence, queued/drained future blacklist policy-decision outcomes and drained them to future control-thread blacklist handling, recorded and acknowledged/cleared deferred blacklist policy-decision outcome handling receipt/status without policy or persistence, derived and queued/drained pending future blacklist-handling requests only from valid deferred outcome-handling receipts without policy or persistence, drained future control-thread blacklist-handling command shells, recorded and acknowledged/cleared deferred blacklist-handling command receipt/status without policy or persistence, queued/drained future blacklist-handling outcomes and drained them to future control-thread blacklist handling, recorded deferred blacklist-handling outcome handling receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

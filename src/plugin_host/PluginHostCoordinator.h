@@ -415,6 +415,17 @@ public:
         bool blacklistStatePersisted { false };
     };
 
+    struct DeferredBlacklistHandlingOutcomeHandlingStatus
+    {
+        BlacklistHandlingOutcomeHandlingStatus status {
+            BlacklistHandlingOutcomeHandlingStatus::noAction
+        };
+        BlacklistHandlingOutcomeHandlingResult lastResult;
+        bool handlingRecorded { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
     struct ChildStatus
     {
         ChildState state { ChildState::idle };
@@ -1039,6 +1050,30 @@ public:
                  false };
     }
 
+    DeferredBlacklistHandlingOutcomeHandlingStatus recordDeferredBlacklistHandlingOutcomeHandlingResult (
+        BlacklistHandlingOutcomeHandlingResult result)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (canRecordBlacklistHandlingOutcomeHandlingResult (result))
+        {
+            lastDeferredBlacklistHandlingOutcomeHandlingResult_ = result;
+            deferredBlacklistHandlingOutcomeHandlingRecorded_ = true;
+        }
+        else
+        {
+            lastDeferredBlacklistHandlingOutcomeHandlingResult_ = {};
+            deferredBlacklistHandlingOutcomeHandlingRecorded_ = false;
+        }
+
+        return deferredBlacklistHandlingOutcomeHandlingStatusLocked();
+    }
+
+    DeferredBlacklistHandlingOutcomeHandlingStatus deferredBlacklistHandlingOutcomeHandlingStatus() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return deferredBlacklistHandlingOutcomeHandlingStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -1372,6 +1407,20 @@ private:
         return false;
     }
 
+    static bool canRecordBlacklistHandlingOutcomeHandlingResult (
+        BlacklistHandlingOutcomeHandlingResult result) noexcept
+    {
+        return result.status == BlacklistHandlingOutcomeHandlingStatus::handlingReady
+            && result.pendingOutcomeConsumed
+            && ! result.blacklistPolicyApplied
+            && ! result.blacklistStatePersisted
+            && canCreateBlacklistHandlingOutcomeHandling (result.drainedOutcome)
+            && result.handling.controlThreadBlacklistHandlingRequested
+            && result.handling.failureKind == result.drainedOutcome.failureKind
+            && result.handling.crashCandidate == result.drainedOutcome.crashCandidate
+            && result.handling.watchdogTimeoutCandidate == result.drainedOutcome.watchdogTimeoutCandidate;
+    }
+
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
                                            BlacklistCandidateStatus expected) noexcept
     {
@@ -1509,6 +1558,18 @@ private:
                  lastDeferredBlacklistHandlingCommandResult_.blacklistStatePersisted };
     }
 
+    DeferredBlacklistHandlingOutcomeHandlingStatus
+    deferredBlacklistHandlingOutcomeHandlingStatusLocked() const
+    {
+        return { deferredBlacklistHandlingOutcomeHandlingRecorded_
+                     ? lastDeferredBlacklistHandlingOutcomeHandlingResult_.status
+                     : BlacklistHandlingOutcomeHandlingStatus::noAction,
+                 lastDeferredBlacklistHandlingOutcomeHandlingResult_,
+                 deferredBlacklistHandlingOutcomeHandlingRecorded_,
+                 lastDeferredBlacklistHandlingOutcomeHandlingResult_.blacklistPolicyApplied,
+                 lastDeferredBlacklistHandlingOutcomeHandlingResult_.blacklistStatePersisted };
+    }
+
     const std::chrono::milliseconds timeout_;
     const std::chrono::milliseconds watchdogTimeout_;
     mutable std::mutex mutex_;
@@ -1530,6 +1591,7 @@ private:
     BlacklistPolicyDecisionCommandResult lastDeferredBlacklistPolicyDecisionCommandResult_;
     BlacklistPolicyDecisionOutcomeHandlingResult lastDeferredBlacklistPolicyDecisionOutcomeHandlingResult_;
     BlacklistHandlingCommandResult lastDeferredBlacklistHandlingCommandResult_;
+    BlacklistHandlingOutcomeHandlingResult lastDeferredBlacklistHandlingOutcomeHandlingResult_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
@@ -1543,6 +1605,7 @@ private:
     bool deferredBlacklistPolicyDecisionCommandRecorded_ { false };
     bool deferredBlacklistPolicyDecisionOutcomeHandlingRecorded_ { false };
     bool deferredBlacklistHandlingCommandRecorded_ { false };
+    bool deferredBlacklistHandlingOutcomeHandlingRecorded_ { false };
 };
 
 } // namespace yesdaw::plugin_host
