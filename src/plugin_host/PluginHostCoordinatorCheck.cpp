@@ -214,6 +214,17 @@ bool blacklistEscalationResultMatches (
         && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
 }
 
+bool deferredBlacklistEscalationStatusMatches (
+    yesdaw::plugin_host::PluginHostCoordinator::DeferredBlacklistEscalationStatus actual,
+    yesdaw::plugin_host::PluginHostCoordinator::DeferredBlacklistEscalationStatus expected) noexcept
+{
+    return actual.status == expected.status
+        && blacklistEscalationResultMatches (actual.lastResult, expected.lastResult)
+        && actual.escalationRecorded == expected.escalationRecorded
+        && actual.blacklistPolicyApplied == expected.blacklistPolicyApplied
+        && actual.blacklistStatePersisted == expected.blacklistStatePersisted;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -238,6 +249,7 @@ int main (int argc, char** argv)
     const auto initialBlacklistCandidate = coordinator.blacklistCandidateStatus();
     const auto initialPendingBlacklistCandidate = coordinator.pendingBlacklistCandidateStatus();
     const auto initialBlacklistEscalationResult = coordinator.drainPendingBlacklistCandidateToControlEscalation();
+    const auto initialDeferredBlacklistEscalationStatus = coordinator.deferredBlacklistEscalationStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -341,6 +353,17 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    if (! deferredBlacklistEscalationStatusMatches (initialDeferredBlacklistEscalationStatus, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator initial deferred blacklist escalation status is wrong: status=%s last=%s recorded=%d policy=%d persisted=%d\n",
+                     statusName (initialDeferredBlacklistEscalationStatus.status),
+                     statusName (initialDeferredBlacklistEscalationStatus.lastResult.status),
+                     initialDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
+                     initialDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
+                     initialDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator noneFailureCoordinator;
     const auto queuedNoneFailureAction = noneFailureCoordinator.queueFailureActionRequest (
         { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
@@ -378,15 +401,18 @@ int main (int argc, char** argv)
         { yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash, true, true, true });
     const auto inconsistentBlacklistEscalationResult =
         noneFailureCoordinator.drainPendingBlacklistCandidateToControlEscalation();
+    const auto inconsistentDeferredBlacklistEscalationStatus =
+        noneFailureCoordinator.recordDeferredBlacklistEscalationResult (inconsistentBlacklistEscalationResult);
     if (! blacklistCandidateMatches (queuedNoneBlacklistCandidate, {})
         || ! blacklistCandidateMatches (drainedNoneBlacklistCandidate, {})
         || ! blacklistCandidateMatches (queuedInconsistentBlacklistCandidate, {})
         || inconsistentBlacklistEscalationResult.status != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::noAction
         || inconsistentBlacklistEscalationResult.pendingCandidateConsumed
         || inconsistentBlacklistEscalationResult.blacklistPolicyApplied
-        || inconsistentBlacklistEscalationResult.blacklistStatePersisted)
+        || inconsistentBlacklistEscalationResult.blacklistStatePersisted
+        || ! deferredBlacklistEscalationStatusMatches (inconsistentDeferredBlacklistEscalationStatus, {}))
     {
-        std::printf ("FAIL: plugin host coordinator accepted an invalid pending blacklist candidate/escalation: none=%s/%d/%d/%d drained=%s/%d/%d/%d inconsistent=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
+        std::printf ("FAIL: plugin host coordinator accepted an invalid pending blacklist candidate/escalation: none=%s/%d/%d/%d drained=%s/%d/%d/%d inconsistent=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d receipt=%s recorded=%d\n",
                      statusName (queuedNoneBlacklistCandidate.failureKind),
                      queuedNoneBlacklistCandidate.candidate ? 1 : 0,
                      queuedNoneBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -402,11 +428,14 @@ int main (int argc, char** argv)
                      statusName (inconsistentBlacklistEscalationResult.status),
                      inconsistentBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
                      inconsistentBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
-                     inconsistentBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
+                     inconsistentBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0,
+                     statusName (inconsistentDeferredBlacklistEscalationStatus.status),
+                     inconsistentDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0);
         return 2;
     }
 
     yesdaw::plugin_host::PluginHostCoordinator deferredReceiptCoordinator;
+    yesdaw::plugin_host::PluginHostCoordinator blacklistReceiptCoordinator;
 
     const auto handshake = coordinator.launchAndHandshake (workerExecutable);
 
@@ -530,15 +559,18 @@ int main (int argc, char** argv)
     const auto normalStopDrainedBlacklistCandidate = coordinator.drainPendingBlacklistCandidateStatus();
     const auto normalStopBlacklistEscalationResult =
         coordinator.drainPendingBlacklistCandidateToControlEscalation();
+    const auto normalStopDeferredBlacklistEscalationStatus =
+        coordinator.recordDeferredBlacklistEscalationResult (normalStopBlacklistEscalationResult);
     if (! blacklistCandidateMatches (normalStopQueuedBlacklistCandidate, {})
         || ! blacklistCandidateMatches (normalStopPendingBlacklistCandidate, {})
         || ! blacklistCandidateMatches (normalStopDrainedBlacklistCandidate, {})
         || normalStopBlacklistEscalationResult.status != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::noAction
         || normalStopBlacklistEscalationResult.pendingCandidateConsumed
         || normalStopBlacklistEscalationResult.blacklistPolicyApplied
-        || normalStopBlacklistEscalationResult.blacklistStatePersisted)
+        || normalStopBlacklistEscalationResult.blacklistStatePersisted
+        || ! deferredBlacklistEscalationStatusMatches (normalStopDeferredBlacklistEscalationStatus, {}))
     {
-        std::printf ("FAIL: plugin host coordinator normal stop pending blacklist candidate/escalation should remain empty: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d\n",
+        std::printf ("FAIL: plugin host coordinator normal stop pending blacklist candidate/escalation should remain empty: queued=%s/%d/%d/%d pending=%s/%d/%d/%d drained=%s/%d/%d/%d escalation=%s consumed=%d policy=%d persisted=%d receipt=%s recorded=%d\n",
                      statusName (normalStopQueuedBlacklistCandidate.failureKind),
                      normalStopQueuedBlacklistCandidate.candidate ? 1 : 0,
                      normalStopQueuedBlacklistCandidate.crashCandidate ? 1 : 0,
@@ -554,7 +586,9 @@ int main (int argc, char** argv)
                      statusName (normalStopBlacklistEscalationResult.status),
                      normalStopBlacklistEscalationResult.pendingCandidateConsumed ? 1 : 0,
                      normalStopBlacklistEscalationResult.blacklistPolicyApplied ? 1 : 0,
-                     normalStopBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0);
+                     normalStopBlacklistEscalationResult.blacklistStatePersisted ? 1 : 0,
+                     statusName (normalStopDeferredBlacklistEscalationStatus.status),
+                     normalStopDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0);
         return 2;
     }
 
@@ -763,6 +797,72 @@ int main (int argc, char** argv)
                      afterWatchdogBlacklistEscalationDrain.candidate ? 1 : 0,
                      afterWatchdogBlacklistEscalationDrain.crashCandidate ? 1 : 0,
                      afterWatchdogBlacklistEscalationDrain.watchdogTimeoutCandidate ? 1 : 0);
+        return 2;
+    }
+
+    const auto watchdogDeferredBlacklistEscalationStatus =
+        blacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (watchdogBlacklistEscalationResult);
+    const auto watchdogDeferredBlacklistEscalationInspection =
+        blacklistReceiptCoordinator.deferredBlacklistEscalationStatus();
+    if (watchdogDeferredBlacklistEscalationStatus.status
+            != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::escalationReady
+        || ! blacklistEscalationResultMatches (watchdogDeferredBlacklistEscalationStatus.lastResult,
+                                               watchdogBlacklistEscalationResult)
+        || ! watchdogDeferredBlacklistEscalationStatus.escalationRecorded
+        || watchdogDeferredBlacklistEscalationStatus.blacklistPolicyApplied
+        || watchdogDeferredBlacklistEscalationStatus.blacklistStatePersisted
+        || ! blacklistEscalationResultMatches (watchdogDeferredBlacklistEscalationInspection.lastResult,
+                                               watchdogBlacklistEscalationResult)
+        || ! watchdogDeferredBlacklistEscalationInspection.escalationRecorded
+        || watchdogDeferredBlacklistEscalationInspection.blacklistPolicyApplied
+        || watchdogDeferredBlacklistEscalationInspection.blacklistStatePersisted)
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog deferred blacklist escalation receipt/status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d policy=%d persisted=%d inspectedPolicy=%d inspectedPersisted=%d\n",
+                     statusName (watchdogDeferredBlacklistEscalationStatus.status),
+                     statusName (watchdogDeferredBlacklistEscalationInspection.status),
+                     watchdogDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
+                     watchdogDeferredBlacklistEscalationInspection.escalationRecorded ? 1 : 0,
+                     watchdogDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
+                     watchdogDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0,
+                     watchdogDeferredBlacklistEscalationInspection.blacklistPolicyApplied ? 1 : 0,
+                     watchdogDeferredBlacklistEscalationInspection.blacklistStatePersisted ? 1 : 0);
+        return 2;
+    }
+
+    yesdaw::plugin_host::PluginHostCoordinator invalidBlacklistReceiptCoordinator;
+    auto unconsumedBlacklistEscalationResult = watchdogBlacklistEscalationResult;
+    unconsumedBlacklistEscalationResult.pendingCandidateConsumed = false;
+    auto policyAppliedBlacklistEscalationResult = watchdogBlacklistEscalationResult;
+    policyAppliedBlacklistEscalationResult.blacklistPolicyApplied = true;
+    auto persistedBlacklistEscalationResult = watchdogBlacklistEscalationResult;
+    persistedBlacklistEscalationResult.blacklistStatePersisted = true;
+    auto missingControlRequestBlacklistEscalationResult = watchdogBlacklistEscalationResult;
+    missingControlRequestBlacklistEscalationResult.escalation.controlThreadEscalationRequested = false;
+    auto mismatchedBlacklistEscalationResult = watchdogBlacklistEscalationResult;
+    mismatchedBlacklistEscalationResult.escalation.failureKind =
+        yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash;
+    const auto unconsumedDeferredBlacklistEscalationStatus =
+        invalidBlacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (unconsumedBlacklistEscalationResult);
+    const auto policyAppliedDeferredBlacklistEscalationStatus =
+        invalidBlacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (policyAppliedBlacklistEscalationResult);
+    const auto persistedDeferredBlacklistEscalationStatus =
+        invalidBlacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (persistedBlacklistEscalationResult);
+    const auto missingControlRequestDeferredBlacklistEscalationStatus =
+        invalidBlacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (missingControlRequestBlacklistEscalationResult);
+    const auto mismatchedDeferredBlacklistEscalationStatus =
+        invalidBlacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (mismatchedBlacklistEscalationResult);
+    if (! deferredBlacklistEscalationStatusMatches (unconsumedDeferredBlacklistEscalationStatus, {})
+        || ! deferredBlacklistEscalationStatusMatches (policyAppliedDeferredBlacklistEscalationStatus, {})
+        || ! deferredBlacklistEscalationStatusMatches (persistedDeferredBlacklistEscalationStatus, {})
+        || ! deferredBlacklistEscalationStatusMatches (missingControlRequestDeferredBlacklistEscalationStatus, {})
+        || ! deferredBlacklistEscalationStatusMatches (mismatchedDeferredBlacklistEscalationStatus, {}))
+    {
+        std::printf ("FAIL: plugin host coordinator accepted invalid deferred blacklist escalation result: unconsumed=%s policy=%s persisted=%s missingControl=%s mismatched=%s\n",
+                     statusName (unconsumedDeferredBlacklistEscalationStatus.status),
+                     statusName (policyAppliedDeferredBlacklistEscalationStatus.status),
+                     statusName (persistedDeferredBlacklistEscalationStatus.status),
+                     statusName (missingControlRequestDeferredBlacklistEscalationStatus.status),
+                     statusName (mismatchedDeferredBlacklistEscalationStatus.status));
         return 2;
     }
 
@@ -1009,6 +1109,39 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto crashDeferredBlacklistEscalationStatus =
+        blacklistReceiptCoordinator.recordDeferredBlacklistEscalationResult (crashBlacklistEscalationResult);
+    const auto crashDeferredBlacklistEscalationInspection =
+        blacklistReceiptCoordinator.deferredBlacklistEscalationStatus();
+    if (crashDeferredBlacklistEscalationStatus.status
+            != yesdaw::plugin_host::PluginHostCoordinator::BlacklistEscalationStatus::escalationReady
+        || ! blacklistEscalationResultMatches (crashDeferredBlacklistEscalationStatus.lastResult,
+                                               crashBlacklistEscalationResult)
+        || ! crashDeferredBlacklistEscalationStatus.escalationRecorded
+        || crashDeferredBlacklistEscalationStatus.blacklistPolicyApplied
+        || crashDeferredBlacklistEscalationStatus.blacklistStatePersisted
+        || ! blacklistEscalationResultMatches (crashDeferredBlacklistEscalationInspection.lastResult,
+                                               crashBlacklistEscalationResult)
+        || ! crashDeferredBlacklistEscalationInspection.escalationRecorded
+        || crashDeferredBlacklistEscalationInspection.blacklistPolicyApplied
+        || crashDeferredBlacklistEscalationInspection.blacklistStatePersisted
+        || crashDeferredBlacklistEscalationInspection.lastResult.escalation.failureKind
+            == watchdogDeferredBlacklistEscalationInspection.lastResult.escalation.failureKind)
+    {
+        std::printf ("FAIL: plugin host coordinator crash deferred blacklist escalation receipt/status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d policy=%d persisted=%d inspectedPolicy=%d inspectedPersisted=%d watchdogEscalation=%s crashEscalation=%s\n",
+                     statusName (crashDeferredBlacklistEscalationStatus.status),
+                     statusName (crashDeferredBlacklistEscalationInspection.status),
+                     crashDeferredBlacklistEscalationStatus.escalationRecorded ? 1 : 0,
+                     crashDeferredBlacklistEscalationInspection.escalationRecorded ? 1 : 0,
+                     crashDeferredBlacklistEscalationStatus.blacklistPolicyApplied ? 1 : 0,
+                     crashDeferredBlacklistEscalationStatus.blacklistStatePersisted ? 1 : 0,
+                     crashDeferredBlacklistEscalationInspection.blacklistPolicyApplied ? 1 : 0,
+                     crashDeferredBlacklistEscalationInspection.blacklistStatePersisted ? 1 : 0,
+                     statusName (watchdogDeferredBlacklistEscalationInspection.lastResult.escalation.failureKind),
+                     statusName (crashDeferredBlacklistEscalationInspection.lastResult.escalation.failureKind));
+        return 2;
+    }
+
     const auto crashAction = crashCoordinator.failureActionRequest();
     if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
@@ -1146,6 +1279,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, exposed and queued/drained future blacklist-candidate status, drained future blacklist escalation shells, recorded deferred blacklist escalation receipt/status without policy or persistence, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }

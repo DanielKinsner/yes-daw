@@ -195,6 +195,15 @@ public:
         bool blacklistStatePersisted { false };
     };
 
+    struct DeferredBlacklistEscalationStatus
+    {
+        BlacklistEscalationStatus status { BlacklistEscalationStatus::noAction };
+        BlacklistEscalationResult lastResult;
+        bool escalationRecorded { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
     struct ChildStatus
     {
         ChildState state { ChildState::idle };
@@ -509,6 +518,29 @@ public:
                  false };
     }
 
+    DeferredBlacklistEscalationStatus recordDeferredBlacklistEscalationResult (BlacklistEscalationResult result)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (canRecordBlacklistEscalationResult (result))
+        {
+            lastDeferredBlacklistEscalationResult_ = result;
+            deferredBlacklistEscalationRecorded_ = true;
+        }
+        else
+        {
+            lastDeferredBlacklistEscalationResult_ = {};
+            deferredBlacklistEscalationRecorded_ = false;
+        }
+
+        return deferredBlacklistEscalationStatusLocked();
+    }
+
+    DeferredBlacklistEscalationStatus deferredBlacklistEscalationStatus() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return deferredBlacklistEscalationStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -608,6 +640,19 @@ private:
         return canQueueBlacklistCandidate (status);
     }
 
+    static bool canRecordBlacklistEscalationResult (BlacklistEscalationResult result) noexcept
+    {
+        return result.status == BlacklistEscalationStatus::escalationReady
+            && result.pendingCandidateConsumed
+            && ! result.blacklistPolicyApplied
+            && ! result.blacklistStatePersisted
+            && canCreateBlacklistEscalation (result.drainedCandidate)
+            && result.escalation.controlThreadEscalationRequested
+            && result.escalation.failureKind == result.drainedCandidate.failureKind
+            && result.escalation.crashCandidate == result.drainedCandidate.crashCandidate
+            && result.escalation.watchdogTimeoutCandidate == result.drainedCandidate.watchdogTimeoutCandidate;
+    }
+
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
                                            BlacklistCandidateStatus expected) noexcept
     {
@@ -701,6 +746,16 @@ private:
                  lastDeferredGraphChangeCommandResult_.graphRecompileExecuted };
     }
 
+    DeferredBlacklistEscalationStatus deferredBlacklistEscalationStatusLocked() const
+    {
+        return { deferredBlacklistEscalationRecorded_ ? lastDeferredBlacklistEscalationResult_.status
+                                                      : BlacklistEscalationStatus::noAction,
+                 lastDeferredBlacklistEscalationResult_,
+                 deferredBlacklistEscalationRecorded_,
+                 lastDeferredBlacklistEscalationResult_.blacklistPolicyApplied,
+                 lastDeferredBlacklistEscalationResult_.blacklistStatePersisted };
+    }
+
     const std::chrono::milliseconds timeout_;
     const std::chrono::milliseconds watchdogTimeout_;
     mutable std::mutex mutex_;
@@ -714,6 +769,7 @@ private:
     FailureActionRequest pendingFailureAction_;
     BlacklistCandidateStatus pendingBlacklistCandidate_;
     GraphChangeCommandResult lastDeferredGraphChangeCommandResult_;
+    BlacklistEscalationResult lastDeferredBlacklistEscalationResult_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
@@ -723,6 +779,7 @@ private:
     bool crashObservationRequested_ { false };
     bool connectionLost_ { false };
     bool deferredGraphChangeCommandRecorded_ { false };
+    bool deferredBlacklistEscalationRecorded_ { false };
 };
 
 } // namespace yesdaw::plugin_host
