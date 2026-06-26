@@ -5,6 +5,7 @@
 // with Send edges to Bus SumNodes whose Returns feed the master bus.
 
 #include "engine/MixerGraphProjection.h"
+#include "engine/ProjectMixerProjection.h"
 #include "engine/nodes/IdentityDcNode.h"
 
 #include <catch2/catch_approx.hpp>
@@ -23,6 +24,9 @@ using Catch::Approx;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
+using yesdaw::engine::Asset;
+using yesdaw::engine::Clip;
+using yesdaw::engine::EntityId;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
 using yesdaw::engine::IdentityDcNode;
@@ -36,7 +40,14 @@ using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
 using yesdaw::engine::ProcessArgs;
+using yesdaw::engine::Project;
+using yesdaw::engine::ProjectMixerNodeRole;
+using yesdaw::engine::ProjectMixerProjectionConfig;
+using yesdaw::engine::ProjectMixerProjectionError;
+using yesdaw::engine::SampleRate;
 using yesdaw::engine::buildMixerGraphProjection;
+using yesdaw::engine::projectMixerNodeIdForClip;
+using yesdaw::engine::projectToMixerProjectionInputs;
 
 namespace {
 
@@ -161,6 +172,58 @@ const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
     return nullptr;
 }
 
+constexpr EntityId entityIdFromLowByte (std::uint8_t low) noexcept
+{
+    EntityId::StorageBytes bytes {};
+    bytes.back() = low;
+    return EntityId::fromBytes (bytes);
+}
+
+Asset makeProjectAsset (std::uint8_t id, std::uint64_t frames)
+{
+    Asset asset;
+    asset.id = entityIdFromLowByte (id);
+    asset.contentHash.bytes.back() = id;
+    asset.frames = frames;
+    asset.sampleRate = SampleRate { 48000.0 };
+    asset.channels = 1;
+    return asset;
+}
+
+Clip makeProjectClip (std::uint8_t id, EntityId assetId, float gain)
+{
+    Clip clip;
+    clip.id = entityIdFromLowByte (id);
+    clip.assetId = assetId;
+    clip.timelineStart = 0;
+    clip.timelineLength = 15360;
+    clip.srcOffset = 0;
+    clip.srcLen = 64;
+    clip.gain = gain;
+    return clip;
+}
+
+Project makeMixerProjectionProject()
+{
+    Project project;
+    project.id = entityIdFromLowByte (1);
+    project.sampleRate = SampleRate { 48000.0 };
+    project.assets = {
+        makeProjectAsset (2, 100),
+        makeProjectAsset (3, 200),
+    };
+    project.clips = {
+        makeProjectClip (4, project.assets[0].id, 0.5f),
+        makeProjectClip (5, project.assets[1].id, 0.25f),
+    };
+    return project;
+}
+
+float sourceDcForAsset (const Asset& asset) noexcept
+{
+    return asset.frames == 100u ? 0.5f : 0.25f;
+}
+
 } // namespace
 
 TEST_CASE ("Mixer projection renders an empty master bus as silence", "[mixer][projection][silence]")
@@ -218,6 +281,194 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
         REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
     for (float v : out.right)
         REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
+}
+
+TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "[mixer][projection][project]")
+{
+    const Project project = makeMixerProjectionProject();
+
+    ProjectMixerProjectionConfig config;
+    config.id = 70;
+    config.masterSumNodeId = kMasterSumId;
+    config.masterNodeId = kMasterId;
+    config.maxBlockSize = kMaxBlock;
+
+    MixerProjectionInputs projection;
+    ProjectMixerProjectionError projectError;
+    const bool projected = projectToMixerProjectionInputs (
+        project,
+        config,
+        [] (const Project&, const Clip&, const Asset& asset, NodeId expectedSourceId)
+            -> std::unique_ptr<Node>
+        {
+            return std::make_unique<IdentityDcNode> (expectedSourceId, sourceDcForAsset (asset), 1);
+        },
+        projection,
+        &projectError);
+
+    REQUIRE (projected);
+    REQUIRE (projectError.code == ProjectMixerProjectionError::Code::None);
+    REQUIRE (projection.id == config.id);
+    REQUIRE (projection.sampleRate == project.sampleRate.hz);
+    REQUIRE (projection.maxBlockSize == kMaxBlock);
+    REQUIRE (projection.tracks.size() == project.clips.size());
+
+    const NodeId firstSource = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source);
+    const NodeId firstFader = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Fader);
+    const NodeId firstPan = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Pan);
+    const NodeId firstMeter = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Meter);
+    REQUIRE (projection.tracks[0].source->properties().id == firstSource);
+    REQUIRE (projection.tracks[0].faderNodeId == firstFader);
+    REQUIRE (projection.tracks[0].panNodeId == firstPan);
+    REQUIRE (projection.tracks[0].meterNodeId == firstMeter);
+    REQUIRE (projection.tracks[0].linearGain == project.clips[0].gain);
+    REQUIRE (projection.tracks[0].pan == 0.0f);
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == project.clips.size());
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == project.clips.size());
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == project.clips.size());
+
+    const float expected =
+        (sourceDcForAsset (project.assets[0]) * project.clips[0].gain
+         + sourceDcForAsset (project.assets[1]) * project.clips[1].gain)
+        * kCenterGain;
+    const StereoCapture out = render (*graph, kMaxBlock);
+    REQUIRE (out.left.back() == Approx (expected).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (expected).margin (1.0e-4f));
+}
+
+TEST_CASE ("Project projector rejects invalid Project and invalid clip gain before source creation",
+           "[mixer][projection][project][invalid]")
+{
+    ProjectMixerProjectionConfig config;
+    config.masterSumNodeId = kMasterSumId;
+    config.masterNodeId = kMasterId;
+
+    {
+        Project project = makeMixerProjectionProject();
+        project.clips[0].assetId = entityIdFromLowByte (99);
+
+        bool factoryCalled = false;
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (
+            project,
+            config,
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+                -> std::unique_ptr<Node>
+            {
+                factoryCalled = true;
+                return nullptr;
+            },
+            projection,
+            &error));
+
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidProject);
+        REQUIRE_FALSE (factoryCalled);
+    }
+
+    {
+        Project project = makeMixerProjectionProject();
+        project.clips[0].gain = std::nextafter (FaderNode::kMaxLinearGain, std::numeric_limits<float>::max());
+
+        bool factoryCalled = false;
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (
+            project,
+            config,
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+                -> std::unique_ptr<Node>
+            {
+                factoryCalled = true;
+                return nullptr;
+            },
+            projection,
+            &error));
+
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidClipGain);
+        REQUIRE (error.clipIndex == 0u);
+        REQUIRE_FALSE (factoryCalled);
+    }
+}
+
+TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source factories",
+           "[mixer][projection][project][invalid]")
+{
+    Project project = makeMixerProjectionProject();
+
+    {
+        ProjectMixerProjectionConfig config;
+        config.masterSumNodeId = kMasterSumId;
+        config.masterNodeId = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source);
+
+        bool factoryCalled = false;
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (
+            project,
+            config,
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+                -> std::unique_ptr<Node>
+            {
+                factoryCalled = true;
+                return nullptr;
+            },
+            projection,
+            &error));
+
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::DuplicateNodeId);
+        REQUIRE (error.nodeId == config.masterNodeId);
+        REQUIRE_FALSE (factoryCalled);
+    }
+
+    {
+        ProjectMixerProjectionConfig config;
+        config.masterSumNodeId = kMasterSumId;
+        config.masterNodeId = kMasterId;
+
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (
+            project,
+            config,
+            [] (const Project&, const Clip&, const Asset&, NodeId)
+                -> std::unique_ptr<Node>
+            {
+                return nullptr;
+            },
+            projection,
+            &error));
+
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::SourceFactoryFailed);
+        REQUIRE (error.clipIndex == 0u);
+    }
+
+    {
+        ProjectMixerProjectionConfig config;
+        config.masterSumNodeId = kMasterSumId;
+        config.masterNodeId = kMasterId;
+
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (
+            project,
+            config,
+            [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId)
+                -> std::unique_ptr<Node>
+            {
+                return std::make_unique<IdentityDcNode> (expectedSourceId + 1u, 1.0f, 1);
+            },
+            projection,
+            &error));
+
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::SourceNodeIdMismatch);
+        REQUIRE (error.clipIndex == 0u);
+    }
 }
 
 TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "[mixer][projection][send]")

@@ -55,7 +55,8 @@ RT-lane `pollOnce` hosted-processor path is locally green; the item-2 RT-lane re
 hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is locally green; item
 3b running RT-lane watchdog same-child progress hardening is reviewed/green; item 3c crash/hang
 auto-enqueue + Placeholder recovery publish is reviewed/green; item 3d persistent blacklist
-store/schema keyed by plugin identity is locally green
+store/schema keyed by plugin identity is reviewed/green; item 4a `Project` -> `MixerProjectionInputs`
+projector is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -84,34 +85,33 @@ store/schema keyed by plugin identity is locally green
   a persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: WORKER item 3d persistent blacklist store + identity-keyed schema is locally green.**
-  REVIEW/FIX of item 3c found no proven defects against `STATUS.md`, the close-out plan, ADR-0015,
-  ADR-0013, ADR-0006, ADR-0008, and the coordinator/worker/protocol/CMake/Runtime/GraphBuilder surfaces:
-  auto-enqueue is failure-driven for watchdog/crash, crash/watchdog stay distinct, Placeholder replacement
-  is real and uses the offender node id, publish goes through `Runtime`'s ordered `SwapGraph` queue, old graph
-  reclaim is proved, reset clears stale recovery queues, no policy/store enforcement was smuggled into 3c,
-  and `[!shouldfail]` remains. Then WORKER added the narrow item 3d persistence slice: Project bundle schema
-  version 2 adds `plugin_blacklist` with primary key `{format, plugin_uid, plugin_version}`; `ProjectBundleDb`
-  can write/upsert and exact-key lookup blacklist rows; persistence tests prove schema migration,
-  version-specific keys, invalid/incomplete identity rejection, and restart survival; `YesDawHostIsolationCheck` now
-  has a standalone passing proof that the blacklist row survives bundle reopen/restart while wrong version
-  and wrong format do not match. The aggregate H3 gate remains `[!shouldfail]`.
-  Negative controls: wrong-version and wrong-format blacklist lookups stay false, and empty/invalid
-  blacklist identities are rejected mechanically. Still out of scope: scanner, pluginval/auval, UI embedding,
-  automation lanes, blacklist policy enforcement, plugin loading, ADR edits, goldens, item 4+, and
-  `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci --target YesDawPersistenceCheck`; direct `YesDawPersistenceCheck.exe`
-  `[plugin-blacklist]`, `[persistence][sqlite][schema]`, and `[persistence][recovery][migration]`; VS DevShell
-  `cmake --build --preset ci --target YesDawHostIsolationCheck`; VS DevShell
-  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed **196/196**;
-  `git diff --check` passed. **Next:** REVIEW/FIX this item 3d persistent blacklist checkpoint first. Verify
-  `src/persistence/ProjectBundle.h`, `tests/persistence_tests.cpp`, `tests/host_isolation_tests.cpp`,
-  `src/plugin_host/PluginHostCoordinator.h`, relevant CMake, and the close-out plan + ADR-0015/0013/0006/0008.
-  Confirm the blacklist store is keyed exactly by `{format, plugin_uid, plugin_version}`, survives reopen,
-  advances only the persistence/gate proof, does not enforce policy or load/scan plugins, keeps crash/watchdog
-  handling distinct, and keeps `[!shouldfail]` unchanged. If clean, continue depth-first to close-out plan
-  item 4a: `Project` -> `MixerProjectionInputs` projector.
+- **Latest: REVIEW/FIX item 3d persistent blacklist checkpoint is clean; WORKER item 4a `Project` -> `MixerProjectionInputs` projector is locally green.**
+  REVIEW/FIX of item 3d found no proven defects against `STATUS.md`, the close-out plan, ADR-0015,
+  ADR-0013, ADR-0006, ADR-0008, `ProjectBundle`, persistence tests, host-isolation tests,
+  `PluginHostCoordinator`, and CMake: the blacklist store is keyed exactly by
+  `{format, plugin_uid, plugin_version}`, survives reopen/restart, rejects incomplete identity, keeps
+  wrong-version and wrong-format negative controls false, advances only the persistence/gate proof, does
+  not enforce policy or load/scan plugins, keeps crash/watchdog handling distinct, and keeps
+  `[!shouldfail]` unchanged. Then WORKER added the narrow item 4a projector slice: new
+  `src/engine/ProjectMixerProjection.h` converts a valid `Project`'s Clips into `MixerProjectionInputs`
+  through a caller-supplied source-Node factory, derives deterministic source/fader/pan/meter NodeIds from
+  each Clip `EntityId`, checks generated/master NodeId collisions before graph build, validates mixer gain,
+  and rejects invalid Projects, null sources, and source NodeId mismatches. The mixer projection tests now
+  prove the projector builds/renders through `buildMixerGraphProjection` and negative-control each rejection
+  path. Still out of scope: scanner, pluginval/auval, UI embedding, automation lanes, blacklist policy
+  enforcement, plugin loading, ADR edits, goldens, runtime/device driver work, item 4b+, and `[!shouldfail]`
+  removal. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci --target YesDawMixerProjectionCheck`; direct `YesDawMixerProjectionCheck.exe`
+  `[mixer][projection][project]`; direct `YesDawMixerProjectionCheck.exe`; VS DevShell
+  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; direct `YesDawPersistenceCheck.exe`
+  `[plugin-blacklist]`, `[persistence][sqlite][schema]`, and `[persistence][recovery][migration]`; VS
+  DevShell `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed
+  **199/199**; `git diff --check` passed. **Next:** REVIEW/FIX this item 4a projector checkpoint first.
+  Verify `src/engine/ProjectMixerProjection.h`, `tests/mixer_projection_tests.cpp`,
+  `src/engine/MixerGraphProjection.h`, `src/engine/Project.h`, and the close-out plan + ADR-0014/0016/0006/0008.
+  Confirm the projector is control-thread-only, schema-free, source-factory based, collision-checked,
+  Project-validating, and not a runtime driver. If clean, continue depth-first to close-out plan item 4b:
+  device-callback -> `Runtime.processBlock` driver.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
