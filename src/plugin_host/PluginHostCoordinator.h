@@ -421,6 +421,14 @@ public:
         return deferredGraphChangeCommandStatusLocked();
     }
 
+    DeferredGraphChangeCommandStatus acknowledgeDeferredGraphChangeCommandStatus()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        lastDeferredGraphChangeCommandResult_ = {};
+        deferredGraphChangeCommandRecorded_ = false;
+        return deferredGraphChangeCommandStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)

@@ -779,6 +779,29 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto acknowledgedDeferredStatus =
+        deferredReceiptCoordinator.acknowledgeDeferredGraphChangeCommandStatus();
+    const auto afterAcknowledgedDeferredStatus =
+        deferredReceiptCoordinator.deferredGraphChangeCommandStatus();
+    if (acknowledgedDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || acknowledgedDeferredStatus.lastResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || acknowledgedDeferredStatus.commandRecorded
+        || acknowledgedDeferredStatus.graphRecompileExecuted
+        || afterAcknowledgedDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || afterAcknowledgedDeferredStatus.lastResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || afterAcknowledgedDeferredStatus.commandRecorded
+        || afterAcknowledgedDeferredStatus.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator deferred command acknowledge/clear status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d executed=%d inspectedExecuted=%d\n",
+                     statusName (acknowledgedDeferredStatus.status),
+                     statusName (afterAcknowledgedDeferredStatus.status),
+                     acknowledgedDeferredStatus.commandRecorded ? 1 : 0,
+                     afterAcknowledgedDeferredStatus.commandRecorded ? 1 : 0,
+                     acknowledgedDeferredStatus.graphRecompileExecuted ? 1 : 0,
+                     afterAcknowledgedDeferredStatus.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
     auto executedGraphRecompileResult = crashCommandResult;
     executedGraphRecompileResult.graphRecompileExecuted = true;
     const auto executedGraphRecompileDeferredStatus =
@@ -794,6 +817,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, and recorded deferred command receipt/status without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, recorded deferred command receipt/status, and acknowledged/cleared it without executing graph recompiles\n");
     return 0;
 }
