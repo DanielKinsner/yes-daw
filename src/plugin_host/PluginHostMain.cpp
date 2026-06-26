@@ -7,6 +7,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_events/juce_events.h>
 
+#include "plugin_host/PluginHostProtocol.h"
+
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -14,8 +16,6 @@
 #include <thread>
 
 namespace {
-
-constexpr const char* kWorkerCommandLineId = "yesdawpluginhost";
 
 bool hasFlag (int argc, char** argv, const char* flag) noexcept
 {
@@ -41,8 +41,8 @@ class PluginHostWorker final : public juce::ChildProcessWorker
 public:
     void handleConnectionMade() override
     {
-        const char ready[] = "ready";
-        sendMessageToCoordinator (juce::MemoryBlock (ready, sizeof (ready)));
+        const char* const ready = yesdaw::plugin_host::kWorkerReadyMessage;
+        sendMessageToCoordinator (juce::MemoryBlock (ready, std::strlen (ready) + 1));
     }
 
     void handleMessageFromCoordinator (const juce::MemoryBlock& message) override
@@ -76,7 +76,7 @@ int runSelfCheck()
     }
 
     std::printf ("PASS: YesDawPluginHost worker target links JUCE hosting (%d format(s)); worker-id=%s\n",
-                 formats.getNumFormats(), kWorkerCommandLineId);
+                 formats.getNumFormats(), yesdaw::plugin_host::kWorkerCommandLineId);
     return 0;
 }
 
@@ -90,7 +90,9 @@ int main (int argc, char** argv)
         return runSelfCheck();
 
     PluginHostWorker worker;
-    if (! worker.initialiseFromCommandLine (commandLineFromArgv (argc, argv), kWorkerCommandLineId, 1000))
+    if (! worker.initialiseFromCommandLine (commandLineFromArgv (argc, argv),
+                                            yesdaw::plugin_host::kWorkerCommandLineId,
+                                            1000))
     {
         std::printf ("YesDawPluginHost is a child worker; run with --self-check for the mechanical gate.\n");
         return 2;

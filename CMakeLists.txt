@@ -142,6 +142,7 @@ if (YESDAW_BUILD_APPS)
   # targets stay hosting-free and the layering assertion near the end of this file enforces that.
   juce_add_console_app(YesDawPluginHost PRODUCT_NAME "YesDawPluginHost")
   target_sources(YesDawPluginHost PRIVATE src/plugin_host/PluginHostMain.cpp)
+  target_include_directories(YesDawPluginHost PRIVATE ${YESDAW_SRC_DIR})
   target_compile_definitions(YesDawPluginHost PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -159,6 +160,23 @@ if (YESDAW_BUILD_APPS)
   endif()
   yesdaw_harden(YesDawPluginHost)
   add_test(NAME YesDawPluginHostSelfCheck COMMAND $<TARGET_FILE:YesDawPluginHost> --self-check)
+
+  # --- Plugin host coordinator launch/handshake shell (H3; ADR-0015 control lane) ---
+  # The coordinator owns process launch + JUCE's control message channel, but not plugin-hosting modules.
+  # This self-check proves the worker boundary with a ready/echo handshake; no plugin load, scanner,
+  # watchdog, blacklist/cache, real shared memory, or UI embedding is introduced here.
+  juce_add_console_app(YesDawPluginHostCoordinatorCheck PRODUCT_NAME "YesDawPluginHostCoordinatorCheck")
+  target_sources(YesDawPluginHostCoordinatorCheck PRIVATE src/plugin_host/PluginHostCoordinatorCheck.cpp)
+  target_include_directories(YesDawPluginHostCoordinatorCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_compile_definitions(YesDawPluginHostCoordinatorCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_link_libraries(YesDawPluginHostCoordinatorCheck
+    PRIVATE
+      juce::juce_events
+      juce::juce_recommended_config_flags)
+  add_dependencies(YesDawPluginHostCoordinatorCheck YesDawPluginHost)
+  yesdaw_harden(YesDawPluginHostCoordinatorCheck)
+  add_test(NAME YesDawPluginHostCoordinatorCheck
+           COMMAND $<TARGET_FILE:YesDawPluginHostCoordinatorCheck> $<TARGET_FILE:YesDawPluginHost>)
 endif()
 
 add_executable(YesDawCheck tests/dsp_tests.cpp)
