@@ -85,6 +85,19 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::HostFailureK
     return "unknown";
 }
 
+const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind action) noexcept
+{
+    using Action = yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind;
+
+    switch (action)
+    {
+        case Action::none:                return "none";
+        case Action::bypassAndRecompile:  return "bypassAndRecompile";
+    }
+
+    return "unknown";
+}
+
 const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState state) noexcept
 {
     using State = yesdaw::plugin_host::PluginHostCoordinator::ChildState;
@@ -263,6 +276,20 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto normalStopAction = coordinator.failureActionRequest();
+    if (normalStopAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || normalStopAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || normalStopAction.bypassRequested
+        || normalStopAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop action request is wrong: action=%s failure=%s bypass=%d recompile=%d\n",
+                     statusName (normalStopAction.action),
+                     statusName (normalStopAction.failureKind),
+                     normalStopAction.bypassRequested ? 1 : 0,
+                     normalStopAction.recompileRequested ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator watchdogCoordinator;
     const auto watchdog = watchdogCoordinator.launchAndExpectWatchdogTimeout (workerExecutable);
 
@@ -327,6 +354,20 @@ int main (int argc, char** argv)
                      watchdogFailure.connectionLostSeen ? 1 : 0,
                      watchdogFailure.watchdogTimedOut ? 1 : 0,
                      watchdogFailure.watchdogKillRequested ? 1 : 0);
+        return 2;
+    }
+
+    const auto watchdogAction = watchdogCoordinator.failureActionRequest();
+    if (watchdogAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
+        || watchdogAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::watchdogTimeout
+        || ! watchdogAction.bypassRequested
+        || ! watchdogAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog action request is wrong: action=%s failure=%s bypass=%d recompile=%d\n",
+                     statusName (watchdogAction.action),
+                     statusName (watchdogAction.failureKind),
+                     watchdogAction.bypassRequested ? 1 : 0,
+                     watchdogAction.recompileRequested ? 1 : 0);
         return 2;
     }
 
@@ -397,6 +438,22 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, and classified watchdog-timeout vs crash host failures\n");
+    const auto crashAction = crashCoordinator.failureActionRequest();
+    if (crashAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile
+        || crashAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::crash
+        || ! crashAction.bypassRequested
+        || ! crashAction.recompileRequested
+        || crashAction.failureKind == watchdogAction.failureKind)
+    {
+        std::printf ("FAIL: plugin host coordinator crash action request is wrong: action=%s failure=%s bypass=%d recompile=%d watchdogFailure=%s\n",
+                     statusName (crashAction.action),
+                     statusName (crashAction.failureKind),
+                     crashAction.bypassRequested ? 1 : 0,
+                     crashAction.recompileRequested ? 1 : 0,
+                     statusName (watchdogAction.failureKind));
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, and requested future bypass/recompile actions\n");
     return 0;
 }

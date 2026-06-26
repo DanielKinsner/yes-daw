@@ -61,6 +61,12 @@ public:
         watchdogTimeout
     };
 
+    enum class FailureActionKind
+    {
+        none,
+        bypassAndRecompile
+    };
+
     enum class ChildState
     {
         idle,
@@ -110,6 +116,14 @@ public:
         bool connectionLostSeen { false };
         bool watchdogTimedOut { false };
         bool watchdogKillRequested { false };
+    };
+
+    struct FailureActionRequest
+    {
+        FailureActionKind action { FailureActionKind::none };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool bypassRequested { false };
+        bool recompileRequested { false };
     };
 
     struct ChildStatus
@@ -298,6 +312,19 @@ public:
     {
         std::lock_guard<std::mutex> lock (mutex_);
         return hostFailureReportLocked();
+    }
+
+    FailureActionRequest failureActionRequest() const
+    {
+        return failureActionRequestFor (hostFailureReport());
+    }
+
+    static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
+    {
+        if (report.kind == HostFailureKind::none)
+            return {};
+
+        return { FailureActionKind::bypassAndRecompile, report.kind, true, true };
     }
 
     void handleMessageFromWorker (const juce::MemoryBlock& message) override
