@@ -572,6 +572,28 @@ public:
         return blacklistPolicyDecisionRequestFor (deferredBlacklistEscalationStatusLocked());
     }
 
+    BlacklistPolicyDecisionRequest queueBlacklistPolicyDecisionRequestForDeferredEscalation()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        pendingBlacklistPolicyDecisionRequest_ =
+            blacklistPolicyDecisionRequestFor (deferredBlacklistEscalationStatusLocked());
+        return pendingBlacklistPolicyDecisionRequest_;
+    }
+
+    BlacklistPolicyDecisionRequest pendingBlacklistPolicyDecisionRequest() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return pendingBlacklistPolicyDecisionRequest_;
+    }
+
+    BlacklistPolicyDecisionRequest drainPendingBlacklistPolicyDecisionRequest()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        const auto request = pendingBlacklistPolicyDecisionRequest_;
+        pendingBlacklistPolicyDecisionRequest_ = {};
+        return request;
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -824,6 +846,7 @@ private:
     HostFailureKind failureKind_ { HostFailureKind::none };
     FailureActionRequest pendingFailureAction_;
     BlacklistCandidateStatus pendingBlacklistCandidate_;
+    BlacklistPolicyDecisionRequest pendingBlacklistPolicyDecisionRequest_;
     GraphChangeCommandResult lastDeferredGraphChangeCommandResult_;
     BlacklistEscalationResult lastDeferredBlacklistEscalationResult_;
     bool launchAttempted_ { false };
