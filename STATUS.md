@@ -14,7 +14,8 @@ worklog.
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
 `PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
 checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
-CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green
+CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
+coordinator child-state/status surface is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
