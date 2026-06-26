@@ -398,7 +398,7 @@ TEST_CASE ("PluginNode pipeline Block must equal the graph maxBlockSize or the b
     constexpr NodeId kSrc = 320, kPlugin = 321;
     constexpr int    B = 64;
 
-    auto buildWith = [] (int pipelineBlock, int maxBlockSize, GraphBuildError& error)
+    auto buildWith = [kSrc, kPlugin] (int pipelineBlock, int maxBlockSize, GraphBuildError& error)
         -> std::unique_ptr<CompiledGraph>
     {
         auto src    = std::make_unique<BlockSignalSource> (kSrc, 1);
