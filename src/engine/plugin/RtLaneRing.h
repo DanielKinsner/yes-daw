@@ -208,7 +208,7 @@ public:
 #if defined (_WIN32)
         return "Local\\yesdaw_rt_lane_" + std::to_string (GetCurrentProcessId()) + "_" + std::to_string (n);
 #else
-        return "/yesdaw_rt_lane_" + std::to_string (static_cast<long long> (::getpid())) + "_" + std::to_string (n);
+        return "/ydrt_" + std::to_string (static_cast<long long> (::getpid())) + "_" + std::to_string (n);
 #endif
     }
 
@@ -473,6 +473,11 @@ private:
                 throw std::runtime_error ("RtLaneRing MapViewOfFile failed");
 #else
             fd_ = ::shm_open (name_.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
+            if (fd_ < 0 && errno == EEXIST)
+            {
+                ::shm_unlink (name_.c_str());
+                fd_ = ::shm_open (name_.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
+            }
             if (fd_ < 0)
                 throw std::runtime_error ("RtLaneRing shm_open create failed");
 

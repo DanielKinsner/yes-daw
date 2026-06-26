@@ -78,7 +78,10 @@ oracle is locally green; the OS-backed RT-lane shared-memory clause is locally g
   name and poll the same region; the host-isolation test proves parent/RT and child/worker endpoints
   exchange a one-Block-late processed block through that mapping, and the negative control rejects an
   invalid mapping name instead of falling back to in-process storage. `YesDawHostIsolationCheck` now has a
-  normal passing Catch2 test for the OS-backed RT-lane clause. The aggregate H3 gate still stays
+  normal passing Catch2 test for the OS-backed RT-lane clause. A follow-up hardening fix shortened POSIX
+  shared-memory names, retries stale owner names after unlinking, and makes the absent-region negative
+  control use its own fresh never-created name so the proof does not depend on platform-specific overlong
+  name behavior. The aggregate H3 gate still stays
   `[!shouldfail]` because `Runtime` publish, tri-stream hosted PDC, watchdog kill/recovery,
   no-deadline-miss fail-open, ordered Placeholder swap, persisted blacklist, and cross-process opaque
   state clauses are still real gaps. Local gate: `cmake --preset ci`; VS DevShell

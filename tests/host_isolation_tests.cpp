@@ -106,8 +106,9 @@ bool proveRtLaneUsesOsSharedMemory()
     if (! childWorkerSide.usesOsSharedMemory())
         return false;
 
+    const std::string missingRegionName = RtLaneRing::makeUniqueSharedMemoryName();
     RtLaneRing invalidAttach;
-    if (invalidAttach.attachSharedMemory (regionName + "_missing_negative_control"))
+    if (invalidAttach.attachSharedMemory (missingRegionName))
         return false;
 
     constexpr int numFrames = 8;
