@@ -164,7 +164,7 @@ if (YESDAW_BUILD_APPS)
   # --- Plugin host coordinator launch/handshake shell (H3; ADR-0015 control lane) ---
   # The coordinator owns process launch + JUCE's control message channel, but not plugin-hosting modules.
   # This self-check proves the worker boundary with a ready/echo handshake; no plugin load, scanner,
-  # watchdog, blacklist/cache, real shared memory, or UI embedding is introduced here.
+  # blacklist/cache, real shared memory, plugin watchdog policy, or UI embedding is introduced here.
   juce_add_console_app(YesDawPluginHostCoordinatorCheck PRODUCT_NAME "YesDawPluginHostCoordinatorCheck")
   target_sources(YesDawPluginHostCoordinatorCheck PRIVATE src/plugin_host/PluginHostCoordinatorCheck.cpp)
   target_include_directories(YesDawPluginHostCoordinatorCheck PRIVATE ${YESDAW_SRC_DIR})

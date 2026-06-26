@@ -2,7 +2,7 @@
 //
 // This is only the worker/layering checkpoint: it proves there is a separate executable that owns JUCE
 // plugin-hosting modules. It does not scan, load plugins, mmap shared memory, launch from the app, or run
-// the watchdog/coordinator yet.
+// real plugin watchdog policy yet.
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_events/juce_events.h>
@@ -26,6 +26,13 @@ bool hasFlag (int argc, char** argv, const char* flag) noexcept
     return false;
 }
 
+bool messageMatches (const juce::MemoryBlock& message, const char* text) noexcept
+{
+    const auto expectedSize = std::strlen (text) + 1;
+    return message.getSize() == expectedSize
+        && std::memcmp (message.getData(), text, expectedSize) == 0;
+}
+
 juce::String commandLineFromArgv (int argc, char** argv)
 {
     juce::StringArray args;
@@ -47,6 +54,15 @@ public:
 
     void handleMessageFromCoordinator (const juce::MemoryBlock& message) override
     {
+        if (messageMatches (message, yesdaw::plugin_host::kWatchdogProbeMessage))
+        {
+            controlLaneHung_.store (true, std::memory_order_release);
+            return;
+        }
+
+        if (controlLaneHung_.load (std::memory_order_acquire))
+            return;
+
         sendMessageToCoordinator (message);
     }
 
@@ -62,6 +78,7 @@ public:
 
 private:
     std::atomic<bool> shouldQuit_ { false };
+    std::atomic<bool> controlLaneHung_ { false };
 };
 
 int runSelfCheck()

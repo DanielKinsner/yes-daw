@@ -33,6 +33,18 @@ public:
         stopTimeout
     };
 
+    enum class WatchdogStatus
+    {
+        notStarted,
+        launchFailed,
+        readyTimeout,
+        probeSendFailed,
+        timeoutKilled,
+        killObservationTimeout,
+        connectionLost,
+        unexpectedResponse
+    };
+
     enum class ChildState
     {
         idle,
@@ -58,20 +70,34 @@ public:
         bool connectionLostSeen { false };
     };
 
+    struct WatchdogResult
+    {
+        WatchdogStatus status { WatchdogStatus::notStarted };
+        bool readySeen { false };
+        bool watchdogTimedOut { false };
+        bool killRequested { false };
+        bool connectionLostSeen { false };
+    };
+
     struct ChildStatus
     {
         ChildState state { ChildState::idle };
         HandshakeStatus handshakeStatus { HandshakeStatus::notStarted };
         StopStatus stopStatus { StopStatus::notStarted };
+        WatchdogStatus watchdogStatus { WatchdogStatus::notStarted };
         bool launchAttempted { false };
         bool readySeen { false };
         bool probeEchoed { false };
         bool stopRequested { false };
+        bool watchdogTimedOut { false };
+        bool watchdogKillRequested { false };
         bool connectionLostSeen { false };
     };
 
-    explicit PluginHostCoordinator (std::chrono::milliseconds timeout = std::chrono::milliseconds (4000))
-        : timeout_ (timeout)
+    explicit PluginHostCoordinator (std::chrono::milliseconds timeout = std::chrono::milliseconds (4000),
+                                    std::chrono::milliseconds watchdogTimeout = std::chrono::milliseconds (250))
+        : timeout_ (timeout),
+          watchdogTimeout_ (watchdogTimeout)
     {
     }
 
@@ -117,6 +143,58 @@ public:
         return result (HandshakeStatus::success);
     }
 
+    WatchdogResult launchAndExpectWatchdogTimeout (const juce::File& workerExecutable)
+    {
+        stop();
+        resetState();
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            launchAttempted_ = true;
+            childState_ = ChildState::launching;
+        }
+
+        if (! launchWorkerProcess (workerExecutable, kWorkerCommandLineId, static_cast<int> (timeout_.count())))
+            return watchdogResult (WatchdogStatus::launchFailed);
+
+        if (! waitFor ([this] { return readySeen_ || connectionLost_; }))
+            return watchdogResult (WatchdogStatus::readyTimeout);
+
+        if (connectionLost())
+            return watchdogResult (WatchdogStatus::connectionLost);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            childState_ = ChildState::handshaking;
+        }
+
+        if (! sendMessageToWorker (makeMessage (kWatchdogProbeMessage)))
+            return watchdogResult (WatchdogStatus::probeSendFailed);
+
+        if (waitFor (watchdogTimeout_, [this] { return probeEchoed_ || connectionLost_; }))
+        {
+            if (connectionLost())
+                return watchdogResult (WatchdogStatus::connectionLost);
+
+            return watchdogResult (WatchdogStatus::unexpectedResponse);
+        }
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            handshakeStatus_ = HandshakeStatus::echoTimeout;
+            watchdogTimedOut_ = true;
+            watchdogKillRequested_ = true;
+            childState_ = ChildState::stopping;
+        }
+
+        killWorkerProcess();
+
+        if (! waitFor ([this] { return connectionLost_; }))
+            return watchdogResult (WatchdogStatus::killObservationTimeout);
+
+        return watchdogResult (WatchdogStatus::timeoutKilled);
+    }
+
     StopResult requestStopAndWait()
     {
         {
@@ -141,8 +219,8 @@ public:
     ChildStatus status() const
     {
         std::lock_guard<std::mutex> lock (mutex_);
-        return { childState_, handshakeStatus_, stopStatus_, launchAttempted_, readySeen_, probeEchoed_,
-                 stopRequested_, connectionLost_ };
+        return { childState_, handshakeStatus_, stopStatus_, watchdogStatus_, launchAttempted_, readySeen_,
+                 probeEchoed_, stopRequested_, watchdogTimedOut_, watchdogKillRequested_, connectionLost_ };
     }
 
     void handleMessageFromWorker (const juce::MemoryBlock& message) override
@@ -192,8 +270,14 @@ private:
     template <typename Predicate>
     bool waitFor (Predicate&& predicate)
     {
+        return waitFor (timeout_, std::forward<Predicate> (predicate));
+    }
+
+    template <typename Predicate>
+    bool waitFor (std::chrono::milliseconds timeout, Predicate&& predicate)
+    {
         std::unique_lock<std::mutex> lock (mutex_);
-        return cv_.wait_for (lock, timeout_, std::forward<Predicate> (predicate));
+        return cv_.wait_for (lock, timeout, std::forward<Predicate> (predicate));
     }
 
     void resetState()
@@ -204,9 +288,12 @@ private:
         connectionLost_ = false;
         launchAttempted_ = false;
         stopRequested_ = false;
+        watchdogTimedOut_ = false;
+        watchdogKillRequested_ = false;
         childState_ = ChildState::idle;
         handshakeStatus_ = HandshakeStatus::notStarted;
         stopStatus_ = StopStatus::notStarted;
+        watchdogStatus_ = WatchdogStatus::notStarted;
     }
 
     bool connectionLost() const
@@ -231,16 +318,29 @@ private:
         return { status, connectionLost_ };
     }
 
+    WatchdogResult watchdogResult (WatchdogStatus status)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        watchdogStatus_ = status;
+        if (status == WatchdogStatus::timeoutKilled)
+            childState_ = ChildState::stopped;
+        return { status, readySeen_, watchdogTimedOut_, watchdogKillRequested_, connectionLost_ };
+    }
+
     const std::chrono::milliseconds timeout_;
+    const std::chrono::milliseconds watchdogTimeout_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
     ChildState childState_ { ChildState::idle };
     HandshakeStatus handshakeStatus_ { HandshakeStatus::notStarted };
     StopStatus stopStatus_ { StopStatus::notStarted };
+    WatchdogStatus watchdogStatus_ { WatchdogStatus::notStarted };
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
     bool stopRequested_ { false };
+    bool watchdogTimedOut_ { false };
+    bool watchdogKillRequested_ { false };
     bool connectionLost_ { false };
 };
 
