@@ -54,7 +54,8 @@ coordinator RT-lane load/control-lane identity transfer is built/reviewed/green;
 RT-lane `pollOnce` hosted-processor path is locally green; the item-2 RT-lane reset/channel-count
 hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is locally green; item
 3b running RT-lane watchdog same-child progress hardening is reviewed/green; item 3c crash/hang
-auto-enqueue + Placeholder recovery publish is locally green
+auto-enqueue + Placeholder recovery publish is reviewed/green; item 3d persistent blacklist
+store/schema keyed by plugin identity is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -78,41 +79,39 @@ auto-enqueue + Placeholder recovery publish is locally green
   transfer over the control lane, worker `pollOnce` processing through the hosted processor path, a real
   Placeholder compiled-node kind, and a narrow running RT-lane watchdog that first proves same-child
   `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog,
-  plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures and
-  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue.
+  plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures,
+  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue, and proves
+  a persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: WORKER item 3c crash/hang -> auto-enqueue -> Placeholder recovery publish is locally green.**
-  REVIEW/FIX of item 3b found no further proven defects against `STATUS.md`, the close-out plan,
-  ADR-0015, ADR-0013, ADR-0008, and the coordinator/worker/protocol/CMake surfaces: the watchdog remains
-  coordinator/control-side; proves same-child RT-lane `outputSeq` progress before the induced hang; then
-  proves input backlog/no further output progress, kills the child, classifies watchdog timeout distinctly
-  from crash, keeps `[!shouldfail]`, and does not apply blacklist policy or persistence. Then WORKER added
-  the narrow item 3c recovery slice: `handleConnectionLost()` auto-enqueues bypass/recompile for both
-  watchdog-timeout and crash failures; `resetState()` clears stale pending/deferred recovery pipelines before
-  a fresh launch; and the coordinator can consume the auto-queued action, compile a graph with the offender's
-  node id replaced by `CompiledNodeKind::Placeholder`, publish it through `Runtime`'s ordered `SwapGraph`
-  queue, and reclaim the old graph on the janitor side. `YesDawHostIsolationCheck` now has a standalone
-  passing proof for watchdog/crash recovery while the aggregate H3 gate remains `[!shouldfail]`.
-  Negative control: temporarily bypassing the Placeholder-kind guard made
-  `YesDawPluginHostCoordinatorCheck` fail because the non-placeholder recovery graph was accepted as
-  `graphPublished`; restored code rejects it as `missingPlaceholder` and passes. Still out of scope:
-  persistent blacklist store/schema/policy enforcement, scanner, pluginval/auval, UI embedding, automation
-  lanes, ADR edits, goldens, item 4+, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`;
-  VS DevShell `cmake --build --preset ci --target YesDawPluginHostCoordinatorCheck`; VS DevShell
-  `ctest --preset ci -R YesDawPluginHostCoordinatorCheck --output-on-failure`; negative control as above;
-  VS DevShell `cmake --build --preset ci --target YesDawHostIsolationCheck`; VS DevShell
+- **Latest: WORKER item 3d persistent blacklist store + identity-keyed schema is locally green.**
+  REVIEW/FIX of item 3c found no proven defects against `STATUS.md`, the close-out plan, ADR-0015,
+  ADR-0013, ADR-0006, ADR-0008, and the coordinator/worker/protocol/CMake/Runtime/GraphBuilder surfaces:
+  auto-enqueue is failure-driven for watchdog/crash, crash/watchdog stay distinct, Placeholder replacement
+  is real and uses the offender node id, publish goes through `Runtime`'s ordered `SwapGraph` queue, old graph
+  reclaim is proved, reset clears stale recovery queues, no policy/store enforcement was smuggled into 3c,
+  and `[!shouldfail]` remains. Then WORKER added the narrow item 3d persistence slice: Project bundle schema
+  version 2 adds `plugin_blacklist` with primary key `{format, plugin_uid, plugin_version}`; `ProjectBundleDb`
+  can write/upsert and exact-key lookup blacklist rows; persistence tests prove schema migration,
+  version-specific keys, invalid/incomplete identity rejection, and restart survival; `YesDawHostIsolationCheck` now
+  has a standalone passing proof that the blacklist row survives bundle reopen/restart while wrong version
+  and wrong format do not match. The aggregate H3 gate remains `[!shouldfail]`.
+  Negative controls: wrong-version and wrong-format blacklist lookups stay false, and empty/invalid
+  blacklist identities are rejected mechanically. Still out of scope: scanner, pluginval/auval, UI embedding,
+  automation lanes, blacklist policy enforcement, plugin loading, ADR edits, goldens, item 4+, and
+  `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci --target YesDawPersistenceCheck`; direct `YesDawPersistenceCheck.exe`
+  `[plugin-blacklist]`, `[persistence][sqlite][schema]`, and `[persistence][recovery][migration]`; VS DevShell
+  `cmake --build --preset ci --target YesDawHostIsolationCheck`; VS DevShell
   `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed **194/194**;
-  `git diff --check` passed. **Next:** REVIEW/FIX this item 3c recovery checkpoint first. Verify
-  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
-  `tests/host_isolation_tests.cpp`, `src/plugin_host/PluginHostMain.cpp`,
-  `src/plugin_host/PluginHostProtocol.h`, `src/engine/GraphBuilder.h`, `src/engine/Runtime.h`, and relevant
-  CMake against the close-out plan + ADR-0015/0013/0006/0008. Confirm auto-enqueue is truly failure-driven,
-  Placeholder replacement is real and published through ordered `SwapGraph`, stale recovery queues clear on
-  reset, crash/watchdog remain distinct, policy/persistence stay out of scope, and `[!shouldfail]` remains.
-  If clean, continue depth-first to close-out plan item 3d: persistent blacklist store + schema keyed
-  `{format, plugin_uid, plugin_version}` with survival across restart.
+  `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed **196/196**;
+  `git diff --check` passed. **Next:** REVIEW/FIX this item 3d persistent blacklist checkpoint first. Verify
+  `src/persistence/ProjectBundle.h`, `tests/persistence_tests.cpp`, `tests/host_isolation_tests.cpp`,
+  `src/plugin_host/PluginHostCoordinator.h`, relevant CMake, and the close-out plan + ADR-0015/0013/0006/0008.
+  Confirm the blacklist store is keyed exactly by `{format, plugin_uid, plugin_version}`, survives reopen,
+  advances only the persistence/gate proof, does not enforce policy or load/scan plugins, keeps crash/watchdog
+  handling distinct, and keeps `[!shouldfail]` unchanged. If clean, continue depth-first to close-out plan
+  item 4a: `Project` -> `MixerProjectionInputs` projector.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

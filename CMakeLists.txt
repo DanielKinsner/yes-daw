@@ -187,7 +187,7 @@ if (YESDAW_BUILD_APPS)
   target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawHostIsolationCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawHostIsolationCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
-  target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain juce::juce_events)
+  target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain juce::juce_events sqlite3_amalgamation)
   add_dependencies(YesDawHostIsolationCheck YesDawPluginHost)
   yesdaw_harden(YesDawHostIsolationCheck)
   add_test(NAME YesDawHostIsolationCheck

@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "engine/plugin/RtLaneRing.h"
+#include "persistence/ProjectBundle.h"
 #include "plugin_host/PluginHostCoordinator.h"
 
 #include <chrono>
@@ -17,6 +18,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -41,6 +43,8 @@ using yesdaw::engine::Runtime;
 using yesdaw::plugin_host::PluginHostCoordinator;
 using yesdaw::plugin_host::RtLaneLoadConfig;
 using yesdaw::plugin_host::RtLaneLoadReplyStatus;
+using yesdaw::persistence::PluginStateFormat;
+using yesdaw::persistence::ProjectBundleDb;
 
 namespace {
 
@@ -123,6 +127,18 @@ bool allSamplesNear (const std::vector<float>& values, float expected) noexcept
             return false;
 
     return true;
+}
+
+std::filesystem::path makeTempBundlePath (std::string_view label)
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::filesystem::path path =
+        std::filesystem::temp_directory_path() / ("yesdaw-h3-" + std::string (label) + "-"
+                                                  + std::to_string (ticks) + ".yesdaw");
+
+    std::error_code ec;
+    std::filesystem::remove_all (path, ec);
+    return path;
 }
 
 struct HostIsolationGateState
@@ -665,6 +681,16 @@ struct WatchdogRecoveryProof
     std::size_t reclaimedGraphs = 0;
 };
 
+struct BlacklistPersistenceProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    bool exactBeforeRestart = false;
+    bool exactAfterRestart = false;
+    bool wrongVersionAfterRestart = true;
+    bool wrongFormatAfterRestart = true;
+};
+
 WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
 {
     WatchdogRecoveryProof proof;
@@ -779,9 +805,64 @@ WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
     return proof;
 }
 
+BlacklistPersistenceProof proveBlacklistPersistsAcrossRestart()
+{
+    BlacklistPersistenceProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    const auto path = makeTempBundlePath ("plugin-blacklist");
+    constexpr auto format = PluginStateFormat::Vst3;
+    const std::string uid = "com.yesdaw.h3.synthetic.crashy";
+    const std::string version = "3.0.0";
+
+    {
+        ProjectBundleDb db;
+        if (! ProjectBundleDb::openOrCreateBundle (path, db).ok())
+            return fail ("bundle did not open for blacklist write");
+
+        if (! db.writePluginBlacklistEntry ({ format, uid, version, "watchdog-timeout" }).ok())
+            return fail ("blacklist row did not write");
+
+        if (! db.pluginBlacklistContains (format, uid, version, proof.exactBeforeRestart).ok()
+            || ! proof.exactBeforeRestart)
+            return fail ("blacklist row was not visible before restart");
+    }
+
+    ProjectBundleDb reopened;
+    if (! ProjectBundleDb::openExistingBundle (path, reopened).ok())
+        return fail ("bundle did not reopen for blacklist read");
+
+    if (! reopened.pluginBlacklistContains (format, uid, version, proof.exactAfterRestart).ok())
+        return fail ("blacklist lookup failed after restart");
+    if (! reopened.pluginBlacklistContains (format, uid, "3.0.1", proof.wrongVersionAfterRestart).ok())
+        return fail ("blacklist wrong-version lookup failed after restart");
+    if (! reopened.pluginBlacklistContains (PluginStateFormat::AudioUnit, uid, version, proof.wrongFormatAfterRestart).ok())
+        return fail ("blacklist wrong-format lookup failed after restart");
+
+    std::error_code ec;
+    std::filesystem::remove_all (path, ec);
+
+    if (! proof.exactAfterRestart || proof.wrongVersionAfterRestart || proof.wrongFormatAfterRestart)
+        return fail ("blacklist key did not survive restart as an exact plugin identity");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
 WatchdogRecoveryProof proveWatchdogRecoverySwapsPlaceholder()
 {
     static const WatchdogRecoveryProof proof = computeWatchdogRecoverySwapsPlaceholder();
+    return proof;
+}
+
+BlacklistPersistenceProof proveBlacklistPersistsAcrossRestartCached()
+{
+    static const BlacklistPersistenceProof proof = proveBlacklistPersistsAcrossRestart();
     return proof;
 }
 
@@ -797,6 +878,7 @@ HostIsolationGateState currentHostIsolationGateState()
         recovery.watchdogAutoQueued && recovery.crashAutoQueued;
     state.placeholderSwapUsesOrderedPublish =
         recovery.placeholderCompiled && recovery.orderedPublishAccepted && recovery.graphRecompileExecuted;
+    state.blacklistPersistsAcrossRestart = proveBlacklistPersistsAcrossRestartCached().passed;
     return state;
 }
 
@@ -912,6 +994,18 @@ TEST_CASE ("coordinator watchdog/crash recovery swaps a Placeholder through Runt
              proof.placeholderOutputSilent,
              proof.missingPlaceholderRejected,
              proof.reclaimedGraphs);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("plugin blacklist identity row persists across coordinator restart",
+           "[h3][host-isolation][blacklist]")
+{
+    const BlacklistPersistenceProof proof = proveBlacklistPersistsAcrossRestartCached();
+    CAPTURE (proof.failureStep,
+             proof.exactBeforeRestart,
+             proof.exactAfterRestart,
+             proof.wrongVersionAfterRestart,
+             proof.wrongFormatAfterRestart);
     REQUIRE (proof.passed);
 }
 

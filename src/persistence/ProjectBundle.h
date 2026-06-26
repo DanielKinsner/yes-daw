@@ -1,7 +1,7 @@
 // YES DAW - SQLite Project bundle persistence slice (ADR-0012).
 //
-// This is a narrow, headless control-thread surface: bring up a `.yesdaw` bundle database with the
-// v1 schema, run append-only migrations, enforce foreign keys, validate the existing Project value
+// This is a narrow, headless control-thread surface: bring up a `.yesdaw` bundle database, run
+// append-only migrations, enforce foreign keys, validate the existing Project value
 // types against schema semantics, and carry the pending filesystem intent-log shape.
 
 #pragma once
@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 1;
+inline constexpr int          kCodeSchemaVersion = 2;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -130,6 +130,14 @@ struct PluginStateChunkRecord
     PluginStateChunkKind       chunkKind = PluginStateChunkKind::Vst3Component;
     std::vector<std::uint8_t>  bytes;
     std::uint32_t              crc32 = 0;
+};
+
+struct PluginBlacklistEntry
+{
+    PluginStateFormat format = PluginStateFormat::Vst3;
+    std::string       pluginUid;
+    std::string       pluginVersion;
+    std::string       reason;
 };
 
 struct PluginStateRestoreChunk
@@ -503,6 +511,13 @@ inline bool pluginStateChunkKindMatchesFormat (PluginStateFormat format, PluginS
     }
 
     return false;
+}
+
+inline bool pluginBlacklistKeyIsValid (PluginStateFormat format,
+                                       std::string_view pluginUid,
+                                       std::string_view pluginVersion) noexcept
+{
+    return pluginStateFormatIsKnown (format) && ! pluginUid.empty() && ! pluginVersion.empty();
 }
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out)
@@ -919,14 +934,27 @@ CREATE TABLE plugin_state_chunks (
 );
 )SQL";
 
+inline constexpr std::string_view kSchemaV2Sql = R"SQL(
+CREATE TABLE plugin_blacklist (
+  format TEXT NOT NULL CHECK (format IN ('vst3', 'au', 'clap')),
+  plugin_uid TEXT NOT NULL CHECK (length(plugin_uid) > 0),
+  plugin_version TEXT NOT NULL CHECK (length(plugin_version) > 0),
+  reason TEXT NOT NULL DEFAULT '',
+  created_at_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  PRIMARY KEY (format, plugin_uid, plugin_version)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 1> kMigrations {
+inline constexpr std::array<SchemaMigration, 2> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
+    SchemaMigration { 2, kSchemaV2Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1303,6 +1331,75 @@ public:
 
             out.push_back (detail::decodePluginStateChunkRow (stmt.get()));
         }
+    }
+
+    [[nodiscard]] BundleResult writePluginBlacklistEntry (const PluginBlacklistEntry& entry)
+    {
+        if (! detail::pluginBlacklistKeyIsValid (entry.format, entry.pluginUid, entry.pluginVersion))
+        {
+            return BundleResult { BundleStatus::SemanticInvalid,
+                                  SQLITE_CONSTRAINT,
+                                  kCodeSchemaVersion,
+                                  "Plugin blacklist identity must be keyed by format, plugin_uid, and plugin_version" };
+        }
+
+        detail::Statement stmt (
+            db_,
+            "INSERT INTO plugin_blacklist(format, plugin_uid, plugin_version, reason) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(format, plugin_uid, plugin_version) DO UPDATE SET "
+            "reason = excluded.reason, "
+            "updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now');");
+
+        if (auto result = stmt.bindText (1, detail::pluginStateFormatStorageName (entry.format)); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (2, entry.pluginUid); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (3, entry.pluginVersion); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (4, entry.reason); ! result.ok())
+            return result;
+
+        return detail::expectDone (db_, stmt);
+    }
+
+    [[nodiscard]] BundleResult pluginBlacklistContains (PluginStateFormat format,
+                                                        std::string_view pluginUid,
+                                                        std::string_view pluginVersion,
+                                                        bool& out) const
+    {
+        out = false;
+        if (! detail::pluginBlacklistKeyIsValid (format, pluginUid, pluginVersion))
+        {
+            return BundleResult { BundleStatus::SemanticInvalid,
+                                  SQLITE_CONSTRAINT,
+                                  kCodeSchemaVersion,
+                                  "Plugin blacklist lookup must use format, plugin_uid, and plugin_version" };
+        }
+
+        detail::Statement stmt (
+            db_,
+            "SELECT 1 FROM plugin_blacklist "
+            "WHERE format = ? AND plugin_uid = ? AND plugin_version = ? "
+            "LIMIT 1;");
+
+        if (auto result = stmt.bindText (1, detail::pluginStateFormatStorageName (format)); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (2, pluginUid); ! result.ok())
+            return result;
+        if (auto result = stmt.bindText (3, pluginVersion); ! result.ok())
+            return result;
+
+        const int step = stmt.step();
+        if (step == SQLITE_ROW)
+        {
+            out = true;
+            return detail::ok();
+        }
+        if (step == SQLITE_DONE)
+            return detail::ok();
+
+        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
     }
 
     [[nodiscard]] BundleResult importAssetBytes (const AssetImportRequest& request, engine::Asset& out)

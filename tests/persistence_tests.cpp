@@ -35,6 +35,7 @@ using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::BundleStatus;
 using yesdaw::persistence::PendingFsOp;
 using yesdaw::persistence::PendingFsOpKind;
+using yesdaw::persistence::PluginBlacklistEntry;
 using yesdaw::persistence::PluginStateChunkKind;
 using yesdaw::persistence::PluginStateChunkRecord;
 using yesdaw::persistence::PluginStateFormat;
@@ -318,9 +319,13 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (journalMode == "wal");
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 2;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_blacklist';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -329,13 +334,13 @@ TEST_CASE ("Migration harness refuses forward schema and rolls back failed migra
     const auto path = makeTempBundlePath ("forward");
     {
         ProjectBundleDb db = openFreshBundle (path);
-        REQUIRE (db.executeSql ("PRAGMA user_version = 2;").ok());
+        REQUIRE (db.executeSql ("PRAGMA user_version = " + std::to_string (kCodeSchemaVersion + 1) + ";").ok());
     }
 
     ProjectBundleDb reopened;
     const auto forward = ProjectBundleDb::openExistingBundle (path, reopened);
     REQUIRE (forward.status == BundleStatus::ForwardSchema);
-    REQUIRE (forward.userVersion == 2);
+    REQUIRE (forward.userVersion == kCodeSchemaVersion + 1);
 
     sqlite3* memoryDb = nullptr;
     REQUIRE (sqlite3_open (":memory:", &memoryDb) == SQLITE_OK);
@@ -524,6 +529,8 @@ TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistenc
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
     REQUIRE (value == kCodeSchemaVersion);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 2;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1 AND app_build = 'interrupted';", value).ok());
     REQUIRE (value == 0);
@@ -936,6 +943,68 @@ TEST_CASE ("Plugin state restore rejects non-canonical SQLite header storage cla
     REQUIRE (chunks[0].status == PluginStateRestoreStatus::Unreadable);
     REQUIRE_FALSE (chunks[0].ready());
     REQUIRE (chunks[0].chunk.bytes.empty());
+}
+
+TEST_CASE ("Plugin blacklist rows are keyed by plugin identity and survive reopen", "[persistence][plugin-blacklist]")
+{
+    const auto path = makeTempBundlePath ("plugin-blacklist");
+    constexpr auto format = PluginStateFormat::Vst3;
+    const std::string uid = "com.yesdaw.test.crashy";
+    const std::string version = "1.0.0";
+    const std::string otherVersion = "1.0.1";
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writePluginBlacklistEntry ({ format, uid, version, "watchdog-timeout" }).ok());
+
+        bool exact = false;
+        REQUIRE (db.pluginBlacklistContains (format, uid, version, exact).ok());
+        REQUIRE (exact);
+
+        bool wrongVersion = true;
+        REQUIRE (db.pluginBlacklistContains (format, uid, otherVersion, wrongVersion).ok());
+        REQUIRE_FALSE (wrongVersion);
+
+        REQUIRE (db.writePluginBlacklistEntry ({ format, uid, otherVersion, "crash" }).ok());
+        REQUIRE (db.writePluginBlacklistEntry ({ format, uid, version, "watchdog-timeout-repeat" }).ok());
+
+        sqlite3_int64 count = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM plugin_blacklist WHERE format = 'vst3' AND plugin_uid = 'com.yesdaw.test.crashy';", count).ok());
+        REQUIRE (count == 2);
+
+        std::string reason;
+        REQUIRE (db.queryText ("SELECT reason FROM plugin_blacklist WHERE format = 'vst3' AND plugin_uid = 'com.yesdaw.test.crashy' AND plugin_version = '1.0.0';", reason).ok());
+        REQUIRE (reason == "watchdog-timeout-repeat");
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    bool exactAfterRestart = false;
+    REQUIRE (reopened.pluginBlacklistContains (format, uid, version, exactAfterRestart).ok());
+    REQUIRE (exactAfterRestart);
+
+    bool wrongFormat = true;
+    REQUIRE (reopened.pluginBlacklistContains (PluginStateFormat::AudioUnit, uid, version, wrongFormat).ok());
+    REQUIRE_FALSE (wrongFormat);
+}
+
+TEST_CASE ("Plugin blacklist rejects incomplete plugin identity", "[persistence][plugin-blacklist]")
+{
+    const auto path = makeTempBundlePath ("plugin-blacklist-invalid");
+    ProjectBundleDb db = openFreshBundle (path);
+
+    REQUIRE (db.writePluginBlacklistEntry ({ PluginStateFormat::Vst3, "", "1.0.0", "crash" }).status
+             == BundleStatus::SemanticInvalid);
+    REQUIRE (db.writePluginBlacklistEntry ({ PluginStateFormat::Vst3, "com.yesdaw.test", "", "crash" }).status
+             == BundleStatus::SemanticInvalid);
+    REQUIRE (db.writePluginBlacklistEntry ({ static_cast<PluginStateFormat> (255), "com.yesdaw.test", "1.0.0", "crash" }).status
+             == BundleStatus::SemanticInvalid);
+
+    bool present = true;
+    REQUIRE (db.pluginBlacklistContains (PluginStateFormat::Vst3, "", "1.0.0", present).status
+             == BundleStatus::SemanticInvalid);
+    REQUIRE_FALSE (present);
 }
 
 TEST_CASE ("Waveform peak cache builds deterministic min max and RMS tiers", "[persistence][asset][peaks]")
