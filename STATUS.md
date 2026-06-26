@@ -13,8 +13,7 @@ worklog.
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
 `PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
-checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and locally
-green
+checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -28,7 +27,7 @@ green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 plugin-host coordinator launch/handshake shell is green locally — the control-lane
+- **Latest: WORKER H3 plugin-host coordinator launch/handshake shell is CI-green — the control-lane
   coordinator can launch the host worker.**
   First, REVIEW/FIX of the previous `YesDawPluginHost` worker exe + engine-hosting layering checkpoint
   found no proven defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering
@@ -47,7 +46,7 @@ green
   CLAP, ADR edits, goldens, broad graph rewiring, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation
   edits. Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented
   VS DevShell `ctest --preset ci` passed **187/187** (+1 coordinator launch/handshake self-check). Remote
-  CI is pending after push.
+  CI run `28209661003` is green across Windows, Linux, macOS, RTSan, and TSan for commit `e4e9981`.
   **Next:** REVIEW/FIX H3 plugin-host coordinator launch/handshake shell — verify
   `CMakeLists.txt`, `src/plugin_host/PluginHostProtocol.h`, `src/plugin_host/PluginHostCoordinator.h`,
   `src/plugin_host/PluginHostCoordinatorCheck.cpp`, and the worker touch in
