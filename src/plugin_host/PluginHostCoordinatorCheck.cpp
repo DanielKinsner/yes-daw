@@ -161,6 +161,16 @@ bool commandMatches (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeComm
         && actual.recompileRequested == expected.recompileRequested;
 }
 
+bool commandResultMatches (yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandResult actual,
+                           yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandResult expected) noexcept
+{
+    return actual.status == expected.status
+        && requestMatches (actual.drainedRequest, expected.drainedRequest)
+        && commandMatches (actual.command, expected.command)
+        && actual.pendingRequestConsumed == expected.pendingRequestConsumed
+        && actual.graphRecompileExecuted == expected.graphRecompileExecuted;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -181,6 +191,7 @@ int main (int argc, char** argv)
     yesdaw::plugin_host::PluginHostCoordinator coordinator;
     const auto initialStatus = coordinator.status();
     const auto initialPendingAction = coordinator.pendingFailureActionRequest();
+    const auto initialDeferredCommandStatus = coordinator.deferredGraphChangeCommandStatus();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -228,6 +239,19 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    if (initialDeferredCommandStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || initialDeferredCommandStatus.lastResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || initialDeferredCommandStatus.commandRecorded
+        || initialDeferredCommandStatus.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator initial deferred command status is wrong: status=%s last=%s recorded=%d executed=%d\n",
+                     statusName (initialDeferredCommandStatus.status),
+                     statusName (initialDeferredCommandStatus.lastResult.status),
+                     initialDeferredCommandStatus.commandRecorded ? 1 : 0,
+                     initialDeferredCommandStatus.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator noneFailureCoordinator;
     const auto queuedNoneFailureAction = noneFailureCoordinator.queueFailureActionRequest (
         { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
@@ -257,6 +281,8 @@ int main (int argc, char** argv)
                      noneFailureCommandResult.graphRecompileExecuted ? 1 : 0);
         return 2;
     }
+
+    yesdaw::plugin_host::PluginHostCoordinator deferredReceiptCoordinator;
 
     const auto handshake = coordinator.launchAndHandshake (workerExecutable);
 
@@ -413,6 +439,21 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto normalStopDeferredStatus =
+        deferredReceiptCoordinator.recordDeferredGraphChangeCommandResult (normalStopCommandResult);
+    if (normalStopDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || normalStopDeferredStatus.lastResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || normalStopDeferredStatus.commandRecorded
+        || normalStopDeferredStatus.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop should not record a deferred graph-change command: status=%s last=%s recorded=%d executed=%d\n",
+                     statusName (normalStopDeferredStatus.status),
+                     statusName (normalStopDeferredStatus.lastResult.status),
+                     normalStopDeferredStatus.commandRecorded ? 1 : 0,
+                     normalStopDeferredStatus.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator watchdogCoordinator;
     const auto watchdog = watchdogCoordinator.launchAndExpectWatchdogTimeout (workerExecutable);
 
@@ -548,6 +589,27 @@ int main (int argc, char** argv)
                      watchdogCommandResult.graphRecompileExecuted ? 1 : 0,
                      statusName (afterWatchdogCommandDrainAction.action),
                      statusName (afterWatchdogCommandDrainAction.failureKind));
+        return 2;
+    }
+
+    const auto watchdogDeferredStatus =
+        deferredReceiptCoordinator.recordDeferredGraphChangeCommandResult (watchdogCommandResult);
+    const auto watchdogDeferredStatusInspection = deferredReceiptCoordinator.deferredGraphChangeCommandStatus();
+    if (watchdogDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! commandResultMatches (watchdogDeferredStatus.lastResult, watchdogCommandResult)
+        || ! watchdogDeferredStatus.commandRecorded
+        || watchdogDeferredStatus.graphRecompileExecuted
+        || ! commandResultMatches (watchdogDeferredStatusInspection.lastResult, watchdogCommandResult)
+        || ! watchdogDeferredStatusInspection.commandRecorded
+        || watchdogDeferredStatusInspection.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog deferred command receipt/status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d executed=%d inspectedExecuted=%d\n",
+                     statusName (watchdogDeferredStatus.status),
+                     statusName (watchdogDeferredStatusInspection.status),
+                     watchdogDeferredStatus.commandRecorded ? 1 : 0,
+                     watchdogDeferredStatusInspection.commandRecorded ? 1 : 0,
+                     watchdogDeferredStatus.graphRecompileExecuted ? 1 : 0,
+                     watchdogDeferredStatusInspection.graphRecompileExecuted ? 1 : 0);
         return 2;
     }
 
@@ -693,6 +755,45 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, and drained future control-thread graph-change command shells without executing graph recompiles\n");
+    const auto crashDeferredStatus =
+        deferredReceiptCoordinator.recordDeferredGraphChangeCommandResult (crashCommandResult);
+    const auto crashDeferredStatusInspection = deferredReceiptCoordinator.deferredGraphChangeCommandStatus();
+    if (crashDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::commandReady
+        || ! commandResultMatches (crashDeferredStatus.lastResult, crashCommandResult)
+        || ! crashDeferredStatus.commandRecorded
+        || crashDeferredStatus.graphRecompileExecuted
+        || ! commandResultMatches (crashDeferredStatusInspection.lastResult, crashCommandResult)
+        || ! crashDeferredStatusInspection.commandRecorded
+        || crashDeferredStatusInspection.graphRecompileExecuted
+        || crashDeferredStatusInspection.lastResult.command.failureKind == watchdogDeferredStatusInspection.lastResult.command.failureKind)
+    {
+        std::printf ("FAIL: plugin host coordinator crash deferred command receipt/status is wrong: status=%s inspected=%s recorded=%d inspectedRecorded=%d executed=%d inspectedExecuted=%d watchdogCommand=%s crashCommand=%s\n",
+                     statusName (crashDeferredStatus.status),
+                     statusName (crashDeferredStatusInspection.status),
+                     crashDeferredStatus.commandRecorded ? 1 : 0,
+                     crashDeferredStatusInspection.commandRecorded ? 1 : 0,
+                     crashDeferredStatus.graphRecompileExecuted ? 1 : 0,
+                     crashDeferredStatusInspection.graphRecompileExecuted ? 1 : 0,
+                     statusName (watchdogDeferredStatusInspection.lastResult.command.failureKind),
+                     statusName (crashDeferredStatusInspection.lastResult.command.failureKind));
+        return 2;
+    }
+
+    auto executedGraphRecompileResult = crashCommandResult;
+    executedGraphRecompileResult.graphRecompileExecuted = true;
+    const auto executedGraphRecompileDeferredStatus =
+        deferredReceiptCoordinator.recordDeferredGraphChangeCommandResult (executedGraphRecompileResult);
+    if (executedGraphRecompileDeferredStatus.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || executedGraphRecompileDeferredStatus.commandRecorded
+        || executedGraphRecompileDeferredStatus.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator accepted a deferred command result that claimed graph recompile execution: status=%s recorded=%d executed=%d\n",
+                     statusName (executedGraphRecompileDeferredStatus.status),
+                     executedGraphRecompileDeferredStatus.commandRecorded ? 1 : 0,
+                     executedGraphRecompileDeferredStatus.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, drained future control-thread graph-change command shells, and recorded deferred command receipt/status without executing graph recompiles\n");
     return 0;
 }

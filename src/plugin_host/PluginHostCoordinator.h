@@ -155,6 +155,14 @@ public:
         bool graphRecompileExecuted { false };
     };
 
+    struct DeferredGraphChangeCommandStatus
+    {
+        GraphChangeCommandStatus status { GraphChangeCommandStatus::noAction };
+        GraphChangeCommandResult lastResult;
+        bool commandRecorded { false };
+        bool graphRecompileExecuted { false };
+    };
+
     struct ChildStatus
     {
         ChildState state { ChildState::idle };
@@ -390,6 +398,29 @@ public:
                  false };
     }
 
+    DeferredGraphChangeCommandStatus recordDeferredGraphChangeCommandResult (GraphChangeCommandResult result)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (canRecordGraphChangeCommandResult (result))
+        {
+            lastDeferredGraphChangeCommandResult_ = result;
+            deferredGraphChangeCommandRecorded_ = true;
+        }
+        else
+        {
+            lastDeferredGraphChangeCommandResult_ = {};
+            deferredGraphChangeCommandRecorded_ = false;
+        }
+
+        return deferredGraphChangeCommandStatusLocked();
+    }
+
+    DeferredGraphChangeCommandStatus deferredGraphChangeCommandStatus() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return deferredGraphChangeCommandStatusLocked();
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -451,6 +482,18 @@ private:
     {
         return request.action == FailureActionKind::bypassAndRecompile
             && request.failureKind != HostFailureKind::none;
+    }
+
+    static bool canRecordGraphChangeCommandResult (GraphChangeCommandResult result) noexcept
+    {
+        return result.status == GraphChangeCommandStatus::commandReady
+            && result.pendingRequestConsumed
+            && ! result.graphRecompileExecuted
+            && canCreateGraphChangeCommand (result.drainedRequest)
+            && result.command.command == GraphChangeCommandKind::bypassAndRecompile
+            && result.command.failureKind == result.drainedRequest.failureKind
+            && result.command.bypassRequested == result.drainedRequest.bypassRequested
+            && result.command.recompileRequested == result.drainedRequest.recompileRequested;
     }
 
     template <typename Predicate>
@@ -528,6 +571,15 @@ private:
         return { failureKind_, connectionLost_, watchdogTimedOut_, watchdogKillRequested_ };
     }
 
+    DeferredGraphChangeCommandStatus deferredGraphChangeCommandStatusLocked() const
+    {
+        return { deferredGraphChangeCommandRecorded_ ? lastDeferredGraphChangeCommandResult_.status
+                                                     : GraphChangeCommandStatus::noAction,
+                 lastDeferredGraphChangeCommandResult_,
+                 deferredGraphChangeCommandRecorded_,
+                 lastDeferredGraphChangeCommandResult_.graphRecompileExecuted };
+    }
+
     const std::chrono::milliseconds timeout_;
     const std::chrono::milliseconds watchdogTimeout_;
     mutable std::mutex mutex_;
@@ -539,6 +591,7 @@ private:
     CrashStatus crashStatus_ { CrashStatus::notStarted };
     HostFailureKind failureKind_ { HostFailureKind::none };
     FailureActionRequest pendingFailureAction_;
+    GraphChangeCommandResult lastDeferredGraphChangeCommandResult_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
@@ -547,6 +600,7 @@ private:
     bool watchdogKillRequested_ { false };
     bool crashObservationRequested_ { false };
     bool connectionLost_ { false };
+    bool deferredGraphChangeCommandRecorded_ { false };
 };
 
 } // namespace yesdaw::plugin_host

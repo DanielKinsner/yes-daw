@@ -33,6 +33,44 @@ drain-to-control-thread command shell is built and CI-green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 minimal coordinator deferred graph-change command receipt/status shell is locally
+  green — the coordinator can record the most recent deferred graph-change command/result for inspection
+  without executing real graph rewiring or policy enforcement.**
+  First, REVIEW/FIX of the previous drain-to-control-thread command shell found and fixed one narrow
+  proven defect: `HostFailureKind::none` could be manually queued through the public pending
+  `FailureActionRequest` surface as a bypass/recompile request and then produce a command. Commit
+  `ee8e7e5` hardens command eligibility so only bypass/recompile requests with a real crash/watchdog
+  failure kind can drain to a command, adds a self-check for the none-failure case, and is remote CI-green
+  on run `28216003408` across Windows, Linux, macOS, RTSan, and TSan. Then WORKER added the smallest
+  deferred receipt/status shell: `PluginHostCoordinator` now exposes
+  `DeferredGraphChangeCommandStatus`, `recordDeferredGraphChangeCommandResult()`, and
+  `deferredGraphChangeCommandStatus()`. The receipt surface records only command-ready,
+  pending-consumed watchdog/crash command results that do **not** claim graph recompile execution; no-action
+  or execution-claiming results leave the receipt empty. The coordinator self-check now proves initial
+  status is empty, normal stop records no command, watchdog command receipt records watchdog cause, crash
+  receipt overwrites it with crash cause, both causes remain distinct, and no receipt path claims or
+  performs graph recompile execution. Scope held: no real plugin load, scanner, watchdog blacklist policy,
+  blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR
+  edits, goldens, broad graph rewiring, graph recompile execution, subjective checks, or
+  `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
+  Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
+  DevShell `ctest --preset ci` passed **187/187**.
+  **Next:** REVIEW/FIX H3 minimal coordinator deferred graph-change command receipt/status shell — verify
+  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
+  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
+  against ADR-0015 (future bypass/recompile control-thread handoff and host-worker ownership), ADR-0013
+  (crash/hung child leads to placeholder/bypass + recompile on the control side), ADR-0008 (engine targets
+  must not link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the receipt/status
+  shell is headless and non-vacuous, records only command-ready crash/watchdog results, leaves no-action and
+  execution-claiming results empty, preserves watchdog-timeout vs crash distinction, remains inspectable
+  without executing graph recompile, keeps JUCE hosting confined to `YesDawPluginHost`, and leaves
+  `YESDAW_BUILD_APPS=OFF` pure sanitizer configs unaffected. Fix only proven defects. If clean and green,
+  continue in the SAME baton to the next small worker chunk: a minimal deferred graph-change command
+  acknowledge/clear-status shell for the coordinator, still without real graph rewiring, policy enforcement,
+  plugin loading, scanner, blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory,
+  pluginval/auval, CLAP, ADR edits, goldens, subjective checks, or RT-hot annotation edits. Stop for any new
+  ADR-level decision. Create exactly one successor baton only after that checkpoint's `STATUS.md` update,
+  commit, push, and remote CI are green.
 - **Latest: REVIEW/FIX H3 minimal coordinator failure-action drain-to-control-thread command shell is
   locally green after one narrow hardening fix — `HostFailureKind::none` can no longer produce a deferred
   graph-change command through the public pending-request surface.**
