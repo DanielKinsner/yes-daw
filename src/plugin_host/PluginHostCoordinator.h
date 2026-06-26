@@ -85,6 +85,12 @@ public:
         escalationReady
     };
 
+    enum class BlacklistPolicyDecisionRequestStatus
+    {
+        noAction,
+        requestReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -200,6 +206,17 @@ public:
         BlacklistEscalationStatus status { BlacklistEscalationStatus::noAction };
         BlacklistEscalationResult lastResult;
         bool escalationRecorded { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistPolicyDecisionRequest
+    {
+        BlacklistPolicyDecisionRequestStatus status { BlacklistPolicyDecisionRequestStatus::noAction };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadPolicyDecisionRequested { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -549,6 +566,12 @@ public:
         return deferredBlacklistEscalationStatusLocked();
     }
 
+    BlacklistPolicyDecisionRequest blacklistPolicyDecisionRequest() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return blacklistPolicyDecisionRequestFor (deferredBlacklistEscalationStatusLocked());
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -659,6 +682,31 @@ private:
             && result.escalation.failureKind == result.drainedCandidate.failureKind
             && result.escalation.crashCandidate == result.drainedCandidate.crashCandidate
             && result.escalation.watchdogTimeoutCandidate == result.drainedCandidate.watchdogTimeoutCandidate;
+    }
+
+    static BlacklistPolicyDecisionRequest blacklistPolicyDecisionRequestFor (
+        DeferredBlacklistEscalationStatus status) noexcept
+    {
+        if (! canCreateBlacklistPolicyDecisionRequest (status))
+            return {};
+
+        const auto escalation = status.lastResult.escalation;
+        return { BlacklistPolicyDecisionRequestStatus::requestReady,
+                 escalation.failureKind,
+                 escalation.crashCandidate,
+                 escalation.watchdogTimeoutCandidate,
+                 true,
+                 false,
+                 false };
+    }
+
+    static bool canCreateBlacklistPolicyDecisionRequest (DeferredBlacklistEscalationStatus status) noexcept
+    {
+        return status.status == BlacklistEscalationStatus::escalationReady
+            && status.escalationRecorded
+            && ! status.blacklistPolicyApplied
+            && ! status.blacklistStatePersisted
+            && canRecordBlacklistEscalationResult (status.lastResult);
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,
