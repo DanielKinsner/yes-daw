@@ -228,6 +228,36 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    yesdaw::plugin_host::PluginHostCoordinator noneFailureCoordinator;
+    const auto queuedNoneFailureAction = noneFailureCoordinator.queueFailureActionRequest (
+        { yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::bypassAndRecompile,
+          yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none,
+          true,
+          true });
+    const auto noneFailureCommandResult = noneFailureCoordinator.drainPendingFailureActionRequestToControlCommand();
+    if (queuedNoneFailureAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || queuedNoneFailureAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || queuedNoneFailureAction.bypassRequested
+        || queuedNoneFailureAction.recompileRequested
+        || noneFailureCommandResult.status != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandStatus::noAction
+        || noneFailureCommandResult.drainedRequest.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || noneFailureCommandResult.command.command != yesdaw::plugin_host::PluginHostCoordinator::GraphChangeCommandKind::none
+        || noneFailureCommandResult.pendingRequestConsumed
+        || noneFailureCommandResult.graphRecompileExecuted)
+    {
+        std::printf ("FAIL: plugin host coordinator HostFailureKind::none produced a control command: queued=%s/%s status=%s drained=%s/%s command=%s/%s consumed=%d executed=%d\n",
+                     statusName (queuedNoneFailureAction.action),
+                     statusName (queuedNoneFailureAction.failureKind),
+                     statusName (noneFailureCommandResult.status),
+                     statusName (noneFailureCommandResult.drainedRequest.action),
+                     statusName (noneFailureCommandResult.drainedRequest.failureKind),
+                     statusName (noneFailureCommandResult.command.command),
+                     statusName (noneFailureCommandResult.command.failureKind),
+                     noneFailureCommandResult.pendingRequestConsumed ? 1 : 0,
+                     noneFailureCommandResult.graphRecompileExecuted ? 1 : 0);
+        return 2;
+    }
+
     const auto handshake = coordinator.launchAndHandshake (workerExecutable);
 
     if (handshake.status != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::success)
@@ -663,6 +693,6 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, and drained future control-thread graph-change command shells without executing graph recompiles\n");
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, refused HostFailureKind::none commands, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, queued/drained pending failure actions, and drained future control-thread graph-change command shells without executing graph recompiles\n");
     return 0;
 }

@@ -33,6 +33,33 @@ drain-to-control-thread command shell is built and CI-green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: REVIEW/FIX H3 minimal coordinator failure-action drain-to-control-thread command shell is
+  locally green after one narrow hardening fix — `HostFailureKind::none` can no longer produce a deferred
+  graph-change command through the public pending-request surface.**
+  Review verified the command shell against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety /
+  layering rules: it is coordinator-side, headless, and testable; it uses the existing
+  `FailureActionRequest` surface; watchdog-timeout and crash causes remain mechanically distinct through
+  drain-to-command; command results remain inspectable and `graphRecompileExecuted=false`; the coordinator
+  target links `juce::juce_events` but not `juce_audio_processors`; `YesDawPluginHost` remains the only
+  owner of JUCE plugin-hosting format registration; Apple framework links remain scoped to
+  `YesDawPluginHost`; and `YESDAW_BUILD_APPS=OFF` pure sanitizer configurations remain unaffected.
+  The review found one proven gap: callers could manually queue an inconsistent bypass/recompile
+  `FailureActionRequest` with `HostFailureKind::none`, and the drain-to-command helper would accept it.
+  Fixed by treating only bypass/recompile requests with a real failure kind as command-eligible, and by
+  adding a coordinator self-check that fails if `HostFailureKind::none` produces a command. Scope held: no
+  real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin,
+  plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, graph
+  recompile execution, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation edits.
+  Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
+  DevShell `ctest --preset ci` passed **187/187**.
+  **Next:** WORKER H3 minimal coordinator deferred graph-change command receipt/status shell — add the
+  smallest coordinator-side receipt/status surface for the future control-thread graph-change handoff,
+  recording the most recent deferred command/result for inspection without executing real graph rewiring or
+  policy enforcement. Keep it headless and self-asserting; preserve engine RT-safety and JUCE-hosting
+  confinement; use the existing pending `FailureActionRequest` and graph-change command/result surface. No
+  real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin,
+  plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, real graph
+  recompile execution, subjective checks, or RT-hot annotation edits. Stop for any new ADR-level decision.
 - **Latest: WORKER H3 minimal coordinator failure-action drain-to-control-thread command shell is
   CI-green — the coordinator can consume one pending bypass/recompile request into an inspectable
   future graph-change command/result without executing a real graph recompile.**

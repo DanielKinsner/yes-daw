@@ -351,7 +351,7 @@ public:
     FailureActionRequest queueFailureActionRequest (FailureActionRequest request)
     {
         std::lock_guard<std::mutex> lock (mutex_);
-        pendingFailureAction_ = request.action == FailureActionKind::none ? FailureActionRequest {} : request;
+        pendingFailureAction_ = canCreateGraphChangeCommand (request) ? request : FailureActionRequest {};
         return pendingFailureAction_;
     }
 
@@ -377,7 +377,7 @@ public:
     GraphChangeCommandResult drainPendingFailureActionRequestToControlCommand()
     {
         const auto request = drainPendingFailureActionRequest();
-        if (request.action == FailureActionKind::none)
+        if (! canCreateGraphChangeCommand (request))
             return {};
 
         return { GraphChangeCommandStatus::commandReady,
@@ -445,6 +445,12 @@ private:
         const auto expectedSize = std::strlen (text) + 1;
         return message.getSize() == expectedSize
             && std::memcmp (message.getData(), text, expectedSize) == 0;
+    }
+
+    static bool canCreateGraphChangeCommand (FailureActionRequest request) noexcept
+    {
+        return request.action == FailureActionKind::bypassAndRecompile
+            && request.failureKind != HostFailureKind::none;
     }
 
     template <typename Predicate>
