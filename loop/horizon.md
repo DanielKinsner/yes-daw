@@ -30,10 +30,12 @@ ctest --preset ci -R YesDawHostIsolationCheck                                 # 
 
 ## Status: **RED (by design)**
 
-`YesDawHostIsolationCheck` **does not exist yet** — building it is **item 1** of the close-out plan. Write it
-as a Catch2 `[!shouldfail]` gate so `main` stays green while it is correctly-red, and **remove `[!shouldfail]`
-(flip to blocking) the moment the hosting makes it pass.** H3 is done when it is green **and** an independent
-adversarial review signs off **and** the close-out plan's Acceptance checklist is fully ticked.
+`YesDawHostIsolationCheck` now exists as a Catch2 `[!shouldfail]` gate wired to
+`ctest -R YesDawHostIsolationCheck`, so `main` stays green while the H3 exit criterion is correctly red.
+Replace each placeholder clause with a real negative-controlled assertion as the close-out-plan items land,
+then **remove `[!shouldfail]` (flip to blocking) the moment the hosting makes it pass.** H3 is done when it
+is green **and** an independent adversarial review signs off **and** the close-out plan's Acceptance
+checklist is fully ticked.
 
 ## The plan
 

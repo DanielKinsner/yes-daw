@@ -177,6 +177,15 @@ if (YESDAW_BUILD_APPS)
   yesdaw_harden(YesDawPluginHostCoordinatorCheck)
   add_test(NAME YesDawPluginHostCoordinatorCheck
            COMMAND $<TARGET_FILE:YesDawPluginHostCoordinatorCheck> $<TARGET_FILE:YesDawPluginHost>)
+
+  # --- H3 close-out exit gate ----------------------------------------------------
+  # Starts as a Catch2 [!shouldfail] target so main remains green while the host-isolation
+  # finish line is honestly red. Flip the test to blocking when the hosted-process path exists.
+  add_executable(YesDawHostIsolationCheck tests/host_isolation_tests.cpp)
+  target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_link_libraries(YesDawHostIsolationCheck PRIVATE Catch2::Catch2WithMain)
+  yesdaw_harden(YesDawHostIsolationCheck)
+  add_test(NAME YesDawHostIsolationCheck COMMAND $<TARGET_FILE:YesDawHostIsolationCheck>)
 endif()
 
 add_executable(YesDawCheck tests/dsp_tests.cpp)

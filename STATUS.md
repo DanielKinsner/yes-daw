@@ -65,8 +65,23 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
   Read **`loop/PROMPT.md`** → **`loop/horizon.md`** (the gate = definition of done) →
   **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
   plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
-  NOT close until that gate is green. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
+  NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
+  to `ctest -R YesDawHostIsolationCheck`; next work replaces each placeholder clause with the real
+  in-repo hosted-plugin oracle. The three review fixes (fader clamp, ADR-0016 mute mask, PluginNode
   block-size) are landed + CI-green.
+- **Latest: H3 close-out gate scaffold is locally green and correctly RED-by-design.**
+  `YesDawHostIsolationCheck` is now a CI-wired Catch2 target. It currently asserts the real H3 exit
+  artifacts as false (hosted synthetic processor in worker child, OS shared-memory RT lane, mixer
+  projection through `Runtime`, tri-stream PDC, watchdog kill/recovery, no deadline misses,
+  Placeholder swap, persisted blacklist, and opaque state round-trip), and `[!shouldfail]` keeps `main`
+  green while every clause is intentionally unmet. Direct run proves 10/10 assertions fail as expected;
+  local gate: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; VS DevShell
+  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
+  `ctest --preset ci --output-on-failure` passed **191/191**.
+  **Next:** continue close-out-plan item 1 depth-first by adding the in-repo synthetic hosted
+  `juce::AudioProcessor` mode surface in `YesDawPluginHost` / `YesDawHostIsolationCheck`, then replace
+  the first placeholder assertion with a real negative-controlled hosted-worker check. Do not remove
+  `[!shouldfail]` until the whole H3 host-isolation gate is genuinely green.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
