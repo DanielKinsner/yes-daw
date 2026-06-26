@@ -91,6 +91,18 @@ public:
         requestReady
     };
 
+    enum class BlacklistPolicyDecisionCommandKind
+    {
+        none,
+        requestPolicyDecision
+    };
+
+    enum class BlacklistPolicyDecisionCommandStatus
+    {
+        noAction,
+        commandReady
+    };
+
     enum class ChildState
     {
         idle,
@@ -217,6 +229,25 @@ public:
         bool crashCandidate { false };
         bool watchdogTimeoutCandidate { false };
         bool controlThreadPolicyDecisionRequested { false };
+        bool blacklistPolicyApplied { false };
+        bool blacklistStatePersisted { false };
+    };
+
+    struct BlacklistPolicyDecisionCommand
+    {
+        BlacklistPolicyDecisionCommandKind command { BlacklistPolicyDecisionCommandKind::none };
+        HostFailureKind failureKind { HostFailureKind::none };
+        bool crashCandidate { false };
+        bool watchdogTimeoutCandidate { false };
+        bool controlThreadPolicyDecisionRequested { false };
+    };
+
+    struct BlacklistPolicyDecisionCommandResult
+    {
+        BlacklistPolicyDecisionCommandStatus status { BlacklistPolicyDecisionCommandStatus::noAction };
+        BlacklistPolicyDecisionRequest drainedRequest;
+        BlacklistPolicyDecisionCommand command;
+        bool pendingRequestConsumed { false };
         bool blacklistPolicyApplied { false };
         bool blacklistStatePersisted { false };
     };
@@ -594,6 +625,24 @@ public:
         return request;
     }
 
+    BlacklistPolicyDecisionCommandResult drainPendingBlacklistPolicyDecisionRequestToControlCommand()
+    {
+        const auto request = drainPendingBlacklistPolicyDecisionRequest();
+        if (! canCreateBlacklistPolicyDecisionCommand (request))
+            return {};
+
+        return { BlacklistPolicyDecisionCommandStatus::commandReady,
+                 request,
+                 { BlacklistPolicyDecisionCommandKind::requestPolicyDecision,
+                   request.failureKind,
+                   request.crashCandidate,
+                   request.watchdogTimeoutCandidate,
+                   request.controlThreadPolicyDecisionRequested },
+                 true,
+                 false,
+                 false };
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -729,6 +778,24 @@ private:
             && ! status.blacklistPolicyApplied
             && ! status.blacklistStatePersisted
             && canRecordBlacklistEscalationResult (status.lastResult);
+    }
+
+    static bool canCreateBlacklistPolicyDecisionCommand (BlacklistPolicyDecisionRequest request) noexcept
+    {
+        if (request.status != BlacklistPolicyDecisionRequestStatus::requestReady
+            || request.failureKind == HostFailureKind::none
+            || ! request.controlThreadPolicyDecisionRequested
+            || request.blacklistPolicyApplied
+            || request.blacklistStatePersisted)
+            return false;
+
+        if (request.failureKind == HostFailureKind::crash)
+            return request.crashCandidate && ! request.watchdogTimeoutCandidate;
+
+        if (request.failureKind == HostFailureKind::watchdogTimeout)
+            return ! request.crashCandidate && request.watchdogTimeoutCandidate;
+
+        return false;
     }
 
     static bool blacklistCandidateMatches (BlacklistCandidateStatus actual,

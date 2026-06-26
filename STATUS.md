@@ -28,7 +28,8 @@ blacklist-candidate drain-to-control-thread escalation shell is built/reviewed/g
 coordinator blacklist escalation receipt/status shell is built/reviewed/green; the minimal coordinator
 blacklist escalation acknowledge/clear-status shell is built/reviewed/green; the minimal coordinator
 blacklist policy-decision request shell is built/reviewed/green; the minimal coordinator pending
-blacklist policy-decision request queue/drain shell is locally green
+blacklist policy-decision request queue/drain shell is built/reviewed/green; the minimal coordinator
+blacklist policy-decision drain-to-control-thread command shell is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -42,52 +43,55 @@ blacklist policy-decision request queue/drain shell is locally green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator pending blacklist policy-decision request queue/drain shell is
-  locally green — the coordinator can queue and drain one inspectable future blacklist policy request
-  derived from a valid deferred blacklist escalation receipt without applying policy or persistence.**
-  REVIEW/FIX of the previous blacklist policy-decision request shell found no proven defects against
-  `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the request shell is
-  coordinator-side, headless, and testable; derives a request only from a valid deferred blacklist
-  escalation receipt/status; preserves watchdog-timeout vs crash distinction; keeps initial/empty,
-  acknowledged/cleared, normal-stop, no-action, invalid, policy-applied, and persistence-claimed paths
+- **Latest: WORKER H3 minimal coordinator blacklist policy-decision drain-to-control-thread command shell
+  is locally green — the coordinator can drain one pending future blacklist policy-decision request into an
+  inspectable future control-thread policy command/status after inspection, without applying policy or
+  persistence.**
+  REVIEW/FIX of the previous pending blacklist policy-decision request queue/drain shell found no proven
+  defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the
+  queue/drain shell is coordinator-side, headless, and testable; queues only a request derived from a valid
+  deferred blacklist escalation receipt/status; clears only the pending policy-decision request after
+  inspection; preserves watchdog-timeout vs crash distinction; keeps initial/empty, acknowledged/cleared,
+  normal-stop, no-action, invalid, policy-applied, persistence-claimed, and already-drained paths
   empty/no-record; does not enforce blacklist policy, persist/cache blacklist state, scan/load plugins,
   execute graph rewiring, or claim graph recompile execution; existing deferred graph-change
-  acknowledge/clear behavior remains intact; `YesDawPluginHost` remains the only JUCE plugin-hosting
-  owner; the coordinator/check target does not link `juce_audio_processors`; Apple framework links stay
-  scoped to `YesDawPluginHost`; and `YESDAW_BUILD_APPS=OFF` pure sanitizer configs are unaffected. Then
-  WORKER added the smallest pending policy-decision request queue/drain shell:
-  `queueBlacklistPolicyDecisionRequestForDeferredEscalation()` queues only the request derived from the
-  current valid deferred blacklist escalation receipt, `pendingBlacklistPolicyDecisionRequest()` exposes it
-  for inspection, and `drainPendingBlacklistPolicyDecisionRequest()` clears it after inspection. The
-  coordinator self-check now proves initial/empty, invalid/no-record, already-drained, watchdog-timeout,
-  and crash paths; watchdog-timeout and crash queued/drained requests stay distinct; no blacklist policy is
-  applied; no blacklist state is persisted; and no scanner, plugin loading, graph rewiring, graph recompile
-  execution, ADR edits, goldens, subjective checks, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT`
-  annotation edits were introduced.
+  acknowledge/clear behavior remains intact; `YesDawPluginHost` remains the only JUCE plugin-hosting owner;
+  the coordinator/check target does not link `juce_audio_processors`; Apple framework links stay scoped to
+  `YesDawPluginHost`; and `YESDAW_BUILD_APPS=OFF` pure sanitizer configs are unaffected. Then WORKER added
+  the smallest drain-to-control-thread policy command shell:
+  `drainPendingBlacklistPolicyDecisionRequestToControlCommand()` drains the pending policy request after
+  inspection and returns an inspectable `BlacklistPolicyDecisionCommandResult`; it records only a future
+  `requestPolicyDecision` command/status, preserves watchdog-timeout vs crash attribution, clears the
+  pending request, and leaves `blacklistPolicyApplied` / `blacklistStatePersisted` false. The coordinator
+  self-check now proves initial/empty, normal-stop, invalid/no-record, already-drained, watchdog-timeout,
+  and crash command paths; watchdog-timeout and crash drained commands stay distinct; no blacklist policy
+  is applied; no blacklist state is persisted; and no scanner, plugin loading, graph rewiring, graph
+  recompile execution, ADR edits, goldens, subjective checks, or `[[clang::nonblocking]]` /
+  `YESDAW_RT_HOT` annotation edits were introduced.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
   DevShell `ctest --preset ci` passed **187/187**.
-  **Next:** REVIEW/FIX H3 minimal coordinator pending blacklist policy-decision request queue/drain shell
-  — verify
+  **Next:** REVIEW/FIX H3 minimal coordinator blacklist policy-decision drain-to-control-thread command
+  shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
   against ADR-0015 (watchdog/crash attribution, future blacklist escalation, future blacklist policy, and
   host-worker ownership), ADR-0013 (runtime crash/hang attribution escalates into the same blacklist
   later), ADR-0008 (engine targets must not link hosting / `Node` contract unchanged), and the
-  rolling-baton rule. Confirm the queue/drain shell is coordinator-side, headless, and non-vacuous; queues
-  only a request derived from a valid deferred blacklist escalation receipt/status; drain clears only the
-  pending policy-decision request after inspection; preserves watchdog-timeout vs crash distinction; keeps
-  initial/empty, acknowledged/cleared, normal-stop, no-action, invalid, policy-applied,
-  persistence-claimed, and already-drained paths empty/no-record; does not enforce blacklist policy,
-  persist/cache blacklist state, scan/load plugins, execute graph rewiring, or claim graph recompile
-  execution; keeps JUCE hosting confined to `YesDawPluginHost`; and leaves `YESDAW_BUILD_APPS=OFF` pure
-  sanitizer configs unaffected. Fix only proven defects. If clean and green, continue in the SAME baton to
-  the next small worker chunk: a minimal coordinator blacklist policy-decision drain-to-control-thread
-  command shell that drains one pending policy-decision request into an inspectable future control-thread
-  policy command/status, still without real blacklist policy/enforcement, persistence/cache, scanner,
-  plugin loading, real graph rewiring, crash-test plugin, plugin UI, real shared memory, pluginval/auval,
-  CLAP, ADR edits, goldens, subjective checks, or RT-hot annotation edits. Stop for any new ADR-level
-  decision. Create exactly one successor baton only after that checkpoint's `STATUS.md` update, commit,
-  push, and remote CI are green.
+  rolling-baton rule. Confirm the drain-to-control-thread command shell is coordinator-side, headless, and
+  non-vacuous; drains only a valid pending policy-decision request derived from a valid deferred blacklist
+  escalation receipt/status; clears only the pending request after inspection; preserves watchdog-timeout
+  vs crash distinction in the drained command/status; keeps initial/empty, acknowledged/cleared,
+  normal-stop, no-action, invalid, policy-applied, persistence-claimed, and already-drained paths
+  empty/no-record; does not enforce blacklist policy, persist/cache blacklist state, scan/load plugins,
+  execute graph rewiring, or claim graph recompile execution; keeps JUCE hosting confined to
+  `YesDawPluginHost`; and leaves `YESDAW_BUILD_APPS=OFF` pure sanitizer configs unaffected. Fix only
+  proven defects. If clean and green, continue in the SAME baton to the next small worker chunk: a minimal
+  coordinator deferred blacklist policy-decision command receipt/status shell that records an inspected
+  control-thread policy command/status without applying/enforcing blacklist policy, persistence/cache,
+  scanner, plugin loading, real graph rewiring, crash-test plugin, plugin UI, real shared memory,
+  pluginval/auval, CLAP, ADR edits, goldens, subjective checks, or RT-hot annotation edits. Stop for any
+  new ADR-level decision. Create exactly one successor baton only after that checkpoint's `STATUS.md`
+  update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 minimal coordinator pending blacklist-candidate queue/drain shell is locally green
   — the coordinator can queue and drain one future blacklist candidate after inspection without enforcing
   blacklist policy or persistence.**
