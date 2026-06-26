@@ -73,7 +73,11 @@ public:
                 continue;
 
             processRange (args, channels, static_cast<int> (cursor), static_cast<int> (event.timeInBlock));
-            gain_.setTarget (static_cast<float> (event.payload.parameter.normalizedValue));
+            // Clamp the automation value on the audio-thread event seam exactly as setTargetGain clamps the
+            // control-thread seam: events are NOT validated on the live path (EventStream::isValidForBlock is
+            // control/test-side only), so a non-finite or out-of-range normalizedValue would otherwise reach
+            // the ramp and inject inf/NaN into the mix. Both gain seams now uphold clampGain's invariant.
+            gain_.setTarget (clampGain (static_cast<float> (event.payload.parameter.normalizedValue)));
             cursor = event.timeInBlock;
         }
 

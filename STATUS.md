@@ -61,6 +61,24 @@ coordinator deferred blacklist-handling outcome handling acknowledge/clear-statu
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
+  H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
+  session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
+  nothing is wired to a runtime yet. **Correction to the horizon line:** the plugin-hosting half is NOT
+  complete — it is an honest *skeleton* (worker loads no plugins; no shared-memory mmap; the coordinator
+  threads metadata but every `blacklistStatePersisted`/`blacklistPolicyApplied`/`graphRecompileExecuted`
+  flag is hardcoded false), so **ADR-0015's host-isolation exit gate is unmet**. The mixer-policy half is
+  solid (my two earlier fixes verified; mono-blind render harness fixed).
+  - **LANDED this checkpoint:** `FaderNode` automation/event gain seam now clamps via `clampGain`, mirroring
+    `setTargetGain`. It was the one unguarded gain path — events are not validated on the live audio path
+    (`EventStream::isValidForBlock` is control/test-side only), so a non-finite/out-of-range `normalizedValue`
+    reached the ramp and injected inf/NaN. Added a **negative-controlled** regression test in `fader_tests.cpp`
+    (proven to FAIL without the clamp). Local gate: `YesDawFaderCheck` = 5 cases / 7439 assertions green;
+    full RTSan/TSan/3-OS matrix on CI at push.
+  - **TOP DEFERRED — needs a decision before the mixer is wired to a runtime:** the mute mask is a single
+    `uint64_t` keyed by compiled-node index (`GraphBuilder.h:549`); the projection emits ~4 nodes/track, so a
+    project past ~16 tracks silently loses **all** mute/solo (`applyMixerMutePolicy` is all-or-nothing). This
+    is ADR-level (wider mask / bits only on mute-eligible nodes / other) — **grilling the ADR next.**
 - **Latest: WORKER H3 minimal coordinator deferred blacklist-handling outcome handling acknowledge/clear-status
   shell is locally green — the coordinator can clear a recorded future control-thread
   blacklist-handling outcome handling result without applying blacklist policy or persistence.**

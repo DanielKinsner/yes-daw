@@ -10,11 +10,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <span>
 #include <vector>
 
 using yesdaw::engine::AudioBlock;
+using yesdaw::engine::Event;
 using yesdaw::engine::EventStream;
 using yesdaw::engine::FaderNode;
+using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::Node;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::Transport;
@@ -112,4 +116,46 @@ TEST_CASE ("FaderNode applies the same ramped gain to every channel", "[fader][m
     for (std::size_t i = 0; i < left.size(); ++i)
         REQUIRE (left[i] == right[i]);   // same gain trajectory on both channels
     REQUIRE (left.back() == 0.25f);      // and the ramp settled within the Block
+}
+
+namespace {
+
+// Render a mono FaderNode over a constant-1.0 stream with a SINGLE gain automation event at frame 0
+// carrying `normalizedValue`. This drives the audio-thread EVENT seam (process() line that calls
+// gain_.setTarget) — distinct from setTargetGain, which the other tests use.
+std::vector<float> renderFaderWithGainEvent (double normalizedValue, int frames = 256)
+{
+    FaderNode node (1, /*channels*/ 1);
+    Node& iface = node;
+    iface.prepare (kSr, frames);
+
+    const Event evs[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 1,
+                                                     FaderNode::kGainParameterId, normalizedValue) };
+    EventStream events (std::span<const Event> (evs, 1));
+    Transport   transport;
+
+    std::vector<float> out (static_cast<std::size_t> (frames), 1.0f);   // constant input
+    float* const channels[1] = { out.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 1 }, events, transport, frames });
+    return out;
+}
+
+} // namespace
+
+TEST_CASE ("FaderNode clamps a pathological automation event and never emits NaN/inf", "[fader][automation][robust]")
+{
+    // Events are NOT validated on the live audio path, so a hostile/garbage automation value must be
+    // clamped at the node. Before the clamp on the event seam, NaN/inf flowed into the ramp and poisoned
+    // the mix, and an absurd finite value blew past the +60 dB ceiling — this is the regression guard.
+    const double inf = std::numeric_limits<double>::infinity();
+    for (const double bad : { std::nan (""), inf, -inf, 1.0e30, -5.0 })
+    {
+        const std::vector<float> out = renderFaderWithGainEvent (bad);
+        for (const float v : out)
+        {
+            REQUIRE (std::isfinite (v));                 // no NaN/inf ever reaches the output
+            REQUIRE (v >= 0.0f);                         // gain folds to >= 0 (input is +1.0)
+            REQUIRE (v <= FaderNode::kMaxLinearGain);    // absurd gains are bounded to the shared ceiling
+        }
+    }
 }
