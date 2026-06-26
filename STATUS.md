@@ -12,7 +12,8 @@ worklog.
 **Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
 (ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
-rolling-baton REVIEW/FIX of `PluginNode` is next
+`PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
+checkpoint is built locally and awaiting push/CI
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -26,6 +27,37 @@ rolling-baton REVIEW/FIX of `PluginNode` is next
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 `YesDawPluginHost` worker exe + engine-hosting layering check is green locally — the host boundary exists.**
+  First, REVIEW/FIX of the previous `PluginNode` IPC-proxy checkpoint found no proven defects against
+  `STATUS.md`, ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety rules: `process()` stays
+  one `RtLaneRing::exchangeBlock`, in-place input/output is safe because the ring captures input before
+  overwrite, one-Block-late/fail-open/PDC tests are non-vacuous, latency/channel validation bounds what
+  reaches `GraphBuilder`, the `Node`/`ProcessArgs` contracts stayed frozen, and the engine still contains
+  no JUCE hosting. Then WORKER added the narrow ADR-0015 process-boundary chunk: new
+  `src/plugin_host/PluginHostMain.cpp` and `YesDawPluginHost`, a console worker executable with a
+  `juce::ChildProcessWorker` stub, VST3 hosting enabled through `juce_audio_processors`, and a
+  `--self-check` mode that asserts JUCE plugin formats are present. `CMakeLists.txt` now wires that target
+  only when `YESDAW_BUILD_APPS=ON`, adds `YesDawPluginHostSelfCheck` to ctest, and adds a configure-time
+  layering assertion: the pure engine/test targets (`YesDawGraphCheck`, `YesDawPluginNodeCheck`,
+  `YesDawPluginIpcCheck`, etc.) fail configure if they directly link `juce_audio_processors`, while
+  `YesDawPluginHost` must link it. Scope held: no real child launch/coordinator, scanner, watchdog,
+  blacklist/cache, crash-test plugin, plugin UI, real VST3/AU loading, real shared memory, CLAP, ADR edits,
+  goldens, broad graph rewiring, or annotation edits. Local gate: `cmake --preset ci` passed; plain shell
+  build lacked Windows SDK/MSVC include paths, so the documented VS DevShell flow was used for
+  `cmake --build --preset ci` and `ctest --preset ci`; full ctest passed **186/186** (+1 host self-check).
+  Remote CI is pending until this checkpoint is pushed.
+  **Next:** REVIEW/FIX H3 `YesDawPluginHost` worker exe + engine-hosting layering check — verify
+  `CMakeLists.txt` and `src/plugin_host/PluginHostMain.cpp` against ADR-0015 (single host worker target,
+  coordinator/worker process model, host owns JUCE hosting), ADR-0013 (out-of-process host child boundary),
+  ADR-0008 (engine targets must not link hosting / `Node` contract unchanged), and the rolling-baton rule.
+  Confirm the self-check is non-vacuous, the layer assertion covers the engine-side targets that exercise
+  engine code in normal/RTSan/TSan CI, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected,
+  and no scanner/watchdog/shared-memory/plugin-load semantics snuck in. Fix only proven defects. If clean
+  and green, continue in the SAME baton to the next small worker chunk: a minimal plugin-host coordinator
+  launch/handshake shell for `YesDawPluginHost` (still no real plugin load, scanner, watchdog policy,
+  blacklist/cache, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or
+  goldens). Stop at any new ADR-level decision. Create exactly one successor baton only after this
+  checkpoint's `STATUS.md` update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 `PluginNode` IPC proxy over the RT-lane ring is green locally — hosting reaches the graph.**
   Built ADR-0015's graph-visible plugin adapter: new header-only `src/engine/plugin/PluginNode.h`, a `Node`
   (ADR-0008) that owns an `RtLaneRing` and exposes a hosted plugin to the compiler **without any change to

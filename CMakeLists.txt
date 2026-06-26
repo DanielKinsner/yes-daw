@@ -136,6 +136,28 @@ enable_testing()
 # std::thread in the Runtime stress test needs the platform threads library (pthread on Linux/macOS).
 find_package(Threads REQUIRED)
 
+if (YESDAW_BUILD_APPS)
+  # --- Plugin host worker (H3; ADR-0015 process-model shell) ---
+  # This is only the child executable boundary. It owns JUCE plugin-hosting modules; the engine/pure
+  # targets stay hosting-free and the layering assertion near the end of this file enforces that.
+  juce_add_console_app(YesDawPluginHost PRODUCT_NAME "YesDawPluginHost")
+  target_sources(YesDawPluginHost PRIVATE src/plugin_host/PluginHostMain.cpp)
+  target_compile_definitions(YesDawPluginHost PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_PLUGINHOST_VST=0
+    JUCE_PLUGINHOST_VST3=1
+    JUCE_PLUGINHOST_AU=$<IF:$<PLATFORM_ID:Darwin>,1,0>
+    JUCE_PLUGINHOST_LADSPA=0
+    JUCE_PLUGINHOST_LV2=0)
+  target_link_libraries(YesDawPluginHost
+    PRIVATE
+      juce::juce_audio_processors
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawPluginHost)
+  add_test(NAME YesDawPluginHostSelfCheck COMMAND $<TARGET_FILE:YesDawPluginHost> --self-check)
+endif()
+
 add_executable(YesDawCheck tests/dsp_tests.cpp)
 target_include_directories(YesDawCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawCheck PRIVATE Catch2::Catch2)
@@ -345,3 +367,60 @@ add_custom_target(bless-goldens
   DEPENDS YesDawCheck
   VERBATIM
   COMMENT "Regenerating goldens from the current DSP")
+
+# --- Hosting layering check (H3; ADR-0008 / ADR-0015) ----------------------------
+# The worker executable is the only target in this checkpoint that may link JUCE's plugin-hosting module.
+# The engine remains header-only/pure-C++ today, so the enforceable boundary is the set of pure engine test
+# targets that compile and exercise engine code in CI, RTSan, and TSan.
+set(YESDAW_ENGINE_LAYER_TARGETS
+  YesDawCheck
+  YesDawUiCheck
+  YesDawEngineCheck
+  YesDawTimeCheck
+  YesDawEventCheck
+  YesDawProjectCheck
+  YesDawPersistenceCheck
+  YesDawGraphCheck
+  YesDawBuilderCheck
+  YesDawRuntimeCheck
+  YesDawRenderCheck
+  YesDawDelayCheck
+  YesDawFaderCheck
+  YesDawPanCheck
+  YesDawSumCheck
+  YesDawMeterCheck
+  YesDawMixerProjectionCheck
+  YesDawMixerMutePolicyCheck
+  YesDawSidechainCheck
+  YesDawPluginIpcCheck
+  YesDawPluginNodeCheck)
+
+set(_yesdaw_hosting_violations)
+foreach(_target IN LISTS YESDAW_ENGINE_LAYER_TARGETS)
+  if (NOT TARGET ${_target})
+    continue()
+  endif()
+
+  get_target_property(_links ${_target} LINK_LIBRARIES)
+  if (NOT _links)
+    set(_links)
+  endif()
+
+  foreach(_link IN LISTS _links)
+    if (_link MATCHES "juce::juce_audio_processors|juce_audio_processors|AudioPluginFormatManager")
+      list(APPEND _yesdaw_hosting_violations "${_target} -> ${_link}")
+    endif()
+  endforeach()
+endforeach()
+
+if (_yesdaw_hosting_violations)
+  list(JOIN _yesdaw_hosting_violations "\n  " _yesdaw_hosting_violations_text)
+  message(FATAL_ERROR "Engine-side targets must not link JUCE plugin hosting:\n  ${_yesdaw_hosting_violations_text}")
+endif()
+
+if (YESDAW_BUILD_APPS)
+  get_target_property(_plugin_host_links YesDawPluginHost LINK_LIBRARIES)
+  if (NOT _plugin_host_links MATCHES "juce::juce_audio_processors|juce_audio_processors")
+    message(FATAL_ERROR "YesDawPluginHost must own the JUCE plugin-hosting module")
+  endif()
+endif()
