@@ -117,6 +117,15 @@ const char* statusName (yesdaw::plugin_host::PluginHostCoordinator::ChildState s
     return "unknown";
 }
 
+bool requestMatches (yesdaw::plugin_host::PluginHostCoordinator::FailureActionRequest actual,
+                     yesdaw::plugin_host::PluginHostCoordinator::FailureActionRequest expected) noexcept
+{
+    return actual.action == expected.action
+        && actual.failureKind == expected.failureKind
+        && actual.bypassRequested == expected.bypassRequested
+        && actual.recompileRequested == expected.recompileRequested;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -136,6 +145,7 @@ int main (int argc, char** argv)
 
     yesdaw::plugin_host::PluginHostCoordinator coordinator;
     const auto initialStatus = coordinator.status();
+    const auto initialPendingAction = coordinator.pendingFailureActionRequest();
 
     if (initialStatus.state != yesdaw::plugin_host::PluginHostCoordinator::ChildState::idle
         || initialStatus.handshakeStatus != yesdaw::plugin_host::PluginHostCoordinator::HandshakeStatus::notStarted
@@ -167,6 +177,19 @@ int main (int argc, char** argv)
                      initialStatus.watchdogKillRequested ? 1 : 0,
                      initialStatus.crashObservationRequested ? 1 : 0,
                      initialStatus.connectionLostSeen ? 1 : 0);
+        return 2;
+    }
+
+    if (initialPendingAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || initialPendingAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || initialPendingAction.bypassRequested
+        || initialPendingAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator initial pending action request is wrong: action=%s failure=%s bypass=%d recompile=%d\n",
+                     statusName (initialPendingAction.action),
+                     statusName (initialPendingAction.failureKind),
+                     initialPendingAction.bypassRequested ? 1 : 0,
+                     initialPendingAction.recompileRequested ? 1 : 0);
         return 2;
     }
 
@@ -290,6 +313,23 @@ int main (int argc, char** argv)
         return 2;
     }
 
+    const auto normalStopQueuedAction = coordinator.queueFailureActionRequestForCurrentFailure();
+    const auto normalStopPendingAction = coordinator.pendingFailureActionRequest();
+    const auto normalStopDrainedAction = coordinator.drainPendingFailureActionRequest();
+    if (! requestMatches (normalStopQueuedAction, normalStopAction)
+        || ! requestMatches (normalStopPendingAction, normalStopAction)
+        || ! requestMatches (normalStopDrainedAction, normalStopAction))
+    {
+        std::printf ("FAIL: plugin host coordinator normal stop pending action should remain empty: queued=%s/%s pending=%s/%s drained=%s/%s\n",
+                     statusName (normalStopQueuedAction.action),
+                     statusName (normalStopQueuedAction.failureKind),
+                     statusName (normalStopPendingAction.action),
+                     statusName (normalStopPendingAction.failureKind),
+                     statusName (normalStopDrainedAction.action),
+                     statusName (normalStopDrainedAction.failureKind));
+        return 2;
+    }
+
     yesdaw::plugin_host::PluginHostCoordinator watchdogCoordinator;
     const auto watchdog = watchdogCoordinator.launchAndExpectWatchdogTimeout (workerExecutable);
 
@@ -368,6 +408,30 @@ int main (int argc, char** argv)
                      statusName (watchdogAction.failureKind),
                      watchdogAction.bypassRequested ? 1 : 0,
                      watchdogAction.recompileRequested ? 1 : 0);
+        return 2;
+    }
+
+    const auto queuedWatchdogAction = watchdogCoordinator.queueFailureActionRequestForCurrentFailure();
+    const auto pendingWatchdogAction = watchdogCoordinator.pendingFailureActionRequest();
+    const auto drainedWatchdogAction = watchdogCoordinator.drainPendingFailureActionRequest();
+    const auto afterWatchdogDrainAction = watchdogCoordinator.pendingFailureActionRequest();
+    if (! requestMatches (queuedWatchdogAction, watchdogAction)
+        || ! requestMatches (pendingWatchdogAction, watchdogAction)
+        || ! requestMatches (drainedWatchdogAction, watchdogAction)
+        || afterWatchdogDrainAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || afterWatchdogDrainAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || afterWatchdogDrainAction.bypassRequested
+        || afterWatchdogDrainAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator watchdog pending action queue/drain is wrong: queued=%s/%s pending=%s/%s drained=%s/%s afterDrain=%s/%s\n",
+                     statusName (queuedWatchdogAction.action),
+                     statusName (queuedWatchdogAction.failureKind),
+                     statusName (pendingWatchdogAction.action),
+                     statusName (pendingWatchdogAction.failureKind),
+                     statusName (drainedWatchdogAction.action),
+                     statusName (drainedWatchdogAction.failureKind),
+                     statusName (afterWatchdogDrainAction.action),
+                     statusName (afterWatchdogDrainAction.failureKind));
         return 2;
     }
 
@@ -454,6 +518,30 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, and requested future bypass/recompile actions\n");
+    const auto queuedCrashAction = crashCoordinator.queueFailureActionRequestForCurrentFailure();
+    const auto pendingCrashAction = crashCoordinator.pendingFailureActionRequest();
+    const auto drainedCrashAction = crashCoordinator.drainPendingFailureActionRequest();
+    const auto afterCrashDrainAction = crashCoordinator.pendingFailureActionRequest();
+    if (! requestMatches (queuedCrashAction, crashAction)
+        || ! requestMatches (pendingCrashAction, crashAction)
+        || ! requestMatches (drainedCrashAction, crashAction)
+        || afterCrashDrainAction.action != yesdaw::plugin_host::PluginHostCoordinator::FailureActionKind::none
+        || afterCrashDrainAction.failureKind != yesdaw::plugin_host::PluginHostCoordinator::HostFailureKind::none
+        || afterCrashDrainAction.bypassRequested
+        || afterCrashDrainAction.recompileRequested)
+    {
+        std::printf ("FAIL: plugin host coordinator crash pending action queue/drain is wrong: queued=%s/%s pending=%s/%s drained=%s/%s afterDrain=%s/%s\n",
+                     statusName (queuedCrashAction.action),
+                     statusName (queuedCrashAction.failureKind),
+                     statusName (pendingCrashAction.action),
+                     statusName (pendingCrashAction.failureKind),
+                     statusName (drainedCrashAction.action),
+                     statusName (drainedCrashAction.failureKind),
+                     statusName (afterCrashDrainAction.action),
+                     statusName (afterCrashDrainAction.failureKind));
+        return 2;
+    }
+
+    std::printf ("PASS: plugin host coordinator launched worker, reported ready/handshake status, stopped worker, classified watchdog-timeout vs crash host failures, requested future bypass/recompile actions, and queued/drained pending failure actions\n");
     return 0;
 }

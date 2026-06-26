@@ -319,6 +319,32 @@ public:
         return failureActionRequestFor (hostFailureReport());
     }
 
+    FailureActionRequest queueFailureActionRequest (FailureActionRequest request)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        pendingFailureAction_ = request.action == FailureActionKind::none ? FailureActionRequest {} : request;
+        return pendingFailureAction_;
+    }
+
+    FailureActionRequest queueFailureActionRequestForCurrentFailure()
+    {
+        return queueFailureActionRequest (failureActionRequest());
+    }
+
+    FailureActionRequest pendingFailureActionRequest() const
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        return pendingFailureAction_;
+    }
+
+    FailureActionRequest drainPendingFailureActionRequest()
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        const auto request = pendingFailureAction_;
+        pendingFailureAction_ = {};
+        return request;
+    }
+
     static FailureActionRequest failureActionRequestFor (HostFailureReport report) noexcept
     {
         if (report.kind == HostFailureKind::none)
@@ -461,6 +487,7 @@ private:
     WatchdogStatus watchdogStatus_ { WatchdogStatus::notStarted };
     CrashStatus crashStatus_ { CrashStatus::notStarted };
     HostFailureKind failureKind_ { HostFailureKind::none };
+    FailureActionRequest pendingFailureAction_;
     bool launchAttempted_ { false };
     bool readySeen_ { false };
     bool probeEchoed_ { false };
