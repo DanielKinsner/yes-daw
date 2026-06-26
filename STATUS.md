@@ -14,7 +14,7 @@ worklog.
 primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
 `PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
 checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
-CI-green; the minimal coordinator lifecycle/lost-child shell is built and green locally
+CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -27,8 +27,8 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and green 
 
 ---
 
-## Now — between chunks (every engine commit to date is CI-green unless the latest line says pending)
-- **Latest: WORKER H3 minimal plugin-host lifecycle/lost-child shell is green locally — the coordinator can
+## Now — between chunks (every engine commit to date is CI-green)
+- **Latest: WORKER H3 minimal plugin-host lifecycle/lost-child shell is CI-green — the coordinator can
   stop the worker and observe the lost-child signal.**
   First, REVIEW/FIX of the previous plugin-host coordinator launch/handshake checkpoint found no proven
   defects against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules:
@@ -44,8 +44,8 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and green 
   plugin load, scanner, watchdog policy, blacklist/cache, crash-test plugin, plugin UI, real shared memory,
   pluginval/auval, CLAP, ADR edits, goldens, broad graph rewiring, or `[[clang::nonblocking]]` /
   `YESDAW_RT_HOT` annotation edits. Local gate: `cmake --preset ci`; documented VS DevShell
-  `cmake --build --preset ci`; documented VS DevShell `ctest --preset ci` passed **187/187**. Remote CI is
-  pending for this checkpoint until push.
+  `cmake --build --preset ci`; documented VS DevShell `ctest --preset ci` passed **187/187**. Remote CI run
+  `28210444203` is green across Windows, Linux, macOS, RTSan, and TSan for commit `2dabeef`.
   **Next:** REVIEW/FIX H3 minimal plugin-host lifecycle/lost-child shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`, and
   `src/plugin_host/PluginHostMain.cpp` against ADR-0015 (coordinator/worker process model and control
