@@ -19,7 +19,7 @@ coordinator child-state/status surface is built and CI-green; the minimal coordi
 shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green; the
 minimal coordinator failure-action request shell is built and CI-green; the minimal coordinator pending
 failure-action queue/drain shell is built and CI-green; the minimal coordinator failure-action
-drain-to-control-thread command shell is locally green and awaiting remote CI
+drain-to-control-thread command shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -32,9 +32,9 @@ drain-to-control-thread command shell is locally green and awaiting remote CI
 
 ---
 
-## Now — current checkpoint (latest worker is local-green; remote CI pending)
+## Now — between chunks (every engine commit to date is CI-green)
 - **Latest: WORKER H3 minimal coordinator failure-action drain-to-control-thread command shell is
-  local-green — the coordinator can consume one pending bypass/recompile request into an inspectable
+  CI-green — the coordinator can consume one pending bypass/recompile request into an inspectable
   future graph-change command/result without executing a real graph recompile.**
   First, REVIEW/FIX of the previous pending failure-action queue/drain shell found no proven defects
   against `STATUS.md`, ADR-0015, ADR-0013, ADR-0008, and the RT-safety/layering rules: the pending action
@@ -58,26 +58,26 @@ drain-to-control-thread command shell is locally green and awaiting remote CI
   CLAP, ADR edits, goldens, broad graph rewiring, graph recompile execution, or `[[clang::nonblocking]]` /
   `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint commit.
-  **Next after remote CI green:** REVIEW/FIX H3 minimal coordinator failure-action
-  drain-to-control-thread command shell — verify `src/plugin_host/PluginHostCoordinator.h`,
-  `src/plugin_host/PluginHostCoordinatorCheck.cpp`, `src/plugin_host/PluginHostMain.cpp`,
-  `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake against ADR-0015 (coordinator/worker
-  process model, crash/watchdog reporting, future bypass/recompile command surface, host-worker ownership),
-  ADR-0013 (out-of-process host child boundary and crash/hung-child kill leading to placeholder/bypass +
-  recompile on the control side), ADR-0008 (engine targets must not link hosting / `Node` contract
-  unchanged), and the rolling-baton rule. Confirm the command shell is non-vacuous, expected stop cannot
-  produce a command, watchdog-timeout and crash causes remain distinct through drain-to-command, the
-  command result remains inspectable without executing graph recompile, the coordinator target still does
-  not own JUCE plugin-hosting modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer configuration is unaffected,
-  and no scanner/blacklist policy/shared-memory/plugin-load or real graph-recompile semantics snuck in. Fix
-  only proven defects. If clean and green, continue in the SAME baton to the next small worker chunk: a
-  minimal coordinator deferred graph-change command receipt/status shell that records the most recent
-  deferred command/result for inspection without executing real graph rewiring or policy enforcement (still
-  no real plugin load, scanner, watchdog blacklist policy, blacklist/cache persistence, crash-test plugin,
-  plugin UI, real shared memory, pluginval/auval, CLAP, ADR edits, or goldens). Stop at any new ADR-level
-  decision. Create exactly one successor baton only after that checkpoint's `STATUS.md` update, commit,
-  push, and remote CI are green.
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28215350783` is green across Windows,
+  Linux, macOS, RTSan, and TSan for commit `c936275`.
+  **Next:** REVIEW/FIX H3 minimal coordinator failure-action drain-to-control-thread command shell — verify
+  `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
+  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
+  against ADR-0015 (coordinator/worker process model, crash/watchdog reporting, future bypass/recompile
+  command surface, host-worker ownership), ADR-0013 (out-of-process host child boundary and crash/hung-child
+  kill leading to placeholder/bypass + recompile on the control side), ADR-0008 (engine targets must not
+  link hosting / `Node` contract unchanged), and the rolling-baton rule. Confirm the command shell is
+  non-vacuous, expected stop cannot produce a command, watchdog-timeout and crash causes remain distinct
+  through drain-to-command, the command result remains inspectable without executing graph recompile, the
+  coordinator target still does not own JUCE plugin-hosting modules, `YESDAW_BUILD_APPS=OFF` pure sanitizer
+  configuration is unaffected, and no scanner/blacklist policy/shared-memory/plugin-load or real
+  graph-recompile semantics snuck in. Fix only proven defects. If clean and green, continue in the SAME
+  baton to the next small worker chunk: a minimal coordinator deferred graph-change command receipt/status
+  shell that records the most recent deferred command/result for inspection without executing real graph
+  rewiring or policy enforcement (still no real plugin load, scanner, watchdog blacklist policy,
+  blacklist/cache persistence, crash-test plugin, plugin UI, real shared memory, pluginval/auval, CLAP, ADR
+  edits, or goldens). Stop at any new ADR-level decision. Create exactly one successor baton only after
+  that checkpoint's `STATUS.md` update, commit, push, and remote CI are green.
 - **Latest: WORKER H3 `YesDawPluginHost` worker exe + engine-hosting layering check is green locally — the host boundary exists.**
   First, REVIEW/FIX of the previous `PluginNode` IPC-proxy checkpoint found no proven defects against
   `STATUS.md`, ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety rules: `process()` stays
