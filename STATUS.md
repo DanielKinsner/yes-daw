@@ -18,7 +18,7 @@ CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-gre
 coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
 shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green; the
 minimal coordinator failure-action request shell is built and CI-green; the minimal coordinator pending
-failure-action queue/drain shell is locally green
+failure-action queue/drain shell is built and CI-green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -32,7 +32,7 @@ failure-action queue/drain shell is locally green
 ---
 
 ## Now — between chunks (every engine commit to date is CI-green)
-- **Latest: WORKER H3 minimal coordinator pending failure-action queue/drain shell is locally green — the
+- **Latest: WORKER H3 minimal coordinator pending failure-action queue/drain shell is CI-green — the
   coordinator can now hold and clear one future bypass/recompile request without performing the graph
   change yet.**
   First, REVIEW/FIX of the previous failure-action request shell found no proven defects against
@@ -56,7 +56,8 @@ failure-action queue/drain shell is locally green
   CLAP, ADR edits, goldens, broad graph rewiring, graph recompile execution, or `[[clang::nonblocking]]` /
   `YESDAW_RT_HOT` annotation edits.
   Local gate: `cmake --preset ci`; documented VS DevShell `cmake --build --preset ci`; documented VS
-  DevShell `ctest --preset ci` passed **187/187**. Remote CI is pending for this checkpoint.
+  DevShell `ctest --preset ci` passed **187/187**. Remote CI run `28214634766` is green across Windows,
+  Linux, macOS, RTSan, and TSan for commit `f17e115`.
   **Next:** REVIEW/FIX H3 minimal coordinator pending failure-action queue/drain shell — verify
   `src/plugin_host/PluginHostCoordinator.h`, `src/plugin_host/PluginHostCoordinatorCheck.cpp`,
   `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostProtocol.h`, and directly relevant CMake
