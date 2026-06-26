@@ -18,6 +18,7 @@
 #include <array>
 #include <atomic>
 #include <span>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -400,6 +401,49 @@ TEST_CASE ("numFrames beyond maxBlockSize is clamped, not overrun", "[rtlane][si
         REQUIRE (out[f] == Approx (sampleFor (0, f)));       // the clamped frames are Block 0's data
 }
 
+TEST_CASE ("caller channel counts are clamped in the release-safe exchange path", "[rtlane][channels][clamp]")
+{
+    RtLaneConfig cfg;
+    cfg.channels     = 2;
+    cfg.maxBlockSize = 8;
+
+    RtLaneRing ring;
+    ring.prepare (cfg);
+
+    constexpr int numFrames = 8;
+    std::vector<float> inLeft (numFrames, 0.0f);
+    std::vector<float> outLeft (numFrames, -1.0f);
+    float* inCh[1] = { inLeft.data() };
+    float* outCh[1] = { outLeft.data() };
+
+    auto sumWithMissingChannel = [] (std::span<const Event>,
+                                     const float* const* in, float* const* out, int channels, int nf) noexcept
+    {
+        for (int f = 0; f < nf; ++f)
+        {
+            out[0][f] = in[0][f] + in[1][f] * 1000.0f;
+            if (channels > 1)
+                out[1][f] = in[1][f];
+        }
+    };
+
+    for (int f = 0; f < numFrames; ++f)
+        inLeft[static_cast<std::size_t> (f)] = sampleFor (0, f);
+
+    const RtLaneExchangeResult r0 = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (r0.source == RtLaneOutput::Silence);
+    REQUIRE (ring.pollOnce (sumWithMissingChannel));
+
+    for (int f = 0; f < numFrames; ++f)
+        inLeft[static_cast<std::size_t> (f)] = sampleFor (1, f);
+
+    const RtLaneExchangeResult r1 = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (r1.source == RtLaneOutput::Fresh);
+    REQUIRE (r1.outputBlockIndex == 0);
+    for (int f = 0; f < numFrames; ++f)
+        REQUIRE (outLeft[static_cast<std::size_t> (f)] == Approx (sampleFor (0, f)));
+}
+
 TEST_CASE ("reset() re-primes the ring for reuse", "[rtlane][reset]")
 {
     RtLaneConfig cfg;
@@ -426,7 +470,7 @@ TEST_CASE ("reset() re-primes the ring for reuse", "[rtlane][reset]")
     REQUIRE (ring.bypassActive());
     REQUIRE (ring.inputSeq() != 0);
 
-    ring.reset();
+    ring.resetSharedProtocolForStoppedEndpoints();
     REQUIRE_FALSE (ring.bypassActive());
     REQUIRE (ring.inputSeq() == 0);
     REQUIRE (ring.outputSeq() == 0);
@@ -439,6 +483,57 @@ TEST_CASE ("reset() re-primes the ring for reuse", "[rtlane][reset]")
     const RtLaneExchangeResult r1 = ring.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
     REQUIRE (r1.source == RtLaneOutput::Fresh);
     REQUIRE (r1.outputBlockIndex == 0);
+}
+
+TEST_CASE ("reset() is endpoint-local and does not rewind a live shared RT lane", "[rtlane][reset][shared-memory]")
+{
+    RtLaneConfig cfg;
+    cfg.channels     = 1;
+    cfg.maxBlockSize = 8;
+
+    const std::string regionName = RtLaneRing::makeUniqueSharedMemoryName();
+    RtLaneRing audioSide;
+    audioSide.prepareSharedMemory (cfg, regionName);
+
+    RtLaneRing childSide;
+    REQUIRE (childSide.attachSharedMemory (regionName));
+
+    constexpr int numFrames = 8;
+    std::vector<float> in (numFrames, 0.0f);
+    std::vector<float> out (numFrames, -1.0f);
+    float* inCh[1] = { in.data() };
+    float* outCh[1] = { out.data() };
+
+    for (int f = 0; f < numFrames; ++f)
+        in[static_cast<std::size_t> (f)] = sampleFor (0, f);
+    REQUIRE (audioSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1).source == RtLaneOutput::Silence);
+    REQUIRE (childSide.pollOnce (identityProcess));
+
+    for (int f = 0; f < numFrames; ++f)
+        in[static_cast<std::size_t> (f)] = sampleFor (1, f);
+    const RtLaneExchangeResult freshBeforeReset =
+        audioSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (freshBeforeReset.source == RtLaneOutput::Fresh);
+    REQUIRE (freshBeforeReset.inputBlockIndex == 1);
+    REQUIRE (freshBeforeReset.outputBlockIndex == 0);
+
+    audioSide.reset();
+    REQUIRE (audioSide.lastStatus() == RtLaneOutput::Silence);
+    REQUIRE (audioSide.inputSeq() == 2);
+    REQUIRE (audioSide.outputSeq() == 1);
+
+    REQUIRE (childSide.pollOnce (identityProcess));
+    REQUIRE (audioSide.outputSeq() == 2);
+
+    for (int f = 0; f < numFrames; ++f)
+        in[static_cast<std::size_t> (f)] = sampleFor (2, f);
+    const RtLaneExchangeResult freshAfterReset =
+        audioSide.exchangeBlock (inCh, 1, numFrames, {}, outCh, 1);
+    REQUIRE (freshAfterReset.source == RtLaneOutput::Fresh);
+    REQUIRE (freshAfterReset.inputBlockIndex == 2);
+    REQUIRE (freshAfterReset.outputBlockIndex == 1);
+    for (int f = 0; f < numFrames; ++f)
+        REQUIRE (out[static_cast<std::size_t> (f)] == Approx (sampleFor (1, f)));
 }
 
 TEST_CASE ("numFrames varying block-to-block within one run delivers + zero-fills correctly", "[rtlane][sizes][varying]")

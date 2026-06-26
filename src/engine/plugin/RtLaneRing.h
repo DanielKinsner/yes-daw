@@ -239,8 +239,17 @@ public:
 #endif
     }
 
-    // CONTROL THREAD (or between test runs; both endpoints stopped). Clear the protocol back to "primed".
+    // AUDIO THREAD / transport reset. Re-prime only this audio endpoint's fail-open state. Do not clear
+    // shared sequence/version words here: a live worker child may be polling the same mapped region.
     void reset() noexcept
+    {
+        resetAudioEndpointState();
+    }
+
+    // CONTROL THREAD, after every endpoint using this region is stopped. Clear the whole shared protocol
+    // back to "primed" for deterministic reuse. This must not be used as the crash/recompile live-child
+    // path; the audio-thread reset above is intentionally endpoint-local.
+    void resetSharedProtocolForStoppedEndpoints() noexcept
     {
         if (control_ != nullptr)
         {
@@ -272,14 +281,18 @@ public:
 
         const int ch = channels_;
         const int nf = std::clamp (numFrames, 0, maxBlock_);
-        YESDAW_RT_ASSERT (numInputChannels >= ch && numOutputChannels >= ch);
-        (void) numInputChannels;
-        (void) numOutputChannels;
+        const int readableInputChannels = inputChannels != nullptr
+            ? std::clamp (numInputChannels, 0, ch)
+            : 0;
+        const int writableOutputChannels = outputChannels != nullptr
+            ? std::clamp (numOutputChannels, 0, ch)
+            : 0;
 
         const std::uint64_t n = inputBlocksSubmitted_;
 
         // (1) write input Block N into the UNpublished slot, then (2) release-store the input seq counter.
-        writeInputSlot (inputSlots_[static_cast<std::size_t> (n & 1u)], n, inputChannels, ch, nf, inputEvents);
+        writeInputSlot (inputSlots_[static_cast<std::size_t> (n & 1u)], n,
+                        inputChannels, readableInputChannels, ch, nf, inputEvents);
         control_->inputSeq.store (n + 1, std::memory_order_release);
         inputBlocksSubmitted_ = n + 1;
         res.inputBlockIndex = n;
@@ -288,8 +301,9 @@ public:
         //     open within the Block budget. Block 0 has no predecessor -> it primes with a miss.
         const bool          hasExpected   = (n >= 1);
         const std::uint64_t expectedBlock = hasExpected ? (n - 1) : 0;
-        readOutputFailOpen (outputChannels, ch, nf, hasExpected, expectedBlock, res);
+        readOutputFailOpen (outputChannels, writableOutputChannels, ch, nf, hasExpected, expectedBlock, res);
 
+        lastDeliveredStatus_ = res.source;
         control_->status.store (static_cast<std::uint32_t> (res.source), std::memory_order_relaxed);
         return res;
     }
@@ -355,9 +369,7 @@ public:
     [[nodiscard]] std::uint64_t outputSeq() const noexcept { return control_ != nullptr ? control_->outputSeq.load (std::memory_order_acquire) : 0; }
     [[nodiscard]] RtLaneOutput  lastStatus() const noexcept
     {
-        return control_ != nullptr
-             ? static_cast<RtLaneOutput> (control_->status.load (std::memory_order_relaxed))
-             : RtLaneOutput::Silence;
+        return lastDeliveredStatus_;
     }
     // Transient, self-clearing: the audio-thread bypass latch sets after repeated misses and CLEARS on the
     // next Fresh Block. It is the branch-only fail-open signal, NOT the authoritative crash verdict — the
@@ -709,6 +721,7 @@ private:
         }
         childEvents_.assign (std::max<std::size_t> (1, maxEvents_), Event{});
         lastGood_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
+        freshScratch_.assign (static_cast<std::size_t> (channels_) * static_cast<std::size_t> (maxBlock_), 0.0f);
         resetEndpointState();
     }
 
@@ -717,10 +730,19 @@ private:
         inputBlocksSubmitted_ = 0;
         lastProcessedInput_ = 0;
         childHasProcessed_ = false;
+        resetAudioEndpointState();
+    }
+
+    void resetAudioEndpointState() noexcept
+    {
+        inputBlocksSubmitted_ = control_ != nullptr
+            ? control_->inputSeq.load (std::memory_order_acquire)
+            : 0;
         consecutiveMisses_ = 0;
         bypassLatched_ = false;
         lastGoodValid_ = false;
         lastGoodNumFrames_ = 0;
+        lastDeliveredStatus_ = RtLaneOutput::Silence;
     }
 
     [[nodiscard]] int clampFrames (std::uint32_t nf) const noexcept
@@ -792,7 +814,7 @@ private:
     }
 
     void writeInputSlot (Slot& s, std::uint64_t blockIndex,
-                         const float* const* audio, int channels, int numFrames,
+                         const float* const* audio, int readableChannels, int channels, int numFrames,
                          std::span<const Event> events) noexcept
     {
         beginWrite (s);
@@ -802,7 +824,10 @@ private:
         s.words[kHdrEventCount].store (ec, std::memory_order_relaxed);
         for (int c = 0; c < channels; ++c)
             for (int f = 0; f < numFrames; ++f)
-                storeFloatWord (s.words, audioWord (c, f), audio[c][f]);
+            {
+                const float sample = c < readableChannels && audio[c] != nullptr ? audio[c][f] : 0.0f;
+                storeFloatWord (s.words, audioWord (c, f), sample);
+            }
         for (std::uint32_t i = 0; i < ec; ++i)
             storeEventWord (s.words, eventBase_ + static_cast<std::size_t> (i) * kEventWords, events[i]);
         endWrite (s);
@@ -825,7 +850,7 @@ private:
     // The audio-thread read with the fail-open ladder (last-good -> silence -> bypass). Branch-only.
     // Delivers EXACTLY `expectedBlock` (== Block N-1) when the child has published it, else fails open —
     // so a hosted plugin's latency is a deterministic single Block (ADR-0015 / ADR-0007 PDC).
-    void readOutputFailOpen (float* const* out, int channels, int numFrames,
+    void readOutputFailOpen (float* const* out, int writableChannels, int channels, int numFrames,
                              bool hasExpected, std::uint64_t expectedBlock, RtLaneExchangeResult& res) noexcept
     {
         bool          fresh    = false;
@@ -847,8 +872,15 @@ private:
                 const int      wn = std::min (sf, numFrames);
 
                 for (int c = 0; c < channels; ++c)
+                {
                     for (int f = 0; f < wn; ++f)
-                        out[c][f] = loadFloatWord (s.words, audioWord (c, f));
+                    {
+                        const float sample = loadFloatWord (s.words, audioWord (c, f));
+                        freshScratch_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)] = sample;
+                        if (c < writableChannels && out[c] != nullptr)
+                            out[c][f] = sample;
+                    }
+                }
 
                 // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read (portable seqlock).
                 std::atomic_thread_fence (std::memory_order_acquire);
@@ -858,9 +890,10 @@ private:
                     fresh = true;
                     gotEvents = ev;
                     gotFrames = static_cast<std::uint32_t> (wn);
-                    for (int c = 0; c < channels; ++c)
+                    for (int c = 0; c < writableChannels; ++c)
                         for (int f = wn; f < numFrames; ++f)
-                            out[c][f] = 0.0f;
+                            if (out[c] != nullptr)
+                                out[c][f] = 0.0f;
                 }
             }
         }
@@ -876,12 +909,12 @@ private:
             consecutiveMisses_        = 0;
             bypassLatched_            = false;
 
-            // Capture this good output so a later miss can re-serve it (last-good).
-            for (int c = 0; c < channels; ++c)
-                for (int f = 0; f < static_cast<int> (gotFrames); ++f)
-                    lastGood_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)] = out[c][f];
             lastGoodValid_     = true;
             lastGoodNumFrames_ = gotFrames;
+            for (int c = 0; c < channels; ++c)
+                for (int f = 0; f < static_cast<int> (gotFrames); ++f)
+                    lastGood_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)] =
+                        freshScratch_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)];
             return;
         }
 
@@ -892,29 +925,33 @@ private:
 
         if (bypassLatched_)
         {
-            for (int c = 0; c < channels; ++c)
+            for (int c = 0; c < writableChannels; ++c)
                 for (int f = 0; f < numFrames; ++f)
-                    out[c][f] = 0.0f;
+                    if (out[c] != nullptr)
+                        out[c][f] = 0.0f;
             res.source = RtLaneOutput::Bypass;
         }
         else if (lastGoodValid_ && consecutiveMisses_ <= cfg_.lastGoodHoldBlocks)
         {
             const int wn = std::min (static_cast<int> (lastGoodNumFrames_), numFrames);
-            for (int c = 0; c < channels; ++c)
+            for (int c = 0; c < writableChannels; ++c)
             {
                 for (int f = 0; f < wn; ++f)
-                    out[c][f] = lastGood_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)];
+                    if (out[c] != nullptr)
+                        out[c][f] = lastGood_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)];
                 for (int f = wn; f < numFrames; ++f)
-                    out[c][f] = 0.0f;
+                    if (out[c] != nullptr)
+                        out[c][f] = 0.0f;
             }
             res.source           = RtLaneOutput::LastGood;
             res.outputNumFrames  = static_cast<std::uint32_t> (wn);
         }
         else
         {
-            for (int c = 0; c < channels; ++c)
+            for (int c = 0; c < writableChannels; ++c)
                 for (int f = 0; f < numFrames; ++f)
-                    out[c][f] = 0.0f;
+                    if (out[c] != nullptr)
+                        out[c][f] = 0.0f;
             res.source = RtLaneOutput::Silence;
         }
     }
@@ -941,8 +978,10 @@ private:
     std::uint32_t consecutiveMisses_    = 0;
     bool          bypassLatched_        = false;
     std::vector<float> lastGood_;
+    std::vector<float> freshScratch_;
     bool          lastGoodValid_           = false;
     std::uint32_t lastGoodNumFrames_       = 0;
+    RtLaneOutput  lastDeliveredStatus_     = RtLaneOutput::Silence;
 
     // Child-thread-local state (touched only by pollOnce).
     std::uint64_t lastProcessedInput_ = 0;
