@@ -28,8 +28,23 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H4 full-close pass: gate hardened; runtime wiring + tempo prefix-sum next
-- **Latest (2026-06-27): adversarial H4 review + checkpoint 1 (gate rigor) is green locally.**
+## Now — H4 full-close pass: gate hardened + runtime source Node landed; projection + prefix-sum next
+- **Latest (2026-06-27): full-close CP2a — runtime MidiClip source Node is green locally.**
+  Closing review finding F3 (no runtime clip->engine path) the laid-out way — mirroring the audio
+  `DecodedClipNode` + `ProjectMixerProjection` pattern, NOT a new design. Added `flattenMidiClipToTimeline`
+  (control-side whole-clip flatten to a sorted absolute-frame Event timeline) and `DecodedMidiClipNode`,
+  the MIDI analogue of `DecodedClipNode`: it streams that timeline into the graph one Block at a time by
+  advancing an ADR-0009 per-source cursor, with zero audio-thread allocation (emits via
+  `EventStream::replaceEvents` into the pre-sized Event slot). New `CompiledNodeKind::MidiSource` +
+  GraphBuilder recognition. Integration test proves a Project `MidiClip`'s NoteOns reach an instrument at
+  the right frames across two Blocks with the caller feeding NO events. Local gate:
+  `YesDawMidiTimingCheck` 17 cases / 311 assertions; full `ctest --test-dir build-ci` **217/217** green.
+  No new ADR needed — this applies ADR-0009 (per-source cursors) + ADR-0017 (render bridge) + the existing
+  source-node/projection precedent. **Next:** CP2b — extend `ProjectMixerProjection` to walk `midiClips`
+  (source -> instrument -> Fader/Pan/Meter); then F8 (ADR-0010 prefix-sum `tickToFrame`). Caveat: an
+  audible instrument still means a hosted plugin (`PluginNode`); the built-in `ImpulseInstrumentNode` is a
+  timing fixture. Checkpoint complete after remote CI is green.
+- **Earlier (2026-06-27): adversarial H4 review + checkpoint 1 (gate rigor) is green locally.**
   An independent multi-agent adversarial review (a real build + mutation tests + 9 static dimensions,
   every finding re-verified by a skeptic) asked whether the H4 gate is real, the code correct, and the
   claims honest. Verdict: the MIDI math is correct and the gate builds/passes, but the gate was weaker
