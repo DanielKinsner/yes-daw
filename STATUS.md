@@ -28,6 +28,16 @@ separately and does not replace H4's CI gate.
 ---
 
 ## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): REVIEW/FIX H4 MPE boundary allocation is green locally.**
+  REVIEW/FIX found one proven defect in the MPE boundary allocator: an earlier wildcard Note could claim
+  a member channel that a later overlapping explicit voice-hinted Note needed, producing a same-channel
+  MPE collision while still reporting success. Fixed by precomputing explicit member-channel reservation
+  intervals before wildcard assignment; wildcard Notes now skip any overlapping future explicit
+  reservation as well as currently-active allocated voices. Focused local gate:
+  `YesDawMidiTimingCheck` passed **12 cases / 247 assertions**. Full local gate: `cmake --preset ci`;
+  VS DevShell `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed **217/217**;
+  and `ctest --preset ci -R YesDawMidiTimingCheck --output-on-failure` passed. **Next:** run the H4
+  review/close pass if CI stays green.
 - **Latest (2026-06-27): REVIEW/FIX H4 hosted-instrument Event bridge + WORKER MPE boundary allocation
   is green locally.**
   REVIEW/FIX of the hosted Event-bridge checkpoint found no additional proven defect; the previous CI run
@@ -2266,20 +2276,17 @@ separately and does not replace H4's CI gate.
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
 - ✅ **H3 approved and closed.** Mixer policy, host isolation, runtime worker crash/hang recovery,
   blacklist persistence, state chunk round-trip, projected Runtime gate, and close-out review fixes are green.
-- **Next rolling baton: REVIEW/FIX H4 MPE boundary allocation, then WORKER H4 review/close if green.**
-  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/Midi.h`,
-  `src/engine/Project.h`, `src/engine/Node.h`, `src/engine/plugin/PluginNode.h`,
-  `tests/midi_timing_tests.cpp`, `loop/horizon.md`, and the H4 plan/status docs against ADR-0017,
-  ADR-0009, ADR-0010, and the H4 exit criterion. Confirm boundary allocation is deterministic, preserves
-  explicit `portIndex`/`channel` hints, assigns concrete member channels only for wildcard notes, reuses
-  channels only for non-overlapping Notes, fails mechanically on exhausted overlap, preserves stable
-  `VoiceAddress.noteId`, and does not change the frozen Event/Node contracts. Fix only proven defects. If
-  clean/green, continue in the same baton thread to the H4 review/close pass: re-run the full gate,
-  reconcile `loop/horizon.md`/plan/status with actual evidence, and leave H5 ready only if the gate proves
-  H4 complete. Run the documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset
-  ci`) for each checkpoint that changes code. Update `STATUS.md`, commit/push, and wait for green CI
-  before creating exactly one successor baton. Never create separate reviewer/worker threads in parallel,
-  and never spawn a successor while CI is pending, stuck, red, or being rerun.
+- **Next rolling baton: WORKER H4 review/close.**
+  Pull, read `AGENTS.md` + the top handoff first, then audit H4 against
+  `docs/plans/2026-06-27-h4-midi-editing-instruments-plan.md`,
+  `docs/goals/roadmap.md`, `docs/adr/0017-midi-clip-edit-model-and-render-bridge.md`,
+  `docs/adr/0009-event-stream-and-automation.md`, `docs/adr/0010-time-model-and-sample-rate.md`,
+  `loop/horizon.md`, `STATUS.md`, and the current `YesDawMidiTimingCheck` / full `ci` evidence. Confirm
+  every H4 build-order item and exit-gate clause is mechanically covered, reconcile `loop/horizon.md` /
+  plan / status with actual evidence, and leave H5 ready only if the gate proves H4 complete. Run the
+  documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`; `ctest --preset
+  ci -R YesDawMidiTimingCheck`) before committing close-out docs. Update `STATUS.md`, commit/push, and
+  wait for green CI before stopping.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

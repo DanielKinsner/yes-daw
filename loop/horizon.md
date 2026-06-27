@@ -26,15 +26,15 @@ ctest --preset ci
 ctest --preset ci -R YesDawMidiTimingCheck
 ```
 
-## Status: **MPE BOUNDARY ALLOCATION GREEN LOCALLY (H4 close-out still active)**
+## Status: **MPE BOUNDARY ALLOCATION REVIEW/FIX GREEN LOCALLY (H4 close-out still active)**
 
 H4 opened on 2026-06-27 when Dan asked to complete H4. `YesDawMidiTimingCheck` now exists and is green
 locally together with the full `ci` preset. Project-owned MIDI Clips/Notes now persist through schema v3.
 Piano-roll Note edit commands are green locally with undo/redo bit-identity coverage. Deterministic
 MIDI-effect Nodes now transform branch-local writable Events before downstream Instruments consume them,
 hosted-instrument `PluginNode` receives transformed Note Events through the RT lane, and MPE boundary
-allocation now assigns stable concrete `VoiceAddress` port/channel fields before flattening. The remaining
-H4 plan slice is review/close.
+allocation now assigns stable concrete `VoiceAddress` port/channel fields before flattening, including
+overlapping future explicit voice reservations. The remaining H4 plan slice is review/close.
 
 ## The plan
 

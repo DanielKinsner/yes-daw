@@ -386,6 +386,31 @@ TEST_CASE ("MPE boundary allocation preserves explicit voice hints and fails whe
     REQUIRE (exhausted.notesWritten == 0u);
 }
 
+TEST_CASE ("MPE boundary allocation avoids overlapping future explicit voice reservations", "[midi][mpe]")
+{
+    MidiClip clip = clipWithNotes ({
+        note (7, 0, 12, 60),
+        note (8, 4, 8, 64),
+    }, /*start*/ 100, /*length*/ 32);
+    clip.notes[0].portIndex = -1;
+    clip.notes[0].channel = -1;
+    clip.notes[1].portIndex = 0;
+    clip.notes[1].channel = 1;
+
+    std::array<Note, 2> allocated {};
+    const auto allocation = allocateMpeVoiceAddresses (
+        clip,
+        MpeVoiceAllocationConfig { /*portIndex*/ 0, /*firstMemberChannel*/ 1, /*memberChannelCount*/ 2 },
+        std::span<Note> (allocated));
+
+    REQUIRE (allocation.status == MpeVoiceAllocationStatus::Ok);
+    REQUIRE (allocation.notesWritten == 2u);
+    REQUIRE (allocated[0].portIndex == 0);
+    REQUIRE (allocated[0].channel == 2);
+    REQUIRE (allocated[1].portIndex == 0);
+    REQUIRE (allocated[1].channel == 1);
+}
+
 TEST_CASE ("MIDI note-ons through a latent Instrument Node are aligned by PDC", "[midi][instrument][pdc]")
 {
     constexpr NodeId kFastInstrument = 1000;

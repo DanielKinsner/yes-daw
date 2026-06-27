@@ -64,5 +64,6 @@ The first code checkpoints now exist: `YesDawMidiTimingCheck`, Project-owned MID
 schema v3 persistence, piano-roll Note edit commands with undo/redo bit-identity coverage, and
 deterministic MIDI-effect Nodes for transpose + scale-map event transforms. The hosted-instrument Event
 bridge now drives transformed Note Events through `PluginNode`'s RT lane. MPE boundary allocation now
-assigns stable concrete voice addresses before flattening while preserving explicit voice hints. The H4
-close-out pass keeps this gate blocking while proving the horizon complete.
+assigns stable concrete voice addresses before flattening while preserving explicit voice hints and
+avoiding overlapping future explicit voice reservations. The H4 close-out pass keeps this gate blocking
+while proving the horizon complete.

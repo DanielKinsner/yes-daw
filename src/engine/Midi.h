@@ -149,6 +149,13 @@ struct MpeAllocationItem
     bool        hasExplicitChannel = false;
 };
 
+struct MpeExplicitReservation
+{
+    Tick        startTick = 0;
+    Tick        endTick = 0;
+    std::int16_t channel = -1;
+};
+
 [[nodiscard]] inline bool mpeAllocationItemLess (const MpeAllocationItem& a,
                                                  const MpeAllocationItem& b) noexcept
 {
@@ -166,6 +173,24 @@ struct MpeAllocationItem
 {
     return channel >= config.firstMemberChannel
         && channel < static_cast<std::int16_t> (config.firstMemberChannel + config.memberChannelCount);
+}
+
+[[nodiscard]] inline bool mpeTicksOverlap (Tick aStart, Tick aEnd, Tick bStart, Tick bEnd) noexcept
+{
+    return aStart < bEnd && bStart < aEnd;
+}
+
+[[nodiscard]] inline bool mpeChannelReserved (std::int16_t channel,
+                                              Tick startTick,
+                                              Tick endTick,
+                                              std::span<const MpeExplicitReservation> reservations) noexcept
+{
+    for (const MpeExplicitReservation& reservation : reservations)
+        if (reservation.channel == channel
+            && mpeTicksOverlap (startTick, endTick, reservation.startTick, reservation.endTick))
+            return true;
+
+    return false;
 }
 
 } // namespace detail
@@ -191,6 +216,8 @@ struct MpeAllocationItem
 
     std::vector<detail::MpeAllocationItem> items;
     items.reserve (clip.notes.size());
+    std::vector<detail::MpeExplicitReservation> explicitReservations;
+    explicitReservations.reserve (clip.notes.size());
 
     for (std::size_t i = 0; i < clip.notes.size(); ++i)
     {
@@ -204,7 +231,23 @@ struct MpeAllocationItem
         }
 
         outNotes[i] = note;
-        items.push_back (detail::MpeAllocationItem { i, note.startTick, noteEnd, note.id, note.channel >= 0 });
+        if (outNotes[i].portIndex < 0)
+            outNotes[i].portIndex = config.portIndex;
+
+        const bool hasExplicitChannel = outNotes[i].channel >= 0;
+        items.push_back (detail::MpeAllocationItem { i, note.startTick, noteEnd, note.id, hasExplicitChannel });
+
+        if (hasExplicitChannel
+            && outNotes[i].portIndex == config.portIndex
+            && detail::mpeChannelInRange (outNotes[i].channel, config)
+            && noteEnd > note.startTick)
+        {
+            explicitReservations.push_back (detail::MpeExplicitReservation {
+                note.startTick,
+                noteEnd,
+                outNotes[i].channel
+            });
+        }
     }
 
     std::sort (items.begin(), items.end(), detail::mpeAllocationItemLess);
@@ -226,9 +269,6 @@ struct MpeAllocationItem
     {
         Note& note = outNotes[item.index];
 
-        if (note.portIndex < 0)
-            note.portIndex = config.portIndex;
-
         if (note.channel >= 0)
         {
             reserveIfMember (note, item.endTick);
@@ -242,6 +282,8 @@ struct MpeAllocationItem
         {
             const std::size_t index = static_cast<std::size_t> (channel);
             if (activeUntil[index] > item.startTick)
+                continue;
+            if (detail::mpeChannelReserved (channel, item.startTick, item.endTick, explicitReservations))
                 continue;
 
             note.channel = channel;
