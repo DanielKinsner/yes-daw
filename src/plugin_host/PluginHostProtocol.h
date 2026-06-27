@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -23,12 +25,36 @@ inline constexpr std::uint32_t kRtLaneLoadReplyMagic = 0x59445252u;   // YDRR
 inline constexpr std::uint32_t kRtLaneLoadMessageVersion = 1u;
 inline constexpr std::size_t kRtLaneSharedMemoryNameCapacity = 128u;
 
+inline constexpr std::uint32_t kPluginStateRequestMagic = 0x59445351u; // YDSQ
+inline constexpr std::uint32_t kPluginStateReplyMagic = 0x59445352u;   // YDSR
+inline constexpr std::uint32_t kPluginStateMessageVersion = 1u;
+inline constexpr std::size_t kPluginStateChunkCapacity = 256u;
+
 enum class RtLaneLoadReplyStatus : std::uint32_t
 {
     none = 0,
     accepted = 1,
     rejectedInvalidIdentity = 2,
     rejectedAttachFailed = 3
+};
+
+enum class PluginStateRequestKind : std::uint32_t
+{
+    none = 0,
+    pull = 1,
+    push = 2
+};
+
+enum class PluginStateReplyStatus : std::uint32_t
+{
+    none = 0,
+    pulled = 1,
+    restored = 2,
+    rejectedInvalidRequest = 3,
+    rejectedNoProcessor = 4,
+    rejectedChunkTooLarge = 5,
+    rejectedCrcMismatch = 6,
+    rejectedSetStateFailed = 7
 };
 
 struct RtLaneLoadConfig
@@ -60,8 +86,55 @@ struct RtLaneLoadReplyMessage
     char sharedMemoryName[kRtLaneSharedMemoryNameCapacity] {};
 };
 
+struct PluginStateRequestMessage
+{
+    std::uint32_t magic = kPluginStateRequestMagic;
+    std::uint32_t version = kPluginStateMessageVersion;
+    PluginStateRequestKind kind = PluginStateRequestKind::none;
+    std::uint32_t chunkLength = 0;
+    std::uint32_t crc32 = 0;
+    std::uint8_t chunk[kPluginStateChunkCapacity] {};
+};
+
+struct PluginStateReplyMessage
+{
+    std::uint32_t magic = kPluginStateReplyMagic;
+    std::uint32_t version = kPluginStateMessageVersion;
+    PluginStateReplyStatus status = PluginStateReplyStatus::none;
+    std::uint32_t chunkLength = 0;
+    std::uint32_t crc32 = 0;
+    std::uint32_t stateAccepted = 0;
+    std::uint8_t chunk[kPluginStateChunkCapacity] {};
+};
+
 static_assert (std::is_trivially_copyable_v<RtLaneLoadMessage>);
 static_assert (std::is_trivially_copyable_v<RtLaneLoadReplyMessage>);
+static_assert (std::is_trivially_copyable_v<PluginStateRequestMessage>);
+static_assert (std::is_trivially_copyable_v<PluginStateReplyMessage>);
+
+inline std::uint32_t crc32Bytes (std::span<const std::uint8_t> bytes) noexcept
+{
+    std::uint32_t crc = 0xffffffffu;
+
+    for (const std::uint8_t byte : bytes)
+    {
+        crc ^= byte;
+        for (int bit = 0; bit < 8; ++bit)
+            crc = (crc >> 1) ^ (0xedb88320u & static_cast<std::uint32_t> (-static_cast<int> (crc & 1u)));
+    }
+
+    return ~crc;
+}
+
+inline std::span<const std::uint8_t> pluginStateChunkBytes (const PluginStateRequestMessage& message) noexcept
+{
+    return { message.chunk, std::min<std::size_t> (message.chunkLength, kPluginStateChunkCapacity) };
+}
+
+inline std::span<const std::uint8_t> pluginStateChunkBytes (const PluginStateReplyMessage& message) noexcept
+{
+    return { message.chunk, std::min<std::size_t> (message.chunkLength, kPluginStateChunkCapacity) };
+}
 
 inline bool isValidRtLaneSharedMemoryName (std::string_view name) noexcept
 {
@@ -116,6 +189,53 @@ inline RtLaneLoadReplyMessage makeRtLaneLoadReplyMessage (RtLaneLoadReplyStatus 
     return message;
 }
 
+inline PluginStateRequestMessage makePluginStatePullRequestMessage() noexcept
+{
+    PluginStateRequestMessage message;
+    message.kind = PluginStateRequestKind::pull;
+    return message;
+}
+
+inline PluginStateRequestMessage makePluginStatePushRequestMessage (std::span<const std::uint8_t> chunk,
+                                                                    std::uint32_t crc32) noexcept
+{
+    PluginStateRequestMessage message;
+    message.kind = PluginStateRequestKind::push;
+
+    if (chunk.size() <= kPluginStateChunkCapacity)
+    {
+        message.chunkLength = static_cast<std::uint32_t> (chunk.size());
+        message.crc32 = crc32;
+        if (! chunk.empty())
+            std::memcpy (message.chunk, chunk.data(), chunk.size());
+    }
+
+    return message;
+}
+
+inline PluginStateReplyMessage makePluginStateReplyMessage (PluginStateReplyStatus status,
+                                                            std::span<const std::uint8_t> chunk = {},
+                                                            bool stateAccepted = false) noexcept
+{
+    PluginStateReplyMessage message;
+    message.status = status;
+    message.stateAccepted = stateAccepted ? 1u : 0u;
+
+    if (chunk.size() <= kPluginStateChunkCapacity)
+    {
+        message.chunkLength = static_cast<std::uint32_t> (chunk.size());
+        message.crc32 = crc32Bytes (chunk);
+        if (! chunk.empty())
+            std::memcpy (message.chunk, chunk.data(), chunk.size());
+    }
+    else
+    {
+        message.status = PluginStateReplyStatus::rejectedChunkTooLarge;
+    }
+
+    return message;
+}
+
 inline bool isValidRtLaneLoadMessage (const RtLaneLoadMessage& message) noexcept
 {
     if (message.magic != kRtLaneLoadMessageMagic
@@ -144,6 +264,54 @@ inline bool isValidRtLaneLoadReplyMessage (const RtLaneLoadReplyMessage& message
 
     return isValidRtLaneSharedMemoryName (
         std::string_view (message.sharedMemoryName, message.sharedMemoryNameLength));
+}
+
+inline bool pluginStateRequestCrcMatches (const PluginStateRequestMessage& message) noexcept
+{
+    return message.chunkLength <= kPluginStateChunkCapacity
+        && crc32Bytes (pluginStateChunkBytes (message)) == message.crc32;
+}
+
+inline bool pluginStateReplyCrcMatches (const PluginStateReplyMessage& message) noexcept
+{
+    return message.chunkLength <= kPluginStateChunkCapacity
+        && crc32Bytes (pluginStateChunkBytes (message)) == message.crc32;
+}
+
+inline bool isValidPluginStateRequestMessage (const PluginStateRequestMessage& message) noexcept
+{
+    if (message.magic != kPluginStateRequestMagic
+        || message.version != kPluginStateMessageVersion)
+        return false;
+
+    if (message.kind == PluginStateRequestKind::pull)
+        return message.chunkLength == 0u && message.crc32 == 0u;
+
+    if (message.kind == PluginStateRequestKind::push)
+        return message.chunkLength > 0u
+            && message.chunkLength <= kPluginStateChunkCapacity
+            && pluginStateRequestCrcMatches (message);
+
+    return false;
+}
+
+inline bool isValidPluginStateReplyMessage (const PluginStateReplyMessage& message) noexcept
+{
+    if (message.magic != kPluginStateReplyMagic
+        || message.version != kPluginStateMessageVersion
+        || message.status == PluginStateReplyStatus::none
+        || message.chunkLength > kPluginStateChunkCapacity)
+        return false;
+
+    if (message.status == PluginStateReplyStatus::pulled
+        || message.status == PluginStateReplyStatus::restored)
+    {
+        return message.chunkLength > 0u
+            && pluginStateReplyCrcMatches (message)
+            && (message.status != PluginStateReplyStatus::restored || message.stateAccepted != 0u);
+    }
+
+    return true;
 }
 
 inline std::string rtLaneSharedMemoryName (const RtLaneLoadMessage& message)
@@ -176,6 +344,24 @@ inline bool copyRtLaneLoadReplyMessage (const void* data, std::size_t bytes, RtL
 
     std::memcpy (&out, data, sizeof (out));
     return isValidRtLaneLoadReplyMessage (out);
+}
+
+inline bool copyPluginStateRequestMessage (const void* data, std::size_t bytes, PluginStateRequestMessage& out) noexcept
+{
+    if (data == nullptr || bytes != sizeof (PluginStateRequestMessage))
+        return false;
+
+    std::memcpy (&out, data, sizeof (out));
+    return out.magic == kPluginStateRequestMagic && out.version == kPluginStateMessageVersion;
+}
+
+inline bool copyPluginStateReplyMessage (const void* data, std::size_t bytes, PluginStateReplyMessage& out) noexcept
+{
+    if (data == nullptr || bytes != sizeof (PluginStateReplyMessage))
+        return false;
+
+    std::memcpy (&out, data, sizeof (out));
+    return isValidPluginStateReplyMessage (out);
 }
 
 } // namespace yesdaw::plugin_host

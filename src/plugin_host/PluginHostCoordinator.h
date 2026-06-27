@@ -187,6 +187,23 @@ public:
         success
     };
 
+    enum class PluginStateRoundTripStatus
+    {
+        notStarted,
+        rtLaneLoadFailed,
+        pullSendFailed,
+        pullReplyTimeout,
+        pullRejected,
+        corruptPushSendFailed,
+        corruptPushReplyTimeout,
+        corruptPushNotRejected,
+        pushSendFailed,
+        pushReplyTimeout,
+        pushRejected,
+        connectionLost,
+        success
+    };
+
     struct HandshakeResult
     {
         HandshakeStatus status { HandshakeStatus::notStarted };
@@ -515,6 +532,29 @@ public:
         bool workerAccepted { false };
     };
 
+    struct PluginStateRoundTripResult
+    {
+        PluginStateRoundTripStatus status { PluginStateRoundTripStatus::notStarted };
+        RtLaneLoadResult loadResult;
+        PluginStateReplyStatus pullReplyStatus { PluginStateReplyStatus::none };
+        PluginStateReplyStatus corruptPushReplyStatus { PluginStateReplyStatus::none };
+        PluginStateReplyStatus pushReplyStatus { PluginStateReplyStatus::none };
+        std::uint32_t chunkLength { 0 };
+        std::uint32_t crc32 { 0 };
+        std::uint32_t restoredChunkLength { 0 };
+        std::uint32_t restoredCrc32 { 0 };
+        bool readySeen { false };
+        bool pullRequestSent { false };
+        bool pullReplySeen { false };
+        bool corruptPushRequestSent { false };
+        bool corruptPushReplySeen { false };
+        bool pushRequestSent { false };
+        bool pushReplySeen { false };
+        bool pulledChunkValidated { false };
+        bool corruptCrcRejected { false };
+        bool pushedChunkAccepted { false };
+    };
+
     struct RtLaneProgress
     {
         std::uint64_t inputSeq { 0 };
@@ -591,6 +631,148 @@ public:
 
         return launchAndSendRtLaneLoadIdentityInternal (workerExecutable, std::move (identity),
                                                        std::move (ownerEndpoint));
+    }
+
+    PluginStateRoundTripResult launchAndRoundTripSyntheticPluginState (
+        const juce::File& workerExecutable,
+        yesdaw::engine::RtLaneConfig config)
+    {
+        const RtLaneLoadResult load = launchAndLoadRtLane (workerExecutable, config);
+        PluginStateReplyMessage corruptPushReply;
+
+        auto finish = [&] (PluginStateRoundTripStatus status)
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            const bool pulledChunkValidated = pluginStatePullReplySeen_
+                && lastPluginStatePullReply_.status == PluginStateReplyStatus::pulled
+                && pluginStateReplyCrcMatches (lastPluginStatePullReply_);
+            const bool pushedChunkAccepted = pluginStatePushReplySeen_
+                && lastPluginStatePushReply_.status == PluginStateReplyStatus::restored
+                && lastPluginStatePushReply_.stateAccepted != 0u
+                && lastPluginStatePushReply_.chunkLength == lastPluginStatePullReply_.chunkLength
+                && lastPluginStatePushReply_.crc32 == lastPluginStatePullReply_.crc32;
+
+            return PluginStateRoundTripResult {
+                status,
+                load,
+                lastPluginStatePullReply_.status,
+                corruptPushReply.status,
+                lastPluginStatePushReply_.status,
+                lastPluginStatePullReply_.chunkLength,
+                lastPluginStatePullReply_.crc32,
+                lastPluginStatePushReply_.chunkLength,
+                lastPluginStatePushReply_.crc32,
+                readySeen_,
+                pluginStatePullRequestSent_,
+                pluginStatePullReplySeen_,
+                pluginStateCorruptPushRequestSent_,
+                corruptPushReply.status != PluginStateReplyStatus::none,
+                pluginStatePushRequestSent_,
+                pluginStatePushReplySeen_,
+                pulledChunkValidated,
+                corruptPushReply.status == PluginStateReplyStatus::rejectedCrcMismatch,
+                pushedChunkAccepted
+            };
+        };
+
+        if (load.status != RtLaneLoadStatus::success)
+            return finish (PluginStateRoundTripStatus::rtLaneLoadFailed);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePullRequestSent_ = false;
+            pluginStatePullReplySeen_ = false;
+            pluginStateCorruptPushRequestSent_ = false;
+            pluginStatePushRequestSent_ = false;
+            pluginStatePushReplySeen_ = false;
+            lastPluginStatePullReply_ = {};
+            lastPluginStatePushReply_ = {};
+        }
+
+        const PluginStateRequestMessage pullRequest = makePluginStatePullRequestMessage();
+        if (! sendMessageToWorker (makeMessage (pullRequest)))
+            return finish (PluginStateRoundTripStatus::pullSendFailed);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePullRequestSent_ = true;
+        }
+
+        if (! waitFor ([this] { return pluginStatePullReplySeen_ || connectionLost_; }))
+            return finish (PluginStateRoundTripStatus::pullReplyTimeout);
+
+        if (connectionLost())
+            return finish (PluginStateRoundTripStatus::connectionLost);
+
+        PluginStateReplyMessage pullReply;
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pullReply = lastPluginStatePullReply_;
+        }
+
+        if (pullReply.status != PluginStateReplyStatus::pulled || ! pluginStateReplyCrcMatches (pullReply))
+            return finish (PluginStateRoundTripStatus::pullRejected);
+
+        PluginStateRequestMessage corruptPushRequest =
+            makePluginStatePushRequestMessage (pluginStateChunkBytes (pullReply), pullReply.crc32 ^ 0x00000001u);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStateCorruptPushRequestSent_ = true;
+            pluginStatePushRequestSent_ = true;
+            pluginStatePushReplySeen_ = false;
+            lastPluginStatePushReply_ = {};
+        }
+
+        if (! sendMessageToWorker (makeMessage (corruptPushRequest)))
+            return finish (PluginStateRoundTripStatus::corruptPushSendFailed);
+
+        if (! waitFor ([this] { return pluginStatePushReplySeen_ || connectionLost_; }))
+            return finish (PluginStateRoundTripStatus::corruptPushReplyTimeout);
+
+        if (connectionLost())
+            return finish (PluginStateRoundTripStatus::connectionLost);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            corruptPushReply = lastPluginStatePushReply_;
+        }
+
+        if (corruptPushReply.status != PluginStateReplyStatus::rejectedCrcMismatch)
+            return finish (PluginStateRoundTripStatus::corruptPushNotRejected);
+
+        PluginStateRequestMessage pushRequest =
+            makePluginStatePushRequestMessage (pluginStateChunkBytes (pullReply), pullReply.crc32);
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePushRequestSent_ = true;
+            pluginStatePushReplySeen_ = false;
+            lastPluginStatePushReply_ = {};
+        }
+
+        if (! sendMessageToWorker (makeMessage (pushRequest)))
+            return finish (PluginStateRoundTripStatus::pushSendFailed);
+
+        if (! waitFor ([this] { return pluginStatePushReplySeen_ || connectionLost_; }))
+            return finish (PluginStateRoundTripStatus::pushReplyTimeout);
+
+        if (connectionLost())
+            return finish (PluginStateRoundTripStatus::connectionLost);
+
+        PluginStateReplyMessage pushReply;
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pushReply = lastPluginStatePushReply_;
+        }
+
+        if (pushReply.status != PluginStateReplyStatus::restored
+            || pushReply.stateAccepted == 0u
+            || pushReply.chunkLength != pullReply.chunkLength
+            || pushReply.crc32 != pullReply.crc32)
+            return finish (PluginStateRoundTripStatus::pushRejected);
+
+        return finish (PluginStateRoundTripStatus::success);
     }
 
     RtLaneLoadResult launchAndSendRtLaneLoadIdentity (const juce::File& workerExecutable,
@@ -1416,19 +1598,36 @@ public:
                 if (rtLaneLoadReply.status == RtLaneLoadReplyStatus::accepted)
                     childState_ = ChildState::running;
             }
-            else if (messageMatches (message, kWorkerReadyMessage))
+            else
             {
-                readySeen_ = true;
-                childState_ = ChildState::ready;
-            }
-            else if (messageMatches (message, kHandshakeProbeMessage))
-            {
-                probeEchoed_ = true;
-                childState_ = ChildState::running;
-            }
-            else if (messageMatches (message, kRunningWatchdogRtLaneHangAckMessage))
-            {
-                runningRtLaneHangAckSeen_ = true;
+                PluginStateReplyMessage pluginStateReply;
+                if (copyPluginStateReplyMessage (message.getData(), message.getSize(), pluginStateReply))
+                {
+                    if (pluginStatePushRequestSent_)
+                    {
+                        lastPluginStatePushReply_ = pluginStateReply;
+                        pluginStatePushReplySeen_ = true;
+                    }
+                    else
+                    {
+                        lastPluginStatePullReply_ = pluginStateReply;
+                        pluginStatePullReplySeen_ = true;
+                    }
+                }
+                else if (messageMatches (message, kWorkerReadyMessage))
+                {
+                    readySeen_ = true;
+                    childState_ = ChildState::ready;
+                }
+                else if (messageMatches (message, kHandshakeProbeMessage))
+                {
+                    probeEchoed_ = true;
+                    childState_ = ChildState::running;
+                }
+                else if (messageMatches (message, kRunningWatchdogRtLaneHangAckMessage))
+                {
+                    runningRtLaneHangAckSeen_ = true;
+                }
             }
         }
 
@@ -1461,6 +1660,11 @@ private:
     }
 
     static juce::MemoryBlock makeMessage (const RtLaneLoadMessage& message)
+    {
+        return juce::MemoryBlock (&message, sizeof (message));
+    }
+
+    static juce::MemoryBlock makeMessage (const PluginStateRequestMessage& message)
     {
         return juce::MemoryBlock (&message, sizeof (message));
     }
@@ -1942,6 +2146,13 @@ private:
         lastRtLaneLoadReplyStatus_ = RtLaneLoadReplyStatus::none;
         lastRtLaneLoadAttachFailure_ = yesdaw::engine::RtLaneAttachFailure::None;
         lastRtLaneLoadAttachSystemError_ = 0;
+        pluginStatePullRequestSent_ = false;
+        pluginStatePullReplySeen_ = false;
+        pluginStateCorruptPushRequestSent_ = false;
+        pluginStatePushRequestSent_ = false;
+        pluginStatePushReplySeen_ = false;
+        lastPluginStatePullReply_ = {};
+        lastPluginStatePushReply_ = {};
     }
 
     bool connectionLost() const
@@ -2094,11 +2305,18 @@ private:
     bool rtLaneLoadMessageSent_ { false };
     bool rtLaneLoadReplySeen_ { false };
     bool runningRtLaneHangAckSeen_ { false };
+    bool pluginStatePullRequestSent_ { false };
+    bool pluginStatePullReplySeen_ { false };
+    bool pluginStateCorruptPushRequestSent_ { false };
+    bool pluginStatePushRequestSent_ { false };
+    bool pluginStatePushReplySeen_ { false };
     RtLaneLoadReplyStatus lastRtLaneLoadReplyStatus_ { RtLaneLoadReplyStatus::none };
     yesdaw::engine::RtLaneAttachFailure lastRtLaneLoadAttachFailure_ {
         yesdaw::engine::RtLaneAttachFailure::None
     };
     int lastRtLaneLoadAttachSystemError_ { 0 };
+    PluginStateReplyMessage lastPluginStatePullReply_;
+    PluginStateReplyMessage lastPluginStatePushReply_;
 };
 
 } // namespace yesdaw::plugin_host

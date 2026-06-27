@@ -59,7 +59,9 @@ store/schema keyed by plugin identity is reviewed/green; item 4a `Project` -> `M
 projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` driver is reviewed/green;
 item 4c projected mixer graph through `Runtime` + live mixer-policy gate is reviewed/green; item 5
 automation lanes for tri-stream PDC through the hosted `PluginNode` path is reviewed/green; the fail-open
-deadline/no-dropout clause through the projected `Runtime` graph is locally green
+deadline/no-dropout clause through the projected `Runtime` graph is reviewed/green; the focused opaque
+plugin-state control-lane round-trip through the real process boundary is locally green, while the
+aggregate `[!shouldfail]` gate remains intentionally inverted pending review/close-out permission
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -84,39 +86,48 @@ deadline/no-dropout clause through the projected `Runtime` graph is locally gree
   Placeholder compiled-node kind, and a narrow running RT-lane watchdog that first proves same-child
   `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog,
   plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures,
-  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue, and proves
-  a persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart,
-  plus a projected mixer graph published through `Runtime` with SIP/solo-safe policy and mask-capacity
-  coverage.
+  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue, proves a
+  persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart,
+  proves a projected mixer graph published through `Runtime` with SIP/solo-safe policy and mask-capacity
+  coverage, and now proves a focused opaque plugin-state chunk can be pulled/pushed across the real worker
+  child control lane with `{chunk_len, crc32}` validation.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX item 5 automation lanes for tri-stream PDC is clean; WORKER fail-open deadline/no-dropout through the projected `Runtime` graph is locally green.**
-  REVIEW/FIX of item 5 found no proven defects against `STATUS.md`, `loop/horizon.md`, the close-out plan,
-  ADR-0006/0008/0009/0014/0015, `src/engine/Automation.h`, `src/engine/CompiledGraph.h`,
-  `src/engine/Runtime.h`, `src/engine/MixerGraphProjection.h`, `tests/event_tests.cpp`, and
-  `tests/host_isolation_tests.cpp`: curve interpolation reads `AutomationCurveType`; `AutomationLane`
-  storage stays narrow; the per-lane cursor re-seeks on loop/seek; PDC-shifted automation and Event
-  streams stay sorted/half-open; Events reach `PluginNode` through `Runtime` and the projected mixer graph;
-  non-finite automation is rejected mechanically; and no scanner/pluginval/auval/UI/real external plugin
-  loading/opaque-state/fail-open deadline/ADR/golden/RT annotation/`[!shouldfail]` work leaked into the
-  item 5 slice. Then WORKER added the narrow fail-open clause: `RtLaneRing` now exposes a deterministic
-  deadline-miss counter and output-ready probe diagnostic, `PluginNode` surfaces it, and
-  `YesDawHostIsolationCheck` publishes a projected `SimulatedHostedPluginSourceNode -> PluginNode` Track
-  through `Runtime`, forces the child late after priming, and proves Fresh -> LastGood -> Silence -> Bypass
-  output stays finite with `deadlineMissCount == 0` and one output-ready probe per Block. Still out of
-  scope: opaque state IPC, scanner, pluginval/auval, UI embedding, real external plugin loading, emit-NaN
-  recovery, impossible-latency quarantine, broad automation persistence/schema, ADR edits, goldens, real
-  JUCE device ownership, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawPluginNodeCheck YesDawPluginIpcCheck`;
-  direct `YesDawPluginIpcCheck.exe`; direct `YesDawPluginNodeCheck.exe`; `ctest --preset ci -R
+- **Latest: REVIEW/FIX fail-open deadline/no-dropout is clean; WORKER opaque plugin-state control-lane round-trip is locally green.**
+  REVIEW/FIX of `1cbb364` found no proven defects against `STATUS.md`, `loop/horizon.md`, the close-out
+  plan, ADR-0006/0008/0009/0013/0014/0015, `src/engine/plugin/RtLaneRing.h`,
+  `src/engine/plugin/PluginNode.h`, `tests/host_isolation_tests.cpp`, and the handoff: deadline diagnostics
+  stay audio-thread-local/deterministic; `readOutputFailOpen()` makes one bounded output-ready probe per
+  Block; a forced-late child is treated as an output miss, not an audio deadline miss; the projected
+  `Runtime` proof covers Fresh -> LastGood -> Silence -> Bypass, finite output, `deadlineMissCount() == 0`,
+  and one output-ready probe per Block; diagnostics are exposed narrowly through `PluginNode`; and no
+  opaque-state/scanner/pluginval/auval/UI/real external plugin loading/ADR/golden/RT annotation drift leaked
+  into the fail-open slice. Then WORKER added the narrow opaque-state clause: the control-lane protocol now
+  has typed `PluginStateRequestMessage` / `PluginStateReplyMessage` structs carrying `chunkLength`, `crc32`,
+  and bounded opaque bytes; `YesDawPluginHost` pulls `getStateInformation`, rejects a deliberately corrupted
+  CRC push, then accepts the valid `setStateInformation` push; `PluginHostCoordinator` proves the pull ->
+  bad-CRC rejection -> valid-push round-trip against the real worker child after RT-lane load; and
+  `YesDawHostIsolationCheck` has a focused `[state][ipc]` test for that path. The aggregate gate is still
+  `[!shouldfail]` and intentionally leaves `opaqueStateRoundTripsAcrossProcess` false because this baton was
+  explicitly not allowed to remove `[!shouldfail]` or close H3. Still out of scope: scanner, pluginval/auval,
+  UI embedding, real external plugin loading, emit-NaN recovery, impossible-latency quarantine, broad
+  automation persistence/schema, ADR edits, goldens, real JUCE device ownership, and H3 closure. Local gate:
+  `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawPluginHost YesDawPluginHostCoordinatorCheck`;
+  direct `YesDawPluginHost.exe --synthetic-plugin-self-check`; direct
+  `YesDawPluginHostCoordinatorCheck.exe`; direct `YesDawHostIsolationCheck.exe` with
+  `YESDAW_PLUGIN_HOST_PATH`; direct `YesDawHostIsolationCheck.exe "[state]"`; `ctest --preset ci -R
   YesDawHostIsolationCheck --output-on-failure`; VS DevShell `cmake --build --preset ci`; `ctest --preset
   ci --output-on-failure` passed **205/205**; `git diff --check` passed. **Next:** REVIEW/FIX this
-  fail-open checkpoint first. Verify `src/engine/plugin/RtLaneRing.h`,
-  `src/engine/plugin/PluginNode.h`, `tests/host_isolation_tests.cpp`, and the `STATUS.md` handoff. Confirm
-  the diagnostic stays branch-only/no-wait on the audio path, forced-late child output stays finite and
-  deadline-clean through projected `Runtime`, and no opaque state/scanner/pluginval/auval/UI/real plugin
-  loading/ADR/golden/RT annotation/`[!shouldfail]` work leaked in. If clean, continue to the next still-false
-  H3 host-isolation exit-gate clause, likely opaque plugin-state round-trip across the real process boundary.
+  opaque-state checkpoint first. Verify `src/plugin_host/PluginHostProtocol.h`,
+  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostCoordinator.h`,
+  `tests/host_isolation_tests.cpp`, and this handoff. Confirm opaque bytes cross the control lane both ways,
+  `{chunk_len, crc32}` is validated, corrupted CRC is rejected, `setStateInformation` acceptance is proven,
+  no audio-thread/RT-lane/scanner/pluginval/auval/UI/real-plugin/ADR/golden drift leaked in, and
+  `[!shouldfail]` remains unchanged. If clean, decide the final H3 gate-close sequencing explicitly:
+  either (A, recommended) run an independent review, then flip `opaqueStateRoundTripsAcrossProcess` true and
+  remove `[!shouldfail]` in one green close-out checkpoint if Dan/plan allows, or (B) keep H3 open and name
+  the next still-false clause if review finds a real gap.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

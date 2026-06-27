@@ -74,6 +74,7 @@ using yesdaw::engine::applyMixerMutePolicy;
 using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::evaluateAutomationLaneForBlock;
 using yesdaw::plugin_host::PluginHostCoordinator;
+using yesdaw::plugin_host::PluginStateReplyStatus;
 using yesdaw::plugin_host::RtLaneLoadConfig;
 using yesdaw::plugin_host::RtLaneLoadReplyStatus;
 using yesdaw::persistence::PluginStateFormat;
@@ -952,6 +953,38 @@ struct FailOpenDeadlineProof
     float bypassLeft = 0.0f;
 };
 
+struct OpaqueStateRoundTripProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    PluginHostCoordinator::PluginStateRoundTripStatus status {
+        PluginHostCoordinator::PluginStateRoundTripStatus::notStarted
+    };
+    PluginHostCoordinator::RtLaneLoadStatus loadStatus {
+        PluginHostCoordinator::RtLaneLoadStatus::notStarted
+    };
+    PluginHostCoordinator::StopStatus stopStatus {
+        PluginHostCoordinator::StopStatus::notStarted
+    };
+    PluginStateReplyStatus pullReplyStatus = PluginStateReplyStatus::none;
+    PluginStateReplyStatus corruptPushReplyStatus = PluginStateReplyStatus::none;
+    PluginStateReplyStatus pushReplyStatus = PluginStateReplyStatus::none;
+    std::uint32_t chunkLength = 0;
+    std::uint32_t crc32 = 0;
+    std::uint32_t restoredChunkLength = 0;
+    std::uint32_t restoredCrc32 = 0;
+    bool readySeen = false;
+    bool pullRequestSent = false;
+    bool pullReplySeen = false;
+    bool corruptPushRequestSent = false;
+    bool corruptPushReplySeen = false;
+    bool pushRequestSent = false;
+    bool pushReplySeen = false;
+    bool pulledChunkValidated = false;
+    bool corruptCrcRejected = false;
+    bool pushedChunkAccepted = false;
+};
+
 MixerRuntimeProjectionProof computeMixerProjectionPublishesToRuntime()
 {
     MixerRuntimeProjectionProof proof;
@@ -1525,6 +1558,72 @@ BlacklistPersistenceProof proveBlacklistPersistsAcrossRestart()
     return proof;
 }
 
+OpaqueStateRoundTripProof computeOpaqueStateRoundTripsAcrossProcess()
+{
+    OpaqueStateRoundTripProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    const std::string workerPath = workerPathFromEnvironment();
+    if (workerPath.empty())
+        return fail ("YESDAW_PLUGIN_HOST_PATH is missing");
+
+    RtLaneConfig cfg;
+    cfg.channels = 2;
+    cfg.maxBlockSize = 16;
+    cfg.maxEventsPerBlock = 4;
+    cfg.lastGoodHoldBlocks = 1;
+    cfg.bypassAfterMisses = 3;
+
+    PluginHostCoordinator coordinator;
+    const auto result = coordinator.launchAndRoundTripSyntheticPluginState (
+        juce::File (juce::String (workerPath)), cfg);
+    const auto stop = coordinator.requestStopAndWait();
+
+    proof.status = result.status;
+    proof.loadStatus = result.loadResult.status;
+    proof.stopStatus = stop.status;
+    proof.pullReplyStatus = result.pullReplyStatus;
+    proof.corruptPushReplyStatus = result.corruptPushReplyStatus;
+    proof.pushReplyStatus = result.pushReplyStatus;
+    proof.chunkLength = result.chunkLength;
+    proof.crc32 = result.crc32;
+    proof.restoredChunkLength = result.restoredChunkLength;
+    proof.restoredCrc32 = result.restoredCrc32;
+    proof.readySeen = result.readySeen;
+    proof.pullRequestSent = result.pullRequestSent;
+    proof.pullReplySeen = result.pullReplySeen;
+    proof.corruptPushRequestSent = result.corruptPushRequestSent;
+    proof.corruptPushReplySeen = result.corruptPushReplySeen;
+    proof.pushRequestSent = result.pushRequestSent;
+    proof.pushReplySeen = result.pushReplySeen;
+    proof.pulledChunkValidated = result.pulledChunkValidated;
+    proof.corruptCrcRejected = result.corruptCrcRejected;
+    proof.pushedChunkAccepted = result.pushedChunkAccepted;
+
+    if (result.status != PluginHostCoordinator::PluginStateRoundTripStatus::success)
+        return fail ("opaque state control-lane round-trip failed");
+    if (result.loadResult.status != PluginHostCoordinator::RtLaneLoadStatus::success)
+        return fail ("opaque state worker did not load RT lane before state round-trip");
+    if (stop.status != PluginHostCoordinator::StopStatus::stopped)
+        return fail ("opaque state worker did not stop cleanly");
+    if (result.pullReplyStatus != PluginStateReplyStatus::pulled
+        || result.pushReplyStatus != PluginStateReplyStatus::restored)
+        return fail ("opaque state pull/push statuses were wrong");
+    if (result.chunkLength == 0u || result.chunkLength != result.restoredChunkLength
+        || result.crc32 == 0u || result.crc32 != result.restoredCrc32)
+        return fail ("opaque state length/crc did not survive round-trip");
+    if (! result.pulledChunkValidated || ! result.corruptCrcRejected || ! result.pushedChunkAccepted)
+        return fail ("opaque state crc validation or setState acceptance was not proven");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
 WatchdogRecoveryProof proveWatchdogRecoverySwapsPlaceholder()
 {
     static const WatchdogRecoveryProof proof = computeWatchdogRecoverySwapsPlaceholder();
@@ -1555,6 +1654,12 @@ FailOpenDeadlineProof proveFailOpenHasNoDeadlineMisses()
     return proof;
 }
 
+OpaqueStateRoundTripProof proveOpaqueStateRoundTripsAcrossProcess()
+{
+    static const OpaqueStateRoundTripProof proof = computeOpaqueStateRoundTripsAcrossProcess();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
@@ -1571,6 +1676,9 @@ HostIsolationGateState currentHostIsolationGateState()
     state.placeholderSwapUsesOrderedPublish =
         recovery.placeholderCompiled && recovery.orderedPublishAccepted && recovery.graphRecompileExecuted;
     state.blacklistPersistsAcrossRestart = proveBlacklistPersistsAcrossRestartCached().passed;
+    // The focused opaque-state clause is green in its own test. Keep the aggregate gate inverted until the
+    // next review/close-out checkpoint is allowed to remove [!shouldfail] and declare H3 green.
+    state.opaqueStateRoundTripsAcrossProcess = false;
     return state;
 }
 
@@ -1769,6 +1877,34 @@ TEST_CASE ("plugin blacklist identity row persists across coordinator restart",
              proof.exactAfterRestart,
              proof.wrongVersionAfterRestart,
              proof.wrongFormatAfterRestart);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("opaque plugin state round-trips across the real process control lane",
+           "[h3][host-isolation][state][ipc]")
+{
+    const OpaqueStateRoundTripProof proof = proveOpaqueStateRoundTripsAcrossProcess();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.status),
+             static_cast<int> (proof.loadStatus),
+             static_cast<int> (proof.stopStatus),
+             static_cast<int> (proof.pullReplyStatus),
+             static_cast<int> (proof.corruptPushReplyStatus),
+             static_cast<int> (proof.pushReplyStatus),
+             proof.chunkLength,
+             proof.crc32,
+             proof.restoredChunkLength,
+             proof.restoredCrc32,
+             proof.readySeen,
+             proof.pullRequestSent,
+             proof.pullReplySeen,
+             proof.corruptPushRequestSent,
+             proof.corruptPushReplySeen,
+             proof.pushRequestSent,
+             proof.pushReplySeen,
+             proof.pulledChunkValidated,
+             proof.corruptCrcRejected,
+             proof.pushedChunkAccepted);
     REQUIRE (proof.passed);
 }
 

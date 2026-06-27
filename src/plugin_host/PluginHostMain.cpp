@@ -218,6 +218,14 @@ public:
         if (controlLaneHung_.load (std::memory_order_acquire))
             return;
 
+        yesdaw::plugin_host::PluginStateRequestMessage pluginStateRequest;
+        if (yesdaw::plugin_host::copyPluginStateRequestMessage (message.getData(), message.getSize(),
+                                                                pluginStateRequest))
+        {
+            handlePluginStateRequestMessage (pluginStateRequest);
+            return;
+        }
+
         sendMessageToCoordinator (message);
     }
 
@@ -290,6 +298,63 @@ private:
 
         const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
             yesdaw::plugin_host::RtLaneLoadReplyStatus::accepted, sharedMemoryName);
+        sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+    }
+
+    void handlePluginStateRequestMessage (const yesdaw::plugin_host::PluginStateRequestMessage& message)
+    {
+        if (! yesdaw::plugin_host::isValidPluginStateRequestMessage (message))
+        {
+            const auto status =
+                message.kind == yesdaw::plugin_host::PluginStateRequestKind::push
+                    && message.chunkLength > 0u
+                    && message.chunkLength <= yesdaw::plugin_host::kPluginStateChunkCapacity
+                    && ! yesdaw::plugin_host::pluginStateRequestCrcMatches (message)
+                ? yesdaw::plugin_host::PluginStateReplyStatus::rejectedCrcMismatch
+                : yesdaw::plugin_host::PluginStateReplyStatus::rejectedInvalidRequest;
+            sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (status));
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock (rtLaneMutex_);
+        if (hostedProcessor_ == nullptr)
+        {
+            sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (
+                yesdaw::plugin_host::PluginStateReplyStatus::rejectedNoProcessor));
+            return;
+        }
+
+        if (message.kind == yesdaw::plugin_host::PluginStateRequestKind::pull)
+        {
+            juce::MemoryBlock state;
+            hostedProcessor_->getStateInformation (state);
+
+            if (state.getSize() > yesdaw::plugin_host::kPluginStateChunkCapacity)
+            {
+                sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (
+                    yesdaw::plugin_host::PluginStateReplyStatus::rejectedChunkTooLarge));
+                return;
+            }
+
+            const auto bytes = std::span<const std::uint8_t> (
+                static_cast<const std::uint8_t*> (state.getData()), state.getSize());
+            sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (
+                yesdaw::plugin_host::PluginStateReplyStatus::pulled, bytes));
+            return;
+        }
+
+        const auto bytes = yesdaw::plugin_host::pluginStateChunkBytes (message);
+        hostedProcessor_->setStateInformation (bytes.data(), static_cast<int> (bytes.size()));
+        const bool accepted = hostedProcessor_->stateAccepted();
+        sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (
+            accepted ? yesdaw::plugin_host::PluginStateReplyStatus::restored
+                     : yesdaw::plugin_host::PluginStateReplyStatus::rejectedSetStateFailed,
+            bytes,
+            accepted));
+    }
+
+    void sendPluginStateReply (const yesdaw::plugin_host::PluginStateReplyMessage& reply)
+    {
         sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
     }
 
