@@ -69,3 +69,24 @@ avoiding overlapping future explicit voice reservations. The H4 close-out pass a
 ADR-0017, ADR-0009, ADR-0010, `loop/horizon.md`, `STATUS.md`, and the blocking test evidence. H4 is
 complete when the final close-out docs commit is green in CI; H5 remains unopened until Dan starts that
 boundary.
+
+## Review follow-ups (2026-06-27 adversarial review, full-close pass)
+
+An adversarial review (build + mutation tests + 9 static dimensions, every finding re-verified) confirmed
+the MIDI math and the gate are correct, but found the gate weaker than the prose claimed. Checkpoint 1
+hardened it: the three named negative controls now exist as real tests and an integrated
+boundary+tempo+PDC case was added (gate = 16 cases / 289 assertions). Two beyond-criterion items are
+sequenced as ADR-gated checkpoints under the full-close pass:
+
+1. **Runtime `MidiClip` -> engine source Node.** `flattenMidiClipNotesForBlock` has no production caller —
+   it is invoked only from tests — so a loaded Project with MIDI Clips emits no events at playback. Needs a
+   new ADR for the clip-event source contract and an RT-safe (non-allocating) flatten before code lands
+   (this slice changes how events enter the graph, a Stop-for-ADR condition).
+2. **ADR-0010 prefix-sum tempo lookup.** `tickToFrame` is an O(n) per-call scan with full per-call
+   re-validation, diverging from ADR-0010's mandated cumulative prefix sum with O(log n) binary search.
+   Lands as ADR-0010 conformance, guarded by a bit-identity test against the current closed-form result.
+
+Minor follow-ups tracked (none reachable through the current H4 surface): `pdcShiftFrames` event-shift path
+untested; LinearRamp + `floor()` 1-sample rounding untested; >1024 events/Block trips an audio-thread
+RT_FATAL; `quantizeNote` snaps start only; persisted `MidiClip.timeBase` is ignored at flatten; MPE
+zero-length / cross-port allocation edges; `ImpulseInstrumentNode` drops impulses past its 64-slot ring.

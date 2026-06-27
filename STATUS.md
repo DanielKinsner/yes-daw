@@ -28,8 +28,30 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H4 closed: MIDI editing & instruments exit gate green
-- **Latest (2026-06-27): H4 review/close pass is green locally; H5 is ready for Dan's boundary call.**
+## Now — H4 full-close pass: gate hardened; runtime wiring + tempo prefix-sum next
+- **Latest (2026-06-27): adversarial H4 review + checkpoint 1 (gate rigor) is green locally.**
+  An independent multi-agent adversarial review (a real build + mutation tests + 9 static dimensions,
+  every finding re-verified by a skeptic) asked whether the H4 gate is real, the code correct, and the
+  claims honest. Verdict: the MIDI math is correct and the gate builds/passes, but the gate was weaker
+  than the docs claimed. Concretely — the "negative controls" the horizon/plan/STATUS advertised for the
+  three failure modes did NOT exist as tests (a mutation of the half-open boundary check `>=`->`>` passed
+  the whole suite, masked by a redundant second guard), and no single test combined block-boundary +
+  tempo change + PDC. **Checkpoint 1 fixed both:** removed the redundant guard so the boundary check is
+  load-bearing, and added four real negative controls (boundary-belongs-to-next-Block,
+  constant-tempo-differs-from-mapped, PDC-moves-the-impulse) plus one integrated boundary+tempo+PDC test.
+  Local gate: `YesDawMidiTimingCheck` now **16 cases / 289 assertions** green (was 12 / 247), built via VS
+  DevShell `ninja -C build-ci YesDawMidiTimingCheck`. This checkpoint is complete only after the docs
+  commit's remote CI is green.
+  **Deferred to the next checkpoints (full-close, each ADR-gated):** (F3) there is no runtime
+  MidiClip -> engine source Node yet — `flattenMidiClipNotesForBlock` is called only from tests, so a
+  loaded Project with MIDI Clips produces no notes at playback; needs an ADR for the clip-event source
+  contract and an RT-safe (non-allocating) flatten before code lands. (F8) `tickToFrame` does an O(n)
+  per-call scan + full re-validation, diverging from ADR-0010's mandated prefix-sum O(log n) lookup; the
+  prefix-sum cache lands as ADR-0010 conformance with a bit-identity test. Minor follow-ups tracked:
+  `pdcShiftFrames` event-shift path untested; LinearRamp + `floor()` rounding untested; >1024 events trips
+  an audio-thread RT_FATAL; `quantizeNote` snaps start only; `MidiClip.timeBase` ignored at flatten; MPE
+  zero-length / cross-port edges. **Next:** REVIEW/FIX this checkpoint, then write the F3 source-node ADR.
+- **Earlier (2026-06-27): H4 review/close pass is green locally; H5 is ready for Dan's boundary call.**
   Audited H4 against the H4 plan, roadmap, ADR-0017, ADR-0009, ADR-0010, `loop/horizon.md`, this handoff,
   `YesDawMidiTimingCheck`, and the full `ci` evidence. Every H4 build-order item is covered: MIDI
   Clip/Note flattening through the tempo map, non-zero-latency Instrument Node timing through PDC,

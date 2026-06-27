@@ -38,6 +38,14 @@ transformed Note Events through the RT lane, and MPE boundary allocation assigns
 `VoiceAddress` port/channel fields before flattening, including overlapping future explicit voice
 reservations. H4 is closed; do not start H5 until Dan opens that boundary.
 
+A 2026-06-27 adversarial review hardened the gate so its claims are now true: the three negative controls
+it had always advertised are real tests (boundary-belongs-to-next-Block, constant-tempo-differs-from-mapped,
+PDC-moves-the-impulse), plus one integrated block-boundary + tempo-change + non-zero-latency-PDC case
+(`YesDawMidiTimingCheck` = 16 cases / 289 assertions). Two beyond-criterion items are tracked as ADR-gated
+follow-ups under the full-close pass: a runtime `MidiClip` -> engine source Node (today flattening is
+test-only, so a loaded Project does not yet sound at playback), and ADR-0010's prefix-sum tempo lookup
+(`tickToFrame` is currently an O(n) per-call scan).
+
 ## The plan
 
 Full build order, every subsystem, every finding/deferral dispositioned:
