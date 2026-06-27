@@ -15,6 +15,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <cstdio>
 #include <limits>
@@ -25,6 +26,21 @@
 #include <thread>
 
 namespace {
+
+// A genuine, child-side crash: abnormally terminate THIS worker process *immediately* so the
+// coordinator only ever learns of it through handleConnectionLost — the real-crash path the close-out
+// plan demanded (not a parent-side kill, not a self-labelled flag). We deliberately avoid std::abort():
+// on Windows abort() raises SIGABRT, which Windows Error Reporting then holds open for several seconds
+// generating a dump before the process actually dies, blowing the coordinator's observation deadline.
+// TerminateProcess(self) / _Exit kill instantly with no dialog or crash-reporter, so the gate stays
+// deterministic and headless across all three OSes while still being a real child-initiated death.
+[[noreturn]] void crashThisProcess() noexcept
+{
+   #if JUCE_WINDOWS
+    ::TerminateProcess (::GetCurrentProcess(), 3u);
+   #endif
+    std::_Exit (3);
+}
 
 bool hasFlag (int argc, char** argv, const char* flag) noexcept
 {
@@ -91,6 +107,12 @@ public:
     {
         if (! prepared_)
             return;
+
+        // A plugin loaded in crash-on-cue mode faults the moment it is asked to process a Block — the
+        // mid-processing crash the isolation gate must survive (ADR-0015). crashThisProcess() does not
+        // return.
+        if (mode_ == SyntheticProcessorMode::crashOnCue)
+            crashThisProcess();
 
         if (mode_ == SyntheticProcessorMode::emitNan && buffer.getNumChannels() > 0 && buffer.getNumSamples() > 0)
             buffer.setSample (0, 0, std::numeric_limits<float>::quiet_NaN());
@@ -194,6 +216,13 @@ public:
 
     void handleMessageFromCoordinator (const juce::MemoryBlock& message) override
     {
+        if (messageMatches (message, yesdaw::plugin_host::kChildCrashCommandMessage))
+        {
+            // The coordinator asked this child to crash on cue. Terminate abnormally now; the parent
+            // observes only the lost connection (a real child fault, not a parent-side kill).
+            crashThisProcess();
+        }
+
         if (messageMatches (message, yesdaw::plugin_host::kWatchdogProbeMessage))
         {
             controlLaneHung_.store (true, std::memory_order_release);

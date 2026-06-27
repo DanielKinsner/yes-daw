@@ -996,10 +996,26 @@ public:
             crashObservationRequested_ = true;
         }
 
-        killWorkerProcess();
-
-        if (! waitFor ([this] { return connectionLost_; }))
+        // Tell the child to crash on cue: it terminates ITSELF (std::abort), and we never kill it.
+        // The lost connection we then observe is a genuine child-side fault — the "real crash, not a
+        // self-label" the close-out plan demanded (finding K). stopRequested_/watchdogKillRequested_
+        // stay false, so handleConnectionLost classifies this as HostFailureKind::crash. If the child
+        // somehow fails to die, we fall back to a kill so the gate fails loudly rather than hanging.
+        if (! sendMessageToWorker (makeMessage (kChildCrashCommandMessage)))
+        {
+            killWorkerProcess();
             return crashResult (CrashStatus::observationTimeout);
+        }
+
+        // A child that vanishes on its own is detected by the coordinator's heartbeat, not instantly the
+        // way a parent-side kill is — so allow up to a couple of heartbeat windows (timeout_) for the
+        // lost connection to surface before giving up. If it never does, kill as a backstop so the gate
+        // fails loudly rather than hanging.
+        if (! waitFor (timeout_ * 2 + std::chrono::milliseconds (2000), [this] { return connectionLost_; }))
+        {
+            killWorkerProcess();
+            return crashResult (CrashStatus::observationTimeout);
+        }
 
         return crashResult (CrashStatus::connectionLost);
     }

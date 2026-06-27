@@ -1487,14 +1487,16 @@ WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
     if (! proof.missingPlaceholderRejected)
         return fail ("negative control accepted a non-placeholder recovery graph");
 
-    PluginHostCoordinator crashCoordinator;
+    // Short heartbeat so a real child-side crash (the child terminates itself) is detected promptly.
+    PluginHostCoordinator crashCoordinator { std::chrono::milliseconds (1500) };
     const auto crash = crashCoordinator.launchAndExpectCrash (juce::File (juce::String (workerPath)));
     proof.crashStatus = crash.status;
     proof.crashFailure = crashCoordinator.hostFailureReport().kind;
     const auto crashAction = crashCoordinator.pendingFailureActionRequest();
     proof.crashAutoQueued =
         crash.status == PluginHostCoordinator::CrashStatus::connectionLost
-        && proof.crashFailure == PluginHostCoordinator::HostFailureKind::crash
+        && crash.crashObservationRequested        // the child was told to crash on cue and died itself...
+        && proof.crashFailure == PluginHostCoordinator::HostFailureKind::crash   // ...classified as a crash
         && crashAction.action == PluginHostCoordinator::FailureActionKind::bypassAndRecompile
         && crashAction.failureKind == PluginHostCoordinator::HostFailureKind::crash
         && crashAction.bypassRequested

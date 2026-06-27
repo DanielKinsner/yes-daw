@@ -3283,7 +3283,8 @@ int main (int argc, char** argv)
         return 2;
     }
 
-    yesdaw::plugin_host::PluginHostCoordinator crashCoordinator;
+    // Short heartbeat so a real child-side crash (the child terminates itself) is detected promptly.
+    yesdaw::plugin_host::PluginHostCoordinator crashCoordinator { std::chrono::milliseconds (1500) };
     const auto crash = crashCoordinator.launchAndExpectCrash (workerExecutable);
 
     if (crash.status != yesdaw::plugin_host::PluginHostCoordinator::CrashStatus::connectionLost
