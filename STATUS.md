@@ -28,8 +28,20 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H4 full-close pass: gate hardened + runtime source Node landed; projection + prefix-sum next
-- **Latest (2026-06-27): full-close CP2a — runtime MidiClip source Node is green locally.**
+## Now — H4 full-close: gate + runtime source + ADR-0010 prefix sum landed; CP2b (MIDI tracks) needs a design call
+- **Latest (2026-06-27): full-close F8 — ADR-0010 prefix-sum tempo lookup is green locally.**
+  Closes review finding F8: `tickToFrame` was an O(n) per-call scan + full re-validation, diverging from
+  ADR-0010's mandated prefix-sum O(log n) lookup, and `flattenMidiClipToTimeline` called it once per Note
+  start/end (O(notes * segments)). Added `CompiledTempoMap`: validate + accumulate each segment's cumulative
+  start frame ONCE on the control side, then binary-search any tick in O(log n). `flattenMidiClipToTimeline`
+  now builds it once and resolves each Note in O(log n). `frameForTick` is bit-identical to `tickToFrame` by
+  construction; the new gate in `time_tests.cpp` proves prefix == naive exactly across 4001 ticks, every
+  segment boundary, a logarithmic ramp segment, and the empty-map default. Local: full
+  `ctest --test-dir build-ci` **218/218** green. **Next:** the only remaining full-close item is CP2b
+  (auto-build MIDI tracks from a Project via `ProjectMixerProjection`), which needs a short design call on
+  instrument-track modeling (what instrument, how it is chosen/persisted) before code lands — Dan to decide.
+  Checkpoint complete after remote CI is green.
+- **Earlier (2026-06-27): full-close CP2a — runtime MidiClip source Node is green locally.**
   Closing review finding F3 (no runtime clip->engine path) the laid-out way — mirroring the audio
   `DecodedClipNode` + `ProjectMixerProjection` pattern, NOT a new design. Added `flattenMidiClipToTimeline`
   (control-side whole-clip flatten to a sorted absolute-frame Event timeline) and `DecodedMidiClipNode`,
