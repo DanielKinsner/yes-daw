@@ -9,9 +9,10 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-27
-**Current horizon:** **H4 (MIDI editing & instruments) — ACTIVE.**
-Dan opened the H3->H4 boundary on 2026-06-27 by asking Codex to complete H4. H3 is closed by the blocking
-`YesDawHostIsolationCheck` and the independent close-out honesty pass. The one remaining item for
+**Current horizon:** **H4 (MIDI editing & instruments) — CLOSED; H5 ready for Dan's boundary call.**
+Dan opened the H3->H4 boundary on 2026-06-27 by asking Codex to complete H4. H4 is closed by the blocking
+`YesDawMidiTimingCheck`, the full `ci` preset, and the H4 review/close pass. H3 remains closed by the
+blocking `YesDawHostIsolationCheck` and the independent close-out honesty pass. The one remaining item for
 "H0-H3 fully behind us" that is NOT mechanical is the **H0 real-hardware audio soak** (`tools/soak.sh` at
 a 128-frame Block on Win+mac) — by ADR-0005 that is a human/hardware gate, not a CI gate. It stays tracked
 separately and does not replace H4's CI gate.
@@ -27,7 +28,20 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+## Now — H4 closed: MIDI editing & instruments exit gate green
+- **Latest (2026-06-27): H4 review/close pass is green locally; H5 is ready for Dan's boundary call.**
+  Audited H4 against the H4 plan, roadmap, ADR-0017, ADR-0009, ADR-0010, `loop/horizon.md`, this handoff,
+  `YesDawMidiTimingCheck`, and the full `ci` evidence. Every H4 build-order item is covered: MIDI
+  Clip/Note flattening through the tempo map, non-zero-latency Instrument Node timing through PDC,
+  Project-owned MIDI Clip/Note persistence, piano-roll Note edit commands with undo/redo coverage,
+  deterministic MIDI-effect Nodes, hosted-instrument Event delivery through `PluginNode`, and MPE
+  boundary voice allocation. Focused local gate before close-out docs: `YesDawMidiTimingCheck` passed
+  **12 cases / 247 assertions**. Full close-out local gate on these docs: `cmake --preset ci`; VS
+  DevShell `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed **217/217**; and
+  `ctest --preset ci -R YesDawMidiTimingCheck --output-on-failure` passed. The close-out checkpoint is
+  complete only after the final docs commit's remote CI is green. Remote CI for the final implementation
+  commit `ba0f4f5 fix(h4): reserve explicit mpe voices` was green on Windows, Linux, macOS, RTSan, and
+  TSan. **Next after green CI:** stop for Dan's H4->H5 boundary call.
 - **Latest (2026-06-27): REVIEW/FIX H4 MPE boundary allocation is green locally.**
   REVIEW/FIX found one proven defect in the MPE boundary allocator: an earlier wildcard Note could claim
   a member channel that a later overlapping explicit voice-hinted Note needed, producing a same-channel
@@ -2276,17 +2290,14 @@ separately and does not replace H4's CI gate.
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
 - ✅ **H3 approved and closed.** Mixer policy, host isolation, runtime worker crash/hang recovery,
   blacklist persistence, state chunk round-trip, projected Runtime gate, and close-out review fixes are green.
-- **Next rolling baton: WORKER H4 review/close.**
-  Pull, read `AGENTS.md` + the top handoff first, then audit H4 against
-  `docs/plans/2026-06-27-h4-midi-editing-instruments-plan.md`,
-  `docs/goals/roadmap.md`, `docs/adr/0017-midi-clip-edit-model-and-render-bridge.md`,
-  `docs/adr/0009-event-stream-and-automation.md`, `docs/adr/0010-time-model-and-sample-rate.md`,
-  `loop/horizon.md`, `STATUS.md`, and the current `YesDawMidiTimingCheck` / full `ci` evidence. Confirm
-  every H4 build-order item and exit-gate clause is mechanically covered, reconcile `loop/horizon.md` /
-  plan / status with actual evidence, and leave H5 ready only if the gate proves H4 complete. Run the
-  documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`; `ctest --preset
-  ci -R YesDawMidiTimingCheck`) before committing close-out docs. Update `STATUS.md`, commit/push, and
-  wait for green CI before stopping.
+- ✅ **H4 approved and closed.** MIDI Clips/Notes, tempo-map flattening, instrument timing through PDC,
+  Project persistence, piano-roll Note edits, MIDI-effect Nodes, hosted-instrument Event delivery, and
+  MPE boundary voice allocation are mechanically covered by `YesDawMidiTimingCheck` and the full `ci`
+  preset.
+- **Next rolling baton: Dan's H4->H5 boundary call.**
+  Do not start H5 automatically. If Dan opens H5, the first checkpoint is docs-only: read the roadmap and
+  architecture plan, write/accept the recording ADRs and H5 exit-gate plan, update `CONTEXT.md`,
+  `loop/horizon.md`, and this handoff, then run the normal `ci` gate before committing.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

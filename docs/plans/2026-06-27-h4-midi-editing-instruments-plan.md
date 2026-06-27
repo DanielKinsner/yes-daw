@@ -65,5 +65,7 @@ schema v3 persistence, piano-roll Note edit commands with undo/redo bit-identity
 deterministic MIDI-effect Nodes for transpose + scale-map event transforms. The hosted-instrument Event
 bridge now drives transformed Note Events through `PluginNode`'s RT lane. MPE boundary allocation now
 assigns stable concrete voice addresses before flattening while preserving explicit voice hints and
-avoiding overlapping future explicit voice reservations. The H4 close-out pass keeps this gate blocking
-while proving the horizon complete.
+avoiding overlapping future explicit voice reservations. The H4 close-out pass audited the roadmap,
+ADR-0017, ADR-0009, ADR-0010, `loop/horizon.md`, `STATUS.md`, and the blocking test evidence. H4 is
+complete when the final close-out docs commit is green in CI; H5 remains unopened until Dan starts that
+boundary.
