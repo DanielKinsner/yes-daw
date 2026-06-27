@@ -477,17 +477,33 @@ template <typename TickToFrame>
 }
 
 [[nodiscard]] inline MidiFlattenStatus flattenMidiClipToTimeline (const MidiClip& clip,
-                                                                  TempoMapView tempoMap,
-                                                                  SampleRate sampleRate,
+                                                                  const CompiledTempoMap& tempoMap,
                                                                   std::vector<ScheduledMidiEvent>& outTimeline)
 {
     return flattenMidiClipToTimeline (
         clip,
-        [tempoMap, sampleRate] (Tick tick, double& frame) noexcept
+        [&tempoMap] (Tick tick, double& frame) noexcept
         {
-            return tickToFrame (tempoMap, sampleRate, tick, frame);
+            return tempoMap.frameForTick (tick, frame);
         },
         outTimeline);
+}
+
+[[nodiscard]] inline MidiFlattenStatus flattenMidiClipToTimeline (const MidiClip& clip,
+                                                                  TempoMapView tempoMap,
+                                                                  SampleRate sampleRate,
+                                                                  std::vector<ScheduledMidiEvent>& outTimeline)
+{
+    // Build the ADR-0010 prefix-sum lookup ONCE, then resolve each Note's start/end in O(log n) — instead
+    // of the per-Note O(n) scan + revalidation the raw tickToFrame would do across the whole clip.
+    CompiledTempoMap compiled;
+    if (! CompiledTempoMap::build (tempoMap, sampleRate, compiled))
+    {
+        outTimeline.clear();
+        return MidiFlattenStatus::InvalidInput;
+    }
+
+    return flattenMidiClipToTimeline (clip, compiled, outTimeline);
 }
 
 } // namespace yesdaw::engine

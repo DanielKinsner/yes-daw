@@ -6,10 +6,12 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 namespace yesdaw::engine {
 
@@ -293,5 +295,111 @@ namespace detail {
 
     return false;
 }
+
+// ADR-0010's mandated tempo lookup: validate the map and accumulate each segment's cumulative start frame
+// ONCE on the control side, then resolve any tick to a frame in O(log n) via binary search — never the
+// per-call O(n) scan + revalidation the free `tickToFrame` does. `frameForTick` is bit-identical to
+// `tickToFrame` by construction (same closed-form per-segment math via appendTempoSegmentFrames, same
+// accumulation order), proven by the bit-identity gate in tests/time_tests.cpp. This is a derived,
+// control-side cache (ADR-0010 "if a derived-sample cache is kept for performance"); the audio thread
+// reads frames already produced, it does not build this.
+class CompiledTempoMap
+{
+public:
+    [[nodiscard]] static bool build (TempoMapView tempoMap, SampleRate sampleRate, CompiledTempoMap& out)
+    {
+        out = CompiledTempoMap {};
+
+        if (! sampleRate.isValid())
+            return false;
+
+        out.sampleRate_ = sampleRate;
+
+        if (tempoMap.empty())
+        {
+            out.empty_ = true;
+            return true;
+        }
+
+        if (tempoMap.changes == nullptr || tempoMap.changes[0].tick != 0 || ! tempoMap.changes[0].hasValidBpm())
+            return false;
+
+        for (std::size_t i = 1; i < tempoMap.count; ++i)
+            if (tempoMap.changes[i].tick <= tempoMap.changes[i - 1u].tick || ! tempoMap.changes[i].hasValidBpm())
+                return false;
+
+        out.empty_ = false;
+        out.changes_.assign (tempoMap.changes, tempoMap.changes + tempoMap.count);
+        out.startFrame_.assign (tempoMap.count, 0.0);
+
+        for (std::size_t i = 1; i < out.changes_.size(); ++i)
+        {
+            double frame = out.startFrame_[i - 1u];
+            const Tick segmentTicks = out.changes_[i].tick - out.changes_[i - 1u].tick;
+            if (! detail::appendTempoSegmentFrames (sampleRate.hz,
+                                                    segmentTicks,
+                                                    segmentTicks,
+                                                    out.changes_[i - 1u].bpm,
+                                                    out.changes_[i].bpm,
+                                                    out.changes_[i - 1u].curveToNext,
+                                                    frame))
+                return false;
+
+            out.startFrame_[i] = frame;
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] bool frameForTick (Tick tick, double& frameOut) const noexcept
+    {
+        frameOut = 0.0;
+
+        if (! sampleRate_.isValid() || tick < 0)
+            return false;
+
+        if (empty_)
+        {
+            frameOut = static_cast<double> (tick)
+                     * (60.0 * sampleRate_.hz / (120.0 * static_cast<double> (kTicksPerQuarter)));
+            return std::isfinite (frameOut);
+        }
+
+        // Last segment whose start tick <= tick (changes_[0].tick == 0 <= tick, so the index is >= 1).
+        const std::size_t upper = static_cast<std::size_t> (
+            std::upper_bound (changes_.begin(), changes_.end(), tick,
+                              [] (Tick value, const TempoChange& change) noexcept { return value < change.tick; })
+            - changes_.begin());
+        const std::size_t i = upper - 1u;
+
+        double frame = startFrame_[i];
+        if (tick > changes_[i].tick)
+        {
+            const bool   haveNext = i + 1u < changes_.size();
+            const Tick   nextTick = haveNext ? changes_[i + 1u].tick : tick;
+            const double endBpm   = haveNext ? changes_[i + 1u].bpm : changes_[i].bpm;
+            if (! detail::appendTempoSegmentFrames (sampleRate_.hz,
+                                                    nextTick - changes_[i].tick,
+                                                    tick - changes_[i].tick,
+                                                    changes_[i].bpm,
+                                                    endBpm,
+                                                    changes_[i].curveToNext,
+                                                    frame))
+                return false;
+        }
+
+        frameOut = frame;
+        return std::isfinite (frameOut);
+    }
+
+    [[nodiscard]] bool empty() const noexcept { return empty_; }
+    [[nodiscard]] std::size_t segmentCount() const noexcept { return changes_.size(); }
+
+private:
+    SampleRate               sampleRate_ {};
+    std::vector<TempoChange> changes_;
+    std::vector<double>      startFrame_;
+    bool                     empty_ = true;
+};
 
 } // namespace yesdaw::engine

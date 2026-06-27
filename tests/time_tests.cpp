@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
@@ -23,10 +24,12 @@ using yesdaw::engine::TempoMapView;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Transport;
+using yesdaw::engine::CompiledTempoMap;
 using yesdaw::engine::gridIndexForTick;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::snapTick;
 using yesdaw::engine::tickForGridIndex;
+using yesdaw::engine::tickToFrame;
 
 static_assert (std::is_same_v<Tick, std::int64_t>);
 static_assert (kTicksPerQuarter == 15360);
@@ -204,4 +207,62 @@ TEST_CASE ("Transport exposes non-owning tempo and meter map views", "[time][tra
     REQUIRE (transport.meterMap.changes[1] == meters[1]);
     REQUIRE (transport.projectSampleRate.isValid());
     REQUIRE (transport.isPlaying);
+}
+
+TEST_CASE ("CompiledTempoMap prefix-sum frameForTick is bit-identical to tickToFrame", "[time][adr0010][tempo]")
+{
+    constexpr double sr = 30720.0;
+
+    // Exercises a logarithmic ramp segment (120 -> 60), a Jump, and a trailing constant segment.
+    const std::array<TempoChange, 3> changes {
+        TempoChange { 0, 120.0, TempoCurve::LinearRamp },
+        TempoChange { 1000, 60.0, TempoCurve::Jump },
+        TempoChange { 2500, 90.0, TempoCurve::Jump },
+    };
+    const TempoMapView view { changes.data(), changes.size() };
+
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build (view, SampleRate { sr }, compiled));
+    REQUIRE (compiled.segmentCount() == 3u);
+
+    // O(log n) prefix-sum lookup must match the O(n) closed-form scan exactly, across every segment and at
+    // every segment boundary (the boundaries are where a per-event scan and a prefix sum can disagree).
+    for (Tick tick = 0; tick <= 4000; ++tick)
+    {
+        double naive = -1.0;
+        double prefix = -2.0;
+        const bool naiveOk = tickToFrame (view, SampleRate { sr }, tick, naive);
+        const bool prefixOk = compiled.frameForTick (tick, prefix);
+        REQUIRE (naiveOk == prefixOk);
+        REQUIRE (naiveOk);
+        REQUIRE (prefix == naive); // bit-identical, not merely approximately equal
+    }
+
+    // Empty map => default 120 BPM; the prefix-sum path must agree there too.
+    CompiledTempoMap emptyCompiled;
+    REQUIRE (CompiledTempoMap::build (TempoMapView {}, SampleRate { sr }, emptyCompiled));
+    REQUIRE (emptyCompiled.empty());
+    for (Tick tick = 0; tick <= 5000; tick += 137)
+    {
+        double naive = 0.0;
+        double prefix = 0.0;
+        REQUIRE (tickToFrame (TempoMapView {}, SampleRate { sr }, tick, naive));
+        REQUIRE (emptyCompiled.frameForTick (tick, prefix));
+        REQUIRE (prefix == naive);
+    }
+
+    // Negative ticks rejected the same way both paths do.
+    double scratch = 1.0;
+    REQUIRE_FALSE (compiled.frameForTick (-1, scratch));
+    REQUIRE_FALSE (tickToFrame (view, SampleRate { sr }, -1, scratch));
+
+    // Invalid maps fail to build, mirroring tickToFrame returning false (first change not at tick 0).
+    const std::array<TempoChange, 2> nonZeroStart {
+        TempoChange { 5, 120.0, TempoCurve::Jump },
+        TempoChange { 1000, 60.0, TempoCurve::Jump },
+    };
+    CompiledTempoMap invalid;
+    REQUIRE_FALSE (CompiledTempoMap::build (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, invalid));
+    double naiveInvalid = 0.0;
+    REQUIRE_FALSE (tickToFrame (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, 100, naiveInvalid));
 }
