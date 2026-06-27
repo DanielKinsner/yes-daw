@@ -181,8 +181,9 @@ if (YESDAW_BUILD_APPS)
            COMMAND $<TARGET_FILE:YesDawPluginHostCoordinatorCheck> $<TARGET_FILE:YesDawPluginHost>)
 
   # --- H3 close-out exit gate ----------------------------------------------------
-  # Starts as a Catch2 [!shouldfail] target so main remains green while the host-isolation
-  # finish line is honestly red. Flip the test to blocking when the hosted-process path exists.
+  # The H3 finish line: a blocking ctest that runs the in-repo synthetic plugin as a real hosted
+  # juce::AudioProcessor in the worker child (OS shared-memory RT lane, real child-side crash/hang
+  # isolation, persistent blacklist, opaque-state round-trip). Plain add_test — no [!shouldfail].
   add_executable(YesDawHostIsolationCheck tests/host_isolation_tests.cpp)
   target_include_directories(YesDawHostIsolationCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawHostIsolationCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})

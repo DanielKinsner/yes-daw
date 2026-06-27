@@ -148,22 +148,22 @@ doesn't exist.
 | **C** PluginNode block-size | **DONE** (`b70ed02`, CI green) |
 | **D** `reset()` races live child | **DONE** — reset/live-child safety is covered by the host-isolation recovery and RT-lane gates. |
 | **E** channel-count debug-only guard | **DONE** — release-safe channel/frame clamping is covered by RT-lane tests and host-isolation RT-lane load paths. |
-| **F** sidechain not in projection | **DONE** — sidechain pins are real graph inputs with PDC coverage (`YesDawSidechainCheck`). |
+| **F** sidechain not in projection | **DONE (for real)** — `MixerGraphProjection` now wires a `SidechainGainNode` VCA on a track source, keyed by `sidechainSource`, ahead of the fader; `YesDawMixerProjectionCheck` proves the 2-input edge + value VCA (negative-controlled vs no-sidechain) and PDC alignment **through the projection** (not just raw `GraphBuilder`). *(The earlier DONE cited only `YesDawSidechainCheck`, the raw-graph path — closed over a projection path that did not yet exist. Now it does.)* |
 | **G** duplicate send doubles | **DONE** — projection/runtime mixer-policy proof and negative controls are in the H3 gate. |
 | **H** coordinator resetState leaks pipelines | **DONE** — coordinator reset/recovery paths are covered by the watchdog/crash recovery proof. |
 | **I** blacklist no plugin identity | **DONE** — persistent blacklist keys `{format,uid,version}` and survives reopen/restart. |
 | **J** layering gate checks only direct links; GUI app transitively links hosting | **DONE** — ADR-0015 now scopes the enforceable boundary to engine/test targets and the worker as explicit hosting owner; CMake asserts that boundary. |
-| **K** test-integrity (self-labeled crash; always-false persistence; no PID-kill assert) | **DONE** — gate (b) now uses real crash/hang/control-lane proofs, persistent identity blacklist, and Placeholder recovery assertions. |
+| **K** test-integrity (self-labeled crash; always-false persistence; no PID-kill assert) | **DONE (for real)** — gate (b)'s crash leg is now a **real child-side crash**: the worker terminates itself on a control-lane cue (`crashOnCue` is wired, not dead), and the coordinator observes the loss via `handleConnectionLost` without killing it. Hang detection (running watchdog → real PID kill), persistent `{format,uid,version}` blacklist surviving reopen, and Placeholder recovery were already real. *(The earlier DONE still simulated the crash with a parent-side kill.)* |
 | editor-UI embedding | **DEFER** (ADR-0015 reason) — explicit, on the record |
 | pluginval/auval blocking-ness | **non-blocking**; in-repo plugin supersedes (ADR-0015) — explicit line |
 
 **Carried-forward H1/H2 deferrals (one-time sweep, per-item — no "mostly"):**
 | Item | Disposition |
 |---|---|
-| H1 concurrency-stress-degenerate untested | → **H6** (reliability/soak) |
+| H1 concurrency-stress-degenerate untested | **DONE** — `tests/runtime_tests.cpp` already stresses the degenerate-graph publish/reclaim race (control publishes 2000 graphs while the audio thread runs and a janitor reclaims). Broader soak/fuzz still → **H6**. |
 | H1 PDC feedback/SumNode untested | fix-now if cheap during item 3/4 graph work, else → **H6** |
 | H1 `reset()` RT-unenforced | folded into item **2** (reset quiescence) |
-| H1 **meter mono-only** | **H3 NOW** — item **4** (stereo mixer needs stereo metering) |
+| H1 **meter mono-only** | **DONE** — `MeterNode` now publishes per-channel peak/rms (`peak(ch)`/`rms(ch)`) plus the aggregate; `YesDawMeterCheck` proves L/R read independently. |
 | H2 macOS `F_FULLFSYNC` | → **H6** (durability hardening) |
 | H2 open re-hashes every file | → **H6** (open-time perf) |
 | H2 split/trim fade re-clamp | → **H2-tail / H6** |
@@ -184,9 +184,22 @@ horizon-boundary review advances the project to H4.
 - [x] `YesDawHostIsolationCheck` green in CI — every clause of §1 (a)/(b)/(c), each negative-controlled.
 - [x] `CompiledNodeKind::Placeholder`, OS-shared-memory IPC, a running watchdog, and a persistent blacklist
       store all exist (the gate's asserted artifacts are real).
-- [x] Mixer projection driven by `Runtime` from a production caller (not test-only).
-- [x] Automation lanes evaluate curves through the hosted node (gate (a) tri-stream green).
+- [x] Mixer projection driven by `Runtime` through the `RuntimeAudioDriver` seam, exercised by
+      `YesDawRuntimeAudioDriverCheck`. **Honest scope:** the driver is a real RT-safe `processBlock` seam but
+      its only caller today is that test — no live `juce::AudioIODeviceCallback` owns it yet (there is no
+      device/UI shell; `Main.cpp` is still the H0 sine spike). The live device shell is sequenced to **H4**.
+- [x] Automation lanes evaluate curves; **gate (a) proves the PDC *scheduling* (audio impulse + automation +
+      event at the compensated sample) through the projected `Runtime` graph, plugin DSP in-process.** The
+      real cross-process worker boundary is proven by gate (b) (crash/hang) and (c) (opaque state). Driving the
+      full tri-stream through the worker's RT-lane Event ring (plugin parameter automation) is sequenced to
+      **H4**, with a reason, in `loop/horizon.md`.
 - [x] Every review finding A–K DONE or named-horizon-deferred with a reason.
-- [x] Every H1/H2 carried-forward deferral dispositioned per-item.
+- [x] Every H1/H2 carried-forward deferral dispositioned per-item. *(H1 "tempo/meter map, markers" round-trip
+      was found dropped by the closure audit and is now **implemented** — `Project` carries them and
+      `YesDawPersistenceCheck` round-trips them; see `STATUS.md`.)*
 - [x] `loop/horizon.md` records the H3 exit criterion + green command.
-- [x] Independent adversarial review signed off.
+- [x] Independent adversarial review signed off — **the out-of-band review at `54943fd` predated the real
+      IPC/watchdog/blacklist/state landings; the first independent review of the *closed* state (HEAD) is the
+      2026-06-27 adversarial pass that drove the fixes recorded in `STATUS.md` (real child-side crash, sidechain
+      in projection, per-channel meter, H1 tempo/meter/markers, honest wording).** Not self-graded by the
+      building baton.

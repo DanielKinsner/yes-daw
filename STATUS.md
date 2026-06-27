@@ -17,6 +17,10 @@ crash/hang recovery, `CompiledNodeKind::Placeholder` replacement, persistent `{f
 blacklist, projected `Runtime` mixer publication, tri-stream PDC, fail-open deadline/no-dropout, finite
 output, validated latency, and opaque state pull/push with `{chunk_len,crc32}` validation all have
 self-asserting gates. The aggregate gate is no longer `[!shouldfail]`.
+**An independent adversarial review (2026-06-27) then hardened the honesty of the close-out** (top "Now"
+entry). The one remaining item for "H0–H3 fully behind us" that is NOT mechanical is the **H0 real-hardware
+audio soak** (`tools/soak.sh` at a 128-frame Block on Win+mac) — by ADR-0005 that is a human/hardware gate,
+not a CI gate. Everything else the review surfaced is fixed and green.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -29,7 +33,37 @@ self-asserting gates. The aggregate gate is no longer `[!shouldfail]`.
 
 ---
 
-## Now — H3 closed; stop for boundary review
+## Now — H3 closed + honesty-hardened; H0 soak is the one human gate left
+- **Latest (2026-06-27): independent adversarial review of the whole H0–H3 surface, then fixed every real
+  finding it raised. 5 small green commits straight to `main`; full local suite 209/209; remote CI green.**
+  This pass IS the independent review the close-out plan's rule 3 demanded (the earlier out-of-band review at
+  `54943fd` predated the real IPC/watchdog/blacklist/state work). What landed:
+  - **`ebe7200` — real child-side crash (finding K).** The crash leg simulated a crash via a *parent* kill and
+    `crashOnCue` was dead code. Now the worker terminates *itself* on a control-lane cue; the coordinator only
+    learns of it via `handleConnectionLost`. Instant reporter-free termination so CI stays deterministic
+    (`std::abort` stalls ~8 s on Windows via WER). Crash gate green ×5 local; CI green on all 3 OS + RTSan + TSan.
+  - **`c2c94d7` — sidechain wired into the mixer projection (finding F).** `MixerGraphProjection` now inserts a
+    `SidechainGainNode` VCA keyed by a track's `sidechainSource`, ahead of the fader; two negative-controlled
+    projection tests (value VCA + PDC alignment **through the projection**). The old DONE closed F over a path
+    that didn't exist (it cited the raw-graph gate only).
+  - **`2830c36` — H1 tempo/meter/markers round-trip (a *dropped* H1 exit clause).** H1's exit says the Project
+    round-trips "tempo/meter map, markers, clips intact" but only clips were covered and it wasn't even
+    named-deferred. `Project` now carries `tempoMap/meterMap/markers` (new `Marker` type); the bundle persists +
+    restores them in tick order; new round-trip test with negative controls.
+  - **`c1aaab3` — per-channel meter readout.** `MeterNode` now publishes per-channel `peak(ch)/rms(ch)` (RT-safe)
+    plus the aggregate — "stereo metering" is now literal, not just stereo-aware accumulation.
+  - **docs honesty pass (this commit).** Reworded the overstated claims to match the now-true code: gate (a)
+    proves PDC *scheduling* in-process (cross-process boundary proven by (b)/(c)); `RuntimeAudioDriver` is a
+    real seam but its only caller is a test (live device shell → H4); the full tri-stream-through-the-worker
+    (plugin parameter automation) → H4 with a reason; ledger F/K updated; stale `[!shouldfail]` CMake comment
+    deleted; independent-review provenance recorded.
+  - **NOT done — needs Dan / hardware:** the **H0 audio soak** exit clause (zero underruns, 10 min, 128-frame
+    Block, Win+mac). Tooling exists and is ADR-0005-compliant (`tools/soak.sh` + `tools/soak/SoakMain.cpp`,
+    Goertzel-asserted, xrun/deadline-miss counters, exit 0/1) but no PASS at 128 frames has been recorded
+    (shared-mode Realtek forced 480; needs ASIO/WASAPI-exclusive + a loopback jumper; no macOS run). This is
+    the only thing between "H0–H3 fully behind us" and done. **Next:** Dan runs the soak on real hardware and
+    ticks it, OR blesses moving to H4 with the soak tracked as the lone open H0 item. Do not start H4 build
+    work until Dan says.
 - **Latest: H3 host-isolation exit gate is now blocking and green locally.**
   REVIEW/FIX of `1bf006e` found no proven defect in the opaque-state checkpoint: opaque bytes cross the
   real worker process control lane both ways; `{chunk_len, crc32}` is validated; a deliberately corrupted
