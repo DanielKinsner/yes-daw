@@ -14,6 +14,7 @@
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <cmath>
@@ -32,6 +33,7 @@ struct MixerProjectionError
         None,
         MissingTrackSource,
         UnsupportedTrackSource,
+        UnsupportedSidechainSource,
         InvalidTrackGain,
         InvalidTrackPan,
         InvalidSendDestination,
@@ -68,6 +70,12 @@ struct MixerTrackProjection
     float  linearGain  = 1.0f;
     float  pan         = 0.0f;
     std::vector<MixerSendProjection> sends;
+    // Optional sidechain key. When set, a SidechainGainNode (id = sidechainNodeId) is inserted as a VCA on
+    // the track source, keyed by this signal, ahead of the fader (ADR-0014). null = no sidechain. The key
+    // is a real graph edge, so GraphBuilder PDC-aligns it with the main path exactly as the raw-graph
+    // sidechain gate proves.
+    std::unique_ptr<Node> sidechainSource;
+    NodeId                sidechainNodeId = 0;
 };
 
 struct MixerBusProjection
@@ -126,7 +134,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     std::size_t supportNodeCount = 0;
     for (const MixerTrackProjection& track : projection.tracks)
         supportNodeCount += track.supportNodes.size();
-    inputs.nodes.reserve (projection.tracks.size() * 4u + supportNodeCount + projection.buses.size() * 3u + 2u);
+    inputs.nodes.reserve (projection.tracks.size() * 6u + supportNodeCount + projection.buses.size() * 3u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -179,9 +187,34 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 
         Node* const sourcePtr = track.source.get();
 
+        // Optional sidechain VCA insert (ADR-0014): the source becomes the MAIN input of a
+        // SidechainGainNode keyed by track.sidechainSource, and the rest of the strip feeds from the VCA
+        // output (the "chain head"). GraphBuilder treats the key as a real edge and PDC-aligns it with the
+        // main path, so the projection inherits the alignment the raw-graph sidechain gate proves.
+        std::unique_ptr<SidechainGainNode> sidechain;
+        Node* chainHead = sourcePtr;
+        if (track.sidechainSource != nullptr)
+        {
+            const NodeProperties sidechainProps = track.sidechainSource->properties();
+            if (! sidechainProps.producesAudio || sidechainProps.channels != 1)
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::UnsupportedSidechainSource;
+                    error->trackIndex = i;
+                }
+                return nullptr;
+            }
+
+            sidechain = std::make_unique<SidechainGainNode> (track.sidechainNodeId, 1);
+            sidechain->setMainInput (sourcePtr);
+            sidechain->setSidechainInput (track.sidechainSource.get());
+            chainHead = sidechain.get();
+        }
+
         auto fader = std::make_unique<FaderNode> (track.faderNodeId, 1);
         FaderNode* const faderPtr = fader.get();
-        faderPtr->setInput (sourcePtr);
+        faderPtr->setInput (chainHead);
         faderPtr->setTargetGain (track.linearGain);
 
         for (std::size_t sendIndex = 0; sendIndex < track.sends.size(); ++sendIndex)
@@ -198,7 +231,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
                 return nullptr;
             }
 
-            Node* const tap = send.tap == MixerSendTap::PreFader ? sourcePtr : static_cast<Node*> (faderPtr);
+            // Pre-fader sends tap the chain head (post-sidechain VCA, pre-fader); post-fader taps the fader.
+            Node* const tap = send.tap == MixerSendTap::PreFader ? chainHead : static_cast<Node*> (faderPtr);
             pushUniqueMixerInput (busInputs[send.busIndex], tap);
         }
 
@@ -226,6 +260,10 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         }
 
         inputs.nodes.push_back (std::move (track.source));
+        if (track.sidechainSource != nullptr)
+            inputs.nodes.push_back (std::move (track.sidechainSource));
+        if (sidechain != nullptr)
+            inputs.nodes.push_back (std::move (sidechain));
         inputs.nodes.push_back (std::move (fader));
         inputs.nodes.push_back (std::move (pan));
         inputs.nodes.push_back (std::move (meter));

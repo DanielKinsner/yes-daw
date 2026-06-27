@@ -828,3 +828,93 @@ TEST_CASE ("Mixer projection rejects Sends to missing buses before graph build",
     REQUIRE (error.trackIndex == 0u);
     REQUIRE (error.sendIndex == 0u);
 }
+
+TEST_CASE ("Mixer projection wires a sidechain VCA keyed by another signal", "[mixer][projection][sidechain]")
+{
+    constexpr NodeId kSrc = 62000, kKey = 62001, kSc = 62002;
+    constexpr NodeId kFader = 62010, kPan = 62011, kMeter = 62012;
+
+    // main = 1.0, key = 0.5  ->  VCA out = 0.5; a centred mono track halves to 0.5 * centreGain per channel.
+    auto build = [&] (bool wired)
+    {
+        MixerProjectionInputs inputs = baseProjection (7);
+        MixerTrackProjection track;
+        track.source = std::make_unique<IdentityDcNode> (kSrc, 1.0f, 1);
+        track.faderNodeId = kFader;
+        track.panNodeId = kPan;
+        track.meterNodeId = kMeter;
+        track.linearGain = 1.0f;
+        track.pan = 0.0f;
+        if (wired)
+        {
+            track.sidechainSource = std::make_unique<IdentityDcNode> (kKey, 0.5f, 1);
+            track.sidechainNodeId = kSc;
+        }
+        inputs.tracks.push_back (std::move (track));
+
+        MixerProjectionError error;
+        std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code == MixerProjectionError::Code::None);
+        return graph;
+    };
+
+    // Wired: exactly one real 2-input Sidechain node in the projected graph, and the VCA halves the signal.
+    std::unique_ptr<CompiledGraph> wired = build (true);
+    REQUIRE (wired->debugMultiInputNodesBound());
+    REQUIRE (wired->debugCountNodesOfKind (CompiledNodeKind::Sidechain) == 1u);
+    const CompiledNode* const scNode = compiledNodeById (*wired, kSc);
+    REQUIRE (scNode != nullptr);
+    REQUIRE (scNode->kind == CompiledNodeKind::Sidechain);
+    REQUIRE (scNode->numInputs == 2u);
+
+    const StereoCapture wiredOut = render (*wired, 64);
+    for (float v : wiredOut.left)
+        REQUIRE (v == Approx (0.5f * kCenterGain));
+    for (float v : wiredOut.right)
+        REQUIRE (v == Approx (0.5f * kCenterGain));
+
+    // Negative control: the SAME track without a sidechain key has NO Sidechain node and is NOT halved.
+    std::unique_ptr<CompiledGraph> plain = build (false);
+    REQUIRE (plain->debugCountNodesOfKind (CompiledNodeKind::Sidechain) == 0u);
+    const StereoCapture plainOut = render (*plain, 64);
+    for (float v : plainOut.left)
+        REQUIRE (v == Approx (1.0f * kCenterGain));
+}
+
+TEST_CASE ("Mixer projection PDC-aligns a sidechain key with the main path", "[mixer][projection][sidechain][pdc]")
+{
+    constexpr NodeId kSrc = 63000, kKey = 63001, kSc = 63002;
+    constexpr NodeId kFader = 63010, kPan = 63011, kMeter = 63012;
+
+    // Main impulse at sample 4 (reported latency 4), key impulse at sample 12 (reported latency 12). The VCA
+    // product main*key is non-zero ONLY if PDC delays the shorter (main) path so both impulses meet at the
+    // same sample at the sidechain node. If the projection failed to wire the key as a real PDC-aware edge,
+    // the two impulses would never coincide and the product would be silent everywhere.
+    MixerProjectionInputs inputs = baseProjection (8);
+    MixerTrackProjection track;
+    track.source = std::make_unique<LatentImpulseSource> (kSrc, 4);
+    track.sidechainSource = std::make_unique<LatentImpulseSource> (kKey, 12);
+    track.sidechainNodeId = kSc;
+    track.faderNodeId = kFader;
+    track.panNodeId = kPan;
+    track.meterNodeId = kMeter;
+    track.linearGain = 1.0f;
+    track.pan = 0.0f;
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sidechain) == 1u);
+
+    const StereoCapture out = render (*graph, 128);
+    float peak = 0.0f;
+    for (float v : out.left)
+        if (std::fabs (v) > peak)
+            peak = std::fabs (v);
+
+    // A surviving product (≈ 1.0 * centreGain) proves the main and key impulses met sample-aligned.
+    REQUIRE (peak == Approx (kCenterGain).margin (1.0e-4));
+}
