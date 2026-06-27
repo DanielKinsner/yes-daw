@@ -31,7 +31,11 @@ public:
         return NodeProperties { true, false, channels_, latencySamples_, id_ };
     }
 
-    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&eventInput_, eventInput_ != nullptr ? 1u : 0u);
+    }
+
     void prepare (double, int) override { pendingCount_ = 0; }
 
     void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
@@ -76,6 +80,8 @@ public:
     void reset() noexcept override { pendingCount_ = 0; }
     void release() override { pendingCount_ = 0; }
 
+    void setEventInput (Node* input) noexcept { eventInput_ = input; }
+
 private:
     struct PendingImpulse
     {
@@ -115,6 +121,7 @@ private:
     int          channels_;
     std::array<PendingImpulse, kMaxPendingImpulses> pending_ {};
     std::size_t  pendingCount_ = 0;
+    Node*        eventInput_ = nullptr;
 };
 
 } // namespace yesdaw::engine

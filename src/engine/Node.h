@@ -136,12 +136,45 @@ public:
     {
     }
 
+    explicit EventStream (std::span<Event> events,
+                          std::span<const std::byte> sysexBytes = {}) noexcept
+        : events_ (events), mutableEvents_ (events), sysexBytes_ (sysexBytes)
+    {
+    }
+
+    EventStream (std::span<Event> eventStorage,
+                 std::size_t eventCount,
+                 std::span<const std::byte> sysexBytes = {}) noexcept
+        : events_ (eventStorage.data(), eventCount <= eventStorage.size() ? eventCount : eventStorage.size()),
+          mutableEvents_ (eventStorage),
+          sysexBytes_ (sysexBytes)
+    {
+    }
+
     [[nodiscard]] std::span<const Event> events() const noexcept YESDAW_RT_HOT { return events_; }
+    [[nodiscard]] std::span<Event> writableEvents() noexcept YESDAW_RT_HOT
+    {
+        return mutableEvents_.empty() ? std::span<Event> {} : mutableEvents_.first (events_.size());
+    }
     [[nodiscard]] const Event* begin() const noexcept YESDAW_RT_HOT { return events_.data(); }
     [[nodiscard]] const Event* end() const noexcept YESDAW_RT_HOT { return events_.data() + events_.size(); }
     [[nodiscard]] bool empty() const noexcept YESDAW_RT_HOT { return events_.empty(); }
     [[nodiscard]] std::size_t size() const noexcept YESDAW_RT_HOT { return events_.size(); }
+    [[nodiscard]] std::size_t writableCapacity() const noexcept YESDAW_RT_HOT { return mutableEvents_.size(); }
+    [[nodiscard]] bool isWritable() const noexcept YESDAW_RT_HOT { return mutableEvents_.data() != nullptr; }
     [[nodiscard]] std::span<const std::byte> sysexBytes() const noexcept YESDAW_RT_HOT { return sysexBytes_; }
+
+    [[nodiscard]] bool replaceEvents (std::span<const Event> events) noexcept YESDAW_RT_HOT
+    {
+        if (events.size() > mutableEvents_.size())
+            return false;
+
+        for (std::size_t i = 0; i < events.size(); ++i)
+            mutableEvents_[i] = events[i];
+
+        events_ = std::span<const Event> (mutableEvents_.data(), events.size());
+        return true;
+    }
 
     // Control/test-side validator for ADR-0009's sorted, half-open [0, numFrames) block contract.
     [[nodiscard]] bool isValidForBlock (std::uint32_t numFrames) const noexcept
@@ -203,6 +236,7 @@ private:
     }
 
     std::span<const Event>     events_;
+    std::span<Event>           mutableEvents_;
     std::span<const std::byte> sysexBytes_;
 };
 

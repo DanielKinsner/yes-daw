@@ -28,6 +28,16 @@ separately and does not replace H4's CI gate.
 ---
 
 ## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): WORKER H4 MIDI-effect Nodes slice is green locally.**
+  REVIEW/FIX of the piano-roll Note edit-command checkpoint found no proven defect; the prior CI run
+  was green. Then WORKER added writable EventStream storage for graph-owned Events, deterministic
+  `MidiTransposeNode` and `MidiScaleMapNode` event-transform Nodes, GraphBuilder classification for
+  MIDI-effect Nodes, and a compiled-graph test proving scale-map -> transpose runs before the
+  Instrument Node consumes the NoteOn. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci`; focused `YesDawMidiTimingCheck` passed **7 cases / 131 assertions**;
+  `ctest --preset ci --output-on-failure` passed **217/217**; and
+  `ctest --preset ci -R YesDawMidiTimingCheck --output-on-failure` passed. **Next:** REVIEW/FIX this
+  MIDI-effect Nodes slice, then build the hosted-instrument Event bridge if green.
 - **Latest (2026-06-27): WORKER H4 piano-roll Note edit-command slice is green locally.**
   REVIEW/FIX of the Project-owned MIDI Clip/Note persistence checkpoint found no proven defect; the
   prior CI run was green. Then WORKER added Project-level Note edit operations for move, length,

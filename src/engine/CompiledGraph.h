@@ -75,6 +75,7 @@ enum class CompiledNodeKind : std::uint8_t
     Master,
     Sidechain,
     Placeholder,
+    MidiEffect,
     Plugin
 };
 
@@ -203,6 +204,12 @@ public:
         process (outputs, 1, numFrames, events);
     }
 
+    void process (float* out, int numFrames, std::span<Event> events) const noexcept YESDAW_RT_HOT
+    {
+        float* outputs[1] = { out };
+        process (outputs, 1, numFrames, events);
+    }
+
     // The audio hot path. Immutable read; allocation/lock free; RTSan-covered.
     void process (float* const* outChannels, int numOutputChannels, int numFrames) const noexcept YESDAW_RT_HOT
     {
@@ -214,6 +221,15 @@ public:
                   int numOutputChannels,
                   int numFrames,
                   std::span<const Event> events) const noexcept YESDAW_RT_HOT
+    {
+        EventStream stream { events };
+        process (outChannels, numOutputChannels, numFrames, stream);
+    }
+
+    void process (float* const* outChannels,
+                  int numOutputChannels,
+                  int numFrames,
+                  std::span<Event> events) const noexcept YESDAW_RT_HOT
     {
         EventStream stream { events };
         process (outChannels, numOutputChannels, numFrames, stream);

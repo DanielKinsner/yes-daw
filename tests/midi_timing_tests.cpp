@@ -7,6 +7,7 @@
 #include "engine/Midi.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
+#include "engine/nodes/MidiEffectNode.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -19,6 +20,7 @@
 #include <vector>
 
 using Catch::Approx;
+using yesdaw::engine::AudioBlock;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::EntityId;
@@ -32,16 +34,21 @@ using yesdaw::engine::MasterNode;
 using yesdaw::engine::MidiClip;
 using yesdaw::engine::MidiFlattenBlock;
 using yesdaw::engine::MidiFlattenStatus;
+using yesdaw::engine::MidiScaleMapNode;
+using yesdaw::engine::MidiTransposeNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::Note;
+using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
 using yesdaw::engine::TempoMapView;
 using yesdaw::engine::Tick;
+using yesdaw::engine::Transport;
 using yesdaw::engine::flattenMidiClipNotesForBlock;
 using yesdaw::engine::kTicksPerQuarter;
+using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::tickToFrame;
 
 namespace {
@@ -89,6 +96,18 @@ Note note (std::uint8_t noteId, Tick start, Tick length = 4, std::int16_t key = 
     return n;
 }
 
+Event noteEvent (std::uint32_t timeInBlock, EventType type, std::int16_t key, double pitch)
+{
+    Event event {};
+    event.timeInBlock = timeInBlock;
+    event.type = type;
+    event.voice.noteId = static_cast<std::int32_t> (key);
+    event.voice.key = key;
+    event.payload.note.normalizedVelocity = type == EventType::NoteOff ? 0.0 : 1.0;
+    event.payload.note.pitchNote = pitch;
+    return event;
+}
+
 std::vector<std::uint32_t> noteOnOffsets (std::span<const Event> events)
 {
     std::vector<std::uint32_t> offsets;
@@ -103,6 +122,26 @@ std::vector<float> render (CompiledGraph& graph, std::span<const Event> events, 
     std::vector<float> out (static_cast<std::size_t> (frames), -999.0f);
     graph.process (out.data(), frames, events);
     return out;
+}
+
+std::vector<float> render (CompiledGraph& graph, std::span<Event> events, int frames)
+{
+    std::vector<float> out (static_cast<std::size_t> (frames), -999.0f);
+    graph.process (out.data(), frames, events);
+    return out;
+}
+
+void processMidiEffectNode (Node& node, EventStream& stream)
+{
+    std::array<float, 8> audio {};
+    audio.fill (1.0f);
+    float* channels[1] = { audio.data() };
+    Transport transport;
+
+    node.process (ProcessArgs { AudioBlock { channels, 1 }, stream, transport, static_cast<int> (audio.size()) });
+
+    for (const float sample : audio)
+        REQUIRE (sample == Approx (0.0f));
 }
 
 } // namespace
@@ -184,6 +223,56 @@ TEST_CASE ("MIDI Clip flattening uses the full tempo map after a tempo change", 
     REQUIRE (noteOnOffsets (stream.events()) == std::vector<std::uint32_t> { 8u });
 }
 
+TEST_CASE ("MIDI transpose Node transforms writable Note Events in place", "[midi][effect][transpose]")
+{
+    std::array<Event, 3> events {
+        noteEvent (2, EventType::NoteOn, 60, 60.0),
+        makeParameterChangeEvent (3, 7, 1, 0.5),
+        noteEvent (6, EventType::NoteOff, 61, 61.25),
+    };
+
+    EventStream stream { std::span<Event> (events) };
+    REQUIRE (stream.isWritable());
+    REQUIRE (stream.isValidForBlock (8));
+
+    MidiTransposeNode node (500, 7);
+    processMidiEffectNode (node, stream);
+
+    REQUIRE (events[0].timeInBlock == 2u);
+    REQUIRE (events[0].voice.key == 67);
+    REQUIRE (events[0].payload.note.pitchNote == Approx (67.0));
+    REQUIRE (events[1].type == EventType::ParameterChange);
+    REQUIRE (events[1].payload.parameter.normalizedValue == Approx (0.5));
+    REQUIRE (events[2].timeInBlock == 6u);
+    REQUIRE (events[2].voice.key == 68);
+    REQUIRE (events[2].payload.note.pitchNote == Approx (68.25));
+    REQUIRE (stream.isValidForBlock (8));
+}
+
+TEST_CASE ("MIDI scale-map Node deterministically maps accidentals to the next scale tone", "[midi][effect][scale]")
+{
+    std::array<Event, 4> events {
+        noteEvent (0, EventType::NoteOn, 61, 61.25),  // C# -> D in C major.
+        noteEvent (1, EventType::NoteOn, 64, 64.0),   // E already belongs.
+        noteEvent (2, EventType::NoteOff, 70, 70.0),  // Bb -> B in C major.
+        noteEvent (3, EventType::NoteOn, 127, 127.0), // B stays valid at the top edge.
+    };
+
+    EventStream stream { std::span<Event> (events) };
+    MidiScaleMapNode node (501, 0, MidiScaleMapNode::kMajorMask);
+    processMidiEffectNode (node, stream);
+
+    REQUIRE (events[0].voice.key == 62);
+    REQUIRE (events[0].payload.note.pitchNote == Approx (62.25));
+    REQUIRE (events[1].voice.key == 64);
+    REQUIRE (events[1].payload.note.pitchNote == Approx (64.0));
+    REQUIRE (events[2].voice.key == 71);
+    REQUIRE (events[2].payload.note.pitchNote == Approx (71.0));
+    REQUIRE (events[3].voice.key == 127);
+    REQUIRE (events[3].payload.note.pitchNote == Approx (127.0));
+    REQUIRE (stream.isValidForBlock (8));
+}
+
 TEST_CASE ("MIDI note-ons through a latent Instrument Node are aligned by PDC", "[midi][instrument][pdc]")
 {
     constexpr NodeId kFastInstrument = 1000;
@@ -231,6 +320,67 @@ TEST_CASE ("MIDI note-ons through a latent Instrument Node are aligned by PDC", 
     {
         if (i == 4 + kInstrumentLatency)
             REQUIRE (out[static_cast<std::size_t> (i)] == Approx (2.0f));
+        else
+            REQUIRE (out[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
+    }
+}
+
+TEST_CASE ("MIDI-effect Nodes run before an Instrument Node in the compiled graph", "[midi][effect][graph]")
+{
+    constexpr NodeId kScale = 2000;
+    constexpr NodeId kTranspose = 2001;
+    constexpr NodeId kInstrument = 2002;
+    constexpr int kBlock = 32;
+
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    const MidiClip clip = clipWithNotes ({ note (2, 4, 16, 61) }, /*start*/ 100, /*length*/ 32);
+
+    std::array<Event, 4> events {};
+    const auto flat = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, kBlock, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (events));
+    REQUIRE (flat.status == MidiFlattenStatus::Ok);
+    REQUIRE (flat.eventsWritten == 2u);
+    REQUIRE (events[0].voice.key == 61);
+
+    auto scale = std::make_unique<MidiScaleMapNode> (kScale, 0, MidiScaleMapNode::kMajorMask);
+    auto transpose = std::make_unique<MidiTransposeNode> (kTranspose, 12);
+    auto instrument = std::make_unique<ImpulseInstrumentNode> (kInstrument, 0);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    transpose->setInput (scale.get());
+    instrument->setEventInput (transpose.get());
+    master->setInputNodes ({ instrument.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 41;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = kSampleRate;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (scale));
+    inputs.nodes.push_back (std::move (transpose));
+    inputs.nodes.push_back (std::move (instrument));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::MidiEffect) == 2u);
+
+    const std::vector<float> out = render (*graph, std::span<Event> (events.data(), flat.eventsWritten), kBlock);
+    REQUIRE (events[0].voice.key == 74); // C# -> D in C major, then +12 semitones.
+    REQUIRE (events[0].payload.note.pitchNote == Approx (74.0));
+    REQUIRE (events[1].voice.key == 74);
+    REQUIRE (events[1].payload.note.pitchNote == Approx (74.0));
+
+    for (int i = 0; i < kBlock; ++i)
+    {
+        if (i == 4)
+            REQUIRE (out[static_cast<std::size_t> (i)] == Approx (1.0f));
         else
             REQUIRE (out[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
     }

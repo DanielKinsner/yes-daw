@@ -13,6 +13,7 @@
 #include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
+#include "engine/nodes/MidiEffectNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
 #include "engine/nodes/PlaceholderNode.h"
@@ -297,6 +298,9 @@ private:
             return CompiledNodeKind::Sidechain;
         if (dynamic_cast<PlaceholderNode*> (&node) != nullptr)
             return CompiledNodeKind::Placeholder;
+        if (dynamic_cast<MidiTransposeNode*> (&node) != nullptr
+            || dynamic_cast<MidiScaleMapNode*> (&node) != nullptr)
+            return CompiledNodeKind::MidiEffect;
         return CompiledNodeKind::Plugin;
     }
 
