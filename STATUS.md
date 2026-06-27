@@ -28,6 +28,15 @@ separately and does not replace H4's CI gate.
 ---
 
 ## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): WORKER H4 piano-roll Note edit-command slice is green locally.**
+  REVIEW/FIX of the Project-owned MIDI Clip/Note persistence checkpoint found no proven defect; the
+  prior CI run was green. Then WORKER added Project-level Note edit operations for move, length,
+  split/cut, quantize, and transpose, extended the existing Project undo command/diff stack with
+  MIDI Clip row diffs, and proved invalid edits leave the Project unchanged plus undo/redo returns
+  bit-identical Project values. Local gate: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
+  focused `YesDawProjectCheck`; `ctest --preset ci --output-on-failure` passed **217/217**; and
+  `ctest --preset ci -R YesDawMidiTimingCheck --output-on-failure` passed. **Next:** REVIEW/FIX this
+  piano-roll edit-command slice, then build the MIDI-effect Nodes slice if green.
 - **Latest (2026-06-27): WORKER H4 Project-owned MIDI Clip/Note surface + persistence is green locally.**
   REVIEW/FIX of the previous `YesDawMidiTimingCheck` checkpoint found no proven defect; the named gate
   remains green. Then WORKER moved `Note` / `MidiClip` into the Project value surface, added track

@@ -300,7 +300,14 @@ enum class ProjectEditStatus : std::uint8_t
     DuplicateEntityId,
     InvalidTimelineWindow,
     InvalidSourceWindow,
-    InvalidClipEnvelope
+    InvalidClipEnvelope,
+    InvalidMidiClipId,
+    MidiClipNotFound,
+    InvalidNoteId,
+    NoteNotFound,
+    InvalidNoteWindow,
+    InvalidNoteValue,
+    InvalidSnapGrid
 };
 
 struct Project
@@ -486,6 +493,38 @@ namespace detail {
     return nullptr;
 }
 
+[[nodiscard]] inline MidiClip* findMidiClip (Project& project, EntityId midiClipId) noexcept
+{
+    for (MidiClip& midiClip : project.midiClips)
+        if (midiClip.id == midiClipId)
+            return &midiClip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline Note* findNote (MidiClip& midiClip, EntityId noteId) noexcept
+{
+    for (Note& note : midiClip.notes)
+        if (note.id == noteId)
+            return &note;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findNoteIndex (const MidiClip& midiClip, EntityId noteId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < midiClip.notes.size(); ++i)
+    {
+        if (midiClip.notes[i].id == noteId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline bool projectContainsEntityId (const Project& project, EntityId id) noexcept
 {
     if (! id.isValid())
@@ -549,6 +588,19 @@ namespace detail {
             return false;
 
     return true;
+}
+
+[[nodiscard]] inline bool noteFitsMidiClip (const MidiClip& midiClip, const Note& note) noexcept
+{
+    if (! note.isValid() || note.startTick > midiClip.timelineLength)
+        return false;
+
+    return note.lengthTicks <= midiClip.timelineLength - note.startTick;
+}
+
+[[nodiscard]] inline bool projectCanApplyMidiEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
 }
 
 } // namespace detail
@@ -700,6 +752,225 @@ namespace detail {
     project.clips.insert (project.clips.begin() + static_cast<std::ptrdiff_t> (clipIndex + 1u), right);
     project.clips[clipIndex] = left;
     project.clips[clipIndex + 1u] = right;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveNote (Project& project,
+                                                 EntityId midiClipId,
+                                                 EntityId noteId,
+                                                 Tick newStartTick) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Note edited = *note;
+    edited.startTick = newStartTick;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setNoteLength (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId noteId,
+                                                      Tick newLengthTicks) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Note edited = *note;
+    edited.lengthTicks = newLengthTicks;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus splitNote (Project& project,
+                                                  EntityId midiClipId,
+                                                  EntityId noteId,
+                                                  EntityId rightNoteId,
+                                                  Tick leftLengthTicks)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid() || ! rightNoteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (detail::projectContainsEntityId (project, rightNoteId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    std::size_t noteIndex = midiClip->notes.size();
+    if (! detail::findNoteIndex (*midiClip, noteId, noteIndex))
+        return ProjectEditStatus::NoteNotFound;
+
+    const Note original = midiClip->notes[noteIndex];
+    if (leftLengthTicks <= 0 || leftLengthTicks >= original.lengthTicks)
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Tick rightStartTick = 0;
+    if (! detail::addTickChecked (original.startTick, leftLengthTicks, rightStartTick))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note left = original;
+    left.lengthTicks = leftLengthTicks;
+
+    Note right = original;
+    right.id = rightNoteId;
+    right.startTick = rightStartTick;
+    right.lengthTicks = original.lengthTicks - leftLengthTicks;
+
+    if (! detail::noteFitsMidiClip (*midiClip, left) || ! detail::noteFitsMidiClip (*midiClip, right))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    midiClip->notes.insert (midiClip->notes.begin() + static_cast<std::ptrdiff_t> (noteIndex + 1u), right);
+    midiClip->notes[noteIndex] = left;
+    midiClip->notes[noteIndex + 1u] = right;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus cutNote (Project& project,
+                                                EntityId midiClipId,
+                                                EntityId noteId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    std::size_t noteIndex = midiClip->notes.size();
+    if (! detail::findNoteIndex (*midiClip, noteId, noteIndex))
+        return ProjectEditStatus::NoteNotFound;
+
+    midiClip->notes.erase (midiClip->notes.begin() + static_cast<std::ptrdiff_t> (noteIndex));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus deleteNote (Project& project,
+                                                   EntityId midiClipId,
+                                                   EntityId noteId)
+{
+    return cutNote (project, midiClipId, noteId);
+}
+
+[[nodiscard]] inline ProjectEditStatus quantizeNote (Project& project,
+                                                     EntityId midiClipId,
+                                                     EntityId noteId,
+                                                     SnapGrid grid) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! grid.isValid())
+        return ProjectEditStatus::InvalidSnapGrid;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Tick snappedStart = 0;
+    if (! snapTick (note->startTick, grid, snappedStart))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note edited = *note;
+    edited.startTick = snappedStart;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus transposeNote (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId noteId,
+                                                      int semitones) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    const int transposedKey = static_cast<int> (note->key) + semitones;
+    if (transposedKey < 0 || transposedKey > 127)
+        return ProjectEditStatus::InvalidNoteValue;
+
+    Note edited = *note;
+    edited.key = static_cast<std::int16_t> (transposedKey);
+    edited.pitchNote += static_cast<double> (semitones);
+    if (! edited.isValid())
+        return ProjectEditStatus::InvalidNoteValue;
+
+    *note = edited;
     return ProjectEditStatus::Applied;
 }
 

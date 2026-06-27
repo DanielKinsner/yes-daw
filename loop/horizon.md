@@ -26,12 +26,12 @@ ctest --preset ci
 ctest --preset ci -R YesDawMidiTimingCheck
 ```
 
-## Status: **PROJECT MIDI SURFACE / PERSISTENCE GREEN LOCALLY (H4 feature slices still active)**
+## Status: **PIANO-ROLL EDIT COMMANDS GREEN LOCALLY (H4 feature slices still active)**
 
 H4 opened on 2026-06-27 when Dan asked to complete H4. `YesDawMidiTimingCheck` now exists and is green
 locally together with the full `ci` preset. Project-owned MIDI Clips/Notes now persist through schema v3.
-The remaining H4 plan slices are piano-roll edit commands, MIDI-effect Nodes, hosted-instrument Event
-bridge, and MPE boundary allocation.
+Piano-roll Note edit commands are green locally with undo/redo bit-identity coverage. The remaining H4
+plan slices are MIDI-effect Nodes, hosted-instrument Event bridge, and MPE boundary allocation.
 
 ## The plan
 

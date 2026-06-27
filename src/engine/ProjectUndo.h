@@ -1,8 +1,8 @@
 // YES DAW - in-memory Project edit command/diff undo surface (H2).
 //
-// This is control-side document state only: commands wrap the existing Clip edit helpers and record
-// exact Clip row before/after diffs for bit-identical undo/redo. SQLite durability is deliberately
-// outside this layer.
+// This is control-side document state only: commands wrap the existing Clip/Note edit helpers and record
+// exact row before/after diffs for bit-identical undo/redo. SQLite durability is deliberately outside
+// this layer.
 
 #pragma once
 
@@ -21,7 +21,13 @@ enum class ProjectEditVerb : std::uint8_t
     TrimClip,
     SplitClip,
     SetClipGain,
-    SetClipFades
+    SetClipFades,
+    MoveNote,
+    SetNoteLength,
+    SplitNote,
+    CutNote,
+    QuantizeNote,
+    TransposeNote
 };
 
 struct ProjectEditCommand
@@ -36,6 +42,13 @@ struct ProjectEditCommand
     float gain = 1.0f;
     Tick fadeIn = 0;
     Tick fadeOut = 0;
+    EntityId midiClipId;
+    EntityId noteId;
+    EntityId rightNoteId;
+    Tick noteStartTick = 0;
+    Tick noteLengthTicks = 0;
+    Tick snapGridTicks = 0;
+    std::int32_t semitones = 0;
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -96,6 +109,77 @@ struct ProjectEditCommand
         command.fadeOut = newFadeOut;
         return command;
     }
+
+    [[nodiscard]] static constexpr ProjectEditCommand moveNote (EntityId midiClipId,
+                                                                EntityId noteId,
+                                                                Tick newStartTick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.noteStartTick = newStartTick;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setNoteLength (EntityId midiClipId,
+                                                                     EntityId noteId,
+                                                                     Tick newLengthTicks) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetNoteLength;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.noteLengthTicks = newLengthTicks;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand splitNote (EntityId midiClipId,
+                                                                 EntityId noteId,
+                                                                 EntityId rightNoteId,
+                                                                 Tick leftLengthTicks) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SplitNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.rightNoteId = rightNoteId;
+        command.noteLengthTicks = leftLengthTicks;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand cutNote (EntityId midiClipId, EntityId noteId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::CutNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand quantizeNote (EntityId midiClipId,
+                                                                    EntityId noteId,
+                                                                    SnapGrid grid) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::QuantizeNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.snapGridTicks = grid.intervalTicks;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand transposeNote (EntityId midiClipId,
+                                                                     EntityId noteId,
+                                                                     std::int32_t semitones) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::TransposeNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.semitones = semitones;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -108,10 +192,18 @@ struct ProjectClipRowsDiff
     std::vector<Clip> after;
 };
 
+struct ProjectMidiClipRowsDiff
+{
+    std::size_t firstMidiClipIndex = 0;
+    std::vector<MidiClip> before;
+    std::vector<MidiClip> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
     ProjectClipRowsDiff diff;
+    ProjectMidiClipRowsDiff midiDiff;
 };
 
 struct ProjectEditApplyResult
@@ -150,6 +242,30 @@ namespace detail {
     return false;
 }
 
+[[nodiscard]] inline bool findMidiClipIndex (const Project& project, EntityId midiClipId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        if (project.midiClips[i].id == midiClipId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] constexpr bool isMidiNoteEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::MoveNote
+           || verb == ProjectEditVerb::SetNoteLength
+           || verb == ProjectEditVerb::SplitNote
+           || verb == ProjectEditVerb::CutNote
+           || verb == ProjectEditVerb::QuantizeNote
+           || verb == ProjectEditVerb::TransposeNote;
+}
+
 [[nodiscard]] inline ProjectEditStatus applyProjectEditCommandToProject (Project& project,
                                                                          const ProjectEditCommand& command)
 {
@@ -169,6 +285,24 @@ namespace detail {
 
         case ProjectEditVerb::SetClipFades:
             return setClipFades (project, command.clipId, command.fadeIn, command.fadeOut);
+
+        case ProjectEditVerb::MoveNote:
+            return moveNote (project, command.midiClipId, command.noteId, command.noteStartTick);
+
+        case ProjectEditVerb::SetNoteLength:
+            return setNoteLength (project, command.midiClipId, command.noteId, command.noteLengthTicks);
+
+        case ProjectEditVerb::SplitNote:
+            return splitNote (project, command.midiClipId, command.noteId, command.rightNoteId, command.noteLengthTicks);
+
+        case ProjectEditVerb::CutNote:
+            return cutNote (project, command.midiClipId, command.noteId);
+
+        case ProjectEditVerb::QuantizeNote:
+            return quantizeNote (project, command.midiClipId, command.noteId, SnapGrid { command.snapGridTicks });
+
+        case ProjectEditVerb::TransposeNote:
+            return transposeNote (project, command.midiClipId, command.noteId, command.semitones);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -206,6 +340,27 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool buildProjectMidiClipRowsDiff (const Project& before,
+                                                        const Project& after,
+                                                        const ProjectEditCommand& command,
+                                                        ProjectMidiClipRowsDiff& out)
+{
+    std::size_t index = 0;
+    if (! findMidiClipIndex (before, command.midiClipId, index))
+        return false;
+
+    if (after.midiClips.size() != before.midiClips.size()
+        || index >= after.midiClips.size()
+        || after.midiClips[index].id != command.midiClipId)
+        return false;
+
+    out = {};
+    out.firstMidiClipIndex = index;
+    out.before = { before.midiClips[index] };
+    out.after = { after.midiClips[index] };
+    return true;
+}
+
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
                                            std::size_t firstClipIndex,
                                            const std::vector<Clip>& expected) noexcept
@@ -215,6 +370,20 @@ namespace detail {
 
     for (std::size_t i = 0; i < expected.size(); ++i)
         if (! (project.clips[firstClipIndex + i] == expected[i]))
+            return false;
+
+    return true;
+}
+
+[[nodiscard]] inline bool midiClipRowsEqualAt (const Project& project,
+                                               std::size_t firstMidiClipIndex,
+                                               const std::vector<MidiClip>& expected) noexcept
+{
+    if (firstMidiClipIndex > project.midiClips.size() || expected.size() > project.midiClips.size() - firstMidiClipIndex)
+        return false;
+
+    for (std::size_t i = 0; i < expected.size(); ++i)
+        if (! (project.midiClips[firstMidiClipIndex + i] == expected[i]))
             return false;
 
     return true;
@@ -239,26 +408,74 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool applyMidiClipRowsDiff (Project& project,
+                                                 const ProjectMidiClipRowsDiff& diff,
+                                                 const std::vector<MidiClip>& expected,
+                                                 const std::vector<MidiClip>& replacement)
+{
+    if (! midiClipRowsEqualAt (project, diff.firstMidiClipIndex, expected))
+        return false;
+
+    Project edited = project;
+    const auto first = edited.midiClips.begin() + static_cast<std::ptrdiff_t> (diff.firstMidiClipIndex);
+    edited.midiClips.erase (first, first + static_cast<std::ptrdiff_t> (expected.size()));
+    edited.midiClips.insert (edited.midiClips.begin() + static_cast<std::ptrdiff_t> (diff.firstMidiClipIndex),
+                             replacement.begin(),
+                             replacement.end());
+
+    project = edited;
+    return true;
+}
+
 [[nodiscard]] inline bool canCoalesceProjectEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::MoveClip
            || verb == ProjectEditVerb::TrimClip
            || verb == ProjectEditVerb::SetClipGain
-           || verb == ProjectEditVerb::SetClipFades;
+           || verb == ProjectEditVerb::SetClipFades
+           || verb == ProjectEditVerb::MoveNote
+           || verb == ProjectEditVerb::SetNoteLength;
 }
 
 [[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
                                                               const ProjectEditTransaction& newer)
 {
-    return older.command.verb == newer.command.verb
-           && older.command.clipId == newer.command.clipId
-           && canCoalesceProjectEditVerb (older.command.verb)
+    if (older.command.verb != newer.command.verb || ! canCoalesceProjectEditVerb (older.command.verb))
+        return false;
+
+    if (isMidiNoteEditVerb (older.command.verb))
+    {
+        return older.command.midiClipId == newer.command.midiClipId
+               && older.command.noteId == newer.command.noteId
+               && older.midiDiff.firstMidiClipIndex == newer.midiDiff.firstMidiClipIndex
+               && older.midiDiff.before.size() == 1u
+               && older.midiDiff.after.size() == 1u
+               && newer.midiDiff.before.size() == 1u
+               && newer.midiDiff.after.size() == 1u
+               && older.midiDiff.after == newer.midiDiff.before;
+    }
+
+    return older.command.clipId == newer.command.clipId
            && older.diff.firstClipIndex == newer.diff.firstClipIndex
            && older.diff.before.size() == 1u
            && older.diff.after.size() == 1u
            && newer.diff.before.size() == 1u
            && newer.diff.after.size() == 1u
            && older.diff.after == newer.diff.before;
+}
+
+[[nodiscard]] inline bool applyProjectEditTransactionDiff (Project& project,
+                                                           const ProjectEditTransaction& transaction,
+                                                           bool redo)
+{
+    if (isMidiNoteEditVerb (transaction.command.verb))
+    {
+        return redo ? applyMidiClipRowsDiff (project, transaction.midiDiff, transaction.midiDiff.before, transaction.midiDiff.after)
+                    : applyMidiClipRowsDiff (project, transaction.midiDiff, transaction.midiDiff.after, transaction.midiDiff.before);
+    }
+
+    return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
+                : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
 
 } // namespace detail
@@ -273,14 +490,19 @@ namespace detail {
     if (status != ProjectEditStatus::Applied)
         return ProjectEditApplyResult { status, false };
 
-    ProjectClipRowsDiff diff;
-    if (! detail::buildProjectClipRowsDiff (before, project, command, diff))
+    ProjectEditTransaction transaction;
+    transaction.command = command;
+    const bool diffBuilt = detail::isMidiNoteEditVerb (command.verb)
+        ? detail::buildProjectMidiClipRowsDiff (before, project, command, transaction.midiDiff)
+        : detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
+
+    if (! diffBuilt)
     {
         project = before;
         return ProjectEditApplyResult { ProjectEditStatus::InvalidProject, false };
     }
 
-    out = ProjectEditTransaction { command, diff };
+    out = transaction;
     return ProjectEditApplyResult { ProjectEditStatus::Applied, true };
 }
 
@@ -319,7 +541,11 @@ public:
                 && detail::canCoalesceProjectEditTransactions (previous.transaction, transaction))
             {
                 previous.transaction.command = transaction.command;
-                previous.transaction.diff.after = transaction.diff.after;
+                if (detail::isMidiNoteEditVerb (transaction.command.verb))
+                    previous.transaction.midiDiff.after = transaction.midiDiff.after;
+                else
+                    previous.transaction.diff.after = transaction.diff.after;
+
                 redo_.clear();
                 result.coalesced = true;
                 return result;
@@ -338,7 +564,7 @@ public:
 
         const UndoEntry entry = undo_.back();
         const ProjectEditTransaction& transaction = entry.transaction;
-        if (! detail::applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before))
+        if (! detail::applyProjectEditTransactionDiff (project, transaction, false))
             return ProjectUndoStatus::ProjectMismatch;
 
         redo_.push_back (entry);
@@ -353,7 +579,7 @@ public:
 
         const UndoEntry entry = redo_.back();
         const ProjectEditTransaction& transaction = entry.transaction;
-        if (! detail::applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after))
+        if (! detail::applyProjectEditTransactionDiff (project, transaction, true))
             return ProjectUndoStatus::ProjectMismatch;
 
         undo_.push_back (entry);

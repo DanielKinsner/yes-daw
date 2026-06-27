@@ -56,5 +56,6 @@ ctest --preset ci
 ctest --preset ci -R YesDawMidiTimingCheck
 ```
 
-The first code checkpoints now exist: `YesDawMidiTimingCheck` plus Project-owned MIDI Clips/Notes with
-schema v3 persistence. Later H4 slices keep this gate blocking while widening the MIDI surface.
+The first code checkpoints now exist: `YesDawMidiTimingCheck`, Project-owned MIDI Clips/Notes with
+schema v3 persistence, and piano-roll Note edit commands with undo/redo bit-identity coverage. Later H4
+slices keep this gate blocking while widening the MIDI surface.

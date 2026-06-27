@@ -19,12 +19,15 @@ using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
+using yesdaw::engine::cutNote;
 using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
 using yesdaw::engine::kMaxUlidTimestampMs;
+using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::MidiClip;
 using yesdaw::engine::moveClip;
+using yesdaw::engine::moveNote;
 using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditCommand;
@@ -35,10 +38,15 @@ using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
+using yesdaw::engine::setNoteLength;
+using yesdaw::engine::SnapGrid;
 using yesdaw::engine::splitClip;
+using yesdaw::engine::splitNote;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Tick;
 using yesdaw::engine::trimClip;
+using yesdaw::engine::transposeNote;
+using yesdaw::engine::quantizeNote;
 using yesdaw::engine::UlidEntropy;
 
 static_assert (sizeof (EntityId) == 16);
@@ -148,12 +156,23 @@ Project makeTwoClipEditableProject()
     return project;
 }
 
+Project makeMidiEditableProject()
+{
+    Project project = makeEditableProject();
+    project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+    return project;
+}
+
 void requireProjectValueUnchanged (const Project& actual, const Project& expected)
 {
     REQUIRE (actual.id == expected.id);
     REQUIRE (actual.sampleRate == expected.sampleRate);
     REQUIRE (actual.assets == expected.assets);
     REQUIRE (actual.clips == expected.clips);
+    REQUIRE (actual.tempoMap == expected.tempoMap);
+    REQUIRE (actual.meterMap == expected.meterMap);
+    REQUIRE (actual.markers == expected.markers);
+    REQUIRE (actual.midiClips == expected.midiClips);
 }
 
 enum class GeneratedUndoSequenceStepKind : std::uint8_t
@@ -464,6 +483,153 @@ TEST_CASE ("Project validates MIDI Clips and Note identity", "[project][midi]")
     REQUIRE_FALSE (missingTrackOwner.hasValidAssetClipIndirection());
 }
 
+TEST_CASE ("Project Note edit operations mutate only targeted MIDI Note fields", "[project][midi][note-edit]")
+{
+    Project project = makeMidiEditableProject();
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project original = project;
+    const EntityId midiClipId = project.midiClips.front().id;
+    const EntityId noteId = project.midiClips.front().notes.front().id;
+    const EntityId rightNoteId = idFromLowByte (44);
+
+    REQUIRE (moveNote (project, midiClipId, noteId, 256) == ProjectEditStatus::Applied);
+    REQUIRE (setNoteLength (project, midiClipId, noteId, 768) == ProjectEditStatus::Applied);
+    REQUIRE (quantizeNote (project, midiClipId, noteId, SnapGrid { 512 }) == ProjectEditStatus::Applied);
+    REQUIRE (transposeNote (project, midiClipId, noteId, 7) == ProjectEditStatus::Applied);
+    REQUIRE (splitNote (project, midiClipId, noteId, rightNoteId, 256) == ProjectEditStatus::Applied);
+    REQUIRE (cutNote (project, midiClipId, rightNoteId) == ProjectEditStatus::Applied);
+
+    REQUIRE (project.id == original.id);
+    REQUIRE (project.sampleRate == original.sampleRate);
+    REQUIRE (project.assets == original.assets);
+    REQUIRE (project.clips == original.clips);
+    REQUIRE (project.midiClips.size() == 1u);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Note& edited = project.midiClips.front().notes[0];
+    REQUIRE (edited.id == noteId);
+    REQUIRE (edited.startTick == 512);
+    REQUIRE (edited.lengthTicks == 256);
+    REQUIRE (edited.key == 71);
+    REQUIRE (edited.pitchNote == Approx (71.25));
+    REQUIRE (edited.normalizedVelocity == Approx (0.5));
+    REQUIRE (edited.portIndex == 2);
+    REQUIRE (edited.channel == 3);
+    REQUIRE (project.midiClips.front().notes[1] == original.midiClips.front().notes[1]);
+}
+
+TEST_CASE ("Project Note edit operations reject invalid input without mutating Project", "[project][midi][note-edit][invalid]")
+{
+    const Project project = makeMidiEditableProject();
+    const EntityId midiClipId = project.midiClips.front().id;
+    const EntityId noteId = project.midiClips.front().notes.front().id;
+    const EntityId newNoteId = idFromLowByte (44);
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (moveNote (edited, {}, noteId, 128) == ProjectEditStatus::InvalidMidiClipId);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (moveNote (edited, idFromLowByte (99), noteId, 128) == ProjectEditStatus::MidiClipNotFound);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (setNoteLength (edited, midiClipId, {}, 128) == ProjectEditStatus::InvalidNoteId);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (setNoteLength (edited, midiClipId, idFromLowByte (99), 128) == ProjectEditStatus::NoteNotFound);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (moveNote (edited, midiClipId, noteId, 4096) == ProjectEditStatus::InvalidNoteWindow);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (setNoteLength (edited, midiClipId, noteId, 4097) == ProjectEditStatus::InvalidNoteWindow);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (splitNote (edited, midiClipId, noteId, project.assets.front().id, 128) == ProjectEditStatus::DuplicateEntityId);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (splitNote (edited, midiClipId, noteId, newNoteId, 0) == ProjectEditStatus::InvalidNoteWindow);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (splitNote (edited, midiClipId, noteId, newNoteId, project.midiClips.front().notes.front().lengthTicks)
+                 == ProjectEditStatus::InvalidNoteWindow);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (cutNote (edited, midiClipId, idFromLowByte (99)) == ProjectEditStatus::NoteNotFound);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (quantizeNote (edited, midiClipId, noteId, SnapGrid { 0 }) == ProjectEditStatus::InvalidSnapGrid);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        edited.midiClips.front().notes.front().startTick = 3'584;
+        edited.midiClips.front().notes.front().lengthTicks = 512;
+        const Project before = edited;
+        REQUIRE (quantizeNote (edited, midiClipId, noteId, SnapGrid { 4'096 }) == ProjectEditStatus::InvalidNoteWindow);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (transposeNote (edited, midiClipId, noteId, 64) == ProjectEditStatus::InvalidNoteValue);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project invalid = project;
+        invalid.midiClips.front().notes.front().channel = 16;
+        const Project before = invalid;
+        REQUIRE (moveNote (invalid, midiClipId, noteId, 128) == ProjectEditStatus::InvalidProject);
+        requireProjectValueUnchanged (invalid, before);
+    }
+}
+
 TEST_CASE ("Project splitClip creates exact adjacent Tick and source-frame windows", "[project][clip-edit][split]")
 {
     Project project = makeEditableProject();
@@ -638,6 +804,63 @@ TEST_CASE ("Project undo stack records command diffs for clip metadata edits", "
     REQUIRE (undo.redoDepth() == 0u);
 }
 
+TEST_CASE ("Project undo stack records command diffs for MIDI Note edits", "[project][midi][note-edit][undo]")
+{
+    Project project = makeMidiEditableProject();
+    const Project original = project;
+    const EntityId midiClipId = project.midiClips.front().id;
+    const EntityId noteId = project.midiClips.front().notes.front().id;
+    const EntityId rightNoteId = idFromLowByte (44);
+
+    ProjectUndoStack undo;
+
+    auto result = undo.apply (project, ProjectEditCommand::moveNote (midiClipId, noteId, 256));
+    REQUIRE (result.applied());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveNote);
+    REQUIRE (undo.nextUndo()->midiDiff.before.size() == 1u);
+    REQUIRE (undo.nextUndo()->midiDiff.after.size() == 1u);
+
+    result = undo.apply (project, ProjectEditCommand::setNoteLength (midiClipId, noteId, 768));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::quantizeNote (midiClipId, noteId, SnapGrid { 512 }));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::transposeNote (midiClipId, noteId, 7));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::splitNote (midiClipId, noteId, rightNoteId, 256));
+    REQUIRE (result.applied());
+
+    result = undo.apply (project, ProjectEditCommand::cutNote (midiClipId, rightNoteId));
+    REQUIRE (result.applied());
+    REQUIRE (undo.undoDepth() == 6u);
+    REQUIRE_FALSE (undo.canRedo());
+
+    const Project edited = project;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+    REQUIRE (edited.midiClips.front().notes.size() == 2u);
+    REQUIRE (edited.midiClips.front().notes[0].startTick == 512);
+    REQUIRE (edited.midiClips.front().notes[0].lengthTicks == 256);
+    REQUIRE (edited.midiClips.front().notes[0].key == 71);
+    REQUIRE (edited.midiClips.front().notes[0].pitchNote == Approx (71.25));
+
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE (undo.redoDepth() == 6u);
+
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+    REQUIRE (undo.canUndo());
+    REQUIRE_FALSE (undo.canRedo());
+}
+
 TEST_CASE ("Project undo stack groups compatible headless clip edit transactions", "[project][clip-edit][undo][group]")
 {
     Project project = makeTwoClipEditableProject();
@@ -727,6 +950,71 @@ TEST_CASE ("Project undo stack groups compatible headless clip edit transactions
     requireProjectValueUnchanged (project, edited);
     REQUIRE (undo.canUndo());
     REQUIRE_FALSE (undo.canRedo());
+}
+
+TEST_CASE ("Project undo stack groups compatible MIDI Note move and length edits", "[project][midi][note-edit][undo][group]")
+{
+    Project project = makeMidiEditableProject();
+    const Project original = project;
+    const EntityId midiClipId = project.midiClips.front().id;
+    const EntityId noteId = project.midiClips.front().notes.front().id;
+
+    ProjectUndoStack undo;
+    REQUIRE (undo.beginTransactionGroup());
+
+    auto result = undo.apply (project, ProjectEditCommand::moveNote (midiClipId, noteId, 128));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+
+    result = undo.apply (project, ProjectEditCommand::moveNote (midiClipId, noteId, 256));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 1u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::MoveNote);
+    REQUIRE (undo.nextUndo()->midiDiff.before[0] == original.midiClips[0]);
+    REQUIRE (undo.nextUndo()->midiDiff.after[0] == project.midiClips[0]);
+
+    const Project beforeLength = project;
+    result = undo.apply (project, ProjectEditCommand::setNoteLength (midiClipId, noteId, 640));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+
+    result = undo.apply (project, ProjectEditCommand::setNoteLength (midiClipId, noteId, 768));
+    REQUIRE (result.applied());
+    REQUIRE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 2u);
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetNoteLength);
+    REQUIRE (undo.nextUndo()->midiDiff.before[0] == beforeLength.midiClips[0]);
+    REQUIRE (undo.nextUndo()->midiDiff.after[0] == project.midiClips[0]);
+
+    result = undo.apply (project, ProjectEditCommand::transposeNote (midiClipId, noteId, 1));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 3u);
+
+    result = undo.apply (project, ProjectEditCommand::transposeNote (midiClipId, noteId, 1));
+    REQUIRE (result.applied());
+    REQUIRE_FALSE (result.coalesced);
+    REQUIRE (undo.undoDepth() == 4u);
+
+    REQUIRE (undo.endTransactionGroup());
+
+    const Project edited = project;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+
+    for (int i = 0; i < 4; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
 }
 
 TEST_CASE ("Project undo stack separates targets and groups trim and fade edits", "[project][clip-edit][undo][group]")
