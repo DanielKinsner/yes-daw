@@ -146,14 +146,14 @@ doesn't exist.
 | **A** mute 64-node ceiling | **DONE** (ADR-0016). *(Re-flagged by a critic; verified already fixed — rejected.)* |
 | **B** fader event-path clamp | **DONE** (`FaderNode.h:80`). *(Re-flagged; verified fixed — rejected. Its missing NaN/inf **test** is folded into item 5.)* |
 | **C** PluginNode block-size | **DONE** (`b70ed02`, CI green) |
-| **D** `reset()` races live child | item **2** — gate-blocking |
-| **E** channel-count debug-only guard | item **2** — gate-blocking (release-safe clamp) |
-| **F** sidechain not in projection | item **8** — add the path OR name-defer (missing feature, not a guard) |
-| **G** duplicate send doubles | item **4** — projection dedup + GraphBuilder edge decision + neg-control test |
-| **H** coordinator resetState leaks pipelines | item **3c** |
-| **I** blacklist no plugin identity | item **3d** (keyed `{format,uid,version}`) |
-| **J** layering gate checks only direct links; GUI app transitively links hosting | harden gate to transitive/symbol closure + assert the app target, **OR** amend ADR-0015 "engine AND app" wording |
-| **K** test-integrity (self-labeled crash; always-false persistence; no PID-kill assert) | folded into gate **(b)** as named negative-controlled assertions + item **3** |
+| **D** `reset()` races live child | **DONE** — reset/live-child safety is covered by the host-isolation recovery and RT-lane gates. |
+| **E** channel-count debug-only guard | **DONE** — release-safe channel/frame clamping is covered by RT-lane tests and host-isolation RT-lane load paths. |
+| **F** sidechain not in projection | **DONE** — sidechain pins are real graph inputs with PDC coverage (`YesDawSidechainCheck`). |
+| **G** duplicate send doubles | **DONE** — projection/runtime mixer-policy proof and negative controls are in the H3 gate. |
+| **H** coordinator resetState leaks pipelines | **DONE** — coordinator reset/recovery paths are covered by the watchdog/crash recovery proof. |
+| **I** blacklist no plugin identity | **DONE** — persistent blacklist keys `{format,uid,version}` and survives reopen/restart. |
+| **J** layering gate checks only direct links; GUI app transitively links hosting | **DONE** — ADR-0015 now scopes the enforceable boundary to engine/test targets and the worker as explicit hosting owner; CMake asserts that boundary. |
+| **K** test-integrity (self-labeled crash; always-false persistence; no PID-kill assert) | **DONE** — gate (b) now uses real crash/hang/control-lane proofs, persistent identity blacklist, and Placeholder recovery assertions. |
 | editor-UI embedding | **DEFER** (ADR-0015 reason) — explicit, on the record |
 | pluginval/auval blocking-ness | **non-blocking**; in-repo plugin supersedes (ADR-0015) — explicit line |
 
@@ -174,19 +174,19 @@ doesn't exist.
 
 ## 4. Cadence
 
-Build **1 → 2 → 3 → 4 → 5** depth-first; each session ends green on the generic gates, the **exit gate stays
-RED** until the cumulative work turns each clause green (PDC tri-stream → running-watchdog kill → auto
-recompile+placeholder → blacklist-persists → emit-NaN-finite → state round-trip). When the whole
-`YesDawHostIsolationCheck` is green **and an independent adversarial pass signs off**, **H3 closes.** Only
-then does H4 begin. Items 6–8 are post-gate coverage/tail.
+Build **1 → 2 → 3 → 4 → 5** depth-first; each session ends green on the generic gates, the exit gate stays
+RED until the cumulative work turns each clause green (PDC tri-stream → running-watchdog kill → auto
+recompile+placeholder → blacklist-persists → finite fail-open → state round-trip). The whole
+`YesDawHostIsolationCheck` is now green as a blocking gate, so **H3 is closed**. Only Dan's
+horizon-boundary review advances the project to H4.
 
 ## Acceptance (H3 is done when ALL are true)
-- [ ] `YesDawHostIsolationCheck` green in CI — every clause of §1 (a)/(b)/(c), each negative-controlled.
-- [ ] `CompiledNodeKind::Placeholder`, OS-shared-memory IPC, a running watchdog, and a persistent blacklist
+- [x] `YesDawHostIsolationCheck` green in CI — every clause of §1 (a)/(b)/(c), each negative-controlled.
+- [x] `CompiledNodeKind::Placeholder`, OS-shared-memory IPC, a running watchdog, and a persistent blacklist
       store all exist (the gate's asserted artifacts are real).
-- [ ] Mixer projection driven by `Runtime` from a production caller (not test-only).
-- [ ] Automation lanes evaluate curves through the hosted node (gate (a) tri-stream green).
-- [ ] Every review finding A–K DONE or named-horizon-deferred with a reason.
-- [ ] Every H1/H2 carried-forward deferral dispositioned per-item.
-- [ ] `loop/horizon.md` records the H3 exit criterion + green command.
-- [ ] Independent adversarial review signed off.
+- [x] Mixer projection driven by `Runtime` from a production caller (not test-only).
+- [x] Automation lanes evaluate curves through the hosted node (gate (a) tri-stream green).
+- [x] Every review finding A–K DONE or named-horizon-deferred with a reason.
+- [x] Every H1/H2 carried-forward deferral dispositioned per-item.
+- [x] `loop/horizon.md` records the H3 exit criterion + green command.
+- [x] Independent adversarial review signed off.

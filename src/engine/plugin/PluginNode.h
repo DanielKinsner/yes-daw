@@ -23,14 +23,11 @@
 // pipeline Block size is fixed at construction (the host passes the same maxBlockSize it compiles with),
 // because the compiler reads properties() BEFORE prepare() runs.
 //
-// ── Headless for now (this chunk) ────────────────────────────────────────────────────────────────────
-// The "plugin" is the ring's CHILD role, driven by an in-process stub processor (identity by default;
-// settable to a gain / latency-reporting stand-in). There is NO real child process, no YesDawPluginHost
-// worker exe, no JUCE hosting, no scanner/watchdog/coordinator — those are the chunks after this one. In
-// production the child is a separate process polling the shared-memory ring; here serviceStubChild()
-// stands in for that off-audio-thread poll so the whole proxy is testable headlessly (RTSan/TSan-covered).
-// PluginNode therefore contains NO juce::AudioProcessor — that adapter lives only in the future host child,
-// preserving ADR-0008's engine⇏hosting layering boundary.
+// ── Engine/host layering ─────────────────────────────────────────────────────────────────────────────
+// PluginNode itself contains NO juce::AudioProcessor and no process-management code. Tests can drive the
+// ring's child role with serviceStubChild(); production hosts drive the same shared-memory ring from the
+// YesDawPluginHost worker process. The JUCE adapter stays behind the host boundary, preserving ADR-0008's
+// engine/hosting layering boundary.
 
 #pragma once
 

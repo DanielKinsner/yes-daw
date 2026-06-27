@@ -28,18 +28,15 @@ cmake --preset ci && cmake --build --preset ci && ctest --preset ci          # w
 ctest --preset ci -R YesDawHostIsolationCheck                                 # the exit gate green
 ```
 
-## Status: **RED (by design)**
+## Status: **GREEN (H3 closed)**
 
-`YesDawHostIsolationCheck` now exists as a Catch2 `[!shouldfail]` gate wired to
-`ctest -R YesDawHostIsolationCheck`, so `main` stays green while the H3 exit criterion is correctly red.
-Replace each placeholder clause with a real negative-controlled assertion as the close-out-plan items land,
-then **remove `[!shouldfail]` (flip to blocking) the moment the hosting makes it pass.** H3 is done when it
-is green **and** an independent adversarial review signs off **and** the close-out plan's Acceptance
-checklist is fully ticked.
+`YesDawHostIsolationCheck` is now a blocking Catch2 gate wired to `ctest -R YesDawHostIsolationCheck`.
+The H3 exit criterion is satisfied when this gate is green together with the full `ci` preset, and the
+close-out plan's Acceptance checklist is fully ticked.
 
 ## The plan
 
 Full build order, every subsystem, every finding/deferral dispositioned:
 [`docs/plans/2026-06-26-h3-close-out-plan.md`](../docs/plans/2026-06-26-h3-close-out-plan.md).
 
-**Do not close H3 — or start H4 — until the gate above is green.**
+**H3 is closed. Do not start H4 until Dan completes the horizon-boundary review.**

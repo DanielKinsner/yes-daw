@@ -50,10 +50,12 @@ must be provable by a deterministic, dependency-free CI gate.
 **Process model: one dedicated `plugin host child` per hosted plugin, via JUCE
 `ChildProcessCoordinator`/`ChildProcessWorker`.**
 
-- A single new executable target (working name `YesDawPluginHost`) runs in *worker* mode (selected by
-  `commandLineUniqueID`) and is the **only** target that links JUCE hosting
-  (`juce_audio_processors` / `AudioPluginFormatManager`, VST3 + AU). The engine and app targets never link
-  hosting headers; a layering check (grep/symbol gate in CI) enforces ADR-0008.
+- A single executable target, `YesDawPluginHost`, runs in *worker* mode (selected by
+  `commandLineUniqueID`) and is the **only explicit plugin-hosting owner**: it links JUCE hosting
+  (`juce_audio_processors` / `AudioPluginFormatManager`, VST3 + AU) and owns plugin scan/load/state work.
+  Engine targets never link or include hosting headers. The GUI app may inherit JUCE app/audio modules
+  transitively, but it must not own plugin-hosting code or use `AudioPluginFormatManager`; the build's
+  layering check enforces ADR-0008 for engine/test targets and asserts the worker owns JUCE hosting.
 - The control-thread **plugin host coordinator** in the main process spawns, supervises, and tears down
   children, owns the message channel, and runs a **watchdog timer**: a plugin that *hangs* never fires
   `handleConnectionLost()`, so on watchdog timeout the coordinator kills the child PID, escalates the

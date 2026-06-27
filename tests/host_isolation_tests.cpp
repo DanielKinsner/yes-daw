@@ -1,9 +1,7 @@
 // YES DAW - H3 host-isolation close-out gate (ADR-0015 / ADR-0013 / ADR-0006 / ADR-0007).
 //
-// This target is the mechanical H3 finish line. It intentionally starts RED and is tagged
-// [!shouldfail] so `main` stays green while the real hosted-process implementation is still absent.
-// Replace each boolean with a real assertion as the corresponding close-out-plan item lands, then
-// remove [!shouldfail] when the whole gate passes without inversion.
+// This target is the mechanical H3 finish line. It started RED while hosted-process implementation was
+// absent; H3 closes only when the aggregate gate passes without inversion.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1676,9 +1674,7 @@ HostIsolationGateState currentHostIsolationGateState()
     state.placeholderSwapUsesOrderedPublish =
         recovery.placeholderCompiled && recovery.orderedPublishAccepted && recovery.graphRecompileExecuted;
     state.blacklistPersistsAcrossRestart = proveBlacklistPersistsAcrossRestartCached().passed;
-    // The focused opaque-state clause is green in its own test. Keep the aggregate gate inverted until the
-    // next review/close-out checkpoint is allowed to remove [!shouldfail] and declare H3 green.
-    state.opaqueStateRoundTripsAcrossProcess = false;
+    state.opaqueStateRoundTripsAcrossProcess = proveOpaqueStateRoundTripsAcrossProcess().passed;
     return state;
 }
 
@@ -1908,7 +1904,7 @@ TEST_CASE ("opaque plugin state round-trips across the real process control lane
     REQUIRE (proof.passed);
 }
 
-TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation][!shouldfail]")
+TEST_CASE ("H3 host isolation exit gate is satisfied", "[h3][host-isolation]")
 {
     const HostIsolationGateState gate = currentHostIsolationGateState();
 

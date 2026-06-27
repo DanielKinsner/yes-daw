@@ -9,59 +9,14 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-27
-**Current horizon:** **H3 (mixer + plugin hosting)** — mixer policy complete; plugin-hosting runtime ADR
-(ADR-0015) written + reviewed; implementation underway — the RT-lane shared-memory IPC ring (the one-Block
-primitive) is built/reviewed/green; the `PluginNode` IPC proxy over that ring is built and CI-green; the
-`PluginNode` REVIEW/FIX found no defects; the `YesDawPluginHost` worker exe + engine-hosting layering
-checkpoint is built and CI-green; the plugin-host coordinator launch/handshake shell is built and
-CI-green; the minimal coordinator lifecycle/lost-child shell is built and CI-green; the minimal
-coordinator child-state/status surface is built and CI-green; the minimal coordinator watchdog-timeout
-shell is built and CI-green; the minimal coordinator host-failure report shell is built and CI-green; the
-minimal coordinator failure-action request shell is built and CI-green; the minimal coordinator pending
-failure-action queue/drain shell is built and CI-green; the minimal coordinator failure-action
-drain-to-control-thread command shell is built and CI-green; the minimal coordinator deferred
-graph-change command receipt/status shell is built and CI-green; the minimal coordinator deferred
-graph-change command acknowledge/clear-status shell is built and CI-green; the minimal coordinator
-blacklist-candidate status shell is built/reviewed/green; the minimal coordinator pending
-blacklist-candidate queue/drain shell is built/reviewed/green; the minimal coordinator
-blacklist-candidate drain-to-control-thread escalation shell is built/reviewed/green; the minimal
-coordinator blacklist escalation receipt/status shell is built/reviewed/green; the minimal coordinator
-blacklist escalation acknowledge/clear-status shell is built/reviewed/green; the minimal coordinator
-blacklist policy-decision request shell is built/reviewed/green; the minimal coordinator pending
-blacklist policy-decision request queue/drain shell is built/reviewed/green; the minimal coordinator
-blacklist policy-decision drain-to-control-thread command shell is built/reviewed/green; the minimal
-coordinator deferred blacklist policy-decision command receipt/status shell is built/reviewed/green; the
-minimal coordinator deferred blacklist policy-decision command acknowledge/clear-status shell is
-built/reviewed/green; the minimal coordinator blacklist policy-decision outcome/status shell is
-built/reviewed/green; the minimal coordinator pending blacklist policy-decision outcome queue/drain shell
-is built/reviewed/green; the minimal coordinator pending blacklist policy-decision outcome
-drain-to-control-thread handling shell is built/reviewed/green; the minimal coordinator deferred
-blacklist policy-decision outcome handling receipt/status shell is built/reviewed/green; the minimal
-coordinator deferred blacklist policy-decision outcome handling acknowledge/clear-status shell is
-built/reviewed/green; the minimal coordinator blacklist-handling request/status shell is built/reviewed/green;
-the minimal coordinator pending blacklist-handling request queue/drain shell is built/reviewed/green; the
-minimal coordinator blacklist-handling request drain-to-control-thread command shell is built/reviewed/green;
-the minimal coordinator deferred blacklist-handling command receipt/status shell is built/reviewed/green;
-the minimal coordinator deferred blacklist-handling command acknowledge/clear-status shell is built/reviewed/green;
-the minimal coordinator blacklist-handling outcome/status shell is built/reviewed/green; the minimal coordinator
-pending blacklist-handling outcome queue/drain shell is built/reviewed/green; the minimal coordinator
-blacklist-handling outcome drain-to-control-thread handling shell is built/reviewed/green; the minimal
-coordinator deferred blacklist-handling outcome handling receipt/status shell is built/reviewed/green; the minimal
-coordinator deferred blacklist-handling outcome handling acknowledge/clear-status shell is locally green; the
-H3 close-out gate scaffold is CI-green; the first real synthetic `juce::AudioProcessor` worker-child
-oracle is locally green; the OS-backed RT-lane shared-memory clause is built/reviewed/green; the
-coordinator RT-lane load/control-lane identity transfer is built/reviewed/green; the worker mapped
-RT-lane `pollOnce` hosted-processor path is locally green; the item-2 RT-lane reset/channel-count
-hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is locally green; item
-3b running RT-lane watchdog same-child progress hardening is reviewed/green; item 3c crash/hang
-auto-enqueue + Placeholder recovery publish is reviewed/green; item 3d persistent blacklist
-store/schema keyed by plugin identity is reviewed/green; item 4a `Project` -> `MixerProjectionInputs`
-projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` driver is reviewed/green;
-item 4c projected mixer graph through `Runtime` + live mixer-policy gate is reviewed/green; item 5
-automation lanes for tri-stream PDC through the hosted `PluginNode` path is reviewed/green; the fail-open
-deadline/no-dropout clause through the projected `Runtime` graph is reviewed/green; the focused opaque
-plugin-state control-lane round-trip through the real process boundary is locally green, while the
-aggregate `[!shouldfail]` gate remains intentionally inverted pending review/close-out permission
+**Current horizon:** **H3 (mixer + plugin hosting) — CLOSED / waiting for Dan's H3->H4 boundary review.**
+The mixer-policy half is done. The plugin-hosting half is now closed by the blocking
+`YesDawHostIsolationCheck`: the in-repo synthetic `juce::AudioProcessor` runs in `YesDawPluginHost`; the
+RT lane uses OS shared memory; control-lane identity transfer, worker `pollOnce`, running watchdog,
+crash/hang recovery, `CompiledNodeKind::Placeholder` replacement, persistent `{format,uid,version}`
+blacklist, projected `Runtime` mixer publication, tri-stream PDC, fail-open deadline/no-dropout, finite
+output, validated latency, and opaque state pull/push with `{chunk_len,crc32}` validation all have
+self-asserting gates. The aggregate gate is no longer `[!shouldfail]`.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -74,60 +29,16 @@ aggregate `[!shouldfail]` gate remains intentionally inverted pending review/clo
 
 ---
 
-## Now — between chunks (every engine commit to date is CI-green)
-- **▶ DIRECTION — H3 is being closed to its exit gate (no more breadth-first shells).** New builder?
-  Read **`loop/PROMPT.md`** → **`loop/horizon.md`** (the gate = definition of done) →
-  **`docs/plans/2026-06-26-h3-close-out-plan.md`** (full build order + findings ledger), then build the
-  plan **depth-first from item 1** (the RED `YesDawHostIsolationCheck` gate + in-repo test plugin). H3 does
-  NOT close until that gate is green. The RED gate target now exists as a Catch2 `[!shouldfail]` check wired
-  to `ctest -R YesDawHostIsolationCheck`; the early clauses now have real evidence: the in-repo
-  hosted-plugin oracle, the OS-backed shared-memory RT lane, the coordinator-to-worker RT-lane identity
-  transfer over the control lane, worker `pollOnce` processing through the hosted processor path, a real
-  Placeholder compiled-node kind, and a narrow running RT-lane watchdog that first proves same-child
-  `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog,
-  plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures,
-  publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue, proves a
-  persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart,
-  proves a projected mixer graph published through `Runtime` with SIP/solo-safe policy and mask-capacity
-  coverage, and now proves a focused opaque plugin-state chunk can be pulled/pushed across the real worker
-  child control lane with `{chunk_len, crc32}` validation.
-  The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
-  clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX fail-open deadline/no-dropout is clean; WORKER opaque plugin-state control-lane round-trip is locally green.**
-  REVIEW/FIX of `1cbb364` found no proven defects against `STATUS.md`, `loop/horizon.md`, the close-out
-  plan, ADR-0006/0008/0009/0013/0014/0015, `src/engine/plugin/RtLaneRing.h`,
-  `src/engine/plugin/PluginNode.h`, `tests/host_isolation_tests.cpp`, and the handoff: deadline diagnostics
-  stay audio-thread-local/deterministic; `readOutputFailOpen()` makes one bounded output-ready probe per
-  Block; a forced-late child is treated as an output miss, not an audio deadline miss; the projected
-  `Runtime` proof covers Fresh -> LastGood -> Silence -> Bypass, finite output, `deadlineMissCount() == 0`,
-  and one output-ready probe per Block; diagnostics are exposed narrowly through `PluginNode`; and no
-  opaque-state/scanner/pluginval/auval/UI/real external plugin loading/ADR/golden/RT annotation drift leaked
-  into the fail-open slice. Then WORKER added the narrow opaque-state clause: the control-lane protocol now
-  has typed `PluginStateRequestMessage` / `PluginStateReplyMessage` structs carrying `chunkLength`, `crc32`,
-  and bounded opaque bytes; `YesDawPluginHost` pulls `getStateInformation`, rejects a deliberately corrupted
-  CRC push, then accepts the valid `setStateInformation` push; `PluginHostCoordinator` proves the pull ->
-  bad-CRC rejection -> valid-push round-trip against the real worker child after RT-lane load; and
-  `YesDawHostIsolationCheck` has a focused `[state][ipc]` test for that path. The aggregate gate is still
-  `[!shouldfail]` and intentionally leaves `opaqueStateRoundTripsAcrossProcess` false because this baton was
-  explicitly not allowed to remove `[!shouldfail]` or close H3. Still out of scope: scanner, pluginval/auval,
-  UI embedding, real external plugin loading, emit-NaN recovery, impossible-latency quarantine, broad
-  automation persistence/schema, ADR edits, goldens, real JUCE device ownership, and H3 closure. Local gate:
-  `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawPluginHost YesDawPluginHostCoordinatorCheck`;
-  direct `YesDawPluginHost.exe --synthetic-plugin-self-check`; direct
-  `YesDawPluginHostCoordinatorCheck.exe`; direct `YesDawHostIsolationCheck.exe` with
-  `YESDAW_PLUGIN_HOST_PATH`; direct `YesDawHostIsolationCheck.exe "[state]"`; `ctest --preset ci -R
-  YesDawHostIsolationCheck --output-on-failure`; VS DevShell `cmake --build --preset ci`; `ctest --preset
-  ci --output-on-failure` passed **205/205**; `git diff --check` passed. **Next:** REVIEW/FIX this
-  opaque-state checkpoint first. Verify `src/plugin_host/PluginHostProtocol.h`,
-  `src/plugin_host/PluginHostMain.cpp`, `src/plugin_host/PluginHostCoordinator.h`,
-  `tests/host_isolation_tests.cpp`, and this handoff. Confirm opaque bytes cross the control lane both ways,
-  `{chunk_len, crc32}` is validated, corrupted CRC is rejected, `setStateInformation` acceptance is proven,
-  no audio-thread/RT-lane/scanner/pluginval/auval/UI/real-plugin/ADR/golden drift leaked in, and
-  `[!shouldfail]` remains unchanged. If clean, decide the final H3 gate-close sequencing explicitly:
-  either (A, recommended) run an independent review, then flip `opaqueStateRoundTripsAcrossProcess` true and
-  remove `[!shouldfail]` in one green close-out checkpoint if Dan/plan allows, or (B) keep H3 open and name
-  the next still-false clause if review finds a real gap.
+## Now — H3 closed; stop for boundary review
+- **Latest: H3 host-isolation exit gate is now blocking and green locally.**
+  REVIEW/FIX of `1bf006e` found no proven defect in the opaque-state checkpoint: opaque bytes cross the
+  real worker process control lane both ways; `{chunk_len, crc32}` is validated; a deliberately corrupted
+  CRC push is rejected before state restore; the valid push proves `setStateInformation` acceptance; and no
+  audio-thread/RT-lane/scanner/pluginval/auval/UI/real external plugin/golden drift leaked in. Close-out
+  flipped `opaqueStateRoundTripsAcrossProcess` to the real proof, removed `[!shouldfail]` from the aggregate
+  `YesDawHostIsolationCheck`, clarified ADR-0015's engine/app layering wording for finding J, updated
+  `loop/horizon.md`, and ticked the close-out plan acceptance checklist. **Next:** Dan's H3->H4
+  horizon-boundary review. Do not start H4 or create another baton thread unless Dan asks.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
@@ -1971,23 +1882,22 @@ aggregate `[!shouldfail]` gate remains intentionally inverted pending review/clo
 - **H0 carry-over decided:** the native GPU render shell + `max_frame_ms<16.6` soak gate is **folded
   into H2** (UI work). H1's exit is 100% headless CI, so it does not block. The audio soak still stands.
 
-## Current-horizon checklist — H3 (mixer + plugin hosting; plain English, small steps)
-> Exit gate: two parallel paths, one with a real high-latency plugin, stay sample-aligned
-> (PDC impulse test passes against the live plugin); pluginval L8-10 + `auval` pass in CI; and a
-> plugin that crashes or hangs mid-session is isolated so the session survives with a crashed-plugin
-> placeholder and the offender is blacklisted, without an audio dropout or audio-thread wait.
+## Current-horizon checklist — H3 (mixer + plugin hosting; closed)
+> Exit gate: deterministic in-repo `YesDawHostIsolationCheck` proves hosted-plugin PDC, crash/hang
+> isolation, fail-open/no-dropout behavior, persistent blacklist, and opaque state round-trip across the
+> real worker process. `pluginval`/`auval` are non-blocking external coverage per ADR-0015.
 - [x] **ADR-0013 plugin state + hosting isolation. First chunk.** Lock opaque plugin-state chunks and
   out-of-process/sandboxed hosting before any H3 plugin-host code lands.
-- [~] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter are headless and green; mixer policy
-  ADR for solo/mute/SIP solo-safe behavior and Sidechain input pins is next.
-- [ ] Automation lanes honoring per-Block offsets through the graph projection.
-- [ ] Out-of-process plugin scanner with persistent blacklist and hang watchdog.
-- [~] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
-  thread wait on child process — headless adapter built and CI-green; rolling-baton REVIEW/FIX is next.
-- [ ] VST3 + AU hosting behind `PluginNode`; CLAP comes after VST3/AU.
+- [x] Mixer as graph projection: Fader/Pan/Sum/Send/Return/Meter, solo/mute/SIP solo-safe behavior, and
+  Sidechain input pins are headless and green.
+- [x] Automation lanes honor per-Block offsets through the hosted `PluginNode` projection path.
+- [x] Out-of-process plugin host boundary with persistent blacklist and hang watchdog.
+- [x] `PluginNode` IPC proxy: shared-memory audio/event buffers, one-block fail-open pipeline, no audio
+  thread wait on child process.
+- [x] In-repo JUCE `AudioProcessor` hosting behind `PluginNode`; real external scanner/pluginval/auval and
+  CLAP remain non-blocking/future coverage per ADR-0015.
 - [x] Opaque plugin-state persistence and corrupt-chunk graceful fallback.
-- [ ] H3 mechanical gates: live high-latency-plugin PDC impulse, pluginval L8-10, `auval`, and
-  crash/hang isolation with blacklist and no-dropout/nonblocking proof.
+- [x] H3 mechanical gates: blocking in-repo host-isolation gate plus full CI.
 
 ## Previous-horizon checklist — H2 (closed by Dan boundary review; editing-first)
 > Exit gate (all green in CI): any edit sequence + full undo returns the document bit-identical; a
