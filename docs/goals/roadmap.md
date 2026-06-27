@@ -37,6 +37,17 @@ lanes; out-of-process scanner → VST3 + AU → CLAP hosting behind `PluginNode`
 **Exit:** two parallel paths, one with a real high-latency plugin, stay sample-aligned (PDC impulse
 test); pluginval L8–10 + `auval` pass in CI.
 
+> **Status note (per ADR-0015 + the H3 close-out; updated by the 2026-06-27 H3 review).** The blocking CI
+> gate is the in-repo **synthetic** host-isolation check (`YesDawHostIsolationCheck`), which spawns the
+> real `YesDawPluginHost` worker process. `pluginval` L8–10 / `auval` against real third-party plugins are
+> **non-blocking** (gated on runner plugin availability + GPL licensing) — they do not run in CI today.
+> Known-open against this exit text, tracked as follow-ups (the adversarial review's findings): the
+> "real high-latency plugin / two parallel paths" alignment is currently proven only via the synthetic
+> processor (in-process stub, low latency); the worker only runs *passthrough*, so its emit-NaN / fixed-
+> latency / hang modes are not yet driven across the real boundary; and **blacklist-on-failure is not
+> wired** (a crash/hang recompiles to a placeholder but never persists a blacklist row). The mixer half is
+> solid; the plugin-hosting half is real-but-shallow.
+
 ## H4 — MIDI editing & instruments
 MIDI Clips; Notes flatten to render events; instrument Nodes; piano-roll editing; MIDI-effect Nodes;
 MPE voice allocation at the I/O boundary.

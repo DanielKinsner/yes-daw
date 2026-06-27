@@ -28,8 +28,28 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H4 full-close: gate + runtime source + ADR-0010 prefix sum landed; CP2b (MIDI tracks) needs a design call
-- **Latest (2026-06-27): full-close F8 — ADR-0010 prefix-sum tempo lookup is green locally.**
+## Now — H3 adversarial review done; fixing gate honesty + the xrun oracle (H4 full-close paused at CP2b)
+- **Latest (2026-06-27): adversarial review of H3 (mixer + plugin hosting); remediation started.**
+  Ran the same build + mutation + multi-agent treatment on H3 that H4 got (66 agents; the gate built and
+  ran, 3/4 injected mutations bit). Verdict: the host-isolation gate is REAL (it spawns the real
+  `YesDawPluginHost` worker, OS shared-memory RT lane, real PID kills, opaque-state CRC round-trip across
+  the real control lane) but SHALLOWER than it presents. Confirmed (and independently re-read) defects:
+  (1) **blacklist-on-failure is not wired** — `FailureActionKind` has only `none`/`bypassAndRecompile`
+  (no blacklist action); `blacklistStatePersisted`/`blacklistPolicyApplied` are hardcoded false; ~3,500
+  lines of blacklist state-machine have no downstream effect; the "blacklist persists across restart" gate
+  test bypasses the coordinator and just round-trips SQLite — the PRIOR review's "honest skeleton" finding
+  is still true. (2) **the "zero xrun / no deadline miss" oracle is a structural tautology** —
+  `RtLaneRing::loadOutputReadyOnce` is called exactly once per Block so `deadlineMissCount()` can never
+  increment; `deadlineMissCount()==0` proves nothing. (3) **the synthetic worker only runs passthrough**
+  (`PluginHostMain.cpp:320`) — emit-NaN / fixed-latency / hang modes never cross the real boundary in the
+  gate, and fail-open does not scrub NaN. (4) the roadmap "real high-latency plugin / two parallel paths"
+  is met only nominally (in-process stub); roadmap.md's stale "pluginval/auval pass in CI" clause now
+  carries a status note. So H3 is NOT complete against ADR-0015's own exit gate; the mixer half is solid,
+  the plugin-hosting half is real-but-shallow. **Dan chose:** fix gate honesty + the oracle first
+  (mechanical, no new ADR); blacklist-on-failure wiring is a separate, likely ADR-gated slice. **In
+  progress:** repurpose `deadlineMissCount` to count real fail-open misses + make the gate assert it
+  tracks the ladder; drive the worker's NaN/latency/hang modes across the boundary; scrub NaN in fail-open.
+- **Earlier (2026-06-27): full-close F8 — ADR-0010 prefix-sum tempo lookup is green locally.**
   Closes review finding F8: `tickToFrame` was an O(n) per-call scan + full re-validation, diverging from
   ADR-0010's mandated prefix-sum O(log n) lookup, and `flattenMidiClipToTimeline` called it once per Note
   start/end (O(notes * segments)). Added `CompiledTempoMap`: validate + accumulate each segment's cumulative
