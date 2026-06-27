@@ -24,7 +24,9 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::Marker;
 using yesdaw::engine::MeterChange;
+using yesdaw::engine::MidiClip;
 using yesdaw::engine::moveClip;
+using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::SampleRate;
@@ -33,6 +35,7 @@ using yesdaw::engine::setClipGain;
 using yesdaw::engine::splitClip;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
+using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::trimClip;
 using yesdaw::persistence::AssetImportRequest;
@@ -244,6 +247,36 @@ Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint
     return clip;
 }
 
+Note makeNote (EntityId id, Tick start, Tick length, std::int16_t key = 60)
+{
+    Note note;
+    note.id = id;
+    note.startTick = start;
+    note.lengthTicks = length;
+    note.key = key;
+    note.pitchNote = static_cast<double> (key) + 0.25;
+    note.normalizedVelocity = 0.75;
+    note.portIndex = 1;
+    note.channel = 2;
+    return note;
+}
+
+MidiClip makeMidiClip (EntityId id, EntityId trackId)
+{
+    MidiClip midiClip;
+    midiClip.id = id;
+    midiClip.trackId = trackId;
+    midiClip.timelineStart = 7680;
+    midiClip.timelineLength = 15360 * 4;
+    midiClip.timeBase = TimeBase::TempoLocked;
+    midiClip.notes = {
+        makeNote (idFromLowByte (72), 0, 15360, 60),
+        makeNote (idFromLowByte (73), 15360, 7680, 67),
+        makeNote (idFromLowByte (74), midiClip.timelineLength, 0, 72),
+    };
+    return midiClip;
+}
+
 Project makeProject()
 {
     Project project;
@@ -285,6 +318,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.sampleRate == expected.sampleRate);
     REQUIRE (actual.assets == expected.assets);
     REQUIRE (actual.clips == expected.clips);
+    REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.hasValidAssetClipIndirection());
 }
 
@@ -325,11 +359,17 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 2;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 3;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_blacklist';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_clips';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_notes';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -496,6 +536,48 @@ TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reope
     REQUIRE (invalidDb.writeProjectSnapshot (invalidTempo).status == BundleStatus::SemanticInvalid);
 }
 
+TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
+           "[persistence][project][round-trip][midi]")
+{
+    const auto path = makeTempBundlePath ("midi-round-trip");
+
+    Project project = makeProject();
+    project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+
+        sqlite3_int64 count = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM midi_clips;", count).ok());
+        REQUIRE (count == 1);
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM midi_notes;", count).ok());
+        REQUIRE (count == 3);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.midiClips.size() == 1u);
+    REQUIRE (readback.midiClips[0].trackId == idFromLowByte (71));
+    REQUIRE (readback.midiClips[0].notes[1].pitchNote == Approx (67.25));
+    REQUIRE (readback.midiClips[0].notes[2].lengthTicks == 0);
+
+    Project mutatedNote = project;
+    mutatedNote.midiClips[0].notes[1].normalizedVelocity = 0.5;
+    REQUIRE_FALSE (readback.midiClips == mutatedNote.midiClips);
+
+    Project noteExtendsPastClip = project;
+    noteExtendsPastClip.midiClips[0].notes[0].startTick = noteExtendsPastClip.midiClips[0].timelineLength;
+    noteExtendsPastClip.midiClips[0].notes[0].lengthTicks = 1;
+    ProjectBundleDb invalidDb = openFreshBundle (makeTempBundlePath ("midi-invalid"));
+    REQUIRE (invalidDb.writeProjectSnapshot (noteExtendsPastClip).status == BundleStatus::SemanticInvalid);
+}
+
 TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "[persistence][project][clip-edit]")
 {
     const auto path = makeTempBundlePath ("clip-edit-round-trip");
@@ -596,6 +678,8 @@ TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistenc
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 2;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 3;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1 AND app_build = 'interrupted';", value).ok());
     REQUIRE (value == 0);
 
@@ -626,6 +710,26 @@ TEST_CASE ("Opening an existing bundle runs layered semantic validation", "[pers
         REQUIRE (db.writeProjectSnapshot (makeProject()).ok());
         writeProjectAssetFiles (path, makeProject());
         REQUIRE (db.executeSql ("UPDATE clips SET src_len = 901 WHERE id = X'00000000000000000000000000000004';").ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects MIDI Notes outside their Clip", "[persistence][semantic][open][midi]")
+{
+    const auto path = makeTempBundlePath ("semantic-midi-open");
+    Project project = makeProject();
+    project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "UPDATE midi_notes SET start_tick = 999999 WHERE id = X'00000000000000000000000000000048';")
+                     .ok());
     }
 
     ProjectBundleDb reopened;

@@ -13,52 +13,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <span>
 #include <vector>
 
 namespace yesdaw::engine {
-
-struct Note
-{
-    EntityId     id;
-    Tick         startTick = 0;          // clip-relative
-    Tick         lengthTicks = 0;        // zero-length is legal: On and Off at the same sample
-    std::int16_t key = 60;
-    double       pitchNote = 60.0;
-    double       normalizedVelocity = 1.0;
-    std::int16_t portIndex = -1;
-    std::int16_t channel = -1;
-
-    [[nodiscard]] bool isValid() const noexcept
-    {
-        return id.isValid()
-            && startTick >= 0
-            && lengthTicks >= 0
-            && key >= 0
-            && key <= 127
-            && std::isfinite (pitchNote)
-            && std::isfinite (normalizedVelocity)
-            && normalizedVelocity >= 0.0
-            && normalizedVelocity <= 1.0;
-    }
-};
-
-struct MidiClip
-{
-    EntityId id;
-    Tick     timelineStart = 0;
-    Tick     timelineLength = 0;
-    TimeBase timeBase = TimeBase::TempoLocked;
-    std::vector<Note> notes;
-
-    [[nodiscard]] bool isValid() const noexcept
-    {
-        return id.isValid()
-            && timelineLength >= 0
-            && (timeBase == TimeBase::TempoLocked || timeBase == TimeBase::SampleLocked);
-    }
-};
 
 struct MidiFlattenBlock
 {

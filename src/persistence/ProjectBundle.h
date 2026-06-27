@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 2;
+inline constexpr int          kCodeSchemaVersion = 3;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -858,6 +858,10 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
         if (! marker.id.isValid())
             return false;
 
+    for (const engine::MidiClip& midiClip : project.midiClips)
+        if (! midiClip.isValid())
+            return false;
+
     return true;
 }
 
@@ -961,15 +965,40 @@ CREATE TABLE plugin_blacklist (
 );
 )SQL";
 
+inline constexpr std::string_view kSchemaV3Sql = R"SQL(
+CREATE TABLE midi_clips (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  track_id BLOB NOT NULL CHECK (length(track_id) = 16),
+  timeline_start INTEGER NOT NULL,
+  timeline_length INTEGER NOT NULL CHECK (timeline_length >= 0),
+  time_base INTEGER NOT NULL CHECK (time_base IN (0, 1))
+);
+
+CREATE TABLE midi_notes (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  clip_id BLOB NOT NULL,
+  start_tick INTEGER NOT NULL CHECK (start_tick >= 0),
+  length_ticks INTEGER NOT NULL CHECK (length_ticks >= 0),
+  key INTEGER NOT NULL CHECK (key >= 0 AND key <= 127),
+  pitch_note REAL NOT NULL,
+  normalized_velocity REAL NOT NULL CHECK (normalized_velocity >= 0 AND normalized_velocity <= 1),
+  port_index INTEGER NOT NULL CHECK (port_index >= -1),
+  channel INTEGER NOT NULL CHECK (channel >= -1 AND channel <= 15),
+  FOREIGN KEY (clip_id) REFERENCES midi_clips(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+CREATE INDEX midi_notes_clip_id_idx ON midi_notes(clip_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 2> kMigrations {
+inline constexpr std::array<SchemaMigration, 3> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
+    SchemaMigration { 3, kSchemaV3Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1561,7 +1590,12 @@ public:
 
         const auto rollback = [this] { (void) detail::exec (db_, "ROLLBACK;"); };
 
-        if (auto result = detail::exec (db_, "DELETE FROM clips; DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM assets; DELETE FROM project;"); ! result.ok())
+        if (auto result = detail::exec (
+                db_,
+                "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM clips; "
+                "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
+                "DELETE FROM assets; DELETE FROM project;");
+            ! result.ok())
         {
             rollback();
             return result;
@@ -1694,6 +1728,43 @@ public:
             {
                 rollback();
                 return result;
+            }
+        }
+
+        {
+            detail::Statement midiClipStmt (
+                db_,
+                "INSERT INTO midi_clips(id, track_id, timeline_start, timeline_length, time_base) "
+                "VALUES (?, ?, ?, ?, ?);");
+            detail::Statement noteStmt (
+                db_,
+                "INSERT INTO midi_notes(id, clip_id, start_tick, length_ticks, key, pitch_note, normalized_velocity, port_index, channel) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+
+            for (const engine::MidiClip& midiClip : project.midiClips)
+            {
+                midiClipStmt.reset();
+                if (auto result = midiClipStmt.bindBlob (1, midiClip.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindBlob (2, midiClip.trackId.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindInt64 (3, midiClip.timelineStart); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindInt64 (4, midiClip.timelineLength); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindInt64 (5, static_cast<sqlite3_int64> (midiClip.timeBase)); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, midiClipStmt); ! result.ok()) { rollback(); return result; }
+
+                for (const engine::Note& note : midiClip.notes)
+                {
+                    noteStmt.reset();
+                    if (auto result = noteStmt.bindBlob (1, note.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindBlob (2, midiClip.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindInt64 (3, note.startTick); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindInt64 (4, note.lengthTicks); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindInt64 (5, note.key); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindDouble (6, note.pitchNote); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindDouble (7, note.normalizedVelocity); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindInt64 (8, note.portIndex); ! result.ok()) { rollback(); return result; }
+                    if (auto result = noteStmt.bindInt64 (9, note.channel); ! result.ok()) { rollback(); return result; }
+                    if (auto result = detail::expectDone (db_, noteStmt); ! result.ok()) { rollback(); return result; }
+                }
             }
         }
 
@@ -1855,6 +1926,82 @@ public:
         }
 
         {
+            detail::Statement clipStmt;
+            if (auto result = clipStmt.prepare (
+                    db_,
+                    "SELECT id, track_id, timeline_start, timeline_length, time_base FROM midi_clips ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = clipStmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::MidiClip midiClip;
+                if (auto result = detail::columnBlob (clipStmt.get(), 0, midiClip.id.bytes, "midi_clips.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (clipStmt.get(), 1, midiClip.trackId.bytes, "midi_clips.track_id"); ! result.ok())
+                    return result;
+
+                midiClip.timelineStart = sqlite3_column_int64 (clipStmt.get(), 2);
+                midiClip.timelineLength = sqlite3_column_int64 (clipStmt.get(), 3);
+
+                const sqlite3_int64 timeBase = sqlite3_column_int64 (clipStmt.get(), 4);
+                if (timeBase != static_cast<sqlite3_int64> (engine::TimeBase::TempoLocked)
+                    && timeBase != static_cast<sqlite3_int64> (engine::TimeBase::SampleLocked))
+                    return detail::semanticInvalid ("midi_clips.time_base is outside the Project value range");
+                midiClip.timeBase = static_cast<engine::TimeBase> (timeBase);
+
+                detail::Statement noteStmt;
+                if (auto result = noteStmt.prepare (
+                        db_,
+                        "SELECT id, start_tick, length_ticks, key, pitch_note, normalized_velocity, port_index, channel "
+                        "FROM midi_notes WHERE clip_id = ? ORDER BY rowid;");
+                    ! result.ok())
+                    return result;
+                if (auto result = noteStmt.bindBlob (1, midiClip.id.bytes); ! result.ok())
+                    return result;
+
+                while (true)
+                {
+                    const int noteStep = noteStmt.step();
+                    if (noteStep == SQLITE_DONE)
+                        break;
+                    if (noteStep != SQLITE_ROW)
+                        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                    engine::Note note;
+                    if (auto result = detail::columnBlob (noteStmt.get(), 0, note.id.bytes, "midi_notes.id"); ! result.ok())
+                        return result;
+
+                    note.startTick = sqlite3_column_int64 (noteStmt.get(), 1);
+                    note.lengthTicks = sqlite3_column_int64 (noteStmt.get(), 2);
+
+                    const sqlite3_int64 key = sqlite3_column_int64 (noteStmt.get(), 3);
+                    const sqlite3_int64 portIndex = sqlite3_column_int64 (noteStmt.get(), 6);
+                    const sqlite3_int64 channel = sqlite3_column_int64 (noteStmt.get(), 7);
+                    if (key < 0 || key > 127
+                        || portIndex < -1 || portIndex > std::numeric_limits<std::int16_t>::max()
+                        || channel < -1 || channel > 15)
+                        return detail::semanticInvalid ("midi_notes voice address is outside the Project value range");
+
+                    note.key = static_cast<std::int16_t> (key);
+                    note.pitchNote = sqlite3_column_double (noteStmt.get(), 4);
+                    note.normalizedVelocity = sqlite3_column_double (noteStmt.get(), 5);
+                    note.portIndex = static_cast<std::int16_t> (portIndex);
+                    note.channel = static_cast<std::int16_t> (channel);
+                    midiClip.notes.push_back (note);
+                }
+
+                project.midiClips.push_back (std::move (midiClip));
+            }
+        }
+
+        {
             detail::Statement stmt;
             if (auto result = stmt.prepare (db_, "SELECT tick, bpm, curve_to_next FROM tempo_changes ORDER BY tick;"); ! result.ok())
                 return result;
@@ -2010,6 +2157,17 @@ public:
             return result;
         if (sourceWindowProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "clip source window exceeds asset frames" };
+
+        bool midiNoteWindowProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM midi_notes n JOIN midi_clips c ON c.id = n.clip_id "
+                "WHERE n.start_tick > c.timeline_length OR n.length_ticks > c.timeline_length - n.start_tick LIMIT 1;",
+                midiNoteWindowProblem);
+            ! result.ok())
+            return result;
+        if (midiNoteWindowProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "MIDI note window exceeds MIDI Clip length" };
 
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
@@ -2412,7 +2570,9 @@ private:
             "UNION ALL SELECT sample_rate_hz FROM assets "
             "UNION ALL SELECT bpm FROM tempo_changes "
             "UNION ALL SELECT value FROM automation_points "
-            "UNION ALL SELECT gain FROM clips;");
+            "UNION ALL SELECT gain FROM clips "
+            "UNION ALL SELECT pitch_note FROM midi_notes "
+            "UNION ALL SELECT normalized_velocity FROM midi_notes;");
         while (true)
         {
             const int step = stmt.step();
@@ -2435,6 +2595,8 @@ private:
                 "SELECT 1 FROM project WHERE sample_rate_hz <= 0 "
                 "UNION ALL SELECT 1 FROM assets WHERE frames <= 0 OR sample_rate_hz <= 0 OR channels <= 0 "
                 "UNION ALL SELECT 1 FROM clips WHERE timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM midi_clips WHERE timeline_length < 0 OR time_base NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM meter_changes WHERE numerator <= 0 OR denominator <= 0 "
                 "UNION ALL SELECT 1 FROM automation_points WHERE target_node_id < 0 OR parameter_id < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1, 2, 3) "
@@ -2457,6 +2619,8 @@ private:
                 "SELECT 1 FROM project WHERE typeof(id) != 'blob' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') "
                 "UNION ALL SELECT 1 FROM assets WHERE typeof(id) != 'blob' OR typeof(content_hash) != 'blob' OR typeof(frames) != 'integer' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') OR typeof(channels) != 'integer' "
                 "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
+                "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
+                "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
                 "LIMIT 1;",
                 typeProblem);
             ! result.ok())

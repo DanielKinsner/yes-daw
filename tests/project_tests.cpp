@@ -23,7 +23,9 @@ using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
 using yesdaw::engine::kMaxUlidTimestampMs;
+using yesdaw::engine::MidiClip;
 using yesdaw::engine::moveClip;
+using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditCommand;
 using yesdaw::engine::ProjectEditStatus;
@@ -46,6 +48,7 @@ static_assert (std::is_trivially_copyable_v<EntityId>);
 static_assert (std::is_trivially_copyable_v<AssetContentHash>);
 static_assert (std::is_trivially_copyable_v<Asset>);
 static_assert (std::is_trivially_copyable_v<Clip>);
+static_assert (std::is_trivially_copyable_v<Note>);
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>);
 
 namespace {
@@ -76,6 +79,35 @@ Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint
     clip.srcLen = srcLen;
     clip.timelineLength = 15360;
     return clip;
+}
+
+Note makeNote (EntityId id, Tick start, Tick length)
+{
+    Note note;
+    note.id = id;
+    note.startTick = start;
+    note.lengthTicks = length;
+    note.key = 64;
+    note.pitchNote = 64.25;
+    note.normalizedVelocity = 0.5;
+    note.portIndex = 2;
+    note.channel = 3;
+    return note;
+}
+
+MidiClip makeMidiClip (EntityId id, EntityId trackId)
+{
+    MidiClip midiClip;
+    midiClip.id = id;
+    midiClip.trackId = trackId;
+    midiClip.timelineStart = 1024;
+    midiClip.timelineLength = 4096;
+    midiClip.timeBase = TimeBase::TempoLocked;
+    midiClip.notes = {
+        makeNote (idFromLowByte (42), 0, 512),
+        makeNote (idFromLowByte (43), 4096, 0),
+    };
+    return midiClip;
 }
 
 Project makeEditableProject()
@@ -395,6 +427,41 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     corruptSourceWindow.clips[1].srcLen = 100;
     REQUIRE_FALSE (corruptSourceWindow.clipsReferenceAssets());
     REQUIRE_FALSE (corruptSourceWindow.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project validates MIDI Clips and Note identity", "[project][midi]")
+{
+    Project project = makeEditableProject();
+    project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+
+    REQUIRE (project.midiClips.front().isValid());
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    Project duplicateMidiClipId = project;
+    duplicateMidiClipId.midiClips.front().id = duplicateMidiClipId.clips.front().id;
+    REQUIRE_FALSE (duplicateMidiClipId.hasUniqueEntityIds());
+    REQUIRE_FALSE (duplicateMidiClipId.hasValidAssetClipIndirection());
+
+    Project duplicateNoteId = project;
+    duplicateNoteId.midiClips.front().notes[1].id = duplicateNoteId.midiClips.front().notes[0].id;
+    REQUIRE_FALSE (duplicateNoteId.hasUniqueEntityIds());
+    REQUIRE_FALSE (duplicateNoteId.hasValidAssetClipIndirection());
+
+    Project noteExtendsPastClip = project;
+    noteExtendsPastClip.midiClips.front().notes[0].startTick = 4090;
+    noteExtendsPastClip.midiClips.front().notes[0].lengthTicks = 16;
+    REQUIRE_FALSE (noteExtendsPastClip.midiClips.front().isValid());
+    REQUIRE_FALSE (noteExtendsPastClip.hasValidAssetClipIndirection());
+
+    Project invalidVoiceAddress = project;
+    invalidVoiceAddress.midiClips.front().notes[0].channel = 16;
+    REQUIRE_FALSE (invalidVoiceAddress.midiClips.front().notes[0].isValid());
+    REQUIRE_FALSE (invalidVoiceAddress.hasValidAssetClipIndirection());
+
+    Project missingTrackOwner = project;
+    missingTrackOwner.midiClips.front().trackId = {};
+    REQUIRE_FALSE (missingTrackOwner.midiClips.front().isValid());
+    REQUIRE_FALSE (missingTrackOwner.hasValidAssetClipIndirection());
 }
 
 TEST_CASE ("Project splitClip creates exact adjacent Tick and source-frame windows", "[project][clip-edit][split]")

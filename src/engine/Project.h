@@ -9,6 +9,7 @@
 #include "engine/Time.h"
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -226,6 +227,70 @@ struct Marker
     friend bool operator== (const Marker&, const Marker&) = default;
 };
 
+struct Note
+{
+    EntityId     id;
+    Tick         startTick = 0;          // clip-relative
+    Tick         lengthTicks = 0;        // zero-length is legal: On and Off at the same sample
+    std::int16_t key = 60;
+    double       pitchNote = 60.0;
+    double       normalizedVelocity = 1.0;
+    std::int16_t portIndex = -1;
+    std::int16_t channel = -1;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid()
+            && startTick >= 0
+            && lengthTicks >= 0
+            && lengthTicks <= std::numeric_limits<Tick>::max() - startTick
+            && key >= 0
+            && key <= 127
+            && std::isfinite (pitchNote)
+            && std::isfinite (normalizedVelocity)
+            && normalizedVelocity >= 0.0
+            && normalizedVelocity <= 1.0
+            && portIndex >= -1
+            && channel >= -1
+            && channel <= 15;
+    }
+
+    friend constexpr bool operator== (const Note&, const Note&) noexcept = default;
+};
+
+struct MidiClip
+{
+    EntityId          id;
+    EntityId          trackId;
+    Tick              timelineStart = 0;
+    Tick              timelineLength = 0;
+    TimeBase          timeBase = TimeBase::TempoLocked;
+    std::vector<Note> notes;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid()
+            || ! trackId.isValid()
+            || timelineLength < 0
+            || (timeBase != TimeBase::TempoLocked && timeBase != TimeBase::SampleLocked))
+            return false;
+
+        for (const Note& note : notes)
+        {
+            if (! note.isValid() || note.startTick > timelineLength)
+                return false;
+
+            const Tick maxLength = timelineLength - note.startTick;
+            if (note.lengthTicks > maxLength)
+                return false;
+        }
+
+        return true;
+    }
+
+    friend bool operator== (const MidiClip&, const MidiClip&) = default;
+};
+
 enum class ProjectEditStatus : std::uint8_t
 {
     Applied = 0,
@@ -249,6 +314,9 @@ struct Project
     std::vector<TempoChange> tempoMap;
     std::vector<MeterChange> meterMap;
     std::vector<Marker>      markers;
+    // H4 MIDI edit surface (ADR-0017): MIDI Clips own editable Notes. They flatten to Events only at the
+    // render boundary; persistence keeps the stable Note IDs intact for piano-roll edits and MPE.
+    std::vector<MidiClip>    midiClips;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -270,6 +338,10 @@ struct Project
 
         for (const Clip& clip : clips)
             if (! clip.id.isValid() || ! clip.assetId.isValid())
+                return false;
+
+        for (const MidiClip& midiClip : midiClips)
+            if (! midiClip.isValid())
                 return false;
 
         return true;
@@ -308,6 +380,66 @@ struct Project
             for (std::size_t j = 0; j < i; ++j)
                 if (clips[i].id == clips[j].id)
                     return false;
+        }
+
+        for (std::size_t i = 0; i < midiClips.size(); ++i)
+        {
+            const MidiClip& midiClip = midiClips[i];
+
+            if (midiClip.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (midiClip.id == asset.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (midiClip.id == clip.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (midiClip.id == midiClips[j].id)
+                    return false;
+        }
+
+        const auto isExistingProjectEntity = [this] (EntityId entity) noexcept
+        {
+            if (entity == id)
+                return true;
+
+            for (const Asset& asset : assets)
+                if (entity == asset.id)
+                    return true;
+
+            for (const Clip& clip : clips)
+                if (entity == clip.id)
+                    return true;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (entity == midiClip.id)
+                    return true;
+
+            return false;
+        };
+
+        for (std::size_t clipIndex = 0; clipIndex < midiClips.size(); ++clipIndex)
+        {
+            const MidiClip& midiClip = midiClips[clipIndex];
+            for (std::size_t noteIndex = 0; noteIndex < midiClip.notes.size(); ++noteIndex)
+            {
+                const Note& note = midiClip.notes[noteIndex];
+                if (isExistingProjectEntity (note.id))
+                    return false;
+
+                for (std::size_t earlierClip = 0; earlierClip <= clipIndex; ++earlierClip)
+                {
+                    const MidiClip& otherClip = midiClips[earlierClip];
+                    const std::size_t endNote = earlierClip == clipIndex ? noteIndex : otherClip.notes.size();
+                    for (std::size_t earlierNote = 0; earlierNote < endNote; ++earlierNote)
+                        if (note.id == otherClip.notes[earlierNote].id)
+                            return false;
+                }
+            }
         }
 
         return true;
@@ -369,6 +501,16 @@ namespace detail {
     for (const Clip& clip : project.clips)
         if (clip.id == id)
             return true;
+
+    for (const MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == id)
+            return true;
+
+        for (const Note& note : midiClip.notes)
+            if (note.id == id)
+                return true;
+    }
 
     return false;
 }

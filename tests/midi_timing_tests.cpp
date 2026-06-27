@@ -70,6 +70,7 @@ MidiClip clipWithNotes (std::vector<Note> notes, Tick start = 100, Tick length =
 {
     MidiClip clip;
     clip.id = id (1);
+    clip.trackId = id (90);
     clip.timelineStart = start;
     clip.timelineLength = length;
     clip.notes = std::move (notes);

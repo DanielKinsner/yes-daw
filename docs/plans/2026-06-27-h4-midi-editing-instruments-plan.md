@@ -56,5 +56,5 @@ ctest --preset ci
 ctest --preset ci -R YesDawMidiTimingCheck
 ```
 
-For the first code checkpoint, `YesDawMidiTimingCheck` exists and must stay green together with the full
-`ci` preset. Later H4 slices keep this gate blocking while widening the MIDI surface.
+The first code checkpoints now exist: `YesDawMidiTimingCheck` plus Project-owned MIDI Clips/Notes with
+schema v3 persistence. Later H4 slices keep this gate blocking while widening the MIDI surface.
