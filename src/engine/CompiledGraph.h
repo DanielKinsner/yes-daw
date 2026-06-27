@@ -79,6 +79,7 @@ enum class CompiledNodeKind : std::uint8_t
     Sidechain,
     Placeholder,
     MidiEffect,
+    MidiSource,
     Plugin
 };
 

@@ -408,4 +408,86 @@ template <typename TickToFrame>
         outEvents);
 }
 
+// A render Event positioned at an absolute project frame. The control side pre-flattens a whole MidiClip
+// into a sorted timeline of these; the audio thread (DecodedMidiClipNode) advances a per-source cursor and
+// emits each Block's slice with Block-relative timeInBlock — the same cursor model DecodedClipNode uses for
+// audio (ADR-0009 per-source monotonic read cursors).
+struct ScheduledMidiEvent
+{
+    std::int64_t frame = 0;   // absolute project frame (floor of the tempo-mapped position)
+    Event        event {};    // event.timeInBlock is a placeholder; set per Block at emit time
+};
+
+[[nodiscard]] inline bool scheduledMidiEventLess (const ScheduledMidiEvent& a,
+                                                  const ScheduledMidiEvent& b) noexcept
+{
+    if (a.frame != b.frame)
+        return a.frame < b.frame;
+    if (a.event.voice.noteId != b.event.voice.noteId)
+        return a.event.voice.noteId < b.event.voice.noteId;
+    // Same frame + same note: On (1) before Off (2) so a zero-length Note never leaves a hung voice.
+    return static_cast<std::uint16_t> (a.event.type) < static_cast<std::uint16_t> (b.event.type);
+}
+
+// Control-side: flatten every Note of a MidiClip into a sorted absolute-frame timeline (allocation is fine
+// here — this runs off the audio thread, exactly like DecodedClipNode's decode step). The audio thread
+// never calls this; it consumes the produced timeline by cursor.
+template <typename TickToFrame>
+[[nodiscard]] inline MidiFlattenStatus flattenMidiClipToTimeline (const MidiClip& clip,
+                                                                  TickToFrame tickToFrameFn,
+                                                                  std::vector<ScheduledMidiEvent>& outTimeline)
+{
+    outTimeline.clear();
+
+    if (! clip.isValid())
+        return MidiFlattenStatus::InvalidInput;
+
+    for (const Note& note : clip.notes)
+    {
+        if (! note.isValid())
+            return MidiFlattenStatus::InvalidInput;
+
+        Tick noteEnd = 0;
+        Tick onTick = 0;
+        Tick offTick = 0;
+        if (! detail::addMidiTickChecked (note.startTick, note.lengthTicks, noteEnd)
+            || noteEnd > clip.timelineLength
+            || ! detail::addMidiTickChecked (clip.timelineStart, note.startTick, onTick)
+            || ! detail::addMidiTickChecked (clip.timelineStart, noteEnd, offTick))
+            return MidiFlattenStatus::InvalidInput;
+
+        const auto append = [&] (Tick tick, EventType type) -> bool
+        {
+            double frame = 0.0;
+            if (! tickToFrameFn (tick, frame) || ! std::isfinite (frame) || frame < 0.0)
+                return false;
+
+            outTimeline.push_back (ScheduledMidiEvent {
+                static_cast<std::int64_t> (std::floor (frame)),
+                makeNoteEvent (0u, type, note) });
+            return true;
+        };
+
+        if (! append (onTick, EventType::NoteOn) || ! append (offTick, EventType::NoteOff))
+            return MidiFlattenStatus::InvalidInput;
+    }
+
+    std::sort (outTimeline.begin(), outTimeline.end(), scheduledMidiEventLess);
+    return MidiFlattenStatus::Ok;
+}
+
+[[nodiscard]] inline MidiFlattenStatus flattenMidiClipToTimeline (const MidiClip& clip,
+                                                                  TempoMapView tempoMap,
+                                                                  SampleRate sampleRate,
+                                                                  std::vector<ScheduledMidiEvent>& outTimeline)
+{
+    return flattenMidiClipToTimeline (
+        clip,
+        [tempoMap, sampleRate] (Tick tick, double& frame) noexcept
+        {
+            return tickToFrame (tempoMap, sampleRate, tick, frame);
+        },
+        outTimeline);
+}
+
 } // namespace yesdaw::engine

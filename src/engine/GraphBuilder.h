@@ -8,6 +8,7 @@
 #include "engine/CompiledGraph.h"
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/DecodedClipNode.h"
+#include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
@@ -301,6 +302,8 @@ private:
         if (dynamic_cast<MidiTransposeNode*> (&node) != nullptr
             || dynamic_cast<MidiScaleMapNode*> (&node) != nullptr)
             return CompiledNodeKind::MidiEffect;
+        if (dynamic_cast<DecodedMidiClipNode*> (&node) != nullptr)
+            return CompiledNodeKind::MidiSource;
         return CompiledNodeKind::Plugin;
     }
 

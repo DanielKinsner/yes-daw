@@ -5,6 +5,7 @@
 
 #include "engine/GraphBuilder.h"
 #include "engine/Midi.h"
+#include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MidiEffectNode.h"
@@ -24,6 +25,7 @@ using Catch::Approx;
 using yesdaw::engine::AudioBlock;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNodeKind;
+using yesdaw::engine::DecodedMidiClipNode;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::Event;
 using yesdaw::engine::EventStream;
@@ -52,6 +54,8 @@ using yesdaw::engine::MpeVoiceAllocationConfig;
 using yesdaw::engine::MpeVoiceAllocationStatus;
 using yesdaw::engine::allocateMpeVoiceAddresses;
 using yesdaw::engine::flattenMidiClipNotesForBlock;
+using yesdaw::engine::flattenMidiClipToTimeline;
+using yesdaw::engine::ScheduledMidiEvent;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::tickToFrame;
@@ -884,4 +888,55 @@ TEST_CASE ("Note-on across a Block boundary AND a tempo change reaches a latent 
         else
             REQUIRE (secondAudio[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
     }
+}
+
+TEST_CASE ("A MidiClip sourced by DecodedMidiClipNode reaches an instrument by transport cursor across Blocks",
+           "[midi][source][runtime][integrated]")
+{
+    constexpr NodeId kSource = 6000;
+    constexpr NodeId kInstrument = 6001;
+    constexpr int kBlock = 8;
+
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    // Two notes in one clip starting at the timeline origin: NoteOns at frame 4 (Block 1) and frame 12
+    // (Block 2), at 120 BPM / 30720 Hz where 1 tick == 1 frame.
+    const MidiClip clip = clipWithNotes ({ note (2, 4, 4), note (3, 12, 4) }, /*start*/ 0, /*length*/ 32);
+
+    std::vector<ScheduledMidiEvent> timeline;
+    REQUIRE (flattenMidiClipToTimeline (clip, tempoView (tempo), SampleRate { kSampleRate }, timeline)
+             == MidiFlattenStatus::Ok);
+    REQUIRE (timeline.size() == 4u); // two On/Off pairs
+
+    auto source = std::make_unique<DecodedMidiClipNode> (kSource, timeline);
+    auto instrument = std::make_unique<ImpulseInstrumentNode> (kInstrument, 0);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    instrument->setEventInput (source.get());
+    master->setInputNodes ({ instrument.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 60;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = kSampleRate;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (instrument));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::MidiSource) == 1u);
+    REQUIRE (graph->totalLatency() == 0);
+
+    // The graph sources its OWN Events from the clip by cursor; the caller feeds NO events.
+    const std::vector<float> block1 = render (*graph, std::span<const Event> {}, kBlock);
+    for (int i = 0; i < kBlock; ++i)
+        REQUIRE (block1[static_cast<std::size_t> (i)] == Approx (i == 4 ? 1.0f : 0.0f).margin (1.0e-6f));
+
+    // Cursor has advanced one Block; the second note arrives without any re-feed.
+    const std::vector<float> block2 = render (*graph, std::span<const Event> {}, kBlock);
+    for (int i = 0; i < kBlock; ++i)
+        REQUIRE (block2[static_cast<std::size_t> (i)] == Approx (i == 4 ? 1.0f : 0.0f).margin (1.0e-6f));
 }
