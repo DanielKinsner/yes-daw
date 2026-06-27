@@ -22,6 +22,8 @@ using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::Marker;
+using yesdaw::engine::MeterChange;
 using yesdaw::engine::moveClip;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
@@ -29,6 +31,8 @@ using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
 using yesdaw::engine::splitClip;
+using yesdaw::engine::TempoChange;
+using yesdaw::engine::TempoCurve;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::trimClip;
 using yesdaw::persistence::AssetImportRequest;
@@ -430,6 +434,66 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, project);
+}
+
+TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
+           "[persistence][project][round-trip][time]")
+{
+    const auto path = makeTempBundlePath ("time-round-trip");
+
+    Project project = makeProject();
+    project.tempoMap = {
+        TempoChange { 0,     120.0, TempoCurve::Jump },
+        TempoChange { 15360, 140.0, TempoCurve::LinearRamp },
+        TempoChange { 61440, 90.5,  TempoCurve::Jump },
+    };
+    project.meterMap = {
+        MeterChange { 0,     4, 4 },
+        MeterChange { 61440, 7, 8 },
+    };
+    project.markers = {
+        Marker { idFromLowByte (40), 0,     "Intro" },
+        Marker { idFromLowByte (41), 15360, "Verse 1" },
+        Marker { idFromLowByte (42), 61440, "" },         // an empty name is valid (NOT NULL, may be empty)
+    };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+
+    // The clips/assets surface still round-trips, AND the tempo/meter/marker surface comes back intact.
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.tempoMap == project.tempoMap);
+    REQUIRE (readback.meterMap == project.meterMap);
+    REQUIRE (readback.markers == project.markers);
+
+    // Negative controls: a single tweaked value in each map must break equality, proving the round-trip
+    // actually carries the stored data rather than re-deriving defaults.
+    REQUIRE_FALSE (readback.tempoMap.empty());
+    Project mutatedTempo = project;
+    mutatedTempo.tempoMap[1].bpm = 141.0;
+    REQUIRE_FALSE (readback.tempoMap == mutatedTempo.tempoMap);
+    Project mutatedMeter = project;
+    mutatedMeter.meterMap[1].denominator = 4;
+    REQUIRE_FALSE (readback.meterMap == mutatedMeter.meterMap);
+    Project mutatedMarker = project;
+    mutatedMarker.markers[1].name = "Verse 2";
+    REQUIRE_FALSE (readback.markers == mutatedMarker.markers);
+
+    // An invalid tempo (bpm <= 0) is rejected before write — the write-side schema-v1 guard covers the
+    // new time surface too.
+    Project invalidTempo = project;
+    invalidTempo.tempoMap.push_back (TempoChange { 80000, 0.0, TempoCurve::Jump });
+    ProjectBundleDb invalidDb = openFreshBundle (makeTempBundlePath ("time-invalid"));
+    REQUIRE (invalidDb.writeProjectSnapshot (invalidTempo).status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "[persistence][project][clip-edit]")

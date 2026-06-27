@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -214,6 +215,17 @@ struct Clip
     friend constexpr bool operator== (const Clip&, const Clip&) noexcept = default;
 };
 
+struct Marker
+{
+    EntityId    id;
+    Tick        tick = 0;
+    std::string name;
+
+    [[nodiscard]] bool isValid() const noexcept { return id.isValid(); }
+
+    friend bool operator== (const Marker&, const Marker&) = default;
+};
+
 enum class ProjectEditStatus : std::uint8_t
 {
     Applied = 0,
@@ -232,6 +244,11 @@ struct Project
     SampleRate sampleRate;
     std::vector<Asset> assets;
     std::vector<Clip> clips;
+    // Time-model surface (ADR-0010): tempo map, meter map, and markers round-trip with the Project (H1
+    // exit clause). Stored in canonical tick order; the bundle reads them back ORDER BY tick.
+    std::vector<TempoChange> tempoMap;
+    std::vector<MeterChange> meterMap;
+    std::vector<Marker>      markers;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {

@@ -843,6 +843,21 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
             return false;
     }
 
+    for (const engine::TempoChange& tempo : project.tempoMap)
+    {
+        if (! tempo.hasValidBpm()
+            || (tempo.curveToNext != engine::TempoCurve::Jump && tempo.curveToNext != engine::TempoCurve::LinearRamp))
+            return false;
+    }
+
+    for (const engine::MeterChange& meter : project.meterMap)
+        if (! meter.isValid())
+            return false;
+
+    for (const engine::Marker& marker : project.markers)
+        if (! marker.id.isValid())
+            return false;
+
     return true;
 }
 
@@ -1546,7 +1561,7 @@ public:
 
         const auto rollback = [this] { (void) detail::exec (db_, "ROLLBACK;"); };
 
-        if (auto result = detail::exec (db_, "DELETE FROM clips; DELETE FROM assets; DELETE FROM project;"); ! result.ok())
+        if (auto result = detail::exec (db_, "DELETE FROM clips; DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM assets; DELETE FROM project;"); ! result.ok())
         {
             rollback();
             return result;
@@ -1682,6 +1697,42 @@ public:
             }
         }
 
+        {
+            detail::Statement tempoStmt (db_, "INSERT INTO tempo_changes(tick, bpm, curve_to_next) VALUES (?, ?, ?);");
+            for (const engine::TempoChange& tempo : project.tempoMap)
+            {
+                tempoStmt.reset();
+                if (auto result = tempoStmt.bindInt64 (1, tempo.tick); ! result.ok()) { rollback(); return result; }
+                if (auto result = tempoStmt.bindDouble (2, tempo.bpm); ! result.ok()) { rollback(); return result; }
+                if (auto result = tempoStmt.bindInt64 (3, static_cast<sqlite3_int64> (tempo.curveToNext)); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, tempoStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        {
+            detail::Statement meterStmt (db_, "INSERT INTO meter_changes(tick, numerator, denominator) VALUES (?, ?, ?);");
+            for (const engine::MeterChange& meter : project.meterMap)
+            {
+                meterStmt.reset();
+                if (auto result = meterStmt.bindInt64 (1, meter.tick); ! result.ok()) { rollback(); return result; }
+                if (auto result = meterStmt.bindInt64 (2, meter.numerator); ! result.ok()) { rollback(); return result; }
+                if (auto result = meterStmt.bindInt64 (3, meter.denominator); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, meterStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        {
+            detail::Statement markerStmt (db_, "INSERT INTO markers(id, tick, name) VALUES (?, ?, ?);");
+            for (const engine::Marker& marker : project.markers)
+            {
+                markerStmt.reset();
+                if (auto result = markerStmt.bindBlob (1, marker.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = markerStmt.bindInt64 (2, marker.tick); ! result.ok()) { rollback(); return result; }
+                if (auto result = markerStmt.bindText (3, marker.name); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, markerStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
         {
             rollback();
@@ -1800,6 +1851,87 @@ public:
                 clip.timeBase = static_cast<engine::TimeBase> (timeBase);
 
                 project.clips.push_back (clip);
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT tick, bpm, curve_to_next FROM tempo_changes ORDER BY tick;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::TempoChange tempo;
+                tempo.tick = sqlite3_column_int64 (stmt.get(), 0);
+                tempo.bpm = sqlite3_column_double (stmt.get(), 1);
+
+                const sqlite3_int64 curve = sqlite3_column_int64 (stmt.get(), 2);
+                if (curve != static_cast<sqlite3_int64> (engine::TempoCurve::Jump)
+                    && curve != static_cast<sqlite3_int64> (engine::TempoCurve::LinearRamp))
+                    return detail::semanticInvalid ("tempo_changes.curve_to_next is outside the Project value range");
+                tempo.curveToNext = static_cast<engine::TempoCurve> (curve);
+
+                project.tempoMap.push_back (tempo);
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT tick, numerator, denominator FROM meter_changes ORDER BY tick;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                const sqlite3_int64 numerator = sqlite3_column_int64 (stmt.get(), 1);
+                const sqlite3_int64 denominator = sqlite3_column_int64 (stmt.get(), 2);
+                if (numerator <= 0 || numerator > std::numeric_limits<std::uint16_t>::max()
+                    || denominator <= 0 || denominator > std::numeric_limits<std::uint16_t>::max())
+                    return detail::semanticInvalid ("meter_changes value is outside the Project value range");
+
+                engine::MeterChange meter;
+                meter.tick = sqlite3_column_int64 (stmt.get(), 0);
+                meter.numerator = static_cast<std::uint16_t> (numerator);
+                meter.denominator = static_cast<std::uint16_t> (denominator);
+                project.meterMap.push_back (meter);
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT id, tick, name FROM markers ORDER BY tick, id;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::Marker marker;
+                if (auto result = detail::columnBlob (stmt.get(), 0, marker.id.bytes, "markers.id"); ! result.ok())
+                    return result;
+                marker.tick = sqlite3_column_int64 (stmt.get(), 1);
+
+                const unsigned char* const text = sqlite3_column_text (stmt.get(), 2);
+                const int textBytes = sqlite3_column_bytes (stmt.get(), 2);
+                if (text != nullptr && textBytes > 0)
+                    marker.name.assign (reinterpret_cast<const char*> (text), static_cast<std::size_t> (textBytes));
+
+                project.markers.push_back (marker);
             }
         }
 
