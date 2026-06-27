@@ -28,6 +28,17 @@ separately and does not replace H4's CI gate.
 ---
 
 ## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): WORKER H4 MIDI timing bridge + `YesDawMidiTimingCheck` is green locally.**
+  REVIEW/FIX of the docs-only H4 kickoff found one real handoff defect: old H3 historical entries near the
+  top still said "do not start H4"; they now explicitly say Dan has opened H4 and the H0 soak remains
+  separate. Then WORKER added the first H4 code slice: `tickToFrame()` for ADR-0010 tempo maps, `MidiClip`
+  / `Note` flattening into sorted ADR-0009 `NoteOn` / `NoteOff` Events, a deterministic
+  `ImpulseInstrumentNode`, GraphBuilder recognition for that built-in source, and the named
+  `YesDawMidiTimingCheck` ctest gate. The gate proves half-open Block boundaries, full tempo-map conversion
+  across a tempo change, and a non-zero-latency Instrument Node aligned by PDC. Local gate:
+  `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; `ctest --preset ci -R YesDawMidiTimingCheck`;
+  `ctest --preset ci --output-on-failure` passed **210/210**. **Next:** REVIEW/FIX this H4 MIDI timing
+  bridge/gate, then build the Project-owned MIDI Clip/Note surface + persistence slice if green.
 - **Latest (2026-06-27): H4 boundary opened and the docs-only kickoff checkpoint is green locally.**
   This checkpoint accepts ADR-0017 (MIDI Clip edit model + render bridge), adds the H4 plan, switches
   `loop/horizon.md` to `YesDawMidiTimingCheck`, updates `CONTEXT.md`, and leaves code untouched. The H4
@@ -64,8 +75,8 @@ separately and does not replace H4's CI gate.
     Goertzel-asserted, xrun/deadline-miss counters, exit 0/1) but no PASS at 128 frames has been recorded
     (shared-mode Realtek forced 480; needs ASIO/WASAPI-exclusive + a loopback jumper; no macOS run). This is
     the only thing between "H0–H3 fully behind us" and done. **Next:** Dan runs the soak on real hardware and
-    ticks it, OR blesses moving to H4 with the soak tracked as the lone open H0 item. Do not start H4 build
-    work until Dan says.
+    ticks it, OR blesses moving to H4 with the soak tracked as the lone open H0 item. Dan has since opened
+    H4; the soak remains tracked separately as the lone human/hardware H0 item.
 - **Latest: H3 host-isolation exit gate is now blocking and green locally.**
   REVIEW/FIX of `1bf006e` found no proven defect in the opaque-state checkpoint: opaque bytes cross the
   real worker process control lane both ways; `{chunk_len, crc32}` is validated; a deliberately corrupted
@@ -73,8 +84,8 @@ separately and does not replace H4's CI gate.
   audio-thread/RT-lane/scanner/pluginval/auval/UI/real external plugin/golden drift leaked in. Close-out
   flipped `opaqueStateRoundTripsAcrossProcess` to the real proof, removed `[!shouldfail]` from the aggregate
   `YesDawHostIsolationCheck`, clarified ADR-0015's engine/app layering wording for finding J, updated
-  `loop/horizon.md`, and ticked the close-out plan acceptance checklist. **Next:** Dan's H3->H4
-  horizon-boundary review. Do not start H4 or create another baton thread unless Dan asks.
+  `loop/horizon.md`, and ticked the close-out plan acceptance checklist. Historical next at that point:
+  Dan's H3->H4 horizon-boundary review; Dan has since opened H4.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
@@ -2200,11 +2211,15 @@ separately and does not replace H4's CI gate.
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
 - ✅ **H3 approved and closed.** Mixer policy, host isolation, runtime worker crash/hang recovery,
   blacklist persistence, state chunk round-trip, projected Runtime gate, and close-out review fixes are green.
-- **Next rolling baton: REVIEW/FIX H4 kickoff docs, then WORKER H4 MIDI timing bridge if green.**
-  Pull, read `AGENTS.md` + the top handoff first, then review ADR-0017, the H4 plan, `loop/horizon.md`,
-  `CONTEXT.md`, and ADR index wiring. Fix only proven defects. If the review is clean/green, continue in
-  the same baton thread to the next worker chunk: add the tempo-map tick-to-frame helper, MIDI Clip / Note
-  flattening into ADR-0009 Events, and the first `YesDawMidiTimingCheck` negative controls. Run the
+- **Next rolling baton: REVIEW/FIX H4 MIDI timing bridge/gate, then WORKER Project-owned MIDI Clips if green.**
+  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/Time.h`, `src/engine/Midi.h`,
+  `src/engine/nodes/ImpulseInstrumentNode.h`, `src/engine/GraphBuilder.h`, `tests/midi_timing_tests.cpp`,
+  `CMakeLists.txt`, `loop/horizon.md`, and the H4 plan/status docs against ADR-0017, ADR-0009,
+  ADR-0010, ADR-0007/0008, and the H4 exit criterion. Confirm the gate is named
+  `YesDawMidiTimingCheck`, catches block-boundary, tempo-change, and missing-PDC regressions, and stays
+  pure/RTSan/TSan eligible. Fix only proven defects. If clean/green, continue in the same baton thread to
+  the next worker chunk: add Project-owned MIDI Clip/Note value surface and `.yesdaw` persistence
+  round-trip. Run the
   documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`) for each
   checkpoint that changes code. Update `STATUS.md`, commit/push, and wait for green CI before creating
   exactly one successor baton. Never create separate reviewer/worker threads in parallel, and never spawn a

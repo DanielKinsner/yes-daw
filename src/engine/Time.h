@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -190,5 +191,107 @@ struct Transport
     SampleRate   projectSampleRate;
     bool         isPlaying = false;
 };
+
+namespace detail {
+
+[[nodiscard]] inline bool appendTempoSegmentFrames (double sampleRate,
+                                                    Tick segmentTicks,
+                                                    Tick deltaTicks,
+                                                    double startBpm,
+                                                    double endBpm,
+                                                    TempoCurve curve,
+                                                    double& frame) noexcept
+{
+    if (segmentTicks <= 0 || deltaTicks < 0 || deltaTicks > segmentTicks
+        || ! isFinitePositive (startBpm) || ! isFinitePositive (endBpm))
+        return false;
+
+    if (deltaTicks == 0)
+        return true;
+
+    const double delta = static_cast<double> (deltaTicks);
+    const double k = 60.0 * sampleRate / static_cast<double> (kTicksPerQuarter);
+
+    if (curve != TempoCurve::LinearRamp || startBpm == endBpm)
+    {
+        frame += delta * k / startBpm;
+        return std::isfinite (frame);
+    }
+
+    const double slope = (endBpm - startBpm) / static_cast<double> (segmentTicks);
+    if (std::abs (slope) < 1.0e-12)
+    {
+        frame += delta * k / startBpm;
+        return std::isfinite (frame);
+    }
+
+    const double bpmAtDelta = startBpm + slope * delta;
+    if (! isFinitePositive (bpmAtDelta))
+        return false;
+
+    frame += (k / slope) * std::log (bpmAtDelta / startBpm);
+    return std::isfinite (frame);
+}
+
+} // namespace detail
+
+[[nodiscard]] inline bool tickToFrame (TempoMapView tempoMap,
+                                       SampleRate sampleRate,
+                                       Tick tick,
+                                       double& frameOut) noexcept
+{
+    frameOut = 0.0;
+
+    if (! sampleRate.isValid() || tick < 0)
+        return false;
+
+    if (tempoMap.empty())
+    {
+        frameOut = static_cast<double> (tick)
+                 * (60.0 * sampleRate.hz / (120.0 * static_cast<double> (kTicksPerQuarter)));
+        return std::isfinite (frameOut);
+    }
+
+    if (tempoMap.changes == nullptr || tempoMap.changes[0].tick != 0
+        || ! tempoMap.changes[0].hasValidBpm())
+        return false;
+
+    for (std::size_t i = 1; i < tempoMap.count; ++i)
+    {
+        if (tempoMap.changes[i].tick <= tempoMap.changes[i - 1u].tick
+            || ! tempoMap.changes[i].hasValidBpm())
+            return false;
+    }
+
+    double frame = 0.0;
+    for (std::size_t i = 0; i < tempoMap.count; ++i)
+    {
+        const TempoChange& current = tempoMap.changes[i];
+        const bool haveNext = i + 1u < tempoMap.count;
+        const Tick nextTick = haveNext ? tempoMap.changes[i + 1u].tick : tick;
+        const Tick segmentEnd = tick < nextTick ? tick : nextTick;
+
+        if (segmentEnd > current.tick)
+        {
+            const double endBpm = haveNext ? tempoMap.changes[i + 1u].bpm : current.bpm;
+            if (! detail::appendTempoSegmentFrames (sampleRate.hz,
+                                                    nextTick - current.tick,
+                                                    segmentEnd - current.tick,
+                                                    current.bpm,
+                                                    endBpm,
+                                                    current.curveToNext,
+                                                    frame))
+                return false;
+        }
+
+        if (tick <= nextTick || ! haveNext)
+        {
+            frameOut = frame;
+            return std::isfinite (frameOut);
+        }
+    }
+
+    return false;
+}
 
 } // namespace yesdaw::engine

@@ -10,6 +10,7 @@
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
+#include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/OscillatorNode.h"
@@ -274,6 +275,8 @@ private:
     {
         if (dynamic_cast<IdentityDcNode*> (&node) != nullptr)
             return CompiledNodeKind::IdentityDc;
+        if (dynamic_cast<ImpulseInstrumentNode*> (&node) != nullptr)
+            return CompiledNodeKind::Source;
         if (dynamic_cast<OscillatorNode*> (&node) != nullptr)
             return CompiledNodeKind::Oscillator;
         if (dynamic_cast<DecodedClipNode*> (&node) != nullptr)

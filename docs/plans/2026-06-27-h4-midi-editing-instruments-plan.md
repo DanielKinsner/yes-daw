@@ -56,5 +56,5 @@ ctest --preset ci
 ctest --preset ci -R YesDawMidiTimingCheck
 ```
 
-Until `YesDawMidiTimingCheck` exists, the checkpoint gate is the full `ci` preset plus review of this
-plan against ADR-0017.
+For the first code checkpoint, `YesDawMidiTimingCheck` exists and must stay green together with the full
+`ci` preset. Later H4 slices keep this gate blocking while widening the MIDI surface.

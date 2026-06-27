@@ -239,6 +239,13 @@ target_link_libraries(YesDawEventCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEventCheck)
 catch_discover_tests(YesDawEventCheck)
 
+# --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
+add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
+target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawMidiTimingCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawMidiTimingCheck)
+add_test(NAME YesDawMidiTimingCheck COMMAND $<TARGET_FILE:YesDawMidiTimingCheck>)
+
 # --- Project value-surface check (H1; pure, ADR-0011 EntityId + Asset/Clip/Project values) ---
 add_executable(YesDawProjectCheck tests/project_tests.cpp)
 target_include_directories(YesDawProjectCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -425,6 +432,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck
+  YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck
   YesDawGraphCheck
