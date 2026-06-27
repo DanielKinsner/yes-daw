@@ -197,8 +197,32 @@ public:
         process (outputs, 1, numFrames);
     }
 
+    void process (float* out, int numFrames, std::span<const Event> events) const noexcept YESDAW_RT_HOT
+    {
+        float* outputs[1] = { out };
+        process (outputs, 1, numFrames, events);
+    }
+
     // The audio hot path. Immutable read; allocation/lock free; RTSan-covered.
     void process (float* const* outChannels, int numOutputChannels, int numFrames) const noexcept YESDAW_RT_HOT
+    {
+        EventStream events;
+        process (outChannels, numOutputChannels, numFrames, events);
+    }
+
+    void process (float* const* outChannels,
+                  int numOutputChannels,
+                  int numFrames,
+                  std::span<const Event> events) const noexcept YESDAW_RT_HOT
+    {
+        EventStream stream { events };
+        process (outChannels, numOutputChannels, numFrames, stream);
+    }
+
+    void process (float* const* outChannels,
+                  int numOutputChannels,
+                  int numFrames,
+                  EventStream& events) const noexcept YESDAW_RT_HOT
     {
         YESDAW_RT_FATAL (canary_ == kCanary);   // UAF tripwire — ALWAYS live (incl. RTSan/TSan/Release).
         YESDAW_RT_FATAL (numFrames >= 0);
@@ -218,7 +242,6 @@ public:
         YESDAW_RT_FATAL (numFrames >= 0);
         YESDAW_RT_FATAL (static_cast<std::uint32_t> (numFrames) <= poolLayout_.maxBlockSize);
 
-        EventStream events;
         Transport   transport;
 
         const CompiledNode* const nodes   = compiledNodes_.data();

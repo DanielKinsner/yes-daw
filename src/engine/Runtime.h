@@ -39,6 +39,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <type_traits>
 #include <vector>
 
@@ -151,7 +152,31 @@ public:
         processBlock (outputs, 1, numFrames);
     }
 
+    void processBlock (float* out, int numFrames, std::span<const Event> events) noexcept YESDAW_RT_HOT
+    {
+        float* outputs[1] = { out };
+        processBlock (outputs, 1, numFrames, events);
+    }
+
     void processBlock (float* const* outChannels, int numOutputChannels, int numFrames) noexcept YESDAW_RT_HOT
+    {
+        EventStream events;
+        processBlock (outChannels, numOutputChannels, numFrames, events);
+    }
+
+    void processBlock (float* const* outChannels,
+                       int numOutputChannels,
+                       int numFrames,
+                       std::span<const Event> events) noexcept YESDAW_RT_HOT
+    {
+        EventStream stream { events };
+        processBlock (outChannels, numOutputChannels, numFrames, stream);
+    }
+
+    void processBlock (float* const* outChannels,
+                       int numOutputChannels,
+                       int numFrames,
+                       EventStream& events) noexcept YESDAW_RT_HOT
     {
         // (1) Drain the command queue IN ORDER.
         //     INVARIANT: this drain MUST run before the end-of-block release-store at (3), inside this
@@ -183,7 +208,7 @@ public:
         }
         else
         {
-            current_->process (outChannels, numOutputChannels, numFrames);
+            current_->process (outChannels, numOutputChannels, numFrames, events);
         }
 
         // (3) Publish the end-of-block generation LAST (release). Pairs with reclaim()'s acquire-load.

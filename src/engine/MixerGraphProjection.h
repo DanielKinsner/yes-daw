@@ -2,8 +2,9 @@
 //
 // Control-thread-only helper: project/mixer state is projected into the frozen Node/GraphBuilder
 // contracts. This slice covers mono track sources through Fader -> Pan -> Meter -> master Sum ->
-// Master, plus Send edges into Bus SumNodes whose Returns feed the master bus. Sidechains/solo stay
-// future H3 projection work.
+// Master, plus Send edges into Bus SumNodes whose Returns feed the master bus. A track may also carry
+// control-built support Nodes feeding its source, which lets the host-isolation gate place a PluginNode
+// source chain inside the projected mixer graph without changing the frozen Node contract.
 
 #pragma once
 
@@ -60,6 +61,7 @@ struct MixerSendProjection
 struct MixerTrackProjection
 {
     std::unique_ptr<Node> source;
+    std::vector<std::unique_ptr<Node>> supportNodes;
     NodeId faderNodeId = 0;
     NodeId panNodeId   = 0;
     NodeId meterNodeId = 0;
@@ -120,7 +122,11 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     inputs.sampleRate = projection.sampleRate;
     inputs.maxBlockSize = projection.maxBlockSize;
     inputs.previousForCarryOver = projection.previousForCarryOver;
-    inputs.nodes.reserve (projection.tracks.size() * 4u + projection.buses.size() * 3u + 2u);
+
+    std::size_t supportNodeCount = 0;
+    for (const MixerTrackProjection& track : projection.tracks)
+        supportNodeCount += track.supportNodes.size();
+    inputs.nodes.reserve (projection.tracks.size() * 4u + supportNodeCount + projection.buses.size() * 3u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -204,6 +210,20 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         auto meter = std::make_unique<MeterNode> (track.meterNodeId, 2);
         MeterNode* const meterPtr = meter.get();
         meterPtr->setInput (panPtr);
+
+        for (std::unique_ptr<Node>& supportNode : track.supportNodes)
+        {
+            if (supportNode == nullptr)
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::MissingTrackSource;
+                    error->trackIndex = i;
+                }
+                return nullptr;
+            }
+            inputs.nodes.push_back (std::move (supportNode));
+        }
 
         inputs.nodes.push_back (std::move (track.source));
         inputs.nodes.push_back (std::move (fader));

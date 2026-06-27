@@ -7,17 +7,23 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "engine/Automation.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/MixerMutePolicy.h"
 #include "engine/Runtime.h"
+#include "engine/nodes/DelayNode.h"
+#include "engine/plugin/PluginNode.h"
 #include "engine/plugin/RtLaneRing.h"
 #include "persistence/ProjectBundle.h"
 #include "plugin_host/PluginHostCoordinator.h"
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
@@ -26,9 +32,19 @@
 #include <utility>
 #include <vector>
 
+using yesdaw::engine::AutomationBlock;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::AutomationEvalStatus;
+using yesdaw::engine::AutomationLane;
+using yesdaw::engine::AutomationLaneCursor;
+using yesdaw::engine::AutomationPoint;
+using yesdaw::engine::AutomationTarget;
 using yesdaw::engine::Event;
+using yesdaw::engine::EventStream;
+using yesdaw::engine::EventType;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
+using yesdaw::engine::DelayNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::GraphId;
@@ -44,7 +60,9 @@ using yesdaw::engine::MixerTrackProjection;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
+using yesdaw::engine::ParameterId;
 using yesdaw::engine::PlaceholderNode;
+using yesdaw::engine::PluginNode;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::RtLaneConfig;
 using yesdaw::engine::RtLaneAttachFailure;
@@ -54,6 +72,7 @@ using yesdaw::engine::RtLaneRing;
 using yesdaw::engine::Runtime;
 using yesdaw::engine::applyMixerMutePolicy;
 using yesdaw::engine::buildMixerGraphProjection;
+using yesdaw::engine::evaluateAutomationLaneForBlock;
 using yesdaw::plugin_host::PluginHostCoordinator;
 using yesdaw::plugin_host::RtLaneLoadConfig;
 using yesdaw::plugin_host::RtLaneLoadReplyStatus;
@@ -130,6 +149,46 @@ private:
     float dc_ = 0.0f;
 };
 
+class TimedImpulseSourceNode final : public Node
+{
+public:
+    TimedImpulseSourceNode (NodeId id, std::uint32_t impulseFrame) noexcept
+        : id_ (id), impulseFrame_ (impulseFrame)
+    {
+    }
+
+    NodeProperties properties() const noexcept override
+    {
+        return { true, false, 1, 0, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (args.audio.numChannels < 1)
+            return;
+
+        float* const out = args.audio.channels[0];
+        for (int i = 0; i < args.numFrames; ++i)
+            out[i] = 0.0f;
+
+        if (! fired_ && impulseFrame_ < static_cast<std::uint32_t> (args.numFrames))
+            out[impulseFrame_] = 1.0f;
+
+        fired_ = true;
+    }
+
+    void reset() noexcept override { fired_ = false; }
+    void release() override {}
+
+private:
+    NodeId        id_ = 0;
+    std::uint32_t impulseFrame_ = 0;
+    bool          fired_ = false;
+};
+
 constexpr NodeId kRecoverySourceId = 72001;
 constexpr NodeId kRecoveryOffenderId = 72002;
 constexpr NodeId kRecoveryMasterId = 72003;
@@ -184,6 +243,19 @@ constexpr NodeId kMixerRuntimeSourceB = 73011;
 constexpr NodeId kMixerRuntimeBusSum = 73100;
 constexpr NodeId kMixerRuntimeMasterSum = 73998;
 constexpr NodeId kMixerRuntimeMaster = 73999;
+
+constexpr int kTriStreamBlock = 8;
+constexpr std::uint32_t kTriStreamPdcShift = 2;
+constexpr std::uint32_t kTriStreamOffset = 4;
+constexpr NodeId kTriStreamImpulseSource = 74001;
+constexpr NodeId kTriStreamDelay = 74002;
+constexpr NodeId kTriStreamPlugin = 74003;
+constexpr NodeId kTriStreamFader = 74004;
+constexpr NodeId kTriStreamPan = 74005;
+constexpr NodeId kTriStreamMeter = 74006;
+constexpr NodeId kTriStreamMasterSum = 74998;
+constexpr NodeId kTriStreamMaster = 74999;
+constexpr ParameterId kTriStreamParameter = 77;
 
 MixerTrackProjection makeHostedRuntimeTrack (NodeId sourceId, float dc, NodeId faderId, NodeId panId, NodeId meterId)
 {
@@ -817,6 +889,28 @@ struct MixerRuntimeProjectionProof
     float expected = 0.0f;
 };
 
+struct TriStreamPdcProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    AutomationEvalStatus automationStatus = AutomationEvalStatus::Ok;
+    AutomationEvalStatus invalidAutomationStatus = AutomationEvalStatus::Ok;
+    std::size_t automationEventsWritten = 0;
+    std::size_t runtimeEventsWritten = 0;
+    bool invalidAutomationRejected = false;
+    bool eventStreamValid = false;
+    bool projectionBuilt = false;
+    bool graphPublished = false;
+    bool childServiced = false;
+    bool stubSawDelayedImpulse = false;
+    bool stubSawShiftedAutomation = false;
+    bool stubSawShiftedEvent = false;
+    std::int64_t graphLatency = 0;
+    float observedLeft = 0.0f;
+    float observedRight = 0.0f;
+    float expectedLeft = 7.0f;
+};
+
 MixerRuntimeProjectionProof computeMixerProjectionPublishesToRuntime()
 {
     MixerRuntimeProjectionProof proof;
@@ -907,6 +1001,199 @@ MixerRuntimeProjectionProof computeMixerProjectionPublishesToRuntime()
         && std::abs (proof.observedRight - proof.expected) < 0.0001f;
     if (! proof.runtimeRenderedStereo)
         return fail ("Runtime output did not match SIP-safe projected mixer graph");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
+TriStreamPdcProof computeTriStreamPdcThroughHostedPlugin()
+{
+    TriStreamPdcProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    auto tickToFrame = [] (yesdaw::engine::Tick tick) noexcept {
+        return static_cast<double> (tick);
+    };
+
+    AutomationLane lane;
+    lane.target = AutomationTarget { kTriStreamPlugin, kTriStreamParameter };
+    lane.points = {
+        AutomationPoint { 0, 0.0, AutomationCurveType::Linear },
+        AutomationPoint { 4, 1.0, AutomationCurveType::Hold },
+    };
+
+    AutomationLaneCursor cursor;
+    std::array<Event, 16> automationEvents {};
+    const auto automation = evaluateAutomationLaneForBlock (
+        lane,
+        cursor,
+        AutomationBlock { 0.0, kTriStreamBlock, static_cast<double> (kTriStreamPdcShift) },
+        tickToFrame,
+        std::span<Event> (automationEvents));
+    proof.automationStatus = automation.status;
+    proof.automationEventsWritten = automation.eventsWritten;
+    if (automation.status != AutomationEvalStatus::Ok || automation.eventsWritten == 0u)
+        return fail ("automation lane did not emit shifted curve events");
+
+    AutomationLane invalidLane;
+    invalidLane.target = lane.target;
+    invalidLane.points = {
+        AutomationPoint { 0, std::numeric_limits<double>::infinity(), AutomationCurveType::Linear },
+        AutomationPoint { 4, 1.0, AutomationCurveType::Linear },
+    };
+    AutomationLaneCursor invalidCursor;
+    std::array<Event, 2> invalidOut {};
+    const auto invalid = evaluateAutomationLaneForBlock (
+        invalidLane,
+        invalidCursor,
+        AutomationBlock { 0.0, kTriStreamBlock, 0.0 },
+        tickToFrame,
+        std::span<Event> (invalidOut));
+    proof.invalidAutomationStatus = invalid.status;
+    proof.invalidAutomationRejected =
+        invalid.status == AutomationEvalStatus::InvalidInput && invalid.eventsWritten == 0u;
+    if (! proof.invalidAutomationRejected)
+        return fail ("negative-control non-finite automation point was not rejected");
+
+    Event note {};
+    note.timeInBlock = kTriStreamOffset;
+    note.type = EventType::NoteOn;
+    note.payload.note.normalizedVelocity = 1.0;
+    note.payload.note.pitchNote = 60.0;
+
+    std::array<Event, 20> runtimeEvents {};
+    bool noteInserted = false;
+    for (std::size_t i = 0; i < automation.eventsWritten; ++i)
+    {
+        const Event& ev = automationEvents[i];
+        if (! noteInserted && ev.timeInBlock > note.timeInBlock)
+        {
+            runtimeEvents[proof.runtimeEventsWritten++] = note;
+            noteInserted = true;
+        }
+
+        runtimeEvents[proof.runtimeEventsWritten++] = ev;
+
+        if (! noteInserted && ev.timeInBlock == note.timeInBlock)
+        {
+            runtimeEvents[proof.runtimeEventsWritten++] = note;
+            noteInserted = true;
+        }
+    }
+
+    if (! noteInserted)
+        runtimeEvents[proof.runtimeEventsWritten++] = note;
+
+    EventStream stream { std::span<const Event> (runtimeEvents.data(), proof.runtimeEventsWritten) };
+    proof.eventStreamValid = stream.isValidForBlock (kTriStreamBlock);
+    if (! proof.eventStreamValid)
+        return fail ("shifted automation + event stream was not sorted/valid");
+
+    auto impulse = std::make_unique<TimedImpulseSourceNode> (kTriStreamImpulseSource,
+                                                             kTriStreamOffset - kTriStreamPdcShift);
+    auto delay = std::make_unique<DelayNode> (kTriStreamDelay, kTriStreamPdcShift, 1);
+    delay->setInput (impulse.get());
+
+    auto plugin = std::make_unique<PluginNode> (kTriStreamPlugin, 1, kTriStreamBlock);
+    plugin->setInput (delay.get());
+    PluginNode* const pluginPtr = plugin.get();
+
+    plugin->setStubProcessor (
+        [&proof] (std::span<const Event> events,
+                  const float* const* input,
+                  float* const* output,
+                  int channels,
+                  int frames) noexcept
+        {
+            for (int c = 0; c < channels; ++c)
+                for (int f = 0; f < frames; ++f)
+                    output[c][f] = 0.0f;
+
+            proof.stubSawDelayedImpulse =
+                channels > 0 && frames > static_cast<int> (kTriStreamOffset)
+                && input != nullptr && input[0] != nullptr
+                && std::abs (input[0][kTriStreamOffset] - 1.0f) < 0.000001f;
+
+            for (const Event& ev : events)
+            {
+                if (ev.timeInBlock != kTriStreamOffset)
+                    continue;
+
+                if (ev.type == EventType::ParameterChange
+                    && ev.payload.parameter.targetNode == kTriStreamPlugin
+                    && ev.payload.parameter.parameterId == kTriStreamParameter
+                    && std::abs (ev.payload.parameter.normalizedValue - 0.5) < 0.000001)
+                    proof.stubSawShiftedAutomation = true;
+
+                if (ev.type == EventType::NoteOn
+                    && std::abs (ev.payload.note.normalizedVelocity - 1.0) < 0.000001)
+                    proof.stubSawShiftedEvent = true;
+            }
+
+            if (channels > 0 && frames > static_cast<int> (kTriStreamOffset)
+                && proof.stubSawDelayedImpulse && proof.stubSawShiftedAutomation
+                && proof.stubSawShiftedEvent)
+                output[0][kTriStreamOffset] = proof.expectedLeft;
+        });
+
+    MixerTrackProjection track;
+    track.supportNodes.push_back (std::move (impulse));
+    track.supportNodes.push_back (std::move (delay));
+    track.source = std::move (plugin);
+    track.faderNodeId = kTriStreamFader;
+    track.panNodeId = kTriStreamPan;
+    track.meterNodeId = kTriStreamMeter;
+    track.linearGain = 1.0f;
+    track.pan = -1.0f;
+
+    MixerProjectionInputs inputs;
+    inputs.id = 22;
+    inputs.masterSumNodeId = kTriStreamMasterSum;
+    inputs.masterNodeId = kTriStreamMaster;
+    inputs.maxBlockSize = kTriStreamBlock;
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError buildError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &buildError);
+    proof.projectionBuilt = graph != nullptr && buildError.code == MixerProjectionError::Code::None;
+    if (! proof.projectionBuilt)
+        return fail ("projected hosted automation graph did not build");
+
+    proof.graphLatency = graph->totalLatency();
+    if (proof.graphLatency != static_cast<std::int64_t> (kTriStreamBlock + kTriStreamPdcShift))
+        return fail ("projected hosted graph did not report the expected PluginNode + PDC latency");
+
+    Runtime runtime;
+    proof.graphPublished = runtime.publish (std::move (graph));
+    if (! proof.graphPublished)
+        return fail ("projected hosted automation graph did not publish through Runtime");
+
+    std::vector<float> left (kTriStreamBlock, 0.0f);
+    std::vector<float> right (kTriStreamBlock, 0.0f);
+    float* outputs[2] = { left.data(), right.data() };
+    runtime.processBlock (outputs,
+                          2,
+                          kTriStreamBlock,
+                          std::span<const Event> (runtimeEvents.data(), proof.runtimeEventsWritten));
+
+    proof.childServiced = pluginPtr->serviceStubChild();
+    if (! proof.childServiced)
+        return fail ("hosted PluginNode child did not consume the automation block");
+
+    std::fill (left.begin(), left.end(), 0.0f);
+    std::fill (right.begin(), right.end(), 0.0f);
+    runtime.processBlock (outputs, 2, kTriStreamBlock);
+
+    proof.observedLeft = left[kTriStreamOffset];
+    proof.observedRight = right[kTriStreamOffset];
+    if (std::abs (proof.observedLeft - proof.expectedLeft) > 0.0001f
+        || std::abs (proof.observedRight) > 0.0001f)
+        return fail ("tri-stream marker did not return through Runtime at the compensated offset");
 
     proof.passed = true;
     proof.failureStep = "passed";
@@ -1094,6 +1381,12 @@ MixerRuntimeProjectionProof proveMixerProjectionPublishesToRuntime()
     return proof;
 }
 
+TriStreamPdcProof proveTriStreamPdcThroughHostedPlugin()
+{
+    static const TriStreamPdcProof proof = computeTriStreamPdcThroughHostedPlugin();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
@@ -1102,6 +1395,7 @@ HostIsolationGateState currentHostIsolationGateState()
     state.rtLaneIdentityPassesControlLane = proveRtLaneIdentityPassesControlLane().passed;
     state.workerPollsHostedProcessorOverRtLane = proveWorkerPollsHostedProcessorOverRtLane().passed;
     state.mixerProjectionPublishesToRuntime = proveMixerProjectionPublishesToRuntime().passed;
+    state.triStreamPdcThroughHostedPlugin = proveTriStreamPdcThroughHostedPlugin().passed;
     const WatchdogRecoveryProof recovery = proveWatchdogRecoverySwapsPlaceholder();
     state.watchdogKillsHungOrCrashedChild =
         recovery.watchdogAutoQueued && recovery.crashAutoQueued;
@@ -1221,6 +1515,30 @@ TEST_CASE ("host-isolation plugin path runs inside projected mixer graph through
              proof.observedLeft,
              proof.observedRight,
              proof.expected);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("automation lane tri-stream PDC reaches hosted PluginNode through projected Runtime graph",
+           "[h3][host-isolation][automation][pdc][plugin]")
+{
+    const TriStreamPdcProof proof = proveTriStreamPdcThroughHostedPlugin();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.automationStatus),
+             static_cast<int> (proof.invalidAutomationStatus),
+             proof.automationEventsWritten,
+             proof.runtimeEventsWritten,
+             proof.invalidAutomationRejected,
+             proof.eventStreamValid,
+             proof.projectionBuilt,
+             proof.graphPublished,
+             proof.childServiced,
+             proof.stubSawDelayedImpulse,
+             proof.stubSawShiftedAutomation,
+             proof.stubSawShiftedEvent,
+             proof.graphLatency,
+             proof.observedLeft,
+             proof.observedRight,
+             proof.expectedLeft);
     REQUIRE (proof.passed);
 }
 

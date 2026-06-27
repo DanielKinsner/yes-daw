@@ -22,6 +22,8 @@ using yesdaw::engine::AudioBlock;
 using yesdaw::engine::AutomationBlock;
 using yesdaw::engine::AutomationCurveType;
 using yesdaw::engine::AutomationEvalStatus;
+using yesdaw::engine::AutomationLane;
+using yesdaw::engine::AutomationLaneCursor;
 using yesdaw::engine::AutomationPoint;
 using yesdaw::engine::AutomationTarget;
 using yesdaw::engine::Event;
@@ -35,6 +37,7 @@ using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::Tick;
 using yesdaw::engine::Transport;
 using yesdaw::engine::VoiceAddress;
+using yesdaw::engine::evaluateAutomationLaneForBlock;
 using yesdaw::engine::evaluateAutomationPointsForBlock;
 using yesdaw::engine::kTicksPerQuarter;
 
@@ -159,6 +162,107 @@ TEST_CASE ("Automation evaluator emits parameter events for one half-open block"
     REQUIRE (second.nextPointIndex == points.size());
     REQUIRE (secondOut[0].timeInBlock == 0u);
     REQUIRE (secondOut[0].payload.parameter.normalizedValue == 0.75);
+}
+
+TEST_CASE ("Automation lane interpolates curves and applies PDC shift", "[automation][lane][curve][pdc]")
+{
+    auto valueAtShiftedFrame = [] (AutomationCurveType curve, std::uint32_t shiftedFrame)
+    {
+        AutomationLane lane;
+        lane.target = AutomationTarget { 10, FaderNode::kGainParameterId };
+        lane.points = {
+            AutomationPoint { 0, 0.0, curve },
+            AutomationPoint { 4, 1.0, AutomationCurveType::Hold },
+        };
+
+        AutomationLaneCursor cursor;
+        std::array<Event, 8> out {};
+        const auto result = evaluateAutomationLaneForBlock (
+            lane,
+            cursor,
+            AutomationBlock { 0.0, 8, 2.0 },
+            linearTickToFrame (0, 1.0),
+            std::span<Event> (out));
+
+        REQUIRE (result.status == AutomationEvalStatus::Ok);
+        REQUIRE (result.eventsWritten == 5u);
+        REQUIRE (result.nextPointIndex == lane.points.size());
+        REQUIRE (cursor.initialized);
+
+        for (std::size_t i = 0; i < result.eventsWritten; ++i)
+            if (out[i].timeInBlock == shiftedFrame)
+                return out[i].payload.parameter.normalizedValue;
+
+        FAIL ("expected shifted automation event was not emitted");
+        return -1.0;
+    };
+
+    // The first generated event is shifted by +2 frames from tick/frame 0.
+    REQUIRE (valueAtShiftedFrame (AutomationCurveType::Linear, 2) == 0.0);
+
+    // At shifted frame 3 the source-frame progress is 25%. These distinct values prove the evaluator
+    // reads AutomationCurveType instead of treating every segment as point-only or linear.
+    const double hold = valueAtShiftedFrame (AutomationCurveType::Hold, 3);
+    const double linear = valueAtShiftedFrame (AutomationCurveType::Linear, 3);
+    const double bezier = valueAtShiftedFrame (AutomationCurveType::Bezier, 3);
+    const double log = valueAtShiftedFrame (AutomationCurveType::Log, 3);
+
+    REQUIRE (hold == 0.0);
+    REQUIRE (std::abs (linear - 0.25) < 1.0e-12);
+    REQUIRE (std::abs (bezier - 0.15625) < 1.0e-12);
+    REQUIRE (log > linear);
+    REQUIRE (log < 1.0);
+}
+
+TEST_CASE ("Automation lane cursor re-seeks on loop or seek and rejects non-finite points",
+           "[automation][lane][cursor][robust]")
+{
+    AutomationLane lane;
+    lane.target = AutomationTarget { 10, FaderNode::kGainParameterId };
+    lane.points = {
+        AutomationPoint { 0, 0.0, AutomationCurveType::Linear },
+        AutomationPoint { 4, 1.0, AutomationCurveType::Linear },
+    };
+
+    AutomationLaneCursor cursor;
+    std::array<Event, 8> out {};
+    const auto later = evaluateAutomationLaneForBlock (
+        lane,
+        cursor,
+        AutomationBlock { 4.0, 4, 0.0 },
+        linearTickToFrame (0, 1.0),
+        std::span<Event> (out));
+    REQUIRE (later.status == AutomationEvalStatus::Ok);
+    REQUIRE (later.eventsWritten == 1u);
+
+    const auto looped = evaluateAutomationLaneForBlock (
+        lane,
+        cursor,
+        AutomationBlock { 0.0, 4, 0.0 },
+        linearTickToFrame (0, 1.0),
+        std::span<Event> (out));
+    REQUIRE (looped.status == AutomationEvalStatus::Ok);
+    REQUIRE (looped.eventsWritten == 4u);
+    REQUIRE (out[0].timeInBlock == 0u);
+    REQUIRE (out[0].payload.parameter.normalizedValue == 0.0);
+
+    AutomationLane invalid;
+    invalid.target = lane.target;
+    invalid.points = {
+        AutomationPoint { 0, std::numeric_limits<double>::infinity(), AutomationCurveType::Linear },
+        AutomationPoint { 4, 1.0, AutomationCurveType::Linear },
+    };
+
+    AutomationLaneCursor invalidCursor;
+    std::array<Event, 2> invalidOut {};
+    const auto invalidResult = evaluateAutomationLaneForBlock (
+        invalid,
+        invalidCursor,
+        AutomationBlock { 0.0, 4, 0.0 },
+        linearTickToFrame (0, 1.0),
+        std::span<Event> (invalidOut));
+    REQUIRE (invalidResult.status == AutomationEvalStatus::InvalidInput);
+    REQUIRE (invalidResult.eventsWritten == 0u);
 }
 
 TEST_CASE ("Automation evaluator reports invalid inputs before writing past fixed storage", "[automation][event]")
