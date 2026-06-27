@@ -854,11 +854,14 @@ private:
         endWrite (s);
     }
 
+    // Acquire-load the child's published-output counter EXACTLY once per Block. readOutputFailOpen resets
+    // lastOutputReadyProbeCount_ to 0 and this bumps it, so it reads 1 after a healthy probe — asserting
+    // == 1 is a STRUCTURAL guard that the audio thread never spins / re-probes (a future busy-wait would
+    // break it). It is NOT the xrun metric; a real missed deadline is a non-fresh Block, counted on the
+    // fail-open path below (the previous probe-count-based increment here could never fire and was dead).
     [[nodiscard]] std::uint64_t loadOutputReadyOnce() noexcept
     {
         ++lastOutputReadyProbeCount_;
-        if (lastOutputReadyProbeCount_ > 1u)
-            ++deadlineMissCount_;
         return control_->outputSeq.load (std::memory_order_acquire);
     }
 
@@ -934,8 +937,11 @@ private:
             return;
         }
 
-        // Miss: fail open along the ladder (ADR-0015) — last-good -> silence -> bypass, branch-only.
+        // Miss: the child did not publish the expected Block in time — a real missed deadline. Count it
+        // (this is the genuine xrun metric), then fail open along the ladder (ADR-0015) — last-good ->
+        // silence -> bypass, branch-only.
         ++consecutiveMisses_;
+        ++deadlineMissCount_;
         if (consecutiveMisses_ >= cfg_.bypassAfterMisses)
             bypassLatched_ = true;
 

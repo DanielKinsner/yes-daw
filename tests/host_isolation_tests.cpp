@@ -940,7 +940,7 @@ struct FailOpenDeadlineProof
     bool silenceSeen = false;
     bool bypassSeen = false;
     bool outputFinite = false;
-    bool noDeadlineMisses = false;
+    bool missCountExact = false;
     bool boundedProbe = false;
     std::uint64_t deadlineMisses = 0;
     std::uint32_t maxOutputReadyProbeCount = 0;
@@ -1318,6 +1318,7 @@ FailOpenDeadlineProof computeFailOpenHasNoDeadlineMisses()
     std::vector<float> right (kFailOpenBlock, 0.0f);
     float* outputs[2] = { left.data(), right.data() };
 
+    std::uint64_t previousMisses = 0;
     auto render = [&] (RtLaneOutput expected) -> bool
     {
         std::fill (left.begin(), left.end(), std::numeric_limits<float>::quiet_NaN());
@@ -1330,9 +1331,17 @@ FailOpenDeadlineProof computeFailOpenHasNoDeadlineMisses()
             std::max (proof.maxOutputReadyProbeCount, pluginPtr->lastOutputReadyProbeCount());
         proof.finalStatus = pluginPtr->lastOutputSource();
 
+        // Real oracle: a Fresh Block records NO new missed deadline; every fail-open Block (last-good,
+        // silence, bypass) records EXACTLY one. A handshake regression that silently dropped a Fresh Block
+        // would show delta 1 here; a counter that never moved would show delta 0 on a starved Block. Either
+        // failure now flips this assertion (the old `deadlineMisses == 0` could never move and proved nothing).
+        const std::uint64_t missDelta = proof.deadlineMisses - previousMisses;
+        previousMisses = proof.deadlineMisses;
+        const std::uint64_t expectedDelta = expected == RtLaneOutput::Fresh ? 0u : 1u;
+
         return proof.outputFinite
-            && proof.deadlineMisses == 0u
-            && pluginPtr->lastOutputReadyProbeCount() == 1u
+            && missDelta == expectedDelta
+            && pluginPtr->lastOutputReadyProbeCount() == 1u   // structural no-busy-wait guard
             && proof.finalStatus == expected;
     };
 
@@ -1383,10 +1392,12 @@ FailOpenDeadlineProof computeFailOpenHasNoDeadlineMisses()
         return fail ("forced-late child did not latch bypass");
     proof.bypassLeft = left[kFailOpenBlock - 1];
     proof.bypassSeen = pluginPtr->bypassActive() && allSamplesNear (left, 0.0f) && allSamplesNear (right, 0.0f);
-    proof.noDeadlineMisses = pluginPtr->deadlineMissCount() == 0u;
+    // 6 forced missed deadlines total: 1 priming silence + 2 last-good + 2 silence + 1 bypass (each now a
+    // real counted miss). Fresh Blocks contributed none. The exact total is a genuine end-to-end oracle.
+    proof.missCountExact = pluginPtr->deadlineMissCount() == 6u;
     proof.boundedProbe = proof.maxOutputReadyProbeCount == 1u;
-    if (! proof.bypassSeen || ! proof.noDeadlineMisses || ! proof.boundedProbe)
-        return fail ("fail-open bypass did not stay deadline-clean and finite");
+    if (! proof.bypassSeen || ! proof.missCountExact || ! proof.boundedProbe)
+        return fail ("fail-open ladder did not record exactly the forced missed deadlines");
 
     proof.passed = true;
     proof.failureStep = "passed";
@@ -1830,7 +1841,7 @@ TEST_CASE ("PluginNode fail-open stays finite with no deadline misses through pr
              proof.silenceSeen,
              proof.bypassSeen,
              proof.outputFinite,
-             proof.noDeadlineMisses,
+             proof.missCountExact,
              proof.boundedProbe,
              proof.deadlineMisses,
              proof.maxOutputReadyProbeCount,
