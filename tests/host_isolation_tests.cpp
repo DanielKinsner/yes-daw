@@ -236,6 +236,15 @@ bool allSamplesNear (const std::vector<float>& values, float expected) noexcept
     return true;
 }
 
+bool allFiniteSamples (const std::vector<float>& values) noexcept
+{
+    for (const float value : values)
+        if (! std::isfinite (value))
+            return false;
+
+    return true;
+}
+
 constexpr int kMixerRuntimeFrames = 16;
 constexpr float kMixerRuntimeCenterGain = 0.70710677f;
 constexpr NodeId kMixerRuntimeSourceA = 73001;
@@ -256,6 +265,15 @@ constexpr NodeId kTriStreamMeter = 74006;
 constexpr NodeId kTriStreamMasterSum = 74998;
 constexpr NodeId kTriStreamMaster = 74999;
 constexpr ParameterId kTriStreamParameter = 77;
+
+constexpr int kFailOpenBlock = 8;
+constexpr NodeId kFailOpenSource = 75001;
+constexpr NodeId kFailOpenPlugin = 75002;
+constexpr NodeId kFailOpenFader = 75003;
+constexpr NodeId kFailOpenPan = 75004;
+constexpr NodeId kFailOpenMeter = 75005;
+constexpr NodeId kFailOpenMasterSum = 75998;
+constexpr NodeId kFailOpenMaster = 75999;
 
 MixerTrackProjection makeHostedRuntimeTrack (NodeId sourceId, float dc, NodeId faderId, NodeId panId, NodeId meterId)
 {
@@ -911,6 +929,29 @@ struct TriStreamPdcProof
     float expectedLeft = 7.0f;
 };
 
+struct FailOpenDeadlineProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    bool projectionBuilt = false;
+    bool graphPublished = false;
+    bool childPrimed = false;
+    bool freshSeen = false;
+    bool lastGoodHeld = false;
+    bool silenceSeen = false;
+    bool bypassSeen = false;
+    bool outputFinite = false;
+    bool noDeadlineMisses = false;
+    bool boundedProbe = false;
+    std::uint64_t deadlineMisses = 0;
+    std::uint32_t maxOutputReadyProbeCount = 0;
+    RtLaneOutput finalStatus = RtLaneOutput::Silence;
+    float freshLeft = 0.0f;
+    float lastGoodLeft = 0.0f;
+    float silenceLeft = 0.0f;
+    float bypassLeft = 0.0f;
+};
+
 MixerRuntimeProjectionProof computeMixerProjectionPublishesToRuntime()
 {
     MixerRuntimeProjectionProof proof;
@@ -1200,6 +1241,127 @@ TriStreamPdcProof computeTriStreamPdcThroughHostedPlugin()
     return proof;
 }
 
+FailOpenDeadlineProof computeFailOpenHasNoDeadlineMisses()
+{
+    FailOpenDeadlineProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    auto source = std::make_unique<SimulatedHostedPluginSourceNode> (kFailOpenSource, 0.75f);
+    auto plugin = std::make_unique<PluginNode> (kFailOpenPlugin, 1, kFailOpenBlock);
+    plugin->setFailOpenThresholds (/*lastGoodHoldBlocks*/ 2, /*bypassAfterMisses*/ 5);
+    plugin->setInput (source.get());
+    PluginNode* const pluginPtr = plugin.get();
+
+    MixerTrackProjection track;
+    track.supportNodes.push_back (std::move (source));
+    track.source = std::move (plugin);
+    track.faderNodeId = kFailOpenFader;
+    track.panNodeId = kFailOpenPan;
+    track.meterNodeId = kFailOpenMeter;
+    track.linearGain = 1.0f;
+    track.pan = -1.0f;
+
+    MixerProjectionInputs inputs;
+    inputs.id = 23;
+    inputs.masterSumNodeId = kFailOpenMasterSum;
+    inputs.masterNodeId = kFailOpenMaster;
+    inputs.maxBlockSize = kFailOpenBlock;
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError buildError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &buildError);
+    proof.projectionBuilt = graph != nullptr && buildError.code == MixerProjectionError::Code::None;
+    if (! proof.projectionBuilt)
+        return fail ("projected fail-open graph did not build");
+
+    Runtime runtime;
+    proof.graphPublished = runtime.publish (std::move (graph));
+    if (! proof.graphPublished)
+        return fail ("projected fail-open graph did not publish through Runtime");
+
+    std::vector<float> left (kFailOpenBlock, 0.0f);
+    std::vector<float> right (kFailOpenBlock, 0.0f);
+    float* outputs[2] = { left.data(), right.data() };
+
+    auto render = [&] (RtLaneOutput expected) -> bool
+    {
+        std::fill (left.begin(), left.end(), std::numeric_limits<float>::quiet_NaN());
+        std::fill (right.begin(), right.end(), std::numeric_limits<float>::quiet_NaN());
+        runtime.processBlock (outputs, 2, kFailOpenBlock);
+
+        proof.outputFinite = allFiniteSamples (left) && allFiniteSamples (right);
+        proof.deadlineMisses = pluginPtr->deadlineMissCount();
+        proof.maxOutputReadyProbeCount =
+            std::max (proof.maxOutputReadyProbeCount, pluginPtr->lastOutputReadyProbeCount());
+        proof.finalStatus = pluginPtr->lastOutputSource();
+
+        return proof.outputFinite
+            && proof.deadlineMisses == 0u
+            && pluginPtr->lastOutputReadyProbeCount() == 1u
+            && proof.finalStatus == expected;
+    };
+
+    for (int i = 0; i < 3; ++i)
+    {
+        if (! render (i == 0 ? RtLaneOutput::Silence : RtLaneOutput::Fresh))
+            return fail ("fail-open graph did not prime through Runtime");
+        if (! pluginPtr->serviceStubChild())
+            return fail ("stub child did not service the priming Block");
+    }
+    proof.childPrimed = true;
+
+    if (! render (RtLaneOutput::Fresh))
+        return fail ("primed fail-open graph did not deliver the last fresh Block");
+    proof.freshSeen = true;
+    proof.freshLeft = left[kFailOpenBlock - 1];
+    if (proof.freshLeft <= 0.0f)
+        return fail ("fresh fail-open baseline was silent");
+
+    bool lastGoodMatched = true;
+    for (int miss = 0; miss < 2; ++miss)
+    {
+        if (! render (RtLaneOutput::LastGood))
+            return fail ("forced-late child did not hold last-good output");
+
+        lastGoodMatched = lastGoodMatched
+            && std::abs (left[kFailOpenBlock - 1] - proof.freshLeft) < 0.0001f;
+    }
+    proof.lastGoodLeft = left[kFailOpenBlock - 1];
+    proof.lastGoodHeld = lastGoodMatched;
+    if (! proof.lastGoodHeld)
+        return fail ("last-good output changed during forced-late fail-open");
+
+    bool silenceMatched = true;
+    for (int miss = 0; miss < 2; ++miss)
+    {
+        if (! render (RtLaneOutput::Silence))
+            return fail ("forced-late child did not fall back to silence");
+
+        silenceMatched = silenceMatched && allSamplesNear (left, 0.0f) && allSamplesNear (right, 0.0f);
+    }
+    proof.silenceLeft = left[kFailOpenBlock - 1];
+    proof.silenceSeen = silenceMatched;
+    if (! proof.silenceSeen)
+        return fail ("silence fail-open output was not zeroed");
+
+    if (! render (RtLaneOutput::Bypass))
+        return fail ("forced-late child did not latch bypass");
+    proof.bypassLeft = left[kFailOpenBlock - 1];
+    proof.bypassSeen = pluginPtr->bypassActive() && allSamplesNear (left, 0.0f) && allSamplesNear (right, 0.0f);
+    proof.noDeadlineMisses = pluginPtr->deadlineMissCount() == 0u;
+    proof.boundedProbe = proof.maxOutputReadyProbeCount == 1u;
+    if (! proof.bypassSeen || ! proof.noDeadlineMisses || ! proof.boundedProbe)
+        return fail ("fail-open bypass did not stay deadline-clean and finite");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
 WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
 {
     WatchdogRecoveryProof proof;
@@ -1387,6 +1549,12 @@ TriStreamPdcProof proveTriStreamPdcThroughHostedPlugin()
     return proof;
 }
 
+FailOpenDeadlineProof proveFailOpenHasNoDeadlineMisses()
+{
+    static const FailOpenDeadlineProof proof = computeFailOpenHasNoDeadlineMisses();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
@@ -1399,6 +1567,7 @@ HostIsolationGateState currentHostIsolationGateState()
     const WatchdogRecoveryProof recovery = proveWatchdogRecoverySwapsPlaceholder();
     state.watchdogKillsHungOrCrashedChild =
         recovery.watchdogAutoQueued && recovery.crashAutoQueued;
+    state.failOpenHasNoDeadlineMisses = proveFailOpenHasNoDeadlineMisses().passed;
     state.placeholderSwapUsesOrderedPublish =
         recovery.placeholderCompiled && recovery.orderedPublishAccepted && recovery.graphRecompileExecuted;
     state.blacklistPersistsAcrossRestart = proveBlacklistPersistsAcrossRestartCached().passed;
@@ -1539,6 +1708,31 @@ TEST_CASE ("automation lane tri-stream PDC reaches hosted PluginNode through pro
              proof.observedLeft,
              proof.observedRight,
              proof.expectedLeft);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("PluginNode fail-open stays finite with no deadline misses through projected Runtime graph",
+           "[h3][host-isolation][failopen][deadline]")
+{
+    const FailOpenDeadlineProof proof = proveFailOpenHasNoDeadlineMisses();
+    CAPTURE (proof.failureStep,
+             proof.projectionBuilt,
+             proof.graphPublished,
+             proof.childPrimed,
+             proof.freshSeen,
+             proof.lastGoodHeld,
+             proof.silenceSeen,
+             proof.bypassSeen,
+             proof.outputFinite,
+             proof.noDeadlineMisses,
+             proof.boundedProbe,
+             proof.deadlineMisses,
+             proof.maxOutputReadyProbeCount,
+             static_cast<int> (proof.finalStatus),
+             proof.freshLeft,
+             proof.lastGoodLeft,
+             proof.silenceLeft,
+             proof.bypassLeft);
     REQUIRE (proof.passed);
 }
 

@@ -146,6 +146,8 @@ public:
     RtLaneOutput lastOutputSource() const noexcept { return ring_.lastStatus(); }
     bool         bypassActive()     const noexcept { return ring_.bypassActive(); }
     int          channels()         const noexcept { return channels_; }
+    std::uint64_t deadlineMissCount() const noexcept { return ring_.deadlineMissCount(); }
+    std::uint32_t lastOutputReadyProbeCount() const noexcept { return ring_.lastOutputReadyProbeCount(); }
 
     // The pipeline Block this node reported its one-Block IPC latency for (fixed at construction). The
     // compiler reads properties()/locks PDC BEFORE prepare(), so the reported latency is only correct when

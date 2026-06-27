@@ -377,6 +377,11 @@ public:
     // (ADR-0015), not from this flag (a hung child never produces output but also never "crashes" here).
     [[nodiscard]] bool bypassActive() const noexcept { return bypassLatched_; }
 
+    // Deterministic host-isolation deadline oracle: exchangeBlock() must fail open with one bounded
+    // output-ready probe per Block. A forced-late child is an output miss, not an audio deadline miss.
+    [[nodiscard]] std::uint64_t deadlineMissCount() const noexcept { return deadlineMissCount_; }
+    [[nodiscard]] std::uint32_t lastOutputReadyProbeCount() const noexcept { return lastOutputReadyProbeCount_; }
+
     [[nodiscard]] std::int64_t validatedLatencySamples() const noexcept
     {
         return control_ != nullptr ? control_->validatedLatency.load (std::memory_order_acquire) : 0;
@@ -743,6 +748,8 @@ private:
         lastGoodValid_ = false;
         lastGoodNumFrames_ = 0;
         lastDeliveredStatus_ = RtLaneOutput::Silence;
+        deadlineMissCount_ = 0;
+        lastOutputReadyProbeCount_ = 0;
     }
 
     [[nodiscard]] int clampFrames (std::uint32_t nf) const noexcept
@@ -847,6 +854,14 @@ private:
         endWrite (s);
     }
 
+    [[nodiscard]] std::uint64_t loadOutputReadyOnce() noexcept
+    {
+        ++lastOutputReadyProbeCount_;
+        if (lastOutputReadyProbeCount_ > 1u)
+            ++deadlineMissCount_;
+        return control_->outputSeq.load (std::memory_order_acquire);
+    }
+
     // The audio-thread read with the fail-open ladder (last-good -> silence -> bypass). Branch-only.
     // Delivers EXACTLY `expectedBlock` (== Block N-1) when the child has published it, else fails open —
     // so a hosted plugin's latency is a deterministic single Block (ADR-0015 / ADR-0007 PDC).
@@ -856,10 +871,11 @@ private:
         bool          fresh    = false;
         std::uint32_t gotEvents = 0;
         std::uint32_t gotFrames = 0;
+        lastOutputReadyProbeCount_ = 0;
 
         // The "output ready counter" (ADR-0015): acquire-load it; the child has published Block
         // `expectedBlock` once ready > expectedBlock (blocks 0..expectedBlock are all published).
-        const std::uint64_t ready = control_->outputSeq.load (std::memory_order_acquire);
+        const std::uint64_t ready = loadOutputReadyOnce();
         if (hasExpected && ready > expectedBlock)
         {
             Slot& s = outputSlots_[static_cast<std::size_t> (expectedBlock & 1u)];
@@ -982,6 +998,8 @@ private:
     bool          lastGoodValid_           = false;
     std::uint32_t lastGoodNumFrames_       = 0;
     RtLaneOutput  lastDeliveredStatus_     = RtLaneOutput::Silence;
+    std::uint64_t deadlineMissCount_       = 0;
+    std::uint32_t lastOutputReadyProbeCount_ = 0;
 
     // Child-thread-local state (touched only by pollOnce).
     std::uint64_t lastProcessedInput_ = 0;

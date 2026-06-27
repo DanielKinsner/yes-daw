@@ -58,7 +58,8 @@ auto-enqueue + Placeholder recovery publish is reviewed/green; item 3d persisten
 store/schema keyed by plugin identity is reviewed/green; item 4a `Project` -> `MixerProjectionInputs`
 projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` driver is reviewed/green;
 item 4c projected mixer graph through `Runtime` + live mixer-policy gate is reviewed/green; item 5
-automation lanes for tri-stream PDC through the hosted `PluginNode` path is locally green
+automation lanes for tri-stream PDC through the hosted `PluginNode` path is reviewed/green; the fail-open
+deadline/no-dropout clause through the projected `Runtime` graph is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -89,40 +90,33 @@ automation lanes for tri-stream PDC through the hosted `PluginNode` path is loca
   coverage.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX item 4c projected mixer graph through `Runtime` is clean; WORKER item 5 automation lanes for tri-stream PDC through the hosted `PluginNode` path is locally green.**
-  REVIEW/FIX of item 4c found no proven defects against `STATUS.md`, `loop/horizon.md`, the close-out
-  plan, ADR-0006/0008/0014/0015/0016, `src/engine/MixerGraphProjection.h`,
-  `tests/mixer_projection_tests.cpp`, `tests/host_isolation_tests.cpp`, `src/engine/MixerMutePolicy.h`,
-  and `src/engine/Runtime.h`: projected mixer output is rendered through `Runtime`; identical Send dedup
-  only collapses the same Node tap feeding the same Bus and still preserves distinct PreFader vs PostFader
-  taps; mixer policy is applied on the Control-built graph before `Runtime` ownership transfer; SIP
-  leakage, solo-safe Return behavior, and mute-mask capacity past 64 nodes are mechanically asserted; Meter
-  stereo coverage remains adequate (`MeterNode` multichannel test plus 2-channel Track/Return meters); and
-  `[!shouldfail]`, ADRs, goldens, and RT annotations did not drift. Then WORKER added the narrow item 5
-  slice: `AutomationLane` owns stored ADR-0009 points, `AutomationLaneCursor` gives a per-lane monotonic
-  cursor with loop/seek re-seek, curve interpolation now reads `AutomationCurveType`, `AutomationBlock`
-  carries a PDC shift, and `CompiledGraph`/`Runtime` can pass a caller-owned Event stream to Nodes without
-  changing existing no-event callers. `YesDawHostIsolationCheck` now proves a projected Track source chain
-  `TimedImpulseSource -> DelayNode(PDC shift) -> PluginNode` published through `Runtime`; a linear
-  automation ramp event, a Note event, and the delayed audio impulse meet at the same compensated Block
-  offset inside the hosted `PluginNode` path. The proof includes a negative-control non-finite automation
-  point rejection. Still out of scope: scanner, pluginval/auval, UI embedding, real external plugin
-  loading, opaque state IPC, fail-open deadline counters, broad automation persistence/schema, ADR edits,
-  goldens, real JUCE device ownership, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS
-  DevShell `cmake --build --preset ci --target YesDawEventCheck YesDawHostIsolationCheck YesDawMixerProjectionCheck YesDawRuntimeCheck`;
-  direct `YesDawEventCheck.exe`; direct `YesDawMixerProjectionCheck.exe`; direct `YesDawRuntimeCheck.exe`;
-  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed **205/205**; `git diff
-  --check` passed. **Next:** REVIEW/FIX this item 5 checkpoint first. Verify `src/engine/Automation.h`,
-  `src/engine/CompiledGraph.h`, `src/engine/Runtime.h`, `src/engine/MixerGraphProjection.h`,
-  `tests/event_tests.cpp`, `tests/host_isolation_tests.cpp`, ADR-0006/0008/0009/0014/0015, and the
-  close-out plan. Confirm curve interpolation really reads `AutomationCurveType`; cursor re-seek covers
-  loop/seek; PDC-shifted automation and Event streams stay sorted/half-open; Events reach `PluginNode`
-  through `Runtime` and the projected mixer graph; non-finite automation is rejected mechanically; and no
-  scanner/pluginval/auval/UI/real external plugin loading/opaque state/fail-open deadline/ADR/golden/
-  `[!shouldfail]` work leaked in. If clean, continue to the next still-false H3 host-isolation exit-gate
-  clause (currently fail-open deadline/no-dropout or opaque state), stopping for an ADR/plan update if the
-  sequencing is ambiguous.
+- **Latest: REVIEW/FIX item 5 automation lanes for tri-stream PDC is clean; WORKER fail-open deadline/no-dropout through the projected `Runtime` graph is locally green.**
+  REVIEW/FIX of item 5 found no proven defects against `STATUS.md`, `loop/horizon.md`, the close-out plan,
+  ADR-0006/0008/0009/0014/0015, `src/engine/Automation.h`, `src/engine/CompiledGraph.h`,
+  `src/engine/Runtime.h`, `src/engine/MixerGraphProjection.h`, `tests/event_tests.cpp`, and
+  `tests/host_isolation_tests.cpp`: curve interpolation reads `AutomationCurveType`; `AutomationLane`
+  storage stays narrow; the per-lane cursor re-seeks on loop/seek; PDC-shifted automation and Event
+  streams stay sorted/half-open; Events reach `PluginNode` through `Runtime` and the projected mixer graph;
+  non-finite automation is rejected mechanically; and no scanner/pluginval/auval/UI/real external plugin
+  loading/opaque-state/fail-open deadline/ADR/golden/RT annotation/`[!shouldfail]` work leaked into the
+  item 5 slice. Then WORKER added the narrow fail-open clause: `RtLaneRing` now exposes a deterministic
+  deadline-miss counter and output-ready probe diagnostic, `PluginNode` surfaces it, and
+  `YesDawHostIsolationCheck` publishes a projected `SimulatedHostedPluginSourceNode -> PluginNode` Track
+  through `Runtime`, forces the child late after priming, and proves Fresh -> LastGood -> Silence -> Bypass
+  output stays finite with `deadlineMissCount == 0` and one output-ready probe per Block. Still out of
+  scope: opaque state IPC, scanner, pluginval/auval, UI embedding, real external plugin loading, emit-NaN
+  recovery, impossible-latency quarantine, broad automation persistence/schema, ADR edits, goldens, real
+  JUCE device ownership, and `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawPluginNodeCheck YesDawPluginIpcCheck`;
+  direct `YesDawPluginIpcCheck.exe`; direct `YesDawPluginNodeCheck.exe`; `ctest --preset ci -R
+  YesDawHostIsolationCheck --output-on-failure`; VS DevShell `cmake --build --preset ci`; `ctest --preset
+  ci --output-on-failure` passed **205/205**; `git diff --check` passed. **Next:** REVIEW/FIX this
+  fail-open checkpoint first. Verify `src/engine/plugin/RtLaneRing.h`,
+  `src/engine/plugin/PluginNode.h`, `tests/host_isolation_tests.cpp`, and the `STATUS.md` handoff. Confirm
+  the diagnostic stays branch-only/no-wait on the audio path, forced-late child output stays finite and
+  deadline-clean through projected `Runtime`, and no opaque state/scanner/pluginval/auval/UI/real plugin
+  loading/ADR/golden/RT annotation/`[!shouldfail]` work leaked in. If clean, continue to the next still-false
+  H3 host-isolation exit-gate clause, likely opaque plugin-state round-trip across the real process boundary.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —
