@@ -350,12 +350,15 @@ template <typename TickToFrame>
                 return false;
 
             const double eventFrame = sourceFrame + block.pdcShiftFrames;
+
+            // Half-open [startFrame, blockEnd): a frame landing exactly on blockEnd belongs to the NEXT
+            // Block (ADR-0017). This is the single load-bearing boundary check — once it passes, offset is
+            // necessarily in [0, numFrames), so the previously-present second guard was redundant and
+            // (per the H4 review) masked regressions in this very check. Keep exactly one.
             if (eventFrame < block.startFrame || eventFrame >= blockEnd)
                 return true;
 
             const double offset = eventFrame - block.startFrame;
-            if (offset < 0.0 || offset >= static_cast<double> (block.numFrames))
-                return true;
 
             detail::MidiEventCandidate candidate;
             candidate.frame = eventFrame;

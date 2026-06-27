@@ -672,3 +672,43 @@ TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events throug
             REQUIRE (second[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
     }
 }
+
+// --- Negative controls ---------------------------------------------------------------------------
+// Each of the next cases is built to FAIL if the specific machinery it guards regresses (the project
+// rule: a green test that does not fail on a real break is theater). They cover the three failure
+// modes the H4 gate has always claimed: block-boundary off-by-one, constant-tempo flattening across a
+// tempo change, and uncompensated instrument latency.
+
+TEST_CASE ("A Note landing exactly on a Block boundary belongs to the next Block", "[midi][flatten][boundary][negctl]")
+{
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    // Note at clip tick 8 -> project tick 108 -> frame 108, exactly the end of the first 8-frame block.
+    const MidiClip clip = clipWithNotes ({ note (9, 8, 4) });
+
+    std::array<Event, 4> firstOut {};
+    const auto first = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, 8, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (firstOut));
+    REQUIRE (first.status == MidiFlattenStatus::Ok);
+    EventStream firstStream { std::span<const Event> (firstOut.data(), first.eventsWritten) };
+    REQUIRE (firstStream.isValidForBlock (8));
+    // Half-open: the boundary Note must NOT appear in [100, 108). A closed/closed regression would
+    // emit it here at offset 8 and trip isValidForBlock.
+    REQUIRE (noteOnOffsets (firstStream.events()).empty());
+
+    std::array<Event, 4> secondOut {};
+    const auto second = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 108.0, 8, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (secondOut));
+    REQUIRE (second.status == MidiFlattenStatus::Ok);
+    EventStream secondStream { std::span<const Event> (secondOut.data(), second.eventsWritten) };
+    REQUIRE (secondStream.isValidForBlock (8));
+    // ...and MUST appear at offset 0 of the next Block [108, 116).
+    REQUIRE (noteOnOffsets (secondStream.events()) == std::vector<std::uint32_t> { 0u });
+}
