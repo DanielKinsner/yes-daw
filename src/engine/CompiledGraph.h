@@ -49,9 +49,12 @@ using DelayCacheKey = std::uint64_t;
 
 using SlotIndex  = std::uint16_t;
 using DSlotIndex = std::uint16_t;
+using EventSlotIndex = std::uint16_t;
 
 inline constexpr SlotIndex kSilenceSlot = 0;
 inline constexpr SlotIndex kNoSlot      = 0xFFFFu;
+inline constexpr EventSlotIndex kRootEventSlot = 0;
+inline constexpr EventSlotIndex kNoEventSlot   = 0xFFFFu;
 inline constexpr std::uint32_t kNoMuteBit = 0xFFFFFFFFu;
 
 // Number of 64-bit words a mute mask needs to carry one bit per compiled node (ADR-0016). Sized once on
@@ -93,6 +96,8 @@ struct CompiledNode
     std::uint16_t    numChannels   = 0;
     std::uint32_t    inputsBegin   = 0;
     SlotIndex        outputSlot    = kNoSlot;
+    EventSlotIndex   eventInputSlot = kRootEventSlot;
+    EventSlotIndex   eventOutputSlot = kNoEventSlot;
     DSlotIndex       busAccumSlot  = kNoSlot;
     std::int64_t     pathLatency   = 0;
     DelayCacheKey    delayCacheKey = 0;
@@ -126,6 +131,8 @@ struct DelayCacheEntry
 class CompiledGraph
 {
 public:
+    static constexpr std::uint32_t kMaxEventsPerBlock = 1024;
+
     struct Payload
     {
         GraphId id         = 0;
@@ -136,9 +143,14 @@ public:
         std::vector<InputSlot>                          inputSlotIndices;
         std::unique_ptr<float[]>                        floatStorage;
         std::unique_ptr<double[]>                       doubleStorage;
+        std::unique_ptr<Event[]>                        eventStorage;
+        std::unique_ptr<std::uint32_t[]>                eventSlotCounts;
         std::vector<float*>                             floatSlotPtrs;
         std::vector<double*>                            doubleSlotPtrs;
+        std::vector<Event*>                             eventSlotPtrs;
         BufferPoolLayout                                poolLayout;
+        std::uint16_t                                   numEventSlots = 1;
+        std::uint32_t                                   maxEventsPerBlock = kMaxEventsPerBlock;
         std::int64_t                                    totalLatency    = 0;
         SlotIndex                                       masterOutputSlot = kSilenceSlot;
         std::uint16_t                                   masterChannels   = 1;
@@ -159,9 +171,14 @@ public:
           inputSlotIndices_ (std::move (payload.inputSlotIndices)),
           floatStorage_ (std::move (payload.floatStorage)),
           doubleStorage_ (std::move (payload.doubleStorage)),
+          eventStorage_ (std::move (payload.eventStorage)),
+          eventSlotCounts_ (std::move (payload.eventSlotCounts)),
           floatSlotPtrs_ (std::move (payload.floatSlotPtrs)),
           doubleSlotPtrs_ (std::move (payload.doubleSlotPtrs)),
+          eventSlotPtrs_ (std::move (payload.eventSlotPtrs)),
           poolLayout_ (payload.poolLayout),
+          numEventSlots_ (payload.numEventSlots),
+          maxEventsPerBlock_ (payload.maxEventsPerBlock),
           totalLatency_ (payload.totalLatency),
           muteWords_ (muteWordCount (compiledNodes_.size())),
           masterOutputSlot_ (payload.masterOutputSlot),
@@ -264,8 +281,14 @@ public:
         const std::size_t         nNodes  = compiledNodes_.size();
         const InputSlot* const    inputs  = inputSlotIndices_.data();
         float* const* const       slots   = floatSlotPtrs_.data();
+        Event* const* const       eventSlots = eventSlotPtrs_.data();
+        std::uint32_t* const      eventCounts = eventSlotCounts_.get();
         const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
         const std::atomic<std::uint64_t>* const muteWords = muteWords_.data();   // ceil(nNodes/64) words; loads only
+
+        if (eventCounts != nullptr)
+            for (EventSlotIndex slot = 1; slot < numEventSlots_; ++slot)
+                eventCounts[slot] = 0;
 
 #if ! defined (NDEBUG) || defined (YESDAW_TEST_DEBUG_POOL_PAINT)
         debugPaintPooledSlots (slots, poolLayout_.numFloatSlots, maxCh, numFrames);
@@ -298,9 +321,45 @@ public:
                 }
             }
 
-            const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
-                                     events, transport, numFrames };
-            cn.node->process (args);
+            std::span<const Event> inputEvents;
+            if (cn.eventInputSlot == kRootEventSlot)
+            {
+                inputEvents = events.events();
+            }
+            else
+            {
+                YESDAW_RT_FATAL (eventCounts != nullptr);
+                YESDAW_RT_FATAL (eventSlots != nullptr);
+                YESDAW_RT_FATAL (cn.eventInputSlot < numEventSlots_);
+                inputEvents = std::span<const Event> (eventSlots[cn.eventInputSlot], eventCounts[cn.eventInputSlot]);
+            }
+
+            if (cn.eventOutputSlot != kNoEventSlot)
+            {
+                YESDAW_RT_FATAL (eventCounts != nullptr);
+                YESDAW_RT_FATAL (eventSlots != nullptr);
+                YESDAW_RT_FATAL (cn.eventOutputSlot < numEventSlots_);
+                YESDAW_RT_FATAL (inputEvents.size() <= maxEventsPerBlock_);
+
+                EventStream nodeEvents {
+                    std::span<Event> (eventSlots[cn.eventOutputSlot], maxEventsPerBlock_),
+                    inputEvents.size(),
+                    events.sysexBytes()
+                };
+                YESDAW_RT_FATAL (nodeEvents.replaceEvents (inputEvents));
+
+                const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
+                                         nodeEvents, transport, numFrames };
+                cn.node->process (args);
+                eventCounts[cn.eventOutputSlot] = static_cast<std::uint32_t> (nodeEvents.size());
+            }
+            else
+            {
+                EventStream nodeEvents { inputEvents, events.sysexBytes() };
+                const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
+                                         nodeEvents, transport, numFrames };
+                cn.node->process (args);
+            }
         }
 
         if (masterOutputSlot_ == kSilenceSlot || floatSlotPtrs_.empty())
@@ -580,9 +639,14 @@ private:
     std::vector<InputSlot>                        inputSlotIndices_;
     std::unique_ptr<float[]>                      floatStorage_;
     std::unique_ptr<double[]>                     doubleStorage_;
+    std::unique_ptr<Event[]>                      eventStorage_;
+    std::unique_ptr<std::uint32_t[]>              eventSlotCounts_;
     std::vector<float*>                           floatSlotPtrs_;
     std::vector<double*>                          doubleSlotPtrs_;
+    std::vector<Event*>                           eventSlotPtrs_;
     BufferPoolLayout                              poolLayout_;
+    std::uint16_t                                 numEventSlots_      = 1;
+    std::uint32_t                                 maxEventsPerBlock_  = kMaxEventsPerBlock;
     std::int64_t                                  totalLatency_     = 0;
     std::vector<std::atomic<std::uint64_t>>       muteWords_;   // ceil(numNodes/64) words; bit i = node i (ADR-0016)
     SlotIndex                                     masterOutputSlot_ = kSilenceSlot;

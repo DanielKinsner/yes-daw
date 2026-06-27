@@ -58,5 +58,6 @@ ctest --preset ci -R YesDawMidiTimingCheck
 
 The first code checkpoints now exist: `YesDawMidiTimingCheck`, Project-owned MIDI Clips/Notes with
 schema v3 persistence, piano-roll Note edit commands with undo/redo bit-identity coverage, and
-deterministic MIDI-effect Nodes for transpose + scale-map event transforms. Later H4 slices keep this
-gate blocking while widening the MIDI surface.
+deterministic MIDI-effect Nodes for transpose + scale-map event transforms. The hosted-instrument Event
+bridge now drives transformed Note Events through `PluginNode`'s RT lane. Later H4 slices keep this gate
+blocking while widening the MIDI surface.

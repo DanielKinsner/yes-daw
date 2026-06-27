@@ -28,6 +28,19 @@ separately and does not replace H4's CI gate.
 ---
 
 ## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): REVIEW/FIX H4 MIDI-effect Nodes + WORKER hosted-instrument Event bridge is
+  green locally.**
+  REVIEW/FIX of the MIDI-effect Nodes checkpoint found one proven defect: graph-owned MIDI effects
+  mutated the single caller EventStream globally, so a sibling raw Instrument branch could consume a
+  transposed key. Fixed by adding bounded branch-local Event slots inside `CompiledGraph`: event-producing
+  Nodes copy their selected input Events into a fixed graph-owned slot, downstream consumers read that
+  slot, and the root caller Events remain unchanged. Then WORKER added the hosted-instrument Event bridge
+  proof: a `PluginNode` hosted instrument receives the transformed Note Events through the RT lane and
+  returns a deterministic impulse on the next pipeline Block. Focused local gate:
+  `YesDawMidiTimingCheck` passed **9 cases / 211 assertions**. Full local gate: `cmake --preset ci`;
+  VS DevShell `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed **217/217**;
+  and `ctest --preset ci -R YesDawMidiTimingCheck --output-on-failure` passed. **Next:** REVIEW/FIX this
+  hosted Event-bridge slice, then build the MPE boundary allocation slice if green.
 - **Latest (2026-06-27): WORKER H4 MIDI-effect Nodes slice is green locally.**
   REVIEW/FIX of the piano-roll Note edit-command checkpoint found no proven defect; the prior CI run
   was green. Then WORKER added writable EventStream storage for graph-owned Events, deterministic
@@ -2239,20 +2252,22 @@ separately and does not replace H4's CI gate.
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
 - ✅ **H3 approved and closed.** Mixer policy, host isolation, runtime worker crash/hang recovery,
   blacklist persistence, state chunk round-trip, projected Runtime gate, and close-out review fixes are green.
-- **Next rolling baton: REVIEW/FIX H4 Project MIDI persistence, then WORKER piano-roll edit commands if green.**
-  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/Project.h`,
-  `src/engine/Midi.h`, `src/persistence/ProjectBundle.h`, `tests/project_tests.cpp`,
-  `tests/persistence_tests.cpp`, `tests/midi_timing_tests.cpp`, `loop/horizon.md`, and the H4
-  plan/status docs against ADR-0017, ADR-0009, ADR-0010, ADR-0011/0012, and the H4 exit criterion.
-  Confirm MIDI Clips own Notes in Project state, stable Note IDs are unique, Note windows cannot exceed
-  their MIDI Clip, `.yesdaw` schema v3 round-trips the rows, and corrupted stored Note windows fail on
-  open. Fix only proven defects. If clean/green, continue in the same baton thread to the next worker
-  chunk: pure piano-roll edit commands for move, length, split/cut, quantize, and transpose on Note
-  objects. Run the
-  documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`) for each
-  checkpoint that changes code. Update `STATUS.md`, commit/push, and wait for green CI before creating
-  exactly one successor baton. Never create separate reviewer/worker threads in parallel, and never spawn a
-  successor while CI is pending, stuck, red, or being rerun.
+- **Next rolling baton: REVIEW/FIX H4 hosted-instrument Event bridge, then WORKER MPE boundary allocation
+  if green.**
+  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/CompiledGraph.h`,
+  `src/engine/GraphBuilder.h`, `src/engine/nodes/MidiEffectNode.h`,
+  `src/engine/nodes/ImpulseInstrumentNode.h`, `src/engine/plugin/PluginNode.h`,
+  `tests/midi_timing_tests.cpp`, `loop/horizon.md`, and the H4 plan/status docs against ADR-0017,
+  ADR-0008, ADR-0009, ADR-0010, ADR-0015, and the H4 exit criterion. Confirm MIDI-effect Events are
+  branch-local, sibling/raw branches still consume root Events, caller Event storage is not rewritten by a
+  compiled graph, and hosted `PluginNode` receives transformed Note Events through the RT lane without
+  changing the frozen Node contract or adding audio-thread allocation. Fix only proven defects. If
+  clean/green, continue in the same baton thread to the next worker chunk: MPE boundary allocation with
+  stable voice addresses preserved through the Project/Event boundary. Run the documented gate
+  (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`) for each checkpoint that changes
+  code. Update `STATUS.md`, commit/push, and wait for green CI before creating exactly one successor baton.
+  Never create separate reviewer/worker threads in parallel, and never spawn a successor while CI is
+  pending, stuck, red, or being rerun.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

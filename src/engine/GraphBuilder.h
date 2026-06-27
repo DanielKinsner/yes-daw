@@ -534,11 +534,13 @@ private:
                 lastReader[producerIdx] = consumerIdx;
 
         std::vector<SlotIndex> outputSlots (items.size(), kNoSlot);
+        std::vector<EventSlotIndex> eventOutputSlots (items.size(), kNoEventSlot);
         std::vector<std::vector<SlotIndex>> freeSlotsByChannels (static_cast<std::size_t> (maxChannels) + 1u);
         std::vector<std::size_t> releaseStamp (items.size(), 0);
 
         SlotIndex nextFloatSlot = 1; // slot 0 is permanent silence
         DSlotIndex nextDoubleSlot = 0;
+        EventSlotIndex nextEventSlot = 1; // slot 0 is the caller-provided root Event stream
 
         for (std::size_t compiledIdx = 0; compiledIdx < items.size(); ++compiledIdx)
         {
@@ -569,11 +571,22 @@ private:
             cn.numChannels = channels;
             cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
             cn.outputSlot  = outputSlot;
+            cn.eventInputSlot = eventInputSlotFor (item, eventOutputSlots);
             cn.pathLatency = item.pathLatency;
             cn.delayCacheKey = item.delayCacheKey;
             cn.muteBit     = static_cast<std::uint32_t> (compiledIdx);   // every compiled node is mute-capable (ADR-0016)
             cn.kind        = item.kind;
             cn.aliasOk     = aliasOk;
+
+            if (item.props.producesEvents)
+            {
+                if (nextEventSlot == kNoEventSlot)
+                    return failBool (error, GraphBuildError::GraphTooLarge { item.props.id });
+
+                cn.eventOutputSlot = nextEventSlot;
+                eventOutputSlots[compiledIdx] = nextEventSlot;
+                ++nextEventSlot;
+            }
 
             if (cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master)
             {
@@ -642,10 +655,26 @@ private:
         payload.poolLayout.maxChannelsPerSlot = maxChannels;
         payload.poolLayout.numFloatSlots      = nextFloatSlot;
         payload.poolLayout.numDoubleSlots     = nextDoubleSlot;
+        payload.numEventSlots                 = nextEventSlot;
+        payload.maxEventsPerBlock             = CompiledGraph::kMaxEventsPerBlock;
 
         allocateFloatStorage (payload);
         allocateDoubleStorage (payload);
+        allocateEventStorage (payload);
         return true;
+    }
+
+    static EventSlotIndex eventInputSlotFor (const CompileItem& item,
+                                             const std::vector<EventSlotIndex>& eventOutputSlots) noexcept
+    {
+        for (const std::size_t inputIdx : item.inputs)
+        {
+            const EventSlotIndex inputEventSlot = eventOutputSlots[inputIdx];
+            if (inputEventSlot != kNoEventSlot)
+                return inputEventSlot;
+        }
+
+        return kRootEventSlot;
     }
 
     static bool allocateFloatSlot (std::vector<std::vector<SlotIndex>>& freeSlotsByChannels,
@@ -746,6 +775,29 @@ private:
                                        * static_cast<std::size_t> (payload.poolLayout.maxChannelsPerSlot)
                                        + static_cast<std::size_t> (ch)] = payload.doubleStorage.get() + sampleOffset;
             }
+    }
+
+    static void allocateEventStorage (CompiledGraph::Payload& payload)
+    {
+        const std::size_t numEventSlots = static_cast<std::size_t> (payload.numEventSlots);
+        payload.eventSlotPtrs.resize (numEventSlots, nullptr);
+
+        if (payload.numEventSlots <= 1)
+            return;
+
+        payload.eventSlotCounts = std::make_unique<std::uint32_t[]> (numEventSlots);
+        for (std::size_t i = 0; i < numEventSlots; ++i)
+            payload.eventSlotCounts[i] = 0;
+
+        const std::size_t eventCapacity = static_cast<std::size_t> (payload.maxEventsPerBlock);
+        const std::size_t totalEvents = (numEventSlots - 1u) * eventCapacity;
+        payload.eventStorage = std::make_unique<Event[]> (totalEvents);
+
+        for (std::uint16_t slot = 1; slot < payload.numEventSlots; ++slot)
+        {
+            const std::size_t eventOffset = (static_cast<std::size_t> (slot) - 1u) * eventCapacity;
+            payload.eventSlotPtrs[slot] = payload.eventStorage.get() + eventOffset;
+        }
     }
 
     static void bindBusNodes (CompiledGraph::Payload& payload)

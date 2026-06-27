@@ -62,6 +62,8 @@ public:
             if (! std::isfinite (v) || v <= 0.0)
                 continue;
 
+            lastNoteOnKey_ = event.voice.key;
+
             const std::uint32_t due = event.timeInBlock + static_cast<std::uint32_t> (latencySamples_);
             if (due < static_cast<std::uint32_t> (args.numFrames))
             {
@@ -81,6 +83,7 @@ public:
     void release() override { pendingCount_ = 0; }
 
     void setEventInput (Node* input) noexcept { eventInput_ = input; }
+    [[nodiscard]] std::int16_t lastNoteOnKey() const noexcept { return lastNoteOnKey_; }
 
 private:
     struct PendingImpulse
@@ -122,6 +125,7 @@ private:
     std::array<PendingImpulse, kMaxPendingImpulses> pending_ {};
     std::size_t  pendingCount_ = 0;
     Node*        eventInput_ = nullptr;
+    std::int16_t lastNoteOnKey_ = -1;
 };
 
 } // namespace yesdaw::engine

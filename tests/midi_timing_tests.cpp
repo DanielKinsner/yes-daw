@@ -8,6 +8,7 @@
 #include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MidiEffectNode.h"
+#include "engine/plugin/PluginNode.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -39,6 +40,7 @@ using yesdaw::engine::MidiTransposeNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::Note;
+using yesdaw::engine::PluginNode;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TempoChange;
@@ -351,6 +353,8 @@ TEST_CASE ("MIDI-effect Nodes run before an Instrument Node in the compiled grap
     auto instrument = std::make_unique<ImpulseInstrumentNode> (kInstrument, 0);
     auto master = std::make_unique<MasterNode> (kMasterId, 1);
 
+    ImpulseInstrumentNode* const instrumentPtr = instrument.get();
+
     transpose->setInput (scale.get());
     instrument->setEventInput (transpose.get());
     master->setInputNodes ({ instrument.get() });
@@ -372,10 +376,11 @@ TEST_CASE ("MIDI-effect Nodes run before an Instrument Node in the compiled grap
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::MidiEffect) == 2u);
 
     const std::vector<float> out = render (*graph, std::span<Event> (events.data(), flat.eventsWritten), kBlock);
-    REQUIRE (events[0].voice.key == 74); // C# -> D in C major, then +12 semitones.
-    REQUIRE (events[0].payload.note.pitchNote == Approx (74.0));
-    REQUIRE (events[1].voice.key == 74);
-    REQUIRE (events[1].payload.note.pitchNote == Approx (74.0));
+    REQUIRE (instrumentPtr->lastNoteOnKey() == 74); // C# -> D in C major, then +12 semitones.
+    REQUIRE (events[0].voice.key == 61);
+    REQUIRE (events[0].payload.note.pitchNote == Approx (61.0));
+    REQUIRE (events[1].voice.key == 61);
+    REQUIRE (events[1].payload.note.pitchNote == Approx (61.0));
 
     for (int i = 0; i < kBlock; ++i)
     {
@@ -383,5 +388,135 @@ TEST_CASE ("MIDI-effect Nodes run before an Instrument Node in the compiled grap
             REQUIRE (out[static_cast<std::size_t> (i)] == Approx (1.0f));
         else
             REQUIRE (out[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
+    }
+}
+
+TEST_CASE ("MIDI-effect Nodes only transform their downstream Event branch", "[midi][effect][graph]")
+{
+    constexpr NodeId kTranspose = 2010;
+    constexpr NodeId kShiftedInstrument = 2011;
+    constexpr NodeId kRawInstrument = 2012;
+    constexpr int kBlock = 32;
+
+    std::array<Event, 2> events {
+        noteEvent (4, EventType::NoteOn, 60, 60.0),
+        noteEvent (12, EventType::NoteOff, 60, 60.0),
+    };
+
+    auto transpose = std::make_unique<MidiTransposeNode> (kTranspose, 12);
+    auto shiftedInstrument = std::make_unique<ImpulseInstrumentNode> (kShiftedInstrument, 0);
+    auto rawInstrument = std::make_unique<ImpulseInstrumentNode> (kRawInstrument, 0);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    ImpulseInstrumentNode* const shiftedPtr = shiftedInstrument.get();
+    ImpulseInstrumentNode* const rawPtr = rawInstrument.get();
+
+    shiftedInstrument->setEventInput (transpose.get());
+    master->setInputNodes ({ shiftedInstrument.get(), rawInstrument.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 42;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = kSampleRate;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (transpose));
+    inputs.nodes.push_back (std::move (shiftedInstrument));
+    inputs.nodes.push_back (std::move (rawInstrument));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::vector<float> out = render (*graph, std::span<Event> (events), kBlock);
+
+    REQUIRE (shiftedPtr->lastNoteOnKey() == 72);
+    REQUIRE (rawPtr->lastNoteOnKey() == 60);
+    REQUIRE (out[4] == Approx (2.0f));
+}
+
+TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events through the RT lane",
+           "[midi][plugin][instrument][events]")
+{
+    constexpr NodeId kTranspose = 2020;
+    constexpr NodeId kPlugin = 2021;
+    constexpr int kBlock = 32;
+
+    std::array<Event, 2> events {
+        noteEvent (5, EventType::NoteOn, 60, 60.0),
+        noteEvent (12, EventType::NoteOff, 60, 60.0),
+    };
+
+    auto transpose = std::make_unique<MidiTransposeNode> (kTranspose, 12);
+    auto plugin = std::make_unique<PluginNode> (kPlugin, 1, kBlock);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    PluginNode* const pluginPtr = plugin.get();
+    std::int16_t capturedKey = -1;
+    std::uint32_t capturedOffset = 0;
+    bool capturedNoteOn = false;
+
+    plugin->setInput (transpose.get());
+    plugin->setStubProcessor (
+        [&capturedKey, &capturedOffset, &capturedNoteOn] (std::span<const Event> pluginEvents,
+                                                          const float* const*,
+                                                          float* const* output,
+                                                          int channels,
+                                                          int frames) noexcept
+        {
+            for (int c = 0; c < channels; ++c)
+                for (int f = 0; f < frames; ++f)
+                    output[c][f] = 0.0f;
+
+            for (const Event& event : pluginEvents)
+            {
+                if (event.type != EventType::NoteOn || event.payload.note.normalizedVelocity <= 0.0)
+                    continue;
+
+                capturedKey = event.voice.key;
+                capturedOffset = event.timeInBlock;
+                capturedNoteOn = true;
+
+                if (channels > 0 && event.timeInBlock < static_cast<std::uint32_t> (frames))
+                    output[0][event.timeInBlock] = static_cast<float> (event.payload.note.normalizedVelocity);
+            }
+        });
+    master->setInputNodes ({ plugin.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 43;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = kSampleRate;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (transpose));
+    inputs.nodes.push_back (std::move (plugin));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::MidiEffect) == 1u);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Plugin) == 1u);
+    REQUIRE (graph->totalLatency() == kBlock);
+
+    const std::vector<float> first = render (*graph, std::span<Event> (events), kBlock);
+    for (float sample : first)
+        REQUIRE (sample == Approx (0.0f).margin (1.0e-6f));
+
+    REQUIRE (pluginPtr->serviceStubChild());
+    REQUIRE (capturedNoteOn);
+    REQUIRE (capturedKey == 72);
+    REQUIRE (capturedOffset == 5u);
+    REQUIRE (events[0].voice.key == 60);
+
+    const std::vector<float> second = render (*graph, std::span<const Event> {}, kBlock);
+    for (int i = 0; i < kBlock; ++i)
+    {
+        if (i == 5)
+            REQUIRE (second[static_cast<std::size_t> (i)] == Approx (1.0f));
+        else
+            REQUIRE (second[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
     }
 }
