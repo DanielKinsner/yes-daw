@@ -7,6 +7,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "engine/MixerGraphProjection.h"
+#include "engine/MixerMutePolicy.h"
+#include "engine/Runtime.h"
 #include "engine/plugin/RtLaneRing.h"
 #include "persistence/ProjectBundle.h"
 #include "plugin_host/PluginHostCoordinator.h"
@@ -24,11 +27,20 @@
 #include <vector>
 
 using yesdaw::engine::Event;
+using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::CompiledNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::GraphId;
 using yesdaw::engine::IdentityDcNode;
 using yesdaw::engine::MasterNode;
+using yesdaw::engine::MixerBusProjection;
+using yesdaw::engine::MixerMuteTarget;
+using yesdaw::engine::MixerProjectionError;
+using yesdaw::engine::MixerProjectionInputs;
+using yesdaw::engine::MixerSendProjection;
+using yesdaw::engine::MixerSendTap;
+using yesdaw::engine::MixerTrackProjection;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::NodeProperties;
@@ -40,6 +52,8 @@ using yesdaw::engine::RtLaneExchangeResult;
 using yesdaw::engine::RtLaneOutput;
 using yesdaw::engine::RtLaneRing;
 using yesdaw::engine::Runtime;
+using yesdaw::engine::applyMixerMutePolicy;
+using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::plugin_host::PluginHostCoordinator;
 using yesdaw::plugin_host::RtLaneLoadConfig;
 using yesdaw::plugin_host::RtLaneLoadReplyStatus;
@@ -80,6 +94,40 @@ private:
     NodeId id_;
     int channels_;
     Node* input_ = nullptr;
+};
+
+class SimulatedHostedPluginSourceNode final : public Node
+{
+public:
+    SimulatedHostedPluginSourceNode (NodeId id, float dc) noexcept
+        : id_ (id), dc_ (dc)
+    {
+    }
+
+    NodeProperties properties() const noexcept override
+    {
+        return { true, false, 1, 0, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override { return {}; }
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (args.audio.numChannels < 1)
+            return;
+
+        float* const out = args.audio.channels[0];
+        for (int i = 0; i < args.numFrames; ++i)
+            out[i] = dc_;
+    }
+
+    void reset() noexcept override {}
+    void release() override {}
+
+private:
+    NodeId id_ = 0;
+    float dc_ = 0.0f;
 };
 
 constexpr NodeId kRecoverySourceId = 72001;
@@ -127,6 +175,64 @@ bool allSamplesNear (const std::vector<float>& values, float expected) noexcept
             return false;
 
     return true;
+}
+
+constexpr int kMixerRuntimeFrames = 16;
+constexpr float kMixerRuntimeCenterGain = 0.70710677f;
+constexpr NodeId kMixerRuntimeSourceA = 73001;
+constexpr NodeId kMixerRuntimeSourceB = 73011;
+constexpr NodeId kMixerRuntimeBusSum = 73100;
+constexpr NodeId kMixerRuntimeMasterSum = 73998;
+constexpr NodeId kMixerRuntimeMaster = 73999;
+
+MixerTrackProjection makeHostedRuntimeTrack (NodeId sourceId, float dc, NodeId faderId, NodeId panId, NodeId meterId)
+{
+    MixerTrackProjection track;
+    track.source = std::make_unique<SimulatedHostedPluginSourceNode> (sourceId, dc);
+    track.faderNodeId = faderId;
+    track.panNodeId = panId;
+    track.meterNodeId = meterId;
+    track.linearGain = 0.0f; // Direct path silent; this proof isolates bus Return/SIP leakage.
+    track.pan = 0.0f;
+    return track;
+}
+
+MixerProjectionInputs hostedRuntimeProjectionInputs (GraphId graphId, std::vector<NodeId>* fillerSourceIds = nullptr)
+{
+    MixerProjectionInputs inputs;
+    inputs.id = graphId;
+    inputs.masterSumNodeId = kMixerRuntimeMasterSum;
+    inputs.masterNodeId = kMixerRuntimeMaster;
+    inputs.maxBlockSize = kMixerRuntimeFrames;
+    inputs.buses.push_back (MixerBusProjection { kMixerRuntimeBusSum, 73101, 73102 });
+
+    MixerTrackProjection soloed = makeHostedRuntimeTrack (kMixerRuntimeSourceA, 1.0f, 73002, 73003, 73004);
+    soloed.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+    inputs.tracks.push_back (std::move (soloed));
+
+    MixerTrackProjection nonSoloed = makeHostedRuntimeTrack (kMixerRuntimeSourceB, 2.0f, 73012, 73013, 73014);
+    nonSoloed.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+    inputs.tracks.push_back (std::move (nonSoloed));
+
+    constexpr int kFillersPastOldMuteMask = 70;
+    for (int i = 0; i < kFillersPastOldMuteMask; ++i)
+    {
+        const NodeId source = static_cast<NodeId> (73200 + i * 10);
+        if (fillerSourceIds != nullptr)
+            fillerSourceIds->push_back (source);
+        inputs.tracks.push_back (makeHostedRuntimeTrack (source, 0.0f, source + 1u, source + 2u, source + 3u));
+    }
+
+    return inputs;
+}
+
+const CompiledNode* compiledNodeById (const CompiledGraph& graph, NodeId id)
+{
+    for (const CompiledNode& node : graph.debugCompiledNodes())
+        if (node.id == id)
+            return &node;
+
+    return nullptr;
 }
 
 std::filesystem::path makeTempBundlePath (std::string_view label)
@@ -691,6 +797,122 @@ struct BlacklistPersistenceProof
     bool wrongFormatAfterRestart = true;
 };
 
+struct MixerRuntimeProjectionProof
+{
+    bool passed = false;
+    std::string failureStep = "not-run";
+    MixerProjectionError::Code buildError = MixerProjectionError::Code::None;
+    bool negativeNoPolicyLeaks = false;
+    bool maskCapacityPast64 = false;
+    bool policyApplied = false;
+    bool soloedTrackUnmuted = false;
+    bool nonSoloedTrackMuted = false;
+    bool soloSafeReturnUnmuted = false;
+    bool highIndexTrackMuted = false;
+    bool publishAccepted = false;
+    bool runtimeRenderedStereo = false;
+    std::uint32_t highIndexMuteBit = 0;
+    float observedLeft = 0.0f;
+    float observedRight = 0.0f;
+    float expected = 0.0f;
+};
+
+MixerRuntimeProjectionProof computeMixerProjectionPublishesToRuntime()
+{
+    MixerRuntimeProjectionProof proof;
+    auto fail = [&] (std::string step)
+    {
+        proof.failureStep = std::move (step);
+        return proof;
+    };
+
+    {
+        MixerProjectionError noPolicyError;
+        std::unique_ptr<CompiledGraph> noPolicyGraph =
+            buildMixerGraphProjection (hostedRuntimeProjectionInputs (20), &noPolicyError);
+        if (noPolicyGraph == nullptr || noPolicyError.code != MixerProjectionError::Code::None)
+        {
+            proof.buildError = noPolicyError.code;
+            return fail ("negative-control mixer projection did not build");
+        }
+
+        Runtime noPolicyRuntime;
+        if (! noPolicyRuntime.publish (std::move (noPolicyGraph)))
+            return fail ("negative-control mixer graph did not publish through Runtime");
+
+        std::vector<float> left (kMixerRuntimeFrames, 0.0f);
+        std::vector<float> right (kMixerRuntimeFrames, 0.0f);
+        float* outputs[2] = { left.data(), right.data() };
+        noPolicyRuntime.processBlock (outputs, 2, kMixerRuntimeFrames);
+
+        const float leaked = 3.0f * kMixerRuntimeCenterGain;
+        proof.negativeNoPolicyLeaks =
+            std::abs (left.back() - leaked) < 0.0001f
+            && std::abs (right.back() - leaked) < 0.0001f;
+        if (! proof.negativeNoPolicyLeaks)
+            return fail ("negative-control graph did not expose the non-soloed Send leak");
+    }
+
+    std::vector<NodeId> fillerSourceIds;
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph =
+        buildMixerGraphProjection (hostedRuntimeProjectionInputs (21, &fillerSourceIds), &graphError);
+    proof.buildError = graphError.code;
+    if (graph == nullptr || graphError.code != MixerProjectionError::Code::None)
+        return fail ("mixer projection did not build");
+
+    NodeId highIndexSource = fillerSourceIds.empty() ? kMixerRuntimeSourceB : fillerSourceIds.back();
+    const CompiledNode* highNode = compiledNodeById (*graph, highIndexSource);
+    if (highNode == nullptr)
+        return fail ("high-index mixer target was not compiled");
+    proof.highIndexMuteBit = highNode->muteBit;
+    proof.maskCapacityPast64 = highNode->muteBit >= 64u && graph->isMuteCapable (highIndexSource);
+    if (! proof.maskCapacityPast64)
+        return fail ("mixer policy target did not cross the old 64-node mute-mask ceiling");
+
+    std::vector<MixerMuteTarget> targets;
+    targets.push_back (MixerMuteTarget { kMixerRuntimeSourceA, false, true, false });
+    targets.push_back (MixerMuteTarget { kMixerRuntimeSourceB, false, false, false });
+    targets.push_back (MixerMuteTarget { kMixerRuntimeBusSum, false, false, true });
+    for (const NodeId source : fillerSourceIds)
+        targets.push_back (MixerMuteTarget { source, false, false, false });
+
+    proof.policyApplied = applyMixerMutePolicy (*graph, targets);
+    if (! proof.policyApplied)
+        return fail ("mixer mute policy did not apply to every projected target");
+
+    proof.soloedTrackUnmuted = ! graph->isMuted (kMixerRuntimeSourceA);
+    proof.nonSoloedTrackMuted = graph->isMuted (kMixerRuntimeSourceB);
+    proof.soloSafeReturnUnmuted = ! graph->isMuted (kMixerRuntimeBusSum);
+    proof.highIndexTrackMuted = graph->isMuted (highIndexSource);
+    if (! proof.soloedTrackUnmuted || ! proof.nonSoloedTrackMuted
+        || ! proof.soloSafeReturnUnmuted || ! proof.highIndexTrackMuted)
+        return fail ("published mixer policy mask did not match SIP/solo-safe expectations");
+
+    Runtime runtime;
+    proof.publishAccepted = runtime.publish (std::move (graph));
+    if (! proof.publishAccepted)
+        return fail ("policy-applied mixer graph did not publish through Runtime");
+
+    std::vector<float> left (kMixerRuntimeFrames, 0.0f);
+    std::vector<float> right (kMixerRuntimeFrames, 0.0f);
+    float* outputs[2] = { left.data(), right.data() };
+    runtime.processBlock (outputs, 2, kMixerRuntimeFrames);
+
+    proof.expected = kMixerRuntimeCenterGain;
+    proof.observedLeft = left.back();
+    proof.observedRight = right.back();
+    proof.runtimeRenderedStereo =
+        std::abs (proof.observedLeft - proof.expected) < 0.0001f
+        && std::abs (proof.observedRight - proof.expected) < 0.0001f;
+    if (! proof.runtimeRenderedStereo)
+        return fail ("Runtime output did not match SIP-safe projected mixer graph");
+
+    proof.passed = true;
+    proof.failureStep = "passed";
+    return proof;
+}
+
 WatchdogRecoveryProof computeWatchdogRecoverySwapsPlaceholder()
 {
     WatchdogRecoveryProof proof;
@@ -866,6 +1088,12 @@ BlacklistPersistenceProof proveBlacklistPersistsAcrossRestartCached()
     return proof;
 }
 
+MixerRuntimeProjectionProof proveMixerProjectionPublishesToRuntime()
+{
+    static const MixerRuntimeProjectionProof proof = computeMixerProjectionPublishesToRuntime();
+    return proof;
+}
+
 HostIsolationGateState currentHostIsolationGateState()
 {
     HostIsolationGateState state;
@@ -873,6 +1101,7 @@ HostIsolationGateState currentHostIsolationGateState()
     state.rtLaneUsesOsSharedMemory = proveRtLaneUsesOsSharedMemory().passed;
     state.rtLaneIdentityPassesControlLane = proveRtLaneIdentityPassesControlLane().passed;
     state.workerPollsHostedProcessorOverRtLane = proveWorkerPollsHostedProcessorOverRtLane().passed;
+    state.mixerProjectionPublishesToRuntime = proveMixerProjectionPublishesToRuntime().passed;
     const WatchdogRecoveryProof recovery = proveWatchdogRecoverySwapsPlaceholder();
     state.watchdogKillsHungOrCrashedChild =
         recovery.watchdogAutoQueued && recovery.crashAutoQueued;
@@ -969,6 +1198,28 @@ TEST_CASE ("worker polls mapped RT lane through the hosted processor path",
              proof.failedChannel,
              proof.failedFrame,
              proof.observed,
+             proof.expected);
+    REQUIRE (proof.passed);
+}
+
+TEST_CASE ("host-isolation plugin path runs inside projected mixer graph through Runtime",
+           "[h3][host-isolation][mixer][runtime]")
+{
+    const MixerRuntimeProjectionProof proof = proveMixerProjectionPublishesToRuntime();
+    CAPTURE (proof.failureStep,
+             static_cast<int> (proof.buildError),
+             proof.negativeNoPolicyLeaks,
+             proof.maskCapacityPast64,
+             proof.policyApplied,
+             proof.soloedTrackUnmuted,
+             proof.nonSoloedTrackMuted,
+             proof.soloSafeReturnUnmuted,
+             proof.highIndexTrackMuted,
+             proof.highIndexMuteBit,
+             proof.publishAccepted,
+             proof.runtimeRenderedStereo,
+             proof.observedLeft,
+             proof.observedRight,
              proof.expected);
     REQUIRE (proof.passed);
 }

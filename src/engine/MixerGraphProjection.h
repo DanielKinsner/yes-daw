@@ -88,6 +88,12 @@ struct MixerProjectionInputs
     std::vector<MixerBusProjection> buses;
 };
 
+inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
+{
+    if (std::find (inputs.begin(), inputs.end(), node) == inputs.end())
+        inputs.push_back (node);
+}
+
 [[nodiscard]] inline bool mixerGainIsValid (float gain) noexcept
 {
     // The upper bound is FaderNode's shared linear-gain ceiling, NOT float max: `<= float max` is a
@@ -187,7 +193,7 @@ struct MixerProjectionInputs
             }
 
             Node* const tap = send.tap == MixerSendTap::PreFader ? sourcePtr : static_cast<Node*> (faderPtr);
-            busInputs[send.busIndex].push_back (tap);
+            pushUniqueMixerInput (busInputs[send.busIndex], tap);
         }
 
         auto pan = std::make_unique<PanNode> (track.panNodeId);

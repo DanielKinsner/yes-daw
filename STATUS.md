@@ -56,7 +56,8 @@ hardening fixes are reviewed/green; item 3a `CompiledNodeKind::Placeholder` is l
 3b running RT-lane watchdog same-child progress hardening is reviewed/green; item 3c crash/hang
 auto-enqueue + Placeholder recovery publish is reviewed/green; item 3d persistent blacklist
 store/schema keyed by plugin identity is reviewed/green; item 4a `Project` -> `MixerProjectionInputs`
-projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` driver is locally green
+projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` driver is reviewed/green;
+item 4c projected mixer graph through `Runtime` + live mixer-policy gate is locally green
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -82,40 +83,43 @@ projector is reviewed/green; item 4b device-callback -> `Runtime.processBlock` d
   `outputSeq` progress, then kills the live child when output sequence progress stalls with input backlog,
   plus a coordinator recovery path that auto-queues bypass/recompile for watchdog and crash failures,
   publishes a real Placeholder replacement graph through `Runtime`'s ordered `SwapGraph` queue, and proves
-  a persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart.
+  a persistent blacklist row keyed by `{format, plugin_uid, plugin_version}` survives bundle reopen/restart,
+  plus a projected mixer graph published through `Runtime` with SIP/solo-safe policy and mask-capacity
+  coverage.
   The remaining clauses must be replaced one by one with real evidence. The three review fixes (fader
   clamp, ADR-0016 mute mask, PluginNode block-size) are landed + CI-green.
-- **Latest: REVIEW/FIX item 4a `Project` -> `MixerProjectionInputs` projector is clean; WORKER item 4b device-callback -> `Runtime.processBlock` driver is locally green.**
-  REVIEW/FIX of item 4a found no proven defects against `STATUS.md`, the close-out plan, ADR-0014,
-  ADR-0016, ADR-0006, ADR-0008, `src/engine/ProjectMixerProjection.h`,
-  `src/engine/MixerGraphProjection.h`, `src/engine/Project.h`, and
-  `tests/mixer_projection_tests.cpp`: the projector is control-thread-only, schema-free,
-  source-factory based, collision-checked, Project-validating, and not a runtime driver. Then WORKER
-  added the narrow item 4b runtime driver slice: `CompiledGraph` and `Runtime` now expose a multichannel
-  output overload while preserving the old mono wrapper, and new `src/engine/RuntimeAudioDriver.h`
-  gives a device-callback-shaped caller a pure-C++ `processDeviceBlock()` surface with `publish()` on the
-  Control thread and `reclaim()` on the janitor/control side. New `YesDawRuntimeAudioDriverCheck` proves
-  pre-publish silence, a Project mixer projection published through the driver, distinct stereo master
-  channels through the runtime path, graph reclamation after swap, and no engine-hosting layering drift.
-  The stereo check was negative-controlled by temporarily collapsing output to master channel 0 and
-  confirming the new driver check failed before restoring the fix. Still out of scope: scanner,
-  pluginval/auval, UI embedding, automation lanes, blacklist policy enforcement, plugin loading, ADR
-  edits, goldens, real JUCE device ownership, item 4c+, and `[!shouldfail]` removal. Local gate:
-  `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci --target YesDawRuntimeAudioDriverCheck`; direct
-  `YesDawRuntimeAudioDriverCheck.exe`; VS DevShell
-  `cmake --build --preset ci --target YesDawRuntimeCheck YesDawMixerProjectionCheck YesDawHostIsolationCheck`;
-  direct `YesDawRuntimeCheck.exe`; direct `YesDawMixerProjectionCheck.exe`; VS DevShell
-  `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`; VS DevShell
-  `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` passed
-  **202/202**; `git diff --check` passed. **Next:** REVIEW/FIX this item 4b driver checkpoint first.
-  Verify `src/engine/CompiledGraph.h`, `src/engine/Runtime.h`, `src/engine/RuntimeAudioDriver.h`,
-  `tests/runtime_audio_driver_tests.cpp`, `CMakeLists.txt`, and the close-out plan + ADR-0006/0008/0014/0016.
-  Confirm the driver keeps publication off the Audio thread, keeps reclaim off the Audio thread, surfaces
-  multichannel master output without duplicating channel 0, remains JUCE-free, does not edit ADRs/goldens
-  or RT annotations, and leaves `[!shouldfail]` unchanged. If clean, continue depth-first to close-out
-  plan item 4c: run the exit-gate plugin inside the projected graph through `Runtime` and wire live
-  mixer policy onto the published graph.
+- **Latest: REVIEW/FIX item 4b runtime audio driver is clean; WORKER item 4c projected mixer graph through `Runtime` is locally green.**
+  REVIEW/FIX of item 4b found no proven defects against `STATUS.md`, the close-out plan, ADR-0006,
+  ADR-0008, ADR-0014, ADR-0016, `src/engine/CompiledGraph.h`, `src/engine/Runtime.h`,
+  `src/engine/RuntimeAudioDriver.h`, `tests/runtime_audio_driver_tests.cpp`, and `CMakeLists.txt`:
+  publication remains Control-thread-only, `processDeviceBlock()` is device-callback shaped and
+  allocation/lock/log/I-O free, `reclaim()` remains janitor/control-side, stereo master channels stay
+  distinct, old mono wrappers remain compatible, the target is JUCE-free and covered by the engine
+  layering check, and `[!shouldfail]`/ADRs/goldens/RT annotations did not drift. Then WORKER added the
+  narrow item 4c slice: mixer projection now deduplicates identical Send edges to the same bus tap, and
+  `YesDawHostIsolationCheck` now proves a simulated hosted-plugin source inside
+  `buildMixerGraphProjection`, SIP/solo-safe mixer policy applied on the control-built graph, mask capacity
+  past the old 64-node ceiling, and stereo output after publishing the graph through `Runtime`. The new
+  gate includes an in-test negative control: without mixer policy, the non-soloed Send leaks into the
+  solo-safe Return; with policy applied, only the soloed Send reaches the master. Meter mono-only was
+  re-assessed here: `MeterNode` already has multichannel aggregation coverage and mixer projection creates
+  2-channel track/Return meters, so no code change was needed for Meter. Still out of scope: scanner,
+  pluginval/auval, UI embedding, automation lanes/tri-stream PDC, real external plugin loading, opaque
+  state IPC, fail-open deadline counters, ADR edits, goldens, real JUCE device ownership, and
+  `[!shouldfail]` removal. Local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci --target YesDawRuntimeAudioDriverCheck YesDawRuntimeCheck YesDawMixerProjectionCheck YesDawHostIsolationCheck`;
+  direct `YesDawRuntimeAudioDriverCheck.exe`; direct `YesDawRuntimeCheck.exe`; direct
+  `YesDawMixerProjectionCheck.exe`; `ctest --preset ci -R YesDawHostIsolationCheck --output-on-failure`;
+  VS DevShell `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed **203/203**;
+  `git diff --check` passed. **Next:** REVIEW/FIX this item 4c checkpoint first. Verify
+  `src/engine/MixerGraphProjection.h`, `tests/mixer_projection_tests.cpp`,
+  `tests/host_isolation_tests.cpp`, `src/engine/MixerMutePolicy.h`, `src/engine/Runtime.h`, and
+  ADR-0006/0008/0014/0015/0016. Confirm the exit-gate mixer proof really runs projected mixer output
+  through `Runtime`, Send dedup does not hide legitimate distinct taps, mixer policy is control-side and
+  does not rewrite routing on the Audio thread, SIP leakage and mask-capacity are mechanically asserted,
+  Meter stereo coverage remains adequate, and `[!shouldfail]` remains unchanged. If clean, continue
+  depth-first to close-out plan item 5: automation lanes needed for tri-stream PDC through the hosted
+  plugin path.
 - **OUT-OF-BAND REVIEW (2026-06-26, Claude as reviewer/builder).** Full adversarial review of the whole
   H3 surface @ `54943fd` (14-dim workflow, 106 agents; write-up `yesdaw-h3-complete-review.md` in the
   session scratchpad; 46 findings adjudicated against ground truth). **0 live / user-reachable defects** —

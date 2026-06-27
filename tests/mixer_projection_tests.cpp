@@ -510,6 +510,31 @@ TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "
         REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
 }
 
+TEST_CASE ("Mixer projection deduplicates identical Sends to the same bus tap", "[mixer][projection][send][dedup]")
+{
+    MixerProjectionInputs inputs = baseProjection (43);
+    inputs.buses.push_back (MixerBusProjection { 62040, 62041, 62042 });
+
+    MixerTrackProjection track = makeTrack (1430, 1.0f, 2430, 3430, 4430, 0.0f, 0.0f);
+    track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+    track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+
+    const CompiledNode* const bus = compiledNodeById (*graph, 62040);
+    REQUIRE (bus != nullptr);
+    REQUIRE (bus->kind == CompiledNodeKind::Sum);
+    REQUIRE (bus->numInputs == 1u);
+
+    const StereoCapture out = render (*graph, kMaxBlock);
+    REQUIRE (out.left.back() == Approx (kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (kCenterGain).margin (1.0e-4f));
+}
+
 TEST_CASE ("Mixer projection bus Return is centred and audible in both master channels not left only", "[mixer][projection][send][stereo]")
 {
     // Direct regression guard for the latent left-only defect. A single mono Track (direct path silenced
