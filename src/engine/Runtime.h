@@ -147,6 +147,12 @@ public:
     // ---- AUDIO THREAD --------------------------------------------------------------------------------
     void processBlock (float* out, int numFrames) noexcept YESDAW_RT_HOT
     {
+        float* outputs[1] = { out };
+        processBlock (outputs, 1, numFrames);
+    }
+
+    void processBlock (float* const* outChannels, int numOutputChannels, int numFrames) noexcept YESDAW_RT_HOT
+    {
         // (1) Drain the command queue IN ORDER.
         //     INVARIANT: this drain MUST run before the end-of-block release-store at (3), inside this
         //     same call. The reclamation fence-post relies on the generation captured at swap time being
@@ -173,12 +179,11 @@ public:
         // (2) Render. Empty graph (nothing published yet) -> silence (ADR-0007 first-callback safety).
         if (current_ == nullptr)
         {
-            for (int i = 0; i < numFrames; ++i)
-                out[i] = 0.0f;
+            zeroOutputChannels (outChannels, numOutputChannels, numFrames);
         }
         else
         {
-            current_->process (out, numFrames);
+            current_->process (outChannels, numOutputChannels, numFrames);
         }
 
         // (3) Publish the end-of-block generation LAST (release). Pairs with reclaim()'s acquire-load.
@@ -222,6 +227,24 @@ public:
     std::uint64_t scalarsApplied() const noexcept { return scalarsApplied_.load (std::memory_order_acquire); }
 
 private:
+    static void zeroOutputChannels (float* const* outChannels,
+                                    int numOutputChannels,
+                                    int numFrames) noexcept YESDAW_RT_HOT
+    {
+        YESDAW_RT_FATAL (numFrames >= 0);
+        YESDAW_RT_FATAL (numOutputChannels >= 0);
+        if (numOutputChannels > 0)
+            YESDAW_RT_FATAL (outChannels != nullptr);
+
+        for (int channel = 0; channel < numOutputChannels; ++channel)
+        {
+            float* const dst = outChannels[channel];
+            YESDAW_RT_FATAL (dst != nullptr);
+            for (int i = 0; i < numFrames; ++i)
+                dst[i] = 0.0f;
+        }
+    }
+
     void applyCommand (const Command& c) noexcept YESDAW_RT_HOT
     {
         switch (c.type)

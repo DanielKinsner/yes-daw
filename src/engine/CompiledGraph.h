@@ -189,15 +189,27 @@ public:
     CompiledGraph (const CompiledGraph&)            = delete;
     CompiledGraph& operator= (const CompiledGraph&) = delete;
 
-    // The audio hot path. Immutable read; allocation/lock free; RTSan-covered.
+    // Compatibility mono wrapper for older tests/drivers. The real device-callback path below can surface
+    // every master channel.
     void process (float* out, int numFrames) const noexcept YESDAW_RT_HOT
     {
+        float* outputs[1] = { out };
+        process (outputs, 1, numFrames);
+    }
+
+    // The audio hot path. Immutable read; allocation/lock free; RTSan-covered.
+    void process (float* const* outChannels, int numOutputChannels, int numFrames) const noexcept YESDAW_RT_HOT
+    {
         YESDAW_RT_FATAL (canary_ == kCanary);   // UAF tripwire — ALWAYS live (incl. RTSan/TSan/Release).
+        YESDAW_RT_FATAL (numFrames >= 0);
+        YESDAW_RT_FATAL (numOutputChannels >= 0);
+        YESDAW_RT_FATAL (numOutputChannels <= static_cast<int> (std::numeric_limits<std::uint16_t>::max()));
+        if (numOutputChannels > 0)
+            YESDAW_RT_FATAL (outChannels != nullptr);
 
         if (isDegenerate_)
         {
-            for (int i = 0; i < numFrames; ++i)
-                out[i] = identityDc_;
+            fillOutputChannels (outChannels, static_cast<std::uint16_t> (numOutputChannels), numFrames, identityDc_);
             return;
         }
 
@@ -226,12 +238,12 @@ public:
             if (cn.node == nullptr || cn.outputSlot == kNoSlot)
                 continue;
 
-            float* const* const outChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
+            float* const* const nodeOutChannels = slots + static_cast<std::size_t> (cn.outputSlot) * static_cast<std::size_t> (maxCh);
             const bool muted = cn.muteBit != kNoMuteBit
                 && (muteWords[cn.muteBit >> 6u].load (std::memory_order_relaxed) & (1ull << (cn.muteBit & 63u))) != 0;
 
             if (! cn.aliasOk || muted)
-                zeroChannels (outChannels, cn.numChannels, numFrames);
+                zeroChannels (nodeOutChannels, cn.numChannels, numFrames);
             if (muted)
                 continue;
 
@@ -243,25 +255,40 @@ public:
                 {
                     const CompiledNode& producer = nodes[input.producerNodeIdx];
                     float* const* const inChannels = slots + static_cast<std::size_t> (input.fromSlot) * static_cast<std::size_t> (maxCh);
-                    copyChannels (inChannels, producer.numChannels, outChannels, cn.numChannels, numFrames);
+                    copyChannels (inChannels, producer.numChannels, nodeOutChannels, cn.numChannels, numFrames);
                 }
             }
 
-            const ProcessArgs args { AudioBlock { outChannels, static_cast<int> (cn.numChannels) },
+            const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
                                      events, transport, numFrames };
             cn.node->process (args);
         }
 
         if (masterOutputSlot_ == kSilenceSlot || floatSlotPtrs_.empty())
         {
-            for (int i = 0; i < numFrames; ++i)
-                out[i] = 0.0f;
+            zeroOutputChannels (outChannels, static_cast<std::uint16_t> (numOutputChannels), numFrames);
             return;
         }
 
-        const float* const master = slots[static_cast<std::size_t> (masterOutputSlot_) * static_cast<std::size_t> (maxCh)];
-        for (int i = 0; i < numFrames; ++i)
-            out[i] = master[i];
+        const std::size_t masterBase = static_cast<std::size_t> (masterOutputSlot_) * static_cast<std::size_t> (maxCh);
+        for (int channel = 0; channel < numOutputChannels; ++channel)
+        {
+            float* const dst = outChannels[channel];
+            YESDAW_RT_FATAL (dst != nullptr);
+
+            if (channel < static_cast<int> (masterChannels_))
+            {
+                const float* const src = slots[masterBase + static_cast<std::size_t> (channel)];
+                YESDAW_RT_FATAL (src != nullptr);
+                for (int i = 0; i < numFrames; ++i)
+                    dst[i] = src[i];
+            }
+            else
+            {
+                for (int i = 0; i < numFrames; ++i)
+                    dst[i] = 0.0f;
+            }
+        }
     }
 
     GraphId id()         const noexcept { return id_; }
@@ -434,6 +461,25 @@ private:
             YESDAW_RT_FATAL (dst != nullptr);
             for (int i = 0; i < numFrames; ++i)
                 dst[i] = 0.0f;
+        }
+    }
+
+    static void zeroOutputChannels (float* const* channels, std::uint16_t numChannels, int numFrames) noexcept YESDAW_RT_HOT
+    {
+        fillOutputChannels (channels, numChannels, numFrames, 0.0f);
+    }
+
+    static void fillOutputChannels (float* const* channels,
+                                    std::uint16_t numChannels,
+                                    int numFrames,
+                                    float value) noexcept YESDAW_RT_HOT
+    {
+        for (std::uint16_t c = 0; c < numChannels; ++c)
+        {
+            float* const dst = channels[c];
+            YESDAW_RT_FATAL (dst != nullptr);
+            for (int i = 0; i < numFrames; ++i)
+                dst[i] = value;
         }
     }
 

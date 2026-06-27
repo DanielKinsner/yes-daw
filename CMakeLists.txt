@@ -277,6 +277,14 @@ target_link_libraries(YesDawRuntimeCheck PRIVATE Catch2::Catch2WithMain Threads:
 yesdaw_harden(YesDawRuntimeCheck)
 catch_discover_tests(YesDawRuntimeCheck)
 
+# --- Runtime audio driver check (H3 item 4b; device-callback -> Runtime.processBlock) ---
+add_executable(YesDawRuntimeAudioDriverCheck tests/runtime_audio_driver_tests.cpp)
+target_include_directories(YesDawRuntimeAudioDriverCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawRuntimeAudioDriverCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawRuntimeAudioDriverCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawRuntimeAudioDriverCheck)
+catch_discover_tests(YesDawRuntimeAudioDriverCheck)
+
 # --- Render equivalence check (H1; RT path vs same-Project offline Render path) ---
 add_executable(YesDawRenderCheck tests/render_tests.cpp)
 target_include_directories(YesDawRenderCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -421,6 +429,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawGraphCheck
   YesDawBuilderCheck
   YesDawRuntimeCheck
+  YesDawRuntimeAudioDriverCheck
   YesDawRenderCheck
   YesDawDelayCheck
   YesDawFaderCheck
