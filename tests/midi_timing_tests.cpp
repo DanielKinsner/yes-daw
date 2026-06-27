@@ -712,3 +712,176 @@ TEST_CASE ("A Note landing exactly on a Block boundary belongs to the next Block
     // ...and MUST appear at offset 0 of the next Block [108, 116).
     REQUIRE (noteOnOffsets (secondStream.events()) == std::vector<std::uint32_t> { 0u });
 }
+
+TEST_CASE ("Flattening through a tempo change differs from constant-tempo math", "[midi][flatten][tempo][negctl]")
+{
+    const std::array<TempoChange, 2> changing {
+        TempoChange { 0, 120.0, TempoCurve::Jump },
+        TempoChange { 100, 60.0, TempoCurve::Jump },
+    };
+    const std::array<TempoChange, 1> constant { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    // Note 4 ticks past the 60 BPM change: the full map places its NoteOn at offset 8, constant 120 at 4.
+    const MidiClip clip = clipWithNotes ({ note (2, 4, 4) }, /*start*/ 100, /*length*/ 16);
+
+    std::array<Event, 4> mapped {};
+    const auto withChange = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, 16, 0.0 },
+        tempoView (changing),
+        SampleRate { kSampleRate },
+        std::span<Event> (mapped));
+    REQUIRE (withChange.status == MidiFlattenStatus::Ok);
+
+    std::array<Event, 4> flat {};
+    const auto withConstant = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, 16, 0.0 },
+        tempoView (constant),
+        SampleRate { kSampleRate },
+        std::span<Event> (flat));
+    REQUIRE (withConstant.status == MidiFlattenStatus::Ok);
+
+    const std::vector<std::uint32_t> mappedOffsets = noteOnOffsets (std::span<const Event> (mapped.data(), withChange.eventsWritten));
+    const std::vector<std::uint32_t> constantOffsets = noteOnOffsets (std::span<const Event> (flat.data(), withConstant.eventsWritten));
+
+    REQUIRE (mappedOffsets == std::vector<std::uint32_t> { 8u });
+    REQUIRE (constantOffsets == std::vector<std::uint32_t> { 4u });
+    // A regression that flattened at constant tempo across the change would collapse these — they must differ.
+    REQUIRE (mappedOffsets != constantOffsets);
+}
+
+TEST_CASE ("PDC moves a latent instrument's impulse vs an uncompensated single path", "[midi][instrument][pdc][negctl]")
+{
+    constexpr int kBlock = 32;
+    constexpr int kLatency = 5;
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    const MidiClip clip = clipWithNotes ({ note (2, 4, 16) }, /*start*/ 100, /*length*/ 32);
+
+    std::array<Event, 4> events {};
+    const auto flat = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, kBlock, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (events));
+    REQUIRE (flat.status == MidiFlattenStatus::Ok);
+    const std::span<const Event> evspan { events.data(), flat.eventsWritten };
+
+    // Single zero-latency path: nothing to compensate, so the impulse lands at the raw NoteOn frame 4.
+    {
+        auto only = std::make_unique<ImpulseInstrumentNode> (3000, 0);
+        auto master = std::make_unique<MasterNode> (kMasterId, 1);
+        master->setInputNodes ({ only.get() });
+
+        GraphBuilder::Inputs inputs;
+        inputs.id = 50;
+        inputs.masterNodeId = kMasterId;
+        inputs.sampleRate = kSampleRate;
+        inputs.maxBlockSize = kBlock;
+        inputs.nodes.push_back (std::move (only));
+        inputs.nodes.push_back (std::move (master));
+
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (graph->totalLatency() == 0);
+
+        const std::vector<float> out = render (*graph, evspan, kBlock);
+        REQUIRE (out[4] == Approx (1.0f));
+    }
+
+    // Add a latent sibling: PDC must splice a Latency Node onto the fast path so the fast impulse moves
+    // OFF frame 4 to the compensated frame 4 + latency, where it sums with the slow path.
+    {
+        auto fast = std::make_unique<ImpulseInstrumentNode> (3001, 0);
+        auto slow = std::make_unique<ImpulseInstrumentNode> (3002, kLatency);
+        auto master = std::make_unique<MasterNode> (kMasterId, 1);
+        master->setInputNodes ({ fast.get(), slow.get() });
+
+        GraphBuilder::Inputs inputs;
+        inputs.id = 51;
+        inputs.masterNodeId = kMasterId;
+        inputs.sampleRate = kSampleRate;
+        inputs.maxBlockSize = kBlock;
+        inputs.nodes.push_back (std::move (fast));
+        inputs.nodes.push_back (std::move (slow));
+        inputs.nodes.push_back (std::move (master));
+
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (graph->totalLatency() == kLatency);
+
+        const std::vector<float> out = render (*graph, evspan, kBlock);
+        REQUIRE (out[4] == Approx (0.0f).margin (1.0e-6f));        // fast path was shifted away from 4...
+        REQUIRE (out[4 + kLatency] == Approx (2.0f));              // ...to 4 + latency, summing with the slow path.
+    }
+}
+
+TEST_CASE ("Note-on across a Block boundary AND a tempo change reaches a latent instrument PDC-compensated",
+           "[midi][instrument][pdc][tempo][boundary][integrated]")
+{
+    constexpr int kBlock = 8;
+    constexpr int kLatency = 2;
+    const std::array<TempoChange, 2> tempo {
+        TempoChange { 0, 120.0, TempoCurve::Jump },
+        TempoChange { 100, 60.0, TempoCurve::Jump },
+    };
+    // Clip starts at the tempo change (project tick 100 == frame 100). Note at clip tick 6 ->
+    // project tick 106 -> 100 frames (120 BPM) + 6 ticks * 2 (60 BPM) = frame 112, in the SECOND block.
+    const MidiClip clip = clipWithNotes ({ note (2, 6, 16) }, /*start*/ 100, /*length*/ 32);
+
+    auto fast = std::make_unique<ImpulseInstrumentNode> (4000, 0);
+    auto slow = std::make_unique<ImpulseInstrumentNode> (4001, kLatency);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+    master->setInputNodes ({ fast.get(), slow.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 52;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = kSampleRate;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (fast));
+    inputs.nodes.push_back (std::move (slow));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+
+    // Block 1 = frames [100, 108): tempo-mapped, the note (frame 112) has not arrived.
+    std::array<Event, 4> firstOut {};
+    const auto first = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 100.0, kBlock, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (firstOut));
+    REQUIRE (first.status == MidiFlattenStatus::Ok);
+    REQUIRE (first.eventsWritten == 0u);
+    const std::vector<float> firstAudio = render (*graph, std::span<const Event> (firstOut.data(), first.eventsWritten), kBlock);
+    for (const float sample : firstAudio)
+        REQUIRE (sample == Approx (0.0f).margin (1.0e-6f));
+
+    // Block 2 = frames [108, 116): NoteOn at frame 112 -> offset 4; PDC aligns both paths at 4 + latency.
+    std::array<Event, 4> secondOut {};
+    const auto second = flattenMidiClipNotesForBlock (
+        clip,
+        MidiFlattenBlock { 108.0, kBlock, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (secondOut));
+    REQUIRE (second.status == MidiFlattenStatus::Ok);
+    REQUIRE (noteOnOffsets (std::span<const Event> (secondOut.data(), second.eventsWritten)) == std::vector<std::uint32_t> { 4u });
+
+    const std::vector<float> secondAudio = render (*graph, std::span<const Event> (secondOut.data(), second.eventsWritten), kBlock);
+    for (int i = 0; i < kBlock; ++i)
+    {
+        if (i == 4 + kLatency)
+            REQUIRE (secondAudio[static_cast<std::size_t> (i)] == Approx (2.0f));
+        else
+            REQUIRE (secondAudio[static_cast<std::size_t> (i)] == Approx (0.0f).margin (1.0e-6f));
+    }
+}
