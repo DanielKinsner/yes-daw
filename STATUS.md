@@ -9,18 +9,12 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-27
-**Current horizon:** **H3 (mixer + plugin hosting) — CLOSED / waiting for Dan's H3->H4 boundary review.**
-The mixer-policy half is done. The plugin-hosting half is now closed by the blocking
-`YesDawHostIsolationCheck`: the in-repo synthetic `juce::AudioProcessor` runs in `YesDawPluginHost`; the
-RT lane uses OS shared memory; control-lane identity transfer, worker `pollOnce`, running watchdog,
-crash/hang recovery, `CompiledNodeKind::Placeholder` replacement, persistent `{format,uid,version}`
-blacklist, projected `Runtime` mixer publication, tri-stream PDC, fail-open deadline/no-dropout, finite
-output, validated latency, and opaque state pull/push with `{chunk_len,crc32}` validation all have
-self-asserting gates. The aggregate gate is no longer `[!shouldfail]`.
-**An independent adversarial review (2026-06-27) then hardened the honesty of the close-out** (top "Now"
-entry). The one remaining item for "H0–H3 fully behind us" that is NOT mechanical is the **H0 real-hardware
-audio soak** (`tools/soak.sh` at a 128-frame Block on Win+mac) — by ADR-0005 that is a human/hardware gate,
-not a CI gate. Everything else the review surfaced is fixed and green.
+**Current horizon:** **H4 (MIDI editing & instruments) — ACTIVE.**
+Dan opened the H3->H4 boundary on 2026-06-27 by asking Codex to complete H4. H3 is closed by the blocking
+`YesDawHostIsolationCheck` and the independent close-out honesty pass. The one remaining item for
+"H0-H3 fully behind us" that is NOT mechanical is the **H0 real-hardware audio soak** (`tools/soak.sh` at
+a 128-frame Block on Win+mac) — by ADR-0005 that is a human/hardware gate, not a CI gate. It stays tracked
+separately and does not replace H4's CI gate.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -33,7 +27,15 @@ not a CI gate. Everything else the review surfaced is fixed and green.
 
 ---
 
-## Now — H3 closed + honesty-hardened; H0 soak is the one human gate left
+## Now — H4 kickoff: MIDI edit-model ADR + exit-gate plan
+- **Latest (2026-06-27): H4 boundary opened and the docs-only kickoff checkpoint is green locally.**
+  This checkpoint accepts ADR-0017 (MIDI Clip edit model + render bridge), adds the H4 plan, switches
+  `loop/horizon.md` to `YesDawMidiTimingCheck`, updates `CONTEXT.md`, and leaves code untouched. The H4
+  finish line is now mechanical: note-ons at known offsets must land sample-accurately across Block
+  boundaries and a tempo change, through a non-zero-latency Instrument Node that PDC compensates.
+  Local gate: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci` passed **209/209**.
+  **Next:** REVIEW/FIX this docs-only H4 kickoff, then build the first code slice: the MIDI timing bridge
+  and `YesDawMidiTimingCheck` negative controls, green before commit.
 - **Latest (2026-06-27): independent adversarial review of the whole H0–H3 surface, then fixed every real
   finding it raised. 5 small green commits straight to `main`; full local suite 209/209; remote CI green.**
   This pass IS the independent review the close-out plan's rule 3 demanded (the earlier out-of-band review at
@@ -2196,11 +2198,13 @@ not a CI gate. Everything else the review surfaced is fixed and green.
   RT-vs-offline Render, RTSan, and save/migration recovery gates are green.
 - ✅ **H2 approved and closed.** H2's mechanical exit gates are green: bit-identical edit undo/redo,
   split-with-crossfade RT/offline render, and kill-mid-import bundle consistency.
-- **Next rolling baton: REVIEW/FIX H3 `PluginNode` IPC proxy, then WORKER H3 host-worker layering if green.**
-  Pull, read `AGENTS.md` + the top handoff first, then review `src/engine/plugin/PluginNode.h` and
-  `tests/plugin_node_tests.cpp` against ADR-0015, ADR-0013, ADR-0007, ADR-0008, ADR-0009, and the RT-safety
-  rules. Fix only proven defects. If the review is clean/green, continue in the same baton thread to the
-  next worker chunk: `YesDawPluginHost` worker exe + engine-doesn't-link-hosting layering check. Run the
+- ✅ **H3 approved and closed.** Mixer policy, host isolation, runtime worker crash/hang recovery,
+  blacklist persistence, state chunk round-trip, projected Runtime gate, and close-out review fixes are green.
+- **Next rolling baton: REVIEW/FIX H4 kickoff docs, then WORKER H4 MIDI timing bridge if green.**
+  Pull, read `AGENTS.md` + the top handoff first, then review ADR-0017, the H4 plan, `loop/horizon.md`,
+  `CONTEXT.md`, and ADR index wiring. Fix only proven defects. If the review is clean/green, continue in
+  the same baton thread to the next worker chunk: add the tempo-map tick-to-frame helper, MIDI Clip / Note
+  flattening into ADR-0009 Events, and the first `YesDawMidiTimingCheck` negative controls. Run the
   documented gate (`cmake --preset ci`; `cmake --build --preset ci`; `ctest --preset ci`) for each
   checkpoint that changes code. Update `STATUS.md`, commit/push, and wait for green CI before creating
   exactly one successor baton. Never create separate reviewer/worker threads in parallel, and never spawn a

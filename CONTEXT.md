@@ -127,6 +127,16 @@ One sample-accurate, block-sliced thing that happens (a parameter change, a note
 Carries an exact offset inside the Block. MIDI is one kind of Event.
 _Avoid_: message (when you mean our internal event), MIDI event (for non-MIDI events)
 
+**Note**:
+An editable musical note stored in a MIDI Clip, in clip-relative ticks, with stable Entity ID, pitch,
+velocity, length, and voice identity. It becomes `NoteOn` / `NoteOff` Events only at render.
+_Avoid_: raw MIDI message (when you mean the edit object)
+
+**MPE voice allocation**:
+The input/import boundary step that assigns stable voice addresses for per-note expression. The graph
+preserves the address; Nodes do not guess one.
+_Avoid_: voice stealing (that is an instrument-internal policy)
+
 ### Levels
 
 **Gain**:
@@ -152,6 +162,11 @@ _Avoid_: channel
 A non-destructive placement of (part of) an asset on a track, with its own start/end, gain, fades.
 _Avoid_: region, segment
 
+**MIDI Clip**:
+A non-destructive placement of editable Notes on a track. Unlike an audio Clip, it owns Notes instead
+of referencing an Asset.
+_Avoid_: MIDI region, MIDI file (unless discussing import/export)
+
 **Asset**:
 The underlying audio a clip points into. Copied into the project by default. Immutable and
 content-hashed; never edited in place.
@@ -171,6 +186,18 @@ _Avoid_: modulation
 A live repeating shape or envelope moving a control in real time, not pinned to the song. A separate,
 deferred concept — not built early.
 _Avoid_: automation
+
+**Piano roll**:
+The editor for MIDI Clip Notes: move, length, split/cut, quantize, transpose, and expression lanes.
+_Avoid_: MIDI editor (too broad when you mean Note editing)
+
+**Instrument Node**:
+A Node that consumes Note Events and produces audio.
+_Avoid_: synth plugin (unless it is specifically a hosted Plugin)
+
+**MIDI-effect Node**:
+A Node that consumes Events and produces transformed Events, such as transpose, scale/chord, or arp.
+_Avoid_: audio effect
 
 ### Project & assets
 

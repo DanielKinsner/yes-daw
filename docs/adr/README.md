@@ -34,6 +34,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0014](0014-mixer-policy-solo-mute-sidechain.md) | Mixer policy: mute, SIP solo, solo-safe, and Sidechain pins | Accepted |
 | [0015](0015-plugin-hosting-runtime-ipc-and-process-model.md) | Plugin hosting runtime: process model, IPC transport, isolation gates | Accepted |
 | [0016](0016-mute-mask-scales-past-64-nodes.md) | The post-compile mute mask scales past 64 compiled nodes | Accepted |
+| [0017](0017-midi-clip-edit-model-and-render-bridge.md) | MIDI Clip edit model and render bridge | Accepted |
 
 ## Decision status (the five research forks)
 
