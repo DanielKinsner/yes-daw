@@ -48,10 +48,14 @@ using yesdaw::engine::TempoCurve;
 using yesdaw::engine::TempoMapView;
 using yesdaw::engine::Tick;
 using yesdaw::engine::Transport;
+using yesdaw::engine::MpeVoiceAllocationConfig;
+using yesdaw::engine::MpeVoiceAllocationStatus;
+using yesdaw::engine::allocateMpeVoiceAddresses;
 using yesdaw::engine::flattenMidiClipNotesForBlock;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::tickToFrame;
+using yesdaw::engine::voiceNoteIdFromEntityId;
 
 namespace {
 
@@ -117,6 +121,16 @@ std::vector<std::uint32_t> noteOnOffsets (std::span<const Event> events)
         if (event.type == EventType::NoteOn)
             offsets.push_back (event.timeInBlock);
     return offsets;
+}
+
+const Event* findNoteOnFor (std::span<const Event> events, EntityId noteId)
+{
+    const std::int32_t voiceNoteId = voiceNoteIdFromEntityId (noteId);
+    for (const Event& event : events)
+        if (event.type == EventType::NoteOn && event.voice.noteId == voiceNoteId)
+            return &event;
+
+    return nullptr;
 }
 
 std::vector<float> render (CompiledGraph& graph, std::span<const Event> events, int frames)
@@ -273,6 +287,103 @@ TEST_CASE ("MIDI scale-map Node deterministically maps accidentals to the next s
     REQUIRE (events[3].voice.key == 127);
     REQUIRE (events[3].payload.note.pitchNote == Approx (127.0));
     REQUIRE (stream.isValidForBlock (8));
+}
+
+TEST_CASE ("MPE boundary allocation assigns stable voice addresses before flattening", "[midi][mpe]")
+{
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    MidiClip clip = clipWithNotes ({
+        note (3, 0, 8, 60),
+        note (2, 0, 8, 64),
+        note (4, 8, 4, 67),
+    }, /*start*/ 100, /*length*/ 32);
+
+    for (Note& n : clip.notes)
+    {
+        n.portIndex = -1;
+        n.channel = -1;
+    }
+
+    std::array<Note, 3> allocated {};
+    const auto allocation = allocateMpeVoiceAddresses (
+        clip,
+        MpeVoiceAllocationConfig { /*portIndex*/ 2, /*firstMemberChannel*/ 1, /*memberChannelCount*/ 2 },
+        std::span<Note> (allocated));
+
+    REQUIRE (allocation.status == MpeVoiceAllocationStatus::Ok);
+    REQUIRE (allocation.notesWritten == clip.notes.size());
+
+    // Same-start notes allocate in stable note-id order; the later non-overlapping note reuses channel 1.
+    REQUIRE (allocated[0].portIndex == 2);
+    REQUIRE (allocated[0].channel == 2);
+    REQUIRE (allocated[1].portIndex == 2);
+    REQUIRE (allocated[1].channel == 1);
+    REQUIRE (allocated[2].portIndex == 2);
+    REQUIRE (allocated[2].channel == 1);
+
+    MidiClip renderClip = clip;
+    renderClip.notes.assign (allocated.begin(), allocated.begin() + static_cast<std::ptrdiff_t> (allocation.notesWritten));
+
+    std::array<Event, 8> events {};
+    const auto flat = flattenMidiClipNotesForBlock (
+        renderClip,
+        MidiFlattenBlock { 100.0, 32, 0.0 },
+        tempoView (tempo),
+        SampleRate { kSampleRate },
+        std::span<Event> (events));
+
+    REQUIRE (flat.status == MidiFlattenStatus::Ok);
+    REQUIRE (flat.eventsWritten == 6u);
+
+    const std::span<const Event> flattened { events.data(), flat.eventsWritten };
+    const Event* const c = findNoteOnFor (flattened, id (3));
+    const Event* const e = findNoteOnFor (flattened, id (2));
+    const Event* const g = findNoteOnFor (flattened, id (4));
+    REQUIRE (c != nullptr);
+    REQUIRE (e != nullptr);
+    REQUIRE (g != nullptr);
+    REQUIRE (c->voice.portIndex == 2);
+    REQUIRE (c->voice.channel == 2);
+    REQUIRE (e->voice.portIndex == 2);
+    REQUIRE (e->voice.channel == 1);
+    REQUIRE (g->voice.portIndex == 2);
+    REQUIRE (g->voice.channel == 1);
+}
+
+TEST_CASE ("MPE boundary allocation preserves explicit voice hints and fails when voices are exhausted",
+           "[midi][mpe]")
+{
+    MidiClip clip = clipWithNotes ({
+        note (5, 0, 8, 60),
+        note (6, 0, 8, 64),
+    }, /*start*/ 100, /*length*/ 32);
+    clip.notes[0].portIndex = -1;
+    clip.notes[0].channel = -1;
+    clip.notes[1].portIndex = 4;
+    clip.notes[1].channel = 1;
+
+    std::array<Note, 2> allocated {};
+    const auto allocation = allocateMpeVoiceAddresses (
+        clip,
+        MpeVoiceAllocationConfig { /*portIndex*/ 4, /*firstMemberChannel*/ 1, /*memberChannelCount*/ 2 },
+        std::span<Note> (allocated));
+
+    REQUIRE (allocation.status == MpeVoiceAllocationStatus::Ok);
+    REQUIRE (allocation.notesWritten == 2u);
+    REQUIRE (allocated[0].portIndex == 4);
+    REQUIRE (allocated[0].channel == 2);
+    REQUIRE (allocated[1].portIndex == 4);
+    REQUIRE (allocated[1].channel == 1);
+
+    clip.notes[0].channel = -1;
+    clip.notes[1].channel = -1;
+    const auto exhausted = allocateMpeVoiceAddresses (
+        clip,
+        MpeVoiceAllocationConfig { /*portIndex*/ 0, /*firstMemberChannel*/ 1, /*memberChannelCount*/ 1 },
+        std::span<Note> (allocated));
+
+    REQUIRE (exhausted.status == MpeVoiceAllocationStatus::OutOfVoices);
+    REQUIRE (exhausted.notesWritten == 0u);
 }
 
 TEST_CASE ("MIDI note-ons through a latent Instrument Node are aligned by PDC", "[midi][instrument][pdc]")
@@ -447,6 +558,12 @@ TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events throug
         noteEvent (5, EventType::NoteOn, 60, 60.0),
         noteEvent (12, EventType::NoteOff, 60, 60.0),
     };
+    events[0].voice.noteId = 1234;
+    events[0].voice.portIndex = 3;
+    events[0].voice.channel = 4;
+    events[1].voice.noteId = 1234;
+    events[1].voice.portIndex = 3;
+    events[1].voice.channel = 4;
 
     auto transpose = std::make_unique<MidiTransposeNode> (kTranspose, 12);
     auto plugin = std::make_unique<PluginNode> (kPlugin, 1, kBlock);
@@ -454,16 +571,20 @@ TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events throug
 
     PluginNode* const pluginPtr = plugin.get();
     std::int16_t capturedKey = -1;
+    std::int16_t capturedPort = -1;
+    std::int16_t capturedChannel = -1;
+    std::int32_t capturedNoteId = -1;
     std::uint32_t capturedOffset = 0;
     bool capturedNoteOn = false;
 
     plugin->setInput (transpose.get());
     plugin->setStubProcessor (
-        [&capturedKey, &capturedOffset, &capturedNoteOn] (std::span<const Event> pluginEvents,
-                                                          const float* const*,
-                                                          float* const* output,
-                                                          int channels,
-                                                          int frames) noexcept
+        [&capturedKey, &capturedPort, &capturedChannel, &capturedNoteId, &capturedOffset, &capturedNoteOn]
+        (std::span<const Event> pluginEvents,
+         const float* const*,
+         float* const* output,
+         int channels,
+         int frames) noexcept
         {
             for (int c = 0; c < channels; ++c)
                 for (int f = 0; f < frames; ++f)
@@ -475,6 +596,9 @@ TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events throug
                     continue;
 
                 capturedKey = event.voice.key;
+                capturedPort = event.voice.portIndex;
+                capturedChannel = event.voice.channel;
+                capturedNoteId = event.voice.noteId;
                 capturedOffset = event.timeInBlock;
                 capturedNoteOn = true;
 
@@ -507,6 +631,9 @@ TEST_CASE ("Hosted instrument PluginNode receives transformed Note Events throug
 
     REQUIRE (pluginPtr->serviceStubChild());
     REQUIRE (capturedNoteOn);
+    REQUIRE (capturedNoteId == 1234);
+    REQUIRE (capturedPort == 3);
+    REQUIRE (capturedChannel == 4);
     REQUIRE (capturedKey == 72);
     REQUIRE (capturedOffset == 5u);
     REQUIRE (events[0].voice.key == 60);

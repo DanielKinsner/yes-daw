@@ -36,7 +36,11 @@ The gate must be green in the normal `ci` preset and must not depend on a human 
 7. **Hosted instrument/Event bridge.** Drive Note Events through the PluginNode RT lane so hosted
    instruments receive the same stream as built-ins. This closes the H3 deferral for full event
    tri-stream delivery through the worker boundary.
-8. **Review and close.** Re-run the full gate, update `STATUS.md`, and leave H5 ready to start.
+8. **MPE boundary allocation.** Assign stable concrete `VoiceAddress` port/channel values for wildcard
+   Notes at the input/import/render boundary while preserving explicit hints and failing mechanically if
+   overlapping Notes exhaust the configured member channels.
+9. **Review and close.** Re-run the full gate, update `STATUS.md`, and leave H5 ready to start only if
+   the evidence proves the horizon complete.
 
 ## Stop conditions
 
@@ -59,5 +63,6 @@ ctest --preset ci -R YesDawMidiTimingCheck
 The first code checkpoints now exist: `YesDawMidiTimingCheck`, Project-owned MIDI Clips/Notes with
 schema v3 persistence, piano-roll Note edit commands with undo/redo bit-identity coverage, and
 deterministic MIDI-effect Nodes for transpose + scale-map event transforms. The hosted-instrument Event
-bridge now drives transformed Note Events through `PluginNode`'s RT lane. Later H4 slices keep this gate
-blocking while widening the MIDI surface.
+bridge now drives transformed Note Events through `PluginNode`'s RT lane. MPE boundary allocation now
+assigns stable concrete voice addresses before flattening while preserving explicit voice hints. The H4
+close-out pass keeps this gate blocking while proving the horizon complete.

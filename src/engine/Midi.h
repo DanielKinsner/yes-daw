@@ -10,6 +10,7 @@
 #include "engine/Time.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -41,6 +42,36 @@ struct MidiFlattenResult
 {
     MidiFlattenStatus status = MidiFlattenStatus::Ok;
     std::size_t       eventsWritten = 0;
+};
+
+struct MpeVoiceAllocationConfig
+{
+    std::int16_t portIndex = 0;
+    std::int16_t firstMemberChannel = 1;
+    std::int16_t memberChannelCount = 15;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return portIndex >= 0
+            && firstMemberChannel >= 0
+            && firstMemberChannel <= 15
+            && memberChannelCount > 0
+            && static_cast<int> (firstMemberChannel) + static_cast<int> (memberChannelCount) <= 16;
+    }
+};
+
+enum class MpeVoiceAllocationStatus : std::uint8_t
+{
+    Ok = 0,
+    InvalidInput,
+    OutputTooSmall,
+    OutOfVoices
+};
+
+struct MpeVoiceAllocationResult
+{
+    MpeVoiceAllocationStatus status = MpeVoiceAllocationStatus::Ok;
+    std::size_t              notesWritten = 0;
 };
 
 [[nodiscard]] inline std::int32_t voiceNoteIdFromEntityId (EntityId id) noexcept
@@ -109,7 +140,127 @@ struct MidiEventCandidate
     return static_cast<std::uint16_t> (a.type) < static_cast<std::uint16_t> (b.type);
 }
 
+struct MpeAllocationItem
+{
+    std::size_t index = 0;
+    Tick        startTick = 0;
+    Tick        endTick = 0;
+    EntityId    noteId;
+    bool        hasExplicitChannel = false;
+};
+
+[[nodiscard]] inline bool mpeAllocationItemLess (const MpeAllocationItem& a,
+                                                 const MpeAllocationItem& b) noexcept
+{
+    if (a.startTick != b.startTick)
+        return a.startTick < b.startTick;
+    if (a.hasExplicitChannel != b.hasExplicitChannel)
+        return a.hasExplicitChannel;
+    if (a.endTick != b.endTick)
+        return a.endTick < b.endTick;
+    return a.noteId < b.noteId;
+}
+
+[[nodiscard]] inline bool mpeChannelInRange (std::int16_t channel,
+                                             const MpeVoiceAllocationConfig& config) noexcept
+{
+    return channel >= config.firstMemberChannel
+        && channel < static_cast<std::int16_t> (config.firstMemberChannel + config.memberChannelCount);
+}
+
 } // namespace detail
+
+[[nodiscard]] inline MpeVoiceAllocationResult allocateMpeVoiceAddresses (
+    const MidiClip& clip,
+    MpeVoiceAllocationConfig config,
+    std::span<Note> outNotes)
+{
+    MpeVoiceAllocationResult result;
+
+    if (! clip.isValid() || ! config.isValid())
+    {
+        result.status = MpeVoiceAllocationStatus::InvalidInput;
+        return result;
+    }
+
+    if (clip.notes.size() > outNotes.size())
+    {
+        result.status = MpeVoiceAllocationStatus::OutputTooSmall;
+        return result;
+    }
+
+    std::vector<detail::MpeAllocationItem> items;
+    items.reserve (clip.notes.size());
+
+    for (std::size_t i = 0; i < clip.notes.size(); ++i)
+    {
+        const Note& note = clip.notes[i];
+        Tick noteEnd = 0;
+        if (! note.isValid() || ! detail::addMidiTickChecked (note.startTick, note.lengthTicks, noteEnd)
+            || noteEnd > clip.timelineLength)
+        {
+            result.status = MpeVoiceAllocationStatus::InvalidInput;
+            return result;
+        }
+
+        outNotes[i] = note;
+        items.push_back (detail::MpeAllocationItem { i, note.startTick, noteEnd, note.id, note.channel >= 0 });
+    }
+
+    std::sort (items.begin(), items.end(), detail::mpeAllocationItemLess);
+
+    std::array<Tick, 16> activeUntil {};
+    activeUntil.fill (0);
+
+    const auto reserveIfMember = [&] (const Note& note, Tick endTick) noexcept
+    {
+        if (note.portIndex != config.portIndex || ! detail::mpeChannelInRange (note.channel, config))
+            return;
+
+        const std::size_t channel = static_cast<std::size_t> (note.channel);
+        if (endTick > activeUntil[channel])
+            activeUntil[channel] = endTick;
+    };
+
+    for (const detail::MpeAllocationItem& item : items)
+    {
+        Note& note = outNotes[item.index];
+
+        if (note.portIndex < 0)
+            note.portIndex = config.portIndex;
+
+        if (note.channel >= 0)
+        {
+            reserveIfMember (note, item.endTick);
+            continue;
+        }
+
+        bool allocated = false;
+        for (std::int16_t channel = config.firstMemberChannel;
+             channel < static_cast<std::int16_t> (config.firstMemberChannel + config.memberChannelCount);
+             ++channel)
+        {
+            const std::size_t index = static_cast<std::size_t> (channel);
+            if (activeUntil[index] > item.startTick)
+                continue;
+
+            note.channel = channel;
+            reserveIfMember (note, item.endTick);
+            allocated = true;
+            break;
+        }
+
+        if (! allocated)
+        {
+            result.status = MpeVoiceAllocationStatus::OutOfVoices;
+            result.notesWritten = 0;
+            return result;
+        }
+    }
+
+    result.notesWritten = clip.notes.size();
+    return result;
+}
 
 template <typename TickToFrame>
 [[nodiscard]] inline MidiFlattenResult flattenMidiClipNotesForBlock (
