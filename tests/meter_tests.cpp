@@ -120,3 +120,34 @@ TEST_CASE ("MeterNode aggregates peak and RMS across channels", "[meter][multich
     const double expectedRms = std::sqrt (sumSq / (2.0 * n));
     REQUIRE (node.rms() == Approx (expectedRms).margin (1.0e-4));   // RMS pools both channels
 }
+
+TEST_CASE ("MeterNode publishes independent per-channel peak and RMS", "[meter][multichannel][per-channel]")
+{
+    // A real stereo meter shows L and R independently, not just one pooled scalar (H3 stereo metering).
+    constexpr int n = 256;
+    std::vector<float> left  (static_cast<std::size_t> (n), 0.5f);   // L: a flat 0.5
+    std::vector<float> right (static_cast<std::size_t> (n), 0.1f);   // R: a flat 0.1...
+    right[10] = -0.8f;                                                // ...with one spike
+
+    MeterNode node (7, 2);
+    Node& iface = node;
+    iface.prepare (48000.0, n);
+    EventStream events;
+    Transport   transport;
+    float* const channels[2] = { left.data(), right.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, n });
+
+    // Per-channel peaks are distinct: L is flat 0.5, R peaks at its 0.8 spike.
+    REQUIRE (node.peak (0) == Approx (0.5f).margin (1.0e-6));
+    REQUIRE (node.peak (1) == Approx (0.8f).margin (1.0e-6));
+
+    // Per-channel RMS is each channel's own energy, not the pooled value.
+    REQUIRE (node.rms (0) == Approx (0.5).margin (1.0e-4));   // constant 0.5 -> rms 0.5
+    const double rRms = std::sqrt (((n - 1) * (0.1 * 0.1) + (0.8 * 0.8)) / static_cast<double> (n));
+    REQUIRE (node.rms (1) == Approx (rRms).margin (1.0e-4));
+
+    // The aggregate stays the max across channels, and an out-of-range channel reads 0.
+    REQUIRE (node.peak() == Approx (0.8f).margin (1.0e-6));
+    REQUIRE (node.peak (5) == 0.0f);
+    REQUIRE (node.rms  (5) == 0.0f);
+}
