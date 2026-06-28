@@ -35,7 +35,9 @@ using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::summarizeDeadlineSoak;
+using yesdaw::persistence::autosaveSnapshotPath;
 using yesdaw::persistence::ProjectBundleDb;
+using yesdaw::persistence::readAutosaveSnapshot;
 using yesdaw::persistence::restoreAutosaveSnapshot;
 using yesdaw::persistence::writeAutosaveSnapshot;
 
@@ -385,4 +387,92 @@ TEST_CASE ("H6 hard kill mid-edit restores the last autosave without corruption"
     Project readback;
     REQUIRE (validated.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, autosaved);
+}
+
+TEST_CASE ("H6 autosave recovers from last.previous when a publish is interrupted mid-rename",
+           "[h6][reliability][autosave][negative-control]")
+{
+    const std::filesystem::path path = makeTempBundlePath ("autosave-publish-crash");
+    const Project saved = makeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
+        REQUIRE (db.writeProjectSnapshot (saved).ok());
+        writeProjectAssetFiles (path, saved);
+        REQUIRE (writeAutosaveSnapshot (db, saved).ok());
+    }
+
+    // Simulate a hard kill that landed between the two publish renames: last.yesdaw was moved aside to
+    // last.previous, but last.tmp -> last.yesdaw never happened. The live slot is gone; only last.previous
+    // (a complete, valid snapshot) survives. The pre-fix reader only stat'd last.yesdaw and reported
+    // NoAutosave here, silently losing a perfectly good autosave.
+    const std::filesystem::path live = autosaveSnapshotPath (path);
+    const std::filesystem::path previous = yesdaw::persistence::autosave_detail::previousSnapshotPath (path);
+    std::error_code ec;
+    std::filesystem::rename (live, previous, ec);
+    REQUIRE (! ec);
+    REQUIRE (! std::filesystem::exists (live));
+    REQUIRE (std::filesystem::exists (previous));
+
+    Project recovered;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    requireSameProjectSurface (recovered, saved);
+}
+
+TEST_CASE ("H6 autosave skips a damaged live snapshot and falls back to the valid previous one",
+           "[h6][reliability][autosave][negative-control]")
+{
+    const std::filesystem::path path = makeTempBundlePath ("autosave-damaged-live");
+    const Project saved = makeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
+        REQUIRE (db.writeProjectSnapshot (saved).ok());
+        writeProjectAssetFiles (path, saved);
+        REQUIRE (writeAutosaveSnapshot (db, saved).ok());
+    }
+
+    const std::filesystem::path live = autosaveSnapshotPath (path);
+    const std::filesystem::path previous = yesdaw::persistence::autosave_detail::previousSnapshotPath (path);
+
+    // Fabricate the on-disk state of a crash window: a valid previous snapshot alongside the live slot.
+    std::error_code ec;
+    std::filesystem::copy (live, previous, std::filesystem::copy_options::recursive, ec);
+    REQUIRE (! ec);
+
+    // Corrupt the live snapshot's database so it can no longer open through the validators.
+    const std::vector<std::uint8_t> garbage (4096u, 0xFFu);
+    writeBytes (live / "project.db", std::span<const std::uint8_t> (garbage.data(), garbage.size()));
+
+    Project recovered;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    requireSameProjectSurface (recovered, saved);
+}
+
+TEST_CASE ("H6 autosave reports a damaged snapshot as an error, not a missing one",
+           "[h6][reliability][autosave][negative-control]")
+{
+    const std::filesystem::path path = makeTempBundlePath ("autosave-damaged-only");
+    const Project saved = makeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
+        REQUIRE (db.writeProjectSnapshot (saved).ok());
+        writeProjectAssetFiles (path, saved);
+        REQUIRE (writeAutosaveSnapshot (db, saved).ok());
+    }
+
+    const std::filesystem::path live = autosaveSnapshotPath (path);
+    const std::vector<std::uint8_t> garbage (4096u, 0xFFu);
+    writeBytes (live / "project.db", std::span<const std::uint8_t> (garbage.data(), garbage.size()));
+
+    // A present-but-damaged autosave must be flagged (BundleError), never reported as NoAutosave (which
+    // would make a caller believe there is nothing to recover).
+    Project recovered;
+    const auto result = readAutosaveSnapshot (path, recovered);
+    REQUIRE_FALSE (result.ok());
+    REQUIRE (result.status == yesdaw::persistence::AutosaveStatus::BundleError);
 }
