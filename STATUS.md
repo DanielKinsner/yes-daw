@@ -9,11 +9,10 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H7 (Offline render / export to file) — IMPLEMENTED locally 2026-06-28 and ready
-for Claude review. H6 is CLOSED (reviewed + hardened, full local CI 237/237). ADR-0020 (Accepted) carves
-post-H6 work into horizons H7–H11, feature-first with the UI as the H11 capstone. H7 now has ADR-0021,
-the pure float32-WAV codec, `OfflineRenderer`, and `YesDawOfflineRenderCheck`; local focused gate 1/1 and
-full `ci` 238/238 are green. Do not open H8 until Claude's H7 close-out review is adjudicated.**
+**Current horizon:** **H7 (Offline render / export to file) — CLOSED: Codex implemented it, Claude
+adversarially reviewed + hardened it (2 blockers fixed), full local CI 238/238. H6 also CLOSED. ADR-0020
+(Accepted) carves post-H6 work into horizons H7–H11, feature-first with the UI as the H11 capstone. At the
+H7->H8 boundary — next is H8 (playback runtime: device I/O + transport), awaiting Dan's boundary call.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -39,8 +38,29 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H7 implemented locally; ready for Claude review
-- **Latest (2026-06-28): H7 offline render/export implemented and locally green.**
+## Now — H7 reviewed + hardened; at the H7->H8 boundary
+- **Latest (2026-06-28): adversarial review of Codex's just-landed H7 offline-render gate + patches (Claude).**
+  Ran the same multi-agent treatment as H6 (5 diverse-lens finders -> per-finding skeptical verification,
+  25 raw -> 24 confirmed, heavy dupes) and adjudicated by hand. **Two real blockers + WAV-robustness gaps,
+  fixed in 4 small commits:** (1) **fade-curve divergence** — the offline renderer pre-baked an equal-power
+  fade (`ClipEnvelope`'s 1.4186 polynomial) while the realtime `DecodedClipNode` applies a LINEAR fade, so
+  the exported WAV used a different curve than playback would (export != playback, violating the roadmap's
+  "RT matches offline" premise, undocumented in ADR-0021). Fixed by rendering fades through the same
+  `DecodedClipNode` the realtime engine uses (export == playback by construction; equal-power stays
+  deferred per H2), and the test reference is now the canonical linear ramp, not a verbatim copy of the
+  engine polynomial. (2) **block-size independence unproven** — the 9-frame fixture rendered in a single
+  128-frame block, so the multi-block path + ADR-0008 block-size independence (the *defining* property of
+  an offline renderer) were dead; added a sweep requiring bit-identical output at sizes forcing 9..1
+  blocks, plus a renderer-input mutation control (the prior negative controls only perturbed the
+  reference). (3) **WAV codec** — reader no longer pre-allocates an attacker-controlled ~4 GiB buffer
+  before bounds-checking; writer rejects channel counts that overflow the 16-bit block align; round-trip
+  widened to the full float range, denormals, a known byte layout, and an ancillary-chunk skip. **Honest
+  scope:** the PDC/tail-flush + marker-extension paths are inert until a latency node lands (H8+); the
+  export/import round-trip stores+decodes the WAV but isn't wired into a Project's playback graph. Did
+  **not** edit ADR-0021 (hard-stop; it covers format only and the fade fix is consistent with H2). Focused
+  gate: **6 cases / 143 assertions**; full `ctest --preset ci`: **238/238**. **Next:** push; the review
+  commits' remote CI is the gate; then stop for Dan's H7->H8 boundary call.
+- **Earlier (2026-06-28): H7 offline render/export implemented and locally green.**
   Accepted ADR-0021 for the canonical H7 export format: RIFF/WAVE 32-bit IEEE float at the Project sample
   rate, using Master bus channels. Added `src/io/WavFile.h` (pure/headless float32 WAV writer+reader),
   `src/engine/OfflineRenderer.h` (Project + decoded Assets -> interleaved Master-bus samples through

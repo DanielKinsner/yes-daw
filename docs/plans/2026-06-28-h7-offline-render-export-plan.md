@@ -69,8 +69,28 @@ Each checkpoint is one small, independently-green commit; CI is the gate.
 
 ## Status
 
-Implemented locally on 2026-06-28 and ready for Claude adversarial review. ADR-0021 is Accepted; the pure
-float32-WAV codec, real `OfflineRenderer`, and export/import round-trip gate are in place. Local focused
-gate: `ctest --test-dir build-ci -R "YesDawOfflineRenderCheck" --output-on-failure` passed 1/1. Full
-local gate: `ctest --preset ci --output-on-failure` passed 238/238. Do not start H8 until Claude's H7
-review is adjudicated.
+Implemented by Codex, then adversarially reviewed and hardened by Claude (2026-06-28). ADR-0021 is
+Accepted; the pure float32-WAV codec, real `OfflineRenderer`, and export/import round-trip gate are in
+place. **The review found and fixed two blockers + WAV-robustness gaps:**
+
+- **Fade-curve divergence (export != playback).** The renderer pre-baked an equal-power fade
+  (`ClipEnvelope`) while the realtime `DecodedClipNode` applies a linear fade, so the exported file used a
+  different curve than playback would. Fixed by rendering fades through the same `DecodedClipNode` the
+  realtime engine uses (export == playback by construction); equal-power stays deferred per H2.
+- **Block-size independence unproven.** The 9-frame fixture rendered in a single 128-frame block, so the
+  multi-block path and ADR-0008 block-size independence were untested. Added a block-size sweep (bit-
+  identical at sizes forcing 9..1 blocks) and a renderer-input mutation control (the prior negative
+  controls only perturbed the reference). Also made the reference the canonical linear ramp instead of a
+  verbatim copy of the engine's fade polynomial.
+- **WAV codec hardening.** Reader no longer allocates an attacker-controlled ~4 GiB buffer before bounds-
+  checking; writer rejects channel counts that overflow the 16-bit block alignment; round-trip coverage
+  widened to the full float range, denormals, a known byte layout, and an ancillary-chunk skip.
+
+**Honest scope / known gaps:** the PDC/graph-tail flush and marker timeline-extension paths are inert for
+H7 (no latency node or marker-past-clip is reachable until plugins/instruments land — H8+); the
+export/import round-trip stores the WAV through the bundle and decodes it, but is not yet wired into a
+Project's playback graph.
+
+Local focused gate: `YesDawOfflineRenderCheck` = 6 cases / 143 assertions green. Full local
+`ctest --preset ci`: 238/238 green. Checkpoint complete after the review commits' remote CI is green;
+then stop for Dan's H7->H8 boundary call.
