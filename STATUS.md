@@ -9,8 +9,8 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H6 (Reliability & polish) — CLOSED by the focused reliability gate; full local CI
-green; remote CI pending.**
+**Current horizon:** **H6 (Reliability & polish) — CLOSED by the focused reliability gate; full local and
+remote CI green.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -36,15 +36,16 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H6 reliability gate implemented; full local CI green
-- **Latest (2026-06-28): H5 rechecked clean; H6 reliability gate implemented.**
+## Now — H6 reliability gate closed; local and remote CI green
+- **Latest (2026-06-28): H5 rechecked clean; H6 reliability gate implemented and closed.**
   H5 is good to move past: latest remote CI on `main` is green (`28310557870`), the current focused H5
   gate passed locally 3/3, and the H5 docs no longer overclaim the unwired recording capability. No H5
   patch was needed. For H6, accepted ADR-0019 and added the focused reliability gate:
   `src/engine/Reliability.h`, `src/persistence/AutosaveRecovery.h`, `tests/reliability_tests.cpp`, and
   target `YesDawReliabilityCheck`. Focused local gate: `ctest --test-dir build-ci -R "H6"
   --output-on-failure` passed 2/2. Full local gate: VS DevShell `cmake --build --preset ci`; `ctest
-  --preset ci` passed 233/233. **Next:** commit/push; remote CI is the close-out gate.
+  --preset ci` passed 233/233. Remote CI passed on the H6 implementation close-out commit.
+  **Next:** stop for Dan's H6->H7 boundary decision; do not start H7 automatically.
 - **Earlier (2026-06-28): adversarial review of Codex's H5 close-out + patches (Claude).**
   Ran a multi-agent adversarial review (5 diverse-lens finders → per-finding skeptical verification) over
   the whole H5 surface, then adjudicated by hand (the panel over-fired: ~50 raw findings, heavy dupes).
@@ -2464,8 +2465,11 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 - ✅ **H5 closed; local and remote CI green.** Recording is mechanically covered by
   `YesDawRecordingCheck`: bounded audio-thread FIFO, writer-thread take file, input+output latency
   compensation, punch/loop take ordinals, comp selection, and MIDI timestamp compensation.
-- **Next rolling baton: Dan's H5->H6 boundary call.**
-  Do not start H6 automatically. Stop for Dan's boundary decision.
+- ✅ **H6 closed; local and remote CI green.** Reliability is mechanically covered by
+  `YesDawReliabilityCheck`: 100-track / 60-minute audio-frame deadline soak at a 128-frame Block plus
+  last-good Autosave recovery after a simulated hard kill.
+- **Next rolling baton: Dan's H6->H7 boundary call.**
+  Do not start H7 automatically. Stop for Dan's boundary decision.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

@@ -28,7 +28,7 @@ ctest --preset ci
 ctest --test-dir build-ci -R "H6" --output-on-failure
 ```
 
-## Status: **CLOSED (focused H6 gate + full local ci green; remote CI is the close-out gate)**
+## Status: **CLOSED (focused H6 gate + full local ci + remote CI green)**
 
 H6 opened on 2026-06-28 after H5 was rechecked against current docs, local focused tests, and remote CI.
 ADR-0019 records the H6 reliability gate decision. The implementation adds:
@@ -39,6 +39,7 @@ ADR-0019 records the H6 reliability gate decision. The implementation adds:
 
 Focused local verification: `ctest --test-dir build-ci -R "H6" --output-on-failure` passed 2/2.
 Full local verification: VS DevShell `cmake --build --preset ci`; `ctest --preset ci` passed 233/233.
+Remote verification: CI passed on the H6 implementation close-out commit.
 
 ### Scope boundary (what "CLOSED" does and does not mean)
 

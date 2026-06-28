@@ -97,7 +97,7 @@ latency, against deterministic ground truth.
 > user-facing recorded-audio asset format (the `.ysdtake` file is an internal test format with no
 > playback decoder) are all H6+ work.
 
-## H6 — Reliability & polish (ongoing)
+## H6 — Reliability & polish (exit gate closed; follow-up slices)
 Autosave + crash recovery; device hot-swap; multicore work-stealing; DAWproject export; loudness
 metering; time-stretch Node; full accessibility; soak/fuzz harness.
 **Exit:** a heavy session runs 60 min at a 64–128-frame Block with zero Underruns (99.9th-pct Block
