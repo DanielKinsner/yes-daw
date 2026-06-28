@@ -40,7 +40,7 @@ using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::readAutosaveSnapshot;
-using yesdaw::persistence::writeAutosaveOnPlaybackTick;
+using yesdaw::persistence::writeAutosaveFromControlTick;
 
 namespace {
 
@@ -576,7 +576,7 @@ TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
     // of the tick. Without this, deleting that guard would still pass the suite. Prove a no-op tick leaves
     // no autosave snapshot behind.
     REQUIRE_FALSE (engine.needsAutosave());
-    REQUIRE (writeAutosaveOnPlaybackTick (engine, db, dirty).ok());
+    REQUIRE (writeAutosaveFromControlTick (engine, db, dirty).ok());
     {
         Project none;
         REQUIRE_FALSE (readAutosaveSnapshot (path, none).ok());
@@ -584,7 +584,7 @@ TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
 
     engine.markProjectEdited();
     REQUIRE (engine.needsAutosave());
-    REQUIRE (writeAutosaveOnPlaybackTick (engine, db, dirty).ok());
+    REQUIRE (writeAutosaveFromControlTick (engine, db, dirty).ok());
     REQUIRE_FALSE (engine.needsAutosave());
 
     Project recovered;

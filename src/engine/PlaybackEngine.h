@@ -171,6 +171,9 @@ public:
     [[nodiscard]] std::int64_t  loopEndFrame() const noexcept { return loopEndFrame_; }
     [[nodiscard]] bool          needsAutosave() const noexcept { return editRevision_ != autosavedRevision_; }
 
+    // CONTROL THREAD ONLY (like reclaim()): needsAutosave / markProjectEdited / markAutosaved are plain
+    // non-atomic edit-revision counters — drive them from the control loop, never the audio thread. The
+    // autosave write they gate does disk I/O; see persistence/PlaybackAutosave.h.
     void markProjectEdited() noexcept
     {
         if (editRevision_ < std::numeric_limits<std::uint64_t>::max())
