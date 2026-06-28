@@ -1,4 +1,4 @@
-# Current horizon — H7 (Offline render / export to file) — OPEN
+# Current horizon — H7 (Offline render / export to file) — READY FOR CLAUDE REVIEW
 
 > This file is the oracle for "is the horizon done?". H7 closes iff the exit gate below is green.
 
@@ -30,12 +30,18 @@ ctest --preset ci
 ctest --test-dir build-ci -R "YesDawOfflineRenderCheck" --output-on-failure
 ```
 
-## Status: **OPEN (kicked off 2026-06-28; not yet built)**
+## Status: **IMPLEMENTED (local gate green 2026-06-28; awaiting Claude review before H8)**
 
 H7 opened at the H6->H7 boundary after the H6 reliability gate was adversarially reviewed, hardened, and
 closed (full ci 237/237, remote CI green). ADR-0020 carves the post-H6 work into horizons H7–H11
-(feature-first, UI as the H11 capstone). H7 is the first: a real offline-render module + WAV codec +
-export/round-trip gate. See the plan for the build order.
+(feature-first, UI as the H11 capstone). H7's implementation is now in place: ADR-0021 locks the
+canonical float32-WAV export format, `src/io/WavFile.h` provides the pure reader/writer,
+`src/engine/OfflineRenderer.h` renders the current Project mixer surface to interleaved Master-bus
+samples, and `YesDawOfflineRenderCheck` proves render/reference, WAV round-trip, and export/import.
+Local verification: `ctest --test-dir build-ci -R "YesDawOfflineRenderCheck" --output-on-failure` passed
+1/1 and `ctest --preset ci --output-on-failure` passed 238/238.
+
+Claude should adversarially review the H7 close-out before H8 opens.
 
 ## The plan
 

@@ -319,6 +319,13 @@ endif()
 yesdaw_harden(YesDawReliabilityCheck)
 catch_discover_tests(YesDawReliabilityCheck)
 
+# --- Offline render/export check (H7; Project -> OfflineRenderer -> float32 WAV -> bundle Asset) ---
+add_executable(YesDawOfflineRenderCheck tests/offline_render_tests.cpp)
+target_include_directories(YesDawOfflineRenderCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawOfflineRenderCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawOfflineRenderCheck)
+add_test(NAME YesDawOfflineRenderCheck COMMAND $<TARGET_FILE:YesDawOfflineRenderCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -460,6 +467,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawRenderCheck
   YesDawRecordingCheck
   YesDawReliabilityCheck
+  YesDawOfflineRenderCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

@@ -137,6 +137,11 @@ highest-value DAW test (offline render vs an independent reference) becomes real
 **Exit:** the offline render of a Project to a file equals an **independent** reference render of the same
 Project within tolerance (golden-file compare — not the engine compared to itself), and the exported file
 re-imports to an Asset whose decoded samples round-trip — all green in CI.
+**Status (2026-06-28):** implemented locally and ready for Claude review. ADR-0021 accepted the canonical
+float32-WAV format; `OfflineRenderer` renders the current sample-locked Project mixer surface through
+`ProjectMixerProjection`; `WavFile` writes/reads pure float32 WAV; `YesDawOfflineRenderCheck` covers
+render/reference, codec round-trip, export/import, and negative controls. Local focused gate 1/1 and full
+`ci` preset 238/238 are green. Do not open H8 until the H7 close-out review is adjudicated.
 
 ## H8 — Playback runtime (device I/O + transport)
 Wire the engine to a real audio device behind a transport (play/stop/locate/loop); give recording (H5)

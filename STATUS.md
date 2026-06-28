@@ -9,10 +9,11 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H7 (Offline render / export to file) — OPEN, kicked off 2026-06-28. H6 is CLOSED
-(reviewed + hardened, full local CI 237/237). ADR-0020 (Accepted) carves post-H6 work into horizons
-H7–H11, feature-first with the UI as the H11 capstone; the H7 plan is written and `loop/horizon.md` now
-targets H7. Codex builds H7 next; Claude reviews the close-out before H7 is called done.**
+**Current horizon:** **H7 (Offline render / export to file) — IMPLEMENTED locally 2026-06-28 and ready
+for Claude review. H6 is CLOSED (reviewed + hardened, full local CI 237/237). ADR-0020 (Accepted) carves
+post-H6 work into horizons H7–H11, feature-first with the UI as the H11 capstone. H7 now has ADR-0021,
+the pure float32-WAV codec, `OfflineRenderer`, and `YesDawOfflineRenderCheck`; local focused gate 1/1 and
+full `ci` 238/238 are green. Do not open H8 until Claude's H7 close-out review is adjudicated.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -38,8 +39,23 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H7 opened; plan written; handed to Codex to build
-- **Latest (2026-06-28): defined H7–H11 (ADR-0020 Accepted), wrote the H7 plan, switched the horizon to
+## Now — H7 implemented locally; ready for Claude review
+- **Latest (2026-06-28): H7 offline render/export implemented and locally green.**
+  Accepted ADR-0021 for the canonical H7 export format: RIFF/WAVE 32-bit IEEE float at the Project sample
+  rate, using Master bus channels. Added `src/io/WavFile.h` (pure/headless float32 WAV writer+reader),
+  `src/engine/OfflineRenderer.h` (Project + decoded Assets -> interleaved Master-bus samples through
+  `ProjectMixerProjection` + `CompiledGraph::process`), and `tests/offline_render_tests.cpp` as the
+  blocking `YesDawOfflineRenderCheck` target. The gate proves: offline render vs an independent reference
+  over timeline positions/fades/gain, bit-exact WAV write/read, export -> bundle `importAssetBytes` ->
+  decode round-trip, plus negative controls for wrong clip position/dropped tail, mutated writer payload,
+  malformed/truncated WAV, non-finite samples, tempo-locked audio deferral, and corrupted export decode.
+  Honest scope: H7 covers the current sample-locked audio Project mixer surface; sample-rate conversion,
+  integer/lossy export, UI/export dialog, stems/regions, device I/O/transport, and time-stretch remain
+  later horizons. Local verification: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
+  `ctest --test-dir build-ci -R "YesDawOfflineRenderCheck" --output-on-failure` **1/1**; `ctest --preset
+  ci --output-on-failure` **238/238**. **Next:** push this checkpoint; remote CI is the gate; then Claude
+  reviews the H7 close-out adversarially before H8 opens.
+- **Earlier (2026-06-28): defined H7–H11 (ADR-0020 Accepted), wrote the H7 plan, switched the horizon to
   H7 — Codex builds next.**
   Dan recalled "tasks up to H10"; confirmed none ever existed (roadmap was always H0–H6; the work he
   remembers is the eight features bundled into the build plan's "H6 ongoing" bucket). ADR-0020 carves the
@@ -2524,8 +2540,11 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 - ✅ **H6 closed; local and remote CI green.** Reliability is mechanically covered by
   `YesDawReliabilityCheck`: 100-track / 60-minute audio-frame deadline soak at a 128-frame Block plus
   last-good Autosave recovery after a simulated hard kill.
-- **Next rolling baton: Dan's H6->H7 boundary call.**
-  Do not start H7 automatically. Stop for Dan's boundary decision.
+- ✅ **H7 implemented locally; ready for Claude review.** Offline render/export is mechanically covered by
+  `YesDawOfflineRenderCheck`: Project offline render vs independent reference, canonical float32-WAV
+  bit-exact round-trip, and export -> bundle Asset import -> decode round-trip, with negative controls.
+- **Next rolling baton: Claude adversarial review of H7 close-out.**
+  Do not start H8 until the H7 review findings are adjudicated and the pushed CI gate is green.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

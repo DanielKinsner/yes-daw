@@ -268,6 +268,11 @@ _Avoid_: bounce
 The internal offline process that generates audio faster than real time (what an export runs).
 _Avoid_: bounce
 
+**Canonical export WAV**:
+The H7 bit-exact export file: RIFF/WAVE, 32-bit IEEE float, Project sample rate, Master bus channels,
+interleaved samples.
+_Avoid_: treating integer WAV, compressed files, or resampled output as the canonical gate format
+
 **Freeze**:
 Temporarily rendering a track's processing to a cache to save CPU; reversible (like Premiere's
 render preview). The permanent version — replace the track with its audio — is "flatten" (deferred).

@@ -69,5 +69,8 @@ Each checkpoint is one small, independently-green commit; CI is the gate.
 
 ## Status
 
-Not started. Plan and ADR-0020 landed; `loop/horizon.md` switches to H7 at kickoff. Codex executes the
-build order; Claude reviews the close-out adversarially before H7 is called done.
+Implemented locally on 2026-06-28 and ready for Claude adversarial review. ADR-0021 is Accepted; the pure
+float32-WAV codec, real `OfflineRenderer`, and export/import round-trip gate are in place. Local focused
+gate: `ctest --test-dir build-ci -R "YesDawOfflineRenderCheck" --output-on-failure` passed 1/1. Full
+local gate: `ctest --preset ci --output-on-failure` passed 238/238. Do not start H8 until Claude's H7
+review is adjudicated.
