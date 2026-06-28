@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H5 (Recording) — CLOSED locally; remote CI pending for this checkpoint.**
+**Current horizon:** **H5 (Recording) — CLOSED; local and remote CI green.**
 Dan opened H5 on 2026-06-28 by asking Codex to double-check the H4 adversarial patches, fix any proven
 defects, then begin and finish H5. H4's CP2a runtime `MidiClip` source Node and F8 `CompiledTempoMap`
 patches are directionally correct and mechanically covered; the remaining H4 CP2b project auto-wire note is
@@ -40,8 +40,9 @@ The H0 real-hardware audio soak remains tracked separately by ADR-0005; it is no
   take ordinals, comp selection, and MIDI timestamp compensation. Focused local gate:
   `ctest --test-dir build-ci -R "recorded take aligns|punch loop recording|MIDI recording uses"
   --output-on-failure` passed 3/3. Full local gate: `cmake --preset ci`; VS DevShell
-  `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed 225/225. **Next:** commit,
-  push, and wait for remote CI.
+  `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed 225/225. Remote CI run
+  `28309319816` is green on Windows, Linux, macOS, RTSan, and TSan. **Next:** stop for Dan's H5->H6
+  boundary decision; do not start H6 automatically.
 - **Earlier (2026-06-28): adversarial review of H1 + H2; started building the real render/timeline path.**
   Dan asked to tie up loose ends before H5; the same build+mutation+multi-agent review on H1/H2 (66 agents)
   found they are ALSO shallower than "closed": 13 blockers / 23 majors. The concurrency spine (lock-free
@@ -2426,12 +2427,11 @@ The H0 real-hardware audio soak remains tracked separately by ADR-0005; it is no
   Project persistence, piano-roll Note edits, MIDI-effect Nodes, hosted-instrument Event delivery, and
   MPE boundary voice allocation are mechanically covered by `YesDawMidiTimingCheck` and the full `ci`
   preset.
-- ✅ **H5 closed locally; remote CI pending for this checkpoint.** Recording is mechanically covered by
+- ✅ **H5 closed; local and remote CI green.** Recording is mechanically covered by
   `YesDawRecordingCheck`: bounded audio-thread FIFO, writer-thread take file, input+output latency
   compensation, punch/loop take ordinals, comp selection, and MIDI timestamp compensation.
 - **Next rolling baton: Dan's H5->H6 boundary call.**
-  Do not start H6 automatically. First commit, push, and wait for this checkpoint's remote CI result; then
-  stop for Dan's boundary decision.
+  Do not start H6 automatically. Stop for Dan's boundary decision.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

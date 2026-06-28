@@ -26,13 +26,14 @@ ctest --preset ci
 ctest --test-dir build-ci -R "recorded take aligns|punch loop recording|MIDI recording uses" --output-on-failure
 ```
 
-## Status: **CLOSED (H5 exit gate and full ci preset green locally; remote CI pending after push)**
+## Status: **CLOSED (H5 exit gate, full local ci, and remote CI green)**
 
 H5 opened on 2026-06-28 when Dan asked to begin and finish H5. ADR-0018 records the recording latency
 and take-writer decision. The implementation is pure engine code in `src/engine/Recording.h`, with the
 blocking gate in `tests/recording_tests.cpp` and target `YesDawRecordingCheck`. Local verification:
 `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; focused H5 gate 3/3; full
-`ctest --preset ci --output-on-failure` passed 225/225.
+`ctest --preset ci --output-on-failure` passed 225/225. Remote CI run `28309319816` is green on
+Windows, Linux, macOS, RTSan, and TSan.
 
 ## The plan
 
