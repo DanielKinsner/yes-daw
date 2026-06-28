@@ -39,7 +39,7 @@ struct RecordingLatencyModel
         return inputLatencyFrames >= 0 && outputLatencyFrames >= 0;
     }
 
-    [[nodiscard]] bool compensatedLatencyFrames (std::int64_t& out) const noexcept
+    [[nodiscard]] bool compensatedLatencyFrames (std::int64_t& out) const noexcept YESDAW_RT_HOT
     {
         out = 0;
         if (! isValid())
@@ -123,9 +123,9 @@ class RecordingChunkFifo final
 public:
     explicit RecordingChunkFifo (std::uint32_t capacity = 64) { fifo_.reset (capacity); }
 
-    [[nodiscard]] bool push (const RecordingChunk& chunk) noexcept { return fifo_.push (chunk); }
+    [[nodiscard]] bool push (const RecordingChunk& chunk) noexcept YESDAW_RT_HOT { return fifo_.push (chunk); }
     [[nodiscard]] bool pop (RecordingChunk& chunk) noexcept { return fifo_.pop (chunk); }
-    [[nodiscard]] std::uint32_t usedSlots() const noexcept { return fifo_.getUsedSlots(); }
+    [[nodiscard]] std::uint32_t usedSlots() const noexcept YESDAW_RT_HOT { return fifo_.getUsedSlots(); }
 
 private:
     choc::fifo::SingleReaderSingleWriterFIFO<RecordingChunk> fifo_;
@@ -155,7 +155,7 @@ template <typename T>
 [[nodiscard]] inline bool normalizeRecordingFrame (const RecordingWindow& window,
                                                    std::int64_t compensatedFrame,
                                                    std::int64_t& timelineFrame,
-                                                   std::uint32_t& takeOrdinal) noexcept
+                                                   std::uint32_t& takeOrdinal) noexcept YESDAW_RT_HOT
 {
     timelineFrame = 0;
     takeOrdinal = 0;
@@ -198,7 +198,7 @@ template <typename T>
 [[nodiscard]] inline bool mapDeviceInputFrameToRecordingFrame (const RecordingConfig& config,
                                                                std::int64_t deviceInputFrame,
                                                                std::int64_t& timelineFrame,
-                                                               std::uint32_t& takeOrdinal) noexcept
+                                                               std::uint32_t& takeOrdinal) noexcept YESDAW_RT_HOT
 {
     std::int64_t latency = 0;
     if (! config.isValid() || ! config.latency.compensatedLatencyFrames (latency))
@@ -248,8 +248,15 @@ template <typename T>
         }
         else
         {
+            // Backpressure: the writer thread is behind and the FIFO is full. Drop this chunk and
+            // report it. framesAccepted counted these frames as they were copied into the chunk, so
+            // un-count them here — framesAccepted means "frames handed to the FIFO", framesDropped
+            // means "frames lost". The take simply gets a gap (silence) at the dropped range; the
+            // surviving chunks stay correctly stamped. (Whole-take abort-on-overflow is a recording
+            // *policy* decision deferred to when arming/monitoring is wired up — H6+.)
             result.fifoFull = true;
             result.framesDropped += chunk.frameCount;
+            result.framesAccepted -= chunk.frameCount;
         }
 
         chunk.clear();
@@ -549,7 +556,7 @@ struct RecordingMidiResult
 [[nodiscard]] inline RecordingMidiResult recordMidiEventsToTimeline (
     const RecordingConfig& config,
     std::span<const IncomingRecordedMidiEvent> incoming,
-    std::span<RecordedMidiEvent> out) noexcept
+    std::span<RecordedMidiEvent> out) noexcept YESDAW_RT_HOT
 {
     RecordingMidiResult result;
     if (! config.isValid())
