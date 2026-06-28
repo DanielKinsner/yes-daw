@@ -13,6 +13,7 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <random>
 #include <type_traits>
 
 using Catch::Approx;
@@ -1446,5 +1447,79 @@ TEST_CASE ("Project clip edit operations reject invalid input without mutating P
         const Project before = invalid;
         REQUIRE (splitClip (invalid, clipId, newClipId, 100, 100) == ProjectEditStatus::InvalidProject);
         requireProjectValueUnchanged (invalid, before);
+    }
+}
+
+// The actual H2 exit property — "any edit sequence + full undo returns the document bit-identical" — as a
+// REAL randomized test over all clip AND note verbs, not the hand-coded 21-step array. Seeded for
+// reproducibility; split-created IDs come from a fixed pool so the run is deterministic across machines.
+TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and redo back", "[project][undo][property]")
+{
+    Project project = makeTwoClipEditableProject();
+    project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+
+    const std::array<EntityId, 2> clipIds { idFromLowByte (31), idFromLowByte (33) };
+    const EntityId                midiClipId = idFromLowByte (40);
+    const std::array<EntityId, 2> noteIds { idFromLowByte (42), idFromLowByte (43) };
+
+    std::mt19937 rng (0x00C0FFEEu);
+    const auto pick = [&rng] (int n) { return static_cast<int> (rng() % static_cast<std::uint32_t> (n)); };
+    const auto tick = [&rng] (Tick lo, Tick hi)
+    {
+        return lo + static_cast<Tick> (rng() % static_cast<std::uint32_t> (hi - lo + 1));
+    };
+
+    int freshLowByte = 100;   // pool for split-created clip/note IDs (kept < 250, never collides with base IDs)
+
+    for (int rep = 0; rep < 12; ++rep)
+    {
+        const Project original = project;
+
+        ProjectUndoStack undo;
+        for (int step = 0; step < 60; ++step)
+        {
+            const EntityId clip = clipIds[static_cast<std::size_t> (pick (2))];
+            const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
+
+            ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
+            switch (pick (10))
+            {
+                case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
+                case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
+                                                                tick (0, 800), tick (1, 400)); break;
+                case 2: command = ProjectEditCommand::setClipGain (clip, static_cast<float> (pick (200)) / 100.0f); break;
+                case 3: command = ProjectEditCommand::setClipFades (clip, tick (0, 256), tick (0, 256)); break;
+                case 4:
+                    if (freshLowByte < 250)
+                        command = ProjectEditCommand::splitClip (clip, idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                                                 tick (1, 20'000), tick (1, 400));
+                    break;
+                case 5: command = ProjectEditCommand::moveNote (midiClipId, note, tick (0, 8'000)); break;
+                case 6: command = ProjectEditCommand::setNoteLength (midiClipId, note, tick (0, 8'000)); break;
+                case 7: command = ProjectEditCommand::transposeNote (midiClipId, note, pick (49) - 24); break;
+                case 8: command = ProjectEditCommand::quantizeNote (midiClipId, note,
+                                                                    yesdaw::engine::SnapGrid { tick (1, 1'920) }); break;
+                case 9:
+                    if (freshLowByte < 250)
+                        command = ProjectEditCommand::splitNote (midiClipId, note,
+                                                                 idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                                                 tick (1, 1'000));
+                    break;
+                default: break;
+            }
+
+            (void) undo.apply (project, command);   // invalid edits are rejected and leave the Project unchanged
+        }
+
+        const Project edited = project;
+        REQUIRE (undo.undoDepth() > 10u);            // the sequence did meaningful work, not a no-op stack
+
+        while (undo.canUndo())
+            REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, original);   // full undo -> bit-identical original
+
+        while (undo.canRedo())
+            REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, edited);     // full redo -> bit-identical edited
     }
 }
