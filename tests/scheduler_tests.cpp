@@ -559,8 +559,25 @@ TEST_CASE ("Parallel scheduler soak feeds the H6 deadline oracle with measured s
         options,
         &blockNanos);
     REQUIRE (scheduled.ok());
+
+    // Bite the determinism failure mode AT SCALE. The small determinism case only fills 3 blocks, so it
+    // never exercises worker contention or false-sharing across 100 tracks * ~1000 blocks. Compare the
+    // parallel render against the serial reference bit-for-bit on the real heavy fixture -- a contention or
+    // worker-ordering bug that only shows up under load bites here (deterministically, no timing involved).
+    const auto serial = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        options);
+    REQUIRE (serial.ok());
+    REQUIRE (bitIdentical (scheduled.interleavedSamples, serial.interleavedSamples));
+
     const std::size_t expectedBlocks = static_cast<std::size_t> (kSoakFrames / options.maxBlockSize);
     REQUIRE (blockNanos.size() == expectedBlocks);
+    // Every block must have been timed by SOME worker: the scheduler stores >=1 ns for a processed block and
+    // leaves 0u only for an untouched slot, so a regression that skipped blocks bites here instead of sliding
+    // past the size-equality tautology.
+    for (const std::uint64_t nanos : blockNanos)
+        REQUIRE (nanos > 0u);
 
     const DeadlineSoakStats stats = summarizeDeadlineSoak (blockNanos, kSampleRate, options.maxBlockSize, 1u, 0u);
     REQUIRE (stats.blocksProcessed == expectedBlocks);
