@@ -28,8 +28,28 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H3 gate-honesty fixes landed (3, CI-green); worker-mode + blacklist wiring remain
-- **Latest (2026-06-27): three H3 gate-honesty fixes landed and CI-green; two real items remain.**
+## Now — H1/H2 reviewed (shallow too); render/timeline path being built for real (H5 prerequisite)
+- **Latest (2026-06-28): adversarial review of H1 + H2; started building the real render/timeline path.**
+  Dan asked to tie up loose ends before H5; the same build+mutation+multi-agent review on H1/H2 (66 agents)
+  found they are ALSO shallower than "closed": 13 blockers / 23 majors. The concurrency spine (lock-free
+  graph swap, janitor reclamation, atomics — RTSan/TSan) and the SQLite round-trip ARE solid. But the
+  project-render/timeline layer was largely unbuilt behind vacuous gates: the "RT matches offline Render"
+  gate compared `CompiledGraph::process` to ITSELF (a 2x output mutation stayed green); `DecodedClipNode`
+  ignored `Clip.timelineStart` (every clip played from frame 0); the crossfade was pre-baked in test code on
+  non-overlapping clips; and the "property test" was a hand-coded 21-step array. Dan chose: build it for
+  real. **Landed + CI-green (CP1, CP2) / local-green (CP3):** (CP1) audio clips render at their timeline
+  positions and sum overlaps, gated against an independent reference; (CP2) the engine applies clip fades
+  and renders a real overlapping crossfade; (CP3) a real seeded randomized property test over all clip+note
+  verbs proves undo -> bit-identical -> redo (1236 assertions; found no undo bug). Docs (roadmap H1/H2 +
+  this file) now honestly state what is built vs deferred. **STILL OPEN — the end-to-end "load a project
+  file and hear it play" glue:** an asset **decoder -> source-node projection** (no audio decoder exists;
+  `ProjectMixerProjection`'s source factory is test-supplied), a separate offline-Render/Export-to-file
+  module, the single-window timeline UI shell (`src/Main.cpp` is still the H0 sine spike), the async
+  waveform cache (currently synchronous), and equal-power crossfade. **Plus still open from before:** H3
+  worker-mode driving + blacklist-on-failure wiring; H4 CP2b (auto-wire MIDI tracks). **H0 soak** (hardware,
+  Dan). Each of these is a focused build, not a patch. **Next:** wire the projection to position clips from
+  the tempo map, then the remaining items.
+- **Earlier (2026-06-27): three H3 gate-honesty fixes landed and CI-green; two real items remain.**
   Continuing the H3 remediation (Dan chose "gate honesty + oracle first"). **Landed + CI-green on `main`:**
   (1) `docs(h3)` — roadmap.md status note + STATUS now state H3 is real-but-shallow; (2) `fix(h3)` — the
   tautological "zero xrun" oracle is now a REAL counter: `RtLaneRing` counts a missed deadline on the

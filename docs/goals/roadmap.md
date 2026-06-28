@@ -25,11 +25,33 @@ PDC wired in; multi-track audio playback to the Master bus with metering; SQLite
 **Exit:** a Project round-trips (tempo/meter map, markers, clips intact), RT path matches offline
 Render within tolerance (golden-file), audio path RTSan-clean — all green in CI.
 
+> **Status note (2026-06-27/28 adversarial review + render-path build).** SOLID and verified: the
+> concurrency spine (lock-free graph swap + janitor reclamation + atomics, RTSan/TSan), the time/PDC/event
+> contracts, and the SQLite round-trip (tempo/meter/markers/clips with real negative controls). FIXED this
+> pass: the engine now renders audio Clips at their `timelineStart` positions and sums overlaps, gated by a
+> reference-checked test (the old RT-vs-offline gate used OscillatorNode sines and compared
+> `CompiledGraph::process` to itself — it could not catch a 2x output bug). STILL OPEN against this exit
+> text: there is no separate offline-Render module and no project-render golden file (the "golden-file"
+> qualifier is aspirational); the asset **decoder -> source-node projection** that would play real imported
+> bytes end-to-end is not built; `DecodedClipNode` is not yet exercised under RTSan; open-time validation
+> does not cover marker/tempo/meter storage types.
+
 ## H2 — Editing-first (the early priority)
 Import + copy-to-bundle; async waveform cache; Clip split/trim/move/gain/fades/crossfade as pure
 metadata; snap/grid; command/diff undo/redo; offline Render/Export; single-window timeline shell.
 **Exit:** any edit sequence + full undo returns the document bit-identical (property test); a
 split-with-crossfade Project's RT playback matches its offline Render.
+
+> **Status note (2026-06-27/28 adversarial review + render-path build).** FIXED this pass and now genuine:
+> the **property test** is real (seeded randomized edit sequences across all clip+note verbs, full undo ->
+> bit-identical, full redo -> edited — it was a hand-coded 21-step array); and the engine now renders a real
+> overlapping **crossfade** from clip fade metadata (was pre-baked into the test samples; clips weren't even
+> overlapping). STILL OPEN / deferred (claimed-done but not built): the "async waveform cache" is fully
+> synchronous; offline **Render/Export to a file** does not exist (rendering is an in-memory loop); the
+> **single-window timeline shell** does not exist (`src/Main.cpp` is still the H0 sine spike); the undo
+> surface cannot represent structural add/delete-clip edits; the crossfade is linear (equal-power is a later
+> refinement). The split-with-crossfade-vs-offline clause is met by the engine render + reference compare,
+> not by a separate offline-Render module.
 
 ## H3 — Mixer + plugin hosting
 Mixer as a graph projection (Fader/Pan/Sum/Send/Return/Meter, solo/mute mask, Sidechain); automation
