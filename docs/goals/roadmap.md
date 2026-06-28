@@ -82,12 +82,20 @@ punch/loop record; MIDI recording.
 **Exit:** a recorded take aligns within ±1 frame of a click reference at non-trivial input+output
 latency, against deterministic ground truth.
 
-> **Status note (2026-06-28 H5 close).** The H5 alignment contract is implemented and mechanically
-> gated by `YesDawRecordingCheck`: audio callback input enters a bounded FIFO, a writer thread drains to
-> a real temp take file, input+output latency compensation places the recorded click back on its Project
-> frame, and zero-compensation is a negative control. The same gate covers punch/loop take ordinals,
-> comp selection, and MIDI timestamp compensation. Deferred: real device latency calibration, device UI,
-> Project bundle take-lane persistence, and the final user-facing recorded-audio asset format.
+> **Status note (2026-06-28 H5 close; hardened by adversarial review).** The H5 alignment contract is
+> implemented and mechanically gated by `YesDawRecordingCheck`: audio callback input enters a bounded
+> FIFO, a writer thread drains to a real temp take file, input+output latency compensation places the
+> recorded click back on its Project frame, and the missing-latency negative control is a real
+> broken-pipeline run (lands at the wrong frame), not an arithmetic identity. The gate also bites
+> punch/loop take ordinals + `maxLoopTakes`, multi-segment comp selection with zero-filled gaps, stereo
+> per-channel round-trip, FIFO backpressure accounting, direct-input (input-latency-only) mode,
+> take-file format errors, and MIDI timestamp compensation/edges; the audio-path mapping helpers carry
+> `YESDAW_RT_HOT` so RTSan enforces nonblocking on them. **Deferred (the "Recording" capability is not
+> wired up):** latency-compensated **monitoring** is NOT built; the recording spine has no production
+> caller (nothing in the Runtime/audio driver/`Main.cpp`/Project calls it — the gate drives it directly);
+> real device latency calibration, device UI/arming, Project bundle take-lane persistence, and the final
+> user-facing recorded-audio asset format (the `.ysdtake` file is an internal test format with no
+> playback decoder) are all H6+ work.
 
 ## H6 — Reliability & polish (ongoing)
 Autosave + crash recovery; device hot-swap; multicore work-stealing; DAWproject export; loudness

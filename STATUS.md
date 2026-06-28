@@ -9,15 +9,20 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H5 (Recording) — CLOSED; local and remote CI green.**
-Dan opened H5 on 2026-06-28 by asking Codex to double-check the H4 adversarial patches, fix any proven
-defects, then begin and finish H5. H4's CP2a runtime `MidiClip` source Node and F8 `CompiledTempoMap`
-patches are directionally correct and mechanically covered; the remaining H4 CP2b project auto-wire note is
-beyond H4's stated timing exit and still needs an instrument-track product decision. H5 is implemented by
-ADR-0018 and `YesDawRecordingCheck`: audio callback input enters a bounded FIFO, a writer thread drains to a
-real take file, non-zero input+output latency compensation aligns a recorded click back to its Project
-frame, and the gate also covers punch/loop take ordinals, comp selection, and MIDI timestamp compensation.
-The H0 real-hardware audio soak remains tracked separately by ADR-0005; it is not a CI gate.
+**Current horizon:** **H5 (Recording) — CLOSED; adversarially reviewed + hardened; local CI green,
+review-commit remote CI pending.**
+Dan opened H5 on 2026-06-28 by asking Codex to double-check the H4 adversarial patches, then begin and
+finish H5. Codex closed it (commit `92d8b7c`, remote run `28309319816` green). Dan then asked Claude to
+adversarially review H5 and patch it. H5 is implemented by ADR-0018 and `YesDawRecordingCheck`: audio
+callback input enters a bounded FIFO, a writer thread drains to a real take file, non-zero input+output
+latency compensation aligns a recorded click back to its Project frame, and the gate covers punch/loop
+take ordinals, comp selection, and MIDI timestamp compensation. The roadmap H5 *exit criterion*
+(±1-frame click alignment) is genuinely met. **But the "Recording" capability is not wired up:**
+`Recording.h` has no production caller (nothing in the Runtime/audio driver/`Main.cpp`/Project invokes
+it — the gate drives the spine directly), and latency-compensated **monitoring**, device arming/UI,
+take-lane persistence, and the user-facing asset format are H6+. (Also still open: H4 CP2b MIDI
+auto-wire; H3 worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-0005 — not
+a CI gate.)
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -30,8 +35,28 @@ The H0 real-hardware audio soak remains tracked separately by ADR-0005; it is no
 
 ---
 
-## Now — H5 recording gate implemented; full verification pending
-- **Latest (2026-06-28): H4 patches checked; H5 recording gate implemented.**
+## Now — H5 adversarially reviewed + hardened; stop for Dan's H5→H6 boundary call
+- **Latest (2026-06-28): adversarial review of Codex's H5 close-out + patches (Claude).**
+  Ran a multi-agent adversarial review (5 diverse-lens finders → per-finding skeptical verification) over
+  the whole H5 surface, then adjudicated by hand (the panel over-fired: ~50 raw findings, heavy dupes).
+  **Verdict:** H5's gate is genuinely better than the prior horizons' — it's a real integration test of a
+  real module, green 3/3, truly wired into the RTSan/TSan target list, and `choc`'s FIFO push is genuinely
+  alloc/lock-free. But it had passed too easily. **Proven issues fixed:** (1) the "negative control" was a
+  tautological pure-math assertion on a parallel config — replaced with a real broken-pipeline run that
+  proves the recorded peak lands at the wrong (uncompensated) frame; (2) the stereo (2-ch), FIFO
+  backpressure, `maxLoopTakes`, direct-input, take-file-format-error, multi-segment comp, and MIDI-edge
+  paths were all unexercised — added a biting case for each (the stereo interleave turned out correct — it
+  was a coverage gap, not a live bug); (3) the audio-path mapping helpers
+  (`compensatedLatencyFrames`/`normalizeRecordingFrame`/`mapDeviceInputFrameToRecordingFrame`/
+  `recordMidiEventsToTimeline`/FIFO `push`) lacked `YESDAW_RT_HOT`, so RTSan wasn't enforcing nonblocking
+  on them — annotated (safe: the sanitizer leg has no `-Werror`); (4) `framesAccepted` double-counted
+  dropped frames — fixed so accepted+dropped partition the mapped frames exactly; (5) the gate's writer
+  thread could `std::terminate` if a mid-loop `REQUIRE` fired — made it join-then-assert. **Docs:** the
+  flat "CLOSED" overclaimed — horizon/plan/roadmap/STATUS now state the exit criterion is met but the
+  capability is unwired (no production caller; monitoring/UI/persistence/asset-format deferred). Local:
+  focused H5 gate **9/9**; full `ctest --preset ci` **231/231** (was 225). **Next:** push; the review
+  commit's remote CI is the gate; then stop for Dan's H5→H6 boundary call — do not start H6 automatically.
+- **Earlier (2026-06-28): H4 patches checked; H5 recording gate implemented.**
   H4 CP2a (`DecodedMidiClipNode` runtime event source) and F8 (`CompiledTempoMap` prefix-sum lookup) match
   the existing ADR-0009/0010/0017 contracts and have focused mechanical coverage. I did not auto-wire MIDI
   Clips through `ProjectMixerProjection` because that requires the still-open instrument-track modeling

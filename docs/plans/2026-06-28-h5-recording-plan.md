@@ -31,8 +31,14 @@ headless and deterministic: no device, no listening, no UI review.
 - No final recorded-audio asset format decision; the gate uses an internal deterministic take file.
 - No hardware latency calibration; the gate accepts explicit deterministic latency values.
 - No Project bundle take-lane persistence yet; the recording alignment contract is the H5 finish line.
+- No latency-compensated **monitoring** path (hearing live input through the app while recording).
+- No production caller yet: the recording spine is exercised by the gate, not wired into the Runtime,
+  audio driver, `Main.cpp`, or the Project surface. Wiring is H6+ work.
 
 ## Status
 
-Implemented in this checkpoint. `YesDawRecordingCheck` covers the H5 exit gate directly and is part of
-the full `ci` preset.
+Implemented and closed. `YesDawRecordingCheck` covers the H5 exit gate directly and is part of the full
+`ci` preset. A later adversarial review hardened the gate: the latency negative control became a real
+broken-pipeline run, and biting cases were added for the stereo, backpressure (with exact
+accepted/dropped accounting), `maxLoopTakes`, direct-input, file-format-error, multi-segment comp, and
+MIDI-edge paths; the audio-path mapping helpers now carry `YESDAW_RT_HOT`. Full `ctest` 231/231 local.
