@@ -242,14 +242,6 @@ std::vector<float> loopSlice (std::span<const float> full,
     return out;
 }
 
-float canonicalSum (std::span<const float> values) noexcept
-{
-    float sum = 0.0f;
-    for (float value : values)
-        sum += value;
-    return sum;
-}
-
 std::string blobLiteral (EntityId id)
 {
     static constexpr char kHex[] = "0123456789ABCDEF";
@@ -300,15 +292,64 @@ TEST_CASE ("YesDawSchedulerCheck: scheduled workers are bit-identical to serial 
     }
 }
 
-TEST_CASE ("YesDawSchedulerCheck negative control: arrival-order summing changes bits",
+TEST_CASE ("YesDawSchedulerCheck negative control: without absolute transport frames, block order changes output",
            "[h9][scheduler][determinism][negative-control]")
 {
-    const std::array<float, 4> canonicalOrder { 1.0e20f, 1.0f, -1.0e20f, 3.0f };
-    const std::array<float, 4> arrivalOrder { 1.0e20f, -1.0e20f, 1.0f, 3.0f };
+    // The determinism gate above passes because every source node is keyed by an absolute transport frame,
+    // so block dispatch order cannot move a sample. This negative control proves that property is
+    // LOAD-BEARING and that the bit-identity comparison can actually tell correct from incorrect: render the
+    // SAME graph WITHOUT absolute transport frames (the legacy monotonic per-source cursor) in two different
+    // block orders. The samples MUST differ -- if they did not, the determinism gate would be passing by
+    // construction/luck, not because the scheduler is deterministic. (The real scheduler always sets
+    // hasTimelineFrame=true; this drives the graph directly to exercise the unsafe path on purpose.)
+    const SchedulerFixture fixture = makeSchedulerFixture();
+    OfflineRenderOptions options;
+    options.maxBlockSize = kBlockSize;
 
-    const float canonical = canonicalSum (canonicalOrder);
-    const float arrivalDependent = canonicalSum (arrivalOrder);
-    REQUIRE (floatBits (canonical) != floatBits (arrivalDependent));
+    auto renderInBlockOrder = [&] (std::span<const std::size_t> blockOrder)
+    {
+        auto built = yesdaw::engine::buildProjectGraph (
+            fixture.project,
+            std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+            options);
+        REQUIRE (built.ok());
+
+        const std::uint16_t channels = built.channels;
+        const std::uint64_t frames   = built.frames;
+        std::vector<float> out (static_cast<std::size_t> (frames) * channels, 0.0f);
+        std::vector<float> storage (
+            static_cast<std::size_t> (channels) * static_cast<std::size_t> (options.maxBlockSize), 0.0f);
+        std::vector<float*> outputs (channels, nullptr);
+        for (std::uint16_t c = 0; c < channels; ++c)
+            outputs[c] = storage.data() + static_cast<std::size_t> (c) * static_cast<std::size_t> (options.maxBlockSize);
+
+        for (const std::size_t block : blockOrder)
+        {
+            const std::uint64_t offset = block * static_cast<std::uint64_t> (options.maxBlockSize);
+            const int blockFrames = static_cast<int> (
+                std::min<std::uint64_t> (frames - offset, static_cast<std::uint64_t> (options.maxBlockSize)));
+
+            yesdaw::engine::Transport transport;  // hasTimelineFrame defaults false => legacy monotonic cursor
+            transport.projectSampleRate = built.sampleRate;
+            transport.isPlaying = true;
+            yesdaw::engine::EventStream events;
+            built.graph->process (outputs.data(), channels, blockFrames, events, transport);
+
+            for (int frame = 0; frame < blockFrames; ++frame)
+                for (std::uint16_t c = 0; c < channels; ++c)
+                    out[(static_cast<std::size_t> (offset) + static_cast<std::size_t> (frame)) * channels + c]
+                        = outputs[c][frame];
+        }
+        return out;
+    };
+
+    const std::array<std::size_t, 3> canonicalOrder { 0u, 1u, 2u };
+    const std::array<std::size_t, 3> shuffledOrder  { 2u, 0u, 1u };
+    const std::vector<float> ordered  = renderInBlockOrder (canonicalOrder);
+    const std::vector<float> shuffled = renderInBlockOrder (shuffledOrder);
+
+    REQUIRE (ordered.size() == shuffled.size());
+    REQUIRE_FALSE (bitIdentical (ordered, shuffled));
 }
 
 TEST_CASE ("PlaybackEngine transport command queue is race-free while audio pumps Blocks",
