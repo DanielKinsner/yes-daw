@@ -28,8 +28,38 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H3 adversarial review done; fixing gate honesty + the xrun oracle (H4 full-close paused at CP2b)
-- **Latest (2026-06-27): adversarial review of H3 (mixer + plugin hosting); remediation started.**
+## Now — H3 gate-honesty fixes landed (3, CI-green); worker-mode + blacklist wiring remain
+- **Latest (2026-06-27): three H3 gate-honesty fixes landed and CI-green; two real items remain.**
+  Continuing the H3 remediation (Dan chose "gate honesty + oracle first"). **Landed + CI-green on `main`:**
+  (1) `docs(h3)` — roadmap.md status note + STATUS now state H3 is real-but-shallow; (2) `fix(h3)` — the
+  tautological "zero xrun" oracle is now a REAL counter: `RtLaneRing` counts a missed deadline on the
+  fail-open branch (was a dead probe-count increment that could never fire), and the gate asserts the
+  count tracks the ladder exactly (6 forced misses); (3) `fix(h3)` — `readOutputFailOpen` now scrubs a
+  non-finite child Block (checks finiteness before committing to the bus; a NaN/Inf Block fails open
+  instead of poisoning out[]/last-good), with a negative control in `plugin_node_tests.cpp`. Full suite
+  219/219 local each time. **REMAINING — both real surgery, each its own focused checkpoint:**
+  - **Drive the worker's misbehavior modes across the real boundary.** `PluginHostMain.cpp:320` hard-codes
+    `SyntheticProcessorMode::passthrough`; emit-NaN / fixed-latency / hang never cross IPC in the gate.
+    Needs: a `mode` field on `RtLaneLoadMessage` (`PluginHostProtocol.h`), the worker honoring it
+    (`handleRtLaneLoadMessage`), the coordinator load API passing it, and a new gate case that loads the
+    worker in `emitNan`/`fixedReportedLatency` and asserts the host fail-open reader stays finite /
+    sample-aligned THROUGH the real process. (Also: the worker drops the Event stream —
+    `processHostedBlock` does `(void) events;` — so cross-process tri-stream is impossible until that is
+    wired; H4 deferral.)
+  - **Wire blacklist-on-failure (the real missing exit clause).** `FailureActionKind` has only
+    `none`/`bypassAndRecompile` (no blacklist action); `blacklistStatePersisted`/`blacklistPolicyApplied`
+    are hardcoded false; ~3,500 lines of `Blacklist*` coordinator state-machine have no downstream effect;
+    the "blacklist persists across restart" gate test bypasses the coordinator and round-trips
+    `ProjectBundleDb` directly. The persistence works; the gap is the coordinator never writes a row on a
+    crash/hang. ADR-0015 says the coordinator escalates into the blacklist, so wire that: a bypass-and-
+    blacklist action that persists the candidate identity through the coordinator + the gate driving a real
+    failure through it. One sub-decision: does the coordinator own the bundle write, or emit a candidate
+    its owner persists (ADR-0015 implies the former).
+  - **Also still open:** H4 full-close CP2b (auto-wire MIDI tracks via `ProjectMixerProjection`, needs an
+    instrument-track design call); H1 and H2 have NOT been adversarially reviewed this session — given two
+    of two reviewed horizons (H3, H4) were shallower than their "closed" labels, treat H1/H2 "done" with
+    the same skepticism until they get the same build+mutation+multi-agent pass; H0 real-hardware soak.
+- **Earlier (2026-06-27): adversarial review of H3 (mixer + plugin hosting); remediation started.**
   Ran the same build + mutation + multi-agent treatment on H3 that H4 got (66 agents; the gate built and
   ran, 3/4 injected mutations bit). Verdict: the host-isolation gate is REAL (it spawns the real
   `YesDawPluginHost` worker, OS shared-memory RT lane, real PID kills, opaque-state CRC round-trip across
