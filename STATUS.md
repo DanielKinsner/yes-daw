@@ -9,9 +9,9 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H6 (Reliability & polish) — CLOSED, now adversarially reviewed + hardened; full
-local CI green (237/237). At the H6->H7 boundary — H7 has never been defined (no exit criterion written);
-awaiting Dan's boundary call on what H7 *is*.**
+**Current horizon:** **H6 (Reliability & polish) — CLOSED, now adversarially reviewed + hardened; Codex
+follow-on review found no new proven H6 defect; full local CI green (237/237). At the H6->H7 boundary —
+H7 has never been defined (no exit criterion written); awaiting Dan's boundary call on what H7 *is*.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -38,6 +38,18 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H6 adversarially reviewed + hardened; at the H6->H7 boundary
+- **Latest (2026-06-28): Codex follow-on adversarial review of the H6 close-out found no new proven H6
+  defect.** Pulled `main` first (`git pull --ff-only`, already up to date), read the live handoff,
+  horizon, roadmap, ADR-0019, H6 plan, latest H6 commits (`a6f52c5` through `363f765`), and the H6
+  implementation/tests. Rechecked the likely weak points directly: the deadline oracle has a biting
+  negative-control test; the heavy session now routes each track through real Fader/Meter DSP; autosave
+  recovery prefers `last.yesdaw` and falls back to `last.previous` through normal bundle validators; and
+  the docs honestly scope hard-kill, headless underruns, and the lack of a production autosave caller.
+  Local verification: `cmake --preset ci`; `cmake --build --preset ci`; `ctest --test-dir build-ci -R
+  "H6" --output-on-failure` **6/6**; `ctest --preset ci --output-on-failure` **237/237**. Latest
+  pre-review remote CI on `363f765` was green across Windows, Linux, macOS, RTSan, and TSan
+  (`28314008140`). No H7/H8 commit, branch, ADR, or exit criterion exists, so do **not** create a
+  successor Codex thread or start H7 automatically; stop for Dan's H6->H7 boundary decision.
 - **Latest (2026-06-28): adversarial review of Codex's just-landed H6 reliability gate + patches (Claude).**
   Dan asked to review "H8 that Codex just landed" and then start H7 — but `origin/main`'s freshest work
   is the **H6** reliability gate (`a6f52c5` + `d82a5b7`); there is no H8 commit anywhere, and H7 was never
