@@ -23,10 +23,11 @@ per-node DAG work-stealing inside one live `CompiledGraph`; and the live plugin-
 needs stable plugin-identity plumbing before it can execute blacklist persistence automatically from a
 child-process failure. **H9 was then adversarially reviewed + hardened** (Claude): the determinism
 negative control was a float-math tautology and the parallel soak never compared parallel↔serial at scale —
-both fixed so the gate bites. **One decision for Dan before H10:** the scheduler is only correct for
-*stateless* graphs (sources keyed by absolute frame); a DelayNode/automation/PDC graph would be silently
-mis-rendered and nothing guards it — recommend a `blockParallelSafe` refusal as a small H9-follow-up ADR
-before H10 adds stateful nodes. **Next:** push; remote CI is the gate; then that decision, then H10.
+both fixed so the gate bites. **The scheduler-safety landmine is now CLOSED (ADR-0027):** the block-parallel
+scheduler is only correct for stateless graphs, so a `NodeProperties::blockParallelSafe` bit (default false =
+fail-safe) is ANDed across the graph and `renderProjectWithScheduler` refuses any unsafe graph
+(`GraphNotBlockParallelSafe`) — a future stateful effect (delay/reverb/automation/plugin) is refused, never
+silently mis-rendered. **Next:** push; remote CI is the gate; then H10 (mixing/mastering + interchange).
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -52,8 +53,22 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H9 reviewed + hardened; push, then Dan's scheduler-safety decision before H10
-- **Latest (2026-06-28): adversarial review of Codex's H9 landing + patches (Claude).** Same multi-agent
+## Now — H9 reviewed + hardened + scheduler-safety guard landed; push, then H10
+- **Latest (2026-06-28): closed the scheduler-safety landmine — ADR-0027 block-parallel guard (Claude).**
+  Dan approved doing it now (before H10). The parallel scheduler dispatches Blocks out of order, which is
+  only correct for graphs whose every node is keyed by the absolute transport frame; a stateful node (delay
+  ring, automated fader ramp, hosted plugin, PDC latency) would be silently mis-rendered, and the
+  determinism fixture has zero stateful nodes so the gate couldn't catch it. Added
+  `NodeProperties::blockParallelSafe` (**default false = fail-safe** — a node must opt in, so a future
+  effect node is refused until proven), marked the order-independent nodes safe (the exact set in the green
+  determinism graph; impulse instrument only at zero latency), had `GraphBuilder` AND it across all compiled
+  nodes (incl. spliced PDC `LatencyNode`s) and force-unsafe on any path latency, exposed
+  `CompiledGraph::isBlockParallelSafe()`, and made `renderProjectWithScheduler` refuse with
+  `OfflineRenderStatus::GraphNotBlockParallelSafe`. New test proves the Project graph is safe and a graph
+  with a `DelayNode` is refused. Full `ctest` **240/240**. **Next:** push; remote CI is the gate; then H10
+  opens (mixing/mastering features + interchange) — and an H10 effect node that needs the scheduler must
+  prove + mark itself safe or use the serial renderer.
+- **Earlier (2026-06-28): adversarial review of Codex's H9 landing + patches (Claude).** Same multi-agent
   treatment as H6/H7/H8 (4 diverse-lens finders → per-finding skeptical verification, 22 raw → 20 confirmed,
   heavy dupes) adjudicated by hand. Verdict: the implementation is solid and honestly scoped (ADR-0024
   openly says it's block-parallel-over-snapshots, not the per-node DAG scheduler), but the gates leaned on

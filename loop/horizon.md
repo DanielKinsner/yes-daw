@@ -53,13 +53,11 @@ buffer-pool allocation plan and remains the next scheduler deepening.
 
 **Reviewed + hardened (2026-06-28, Claude).** Adversarial review replaced a tautological determinism
 negative control (float math that never ran the scheduler) with one that drives the real graph, and gave
-the 100-track soak a deterministic parallel↔serial bit-identity check at scale. **Known deferrals
+the 100-track soak a deterministic parallel↔serial bit-identity check at scale. **The scheduler-safety
+landmine is now closed (ADR-0027):** `NodeProperties::blockParallelSafe` (default false) is ANDed across the
+graph and `renderProjectWithScheduler` refuses any non-stateless graph (`GraphNotBlockParallelSafe`) — a
+future delay/reverb/automation/plugin node is refused, not silently mis-rendered. **Known deferrals
 (tracked):**
-- **Scheduler is stateless-only, ungated (the gating decision before H10).** Block-level dispatch is
-  correct only when every node is keyed by absolute frame; a DelayNode/automated-fader/PDC/instrument-
-  pending graph is silently mis-rendered and the all-stateless determinism fixture can't catch it. Land a
-  `blockParallelSafe` node property + a scheduler refusal + a DelayNode test (small ADR-0024 follow-up)
-  before H10 wires stateful effects.
 - **Transport concurrency round 2.** Control-side getters read non-atomic fields the audio thread writes
   (UB on a concurrent UI read); the SPSC queue is single-writer. Make the transport fields atomic + add a
   concurrent-reader TSan test before H11 binds a playhead readout.
