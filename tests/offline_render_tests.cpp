@@ -30,6 +30,7 @@ using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::DecodedAssetAudio;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::OfflineRenderOptions;
+using yesdaw::engine::OfflineRenderResult;
 using yesdaw::engine::OfflineRenderStatus;
 using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
@@ -270,6 +271,16 @@ std::vector<float> independentProjectReference (const OfflineFixture& fixture, i
     return expected;
 }
 
+OfflineRenderResult renderFixtureAt (const OfflineFixture& fixture, int maxBlockSize)
+{
+    OfflineRenderOptions options;
+    options.maxBlockSize = maxBlockSize;
+    return renderOfflineProject (fixture.project,
+                                 std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(),
+                                                                     fixture.decodedAssets.size()),
+                                 options);
+}
+
 } // namespace
 
 TEST_CASE ("OfflineRenderer renders the full Project timeline against an independent reference",
@@ -309,6 +320,51 @@ TEST_CASE ("OfflineRenderer renders the full Project timeline against an indepen
     REQUIRE (rejected.status == OfflineRenderStatus::UnsupportedTimeBase);
 
     REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("OfflineRenderer output is identical at every block size (ADR-0008)",
+           "[h7][offline-render][block-size]")
+{
+    const std::uint64_t base = CompiledGraph::aliveCount();
+    const OfflineFixture fixture = makeOfflineFixture();
+
+    // The fixture timeline is 9 frames, so the default 128-frame block renders it in ONE block — the
+    // multi-block path (offset advance, every node's cross-block playFrame/ramp state) is otherwise dead.
+    // Block-size independence is THE defining property of an offline renderer (ADR-0008): require
+    // bit-identical output at block sizes that force 9, 5, 3, 2, 1 ... blocks.
+    const OfflineRenderResult reference = renderFixtureAt (fixture, 128);
+    REQUIRE (reference.ok());
+    REQUIRE (reference.frames == 9u);
+    REQUIRE (reference.channels == 2u);
+
+    for (const int blockSize : { 1, 2, 3, 4, 5, 7, 8, 9, 13, 64, 256 })
+    {
+        const OfflineRenderResult rendered = renderFixtureAt (fixture, blockSize);
+        REQUIRE (rendered.ok());
+        REQUIRE (rendered.frames == reference.frames);
+        REQUIRE (rendered.channels == reference.channels);
+        REQUIRE (floatBuffersBitIdentical (rendered.interleavedSamples, reference.interleavedSamples));
+    }
+
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("OfflineRenderer output tracks a Project mutation (the renderer is exercised, not just the compare)",
+           "[h7][offline-render][mutation]")
+{
+    const OfflineFixture baselineFixture = makeOfflineFixture();
+    const OfflineRenderResult baseline = renderFixtureAt (baselineFixture, 4);
+    REQUIRE (baseline.ok());
+
+    // Mutate the renderer INPUT (halve a clip's gain) rather than perturbing the reference. The render
+    // itself must change, and still match the independent reference recomputed for the mutated Project.
+    OfflineFixture mutatedFixture = makeOfflineFixture();
+    mutatedFixture.project.clips[0].gain *= 0.5f;
+    const OfflineRenderResult mutated = renderFixtureAt (mutatedFixture, 4);
+    REQUIRE (mutated.ok());
+
+    REQUIRE_FALSE (floatBuffersBitIdentical (mutated.interleavedSamples, baseline.interleavedSamples));
+    REQUIRE (buffersNear (mutated.interleavedSamples, independentProjectReference (mutatedFixture)));
 }
 
 TEST_CASE ("Canonical float32 WAV writes and reads bit-exact samples", "[h7][wav][float32]")
