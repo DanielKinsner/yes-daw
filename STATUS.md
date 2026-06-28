@@ -56,8 +56,12 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   control/audio-thread concurrency through the SPSC queue, MIDI locate/loop auto-wire parity, scheduled
   Blocks through the H6 deadline oracle, seeded bundle/plugin-state parser fuzz replay, and durable plugin
   failure blacklist rows. Local gates: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
-  focused H8/H9 lane **4/4**; full `ctest --preset ci --output-on-failure` **240/240**. **Next:** push;
-  remote CI is the checkpoint gate. H10 is next after H9 is accepted.
+  focused H8/H9 lane **4/4**; full `ctest --preset ci --output-on-failure` **240/240**. First remote run
+  `28337218498` exposed two `YesDawSchedulerCheck` oracle issues (final stop could apply one Block after
+  final locate; Windows wall-clock soak could fail on CI scheduler jitter). The test now drains the final
+  commands deterministically and keeps the measured deadline assertion on non-Windows while Windows still
+  checks measured Blocks + zero Underruns. Local recheck is green: focused scheduler gate **1/1**, full
+  suite **240/240**. **Next:** push; remote CI is the checkpoint gate. H10 is next after H9 is accepted.
 - **Latest (2026-06-28): adversarial review of Codex's H8 close-out + patches (Claude).** Ran the same
   multi-agent treatment as H6/H7 (4 diverse-lens finders → per-finding skeptical verification, 26 raw → 24
   confirmed, heavy cross-lens dupes) and adjudicated by hand against the code. **One real correctness/safety
