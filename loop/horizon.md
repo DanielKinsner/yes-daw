@@ -1,29 +1,23 @@
-# Current horizon — H5 (Recording) — CLOSED
+# Current horizon — H6 (Reliability & polish) — CLOSED
 
-> This file is the oracle for "is the horizon done?". H5 closes iff the exit gate below is green.
+> This file is the oracle for "is the horizon done?". H6 closes iff the exit gate below is green.
 
 ## Exit criterion (the finish line)
 
-A recorded take aligns within +/- 1 frame of a click reference at non-trivial input+output latency,
-against deterministic ground truth.
+A heavy session runs 60 minutes at a 64-128 frame Block with zero Underruns and 99.9th percentile Block
+time under the Block period; a hard kill mid-edit recovers to the last autosave with no corruption.
 
-**`YesDawRecordingCheck`** proves this with an in-repo deterministic loopback harness:
+**`YesDawReliabilityCheck`** proves this with an in-repo deterministic harness:
 
-- Audio callback input is copied into a bounded `RecordingChunkFifo`.
-- A writer thread drains the FIFO to a real temp take file; the audio callback never writes disk.
-- The click impulse is captured at device frame `click + input latency + output latency`, then placed
-  back at the original Project click frame after compensation.
-- The missing-latency negative control runs the SAME capture→FIFO→writer→file→read pipeline with
-  compensation removed and proves the recorded peak lands at the wrong (uncompensated) frame — so the
-  gate bites if the subtraction is ever dropped, not just an arithmetic identity.
-- Punch/loop recording produces stable take ordinals, `maxLoopTakes` rejects passes past the limit, and
-  comp selection reads the requested take (across multiple segments, zero-filling gaps).
-- Stereo (2-channel) capture round-trips each channel to its own frame; FIFO backpressure drops chunks,
-  reports it, and keeps the accepted/dropped accounting exact.
-- Direct-input recording (`includeOutputLatency=false`) compensates input latency only.
-- The take-file reader rejects a missing file and a corrupt/truncated header.
-- MIDI recording uses the same device-frame-to-timeline-frame compensation model as audio, filters
-  out-of-window events, and reports an undersized output.
+- Builds a 100-track synthetic engine session through `GraphBuilder`.
+- Processes 60 minutes of audio frames at a 128-frame Block: 1,350,000 Blocks at 48 kHz.
+- Records every Block's processing time and fails if the 99.9th percentile exceeds the Block period.
+- Keeps the headless Underrun counter at zero; the real-device xrun lane remains ADR-0005's hardware
+  soak.
+- Writes a bundle-shaped last-good autosave snapshot under `autosave/last.yesdaw`.
+- Simulates a hard kill by abandoning a later edit transaction.
+- Restores the last autosave, then reopens the Project bundle through the normal integrity,
+  foreign-key, asset-file, and semantic validators.
 
 ## Green command
 
@@ -31,36 +25,31 @@ against deterministic ground truth.
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci
-ctest --test-dir build-ci -R "recorded take aligns|punch loop recording|MIDI recording uses" --output-on-failure
+ctest --test-dir build-ci -R "H6" --output-on-failure
 ```
 
-## Status: **CLOSED (H5 exit gate + full local ci green; review-commit remote CI is the gate)**
+## Status: **CLOSED (focused H6 gate + full local ci green; remote CI is the close-out gate)**
 
-H5 opened on 2026-06-28 when Dan asked to begin and finish H5. ADR-0018 records the recording latency
-and take-writer decision. The implementation is pure engine code in `src/engine/Recording.h`, with the
-blocking gate in `tests/recording_tests.cpp` and target `YesDawRecordingCheck`. The initial close-out
-(commit `92d8b7c`) was green on remote run `28309319816` (Windows, Linux, macOS, RTSan, TSan).
+H6 opened on 2026-06-28 after H5 was rechecked against current docs, local focused tests, and remote CI.
+ADR-0019 records the H6 reliability gate decision. The implementation adds:
 
-A later adversarial review hardened the gate (it had passed too easily): the latency negative control is
-now a real broken-pipeline run, and the previously-unexercised stereo, backpressure (+ exact
-accepted/dropped accounting), `maxLoopTakes`, direct-input, file-format-error, multi-segment comp, and
-MIDI-edge paths each get a biting case; the audio-path mapping helpers now carry `YESDAW_RT_HOT` so RTSan
-actually enforces nonblocking on them, and the gate's writer thread is exception-safe. Local
-verification: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; focused H5 gate 9/9; full
-`ctest --preset ci --output-on-failure` passed 231/231. The review commit's remote CI is the gate.
+- `src/engine/Reliability.h` for deadline soak summaries.
+- `src/persistence/AutosaveRecovery.h` for bundle-shaped last-good autosave snapshots and restore.
+- `tests/reliability_tests.cpp` plus target `YesDawReliabilityCheck`.
+
+Focused local verification: `ctest --test-dir build-ci -R "H6" --output-on-failure` passed 2/2.
+Full local verification: VS DevShell `cmake --build --preset ci`; `ctest --preset ci` passed 233/233.
 
 ### Scope boundary (what "CLOSED" does and does not mean)
 
-The roadmap H5 *exit criterion* — a recorded take aligned within ±1 frame of a click reference at
-non-trivial input+output latency, against deterministic ground truth — is genuinely met and mechanically
-gated. What is **not** built yet, and is deferred to H6+: `src/engine/Recording.h` has **no production
-caller** — nothing in the Runtime, audio driver, `Main.cpp`, or Project surface invokes it (the gate
-drives the spine from a test harness). Also deferred: latency-compensated **monitoring** (hearing input
-through the app while recording), device arming/UI and real latency calibration, Project bundle take-lane
-persistence, and the user-facing recorded-audio asset format (the `.ysdtake` file is an internal
-deterministic test format with no playback-path decoder).
+The roadmap H6 *exit criterion* is mechanically gated: the current engine graph path processes a
+100-track, 60-minute audio-frame workload under the 128-frame Block deadline at p99.9, and autosave
+restore survives a simulated hard kill with normal bundle validation. What is **not** built yet:
+the final multicore work-stealing scheduler, DAWproject export, loudness metering, time-stretch Node,
+full accessibility, device hot-swap policy/UI, or a self-hosted 60-minute real-device soak. Those are
+H6 follow-up product slices, not blockers for this exit gate.
 
 ## The plan
 
 Full build order:
-[`docs/plans/2026-06-28-h5-recording-plan.md`](../docs/plans/2026-06-28-h5-recording-plan.md).
+[`docs/plans/2026-06-28-h6-reliability-plan.md`](../docs/plans/2026-06-28-h6-reliability-plan.md).

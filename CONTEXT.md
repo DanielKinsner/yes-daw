@@ -240,6 +240,11 @@ _Avoid_: session, set, document
 The folder/package on disk holding the project's database, copied assets, and caches.
 Working extension `.yesdaw` (not final).
 
+**Autosave snapshot**:
+A bundle-shaped last-good copy under a Project bundle's `autosave/` area. It is restored only after the
+normal Project bundle validators accept it.
+_Avoid_: temp file (too vague), backup (not necessarily user-managed)
+
 **Plugin state chunk**:
 Opaque saved bytes returned by a plugin, wrapped by YES DAW metadata before storage and associated with
 the saved plugin node's Entity ID. It is restored as plugin-owned state, not rebuilt from parameter

@@ -9,20 +9,21 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H5 (Recording) — CLOSED; adversarially reviewed + hardened; local CI green,
-review-commit remote CI pending.**
-Dan opened H5 on 2026-06-28 by asking Codex to double-check the H4 adversarial patches, then begin and
-finish H5. Codex closed it (commit `92d8b7c`, remote run `28309319816` green). Dan then asked Claude to
-adversarially review H5 and patch it. H5 is implemented by ADR-0018 and `YesDawRecordingCheck`: audio
-callback input enters a bounded FIFO, a writer thread drains to a real take file, non-zero input+output
-latency compensation aligns a recorded click back to its Project frame, and the gate covers punch/loop
-take ordinals, comp selection, and MIDI timestamp compensation. The roadmap H5 *exit criterion*
-(±1-frame click alignment) is genuinely met. **But the "Recording" capability is not wired up:**
-`Recording.h` has no production caller (nothing in the Runtime/audio driver/`Main.cpp`/Project invokes
-it — the gate drives the spine directly), and latency-compensated **monitoring**, device arming/UI,
-take-lane persistence, and the user-facing asset format are H6+. (Also still open: H4 CP2b MIDI
-auto-wire; H3 worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-0005 — not
-a CI gate.)
+**Current horizon:** **H6 (Reliability & polish) — CLOSED by the focused reliability gate; full local CI
+green; remote CI pending.**
+Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
+cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
+exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
+production caller/monitoring/UI/persistence/final asset format yet). H6 is implemented by ADR-0019 and
+`YesDawReliabilityCheck`: a 100-track synthetic engine session built through `GraphBuilder` processes 60
+minutes of audio frames at a 128-frame Block (1,350,000 Blocks at 48 kHz), records every Block time, and
+fails unless p99.9 stays under the Block period with zero headless Underruns. The same gate writes a
+bundle-shaped last-good Autosave snapshot, simulates a hard kill by abandoning a later edit transaction,
+restores the Autosave snapshot, and reopens the Project bundle through the normal integrity, foreign-key,
+asset-file, and semantic validators. **Deferred H6 product slices:** final multicore work-stealing,
+DAWproject export, loudness metering, time-stretch, full accessibility, device hot-swap, and the
+self-hosted real-device soak. (Also still open from earlier horizons: H4 CP2b MIDI auto-wire; H3
+worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-0005 — not a CI gate.)
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -35,8 +36,16 @@ a CI gate.)
 
 ---
 
-## Now — H5 adversarially reviewed + hardened; stop for Dan's H5→H6 boundary call
-- **Latest (2026-06-28): adversarial review of Codex's H5 close-out + patches (Claude).**
+## Now — H6 reliability gate implemented; full local CI green
+- **Latest (2026-06-28): H5 rechecked clean; H6 reliability gate implemented.**
+  H5 is good to move past: latest remote CI on `main` is green (`28310557870`), the current focused H5
+  gate passed locally 3/3, and the H5 docs no longer overclaim the unwired recording capability. No H5
+  patch was needed. For H6, accepted ADR-0019 and added the focused reliability gate:
+  `src/engine/Reliability.h`, `src/persistence/AutosaveRecovery.h`, `tests/reliability_tests.cpp`, and
+  target `YesDawReliabilityCheck`. Focused local gate: `ctest --test-dir build-ci -R "H6"
+  --output-on-failure` passed 2/2. Full local gate: VS DevShell `cmake --build --preset ci`; `ctest
+  --preset ci` passed 233/233. **Next:** commit/push; remote CI is the close-out gate.
+- **Earlier (2026-06-28): adversarial review of Codex's H5 close-out + patches (Claude).**
   Ran a multi-agent adversarial review (5 diverse-lens finders → per-finding skeptical verification) over
   the whole H5 surface, then adjudicated by hand (the panel over-fired: ~50 raw findings, heavy dupes).
   **Verdict:** H5's gate is genuinely better than the prior horizons' — it's a real integration test of a

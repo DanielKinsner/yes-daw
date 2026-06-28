@@ -102,3 +102,13 @@ Autosave + crash recovery; device hot-swap; multicore work-stealing; DAWproject 
 metering; time-stretch Node; full accessibility; soak/fuzz harness.
 **Exit:** a heavy session runs 60 min at a 64–128-frame Block with zero Underruns (99.9th-pct Block
 time under the Block period); a hard kill mid-edit recovers to the last autosave with no corruption.
+
+> **Status note (2026-06-28 H6 close).** The H6 reliability exit contract is implemented and mechanically
+> gated by `YesDawReliabilityCheck`: a 100-track synthetic engine session built through `GraphBuilder`
+> processes 60 minutes of audio frames at a 128-frame Block (1,350,000 Blocks at 48 kHz), records every
+> Block time, and fails unless p99.9 stays under the Block period with zero headless Underruns. The same
+> gate writes a bundle-shaped last-good autosave under `autosave/last.yesdaw`, simulates a hard kill by
+> abandoning a later edit transaction, restores the autosave, and reopens the Project bundle through the
+> normal integrity, foreign-key, asset-file, and semantic validators. **Deferred:** final multicore
+> work-stealing, DAWproject export, loudness metering, time-stretch, full accessibility, device hot-swap,
+> and the self-hosted real-device soak remain follow-up H6 product slices.

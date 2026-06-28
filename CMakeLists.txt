@@ -309,6 +309,16 @@ target_link_libraries(YesDawRecordingCheck PRIVATE Catch2::Catch2WithMain Thread
 yesdaw_harden(YesDawRecordingCheck)
 catch_discover_tests(YesDawRecordingCheck)
 
+# --- Reliability check (H6; deadline soak + autosave hard-kill recovery) ---
+add_executable(YesDawReliabilityCheck tests/reliability_tests.cpp)
+target_include_directories(YesDawReliabilityCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawReliabilityCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawReliabilityCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawReliabilityCheck)
+catch_discover_tests(YesDawReliabilityCheck)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -449,6 +459,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawRuntimeAudioDriverCheck
   YesDawRenderCheck
   YesDawRecordingCheck
+  YesDawReliabilityCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck
