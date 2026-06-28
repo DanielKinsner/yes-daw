@@ -7,6 +7,7 @@
 #include "engine/GraphBuilder.h"
 #include "engine/Project.h"
 #include "engine/Runtime.h"
+#include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/OscillatorNode.h"
@@ -24,6 +25,7 @@ using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::DecodedClipNode;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
@@ -242,4 +244,60 @@ TEST_CASE ("RT path and offline Render path match for the same Project", "[rende
     REQUIRE (maxAbsDiff <= kTolerance);
 
     REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+// The engine must place each Clip at its timeline frame and SUM overlaps — checked against an independent
+// hand-computed reference, NOT against another engine render. Ignoring timelineStart, mis-positioning, or
+// dropping a clip on overlap all make the engine output differ from this reference (a real negative control
+// for "multi-track timeline playback", which the OscillatorNode RT-vs-offline gate above does not exercise).
+TEST_CASE ("Engine renders Clips at their timeline positions and sums overlaps", "[h1][render][timeline]")
+{
+    constexpr int    kBlock = 16;
+    constexpr NodeId kClipA = 64001, kClipB = 64002, kTimelineMaster = 64000;
+
+    const std::vector<float> a { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f };       // at frame 0
+    const std::vector<float> b { 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f }; // at frame 4 (overlaps A on [4,6))
+    constexpr std::int64_t aStart = 0, bStart = 4;
+
+    auto clipA  = std::make_unique<DecodedClipNode> (kClipA, a, 1, aStart);
+    auto clipB  = std::make_unique<DecodedClipNode> (kClipB, b, 1, bStart);
+    auto master = std::make_unique<MasterNode> (kTimelineMaster, 1);
+    master->setInputNodes ({ clipA.get(), clipB.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = 70;
+    inputs.masterNodeId = kTimelineMaster;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (clipA));
+    inputs.nodes.push_back (std::move (clipB));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    std::vector<float> out (kBlock, -123.0f);
+    graph->process (out.data(), kBlock);
+
+    for (int f = 0; f < kBlock; ++f)
+    {
+        float expected = 0.0f;
+        const std::int64_t la = static_cast<std::int64_t> (f) - aStart;
+        if (la >= 0 && la < static_cast<std::int64_t> (a.size()))
+            expected += a[static_cast<std::size_t> (la)];
+        const std::int64_t lb = static_cast<std::int64_t> (f) - bStart;
+        if (lb >= 0 && lb < static_cast<std::int64_t> (b.size()))
+            expected += b[static_cast<std::size_t> (lb)];
+
+        INFO ("frame " << f << " expected " << expected << " got " << out[static_cast<std::size_t> (f)]);
+        REQUIRE (std::fabs (static_cast<double> (out[static_cast<std::size_t> (f)] - expected)) <= kTolerance);
+    }
+
+    // Discriminating frames, spelled out: A-only, A+B overlap, B-only after A ends, then silence.
+    REQUIRE (out[0] == 1.0f);            // A[0]
+    REQUIRE (out[4] == 15.0f);           // A[4] + B[0] = 5 + 10
+    REQUIRE (out[6] == 30.0f);           // A exhausted, B[2]
+    REQUIRE (out[10] == 0.0f);           // both exhausted
 }

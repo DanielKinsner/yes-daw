@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <utility>
 #include <vector>
@@ -18,8 +19,16 @@ namespace yesdaw::engine {
 class DecodedClipNode final : public Node
 {
 public:
-    DecodedClipNode (NodeId id, std::vector<float> samples, int channels = 1) noexcept
-        : id_ (id), samples_ (std::move (samples)), channels_ (channels > 0 ? channels : 1)
+    // timelineStartFrames positions the clip on the timeline: the node emits silence until the global
+    // playhead reaches it, then plays its samples, then silence again once they are exhausted. The tick
+    // -> frame conversion (through the tempo map) happens on the control side; the node is handed the
+    // resolved frame offset, so its audio-thread path stays a branch-only positioned read.
+    DecodedClipNode (NodeId id, std::vector<float> samples, int channels = 1,
+                     std::int64_t timelineStartFrames = 0) noexcept
+        : id_ (id),
+          samples_ (std::move (samples)),
+          channels_ (channels > 0 ? channels : 1),
+          timelineStart_ (timelineStartFrames > 0 ? timelineStartFrames : 0)
     {
     }
 
@@ -31,33 +40,38 @@ public:
 
     std::span<Node* const> directInputs() const noexcept override { return {}; }
 
-    void prepare (double, int) override { cursor_ = 0; }
+    void prepare (double, int) override { playFrame_ = 0; }
 
     void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
     {
         if (args.audio.numChannels < 1)
             return;
 
-        const int channels = std::min (args.audio.numChannels, channels_);
+        const int          channels = std::min (args.audio.numChannels, channels_);
+        const std::int64_t total    = static_cast<std::int64_t> (samples_.size());
         for (int i = 0; i < args.numFrames; ++i)
         {
-            const float sample = cursor_ < samples_.size() ? samples_[cursor_] : 0.0f;
-            if (cursor_ < samples_.size())
-                ++cursor_;
-
+            const std::int64_t local  = (playFrame_ + static_cast<std::int64_t> (i)) - timelineStart_;
+            const float        sample = (local >= 0 && local < total)
+                                          ? samples_[static_cast<std::size_t> (local)] : 0.0f;
             for (int c = 0; c < channels; ++c)
                 args.audio.channels[c][i] = sample;
         }
+
+        playFrame_ += static_cast<std::int64_t> (args.numFrames);
     }
 
-    void reset() noexcept override { cursor_ = 0; }
+    void reset() noexcept override { playFrame_ = 0; }
     void release() override { samples_.clear(); samples_.shrink_to_fit(); }
+
+    [[nodiscard]] std::int64_t timelineStartFrames() const noexcept { return timelineStart_; }
 
 private:
     NodeId             id_ = 0;
     std::vector<float> samples_;
     int                channels_ = 1;
-    std::size_t        cursor_ = 0;
+    std::int64_t       timelineStart_ = 0;
+    std::int64_t       playFrame_     = 0;
 };
 
 } // namespace yesdaw::engine
