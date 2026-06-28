@@ -2,8 +2,10 @@
 
 #include "engine/GraphBuilder.h"
 #include "engine/Reliability.h"
+#include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/MasterNode.h"
+#include "engine/nodes/MeterNode.h"
 #include "persistence/AutosaveRecovery.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -25,10 +27,12 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::DeadlineSoakStats;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
 using yesdaw::engine::IdentityDcNode;
 using yesdaw::engine::MasterNode;
+using yesdaw::engine::MeterNode;
 using yesdaw::engine::Node;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::Project;
@@ -173,15 +177,29 @@ std::unique_ptr<CompiledGraph> makeHeavySessionGraph (int trackCount, int blockS
     inputs.masterNodeId = kMasterId;
     inputs.sampleRate = 48000.0;
     inputs.maxBlockSize = blockSize;
-    inputs.nodes.reserve (static_cast<std::size_t> (trackCount) + 1u);
+    inputs.nodes.reserve (static_cast<std::size_t> (trackCount) * 3u + 1u);
 
+    // Each track does real per-sample DSP — a DC source through a non-unity gain ramp and a peak/RMS meter
+    // tap — so the "heavy session" the deadline gate measures actually exercises the node process() paths,
+    // not a single constant store. (Still comfortably under the Block period; the live margin is documented
+    // in ADR-0019, and the deadline oracle's biting test is the synthetic negative control above.)
     for (int track = 0; track < trackCount; ++track)
     {
-        auto source = std::make_unique<IdentityDcNode> (static_cast<NodeId> (track + 1),
+        const auto base = static_cast<NodeId> (track * 3 + 1);
+        auto source = std::make_unique<IdentityDcNode> (base,
                                                         0.001f * static_cast<float> ((track % 11) + 1),
                                                         1);
-        masterInputs.push_back (source.get());
+        auto fader = std::make_unique<FaderNode> (base + 1u, 1);
+        auto meter = std::make_unique<MeterNode> (base + 2u, 1);
+
+        fader->setTargetGain (0.25f + 0.01f * static_cast<float> (track % 13));
+        fader->setInput (source.get());
+        meter->setInput (fader.get());
+        masterInputs.push_back (meter.get());
+
         inputs.nodes.push_back (std::move (source));
+        inputs.nodes.push_back (std::move (fader));
+        inputs.nodes.push_back (std::move (meter));
     }
 
     auto master = std::make_unique<MasterNode> (kMasterId, 1);
@@ -192,7 +210,7 @@ std::unique_ptr<CompiledGraph> makeHeavySessionGraph (int trackCount, int blockS
     std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
     REQUIRE (graph != nullptr);
     REQUIRE (error.code() == GraphBuildError::Code::None);
-    REQUIRE (graph->debugCompiledNodes().size() >= static_cast<std::size_t> (trackCount + 1));
+    REQUIRE (graph->debugCompiledNodes().size() >= static_cast<std::size_t> (trackCount * 3 + 1));
     return graph;
 }
 
