@@ -103,12 +103,21 @@ metering; time-stretch Node; full accessibility; soak/fuzz harness.
 **Exit:** a heavy session runs 60 min at a 64–128-frame Block with zero Underruns (99.9th-pct Block
 time under the Block period); a hard kill mid-edit recovers to the last autosave with no corruption.
 
-> **Status note (2026-06-28 H6 close).** The H6 reliability exit contract is implemented and mechanically
-> gated by `YesDawReliabilityCheck`: a 100-track synthetic engine session built through `GraphBuilder`
-> processes 60 minutes of audio frames at a 128-frame Block (1,350,000 Blocks at 48 kHz), records every
-> Block time, and fails unless p99.9 stays under the Block period with zero headless Underruns. The same
-> gate writes a bundle-shaped last-good autosave under `autosave/last.yesdaw`, simulates a hard kill by
-> abandoning a later edit transaction, restores the autosave, and reopens the Project bundle through the
-> normal integrity, foreign-key, asset-file, and semantic validators. **Deferred:** final multicore
+> **Status note (2026-06-28 H6 close; hardened by adversarial review).** The H6 reliability exit contract
+> is implemented and mechanically gated by `YesDawReliabilityCheck`: a 100-track synthetic **mixer**
+> session built through `GraphBuilder` (each track is a real strip — DC source -> `FaderNode` ->
+> `MeterNode`) processes 60 minutes of audio frames at a 128-frame Block (1,350,000 Blocks at 48 kHz),
+> records every Block time, and fails unless p99.9 stays under the Block period with zero headless
+> Underruns. The same gate writes a bundle-shaped last-good autosave under `autosave/last.yesdaw`,
+> simulates a hard kill by abandoning a later edit transaction, restores the autosave, and reopens the
+> Project bundle through the normal integrity, foreign-key, asset-file, and semantic validators.
+> **Hardened after the review:** the deadline oracle now has a real **negative control** (over-budget,
+> underrun, and empty soaks all fail `passesDeadline()` — previously nothing proved it could ever return
+> false), and the autosave publish is **crash-safe and fsync'd** (keeps `last.previous` until the new
+> snapshot is durable; recovery falls back to it, so the two-rename window never leaves zero valid
+> snapshots). **Honest scope:** the "hard kill" is an in-process transaction rollback — OS-level crash /
+> hot-WAL recovery is the ADR-0005 hardware soak lane; `underruns == 0` is a headless design choice, not a
+> measured device result; and the autosave surface has **no production caller yet** (the gate drives it;
+> nothing schedules an autosave or prompts recovery on launch). **Deferred:** final multicore
 > work-stealing, DAWproject export, loudness metering, time-stretch, full accessibility, device hot-swap,
 > and the self-hosted real-device soak remain follow-up H6 product slices.

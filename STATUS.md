@@ -9,8 +9,9 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H6 (Reliability & polish) — CLOSED by the focused reliability gate; full local and
-remote CI green.**
+**Current horizon:** **H6 (Reliability & polish) — CLOSED, now adversarially reviewed + hardened; full
+local CI green (237/237). At the H6->H7 boundary — H7 has never been defined (no exit criterion written);
+awaiting Dan's boundary call on what H7 *is*.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -36,8 +37,31 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H6 reliability gate closed; local and remote CI green
-- **Latest (2026-06-28): H5 rechecked clean; H6 reliability gate implemented and closed.**
+## Now — H6 adversarially reviewed + hardened; at the H6->H7 boundary
+- **Latest (2026-06-28): adversarial review of Codex's just-landed H6 reliability gate + patches (Claude).**
+  Dan asked to review "H8 that Codex just landed" and then start H7 — but `origin/main`'s freshest work
+  is the **H6** reliability gate (`a6f52c5` + `d82a5b7`); there is no H8 commit anywhere, and H7 was never
+  defined. So this reviewed the just-landed H6 gate (the one horizon never adversarially reviewed). Ran a
+  multi-agent adversarial review (6 diverse-lens finders -> per-finding skeptical verification, 24 raw ->
+  22 confirmed, heavy cross-lens dupes) and adjudicated by hand. **Verdict:** the autosave half had real
+  oracles, but the deadline half could not bite and the autosave publish had a real durability hole.
+  **Proven issues fixed (4 small commits):** (1) the deadline oracle had **no negative control** —
+  `passesDeadline()`/`summarizeDeadlineSoak` were only ever asserted true, so a broken percentile index or
+  flipped strict-< would stay green; added a deterministic negative control (over-budget needs >0.1% of
+  blocks, underrun, empty, and the at-deadline boundary all fail). (2) the autosave publish deleted
+  `last.previous` before publishing and recovery only read `last.yesdaw`, so a hard kill between the two
+  renames lost **both** copies, and nothing was fsync'd — made the publish crash-safe (keep `last.previous`
+  until the new snapshot is fsync'd; recovery falls back to it) and fsync the DB/assets/dir, with 3 biting
+  negative controls. (3) the "heavy 100-track session" was 100 trivial DC nodes (~1000x margin) — gave each
+  track real mixer-strip DSP (source -> Fader -> Meter). (4) docs honesty: roadmap/horizon/plan now state
+  the "hard kill" is an in-process transaction rollback (OS-level crash / hot-WAL recovery stays ADR-0005's
+  soak), `underruns == 0` is a headless design choice, and the autosave surface has **no production caller
+  yet**. **Rejected:** a live-timing floor assertion (`p999 * N > period`) — machine-dependent, would make
+  CI flaky; the negative control is the right biting oracle. Did **not** edit ADR-0019 (hard-stop rule; the
+  ADR was already honest on hard-kill scope + underruns). Focused H6 gate: **6/6**; full `ctest --preset
+  ci`: **237/237** (was 233). **Next:** push; the review commits' remote CI is the gate; then stop for
+  Dan's H6->H7 boundary call — H7's scope must be decided before any H7 code lands.
+- **Earlier (2026-06-28): H5 rechecked clean; H6 reliability gate implemented and closed.**
   H5 is good to move past: latest remote CI on `main` is green (`28310557870`), the current focused H5
   gate passed locally 3/3, and the H5 docs no longer overclaim the unwired recording capability. No H5
   patch was needed. For H6, accepted ADR-0019 and added the focused reliability gate:

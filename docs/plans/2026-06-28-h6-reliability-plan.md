@@ -37,5 +37,12 @@ last autosave with no corruption.
 
 ## Status
 
-Implemented and closed. `YesDawReliabilityCheck` covers the H6 exit gate directly and is part of the
-full `ci` preset. Focused local gate: 2/2 green. Full local `ctest --preset ci`: 233/233 green.
+Implemented and closed; hardened by adversarial review (2026-06-28). `YesDawReliabilityCheck` covers the
+H6 exit gate directly and is part of the full `ci` preset. The review added a biting **negative control**
+for the deadline oracle (over-budget / underrun / empty soaks fail `passesDeadline()` — previously nothing
+proved it could ever return false), made the autosave publish **crash-safe and fsync'd** (keeps
+`last.previous` until the new snapshot is durable; recovery falls back to it), and gave the "heavy" soak
+real per-track DSP (source -> `FaderNode` -> `MeterNode`). Honest scope: the "hard kill" is an in-process
+transaction rollback (OS-level crash / hot-WAL recovery is ADR-0005's hardware soak), `underruns == 0` is
+a headless design choice, and the autosave surface has no production caller yet. Focused local gate: 6/6
+green. Full local `ctest --preset ci`: 237/237 green.
