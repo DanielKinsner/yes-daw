@@ -37,8 +37,22 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H6 adversarially reviewed + hardened; at the H6->H7 boundary
-- **Latest (2026-06-28): Codex follow-on adversarial review of the H6 close-out found no new proven H6
+## Now — H6 done; H7–H10 roadmap extension drafted (ADR-0020, proposed)
+- **Latest (2026-06-28): drafted the H7–H10 roadmap extension (ADR-0020, Proposed) — awaiting Dan's go.**
+  Dan recalled "tasks up to H10"; confirmed none ever existed (roadmap has always been H0–H6; checked the
+  plan + full roadmap.md git history). The work he remembers is the eight features bundled into the build
+  plan's "H6 (ongoing, long-horizon)" — only autosave + the deadline soak are built. ADR-0020 carves the
+  rest into numbered horizons, value-first: **H7** offline render/export to file (headless, golden-gated,
+  autonomous-closeable); **H8** playback runtime — device I/O + transport, and the first production
+  callers for recording/autosave (absorbs the open H0 hardware soak); **H9** single-window timeline UI
+  shell (needs the pending UI-stack ADR; visual feel is the lone human spot-check); **H10** engine scaling
+  & robustness — multicore work-stealing + soak/fuzz + the H3/H4 cross-horizon debt. Post-H10 backlog:
+  loudness metering, DAWproject export, time-stretch, device hot-swap, full a11y. **UI verdict:** unblocked
+  (contracts frozen) but sequenced *after* a real playback runtime — a UI on an in-memory-only engine is a
+  hollow shell. ADR is **Proposed**; `loop/horizon.md` still reads H6-closed. **Next:** Dan confirms the
+  ordering (esp. UI at H9); then flip ADR-0020 to Accepted, point the horizon at H7, write the H7 plan, and
+  build.
+- **Earlier (2026-06-28): Codex follow-on adversarial review of the H6 close-out found no new proven H6
   defect.** Pulled `main` first (`git pull --ff-only`, already up to date), read the live handoff,
   horizon, roadmap, ADR-0019, H6 plan, latest H6 commits (`a6f52c5` through `363f765`), and the H6
   implementation/tests. Rechecked the likely weak points directly: the deadline oracle has a biting

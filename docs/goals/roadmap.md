@@ -120,4 +120,45 @@ time under the Block period); a hard kill mid-edit recovers to the last autosave
 > measured device result; and the autosave surface has **no production caller yet** (the gate drives it;
 > nothing schedules an autosave or prompts recovery on launch). **Deferred:** final multicore
 > work-stealing, DAWproject export, loudness metering, time-stretch, full accessibility, device hot-swap,
-> and the self-hosted real-device soak remain follow-up H6 product slices.
+> and the self-hosted real-device soak remain follow-up H6 product slices — **now carved into numbered
+> horizons H7–H10 (ADR-0020).**
+
+---
+
+> **Horizons H7–H10 (proposed — ADR-0020).** H6 was the build plan's deliberately broad
+> "ongoing, long-horizon" bucket; only autosave + the deadline soak are built. ADR-0020 carves the
+> remaining work into numbered horizons with mechanical exit criteria, ordered value-first toward a DAW
+> that runs, is audible, is visible, then scales. Each gets a focused `docs/plans/` plan at kickoff.
+
+## H7 — Offline render / export to file
+A real offline-render module that bounces a Project to an audio file (WAV); the highest-value DAW test
+(RT path vs offline render) becomes real. Fully headless — closeable with no human in the loop.
+**Exit:** the offline render of a Project to a file is sample-accurate vs the RT engine path (golden-file
+compare within tolerance), and the exported file re-imports to an Asset that round-trips — all green in CI.
+
+## H8 — Playback runtime (device I/O + transport)
+Wire the engine to a real audio device behind a transport (play/stop/locate/loop); give recording (H5)
+and autosave (H6) their first production callers.
+**Exit:** a headless transport test proves play/stop/locate are sample-accurate against the offline
+render of the same Project, **and** a one-command self-asserting hardware smoke plays a known Project out
+the real device with zero Underruns at a 128-frame Block (ADR-0005 script pattern; absorbs the open H0
+real-hardware soak).
+
+## H9 — Single-window timeline UI shell
+The first real application window: load a Project bundle, draw and scroll the timeline, transport
+controls, per-track metering — all driving the H8 runtime. Needs the pending UI-stack ADR (native JUCE
+Components + GPU timeline canvas vs WebView).
+**Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent)
+plus a headless smoke that the app loads a bundle and starts/stops the transport; the GPU timeline holds
+60fps while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**
+
+## H10 — Engine scaling & robustness
+The multicore work-stealing scheduler + soak/fuzz hardening, and the cross-horizon debt (H3 worker
+misbehavior + blacklist-on-failure wiring; H4 CP2b MIDI auto-wire).
+**Exit:** the CompiledGraph produces bit-identical output across 1..N worker threads (determinism gate)
+under RTSan/TSan, the heavy-session soak holds the deadline with the parallel scheduler, and
+structure-aware fuzzing of the bundle / plugin-state parsers runs clean.
+
+> **Post-H10 backlog** (tracked, not yet numbered): loudness metering (libebur128), DAWproject export,
+> time-stretch Node (Signalsmith), device hot-swap policy/UI, full accessibility. Each is promoted to a
+> horizon with its own ADR when its turn comes.
