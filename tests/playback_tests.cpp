@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <span>
 #include <string>
 #include <vector>
@@ -390,6 +391,33 @@ TEST_CASE ("PlaybackEngine transport stop, locate, and loop are sample-accurate"
     REQUIRE (engine.locate (3));
     REQUIRE (buffersNear (drainPlayback (engine, 10, 5), loopReference (fixture, 3, 7, 10)));
     REQUIRE (engine.playheadFrame() == 5);
+}
+
+TEST_CASE ("PlaybackEngine transport rejects out-of-range positions and survives a loop wider than INT_MAX",
+           "[h8][playback][transport]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+
+    // Out-of-range transport positions are rejected at the control-side API, before any audio-thread math.
+    REQUIRE_FALSE (engine.locate (-1));
+    REQUIRE_FALSE (engine.locate (std::numeric_limits<std::int64_t>::max()));
+    REQUIRE_FALSE (engine.setLoop (0, std::numeric_limits<std::int64_t>::max()));
+    REQUIRE_FALSE (engine.setLoop (5, 5));
+    REQUIRE_FALSE (engine.setLoop (-1, 4));
+
+    // A valid loop region far wider than INT_MAX must NOT truncate to a zero/negative segment and hang or
+    // trap the audio thread. The region is longer than the block, so the first block plays straight from the
+    // located frame with no wrap, matching the reference slice. (Pre-fix this aborted in CompiledGraph.)
+    REQUIRE (engine.setLoop (0, std::int64_t { 1 } << 40));
+    REQUIRE (engine.locate (2));
+    REQUIRE (buffersNear (drainPlayback (engine, 4, 4), referenceSlice (fixture, 2, 4)));
+    REQUIRE (engine.playheadFrame() == 6);
 }
 
 TEST_CASE ("PlaybackEngine drives H5 recording capture from the transport playhead",

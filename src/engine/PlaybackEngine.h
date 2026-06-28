@@ -76,7 +76,9 @@ public:
     void processBlock (float* const* outChannels, int numOutputChannels, int numFrames) noexcept YESDAW_RT_HOT
     {
         YESDAW_RT_FATAL (numFrames >= 0);
+        YESDAW_RT_FATAL (numFrames <= maxBlockSize_);
         YESDAW_RT_FATAL (numOutputChannels >= 0);
+        YESDAW_RT_FATAL (numOutputChannels <= kMaxDeviceOutputChannels);
         if (numOutputChannels > 0)
             YESDAW_RT_FATAL (outChannels != nullptr);
 
@@ -97,7 +99,11 @@ public:
             {
                 const std::int64_t untilLoopEnd = loopEndFrame_ - playheadFrame_;
                 YESDAW_RT_FATAL (untilLoopEnd > 0);
-                segment = std::min (segment, static_cast<int> (untilLoopEnd));
+                // Clamp in 64-bit space BEFORE narrowing. untilLoopEnd can exceed INT_MAX for a wide loop
+                // region; a raw static_cast<int> would truncate to a zero/negative segment and hang or trap
+                // the audio thread. segment <= numFrames <= maxBlockSize_, so the result always fits in int.
+                segment = static_cast<int> (std::min<std::int64_t> (static_cast<std::int64_t> (segment), untilLoopEnd));
+                YESDAW_RT_FATAL (segment >= 1);
             }
 
             processTransportSegment (outChannels, numOutputChannels, offset, segment);
@@ -109,12 +115,16 @@ public:
         }
     }
 
+    // TRANSPORT CONTROLS. These mutate plain (non-atomic) transport state that processBlock reads on the
+    // audio thread, so for H8 the caller MUST NOT invoke them concurrently with processBlock — drive them
+    // from the same thread, or publish them with external synchronization. Lock-free concurrent transport
+    // (an SPSC command seam, ADR-0006 pattern) is a tracked follow-up gated by a TSan concurrency test.
     void play() noexcept { playing_ = true; }
     void stop() noexcept { playing_ = false; }
 
     [[nodiscard]] bool locate (std::int64_t timelineFrame) noexcept
     {
-        if (timelineFrame < 0)
+        if (timelineFrame < 0 || timelineFrame > kMaxTransportFrame)
             return false;
 
         playheadFrame_ = timelineFrame;
@@ -123,7 +133,7 @@ public:
 
     [[nodiscard]] bool setLoop (std::int64_t startFrame, std::int64_t endFrame) noexcept
     {
-        if (startFrame < 0 || endFrame <= startFrame)
+        if (startFrame < 0 || endFrame <= startFrame || endFrame > kMaxTransportFrame)
             return false;
 
         loopStartFrame_ = startFrame;
@@ -171,6 +181,11 @@ public:
 
 private:
     static constexpr int kMaxDeviceOutputChannels = 64;
+
+    // Transport frames are bounded well below INT64_MAX so playhead arithmetic and the loop-split narrowing
+    // in processBlock can never overflow. ~800 years at 48 kHz — far past any real timeline, so this never
+    // rejects a musical position; it only rejects nonsense like locate(INT64_MAX).
+    static constexpr std::int64_t kMaxTransportFrame = std::int64_t { 1 } << 60;
 
     PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize) noexcept
         : sampleRate_ (sampleRate), channels_ (channels), frames_ (frames), maxBlockSize_ (maxBlockSize) {}
