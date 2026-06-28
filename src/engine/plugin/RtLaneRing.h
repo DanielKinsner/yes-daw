@@ -45,6 +45,7 @@
 #include <array>
 #include <atomic>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <new>
@@ -890,29 +891,37 @@ private:
                 const std::uint32_t ev = s.words[kHdrEventCount].load (std::memory_order_relaxed);
                 const int      wn = std::min (sf, numFrames);
 
+                // Read the published snapshot into scratch and check finiteness BEFORE committing it to
+                // out[]. A hosted plugin that emits NaN/Inf must never reach the bus or be cached as
+                // last-good — a non-finite Block is treated as a miss and fails open (ADR-0002 #1 keeps the
+                // bus finite; closes the close-out's "emit-NaN: bus output finite every Block" clause).
+                bool snapshotFinite = true;
                 for (int c = 0; c < channels; ++c)
-                {
                     for (int f = 0; f < wn; ++f)
                     {
                         const float sample = loadFloatWord (s.words, audioWord (c, f));
                         freshScratch_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)] = sample;
-                        if (c < writableChannels && out[c] != nullptr)
-                            out[c][f] = sample;
+                        if (! std::isfinite (sample))
+                            snapshotFinite = false;
                     }
-                }
 
                 // Acquire fence: pin the relaxed payload loads ABOVE the v2 re-read (portable seqlock).
                 std::atomic_thread_fence (std::memory_order_acquire);
                 const std::uint64_t v2 = s.version->load (std::memory_order_relaxed);
-                if (v1 == v2 && bi == expectedBlock)   // consistent snapshot AND the Block we wanted
+                if (v1 == v2 && bi == expectedBlock && snapshotFinite)   // consistent, the Block we wanted, finite
                 {
                     fresh = true;
                     gotEvents = ev;
                     gotFrames = static_cast<std::uint32_t> (wn);
                     for (int c = 0; c < writableChannels; ++c)
+                    {
+                        for (int f = 0; f < wn; ++f)
+                            if (out[c] != nullptr)
+                                out[c][f] = freshScratch_[static_cast<std::size_t> (c) * maxBlock_ + static_cast<std::size_t> (f)];
                         for (int f = wn; f < numFrames; ++f)
                             if (out[c] != nullptr)
                                 out[c][f] = 0.0f;
+                    }
                 }
             }
         }

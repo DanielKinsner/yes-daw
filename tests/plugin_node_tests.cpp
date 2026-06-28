@@ -268,6 +268,70 @@ TEST_CASE ("PluginNode fails open (last-good -> silence -> bypass) when the stub
     }
 }
 
+TEST_CASE ("PluginNode scrubs a non-finite Block from the child - the bus stays finite and fails open",
+           "[plugin][graph][failopen][nan]")
+{
+    constexpr NodeId kSrc = 220, kPlugin = 221;
+    constexpr int    B  = 8, ch = 1;
+
+    auto src    = std::make_unique<BlockSignalSource> (kSrc, ch);
+    auto plugin = std::make_unique<PluginNode> (kPlugin, ch, B);
+    plugin->setFailOpenThresholds (/*lastGoodHold*/ 4, /*bypassAfter*/ 32);
+    plugin->setInput (src.get());
+    PluginNode* const p = plugin.get();
+
+    auto master = std::make_unique<MasterNode> (kMasterId, ch);
+    master->setInputNodes ({ plugin.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 3;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = B;
+    inputs.nodes.push_back (std::move (src));
+    inputs.nodes.push_back (std::move (plugin));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+
+    // Prime with the default identity stub so there is a finite last-good to fall open to.
+    for (std::uint64_t n = 0; n <= 2; ++n)
+    {
+        render (*graph, B);
+        REQUIRE (p->serviceStubChild());
+    }
+    {
+        const std::vector<float> out = render (*graph, B);
+        REQUIRE (p->lastOutputSource() == RtLaneOutput::Fresh);
+        for (float v : out)
+            REQUIRE (std::isfinite (v));
+    }
+
+    // The child now emits NaN every Block. The ring must reject it: never deliver it Fresh, never let it
+    // reach the bus, never cache it as last-good. Without the finiteness scrub, the NaN reaches out[] and
+    // this test's std::isfinite REQUIRE fails - so it is a real negative control for the scrub.
+    p->setStubProcessor ([] (std::span<const yesdaw::engine::Event>, const float* const*, float* const* out,
+                             int channels, int frames) noexcept
+    {
+        for (int c = 0; c < channels; ++c)
+            for (int f = 0; f < frames; ++f)
+                out[c][f] = std::numeric_limits<float>::quiet_NaN();
+    });
+
+    bool anyFailOpen = false;
+    for (int blk = 0; blk < 6; ++blk)
+    {
+        const std::vector<float> out = render (*graph, B);
+        for (float v : out)
+            REQUIRE (std::isfinite (v));                       // the scrub: the bus never goes non-finite
+        if (p->lastOutputSource() != RtLaneOutput::Fresh)
+            anyFailOpen = true;
+        REQUIRE (p->serviceStubChild());                       // child publishes the next NaN Block
+    }
+    REQUIRE (anyFailOpen);                                      // the NaN Blocks were rejected, not delivered Fresh
+}
+
 TEST_CASE ("PluginNode's reported latency drives PDC convergence (alignment-sensitive)", "[plugin][graph][pdc]")
 {
     constexpr NodeId kMainSrc = 220, kSideSrc = 221, kPlugin = 222, kSc = 223;
