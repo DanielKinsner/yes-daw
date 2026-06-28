@@ -51,12 +51,27 @@ Honest scope: ADR-0024 deliberately chose scheduled render jobs over immutable g
 first scheduler. Per-node DAG work-stealing inside one live `CompiledGraph` still needs a parallel-aware
 buffer-pool allocation plan and remains the next scheduler deepening.
 
+**Reviewed + hardened (2026-06-28, Claude).** Adversarial review replaced a tautological determinism
+negative control (float math that never ran the scheduler) with one that drives the real graph, and gave
+the 100-track soak a deterministic parallel↔serial bit-identity check at scale. **Known deferrals
+(tracked):**
+- **Scheduler is stateless-only, ungated (the gating decision before H10).** Block-level dispatch is
+  correct only when every node is keyed by absolute frame; a DelayNode/automated-fader/PDC/instrument-
+  pending graph is silently mis-rendered and the all-stateless determinism fixture can't catch it. Land a
+  `blockParallelSafe` node property + a scheduler refusal + a DelayNode test (small ADR-0024 follow-up)
+  before H10 wires stateful effects.
+- **Transport concurrency round 2.** Control-side getters read non-atomic fields the audio thread writes
+  (UB on a concurrent UI read); the SPSC queue is single-writer. Make the transport fields atomic + add a
+  concurrent-reader TSan test before H11 binds a playhead readout.
+- **Blacklist is the persistence action only** (no live crash triggers it — H3 wiring debt unmoved); the
+  "parser fuzz" is a hand-written validator-regression corpus, not byte-level fuzzing.
+
 Local verification: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; focused H8/H9 lane
 `YesDawMidiTimingCheck|YesDawOfflineRenderCheck|YesDawPlaybackCheck|YesDawSchedulerCheck` = **4/4**; full
 `ctest --preset ci --output-on-failure` = **240/240**.
 
-**Next:** push this checkpoint; remote CI is the gate, then H10 opens with mixing/mastering features and
-interchange (`docs/goals/roadmap.md`).
+**Next:** push; remote CI is the gate; then Dan's call on the stateless-graph scheduler guard before H10
+opens with mixing/mastering features and interchange (`docs/goals/roadmap.md`).
 
 ## The plan
 

@@ -21,7 +21,12 @@ instrument with transport-aware locate/loop behavior. Local verification: `cmake
 **240/240**. Honest scope: ADR-0024 is the first deterministic scheduled-worker executor, not final
 per-node DAG work-stealing inside one live `CompiledGraph`; and the live plugin-host coordinator still
 needs stable plugin-identity plumbing before it can execute blacklist persistence automatically from a
-child-process failure. **Next:** push this checkpoint and use remote CI as the gate; then H10 opens.
+child-process failure. **H9 was then adversarially reviewed + hardened** (Claude): the determinism
+negative control was a float-math tautology and the parallel soak never compared parallel↔serial at scale —
+both fixed so the gate bites. **One decision for Dan before H10:** the scheduler is only correct for
+*stateless* graphs (sources keyed by absolute frame); a DelayNode/automation/PDC graph would be silently
+mis-rendered and nothing guards it — recommend a `blockParallelSafe` refusal as a small H9-follow-up ADR
+before H10 adds stateful nodes. **Next:** push; remote CI is the gate; then that decision, then H10.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -47,8 +52,37 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H9 closed locally; push and remote CI gate
-- **Latest (2026-06-28): verified H8 close-out, then completed H9 engine scaling + robustness locally.**
+## Now — H9 reviewed + hardened; push, then Dan's scheduler-safety decision before H10
+- **Latest (2026-06-28): adversarial review of Codex's H9 landing + patches (Claude).** Same multi-agent
+  treatment as H6/H7/H8 (4 diverse-lens finders → per-finding skeptical verification, 22 raw → 20 confirmed,
+  heavy dupes) adjudicated by hand. Verdict: the implementation is solid and honestly scoped (ADR-0024
+  openly says it's block-parallel-over-snapshots, not the per-node DAG scheduler), but the gates leaned on
+  two no-bite patterns. **Fixed (2 small commits):** (1) the determinism **negative control was a float
+  tautology** (`1e20+1-1e20`) that never ran the scheduler — replaced with one that drives the real graph
+  WITHOUT absolute transport frames in two block orders and proves they diverge (so the bit-identity gate is
+  meaningful, not passing by construction); (2) the **100-track parallel soak never compared parallel↔serial
+  at scale** — added a deterministic bit-identity-vs-serial check on the heavy fixture + a "every block was
+  timed by a worker" check, so a contention/ordering bug at scale bites on every platform (the timing
+  assertion is compiled out on Windows). **Flagged for Dan (not patched — design/honesty calls):**
+  - **#1 scheduler is stateless-only, no guard (HIGH):** block-level `fetch_add` dispatch + per-worker graph
+    snapshots are correct only when every node is keyed by absolute frame. A DelayNode ring / automated
+    fader ramp / PDC LatencyNode / instrument pending-queue would be silently mis-rendered (and the
+    determinism fixture has zero stateful nodes, so the gate can't catch it). Recommend a
+    `NodeProperties::blockParallelSafe` bit aggregated into the graph + a `GraphNotBlockParallelSafe` refusal
+    in `renderProjectWithScheduler` + a DelayNode test — a small ADR-0024-follow-up, landed **before** H10
+    wires delay/reverb/automation/time-stretch into the scheduler. This is the headline item.
+  - **Transport concurrency round 2 (latent, no live caller):** control-side getters
+    (`playheadFrame()`/`isPlaying()`/…) read non-atomic fields the audio thread now writes → UB on the first
+    concurrent UI read; and the SPSC command queue is single-writer (multi control-thread = UB). Fix: make
+    the 5 transport fields atomic + a control-thread-id/spinlock guard + a concurrent-reader TSan test.
+    Natural ADR-0023 follow-up before the H11 UI binds a playhead readout.
+  - **Honesty/naming:** the blacklist test proves only the persistence *action* (no live crash triggers it —
+    the H3 wiring debt is unmoved); the "parser fuzz" is a 9-row hand-written validator-regression suite,
+    not byte-level fuzzing; the soak's `underruns==0` echoes a hardcoded `0u`. All honestly limited, worth a
+    rename + a tracked real-fuzz/real-wiring follow-up.
+  Focused gate: **YesDawSchedulerCheck** still green; full `ctest --preset ci` **240/240**. **Next:** push;
+  remote CI is the gate; then Dan's call on the stateless-graph guard before H10 code lands.
+- **Earlier (2026-06-28): verified H8 close-out, then completed H9 engine scaling + robustness locally.**
   H8 looked good to go: the handoff/horizon were already closed and the latest remote CI on `main` was
   green. H9 accepted ADR-0023 (transport command queue), ADR-0024 (deterministic scheduled worker
   executor), ADR-0025 (blacklist-on-failure action), and ADR-0026 (built-in instrument track auto-wire).
