@@ -255,34 +255,38 @@ struct ResolvedClipWindow
                 return nullptr;
             }
 
+            // Hand the RAW windowed source to DecodedClipNode and let IT apply the fades. The realtime
+            // engine plays Clips through DecodedClipNode's own (linear) fade, so pre-baking a different
+            // (equal-power) curve on the control side here would make the exported file diverge from what
+            // playback produces. Rendering through the same node keeps export == playback by construction;
+            // clip.gain stays a projection fader. (Validate the fade/gain metadata first, as the envelope
+            // evaluator did, so malformed Clips are still rejected.)
+            if (! detail::clipEditMetadataIsStorageSafe (clip))
+            {
+                factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
+                return nullptr;
+            }
+
             samples.resize (static_cast<std::size_t> (window->sourceFrames));
-            Clip fadeOnly = clip;
-            fadeOnly.gain = 1.0f;
             for (std::uint64_t frame = 0; frame < window->sourceFrames; ++frame)
             {
                 const std::uint64_t sourceFrame = clip.srcOffset + frame;
                 const float source = decoded->interleavedSamples[static_cast<std::size_t> (sourceFrame)];
-                const auto envelope = evaluateClipGainEnvelope (fadeOnly, static_cast<Tick> (frame));
-                if (! envelope.valid)
+                if (! std::isfinite (source))
                 {
                     factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
                     return nullptr;
                 }
 
-                const float faded = source * envelope.gain;
-                if (! std::isfinite (faded))
-                {
-                    factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
-                    return nullptr;
-                }
-
-                samples[static_cast<std::size_t> (frame)] = faded;
+                samples[static_cast<std::size_t> (frame)] = source;
             }
 
             return std::make_unique<DecodedClipNode> (expectedSourceId,
                                                       std::move (samples),
                                                       1,
-                                                      static_cast<std::int64_t> (window->startFrame));
+                                                      static_cast<std::int64_t> (window->startFrame),
+                                                      static_cast<std::int64_t> (clip.fadeIn),
+                                                      static_cast<std::int64_t> (clip.fadeOut));
         },
         projection,
         &result.projectError);

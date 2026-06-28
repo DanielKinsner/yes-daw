@@ -134,32 +134,25 @@ bool buffersNear (std::span<const float> a, std::span<const float> b, double tol
     return true;
 }
 
-float equalPowerFadeGain (double x) noexcept
+// The reference fade is the canonical LINEAR ramp that DecodedClipNode applies on the realtime path
+// (fade-in * fade-out, anchored to the clip's source-frame count) — derived from the textbook definition,
+// not copied from the engine's equal-power polynomial. The offline renderer plays Clips through that same
+// node, so this is what both the export and playback produce.
+float independentLinearFade (const Clip& clip, Tick localFrame, std::uint64_t totalFrames) noexcept
 {
-    const double clamped = std::clamp (x, 0.0, 1.0);
-    const double bend = clamped * (1.0 - clamped);
-    const double shaped = bend * (1.0 + 1.4186 * bend) + clamped;
-    return static_cast<float> (shaped * shaped);
-}
-
-float independentFadeOnly (const Clip& clip, Tick localFrame) noexcept
-{
-    float fadeIn = 1.0f;
+    float gain = 1.0f;
     if (clip.fadeIn > 0 && localFrame < clip.fadeIn)
-        fadeIn = equalPowerFadeGain (static_cast<double> (localFrame) / static_cast<double> (clip.fadeIn));
+        gain *= static_cast<float> (localFrame) / static_cast<float> (clip.fadeIn);
 
-    float fadeOut = 1.0f;
     if (clip.fadeOut > 0)
     {
-        const Tick fadeStart = clip.fadeOut >= clip.timelineLength ? 0 : clip.timelineLength - clip.fadeOut;
+        const Tick fadeStart = static_cast<Tick> (totalFrames) - clip.fadeOut;
         if (localFrame >= fadeStart)
-        {
-            const double progress = static_cast<double> (localFrame - fadeStart) / static_cast<double> (clip.fadeOut);
-            fadeOut = equalPowerFadeGain (1.0 - progress);
-        }
+            gain *= static_cast<float> (static_cast<Tick> (totalFrames) - localFrame)
+                  / static_cast<float> (clip.fadeOut);
     }
 
-    return std::min (fadeIn, fadeOut);
+    return gain;
 }
 
 struct OfflineFixture
@@ -265,7 +258,7 @@ std::vector<float> independentProjectReference (const OfflineFixture& fixture, i
         {
             const float source = samples[static_cast<std::size_t> (clip.srcOffset + local)];
             const float value = source
-                              * independentFadeOnly (clip, static_cast<Tick> (local))
+                              * independentLinearFade (clip, static_cast<Tick> (local), sourceFrames)
                               * clip.gain
                               * kCenterGain;
             const std::size_t frame = static_cast<std::size_t> (start + static_cast<Tick> (local));
