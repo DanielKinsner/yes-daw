@@ -326,6 +326,14 @@ target_link_libraries(YesDawOfflineRenderCheck PRIVATE Catch2::Catch2WithMain sq
 yesdaw_harden(YesDawOfflineRenderCheck)
 add_test(NAME YesDawOfflineRenderCheck COMMAND $<TARGET_FILE:YesDawOfflineRenderCheck>)
 
+# --- Playback runtime check (H8; Project -> PlaybackEngine -> realtime Runtime == independent reference) ---
+add_executable(YesDawPlaybackCheck tests/playback_tests.cpp)
+target_include_directories(YesDawPlaybackCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawPlaybackCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawPlaybackCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawPlaybackCheck)
+add_test(NAME YesDawPlaybackCheck COMMAND $<TARGET_FILE:YesDawPlaybackCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -468,6 +476,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawRecordingCheck
   YesDawReliabilityCheck
   YesDawOfflineRenderCheck
+  YesDawPlaybackCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck
