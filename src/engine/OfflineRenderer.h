@@ -1,7 +1,9 @@
-// YES DAW - real offline Project renderer (H7).
+// YES DAW - real offline Project renderer (H7) + shared Project->graph builder (H8).
 //
-// Control-side entrypoint: build a ProjectMixerProjection with decoded Asset samples, process the full
-// timeline through CompiledGraph, and return interleaved Master bus samples for export.
+// Control-side entrypoint: build a ProjectMixerProjection with decoded Asset samples (buildProjectGraph),
+// then either process the full timeline through CompiledGraph for offline export (renderOfflineProject) or
+// publish it to the realtime Runtime for playback (PlaybackEngine, H8). Offline render and playback share
+// the EXACT same graph, so the H7 gate's independent-reference proof carries to playback.
 
 #pragma once
 
@@ -64,6 +66,22 @@ struct OfflineRenderResult
     std::uint16_t               channels = 0;
     std::uint64_t               frames = 0;
     std::vector<float>          interleavedSamples;
+
+    [[nodiscard]] bool ok() const noexcept { return status == OfflineRenderStatus::Ok; }
+};
+
+// The compiled Project graph plus the resolved output geometry (full timeline length including the graph
+// tail, and the Master channel count). Shared by the offline renderer and the realtime PlaybackEngine.
+struct ProjectGraphResult
+{
+    OfflineRenderStatus            status = OfflineRenderStatus::Ok;
+    ProjectMixerProjectionError    projectError;
+    MixerProjectionError           mixerError;
+    std::unique_ptr<CompiledGraph> graph;
+    SampleRate                     sampleRate;
+    std::uint16_t                  channels = 0;
+    std::uint64_t                  frames = 0;          // full timeline, including the graph/PDC tail
+    int                            maxBlockSize = 128;
 
     [[nodiscard]] bool ok() const noexcept { return status == OfflineRenderStatus::Ok; }
 };
@@ -136,12 +154,14 @@ struct ResolvedClipWindow
 
 } // namespace detail
 
-[[nodiscard]] inline OfflineRenderResult renderOfflineProject (const Project& project,
-                                                               std::span<const DecodedAssetAudio> decodedAssets,
-                                                               OfflineRenderOptions options = {})
+// Build the compiled Project graph (mixer projection over decoded Asset sources). Pure control-side.
+[[nodiscard]] inline ProjectGraphResult buildProjectGraph (const Project& project,
+                                                           std::span<const DecodedAssetAudio> decodedAssets,
+                                                           OfflineRenderOptions options = {})
 {
-    OfflineRenderResult result;
+    ProjectGraphResult result;
     result.sampleRate = project.sampleRate;
+    result.maxBlockSize = options.maxBlockSize;
 
     if (! project.hasValidAssetClipIndirection() || options.maxBlockSize <= 0)
     {
@@ -324,7 +344,33 @@ struct ResolvedClipWindow
         return result;
     }
 
-    const std::uint16_t channels = static_cast<std::uint16_t> (masterChannels);
+    result.graph = std::move (graph);
+    result.channels = static_cast<std::uint16_t> (masterChannels);
+    result.frames = timelineEndFrames;
+    result.status = OfflineRenderStatus::Ok;
+    return result;
+}
+
+[[nodiscard]] inline OfflineRenderResult renderOfflineProject (const Project& project,
+                                                               std::span<const DecodedAssetAudio> decodedAssets,
+                                                               OfflineRenderOptions options = {})
+{
+    OfflineRenderResult result;
+    result.sampleRate = project.sampleRate;
+
+    ProjectGraphResult built = buildProjectGraph (project, decodedAssets, options);
+    result.projectError = built.projectError;
+    result.mixerError = built.mixerError;
+    if (! built.ok())
+    {
+        result.status = built.status;
+        return result;
+    }
+
+    const std::uint16_t channels = built.channels;
+    const std::uint64_t timelineEndFrames = built.frames;
+    CompiledGraph& graph = *built.graph;
+
     if (timelineEndFrames > std::numeric_limits<std::uint64_t>::max() / channels)
     {
         result.status = OfflineRenderStatus::OutputTooLarge;
@@ -349,7 +395,7 @@ struct ResolvedClipWindow
     {
         const std::uint64_t remaining = timelineEndFrames - offset;
         const int blockFrames = static_cast<int> (std::min<std::uint64_t> (remaining, static_cast<std::uint64_t> (options.maxBlockSize)));
-        graph->process (outputs.data(), channels, blockFrames);
+        graph.process (outputs.data(), channels, blockFrames);
 
         for (int frame = 0; frame < blockFrames; ++frame)
         {
