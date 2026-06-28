@@ -8,9 +8,12 @@
 #pragma once
 
 #include "engine/ClipEnvelope.h"
+#include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/nodes/DecodedClipNode.h"
+#include "engine/nodes/DecodedMidiClipNode.h"
+#include "engine/nodes/ImpulseInstrumentNode.h"
 
 #include <algorithm>
 #include <cmath>
@@ -51,6 +54,7 @@ enum class OfflineRenderStatus : std::uint8_t
     UnsupportedAssetChannels,
     UnsupportedTimeBase,
     SourceDecodeFailed,
+    MidiProjectionFailed,
     ProjectProjectionFailed,
     MixerProjectionFailed,
     OutputTooLarge,
@@ -114,6 +118,16 @@ struct ResolvedClipWindow
     return true;
 }
 
+[[nodiscard]] inline bool frameDoubleToU64Ceil (double frame, std::uint64_t& out) noexcept
+{
+    if (! std::isfinite (frame) || frame < 0.0
+        || frame > static_cast<double> (std::numeric_limits<std::uint64_t>::max()))
+        return false;
+
+    out = static_cast<std::uint64_t> (std::ceil (frame));
+    return true;
+}
+
 [[nodiscard]] inline const DecodedAssetAudio* findDecodedAsset (std::span<const DecodedAssetAudio> assets,
                                                                 EntityId id) noexcept
 {
@@ -150,6 +164,51 @@ struct ResolvedClipWindow
     const std::uint64_t expectedSamples = decoded.frames * decoded.channels;
     return expectedSamples <= static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max())
         && decoded.interleavedSamples.size() == static_cast<std::size_t> (expectedSamples);
+}
+
+[[nodiscard]] inline MidiFlattenStatus flattenMidiClipForProjection (const MidiClip& clip,
+                                                                     TempoMapView tempoMap,
+                                                                     SampleRate sampleRate,
+                                                                     std::vector<ScheduledMidiEvent>& outTimeline)
+{
+    if (clip.timeBase == TimeBase::SampleLocked)
+    {
+        return flattenMidiClipToTimeline (
+            clip,
+            [] (Tick tick, double& frame) noexcept
+            {
+                if (tick < 0)
+                    return false;
+                frame = static_cast<double> (tick);
+                return std::isfinite (frame);
+            },
+            outTimeline);
+    }
+
+    if (clip.timeBase == TimeBase::TempoLocked)
+        return flattenMidiClipToTimeline (clip, tempoMap, sampleRate, outTimeline);
+
+    outTimeline.clear();
+    return MidiFlattenStatus::InvalidInput;
+}
+
+[[nodiscard]] inline bool midiClipEndFrame (const MidiClip& clip,
+                                            TempoMapView tempoMap,
+                                            SampleRate sampleRate,
+                                            std::uint64_t& outFrame) noexcept
+{
+    Tick endTick = 0;
+    if (! addMidiTickChecked (clip.timelineStart, clip.timelineLength, endTick))
+        return false;
+
+    if (clip.timeBase == TimeBase::SampleLocked)
+        return tickAsSampleLockedFrame (endTick, outFrame);
+
+    if (clip.timeBase != TimeBase::TempoLocked)
+        return false;
+
+    double frame = 0.0;
+    return tickToFrame (tempoMap, sampleRate, endTick, frame) && frameDoubleToU64Ceil (frame, outFrame);
 }
 
 } // namespace detail
@@ -200,6 +259,27 @@ struct ResolvedClipWindow
 
         timelineEndFrames = std::max (timelineEndFrames, clipEnd);
         resolved.push_back ({ clip.id, startFrame, lengthFrames, sourceFrames });
+    }
+
+    for (const MidiClip& midiClip : project.midiClips)
+    {
+        if (! midiClip.isValid())
+        {
+            result.status = OfflineRenderStatus::InvalidProject;
+            return result;
+        }
+
+        std::uint64_t clipEnd = 0;
+        if (! detail::midiClipEndFrame (midiClip,
+                                        TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                        project.sampleRate,
+                                        clipEnd))
+        {
+            result.status = OfflineRenderStatus::InvalidTimeline;
+            return result;
+        }
+
+        timelineEndFrames = std::max (timelineEndFrames, clipEnd);
     }
 
     for (const Marker& marker : project.markers)
@@ -317,6 +397,39 @@ struct ResolvedClipWindow
             ? OfflineRenderStatus::ProjectProjectionFailed
             : factoryStatus;
         return result;
+    }
+
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        const MidiClip& midiClip = project.midiClips[i];
+
+        std::vector<ScheduledMidiEvent> timeline;
+        if (detail::flattenMidiClipForProjection (midiClip,
+                                                  TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                                  project.sampleRate,
+                                                  timeline)
+            != MidiFlattenStatus::Ok)
+        {
+            result.status = OfflineRenderStatus::MidiProjectionFailed;
+            return result;
+        }
+
+        const NodeId midiSourceId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::MidiSource);
+        const NodeId instrumentId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument);
+        auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
+        auto instrument = std::make_unique<ImpulseInstrumentNode> (instrumentId, 0, 1);
+        instrument->setEventInput (midiSource.get());
+
+        MixerTrackProjection track;
+        track.supportNodes.push_back (std::move (midiSource));
+        track.source = std::move (instrument);
+        track.faderNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Fader);
+        track.panNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Pan);
+        track.meterNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Meter);
+        track.linearGain = 1.0f;
+        track.pan = 0.0f;
+        projection.tracks.push_back (std::move (track));
+        (void) i;
     }
 
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &result.mixerError);

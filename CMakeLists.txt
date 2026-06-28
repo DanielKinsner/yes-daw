@@ -335,6 +335,17 @@ target_link_libraries(YesDawPlaybackCheck PRIVATE Catch2::Catch2WithMain sqlite3
 yesdaw_harden(YesDawPlaybackCheck)
 add_test(NAME YesDawPlaybackCheck COMMAND $<TARGET_FILE:YesDawPlaybackCheck>)
 
+# --- Scheduler/robustness check (H9; deterministic scheduled render + transport/fuzz/plugin gates) ---
+add_executable(YesDawSchedulerCheck tests/scheduler_tests.cpp)
+target_include_directories(YesDawSchedulerCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawSchedulerCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawSchedulerCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawSchedulerCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawSchedulerCheck)
+add_test(NAME YesDawSchedulerCheck COMMAND $<TARGET_FILE:YesDawSchedulerCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -478,6 +489,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawReliabilityCheck
   YesDawOfflineRenderCheck
   YesDawPlaybackCheck
+  YesDawSchedulerCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

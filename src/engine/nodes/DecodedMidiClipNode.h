@@ -56,8 +56,12 @@ public:
             return;
         }
 
-        const std::int64_t blockStart = cursorFrame_;
+        const bool hasTransportFrame = args.transport.hasTimelineFrame;
+        const std::int64_t blockStart = hasTransportFrame ? args.transport.timelineFrame : cursorFrame_;
         const std::int64_t blockEnd   = blockStart + static_cast<std::int64_t> (args.numFrames);
+
+        if (hasTransportFrame)
+            nextIndex_ = firstEventIndexAtOrAfter (blockStart);
 
         std::size_t written = 0;
         while (nextIndex_ < timeline_.size() && timeline_[nextIndex_].frame < blockEnd)
@@ -94,6 +98,28 @@ public:
     [[nodiscard]] std::size_t eventCount() const noexcept { return timeline_.size(); }
 
 private:
+    [[nodiscard]] std::size_t firstEventIndexAtOrAfter (std::int64_t frame) const noexcept YESDAW_RT_HOT
+    {
+        std::size_t first = 0;
+        std::size_t count = timeline_.size();
+        while (count > 0)
+        {
+            const std::size_t step = count / 2u;
+            const std::size_t mid = first + step;
+            if (timeline_[mid].frame < frame)
+            {
+                first = mid + 1u;
+                count -= step + 1u;
+            }
+            else
+            {
+                count = step;
+            }
+        }
+
+        return first;
+    }
+
     static void silenceAudio (const ProcessArgs& args) noexcept YESDAW_RT_HOT
     {
         for (int c = 0; c < args.audio.numChannels; ++c)

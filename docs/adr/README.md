@@ -40,6 +40,10 @@ how "measure twice, cut once" leaves a paper trail.
 | [0020](0020-roadmap-horizons-h7-h10.md) | Roadmap extension — horizons H7–H11 (UI as capstone) | Accepted |
 | [0021](0021-offline-render-export-format.md) | Offline render export format | Accepted |
 | [0022](0022-playback-transport-model.md) | Playback transport model | Accepted |
+| [0023](0023-transport-command-queue.md) | Transport command queue | Accepted |
+| [0024](0024-deterministic-engine-scheduler.md) | Deterministic engine scheduler | Accepted |
+| [0025](0025-blacklist-on-failure-action.md) | Blacklist-on-failure action | Accepted |
+| [0026](0026-built-in-instrument-track-autowire.md) | Built-in instrument-track auto-wire | Accepted |
 
 ## Decision status (the five research forks)
 

@@ -43,6 +43,11 @@ _Avoid_: glitch, stutter, xrun
 The global clock: playhead, play/stop/record, tempo map, markers. In H8 playback code, the transport
 also carries the current absolute Project `timelineFrame` for the audio callback segment.
 
+**Transport command queue**:
+The bounded SPSC control-to-audio queue that carries play/stop/locate/loop changes into the audio
+callback. The audio thread owns live transport state after it drains this queue.
+_Avoid_: calling transport fields directly from the control thread
+
 **Loop region**:
 A half-open timeline range `[start, end)` that repeats while the Transport is playing.
 _Avoid_: inclusive loop end
@@ -142,6 +147,15 @@ _Avoid_: nudging, manual offset
 The flat, contiguous, read-only result of compiling the editable routing — what a Snapshot *is*. The
 audio thread iterates it in order with no scheduling or allocation.
 
+**Determinism gate**:
+The scheduler check that requires the same Project graph to produce bit-identical output across worker
+counts and the serial render reference. It fails on arrival-order-dependent floating-point behavior.
+
+**Work-stealing scheduler**:
+The engine scheduler that hands ready render jobs to a fixed worker set while preserving deterministic
+sample order. H9 starts with scheduled render jobs over immutable graph snapshots; per-node DAG stealing
+comes after the parallel-aware buffer pool.
+
 **Event**:
 One sample-accurate, block-sliced thing that happens (a parameter change, a note, an automation point).
 Carries an exact offset inside the Block. MIDI is one kind of Event.
@@ -230,6 +244,10 @@ _Avoid_: MIDI editor (too broad when you mean Note editing)
 **Instrument Node**:
 A Node that consumes Note Events and produces audio.
 _Avoid_: synth plugin (unless it is specifically a hosted Plugin)
+
+**Instrument track auto-wire**:
+The H9 headless bridge that turns a Project MIDI Clip into `DecodedMidiClipNode -> ImpulseInstrumentNode`
+inside the mixer graph. It proves timing and transport; it is not the final user-facing instrument model.
 
 **MIDI-effect Node**:
 A Node that consumes Events and produces transformed Events, such as transpose, scale/chord, or arp.

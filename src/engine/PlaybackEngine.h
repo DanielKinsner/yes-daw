@@ -12,6 +12,8 @@
 #include "engine/RuntimeAudioDriver.h"
 #include "rt/RtHot.h"
 
+#include "choc/containers/choc_SingleReaderSingleWriterFIFO.h"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -19,6 +21,7 @@
 #include <limits>
 #include <memory>
 #include <span>
+#include <type_traits>
 
 namespace yesdaw::engine {
 
@@ -82,6 +85,8 @@ public:
         if (numOutputChannels > 0)
             YESDAW_RT_FATAL (outChannels != nullptr);
 
+        drainTransportCommands();
+
         if (! playing_)
         {
             zeroOutputChannels (outChannels, numOutputChannels, numFrames);
@@ -115,20 +120,17 @@ public:
         }
     }
 
-    // TRANSPORT CONTROLS. These mutate plain (non-atomic) transport state that processBlock reads on the
-    // audio thread, so for H8 the caller MUST NOT invoke them concurrently with processBlock — drive them
-    // from the same thread, or publish them with external synchronization. Lock-free concurrent transport
-    // (an SPSC command seam, ADR-0006 pattern) is a tracked follow-up gated by a TSan concurrency test.
-    void play() noexcept { playing_ = true; }
-    void stop() noexcept { playing_ = false; }
+    // CONTROL THREAD: transport changes travel through one bounded SPSC command queue. The audio callback
+    // drains it at the top of each Block and remains the sole owner of the live transport fields.
+    bool play() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::Play }); }
+    bool stop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::Stop }); }
 
     [[nodiscard]] bool locate (std::int64_t timelineFrame) noexcept
     {
         if (timelineFrame < 0 || timelineFrame > kMaxTransportFrame)
             return false;
 
-        playheadFrame_ = timelineFrame;
-        return true;
+        return postTransportCommand (TransportCommand { TransportCommandType::Locate, timelineFrame });
     }
 
     [[nodiscard]] bool setLoop (std::int64_t startFrame, std::int64_t endFrame) noexcept
@@ -136,15 +138,10 @@ public:
         if (startFrame < 0 || endFrame <= startFrame || endFrame > kMaxTransportFrame)
             return false;
 
-        loopStartFrame_ = startFrame;
-        loopEndFrame_ = endFrame;
-        loopEnabled_ = true;
-        if (playheadFrame_ >= loopEndFrame_)
-            playheadFrame_ = loopStartFrame_;
-        return true;
+        return postTransportCommand (TransportCommand { TransportCommandType::SetLoop, startFrame, endFrame });
     }
 
-    void clearLoop() noexcept { loopEnabled_ = false; }
+    bool clearLoop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::ClearLoop }); }
 
     [[nodiscard]] RecordingCaptureResult captureRecordingInputBlock (
         RecordingChunkFifo& fifo,
@@ -184,14 +181,84 @@ public:
 
 private:
     static constexpr int kMaxDeviceOutputChannels = 64;
+    static constexpr std::uint32_t kTransportCommandCapacity = 512;
+    static constexpr std::uint32_t kMaxTransportCommandsPerBlock = 64;
 
     // Transport frames are bounded well below INT64_MAX so playhead arithmetic and the loop-split narrowing
     // in processBlock can never overflow. ~800 years at 48 kHz — far past any real timeline, so this never
     // rejects a musical position; it only rejects nonsense like locate(INT64_MAX).
     static constexpr std::int64_t kMaxTransportFrame = std::int64_t { 1 } << 60;
 
-    PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize) noexcept
-        : sampleRate_ (sampleRate), channels_ (channels), frames_ (frames), maxBlockSize_ (maxBlockSize) {}
+    enum class TransportCommandType : std::uint8_t
+    {
+        Play,
+        Stop,
+        Locate,
+        SetLoop,
+        ClearLoop
+    };
+
+    struct TransportCommand
+    {
+        TransportCommandType type = TransportCommandType::Play;
+        std::int64_t a = 0;
+        std::int64_t b = 0;
+    };
+    static_assert (std::is_trivially_copyable_v<TransportCommand>,
+                   "TransportCommand must pass through the SPSC queue losslessly");
+
+    PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize)
+        : sampleRate_ (sampleRate), channels_ (channels), frames_ (frames), maxBlockSize_ (maxBlockSize)
+    {
+        transportCommands_.reset (kTransportCommandCapacity);
+    }
+
+    [[nodiscard]] bool postTransportCommand (TransportCommand command) noexcept
+    {
+        return transportCommands_.push (command);
+    }
+
+    void drainTransportCommands() noexcept YESDAW_RT_HOT
+    {
+        TransportCommand command;
+        for (std::uint32_t i = 0; i < kMaxTransportCommandsPerBlock; ++i)
+        {
+            if (! transportCommands_.pop (command))
+                break;
+
+            applyTransportCommand (command);
+        }
+    }
+
+    void applyTransportCommand (TransportCommand command) noexcept YESDAW_RT_HOT
+    {
+        switch (command.type)
+        {
+            case TransportCommandType::Play:
+                playing_ = true;
+                break;
+
+            case TransportCommandType::Stop:
+                playing_ = false;
+                break;
+
+            case TransportCommandType::Locate:
+                playheadFrame_ = command.a;
+                break;
+
+            case TransportCommandType::SetLoop:
+                loopStartFrame_ = command.a;
+                loopEndFrame_ = command.b;
+                loopEnabled_ = true;
+                if (playheadFrame_ >= loopEndFrame_)
+                    playheadFrame_ = loopStartFrame_;
+                break;
+
+            case TransportCommandType::ClearLoop:
+                loopEnabled_ = false;
+                break;
+        }
+    }
 
     static void zeroOutputChannels (float* const* outChannels,
                                     int numOutputChannels,
@@ -229,6 +296,7 @@ private:
     }
 
     RuntimeAudioDriver driver_;
+    choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     SampleRate         sampleRate_ {};
     std::uint16_t      channels_ = 0;
     std::uint64_t      frames_ = 0;

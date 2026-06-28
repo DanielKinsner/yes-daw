@@ -150,19 +150,27 @@ and autosave (H6) their first production callers. **The audible milestone.**
 render of the same Project, **and** a one-command self-asserting hardware smoke plays a known Project out
 the real device with zero Underruns at a 128-frame Block (ADR-0005 script pattern; absorbs the open H0
 real-hardware soak).
-**Status (2026-06-28):** closed locally. ADR-0022 accepted the absolute-frame transport model; `PlaybackEngine`
+**Status (2026-06-28):** closed and hardened. ADR-0022 accepted the absolute-frame transport model; `PlaybackEngine`
 plays through `RuntimeAudioDriver`, supports play/stop/locate/loop, drives H5 recording capture, and exposes
-the edit tick used by `persistence/PlaybackAutosave.h`. `YesDawPlaybackCheck` passes 6 cases / 125 assertions
-and the full local `ci` preset passes 239/239. The one-command hardware smoke is tracked as
+the edit tick used by `persistence/PlaybackAutosave.h`. Follow-on hardening added bounded transport
+validation, loop/locate parity coverage, and biting recording/autosave controls. `YesDawPlaybackCheck`
+passes 9 cases / 271 assertions and the full local `ci` preset passes 239/239. The one-command hardware smoke is tracked as
 `tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and build-checked through `YesDawSoak --playback-project`;
 it remains an owner-machine smoke, not a CI gate.
 
 ## H9 — Engine scaling & robustness
-The multicore work-stealing scheduler + soak/fuzz hardening, and the cross-horizon debt (H3 worker
-misbehavior + blacklist-on-failure wiring; H4 CP2b MIDI auto-wire).
+The deterministic scheduled worker executor + soak/fuzz hardening, and the cross-horizon debt (H3
+blacklist-on-failure action; H4 CP2b MIDI auto-wire).
 **Exit:** the CompiledGraph produces bit-identical output across 1..N worker threads (determinism gate)
 under RTSan/TSan, the heavy-session soak holds the deadline with the parallel scheduler, and
 structure-aware fuzzing of the bundle / plugin-state parsers runs clean.
+**Status (2026-06-28):** closed locally. ADR-0023 through ADR-0026 are accepted. `YesDawSchedulerCheck`
+proves transport command queue concurrency, bit-identical scheduled render workers across 1/2/4/8 against
+H7 serial offline render, scheduled Blocks through the H6 deadline oracle, seeded bundle/plugin-state fuzz
+replay, plugin failure blacklist persistence, and MIDI auto-wire with transport locate/loop parity. Full
+local `ctest --preset ci --output-on-failure` passes 240/240. Honest scope: per-node DAG work-stealing
+inside one live `CompiledGraph` is still a scheduler deepening, and the live plugin-host coordinator still
+needs stable plugin-identity plumbing before automatic blacklist persistence from a child-process failure.
 
 ## H10 — Mixing/mastering features & interchange
 Loudness metering (libebur128), DAWproject export (interchange insurance), a time-stretch Node

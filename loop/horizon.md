@@ -1,67 +1,64 @@
-# Current horizon — H8 (Playback runtime: device I/O + transport) — CLOSED
+# Current horizon — H9 (Engine scaling & robustness) — CLOSED
 
-> This file is the oracle for "is the horizon done?". H8 closed locally on 2026-06-28.
+> This file is the oracle for "is the horizon done?". H9 closed locally on 2026-06-28.
 
 ## Exit criterion (the finish line)
 
-A Project plays through the real lock-free `Runtime` / `RuntimeAudioDriver` production path behind a
-transport, mechanically proven against the same independent reference H7 uses; recording (H5) and autosave
-(H6) get their first production callers. The only part needing real hardware — literal device output with
-zero Underruns — is a tracked one-command smoke (ADR-0005 pattern), **not** a CI gate.
+The engine gains its first deterministic parallel scheduler and the robustness debts called out at the
+H8 boundary are paid down mechanically: concurrent transport controls are safe to drive against the audio
+callback, scheduled render workers produce bit-identical output, the parallel scheduler feeds the H6
+deadline oracle, parser fuzz replays stay clean, plugin failures persist blacklist actions, and MIDI clips
+auto-wire into the Project mixer with transport-aware locate/loop behavior.
 
-**`YesDawPlaybackCheck`** is the headless CI gate (grows checkpoint by checkpoint):
+**`YesDawSchedulerCheck`** is the headless CI gate:
 
-- Plays a known Project through the real `Runtime` (publish a graph, drain the command queue, pump
-  `processDeviceBlock`) and asserts the output equals the **independent reference** (Clips summed at their
-  timeline positions with linear fade, gain, center pan) — not the engine vs itself. **[done]**
-- Proves the played output is block-size independent (bit-identical across device block sizes) and matches
-  the offline render bit-for-bit; the Runtime frees the graph on teardown. **[done]**
-- Transport: `locate(N)` plays the reference from frame N; a loop region repeats it; `stop` zeroes output
-  and freezes the playhead. **[done: ADR-0022]**
-- Recording (H5) driven from the transport aligns a take to the click reference; autosave (H6) fires on a
-  transport/edit tick and recovers through the normal validators. **[done]**
+- Deterministic scheduled render output is bit-identical across 1, 2, 4, and 8 workers and matches the H7
+  serial offline render. **[done: ADR-0024]**
+- A negative control proves arrival-order-dependent floating-point summing changes bits. **[done]**
+- `PlaybackEngine` transport controls run through an SPSC command queue so the audio thread owns live
+  transport state while a control thread drives `locate`/`setLoop`/`stop`. **[done: ADR-0023]**
+- Project MIDI clips auto-wire through a built-in impulse instrument and follow `Transport::timelineFrame`
+  for locate/loop parity. **[done: ADR-0026]**
+- Parallel scheduled Blocks feed the H6 deadline oracle; seeded parser mutations and corrupt plugin-state
+  rows are rejected/degraded cleanly; plugin crash/watchdog failure actions persist blacklist rows across
+  reopen. **[done: ADR-0025]**
 
 ## Green command
 
 ```
 cmake --preset ci
 cmake --build --preset ci
-ctest --preset ci
-ctest --test-dir build-ci -R "YesDawPlaybackCheck" --output-on-failure
+ctest --preset ci --output-on-failure
+ctest --test-dir build-ci -R "YesDawSchedulerCheck" --output-on-failure
 ```
 
 ## Status: **CLOSED — local headless gate green**
 
-H8 opened at the H7->H8 boundary (no stop — headless, per Dan) and is now complete locally. ADR-0022
-accepted the absolute-frame transport model. `src/engine/PlaybackEngine.h` now plays a Project through the
-real `Runtime` / `RuntimeAudioDriver`, supports play/stop/locate/loop, drives H5 recording capture from
-the transport playhead, and exposes an edit revision for H6 autosave ticks. `persistence/PlaybackAutosave.h`
-writes autosaves from that tick through the normal H6 bundle validators. `tools/playback-smoke.ps1` /
-`tools/playback-smoke.sh` run the tracked real-device smoke through `YesDawSoak --playback-project`; this
-is build-checked locally and remains an owner-machine hardware smoke, not CI.
+H9 is implemented by ADR-0023 through ADR-0026. `PlaybackEngine` now posts transport commands through a
+bounded lock-free SPSC queue drained at the top of `processBlock`. `GraphScheduler` partitions scheduled
+render Blocks across worker threads while keeping each immutable graph snapshot's internal sum order
+canonical, so multicore execution cannot change samples for the current Project surface. `OfflineRenderer`
+now projects MIDI clips into the mixer through a built-in impulse instrument, and `DecodedMidiClipNode`
+honors absolute transport frames for located and looped playback.
 
-**Reviewed + hardened (2026-06-28, Claude).** Adversarial review of the close-out fixed one real hot-path
-safety hole (unbounded `locate`/`setLoop` frames truncated to a hung/trapped audio thread) and four gates
-that passed without biting (autosave negative control, a circular recording test, loop block-size
-invariance, and `locate(N)` == offline-render-slice parity), and clarified the autosave helper's
-control-thread affinity. **Known deferrals (tracked, out of H8's exercised surface):**
-- **Concurrent transport safety** — transport state (`playheadFrame_`/loop/`playing_`) is plain non-atomic;
-  safe single-threaded today (documented in code), but a data race once a control thread drives it
-  concurrently with the audio callback. Needs a small ADR (SPSC command seam, ADR-0006 pattern) + a TSan
-  test that drives `locate`/`setLoop` while another thread pumps `processBlock`. First H9 checkpoint.
-- **MIDI transport** — `DecodedMidiClipNode` ignores `Transport::timelineFrame`, so MIDI desyncs on
-  locate/loop once MIDI playback is wired into a runtime graph.
-- **Transport tempo/meter** — `PlaybackEngine` leaves `Transport.tempoMap`/`meterMap` default; fine until a
-  node reads them on the audio thread (the H7↔H8 bit-identity gate catches divergence meanwhile).
-- **Stopped-on-create** — `PlaybackEngine` defaults to playing; real DAWs open stopped (UX, H11 wiring).
+Robustness coverage landed in the same gate: scheduled Blocks feed the H6 soak oracle, deterministic
+seeded mutations cover bundle and plugin-state parser degradation, and plugin crash/watchdog failure
+actions write durable blacklist rows keyed by plugin identity. The live host coordinator still needs stable
+plugin-identity plumbing before it can run that persistence action automatically from a child-process
+failure.
 
-Local verification: `YesDawPlaybackCheck` = **9 cases / 271 assertions**; `cmake --build --preset ci`;
-`ctest --preset ci --output-on-failure` = **239/239**.
+Honest scope: ADR-0024 deliberately chose scheduled render jobs over immutable graph snapshots as the
+first scheduler. Per-node DAG work-stealing inside one live `CompiledGraph` still needs a parallel-aware
+buffer-pool allocation plan and remains the next scheduler deepening.
 
-**Next:** stop for Dan's H8 close-out review + the concurrent-transport decision; H9 needs its focused
-plan/ADR work before H9 code lands.
+Local verification: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; focused H8/H9 lane
+`YesDawMidiTimingCheck|YesDawOfflineRenderCheck|YesDawPlaybackCheck|YesDawSchedulerCheck` = **4/4**; full
+`ctest --preset ci --output-on-failure` = **240/240**.
+
+**Next:** push this checkpoint; remote CI is the gate, then H10 opens with mixing/mastering features and
+interchange (`docs/goals/roadmap.md`).
 
 ## The plan
 
 Full build order:
-[`docs/plans/2026-06-28-h8-playback-runtime-plan.md`](../docs/plans/2026-06-28-h8-playback-runtime-plan.md).
+[`docs/plans/2026-06-28-h9-engine-scaling-robustness-plan.md`](../docs/plans/2026-06-28-h9-engine-scaling-robustness-plan.md).

@@ -23,7 +23,9 @@ enum class ProjectMixerNodeRole : std::uint8_t
     Source = 0,
     Fader,
     Pan,
-    Meter
+    Meter,
+    MidiSource,
+    Instrument
 };
 
 struct ProjectMixerProjectionConfig

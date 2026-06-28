@@ -9,18 +9,19 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED, then adversarially
-reviewed + hardened.** A Project plays through the real lock-free Runtime (`PlaybackEngine`) behind
-play/stop/locate/loop transport; recording (H5) and autosave (H6) have production callers; ADR-0022 is
-accepted. Claude's review of Codex's close-out found one real hot-path safety hole (unbounded
-locate/setLoop frames truncating to a hung/trapped audio thread) and four gates that passed without
-biting; all fixed. `YesDawPlaybackCheck` now passes **9 cases / 271 assertions** (was 6/125); full local
-`ctest --preset ci --output-on-failure` passes **239/239**.
-The H8 real-device smoke is tracked as `tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and is not a
-CI gate. **One decision for Dan:** transport state is plain non-atomic and only safe single-threaded today
-(now documented in code) — concurrent control↔audio transport safety (an SPSC command seam + a TSan bite
-test) wants a small ADR and is naturally the first H9 checkpoint. **Next:** Dan's H8 close-out call; H9
-needs its focused plan/ADR before code lands.
+**Current horizon:** **H9 (Engine scaling & robustness) — CLOSED locally.** H8 rechecked cleanly first:
+`main` was already up to date, the latest remote CI on `a75399ab` was green, and `STATUS.md` /
+`loop/horizon.md` agreed H8 was closed and hardened. H9 then landed ADR-0023 through ADR-0026 plus
+`YesDawSchedulerCheck`: transport controls now cross a bounded SPSC command queue, scheduled render workers
+are bit-identical across 1/2/4/8 workers against the H7 serial render, scheduled Blocks feed the H6
+deadline oracle, seeded parser fuzz replays reject/degrade malformed bundle and plugin-state rows, plugin
+crash/watchdog failure actions persist blacklist rows, and MIDI clips auto-wire through a built-in impulse
+instrument with transport-aware locate/loop behavior. Local verification: `cmake --preset ci`; VS DevShell
+`cmake --build --preset ci`; focused H8/H9 lane **4/4**; full `ctest --preset ci --output-on-failure`
+**240/240**. Honest scope: ADR-0024 is the first deterministic scheduled-worker executor, not final
+per-node DAG work-stealing inside one live `CompiledGraph`; and the live plugin-host coordinator still
+needs stable plugin-identity plumbing before it can execute blacklist persistence automatically from a
+child-process failure. **Next:** push this checkpoint and use remote CI as the gate; then H10 opens.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -46,7 +47,17 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H8 reviewed + hardened; stop for close-out review
+## Now — H9 closed locally; push and remote CI gate
+- **Latest (2026-06-28): verified H8 close-out, then completed H9 engine scaling + robustness locally.**
+  H8 looked good to go: the handoff/horizon were already closed and the latest remote CI on `main` was
+  green. H9 accepted ADR-0023 (transport command queue), ADR-0024 (deterministic scheduled worker
+  executor), ADR-0025 (blacklist-on-failure action), and ADR-0026 (built-in instrument track auto-wire).
+  The new `YesDawSchedulerCheck` proves worker-count bit identity against H7 offline render, transport
+  control/audio-thread concurrency through the SPSC queue, MIDI locate/loop auto-wire parity, scheduled
+  Blocks through the H6 deadline oracle, seeded bundle/plugin-state parser fuzz replay, and durable plugin
+  failure blacklist rows. Local gates: `cmake --preset ci`; VS DevShell `cmake --build --preset ci`;
+  focused H8/H9 lane **4/4**; full `ctest --preset ci --output-on-failure` **240/240**. **Next:** push;
+  remote CI is the checkpoint gate. H10 is next after H9 is accepted.
 - **Latest (2026-06-28): adversarial review of Codex's H8 close-out + patches (Claude).** Ran the same
   multi-agent treatment as H6/H7 (4 diverse-lens finders → per-finding skeptical verification, 26 raw → 24
   confirmed, heavy cross-lens dupes) and adjudicated by hand against the code. **One real correctness/safety
