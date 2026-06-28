@@ -174,6 +174,12 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
     if (channels == 0)
         return detail::invalidArgument ("WAV channel count must be positive");
 
+    // blockAlign and the WAVEFORMAT fields are 16-bit; reject channel counts that would overflow them
+    // (and that the reader's own consistency check would then reject).
+    if (static_cast<std::uint32_t> (channels) * static_cast<std::uint32_t> (sizeof (float))
+        > static_cast<std::uint32_t> (std::numeric_limits<std::uint16_t>::max()))
+        return detail::invalidArgument ("WAV channel count overflows 16-bit block alignment");
+
     std::uint32_t sampleRateHz = 0;
     if (! detail::sampleRateToUint32 (sampleRate, sampleRateHz))
         return detail::invalidArgument ("WAV sample rate must be a finite positive integer");
@@ -245,6 +251,14 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
     if (! in)
         return detail::filesystemError ("failed to open WAV for reading");
 
+    // Size the file up front so a crafted/corrupt chunk header cannot make us allocate an arbitrary
+    // (up to 4 GiB) buffer before we read it — a chunkSize must fit within the bytes that remain.
+    in.seekg (0, std::ios::end);
+    const std::streamoff fileSize = in.tellg();
+    in.seekg (0, std::ios::beg);
+    if (fileSize < 0)
+        return detail::filesystemError ("failed to size WAV file");
+
     std::array<char, 4> riff {};
     std::array<char, 4> wave {};
     std::uint32_t riffSize = 0;
@@ -298,6 +312,9 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
         }
         else if (detail::fourccEquals (chunkId, "data"))
         {
+            const std::streamoff pos = in.tellg();
+            if (pos < 0 || static_cast<std::uint64_t> (chunkSize) > static_cast<std::uint64_t> (fileSize - pos))
+                return detail::formatInvalid ("data chunk size exceeds file");
             dataBytes.resize (chunkSize);
             if (chunkSize > 0 && ! detail::readExact (in, reinterpret_cast<char*> (dataBytes.data()), dataBytes.size()))
                 return detail::formatInvalid ("truncated data chunk");

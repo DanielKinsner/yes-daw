@@ -416,6 +416,74 @@ TEST_CASE ("Canonical float32 WAV writes and reads bit-exact samples", "[h7][wav
                                   nonFinite).status == WavStatus::InvalidArgument);
 }
 
+TEST_CASE ("WAV codec round-trips the full float range, denormals, ancillary chunks, and a known byte layout",
+           "[h7][wav][float32][coverage]")
+{
+    // (1) Values outside [-1,1], denormals, and float extremes round-trip bit-exact (the round-trip gate
+    //     only covered [-1,1]).
+    const std::vector<float> wide {
+        0.0f, -0.0f,
+        2.5f, -3.75f,
+        1.0e9f, -1.0e9f,
+        std::numeric_limits<float>::denorm_min(), -std::numeric_limits<float>::denorm_min(),
+        std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max(), 123.456f,
+    };
+    const std::uint64_t wideFrames = static_cast<std::uint64_t> (wide.size() / 2u);
+    const std::filesystem::path widePath = makeTempPath ("wide", ".wav");
+    REQUIRE (writeFloat32WavFile (widePath, SampleRate { 44100.0 }, 2, wideFrames, wide).ok());
+    Float32Wav wideDecoded;
+    REQUIRE (readFloat32WavFile (widePath, wideDecoded).ok());
+    REQUIRE (wideDecoded.frames == wideFrames);
+    REQUIRE (floatBuffersBitIdentical (wideDecoded.interleavedSamples, wide));
+
+    // (2) Known byte layout: a round-trip can't catch a writer byte-order/scale bug that a symmetric reader
+    //     bug would hide, so assert the canonical 44-byte header and one sample's little-endian float bytes.
+    const std::filesystem::path bytePath = makeTempPath ("bytes", ".wav");
+    REQUIRE (writeFloat32WavFile (bytePath, SampleRate { 48000.0 }, 1, 1, std::vector<float> { 0.5f }).ok());
+    const std::vector<std::uint8_t> raw = readBytes (bytePath);
+    REQUIRE (raw.size() == 48u);                              // 44-byte canonical header + one float32 sample
+    REQUIRE (std::memcmp (raw.data() + 0, "RIFF", 4) == 0);
+    REQUIRE (std::memcmp (raw.data() + 8, "WAVE", 4) == 0);
+    REQUIRE (std::memcmp (raw.data() + 12, "fmt ", 4) == 0);
+    REQUIRE (std::memcmp (raw.data() + 36, "data", 4) == 0);
+    REQUIRE (raw[20] == 3u);                                  // audioFormat = IEEE float (LE low byte)
+    REQUIRE (raw[21] == 0u);
+    REQUIRE (raw[22] == 1u);                                  // channels = 1
+    REQUIRE (raw[44] == 0x00u);                               // 0.5f = 0x3F000000 little-endian
+    REQUIRE (raw[45] == 0x00u);
+    REQUIRE (raw[46] == 0x00u);
+    REQUIRE (raw[47] == 0x3Fu);
+
+    // (3) An ancillary chunk (odd-sized, so it pads) is skipped and the file still decodes.
+    std::vector<std::uint8_t> withJunk (raw.begin(), raw.begin() + 12);
+    const std::array<std::uint8_t, 4> junkId { 'J', 'U', 'N', 'K' };
+    const std::array<std::uint8_t, 4> junkLen { 3u, 0u, 0u, 0u };
+    const std::array<std::uint8_t, 4> junkBody { 0xAAu, 0xBBu, 0xCCu, 0x00u };   // 3 payload + 1 pad byte
+    withJunk.insert (withJunk.end(), junkId.begin(), junkId.end());
+    withJunk.insert (withJunk.end(), junkLen.begin(), junkLen.end());
+    withJunk.insert (withJunk.end(), junkBody.begin(), junkBody.end());
+    withJunk.insert (withJunk.end(), raw.begin() + 12, raw.end());
+    const std::filesystem::path junkPath = makeTempPath ("junk", ".wav");
+    writeBytes (junkPath, std::span<const std::uint8_t> (withJunk.data(), withJunk.size()));
+    Float32Wav junkDecoded;
+    REQUIRE (readFloat32WavFile (junkPath, junkDecoded).ok());
+    REQUIRE (junkDecoded.frames == 1u);
+    REQUIRE (floatBuffersBitIdentical (junkDecoded.interleavedSamples, std::vector<float> { 0.5f }));
+
+    // (4) A crafted oversized data chunkSize is rejected, not allocated (data size is at byte offset 40).
+    std::vector<std::uint8_t> oversized = raw;
+    oversized[40] = 0xF0u; oversized[41] = 0xFFu; oversized[42] = 0xFFu; oversized[43] = 0xFFu;
+    const std::filesystem::path oversizedPath = makeTempPath ("oversized", ".wav");
+    writeBytes (oversizedPath, std::span<const std::uint8_t> (oversized.data(), oversized.size()));
+    Float32Wav rejected;
+    REQUIRE (readFloat32WavFile (oversizedPath, rejected).status == WavStatus::FormatInvalid);
+
+    // (5) Absurd channel counts that would overflow the 16-bit block alignment are rejected by the writer.
+    REQUIRE (writeFloat32WavFile (makeTempPath ("toomany", ".wav"), SampleRate { 48000.0 }, 20000, 1,
+                                  std::vector<float> (20000u, 0.0f)).status == WavStatus::InvalidArgument);
+}
+
 TEST_CASE ("Offline render exports to WAV and re-imports through the Project bundle Asset path",
            "[h7][offline-render][export][bundle]")
 {
