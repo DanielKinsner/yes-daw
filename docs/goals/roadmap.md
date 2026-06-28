@@ -125,40 +125,46 @@ time under the Block period); a hard kill mid-edit recovers to the last autosave
 
 ---
 
-> **Horizons H7–H10 (proposed — ADR-0020).** H6 was the build plan's deliberately broad
-> "ongoing, long-horizon" bucket; only autosave + the deadline soak are built. ADR-0020 carves the
-> remaining work into numbered horizons with mechanical exit criteria, ordered value-first toward a DAW
-> that runs, is audible, is visible, then scales. Each gets a focused `docs/plans/` plan at kickoff.
+> **Horizons H7–H11 (ADR-0020).** H6 was the build plan's deliberately broad "ongoing, long-horizon"
+> bucket; only autosave + the deadline soak are built. ADR-0020 carves the rest into numbered horizons
+> with mechanical exit criteria, **feature-first with the UI as the capstone**: build the whole headless
+> feature set autonomously (H7–H10), then wire it all into one UI shell (H11). An audible "it plays"
+> milestone lands at H8. Each horizon gets a focused `docs/plans/` plan at kickoff.
 
 ## H7 — Offline render / export to file
-A real offline-render module that bounces a Project to an audio file (WAV); the highest-value DAW test
-(RT path vs offline render) becomes real. Fully headless — closeable with no human in the loop.
-**Exit:** the offline render of a Project to a file is sample-accurate vs the RT engine path (golden-file
-compare within tolerance), and the exported file re-imports to an Asset that round-trips — all green in CI.
+A real offline-render module that bounces a Project to an audio file (canonical 32-bit-float WAV); the
+highest-value DAW test (offline render vs an independent reference) becomes real. Fully headless.
+**Exit:** the offline render of a Project to a file equals an **independent** reference render of the same
+Project within tolerance (golden-file compare — not the engine compared to itself), and the exported file
+re-imports to an Asset whose decoded samples round-trip — all green in CI.
 
 ## H8 — Playback runtime (device I/O + transport)
 Wire the engine to a real audio device behind a transport (play/stop/locate/loop); give recording (H5)
-and autosave (H6) their first production callers.
+and autosave (H6) their first production callers. **The audible milestone.**
 **Exit:** a headless transport test proves play/stop/locate are sample-accurate against the offline
 render of the same Project, **and** a one-command self-asserting hardware smoke plays a known Project out
 the real device with zero Underruns at a 128-frame Block (ADR-0005 script pattern; absorbs the open H0
 real-hardware soak).
 
-## H9 — Single-window timeline UI shell
-The first real application window: load a Project bundle, draw and scroll the timeline, transport
-controls, per-track metering — all driving the H8 runtime. Needs the pending UI-stack ADR (native JUCE
-Components + GPU timeline canvas vs WebView).
-**Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent)
-plus a headless smoke that the app loads a bundle and starts/stops the transport; the GPU timeline holds
-60fps while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**
-
-## H10 — Engine scaling & robustness
+## H9 — Engine scaling & robustness
 The multicore work-stealing scheduler + soak/fuzz hardening, and the cross-horizon debt (H3 worker
 misbehavior + blacklist-on-failure wiring; H4 CP2b MIDI auto-wire).
 **Exit:** the CompiledGraph produces bit-identical output across 1..N worker threads (determinism gate)
 under RTSan/TSan, the heavy-session soak holds the deadline with the parallel scheduler, and
 structure-aware fuzzing of the bundle / plugin-state parsers runs clean.
 
-> **Post-H10 backlog** (tracked, not yet numbered): loudness metering (libebur128), DAWproject export,
-> time-stretch Node (Signalsmith), device hot-swap policy/UI, full accessibility. Each is promoted to a
-> horizon with its own ADR when its turn comes.
+## H10 — Mixing/mastering features & interchange
+Loudness metering (libebur128), DAWproject export (interchange insurance), a time-stretch Node
+(Signalsmith), and device hot-swap survival — the feature set the UI will surface.
+**Exit:** each lands as its own ADR-backed checkpoint with a mechanical gate — loudness matches the
+libebur128 reference within tolerance, a DAWproject export round-trips through a reference reader, the
+time-stretch Node is sample-accurate vs a golden, and a device change mid-session is survived without an
+Underrun.
+
+## H11 — Single-window timeline UI shell + accessibility (capstone)
+The first real application window, wiring up the complete H7–H10 feature set: load a Project bundle,
+draw/scroll the timeline, transport, per-track metering, mixer and piano-roll surfaces — all driving the
+H8 runtime. Needs the pending UI-stack ADR (native JUCE Components + GPU timeline canvas vs WebView).
+**Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent), a
+headless smoke that the app loads a bundle and drives the transport, and the GPU timeline holding 60fps
+while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**

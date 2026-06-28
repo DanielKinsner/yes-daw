@@ -37,7 +37,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0017](0017-midi-clip-edit-model-and-render-bridge.md) | MIDI Clip edit model and render bridge | Accepted |
 | [0018](0018-recording-latency-and-take-writer.md) | Recording latency compensation and take writer | Accepted |
 | [0019](0019-h6-reliability-gate.md) | H6 reliability gate (deadline soak + autosave recovery) | Accepted |
-| [0020](0020-roadmap-horizons-h7-h10.md) | Roadmap extension — horizons H7–H10 | Proposed |
+| [0020](0020-roadmap-horizons-h7-h10.md) | Roadmap extension — horizons H7–H11 (UI as capstone) | Accepted |
 
 ## Decision status (the five research forks)
 

@@ -9,9 +9,10 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H6 (Reliability & polish) — CLOSED, now adversarially reviewed + hardened; Codex
-follow-on review found no new proven H6 defect; full local CI green (237/237). At the H6->H7 boundary —
-H7 has never been defined (no exit criterion written); awaiting Dan's boundary call on what H7 *is*.**
+**Current horizon:** **H7 (Offline render / export to file) — OPEN, kicked off 2026-06-28. H6 is CLOSED
+(reviewed + hardened, full local CI 237/237). ADR-0020 (Accepted) carves post-H6 work into horizons
+H7–H11, feature-first with the UI as the H11 capstone; the H7 plan is written and `loop/horizon.md` now
+targets H7. Codex builds H7 next; Claude reviews the close-out before H7 is called done.**
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -37,21 +38,26 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H6 done; H7–H10 roadmap extension drafted (ADR-0020, proposed)
-- **Latest (2026-06-28): drafted the H7–H10 roadmap extension (ADR-0020, Proposed) — awaiting Dan's go.**
-  Dan recalled "tasks up to H10"; confirmed none ever existed (roadmap has always been H0–H6; checked the
-  plan + full roadmap.md git history). The work he remembers is the eight features bundled into the build
-  plan's "H6 (ongoing, long-horizon)" — only autosave + the deadline soak are built. ADR-0020 carves the
-  rest into numbered horizons, value-first: **H7** offline render/export to file (headless, golden-gated,
-  autonomous-closeable); **H8** playback runtime — device I/O + transport, and the first production
-  callers for recording/autosave (absorbs the open H0 hardware soak); **H9** single-window timeline UI
-  shell (needs the pending UI-stack ADR; visual feel is the lone human spot-check); **H10** engine scaling
-  & robustness — multicore work-stealing + soak/fuzz + the H3/H4 cross-horizon debt. Post-H10 backlog:
-  loudness metering, DAWproject export, time-stretch, device hot-swap, full a11y. **UI verdict:** unblocked
-  (contracts frozen) but sequenced *after* a real playback runtime — a UI on an in-memory-only engine is a
-  hollow shell. ADR is **Proposed**; `loop/horizon.md` still reads H6-closed. **Next:** Dan confirms the
-  ordering (esp. UI at H9); then flip ADR-0020 to Accepted, point the horizon at H7, write the H7 plan, and
-  build.
+## Now — H7 opened; plan written; handed to Codex to build
+- **Latest (2026-06-28): defined H7–H11 (ADR-0020 Accepted), wrote the H7 plan, switched the horizon to
+  H7 — Codex builds next.**
+  Dan recalled "tasks up to H10"; confirmed none ever existed (roadmap was always H0–H6; the work he
+  remembers is the eight features bundled into the build plan's "H6 ongoing" bucket). ADR-0020 carves the
+  rest into numbered horizons, **feature-first with the UI as the H11 capstone** (Dan's call — build the
+  whole headless feature set, then wire it into one UI shell): **H7** offline render/export to file;
+  **H8** playback runtime — device I/O + transport + first production callers for recording/autosave
+  (absorbs the open H0 hardware soak; the audible milestone); **H9** engine scaling & robustness —
+  multicore work-stealing + soak/fuzz + H3/H4 debt; **H10** mixing/mastering features & interchange —
+  loudness metering, DAWproject export, time-stretch, device hot-swap; **H11** single-window timeline UI
+  shell + accessibility (capstone; visual feel is the lone human spot-check; needs the pending UI-stack
+  ADR). **H7 kickoff landed:** ADR-0020 Accepted, roadmap H7–H11 written, `loop/horizon.md` now targets
+  H7 with `YesDawOfflineRenderCheck`, and the H7 plan
+  (`docs/plans/2026-06-28-h7-offline-render-export-plan.md`) lays out the build order: ADR-0021 (canonical
+  float32-WAV format) -> WAV codec (writer+reader) with a round-trip gate -> a real `OfflineRenderer`
+  module (replaces the test-only render helpers) gated vs an *independent* reference -> export-to-file +
+  re-import round-trip. **Next:** Dan points Codex at the H7 plan to build it; Codex must write ADR-0021
+  before the codec lands, keep each checkpoint small + green, and stop for any other ADR-level call;
+  Claude reviews the close-out adversarially before H7 is called done.
 - **Earlier (2026-06-28): Codex follow-on adversarial review of the H6 close-out found no new proven H6
   defect.** Pulled `main` first (`git pull --ff-only`, already up to date), read the live handoff,
   horizon, roadmap, ADR-0019, H6 plan, latest H6 commits (`a6f52c5` through `363f765`), and the H6
