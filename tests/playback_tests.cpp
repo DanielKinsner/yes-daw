@@ -356,6 +356,70 @@ TEST_CASE ("PlaybackEngine output matches the offline render of the same Project
     REQUIRE (bitIdentical (played, offline.interleavedSamples));
 }
 
+TEST_CASE ("PlaybackEngine locate(N) reproduces the offline render slice bit-for-bit",
+           "[h8][playback][offline-parity][transport]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+    const auto offline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (offline.ok());
+    const std::int64_t totalFrames = static_cast<std::int64_t> (offline.interleavedSamples.size() / 2u);
+
+    // The transport branch (hasTimelineFrame=true) and the offline no-transport branch must produce the
+    // SAME absolute frames. Locate to several non-zero starts (clip boundary, mid-overlap, fade tail) and
+    // demand the played output is bit-identical to the offline render's matching slice — the real renderer,
+    // not the hand-rolled reference. This pins the ADR-0022 "same graph, same absolute frames" claim.
+    for (const std::int64_t startFrame : { std::int64_t { 0 }, std::int64_t { 2 }, std::int64_t { 5 }, std::int64_t { 6 } })
+    {
+        for (const int blockSize : { 1, 3, 4, 8 })
+        {
+            PlaybackEngine::Result created = PlaybackEngine::create (
+                fixture.project,
+                std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+                OfflineRenderOptions {});
+            REQUIRE (created.ok());
+            REQUIRE (created.engine->locate (startFrame));
+
+            const std::uint64_t frames = static_cast<std::uint64_t> (totalFrames - startFrame);
+            const std::vector<float> played = drainPlayback (*created.engine, frames, blockSize);
+
+            std::vector<float> offlineSlice (played.size(), 0.0f);
+            for (std::size_t i = 0; i < played.size(); ++i)
+                offlineSlice[i] = offline.interleavedSamples[static_cast<std::size_t> (startFrame) * 2u + i];
+
+            REQUIRE (bitIdentical (played, offlineSlice));
+        }
+    }
+}
+
+TEST_CASE ("PlaybackEngine looped output is identical at every device block size (ADR-0008)",
+           "[h8][playback][block-size][transport]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+
+    // Drive a loop region [3,7) from frame 3 for 32 frames at a range of block sizes, including ones equal
+    // to and double the loop length (forcing in-block and multi-wrap). Every block size must produce the
+    // SAME samples as the independent loop reference — so a wrap bug that only shows at blockSize 1 (or only
+    // when a block spans multiple wraps) bites instead of sliding through on the single size the gate used.
+    auto loopAt = [&] (int blockSize)
+    {
+        PlaybackEngine::Result created = PlaybackEngine::create (
+            fixture.project,
+            std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+            OfflineRenderOptions {});
+        REQUIRE (created.ok());
+        REQUIRE (created.engine->setLoop (3, 7));
+        REQUIRE (created.engine->locate (3));
+        return drainPlayback (*created.engine, 32, blockSize);
+    };
+
+    const std::vector<float> reference = loopAt (128);
+    REQUIRE (buffersNear (reference, loopReference (fixture, 3, 7, 32)));
+    for (const int blockSize : { 1, 2, 3, 4, 5, 7, 8, 16, 64 })
+        REQUIRE (bitIdentical (loopAt (blockSize), reference));
+}
+
 TEST_CASE ("PlaybackEngine transport stop, locate, and loop are sample-accurate",
            "[h8][playback][transport]")
 {
@@ -455,10 +519,15 @@ TEST_CASE ("PlaybackEngine drives H5 recording capture from the transport playhe
     const std::int64_t totalFrames = config.window.punchEndFrame + roundTrip + kBlock;
     for (std::int64_t processed = 0; processed < totalFrames; processed += kBlock)
     {
+        // Independently witness the transport mapping: the TEST owns `processed` (the absolute device frame)
+        // and places the impulse in those coordinates, then asserts the engine's playhead tracks it. A
+        // stuck/off-by-block playhead fails HERE rather than being masked by reading playheadFrame() on both
+        // sides of the same equation.
+        REQUIRE (engine.playheadFrame() == processed);
         const int frames = static_cast<int> (std::min<std::int64_t> (kBlock, totalFrames - processed));
         std::vector<float> input (static_cast<std::size_t> (frames), 0.0f);
-        if (impulseFrame >= engine.playheadFrame() && impulseFrame < engine.playheadFrame() + frames)
-            input[static_cast<std::size_t> (impulseFrame - engine.playheadFrame())] = 1.0f;
+        if (impulseFrame >= processed && impulseFrame < processed + frames)
+            input[static_cast<std::size_t> (impulseFrame - processed)] = 1.0f;
 
         const float* inputChannels[1] = { input.data() };
         const auto capture = engine.captureRecordingInputBlock (fifo, config, inputChannels, 1, frames);
@@ -502,6 +571,16 @@ TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
 
     REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
     REQUIRE (db.writeProjectSnapshot (saved).ok());
+
+    // Negative control: a CLEAN engine must SKIP the write — the needsAutosave() guard is the whole point
+    // of the tick. Without this, deleting that guard would still pass the suite. Prove a no-op tick leaves
+    // no autosave snapshot behind.
+    REQUIRE_FALSE (engine.needsAutosave());
+    REQUIRE (writeAutosaveOnPlaybackTick (engine, db, dirty).ok());
+    {
+        Project none;
+        REQUIRE_FALSE (readAutosaveSnapshot (path, none).ok());
+    }
 
     engine.markProjectEdited();
     REQUIRE (engine.needsAutosave());
