@@ -8,14 +8,16 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-**Last updated:** 2026-06-27
-**Current horizon:** **H4 (MIDI editing & instruments) — CLOSED; H5 ready for Dan's boundary call.**
-Dan opened the H3->H4 boundary on 2026-06-27 by asking Codex to complete H4. H4 is closed by the blocking
-`YesDawMidiTimingCheck`, the full `ci` preset, and the H4 review/close pass. H3 remains closed by the
-blocking `YesDawHostIsolationCheck` and the independent close-out honesty pass. The one remaining item for
-"H0-H3 fully behind us" that is NOT mechanical is the **H0 real-hardware audio soak** (`tools/soak.sh` at
-a 128-frame Block on Win+mac) — by ADR-0005 that is a human/hardware gate, not a CI gate. It stays tracked
-separately and does not replace H4's CI gate.
+**Last updated:** 2026-06-28
+**Current horizon:** **H5 (Recording) — CLOSED locally; remote CI pending for this checkpoint.**
+Dan opened H5 on 2026-06-28 by asking Codex to double-check the H4 adversarial patches, fix any proven
+defects, then begin and finish H5. H4's CP2a runtime `MidiClip` source Node and F8 `CompiledTempoMap`
+patches are directionally correct and mechanically covered; the remaining H4 CP2b project auto-wire note is
+beyond H4's stated timing exit and still needs an instrument-track product decision. H5 is implemented by
+ADR-0018 and `YesDawRecordingCheck`: audio callback input enters a bounded FIFO, a writer thread drains to a
+real take file, non-zero input+output latency compensation aligns a recorded click back to its Project
+frame, and the gate also covers punch/loop take ordinals, comp selection, and MIDI timestamp compensation.
+The H0 real-hardware audio soak remains tracked separately by ADR-0005; it is not a CI gate.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -28,8 +30,19 @@ separately and does not replace H4's CI gate.
 
 ---
 
-## Now — H1/H2 reviewed (shallow too); render/timeline path being built for real (H5 prerequisite)
-- **Latest (2026-06-28): adversarial review of H1 + H2; started building the real render/timeline path.**
+## Now — H5 recording gate implemented; full verification pending
+- **Latest (2026-06-28): H4 patches checked; H5 recording gate implemented.**
+  H4 CP2a (`DecodedMidiClipNode` runtime event source) and F8 (`CompiledTempoMap` prefix-sum lookup) match
+  the existing ADR-0009/0010/0017 contracts and have focused mechanical coverage. I did not auto-wire MIDI
+  Clips through `ProjectMixerProjection` because that requires the still-open instrument-track modeling
+  decision, not a bug fix. For H5, accepted ADR-0018 and added the pure engine recording spine in
+  `src/engine/Recording.h`: bounded audio-thread FIFO, writer-thread take file, latency mapping, punch/loop
+  take ordinals, comp selection, and MIDI timestamp compensation. Focused local gate:
+  `ctest --test-dir build-ci -R "recorded take aligns|punch loop recording|MIDI recording uses"
+  --output-on-failure` passed 3/3. Full local gate: `cmake --preset ci`; VS DevShell
+  `cmake --build --preset ci`; `ctest --preset ci --output-on-failure` passed 225/225. **Next:** commit,
+  push, and wait for remote CI.
+- **Earlier (2026-06-28): adversarial review of H1 + H2; started building the real render/timeline path.**
   Dan asked to tie up loose ends before H5; the same build+mutation+multi-agent review on H1/H2 (66 agents)
   found they are ALSO shallower than "closed": 13 blockers / 23 majors. The concurrency spine (lock-free
   graph swap, janitor reclamation, atomics — RTSan/TSan) and the SQLite round-trip ARE solid. But the
@@ -2413,10 +2426,12 @@ separately and does not replace H4's CI gate.
   Project persistence, piano-roll Note edits, MIDI-effect Nodes, hosted-instrument Event delivery, and
   MPE boundary voice allocation are mechanically covered by `YesDawMidiTimingCheck` and the full `ci`
   preset.
-- **Next rolling baton: Dan's H4->H5 boundary call.**
-  Do not start H5 automatically. If Dan opens H5, the first checkpoint is docs-only: read the roadmap and
-  architecture plan, write/accept the recording ADRs and H5 exit-gate plan, update `CONTEXT.md`,
-  `loop/horizon.md`, and this handoff, then run the normal `ci` gate before committing.
+- ✅ **H5 closed locally; remote CI pending for this checkpoint.** Recording is mechanically covered by
+  `YesDawRecordingCheck`: bounded audio-thread FIFO, writer-thread take file, input+output latency
+  compensation, punch/loop take ordinals, comp selection, and MIDI timestamp compensation.
+- **Next rolling baton: Dan's H5->H6 boundary call.**
+  Do not start H6 automatically. First commit, push, and wait for this checkpoint's remote CI result; then
+  stop for Dan's boundary decision.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

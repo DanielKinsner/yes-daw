@@ -301,6 +301,14 @@ target_link_libraries(YesDawRenderCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawRenderCheck)
 catch_discover_tests(YesDawRenderCheck)
 
+# --- Recording check (H5; audio callback FIFO -> writer-thread disk take + latency alignment) ---
+add_executable(YesDawRecordingCheck tests/recording_tests.cpp)
+target_include_directories(YesDawRecordingCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawRecordingCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawRecordingCheck PRIVATE Catch2::Catch2WithMain Threads::Threads)
+yesdaw_harden(YesDawRecordingCheck)
+catch_discover_tests(YesDawRecordingCheck)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -440,6 +448,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawRuntimeCheck
   YesDawRuntimeAudioDriverCheck
   YesDawRenderCheck
+  YesDawRecordingCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

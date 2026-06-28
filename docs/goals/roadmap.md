@@ -82,6 +82,13 @@ punch/loop record; MIDI recording.
 **Exit:** a recorded take aligns within ±1 frame of a click reference at non-trivial input+output
 latency, against deterministic ground truth.
 
+> **Status note (2026-06-28 H5 close).** The H5 alignment contract is implemented and mechanically
+> gated by `YesDawRecordingCheck`: audio callback input enters a bounded FIFO, a writer thread drains to
+> a real temp take file, input+output latency compensation places the recorded click back on its Project
+> frame, and zero-compensation is a negative control. The same gate covers punch/loop take ordinals,
+> comp selection, and MIDI timestamp compensation. Deferred: real device latency calibration, device UI,
+> Project bundle take-lane persistence, and the final user-facing recorded-audio asset format.
+
 ## H6 — Reliability & polish (ongoing)
 Autosave + crash recovery; device hot-swap; multicore work-stealing; DAWproject export; loudness
 metering; time-stretch Node; full accessibility; soak/fuzz harness.

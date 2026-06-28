@@ -1,21 +1,21 @@
-# Current horizon — H4 (MIDI editing & instruments) — CLOSED
+# Current horizon — H5 (Recording) — CLOSED
 
-> This file is the oracle for "is the horizon done?". H4 closes iff the exit gate below is green.
+> This file is the oracle for "is the horizon done?". H5 closes iff the exit gate below is green.
 
 ## Exit criterion (the finish line)
 
-Note-ons at known offsets land sample-accurately across Block boundaries and a tempo change, through an
-Instrument Node with non-zero latency that PDC compensates.
+A recorded take aligns within +/- 1 frame of a click reference at non-trivial input+output latency,
+against deterministic ground truth.
 
-**`YesDawMidiTimingCheck`** proves this with in-repo deterministic MIDI Clips, a tempo map, a built-in
-Instrument Node, and the compiled graph. It asserts:
+**`YesDawRecordingCheck`** proves this with an in-repo deterministic loopback harness:
 
-- MIDI Clips flatten Notes to sorted ADR-0009 Events with half-open Block semantics.
-- A tempo change inside the tested window is converted through the full tempo map.
-- The Instrument Node has non-zero latency.
-- PDC compensates that latency so the rendered impulse lands at the predicted frame.
-- Negative controls catch block-boundary off-by-one errors, constant-tempo flattening across the tempo
-  change, and missing event/audio PDC compensation.
+- Audio callback input is copied into a bounded `RecordingChunkFifo`.
+- A writer thread drains the FIFO to a real temp take file; the audio callback never writes disk.
+- The click impulse is captured at device frame `click + input latency + output latency`, then placed
+  back at the original Project click frame after compensation.
+- A zero-compensation negative control proves the gate would catch the missing-latency bug.
+- Punch/loop recording produces stable take ordinals and comp selection reads the requested take.
+- MIDI recording uses the same device-frame-to-timeline-frame compensation model as audio.
 
 ## Green command
 
@@ -23,30 +23,18 @@ Instrument Node, and the compiled graph. It asserts:
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci
-ctest --preset ci -R YesDawMidiTimingCheck
+ctest --test-dir build-ci -R "recorded take aligns|punch loop recording|MIDI recording uses" --output-on-failure
 ```
 
-## Status: **CLOSED (H4 exit gate green; H5 ready for Dan's boundary call)**
+## Status: **CLOSED (H5 exit gate and full ci preset green locally; remote CI pending after push)**
 
-H4 opened on 2026-06-27 when Dan asked to complete H4. The review/close pass audited H4 against the
-roadmap, H4 plan, ADR-0017, ADR-0009, ADR-0010, `STATUS.md`, and the blocking tests. `YesDawMidiTimingCheck`
-is green locally together with the full `ci` preset, and the final implementation CI was green on Windows,
-Linux, macOS, RTSan, and TSan. Project-owned MIDI Clips/Notes persist through schema v3. Piano-roll Note
-edit commands have undo/redo bit-identity coverage. Deterministic MIDI-effect Nodes transform branch-local
-writable Events before downstream Instruments consume them, hosted-instrument `PluginNode` receives
-transformed Note Events through the RT lane, and MPE boundary allocation assigns stable concrete
-`VoiceAddress` port/channel fields before flattening, including overlapping future explicit voice
-reservations. H4 is closed; do not start H5 until Dan opens that boundary.
-
-A 2026-06-27 adversarial review hardened the gate so its claims are now true: the three negative controls
-it had always advertised are real tests (boundary-belongs-to-next-Block, constant-tempo-differs-from-mapped,
-PDC-moves-the-impulse), plus one integrated block-boundary + tempo-change + non-zero-latency-PDC case
-(`YesDawMidiTimingCheck` = 16 cases / 289 assertions). Two beyond-criterion items are tracked as ADR-gated
-follow-ups under the full-close pass: a runtime `MidiClip` -> engine source Node (today flattening is
-test-only, so a loaded Project does not yet sound at playback), and ADR-0010's prefix-sum tempo lookup
-(`tickToFrame` is currently an O(n) per-call scan).
+H5 opened on 2026-06-28 when Dan asked to begin and finish H5. ADR-0018 records the recording latency
+and take-writer decision. The implementation is pure engine code in `src/engine/Recording.h`, with the
+blocking gate in `tests/recording_tests.cpp` and target `YesDawRecordingCheck`. Local verification:
+`cmake --preset ci`; VS DevShell `cmake --build --preset ci`; focused H5 gate 3/3; full
+`ctest --preset ci --output-on-failure` passed 225/225.
 
 ## The plan
 
-Full build order, every subsystem, every finding/deferral dispositioned:
-[`docs/plans/2026-06-27-h4-midi-editing-instruments-plan.md`](../docs/plans/2026-06-27-h4-midi-editing-instruments-plan.md).
+Full build order:
+[`docs/plans/2026-06-28-h5-recording-plan.md`](../docs/plans/2026-06-28-h5-recording-plan.md).

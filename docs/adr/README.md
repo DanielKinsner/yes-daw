@@ -35,6 +35,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0015](0015-plugin-hosting-runtime-ipc-and-process-model.md) | Plugin hosting runtime: process model, IPC transport, isolation gates | Accepted |
 | [0016](0016-mute-mask-scales-past-64-nodes.md) | The post-compile mute mask scales past 64 compiled nodes | Accepted |
 | [0017](0017-midi-clip-edit-model-and-render-bridge.md) | MIDI Clip edit model and render bridge | Accepted |
+| [0018](0018-recording-latency-and-take-writer.md) | Recording latency compensation and take writer | Accepted |
 
 ## Decision status (the five research forks)
 

@@ -17,6 +17,16 @@ _Avoid_: real-time thread (loosely), DSP thread
 The non-real-time side that handles the screen, files, and user actions.
 _Avoid_: main thread, UI thread (when you mean all non-audio work)
 
+**Writer thread**:
+The non-audio thread that drains recorded chunks to disk. It may do file I/O; the Audio thread never
+does.
+_Avoid_: recorder thread (when you mean the disk writer specifically)
+
+**Recording FIFO**:
+The bounded single-producer/single-consumer queue that carries fixed-size recording chunks from the
+Audio thread to the Writer thread.
+_Avoid_: recording buffer (ambiguous), unbounded queue
+
 **Frame**:
 One audio sample across all channels at a single instant.
 _Avoid_: sample (when you mean every channel at once)
@@ -118,6 +128,11 @@ not an audible mixer target.
 **Plugin delay compensation (PDC)**:
 Automatically aligning paths so nodes that add delay stay in time with nodes that don't.
 
+**Monitoring latency compensation**:
+The frame-placement rule that subtracts known input latency, and for loopback click-reference recording
+also output latency, so a recorded take lands on the Project frame it represents.
+_Avoid_: nudging, manual offset
+
 **CompiledGraph**:
 The flat, contiguous, read-only result of compiling the editable routing — what a Snapshot *is*. The
 audio thread iterates it in order with no scheduling or allocation.
@@ -166,6 +181,22 @@ _Avoid_: region, segment
 A non-destructive placement of editable Notes on a track. Unlike an audio Clip, it owns Notes instead
 of referencing an Asset.
 _Avoid_: MIDI region, MIDI file (unless discussing import/export)
+
+**Take**:
+One recorded pass placed on the timeline. Loop recording creates one Take per loop iteration.
+_Avoid_: clip (when discussing the recorded pass before comping)
+
+**Comp**:
+A timeline selection assembled from one or more Takes.
+_Avoid_: best take (too subjective), flatten (that means destructive replacement)
+
+**Punch record**:
+Recording only inside an armed timeline window.
+_Avoid_: manual trim (the capture boundary, not an edit after recording)
+
+**Loop record**:
+Recording repeated passes over the same timeline loop, producing separate Takes.
+_Avoid_: overdub (unless the mode actually merges into an existing Take)
 
 **Asset**:
 The underlying audio a clip points into. Copied into the project by default. Immutable and
