@@ -39,6 +39,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0019](0019-h6-reliability-gate.md) | H6 reliability gate (deadline soak + autosave recovery) | Accepted |
 | [0020](0020-roadmap-horizons-h7-h10.md) | Roadmap extension — horizons H7–H11 (UI as capstone) | Accepted |
 | [0021](0021-offline-render-export-format.md) | Offline render export format | Accepted |
+| [0022](0022-playback-transport-model.md) | Playback transport model | Accepted |
 
 ## Decision status (the five research forks)
 

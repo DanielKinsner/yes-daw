@@ -258,6 +258,16 @@ public:
                   int numFrames,
                   EventStream& events) const noexcept YESDAW_RT_HOT
     {
+        Transport transport;
+        process (outChannels, numOutputChannels, numFrames, events, transport);
+    }
+
+    void process (float* const* outChannels,
+                  int numOutputChannels,
+                  int numFrames,
+                  EventStream& events,
+                  const Transport& transport) const noexcept YESDAW_RT_HOT
+    {
         YESDAW_RT_FATAL (canary_ == kCanary);   // UAF tripwire — ALWAYS live (incl. RTSan/TSan/Release).
         YESDAW_RT_FATAL (numFrames >= 0);
         YESDAW_RT_FATAL (numOutputChannels >= 0);
@@ -275,8 +285,6 @@ public:
 
         YESDAW_RT_FATAL (numFrames >= 0);
         YESDAW_RT_FATAL (static_cast<std::uint32_t> (numFrames) <= poolLayout_.maxBlockSize);
-
-        Transport   transport;
 
         const CompiledNode* const nodes   = compiledNodes_.data();
         const std::size_t         nNodes  = compiledNodes_.size();

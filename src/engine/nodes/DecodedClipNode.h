@@ -52,9 +52,10 @@ public:
 
         const int          channels = std::min (args.audio.numChannels, channels_);
         const std::int64_t total    = static_cast<std::int64_t> (samples_.size());
+        const std::int64_t blockStart = args.transport.hasTimelineFrame ? args.transport.timelineFrame : playFrame_;
         for (int i = 0; i < args.numFrames; ++i)
         {
-            const std::int64_t local  = (playFrame_ + static_cast<std::int64_t> (i)) - timelineStart_;
+            const std::int64_t local  = (blockStart + static_cast<std::int64_t> (i)) - timelineStart_;
             float              sample = 0.0f;
             if (local >= 0 && local < total)
                 sample = samples_[static_cast<std::size_t> (local)] * fadeGainAt (local, total);
@@ -63,7 +64,8 @@ public:
                 args.audio.channels[c][i] = sample;
         }
 
-        playFrame_ += static_cast<std::int64_t> (args.numFrames);
+        if (! args.transport.hasTimelineFrame)
+            playFrame_ += static_cast<std::int64_t> (args.numFrames);
     }
 
     void reset() noexcept override { playFrame_ = 0; }

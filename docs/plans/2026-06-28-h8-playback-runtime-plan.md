@@ -31,24 +31,25 @@ and is **not** a CI gate.
 Each checkpoint is one small, independently-green commit; CI is the gate. No boundary stop between
 horizons — continue headless.
 
-1. **Kickoff docs.** This plan; switch `loop/horizon.md` to H8; add transport terms to `CONTEXT.md`.
+1. **Kickoff docs.** This plan; switch `loop/horizon.md` to H8; add transport terms to `CONTEXT.md`. **[done]**
 2. **Shared project-graph builder.** Extract the projection + decoded-source factory from
    `OfflineRenderer` into a `buildProjectGraph(project, decodedAssets, options)` so offline render AND
    playback share the EXACT graph (H7 already proved that graph == the independent reference). No new ADR
-   — a refactor; `OfflineRenderer` keeps its gate green.
+   — a refactor; `OfflineRenderer` keeps its gate green. **[done]**
 3. **`PlaybackEngine` (play-from-0).** A production caller that builds the graph, publishes it to a
    `RuntimeAudioDriver`, and pumps `processDeviceBlock`. Gate: played output == independent reference,
-   block-size independent. No new ADR (integration of existing Runtime + graph).
+   block-size independent. No new ADR (integration of existing Runtime + graph). **[done]**
 4. **ADR-0022 — transport model.** Decide how the transport playhead reaches the nodes and what `locate`
    does (reset + reposition the graph at a new start frame vs nodes reading a shared playhead). Needed
-   before locate/loop code lands.
+   before locate/loop code lands. **[done]**
 5. **Transport controls.** Play / stop / locate / loop on top of `PlaybackEngine`, each gated against the
-   reference (shifted for locate, repeated for loop, silent+frozen for stop).
+   reference (shifted for locate, repeated for loop, silent+frozen for stop). **[done]**
 6. **Production callers for recording + autosave.** Drive H5 recording and H6 autosave from the transport;
-   gate take alignment and autosave recovery through the real callers.
+   gate take alignment and autosave recovery through the real callers. **[done]**
 7. **Real-device smoke (tracked, not CI).** One-command script: play a known Project out the actual device
-   with zero Underruns at a 128-frame Block. Absorbs the open H0 soak.
-8. **Close.** Headless `YesDawPlaybackCheck` + full `ci` green.
+   with zero Underruns at a 128-frame Block. Absorbs the open H0 soak. **[done: `tools/playback-smoke.ps1`
+   / `tools/playback-smoke.sh`, build-checked; hardware run remains owner-machine smoke, not CI]**
+8. **Close.** Headless `YesDawPlaybackCheck` + full `ci` green. **[done]**
 
 ## Non-goals (H8)
 
@@ -58,14 +59,16 @@ horizons — continue headless.
 - No multi-device / aggregate device handling.
 - The real-device output is a tracked smoke, not part of the CI gate.
 
-## Open decisions (stop for an ADR, do not decide inline)
+## Decisions
 
-- The transport model (checkpoint 4 / ADR-0022): playhead ownership, how `locate` repositions clip
-  sources (the current `DecodedClipNode` advances its own `playFrame_` monotonically from `prepare()`, so
-  locate needs either a reset-and-rebuild or a shared-playhead read). Pick the design that keeps the audio
-  thread allocation-free and the locate deterministic.
+- ADR-0022 accepted the absolute-frame transport model: `PlaybackEngine` owns play/stop/locate/loop state
+  and passes a caller-owned Project `timelineFrame` through `Transport` for each audio callback segment.
 
 ## Status
 
-Not started at write time. Kickoff + the shared builder + `PlaybackEngine` (play-from-0) land first;
-Claude reviews each checkpoint's close-out adversarially, headless, and continues without a boundary stop.
+Closed locally on 2026-06-28. `YesDawPlaybackCheck` passes 6 cases / 125 assertions: play-from-0 through
+`RuntimeAudioDriver`, block-size independence, offline parity, sample-accurate locate/stop/loop, H5
+recording capture from the transport playhead, and H6 autosave recovery from the playback/edit tick.
+`YesDawSoak` builds with `--playback-project`; the tracked hardware command is
+`tools/playback-smoke.ps1 -Loopback` (or `tools/playback-smoke.sh --loopback`) on a real audio machine.
+Local full gate: `ctest --preset ci --output-on-failure` passed 239/239.

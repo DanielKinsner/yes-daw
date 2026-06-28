@@ -120,6 +120,7 @@ yesdaw_harden(YesDaw)
 juce_add_console_app(YesDawSoak PRODUCT_NAME "YesDawSoak")
 target_sources(YesDawSoak PRIVATE tools/soak/SoakMain.cpp)
 target_include_directories(YesDawSoak PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawSoak SYSTEM PRIVATE ${choc_SOURCE_DIR})
 target_compile_definitions(YesDawSoak PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(YesDawSoak
   PRIVATE

@@ -39,6 +39,14 @@ public:
         runtime_.processBlock (outputChannels, numOutputChannels, numFrames);
     }
 
+    void processDeviceBlock (float* const* outputChannels,
+                             int numOutputChannels,
+                             int numFrames,
+                             const Transport& transport) noexcept YESDAW_RT_HOT
+    {
+        runtime_.processBlock (outputChannels, numOutputChannels, numFrames, transport);
+    }
+
     // JANITOR / CONTROL THREAD: never call from the Audio thread.
     std::size_t reclaim() noexcept { return runtime_.reclaim(); }
 

@@ -9,10 +9,12 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H8 (Playback runtime: device I/O + transport) — OPEN, building headless (no boundary
-stops, per Dan). Checkpoint 1 landed: a Project now PLAYS through the real lock-free Runtime
-(`PlaybackEngine`), gated against the independent reference. H6 + H7 CLOSED (both reviewed + hardened).
-ADR-0020 sequences H7–H11 (UI is the H11 capstone). Full local CI 239/239.**
+**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED locally.** A Project now
+plays through the real lock-free Runtime (`PlaybackEngine`) behind play/stop/locate/loop transport;
+recording (H5) and autosave (H6) have production callers; ADR-0022 is accepted; `YesDawPlaybackCheck`
+passes 6 cases / 125 assertions; full local `ctest --preset ci --output-on-failure` passes 239/239.
+The H8 real-device smoke is tracked as `tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and is not a
+CI gate. **Next:** stop for Dan's H8 close-out review; H9 needs its focused plan/ADR before code lands.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -38,22 +40,18 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H8 open; checkpoint 1 (it plays) landed headless
-- **Latest (2026-06-28): opened H8 and landed checkpoint 1 — a Project plays through the real Runtime.**
-  Dan: "there can't be a boundary — work on it headless and move on." So no H7->H8 stop; building H8
-  directly. Wrote the H8 plan (`docs/plans/2026-06-28-h8-playback-runtime-plan.md`) and switched the
-  horizon to H8. Checkpoint 1 (3 commits): (1) **refactor** — extracted `buildProjectGraph` from
-  `OfflineRenderer` so offline render and playback share the EXACT graph (the H7 independent-reference
-  proof carries to playback; H7 gate stayed green). (2) **feat** — `src/engine/PlaybackEngine.h`: the first
-  production caller of the lock-free `Runtime`, builds the Project graph and publishes it to a
-  `RuntimeAudioDriver` so the device callback pumps `processBlock` and plays it. (3) **gate** —
-  `YesDawPlaybackCheck` (3 cases / 41 assertions): playback through the real publish/drain/install path
-  equals the **independent reference** (clips summed; linear fade/gain/center pan — not the engine vs
-  itself), is block-size independent (bit-identical across device block sizes), matches the offline render
-  bit-for-bit, and leaks no graph on teardown; RTSan/TSan cover the new audio-thread `processBlock`. Local:
-  full `ctest --preset ci` **239/239**. **Next (no stop):** ADR-0022 transport model -> play/stop/locate/
-  loop -> recording (H5) + autosave (H6) production callers -> the tracked real-device smoke (absorbs the
-  open H0 soak). The real-device output is a one-command hardware smoke, not a CI gate.
+## Now — H8 closed locally; stop for close-out review
+- **Latest (2026-06-28): finished H8 playback runtime.** ADR-0022 accepted the absolute-frame transport
+  model. `PlaybackEngine` now passes a Project `timelineFrame` through `Transport` for each audio callback
+  segment, so play/stop/locate/loop are sample-accurate without publishing graphs from the audio thread.
+  `DecodedClipNode` reads the transport frame when present and keeps the legacy monotonic fallback for older
+  direct graph callers. H5 recording now has a production capture caller from the transport playhead, and
+  H6 autosave has a playback/edit tick helper in `persistence/PlaybackAutosave.h`. The tracked hardware
+  smoke is `tools/playback-smoke.ps1` / `tools/playback-smoke.sh`, implemented through
+  `YesDawSoak --playback-project`; it is build-checked and remains a real-device smoke, not CI. Local:
+  `YesDawPlaybackCheck` **6 cases / 125 assertions**, `cmake --build --preset ci`, and
+  `ctest --preset ci --output-on-failure` **239/239**. **Next:** stop for Dan's H8 close-out review; write
+  the H9 focused plan/ADR before H9 code lands.
 - **Earlier (2026-06-28): adversarial review of Codex's just-landed H7 offline-render gate + patches (Claude).**
   Ran the same multi-agent treatment as H6 (5 diverse-lens finders -> per-finding skeptical verification,
   25 raw -> 24 confirmed, heavy dupes) and adjudicated by hand. **Two real blockers + WAV-robustness gaps,
@@ -2575,11 +2573,15 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 - ✅ **H6 closed; local and remote CI green.** Reliability is mechanically covered by
   `YesDawReliabilityCheck`: 100-track / 60-minute audio-frame deadline soak at a 128-frame Block plus
   last-good Autosave recovery after a simulated hard kill.
-- ✅ **H7 implemented locally; ready for Claude review.** Offline render/export is mechanically covered by
+- ✅ **H7 closed; local and remote CI green.** Offline render/export is mechanically covered by
   `YesDawOfflineRenderCheck`: Project offline render vs independent reference, canonical float32-WAV
   bit-exact round-trip, and export -> bundle Asset import -> decode round-trip, with negative controls.
-- **Next rolling baton: Claude adversarial review of H7 close-out.**
-  Do not start H8 until the H7 review findings are adjudicated and the pushed CI gate is green.
+- ✅ **H8 closed locally; pending remote CI.** Playback runtime is mechanically covered by
+  `YesDawPlaybackCheck`: Project playback through `RuntimeAudioDriver`, block-size independence, offline
+  parity, play/stop/locate/loop transport, H5 recording capture from the transport playhead, and H6
+  autosave tick recovery. Local full `ci` gate is green (239/239).
+- **Next rolling baton: H8 close-out review, then H9 planning.**
+  Do not start H9 code until the H8 pushed CI gate is green and the H9 focused plan/ADR is written.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

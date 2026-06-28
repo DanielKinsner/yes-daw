@@ -40,7 +40,12 @@ An audible glitch (click, pop, dropout) caused by missing the audio deadline.
 _Avoid_: glitch, stutter, xrun
 
 **Transport**:
-The global clock: playhead, play/stop/record, tempo map, markers.
+The global clock: playhead, play/stop/record, tempo map, markers. In H8 playback code, the transport
+also carries the current absolute Project `timelineFrame` for the audio callback segment.
+
+**Loop region**:
+A half-open timeline range `[start, end)` that repeats while the Transport is playing.
+_Avoid_: inclusive loop end
 
 **Tempo map**:
 The timeline of tempo and time-signature changes.

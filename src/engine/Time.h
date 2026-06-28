@@ -191,7 +191,9 @@ struct Transport
     TempoMapView tempoMap;
     MeterMapView meterMap;
     SampleRate   projectSampleRate;
+    std::int64_t timelineFrame = 0;
     bool         isPlaying = false;
+    bool         hasTimelineFrame = false;
 };
 
 namespace detail {

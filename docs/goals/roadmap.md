@@ -137,11 +137,11 @@ highest-value DAW test (offline render vs an independent reference) becomes real
 **Exit:** the offline render of a Project to a file equals an **independent** reference render of the same
 Project within tolerance (golden-file compare — not the engine compared to itself), and the exported file
 re-imports to an Asset whose decoded samples round-trip — all green in CI.
-**Status (2026-06-28):** implemented locally and ready for Claude review. ADR-0021 accepted the canonical
+**Status (2026-06-28):** closed. ADR-0021 accepted the canonical
 float32-WAV format; `OfflineRenderer` renders the current sample-locked Project mixer surface through
 `ProjectMixerProjection`; `WavFile` writes/reads pure float32 WAV; `YesDawOfflineRenderCheck` covers
 render/reference, codec round-trip, export/import, and negative controls. Local focused gate 1/1 and full
-`ci` preset 238/238 are green. Do not open H8 until the H7 close-out review is adjudicated.
+`ci` preset 238/238 are green. Follow-on review/hardening completed; H8 has opened and closed.
 
 ## H8 — Playback runtime (device I/O + transport)
 Wire the engine to a real audio device behind a transport (play/stop/locate/loop); give recording (H5)
@@ -150,6 +150,12 @@ and autosave (H6) their first production callers. **The audible milestone.**
 render of the same Project, **and** a one-command self-asserting hardware smoke plays a known Project out
 the real device with zero Underruns at a 128-frame Block (ADR-0005 script pattern; absorbs the open H0
 real-hardware soak).
+**Status (2026-06-28):** closed locally. ADR-0022 accepted the absolute-frame transport model; `PlaybackEngine`
+plays through `RuntimeAudioDriver`, supports play/stop/locate/loop, drives H5 recording capture, and exposes
+the edit tick used by `persistence/PlaybackAutosave.h`. `YesDawPlaybackCheck` passes 6 cases / 125 assertions
+and the full local `ci` preset passes 239/239. The one-command hardware smoke is tracked as
+`tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and build-checked through `YesDawSoak --playback-project`;
+it remains an owner-machine smoke, not a CI gate.
 
 ## H9 — Engine scaling & robustness
 The multicore work-stealing scheduler + soak/fuzz hardening, and the cross-horizon debt (H3 worker

@@ -178,6 +178,25 @@ public:
                        int numFrames,
                        EventStream& events) noexcept YESDAW_RT_HOT
     {
+        Transport transport;
+        processBlock (outChannels, numOutputChannels, numFrames, events, transport);
+    }
+
+    void processBlock (float* const* outChannels,
+                       int numOutputChannels,
+                       int numFrames,
+                       const Transport& transport) noexcept YESDAW_RT_HOT
+    {
+        EventStream events;
+        processBlock (outChannels, numOutputChannels, numFrames, events, transport);
+    }
+
+    void processBlock (float* const* outChannels,
+                       int numOutputChannels,
+                       int numFrames,
+                       EventStream& events,
+                       const Transport& transport) noexcept YESDAW_RT_HOT
+    {
         // (1) Drain the command queue IN ORDER.
         //     INVARIANT: this drain MUST run before the end-of-block release-store at (3), inside this
         //     same call. The reclamation fence-post relies on the generation captured at swap time being
@@ -208,7 +227,7 @@ public:
         }
         else
         {
-            current_->process (outChannels, numOutputChannels, numFrames, events);
+            current_->process (outChannels, numOutputChannels, numFrames, events, transport);
         }
 
         // (3) Publish the end-of-block generation LAST (release). Pairs with reclaim()'s acquire-load.

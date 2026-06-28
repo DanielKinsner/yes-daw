@@ -3,14 +3,19 @@
 
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "persistence/PlaybackAutosave.h"
+#include "persistence/ProjectBundle.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <span>
+#include <string>
 #include <vector>
 
 using yesdaw::engine::Asset;
@@ -22,10 +27,19 @@ using yesdaw::engine::EntityId;
 using yesdaw::engine::OfflineRenderOptions;
 using yesdaw::engine::PlaybackEngine;
 using yesdaw::engine::Project;
+using yesdaw::engine::RecordingChunkFifo;
+using yesdaw::engine::RecordingConfig;
+using yesdaw::engine::RecordingTakeFileStatus;
+using yesdaw::engine::RecordingTakeFileWriter;
+using yesdaw::engine::findRecordedSample;
+using yesdaw::engine::readRecordingTakeFile;
 using yesdaw::engine::renderOfflineProject;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::persistence::ProjectBundleDb;
+using yesdaw::persistence::readAutosaveSnapshot;
+using yesdaw::persistence::writeAutosaveOnPlaybackTick;
 
 namespace {
 
@@ -164,6 +178,47 @@ std::vector<float> independentReference (const PlaybackFixture& fixture)
     return expected;
 }
 
+std::vector<float> referenceSlice (const PlaybackFixture& fixture, std::int64_t startFrame, std::uint64_t frames)
+{
+    const std::vector<float> full = independentReference (fixture);
+    const std::size_t fullFrames = full.size() / 2u;
+    std::vector<float> out (static_cast<std::size_t> (frames) * 2u, 0.0f);
+    for (std::uint64_t frame = 0; frame < frames; ++frame)
+    {
+        const std::int64_t sourceFrame = startFrame + static_cast<std::int64_t> (frame);
+        if (sourceFrame < 0 || static_cast<std::size_t> (sourceFrame) >= fullFrames)
+            continue;
+
+        out[static_cast<std::size_t> (frame) * 2u] = full[static_cast<std::size_t> (sourceFrame) * 2u];
+        out[static_cast<std::size_t> (frame) * 2u + 1u] = full[static_cast<std::size_t> (sourceFrame) * 2u + 1u];
+    }
+    return out;
+}
+
+std::vector<float> loopReference (const PlaybackFixture& fixture,
+                                  std::int64_t loopStart,
+                                  std::int64_t loopEnd,
+                                  std::uint64_t frames)
+{
+    REQUIRE (loopStart >= 0);
+    REQUIRE (loopEnd > loopStart);
+
+    const std::vector<float> full = independentReference (fixture);
+    const std::size_t fullFrames = full.size() / 2u;
+    const std::int64_t loopLength = loopEnd - loopStart;
+    std::vector<float> out (static_cast<std::size_t> (frames) * 2u, 0.0f);
+    for (std::uint64_t frame = 0; frame < frames; ++frame)
+    {
+        const std::int64_t sourceFrame = loopStart + (static_cast<std::int64_t> (frame) % loopLength);
+        if (static_cast<std::size_t> (sourceFrame) >= fullFrames)
+            continue;
+
+        out[static_cast<std::size_t> (frame) * 2u] = full[static_cast<std::size_t> (sourceFrame) * 2u];
+        out[static_cast<std::size_t> (frame) * 2u + 1u] = full[static_cast<std::size_t> (sourceFrame) * 2u + 1u];
+    }
+    return out;
+}
+
 bool buffersNear (std::span<const float> a, std::span<const float> b, double tol = kTolerance) noexcept
 {
     if (a.size() != b.size())
@@ -189,29 +244,19 @@ bool bitIdentical (std::span<const float> a, std::span<const float> b) noexcept
     return true;
 }
 
-// Pump a fresh PlaybackEngine block by block through the realtime device-callback seam, collecting the
-// interleaved Master output for the whole timeline.
-std::vector<float> playToBuffer (const PlaybackFixture& fixture, int blockSize)
+std::vector<float> drainPlayback (PlaybackEngine& engine, std::uint64_t frames, int blockSize)
 {
-    PlaybackEngine::Result created = PlaybackEngine::create (
-        fixture.project,
-        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
-        OfflineRenderOptions {});
-    REQUIRE (created.ok());
-    PlaybackEngine& engine = *created.engine;
-
-    const std::uint64_t total = engine.frames();
-    const int           ch    = static_cast<int> (engine.channels());
+    const int ch = static_cast<int> (engine.channels());
     REQUIRE (ch == 2);
 
-    std::vector<float>  out (static_cast<std::size_t> (total) * static_cast<std::size_t> (ch), 0.0f);
-    std::vector<float>  storage (static_cast<std::size_t> (ch) * static_cast<std::size_t> (blockSize), 0.0f);
+    std::vector<float> out (static_cast<std::size_t> (frames) * static_cast<std::size_t> (ch), 0.0f);
+    std::vector<float> storage (static_cast<std::size_t> (ch) * static_cast<std::size_t> (blockSize), 0.0f);
     std::vector<float*> ptrs (static_cast<std::size_t> (ch), nullptr);
 
     std::uint64_t offset = 0;
-    while (offset < total)
+    while (offset < frames)
     {
-        const int n = static_cast<int> (std::min<std::uint64_t> (total - offset, static_cast<std::uint64_t> (blockSize)));
+        const int n = static_cast<int> (std::min<std::uint64_t> (frames - offset, static_cast<std::uint64_t> (blockSize)));
         for (int c = 0; c < ch; ++c)
             ptrs[static_cast<std::size_t> (c)] = storage.data() + static_cast<std::size_t> (c) * static_cast<std::size_t> (blockSize);
 
@@ -225,8 +270,45 @@ std::vector<float> playToBuffer (const PlaybackFixture& fixture, int blockSize)
         offset += static_cast<std::uint64_t> (n);
     }
 
+    return out;
+}
+
+// Pump a fresh PlaybackEngine block by block through the realtime device-callback seam, collecting the
+// interleaved Master output for the whole timeline.
+std::vector<float> playToBuffer (const PlaybackFixture& fixture, int blockSize)
+{
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+
+    const std::uint64_t total = engine.frames();
+    std::vector<float> out = drainPlayback (engine, total, blockSize);
+
     engine.reclaim();
     return out;
+}
+
+std::filesystem::path tempPath (std::string_view label, std::string_view extension)
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::filesystem::path path = std::filesystem::temp_directory_path()
+                               / ("yesdaw-h8-" + std::string (label) + "-" + std::to_string (ticks)
+                                  + std::string (extension));
+
+    std::error_code ec;
+    std::filesystem::remove_all (path, ec);
+    return path;
+}
+
+Project makeAutosaveProject()
+{
+    Project project;
+    project.id = idFromLowByte (90);
+    project.sampleRate = SampleRate { 48000.0 };
+    return project;
 }
 
 } // namespace
@@ -271,4 +353,137 @@ TEST_CASE ("PlaybackEngine output matches the offline render of the same Project
 
     // The realtime publish/drain/install path must reproduce the offline render bit-for-bit.
     REQUIRE (bitIdentical (played, offline.interleavedSamples));
+}
+
+TEST_CASE ("PlaybackEngine transport stop, locate, and loop are sample-accurate",
+           "[h8][playback][transport]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+
+    REQUIRE (engine.locate (3));
+    REQUIRE (buffersNear (drainPlayback (engine, 4, 3), referenceSlice (fixture, 3, 4)));
+    REQUIRE (engine.playheadFrame() == 7);
+
+    REQUIRE (engine.locate (2));
+    engine.stop();
+    std::vector<float> left (4u, -1.0f);
+    std::vector<float> right (4u, -1.0f);
+    float* stopped[2] = { left.data(), right.data() };
+    engine.processBlock (stopped, 2, 4);
+    REQUIRE (engine.playheadFrame() == 2);
+    for (float sample : left)
+        REQUIRE (sample == 0.0f);
+    for (float sample : right)
+        REQUIRE (sample == 0.0f);
+
+    engine.play();
+    REQUIRE (buffersNear (drainPlayback (engine, 2, 2), referenceSlice (fixture, 2, 2)));
+    REQUIRE (engine.playheadFrame() == 4);
+
+    REQUIRE (engine.setLoop (3, 7));
+    REQUIRE (engine.locate (3));
+    REQUIRE (buffersNear (drainPlayback (engine, 10, 5), loopReference (fixture, 3, 7, 10)));
+    REQUIRE (engine.playheadFrame() == 5);
+}
+
+TEST_CASE ("PlaybackEngine drives H5 recording capture from the transport playhead",
+           "[h8][playback][recording]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+    REQUIRE (engine.locate (0));
+
+    RecordingConfig config;
+    config.channels = 1;
+    config.sampleRateHz = 48000.0;
+    config.latency.inputLatencyFrames = 3;
+    config.latency.outputLatencyFrames = 5;
+    config.latency.includeOutputLatency = true;
+    config.window.punchStartFrame = 0;
+    config.window.punchEndFrame = 64;
+
+    std::int64_t roundTrip = 0;
+    REQUIRE (config.latency.compensatedLatencyFrames (roundTrip));
+    constexpr std::int64_t kClickFrame = 28;
+    const std::int64_t impulseFrame = kClickFrame + roundTrip;
+
+    const std::filesystem::path path = tempPath ("recording", ".ysdtake");
+    RecordingChunkFifo fifo { 8 };
+    RecordingTakeFileWriter writer;
+    REQUIRE (writer.open (path, config));
+
+    constexpr int kBlock = 7;
+    const std::int64_t totalFrames = config.window.punchEndFrame + roundTrip + kBlock;
+    for (std::int64_t processed = 0; processed < totalFrames; processed += kBlock)
+    {
+        const int frames = static_cast<int> (std::min<std::int64_t> (kBlock, totalFrames - processed));
+        std::vector<float> input (static_cast<std::size_t> (frames), 0.0f);
+        if (impulseFrame >= engine.playheadFrame() && impulseFrame < engine.playheadFrame() + frames)
+            input[static_cast<std::size_t> (impulseFrame - engine.playheadFrame())] = 1.0f;
+
+        const float* inputChannels[1] = { input.data() };
+        const auto capture = engine.captureRecordingInputBlock (fifo, config, inputChannels, 1, frames);
+        REQUIRE_FALSE (capture.inputInvalid);
+        REQUIRE_FALSE (capture.fifoFull);
+        REQUIRE (writer.drain (fifo));
+
+        std::vector<float> left (static_cast<std::size_t> (frames), 0.0f);
+        std::vector<float> right (static_cast<std::size_t> (frames), 0.0f);
+        float* outputs[2] = { left.data(), right.data() };
+        engine.processBlock (outputs, 2, frames);
+    }
+
+    REQUIRE (writer.drain (fifo));
+    REQUIRE (writer.close());
+
+    const auto read = readRecordingTakeFile (path);
+    REQUIRE (read.status == RecordingTakeFileStatus::Ok);
+    float sample = 0.0f;
+    REQUIRE (findRecordedSample (read.file, 0, kClickFrame, 0, sample));
+    REQUIRE (sample == 1.0f);
+    std::filesystem::remove (path);
+}
+
+TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
+           "[h8][playback][autosave]")
+{
+    const PlaybackFixture fixture = makePlaybackFixture();
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+
+    const std::filesystem::path path = tempPath ("autosave", ".yesdaw");
+    ProjectBundleDb db;
+    Project saved = makeAutosaveProject();
+    Project dirty = saved;
+    dirty.sampleRate = SampleRate { 96000.0 };
+
+    REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
+    REQUIRE (db.writeProjectSnapshot (saved).ok());
+
+    engine.markProjectEdited();
+    REQUIRE (engine.needsAutosave());
+    REQUIRE (writeAutosaveOnPlaybackTick (engine, db, dirty).ok());
+    REQUIRE_FALSE (engine.needsAutosave());
+
+    Project recovered;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    REQUIRE (recovered.id == dirty.id);
+    REQUIRE (recovered.sampleRate == dirty.sampleRate);
+    REQUIRE (recovered.assets.empty());
+    REQUIRE (recovered.clips.empty());
 }

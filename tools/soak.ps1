@@ -4,6 +4,7 @@
 #   From cmd:          powershell -ExecutionPolicy Bypass -File tools\soak.ps1 30
 #   Full 10-min gate:  .\tools\soak.ps1 600
 #   Prove sound out:   .\tools\soak.ps1 600 -Loopback     (needs output wired back to an input)
+#   H8 Project path:   .\tools\soak.ps1 600 -PlaybackProject -Loopback
 #
 # This is the AUDIO half of the H0 exit: a soak at a 128-frame Block (the roadmap target; -BlockSize to
 # override) with zero dropouts; -Loopback also asserts sound physically left the device AND was 440 Hz.
@@ -12,7 +13,8 @@
 param(
   [int]    $Seconds   = 600,
   [int]    $BlockSize = 128,
-  [switch] $Loopback
+  [switch] $Loopback,
+  [switch] $PlaybackProject
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -39,6 +41,7 @@ if (-not $bin) {
 $stats = "$repo\soak-stats.json"
 $soakArgs = @('--seconds', $Seconds, '--block-size', $BlockSize, '--stats-out', $stats)
 if ($Loopback) { $soakArgs += '--loopback' }
+if ($PlaybackProject) { $soakArgs += '--playback-project' }
 & $bin @soakArgs
 
 if (-not (Test-Path $stats)) { Write-Host "FAIL: soak wrote no stats (crash?)" -ForegroundColor Red; exit 2 }
@@ -50,6 +53,7 @@ $problems = @()
 if ($s.xruns -ge 0 -and $s.xruns -ne 0)                              { $problems += "xruns=$($s.xruns)" }
 if ($s.deadline_misses -ne 0)                                        { $problems += "deadline_misses=$($s.deadline_misses)" }
 if ($s.device_error)                                                 { $problems += "device_error" }
+if ($PlaybackProject -and $s.mode -ne "playback_project")            { $problems += "mode=$($s.mode) (expected playback_project)" }
 if ($s.block_budget_ms -gt 0 -and $s.max_block_ms -ge $s.block_budget_ms) { $problems += ("max_block_ms {0:N3} >= budget {1:N3}" -f $s.max_block_ms, $s.block_budget_ms) }
 # The roadmap names a 128-frame Block; a larger forced block means the H0 target wasn't met.
 if ($s.block_size -gt $s.requested_block_size) { $problems += ("block {0} > target {1} (device could not meet it — needs a low-latency/exclusive driver)" -f $s.block_size, $s.requested_block_size) }
@@ -59,8 +63,8 @@ if ($s.loopback) {
   elseif (-not ($s.loopback_440_mag -gt (0.5 * $s.loopback_peak_rms))) { $problems += ("loopback not 440 Hz (440_mag={0:N4} vs rms={1:N4})" -f $s.loopback_440_mag, $s.loopback_peak_rms) }
 }
 
-Write-Host ('device="{0}" sr={1} block={2}/{3} xruns={4} deadline_misses={5} max_block_ms={6:N3}/{7:N3} loop_rms={8:N4} loop_440={9:N4}' -f `
-  $s.device, $s.sample_rate, $s.block_size, $s.requested_block_size, $s.xruns, $s.deadline_misses, $s.max_block_ms, $s.block_budget_ms, $s.loopback_peak_rms, $s.loopback_440_mag)
+Write-Host ('mode={0} device="{1}" sr={2} block={3}/{4} xruns={5} deadline_misses={6} max_block_ms={7:N3}/{8:N3} loop_rms={9:N4} loop_440={10:N4}' -f `
+  $s.mode, $s.device, $s.sample_rate, $s.block_size, $s.requested_block_size, $s.xruns, $s.deadline_misses, $s.max_block_ms, $s.block_budget_ms, $s.loopback_peak_rms, $s.loopback_440_mag)
 
 if ($problems.Count -gt 0) { Write-Host ("FAIL: " + ($problems -join "; ")) -ForegroundColor Red; exit 1 }
 Write-Host "PASS (audio gate; GPU 60 fps frame gate not yet implemented)" -ForegroundColor Green

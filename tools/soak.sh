@@ -2,7 +2,7 @@
 # YES DAW — H0 real-machine soak gate. Runs on ONE real machine (the owner's box, or a scheduled
 # self-hosted runner). Exit 0 = healthy, 1 = dropout/silence, 2 = setup error. No human listens.
 #
-#   tools/soak.sh [seconds] [--loopback] [--block-size N]
+#   tools/soak.sh [seconds] [--loopback] [--block-size N] [--playback-project]
 #
 # This is the AUDIO half of the H0 exit: 600 s (10 min) at a 128-frame Block (the roadmap target;
 # pass --block-size to override) with zero dropouts. Add --loopback once the output is wired back to
@@ -38,7 +38,8 @@ STATS="$ROOT/soak-stats.json"
 # shellcheck disable=SC2086
 "$BIN" --seconds "$DUR" --stats-out "$STATS" $EXTRA
 
-python3 - "$STATS" <<'PY'
+# shellcheck disable=SC2086
+python3 - "$STATS" $EXTRA <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
 
@@ -53,6 +54,8 @@ if s["deadline_misses"] != 0:
     problems.append(f'deadline_misses={s["deadline_misses"]}')
 if s["device_error"]:
     problems.append("device_error")
+if "--playback-project" in sys.argv[2:] and s.get("mode") != "playback_project":
+    problems.append(f'mode={s.get("mode")} (expected playback_project)')
 if s["block_budget_ms"] > 0 and s["max_block_ms"] >= s["block_budget_ms"]:
     problems.append(f'max_block_ms {s["max_block_ms"]:.3f} >= budget {s["block_budget_ms"]:.3f}')
 # The roadmap names a 128-frame Block; if the device couldn't go that tight, the H0 target isn't met.
@@ -68,7 +71,7 @@ if s["loopback"]:
         problems.append(f'loopback not 440 Hz (440_mag={s["loopback_440_mag"]:.4f} '
                         f'vs rms={s["loopback_peak_rms"]:.4f})')
 
-print(f'device="{s["device"]}" sr={s["sample_rate"]} block={s["block_size"]}/{s["requested_block_size"]} '
+print(f'mode={s.get("mode", "unknown")} device="{s["device"]}" sr={s["sample_rate"]} block={s["block_size"]}/{s["requested_block_size"]} '
       f'xruns={s["xruns"]} deadline_misses={s["deadline_misses"]} '
       f'max_block_ms={s["max_block_ms"]:.3f}/{s["block_budget_ms"]:.3f} '
       f'loop_rms={s["loopback_peak_rms"]:.4f} loop_440={s["loopback_440_mag"]:.4f}')
