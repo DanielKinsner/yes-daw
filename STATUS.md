@@ -9,10 +9,11 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED locally; remote CI follow-up pending.** A Project now
+**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED.** A Project now
 plays through the real lock-free Runtime (`PlaybackEngine`) behind play/stop/locate/loop transport;
 recording (H5) and autosave (H6) have production callers; ADR-0022 is accepted; `YesDawPlaybackCheck`
-passes 6 cases / 125 assertions; full local `ctest --preset ci --output-on-failure` passes 239/239.
+passes 6 cases / 125 assertions; full local `ctest --preset ci --output-on-failure` passes 239/239; the
+H8 close-out CI run is green on Windows, Linux, macOS, TSan, and RTSan.
 The H8 real-device smoke is tracked as `tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and is not a
 CI gate. **Next:** stop for Dan's H8 close-out review; H9 needs its focused plan/ADR before code lands.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
@@ -40,7 +41,7 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H8 close-out follow-up pending remote CI
+## Now — H8 closed; stop for close-out review
 - **Latest (2026-06-28): finished H8 playback runtime.** ADR-0022 accepted the absolute-frame transport
   model. `PlaybackEngine` now passes a Project `timelineFrame` through `Transport` for each audio callback
   segment, so play/stop/locate/loop are sample-accurate without publishing graphs from the audio thread.
@@ -54,8 +55,10 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   the H9 focused plan/ADR before H9 code lands.
 - **Follow-up (2026-06-28): fixed the pushed Linux/macOS `YesDawSoak` warning-as-error.** Remote CI caught
   `-Wreorder` in `SoakCallback`; the initializer list now matches member declaration order. Local focused
-  soak build passes, and full `ctest --preset ci --output-on-failure` is still **239/239**. **Next:** push
-  this follow-up; remote CI is the H8 gate.
+  soak build passes, and full `ctest --preset ci --output-on-failure` is still **239/239**. Remote CI run
+  `28334403767` is green after rerunning the two sanitizer jobs that initially hit an `apt.llvm.org` DNS
+  failure before configure. **Next:** stop for Dan's H8 close-out review; H9 still needs its focused
+  plan/ADR before code lands.
 - **Earlier (2026-06-28): adversarial review of Codex's just-landed H7 offline-render gate + patches (Claude).**
   Ran the same multi-agent treatment as H6 (5 diverse-lens finders -> per-finding skeptical verification,
   25 raw -> 24 confirmed, heavy dupes) and adjudicated by hand. **Two real blockers + WAV-robustness gaps,
@@ -2580,10 +2583,10 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 - ✅ **H7 closed; local and remote CI green.** Offline render/export is mechanically covered by
   `YesDawOfflineRenderCheck`: Project offline render vs independent reference, canonical float32-WAV
   bit-exact round-trip, and export -> bundle Asset import -> decode round-trip, with negative controls.
-- ✅ **H8 closed locally; pending remote CI.** Playback runtime is mechanically covered by
+- ✅ **H8 closed; local and remote CI green.** Playback runtime is mechanically covered by
   `YesDawPlaybackCheck`: Project playback through `RuntimeAudioDriver`, block-size independence, offline
   parity, play/stop/locate/loop transport, H5 recording capture from the transport playhead, and H6
-  autosave tick recovery. Local full `ci` gate is green (239/239).
+  autosave tick recovery. Local full `ci` gate is green (239/239), and the H8 close-out CI run is green.
 - **Next rolling baton: H8 close-out review, then H9 planning.**
   Do not start H9 code until the H8 pushed CI gate is green and the H9 focused plan/ADR is written.
 
