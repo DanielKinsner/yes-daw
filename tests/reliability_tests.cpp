@@ -224,12 +224,83 @@ DeadlineSoakStats runDeadlineSoak (CompiledGraph& graph,
     REQUIRE (std::isfinite (checksum));
     REQUIRE (checksum > 0.0);
 
-    DeadlineSoakStats stats = summarizeDeadlineSoak (blockNanos, kSampleRate, blockSize, seconds, 0);
-    stats.blocksProcessed = totalBlocks;
-    return stats;
+    // blockNanos.size() was REQUIRE'd above to equal totalBlocks, so the summarizer's own measured
+    // count is authoritative — do not overwrite blocksProcessed with the planned total.
+    return summarizeDeadlineSoak (blockNanos, kSampleRate, blockSize, seconds, 0);
 }
 
 } // namespace
+
+// Negative control for the deadline oracle. The live soak above runs the real engine with a comfortable
+// margin, so by itself it can never drive summarizeDeadlineSoak/passesDeadline to FALSE — i.e. the oracle
+// has no biting test. This case feeds hand-built block-time distributions with known answers so a future
+// regression in the percentile index, the strict-< comparison, or the underrun/empty guards goes red.
+TEST_CASE ("H6 deadline oracle rejects over-budget, underrun, and empty soaks (negative control)",
+           "[h6][reliability][deadline][negative-control]")
+{
+    constexpr double kSampleRate = 48000.0;
+    constexpr int    kBlockSize  = 128;
+    const std::uint64_t period = yesdaw::engine::blockPeriodNanos (kSampleRate, kBlockSize);
+    REQUIRE (period > 0u);
+
+    const std::uint64_t small = period / 4u;
+
+    // (a) Positive: 1000 healthy blocks pass, and p99.9 reports the healthy time.
+    {
+        const std::vector<std::uint64_t> healthy (1000u, small);
+        const auto stats = summarizeDeadlineSoak (healthy, kSampleRate, kBlockSize, 1u, 0u);
+        REQUIRE (stats.blocksProcessed == 1000u);
+        REQUIRE (stats.p999BlockNanos == small);
+        REQUIRE (stats.passesDeadline());
+    }
+
+    // (b) The 99.9th percentile tolerates exactly the top 0.1%: for n=1000 the p999 index is 998, so a
+    //     single over-deadline outlier is intentionally ignored and the soak still passes.
+    {
+        std::vector<std::uint64_t> oneSpike (1000u, small);
+        oneSpike.back() = period * 10u;
+        const auto stats = summarizeDeadlineSoak (oneSpike, kSampleRate, kBlockSize, 1u, 0u);
+        REQUIRE (stats.maxBlockNanos == period * 10u);
+        REQUIRE (stats.p999BlockNanos == small);
+        REQUIRE (stats.passesDeadline());   // a lone outlier does not trip the gate, by design
+    }
+
+    // (c) Two over-deadline blocks (> top 0.1%) push the p99.9 element over the period => fail.
+    {
+        std::vector<std::uint64_t> tooMany (1000u, small);
+        tooMany[998] = period + 1u;
+        tooMany[999] = period + 1u;
+        const auto stats = summarizeDeadlineSoak (tooMany, kSampleRate, kBlockSize, 1u, 0u);
+        REQUIRE (stats.p999BlockNanos == period + 1u);
+        REQUIRE_FALSE (stats.passesDeadline());
+    }
+
+    // (d) Boundary: a p99.9 block exactly AT the period must fail (the predicate is strict <, not <=).
+    {
+        std::vector<std::uint64_t> atDeadline (1000u, small);
+        atDeadline[998] = period;
+        atDeadline[999] = period;
+        const auto stats = summarizeDeadlineSoak (atDeadline, kSampleRate, kBlockSize, 1u, 0u);
+        REQUIRE (stats.p999BlockNanos == period);
+        REQUIRE_FALSE (stats.passesDeadline());
+    }
+
+    // (e) A reported underrun fails even when every block is under the period.
+    {
+        const std::vector<std::uint64_t> healthy (1000u, small);
+        const auto stats = summarizeDeadlineSoak (healthy, kSampleRate, kBlockSize, 1u, 1u);
+        REQUIRE (stats.p999BlockNanos < period);
+        REQUIRE_FALSE (stats.passesDeadline());
+    }
+
+    // (f) Empty soak (no blocks processed) never passes.
+    {
+        const auto stats = summarizeDeadlineSoak (std::span<const std::uint64_t> {},
+                                                  kSampleRate, kBlockSize, 1u, 0u);
+        REQUIRE (stats.blocksProcessed == 0u);
+        REQUIRE_FALSE (stats.passesDeadline());
+    }
+}
 
 TEST_CASE ("H6 heavy session stays under the 128-frame block deadline for the configured audio-frame duration",
            "[h6][reliability][deadline]")
