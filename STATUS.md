@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED locally.** A Project now
+**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED locally; remote CI follow-up pending.** A Project now
 plays through the real lock-free Runtime (`PlaybackEngine`) behind play/stop/locate/loop transport;
 recording (H5) and autosave (H6) have production callers; ADR-0022 is accepted; `YesDawPlaybackCheck`
 passes 6 cases / 125 assertions; full local `ctest --preset ci --output-on-failure` passes 239/239.
@@ -40,7 +40,7 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H8 closed locally; stop for close-out review
+## Now — H8 close-out follow-up pending remote CI
 - **Latest (2026-06-28): finished H8 playback runtime.** ADR-0022 accepted the absolute-frame transport
   model. `PlaybackEngine` now passes a Project `timelineFrame` through `Transport` for each audio callback
   segment, so play/stop/locate/loop are sample-accurate without publishing graphs from the audio thread.
@@ -52,6 +52,10 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `YesDawPlaybackCheck` **6 cases / 125 assertions**, `cmake --build --preset ci`, and
   `ctest --preset ci --output-on-failure` **239/239**. **Next:** stop for Dan's H8 close-out review; write
   the H9 focused plan/ADR before H9 code lands.
+- **Follow-up (2026-06-28): fixed the pushed Linux/macOS `YesDawSoak` warning-as-error.** Remote CI caught
+  `-Wreorder` in `SoakCallback`; the initializer list now matches member declaration order. Local focused
+  soak build passes, and full `ctest --preset ci --output-on-failure` is still **239/239**. **Next:** push
+  this follow-up; remote CI is the H8 gate.
 - **Earlier (2026-06-28): adversarial review of Codex's just-landed H7 offline-render gate + patches (Claude).**
   Ran the same multi-agent treatment as H6 (5 diverse-lens finders -> per-finding skeptical verification,
   25 raw -> 24 confirmed, heavy dupes) and adjudicated by hand. **Two real blockers + WAV-robustness gaps,

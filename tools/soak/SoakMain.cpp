@@ -63,7 +63,7 @@ class SoakCallback final : public juce::AudioIODeviceCallback
 {
 public:
     explicit SoakCallback (bool playbackProject, double seconds)
-        : playbackProject_ (playbackProject), seconds_ (seconds)
+        : seconds_ (seconds), playbackProject_ (playbackProject)
     {
     }
 
