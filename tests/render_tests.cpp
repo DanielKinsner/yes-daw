@@ -301,3 +301,70 @@ TEST_CASE ("Engine renders Clips at their timeline positions and sums overlaps",
     REQUIRE (out[6] == 30.0f);           // A exhausted, B[2]
     REQUIRE (out[10] == 0.0f);           // both exhausted
 }
+
+// A real crossfade: clip A fades OUT while overlapping clip B fades IN, both applied BY THE ENGINE from
+// clip metadata (not pre-baked into the samples). Checked against an independent linear-fade reference;
+// if the engine ignored the fades the overlap would be the raw 4+8=12 sum, not the faded ramp.
+TEST_CASE ("Engine renders an overlapping crossfade from clip fade metadata", "[h2][render][crossfade]")
+{
+    constexpr int          kBlock = 16;
+    constexpr NodeId       kClipA = 64011, kClipB = 64012, kXfadeMaster = 64010;
+    constexpr std::int64_t aStart = 0, bStart = 4, fade = 4;
+
+    const std::vector<float> a (8, 4.0f);   // frames [0,8), fade OUT over the last 4
+    const std::vector<float> b (8, 8.0f);   // frames [4,12), fade IN over the first 4 -> overlap on [4,8)
+
+    auto clipA  = std::make_unique<DecodedClipNode> (kClipA, a, 1, aStart, /*fadeIn*/ 0,    /*fadeOut*/ fade);
+    auto clipB  = std::make_unique<DecodedClipNode> (kClipB, b, 1, bStart, /*fadeIn*/ fade, /*fadeOut*/ 0);
+    auto master = std::make_unique<MasterNode> (kXfadeMaster, 1);
+    master->setInputNodes ({ clipA.get(), clipB.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = 71;
+    inputs.masterNodeId = kXfadeMaster;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = kBlock;
+    inputs.nodes.push_back (std::move (clipA));
+    inputs.nodes.push_back (std::move (clipB));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    std::vector<float> out (kBlock, -123.0f);
+    graph->process (out.data(), kBlock);
+
+    // Independent linear-fade reference (same spec as DecodedClipNode::fadeGainAt, separate code).
+    const auto faded = [] (float value, std::int64_t local, std::int64_t total,
+                           std::int64_t fadeIn, std::int64_t fadeOut) -> float
+    {
+        float g = 1.0f;
+        if (fadeIn > 0 && local < fadeIn)
+            g *= static_cast<float> (local) / static_cast<float> (fadeIn);
+        if (fadeOut > 0)
+        {
+            const std::int64_t s = total - fadeOut;
+            if (local >= s)
+                g *= static_cast<float> (total - local) / static_cast<float> (fadeOut);
+        }
+        return value * g;
+    };
+
+    for (int f = 0; f < kBlock; ++f)
+    {
+        float expected = 0.0f;
+        const std::int64_t la = static_cast<std::int64_t> (f) - aStart;
+        if (la >= 0 && la < 8) expected += faded (4.0f, la, 8, 0, fade);
+        const std::int64_t lb = static_cast<std::int64_t> (f) - bStart;
+        if (lb >= 0 && lb < 8) expected += faded (8.0f, lb, 8, fade, 0);
+
+        INFO ("crossfade frame " << f << " expected " << expected << " got " << out[static_cast<std::size_t> (f)]);
+        REQUIRE (std::fabs (static_cast<double> (out[static_cast<std::size_t> (f)] - expected)) <= kTolerance);
+    }
+
+    // The fades are really applied: the overlap is NOT the un-faded 4 + 8 = 12.
+    REQUIRE (static_cast<double> (out[4]) < 12.0 - kTolerance);
+    REQUIRE (static_cast<double> (out[7]) < 12.0 - kTolerance);
+}
