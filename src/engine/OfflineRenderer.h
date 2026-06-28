@@ -58,7 +58,8 @@ enum class OfflineRenderStatus : std::uint8_t
     ProjectProjectionFailed,
     MixerProjectionFailed,
     OutputTooLarge,
-    RenderProducedNonFinite
+    RenderProducedNonFinite,
+    GraphNotBlockParallelSafe   // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
 };
 
 struct OfflineRenderResult

@@ -226,6 +226,16 @@ public:
 
         carryOverDelayState (payload, inputs.previousForCarryOver);
 
+        // ADR-0027: the graph is block-parallel-safe only if EVERY compiled node (including any PDC
+        // LatencyNode the splice inserted) is order-independent, and there is no path latency (a delay/
+        // latency ring is inherently cross-Block state). Default-false node props mean a new/stateful node
+        // flips this off, so the parallel scheduler refuses it instead of mis-rendering it.
+        bool blockParallelSafe = payload.totalLatency == 0;
+        for (const CompiledNode& cn : payload.compiledNodes)
+            if (cn.node != nullptr && ! cn.node->properties().blockParallelSafe)
+                blockParallelSafe = false;
+        payload.blockParallelSafe = blockParallelSafe;
+
         return std::make_unique<CompiledGraph> (std::move (payload));
     }
 

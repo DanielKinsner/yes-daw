@@ -28,13 +28,19 @@ using NodeId = std::uint32_t;
 using ParameterId = std::uint32_t;
 
 // What a Node advertises to the compiler. latencySamples drives PDC; channels/produces* drive routing.
+// blockParallelSafe (ADR-0027) declares the node's process() output is independent of Block dispatch order
+// under the scheduler's calling convention (absolute transport frame, empty per-Block events) — i.e. it
+// carries NO cross-Block state. Default FALSE (fail-safe): a node must opt in, so a future stateful node
+// (delay/reverb/automation/plugin) is refused by the parallel scheduler until proven, never silently
+// mis-rendered. GraphBuilder ANDs this across the graph into CompiledGraph::isBlockParallelSafe().
 struct NodeProperties
 {
-    bool         producesAudio  = false;
-    bool         producesEvents = false;
-    int          channels       = 0;
-    std::int64_t latencySamples = 0;
-    NodeId       id             = 0;
+    bool         producesAudio     = false;
+    bool         producesEvents    = false;
+    int          channels          = 0;
+    std::int64_t latencySamples    = 0;
+    NodeId       id                = 0;
+    bool         blockParallelSafe = false;
 };
 
 // A view over the per-channel audio buffers a Node reads/writes this Block. The frame count travels in

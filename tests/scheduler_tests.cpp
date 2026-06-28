@@ -1,8 +1,12 @@
 // YES DAW - H9 engine scaling and robustness gate.
 
 #include "engine/GraphScheduler.h"
+#include "engine/GraphBuilder.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/Reliability.h"
+#include "engine/nodes/DelayNode.h"
+#include "engine/nodes/IdentityDcNode.h"
+#include "engine/nodes/MasterNode.h"
 #include "persistence/PluginFailureBlacklist.h"
 #include "persistence/ProjectBundle.h"
 
@@ -350,6 +354,45 @@ TEST_CASE ("YesDawSchedulerCheck negative control: without absolute transport fr
 
     REQUIRE (ordered.size() == shuffled.size());
     REQUIRE_FALSE (bitIdentical (ordered, shuffled));
+}
+
+TEST_CASE ("YesDawSchedulerCheck refuses graphs that are not block-parallel-safe (ADR-0027)",
+           "[h9][scheduler][determinism][guard]")
+{
+    OfflineRenderOptions options;
+    options.maxBlockSize = kBlockSize;
+
+    // The current Project surface compiles to an all-order-independent graph, so the scheduler accepts it.
+    const SchedulerFixture fixture = makeSchedulerFixture();
+    auto safe = yesdaw::engine::buildProjectGraph (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        options);
+    REQUIRE (safe.ok());
+    REQUIRE (safe.graph->isBlockParallelSafe());
+
+    // A graph with a DelayNode carries cross-Block ring state, so it must NOT be marked safe — the scheduler
+    // would otherwise scramble the ring when workers steal Blocks out of order. The default-false node
+    // property means any future stateful node (reverb/automation/plugin) flips this the same way.
+    const yesdaw::engine::NodeId masterId = 9000u;
+    auto source = std::make_unique<yesdaw::engine::IdentityDcNode> (1u, 0.25f, 1);
+    auto delay  = std::make_unique<yesdaw::engine::DelayNode> (2u, 4, 1);
+    auto master = std::make_unique<yesdaw::engine::MasterNode> (masterId, 1);
+    delay->setInput (source.get());
+    master->setInputNodes ({ delay.get() });
+
+    yesdaw::engine::GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = masterId;
+    inputs.maxBlockSize = kBlockSize;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (delay));
+    inputs.nodes.push_back (std::move (master));
+
+    yesdaw::engine::GraphBuildError error;
+    std::unique_ptr<yesdaw::engine::CompiledGraph> stateful =
+        yesdaw::engine::GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (stateful != nullptr);
+    REQUIRE_FALSE (stateful->isBlockParallelSafe());
 }
 
 TEST_CASE ("PlaybackEngine transport command queue is race-free while audio pumps Blocks",

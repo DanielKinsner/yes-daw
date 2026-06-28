@@ -28,7 +28,8 @@ public:
 
     NodeProperties properties() const noexcept override
     {
-        return NodeProperties { true, false, channels_, latencySamples_, id_ };
+        // Block-parallel-safe only at zero latency: with latency the pending_ queue spans Blocks (ADR-0027).
+        return NodeProperties { true, false, channels_, latencySamples_, id_, /*blockParallelSafe*/ latencySamples_ == 0 };
     }
 
     std::span<Node* const> directInputs() const noexcept override

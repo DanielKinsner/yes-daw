@@ -153,13 +153,14 @@ public:
         std::uint16_t                                   numEventSlots = 1;
         std::uint32_t                                   maxEventsPerBlock = kMaxEventsPerBlock;
         std::int64_t                                    totalLatency    = 0;
+        bool                                            blockParallelSafe = false;   // ADR-0027
         SlotIndex                                       masterOutputSlot = kSilenceSlot;
         std::uint16_t                                   masterChannels   = 1;
         std::vector<std::pair<NodeId, std::uint32_t>>   idIndex;
     };
 
     CompiledGraph (GraphId id, float identityDc) noexcept
-        : id_ (id), identityDc_ (identityDc), isDegenerate_ (true)
+        : id_ (id), identityDc_ (identityDc), isDegenerate_ (true), blockParallelSafe_ (true)
     {
         alive_.fetch_add (1, std::memory_order_relaxed);
     }
@@ -185,7 +186,8 @@ public:
           masterOutputSlot_ (payload.masterOutputSlot),
           masterChannels_ (payload.masterChannels),
           idIndex_ (std::move (payload.idIndex)),
-          isDegenerate_ (false)
+          isDegenerate_ (false),
+          blockParallelSafe_ (payload.blockParallelSafe)
     {
         alive_.fetch_add (1, std::memory_order_relaxed);
     }
@@ -402,6 +404,9 @@ public:
     float   identityDc() const noexcept { return identityDc_; }
     bool    isDegenerate() const noexcept { return isDegenerate_; }
     std::int64_t totalLatency() const noexcept { return totalLatency_; }
+    // ADR-0027: true iff EVERY node is order-independent across Blocks, so the parallel scheduler may
+    // dispatch this graph's Blocks out of order without changing a sample. False if any node is stateful.
+    bool    isBlockParallelSafe() const noexcept { return blockParallelSafe_; }
 
     [[nodiscard]] bool setMuted (NodeId id, bool muted) noexcept
     {
@@ -663,6 +668,7 @@ private:
     std::vector<std::pair<NodeId, std::uint32_t>> idIndex_;
     mutable std::vector<DelayCacheEntry>          delayCache_;
     bool                                          isDegenerate_     = true;
+    bool                                          blockParallelSafe_ = false;   // ADR-0027
 
     static inline std::atomic<std::uint64_t> alive_ { 0 };
 };

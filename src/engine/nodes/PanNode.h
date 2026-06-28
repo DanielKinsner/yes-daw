@@ -30,7 +30,8 @@ public:
     NodeProperties properties() const noexcept override
     {
         return NodeProperties { /*producesAudio*/ true, /*producesEvents*/ false,
-                                /*channels*/ 2, /*latencySamples*/ 0, id_ };   // always widens to stereo
+                                /*channels*/ 2, /*latencySamples*/ 0, id_,     // always widens to stereo
+                                /*blockParallelSafe*/ true };
     }
 
     std::span<Node* const> directInputs() const noexcept override

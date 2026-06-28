@@ -67,6 +67,15 @@ struct ScheduledRenderResult
     result.channels = first.channels;
     result.frames = first.frames;
 
+    // ADR-0027: out-of-order Block dispatch is only correct for graphs whose every node is order-independent.
+    // A stateful node (delay ring, automated ramp, hosted plugin, PDC latency) would be silently mis-rendered,
+    // so refuse here instead. Such graphs must use the serial renderOfflineProject until the per-node scheduler.
+    if (! first.graph->isBlockParallelSafe())
+    {
+        result.status = OfflineRenderStatus::GraphNotBlockParallelSafe;
+        return result;
+    }
+
     if (first.frames > std::numeric_limits<std::uint64_t>::max() / first.channels)
     {
         result.status = OfflineRenderStatus::OutputTooLarge;
