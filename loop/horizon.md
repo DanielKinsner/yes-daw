@@ -40,10 +40,26 @@ writes autosaves from that tick through the normal H6 bundle validators. `tools/
 `tools/playback-smoke.sh` run the tracked real-device smoke through `YesDawSoak --playback-project`; this
 is build-checked locally and remains an owner-machine hardware smoke, not CI.
 
-Local verification: `YesDawPlaybackCheck` = 6 cases / 125 assertions; `cmake --build --preset ci`; `ctest
---preset ci --output-on-failure` = 239/239.
+**Reviewed + hardened (2026-06-28, Claude).** Adversarial review of the close-out fixed one real hot-path
+safety hole (unbounded `locate`/`setLoop` frames truncated to a hung/trapped audio thread) and four gates
+that passed without biting (autosave negative control, a circular recording test, loop block-size
+invariance, and `locate(N)` == offline-render-slice parity), and clarified the autosave helper's
+control-thread affinity. **Known deferrals (tracked, out of H8's exercised surface):**
+- **Concurrent transport safety** — transport state (`playheadFrame_`/loop/`playing_`) is plain non-atomic;
+  safe single-threaded today (documented in code), but a data race once a control thread drives it
+  concurrently with the audio callback. Needs a small ADR (SPSC command seam, ADR-0006 pattern) + a TSan
+  test that drives `locate`/`setLoop` while another thread pumps `processBlock`. First H9 checkpoint.
+- **MIDI transport** — `DecodedMidiClipNode` ignores `Transport::timelineFrame`, so MIDI desyncs on
+  locate/loop once MIDI playback is wired into a runtime graph.
+- **Transport tempo/meter** — `PlaybackEngine` leaves `Transport.tempoMap`/`meterMap` default; fine until a
+  node reads them on the audio thread (the H7↔H8 bit-identity gate catches divergence meanwhile).
+- **Stopped-on-create** — `PlaybackEngine` defaults to playing; real DAWs open stopped (UX, H11 wiring).
 
-**Next:** stop for Dan's H8 close-out review; H9 needs its focused plan/ADR work before H9 code lands.
+Local verification: `YesDawPlaybackCheck` = **9 cases / 271 assertions**; `cmake --build --preset ci`;
+`ctest --preset ci --output-on-failure` = **239/239**.
+
+**Next:** stop for Dan's H8 close-out review + the concurrent-transport decision; H9 needs its focused
+plan/ADR work before H9 code lands.
 
 ## The plan
 

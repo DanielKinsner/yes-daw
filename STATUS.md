@@ -9,13 +9,18 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED.** A Project now
-plays through the real lock-free Runtime (`PlaybackEngine`) behind play/stop/locate/loop transport;
-recording (H5) and autosave (H6) have production callers; ADR-0022 is accepted; `YesDawPlaybackCheck`
-passes 6 cases / 125 assertions; full local `ctest --preset ci --output-on-failure` passes 239/239; the
-H8 close-out CI run is green on Windows, Linux, macOS, TSan, and RTSan.
+**Current horizon:** **H8 (Playback runtime: device I/O + transport) — CLOSED, then adversarially
+reviewed + hardened.** A Project plays through the real lock-free Runtime (`PlaybackEngine`) behind
+play/stop/locate/loop transport; recording (H5) and autosave (H6) have production callers; ADR-0022 is
+accepted. Claude's review of Codex's close-out found one real hot-path safety hole (unbounded
+locate/setLoop frames truncating to a hung/trapped audio thread) and four gates that passed without
+biting; all fixed. `YesDawPlaybackCheck` now passes **9 cases / 271 assertions** (was 6/125); full local
+`ctest --preset ci --output-on-failure` passes **239/239**.
 The H8 real-device smoke is tracked as `tools/playback-smoke.ps1` / `tools/playback-smoke.sh` and is not a
-CI gate. **Next:** stop for Dan's H8 close-out review; H9 needs its focused plan/ADR before code lands.
+CI gate. **One decision for Dan:** transport state is plain non-atomic and only safe single-threaded today
+(now documented in code) — concurrent control↔audio transport safety (an SPSC command seam + a TSan bite
+test) wants a small ADR and is naturally the first H9 checkpoint. **Next:** Dan's H8 close-out call; H9
+needs its focused plan/ADR before code lands.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -41,8 +46,32 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H8 closed; stop for close-out review
-- **Latest (2026-06-28): finished H8 playback runtime.** ADR-0022 accepted the absolute-frame transport
+## Now — H8 reviewed + hardened; stop for close-out review
+- **Latest (2026-06-28): adversarial review of Codex's H8 close-out + patches (Claude).** Ran the same
+  multi-agent treatment as H6/H7 (4 diverse-lens finders → per-finding skeptical verification, 26 raw → 24
+  confirmed, heavy cross-lens dupes) and adjudicated by hand against the code. **One real correctness/safety
+  hole + four toothless gates, fixed in 4 small commits:** (1) **transport hot path crashed on out-of-range
+  frames** — `locate()`/`setLoop()` had no upper bound and `processBlock`'s loop split did
+  `static_cast<int>(untilLoopEnd)` BEFORE the `std::min`, so a loop wider than INT_MAX (~12 h @ 48 kHz)
+  truncated to a 0/negative segment and either spun forever or trapped in `CompiledGraph` — a hang/crash on
+  the audio thread from one bad control call. Clamp in 64-bit before narrowing (+FATAL segment≥1), bound
+  locate/setLoop to `kMaxTransportFrame`, hoist the channel/maxBlockSize FATALs to the `processBlock`
+  boundary, plus a biting test. (2) **autosave gate had no negative control** — deleting the
+  `needsAutosave()` guard changed nothing; added a clean-engine control proving a no-op tick writes no
+  snapshot. (3) **recording gate was circular** (placed the impulse with the same playhead it then read
+  back) — now the test owns the absolute device frame and asserts the playhead tracks it. (4) **loop +
+  transport-vs-offline parity were under-tested** — added a loop-aware block-size sweep and `locate(N)` ==
+  offline-render-slice bit-identity. Also renamed the misleading `writeAutosaveOnPlaybackTick` →
+  `writeAutosaveFromControlTick` and added CONTROL-THREAD-ONLY annotations. **Did NOT edit ADR-0022** (the
+  one design-level finding — non-atomic transport state is a data race once a control thread drives it
+  concurrently with the audio thread — is real but latent, since no concurrent caller exists yet; it needs
+  a small ADR + a TSan bite test and is the natural first H9 checkpoint; the single-thread constraint is now
+  documented in code). **Deferred + tracked (out of H8's exercised surface):** `DecodedMidiClipNode` ignores
+  `Transport::timelineFrame` (MIDI desyncs on locate/loop once MIDI playback is wired); `Transport.tempoMap`/
+  `meterMap` left default in the playback path; `playing_` defaults to true (autoplay-on-create). Focused
+  gate: **9 cases / 271 assertions** (was 6/125); full `ctest --preset ci`: **239/239**. **Next:** push; the
+  review commits' remote CI is the gate; then stop for Dan's H8 close-out call + the concurrency decision.
+- **Earlier (2026-06-28): finished H8 playback runtime.** ADR-0022 accepted the absolute-frame transport
   model. `PlaybackEngine` now passes a Project `timelineFrame` through `Transport` for each audio callback
   segment, so play/stop/locate/loop are sample-accurate without publishing graphs from the audio thread.
   `DecodedClipNode` reads the transport frame when present and keeps the legacy monotonic fallback for older
