@@ -16,9 +16,9 @@ run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (
 `YesDawDeviceHotSwapCheck` (run `28351880753`). H11 opens with ADR-0032: native JUCE Components for the
 single-window app shell, a dedicated Timeline canvas for dense rendering, and a UI action registry as the
 command/keymap/accessibility seam. H11 kickoff docs are local-green: `cmake --preset ci`, VS DevShell
-`cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**. **Now:** commit and
-push the H11 kickoff docs. **Next:** App shell + action registry, replacing the H0 sine-spike window and
-adding `YesDawUiActionCheck`.
+`cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**; remote CI run
+`28382745216` passed across Linux, Windows, macOS, RTSan, and TSan. **Now:** H11 is open. **Next:** App
+shell + action registry, replacing the H0 sine-spike window and adding `YesDawUiActionCheck`.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -38,8 +38,9 @@ adding `YesDawUiActionCheck`.
   dense arrangement view behind a dedicated Timeline canvas, and makes the UI action registry the common
   seam for menus, buttons, shortcuts, accessibility, tests, and future agents. The H11 plan is
   `docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`. Local gate: `cmake --preset ci`, VS
-  DevShell `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**. **Next:**
-  build the app shell + action registry checkpoint and land `YesDawUiActionCheck`.
+  DevShell `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**. Remote
+  CI run `28382745216` is green across Linux, Windows, macOS, RTSan, and TSan. **Next:** build the app
+  shell + action registry checkpoint and land `YesDawUiActionCheck`.
 
 ## Done — H10 device hot-swap survival
 - **Latest (2026-06-29): landed `YesDawDeviceHotSwapCheck` and verified remote CI.** Added a control-side

@@ -100,4 +100,5 @@ should be small implementation checkpoints behind ADR-0032.
 
 Opened on 2026-06-29 after H10 and the follow-on adversarial review patch batch were remote-green on
 `main` (`dd3b257`, GitHub Actions run `28379340005`). ADR-0032 is accepted in this kickoff checkpoint.
-The next checkpoint is the app shell + action registry.
+The kickoff docs are green on remote CI run `28382745216`. The next checkpoint is the app shell + action
+registry.

@@ -41,8 +41,9 @@ ADR-0032 (H11 UI stack and app shell) is accepted. H11 uses native JUCE Componen
 a dedicated Timeline canvas for dense rendering, and a UI action registry as the command/keymap/
 accessibility seam. The main app shell does not use WebView.
 
-Kickoff docs are local-green: `cmake --preset ci`, VS DevShell `cmake --build --preset ci`, and
-`ctest --preset ci --output-on-failure` **245/245**.
+Kickoff docs are green: local `cmake --preset ci`, VS DevShell `cmake --build --preset ci`, and
+`ctest --preset ci --output-on-failure` **245/245**; remote CI run `28382745216` passed across Linux,
+Windows, macOS, RTSan, and TSan.
 
 The next checkpoint is **App shell + action registry**: replace the H0 sine-spike window with the native
 single-window shell and land `YesDawUiActionCheck`.

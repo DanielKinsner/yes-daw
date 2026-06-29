@@ -208,3 +208,4 @@ while scrolling. **Visual feel is the single human spot-check, via a one-command
 Timeline canvas for dense rendering, and a UI action registry as the command/keymap/accessibility seam.
 The focused plan is
 [`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).
+Kickoff docs are green on remote CI run `28382745216`.
