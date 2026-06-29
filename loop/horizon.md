@@ -80,7 +80,7 @@ VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
 **3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
 Remote CI run `28393896442` passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The **Mixer, meters, and loudness surface** checkpoint is local-green: `UiActionRegistry` now exposes
+The **Mixer, meters, and loudness surface** checkpoint is remote-green: `UiActionRegistry` now exposes
 track/bus fader, pan, mute, solo, meter-read, and loudness-read actions; `UiMixerSurface` projects
 track/bus strips, sidechain-visible state, solo-safe/effective mute state, per-strip meter values, and H10
 loudness readouts without changing Project or engine policy; and the app shell consumes that projection
@@ -91,7 +91,8 @@ VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
 Remote CI found macOS timing reds in pre-existing perf/deadline gates; the dense Timeline clip paint fix
-and macOS scheduler fixture adjustment are local-green at full `ctest` **248/248** and ready to retry.
+and macOS scheduler fixture adjustment are green on remote CI run `28398414664` across Linux, Windows,
+macOS, RTSan, and TSan.
 
 The next checkpoint is **Piano roll and MIDI Clip surface**: surface Note selection, move, length,
 transpose, quantize, and expression-lane readback for the H4 MIDI model.

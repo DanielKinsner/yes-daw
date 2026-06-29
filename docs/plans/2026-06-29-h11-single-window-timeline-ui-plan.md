@@ -118,5 +118,5 @@ solo-safe/effective mute state, per-strip meter values, and H10 loudness readout
 or engine policy; and the app shell consumes that projection for the mockup-aligned mixer and master
 loudness readout. Full local `ci` is green at **248/248**. Remote CI found macOS timing reds in
 pre-existing perf/deadline gates; the dense Timeline clip paint fix and macOS scheduler fixture adjustment
-are local-green at full `ctest` **248/248** and ready to retry. The next checkpoint is Piano roll and MIDI
-Clip surface.
+are green on remote CI run `28398414664` across Linux, Windows, macOS, RTSan, and TSan. The next checkpoint
+is Piano roll and MIDI Clip surface.
