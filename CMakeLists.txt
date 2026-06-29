@@ -391,6 +391,14 @@ target_link_libraries(YesDawTimeStretchCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawTimeStretchCheck)
 add_test(NAME YesDawTimeStretchCheck COMMAND $<TARGET_FILE:YesDawTimeStretchCheck>)
 
+# --- Device hot-swap check (H10; fake-device stop/snapshot/rebuild/resume gate) ---
+add_executable(YesDawDeviceHotSwapCheck tests/device_hot_swap_tests.cpp)
+target_include_directories(YesDawDeviceHotSwapCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawDeviceHotSwapCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawDeviceHotSwapCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawDeviceHotSwapCheck)
+add_test(NAME YesDawDeviceHotSwapCheck COMMAND $<TARGET_FILE:YesDawDeviceHotSwapCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -539,6 +547,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawDawprojectPrimitivesCheck
   YesDawDawprojectCheck
   YesDawTimeStretchCheck
+  YesDawDeviceHotSwapCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

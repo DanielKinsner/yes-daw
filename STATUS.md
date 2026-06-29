@@ -23,8 +23,9 @@ the loudness remote-green docs are green on remote CI run `28341823599`; `YesDaw
 on remote CI run `28348385319`; and the DAWproject remote-green docs are green on remote CI run
 `28348848259`; ADR-0030 docs are green on remote CI run `28349381664`; and
 `YesDawTimeStretchCheck` is green on remote CI run `28350136910`; the time-stretch remote-green docs are
-green on remote CI run `28350591207`; and ADR-0031 is accepted. **Now:** land
-`YesDawDeviceHotSwapCheck`.
+green on remote CI run `28350591207`; ADR-0031 docs are green on remote CI run `28351125742`; and
+`YesDawDeviceHotSwapCheck` is locally green. **Now:** push the device hot-swap code checkpoint and verify
+remote CI.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -51,13 +52,29 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H10 device hot-swap survival
+- **Latest (2026-06-29): landed `YesDawDeviceHotSwapCheck` locally.** Added a control-side
+  `DeviceHotSwapCoordinator` around `PlaybackEngine` plus a fake-device gate. The coordinator rejects
+  swaps while the callback is active, snapshots play/stop/locate/loop state after the old callback is
+  stopped, rebuilds playback for a changed device max Block size, restores transport commands before the
+  new callback pumps, and destroys/reclaims the old playback graph off the audio thread. The gate proves
+  bit-identical continuity against an uninterrupted/offline reference, loop-state survival, stopped-state
+  survival, deterministic fake-callback error accounting between devices, old graph reclamation, and
+  negative controls for sample-rate changes, output-channel changes, invalid max Block sizes, and rebuild
+  attempts while active. Local gates are green: `cmake --preset ci`, VS DevShell
+  `cmake --build --preset ci --target YesDawDeviceHotSwapCheck`,
+  `ctest --test-dir build-ci -R "YesDawDeviceHotSwapCheck" --output-on-failure`,
+  `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
+  --output-on-failure` **4/4**, VS DevShell `cmake --build --preset ci`, and
+  `ctest --preset ci --output-on-failure` **245/245**. **Next:** push and verify remote CI for this code
+  checkpoint.
 - **Latest (2026-06-29): accepted ADR-0031 for device hot-swap survival.** Decision: H10 implements a
   control-side hot-swap coordinator around `PlaybackEngine`: stop/quiesce the old fake device callback,
   snapshot transport, rebuild playback for the new device max Block size, restore locate/loop/play state,
   prime the new callback, and reclaim old graphs on the control side. H10 supports same sample rate and
   same output channel count with changed device identity/max Block size; unsupported sample-rate changes,
   channel-count changes, invalid max Block sizes, and rebuild attempts while the old callback is active
-  must fail without replacing playback. **Next:** implement `YesDawDeviceHotSwapCheck`.
+  must fail without replacing playback. Remote CI run `28351125742` is green across Linux, Windows, macOS,
+  RTSan, and TSan. **Next:** `YesDawDeviceHotSwapCheck` remote gate.
 
 ## Done — H10 time-stretch Node
 - **Latest (2026-06-29): landed `YesDawTimeStretchCheck` locally.** Added pinned
@@ -73,7 +90,7 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **244/244**, and
   `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
   --output-on-failure` **3/3**. Remote CI run `28350136910` is green on `ad50721` across Linux, Windows,
-  macOS, RTSan, and TSan. **Next:** ADR-0031 accepted; implement `YesDawDeviceHotSwapCheck`.
+  macOS, RTSan, and TSan. **Next:** `YesDawDeviceHotSwapCheck` remote gate.
 - **Latest (2026-06-29): accepted ADR-0030 for the time-stretch Node.** Decision: H10 uses
   Signalsmith Stretch `1.1.0` as a pinned control-side dependency, prepares stretched clip/source audio
   before it reaches the audio thread, and exposes it through a source-style `TimeStretchNode` whose

@@ -64,7 +64,14 @@ plus `YesDawDeviceHotSwapCheck`.
 ADR-0031 (device hot-swap survival) is accepted. H10 hot-swap is a control-side state machine around
 `PlaybackEngine`: stop the old fake device callback, snapshot transport, rebuild playback for the new max
 Block size, restore transport commands, prime the new callback, and reclaim old graphs off the audio
-thread. The next H10 checkpoint is `YesDawDeviceHotSwapCheck`.
+thread. ADR-0031 docs are green on remote CI run `28351125742`.
+
+`YesDawDeviceHotSwapCheck` is locally green. It adds a control-side `DeviceHotSwapCoordinator` plus a
+fake-device harness that proves bit-identical output continuity across a changed max Block size, loop and
+stopped-state survival, deterministic callback-while-stopped accounting, old graph reclamation, and
+negative controls for unsupported sample-rate/channel-count/max-Block/rebuild-while-active cases. Full
+local `ctest --preset ci --output-on-failure` is **245/245** and the focused H10 regex is **4/4**. The
+next H10 checkpoint is the remote CI gate for this code commit.
 
 ## The plan
 
