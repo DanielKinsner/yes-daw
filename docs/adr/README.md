@@ -45,6 +45,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0025](0025-blacklist-on-failure-action.md) | Blacklist-on-failure action | Accepted |
 | [0026](0026-built-in-instrument-track-autowire.md) | Built-in instrument-track auto-wire | Accepted |
 | [0027](0027-scheduler-block-parallel-safety-guard.md) | Scheduler block-parallel safety guard | Accepted |
+| [0028](0028-loudness-metering-model.md) | Loudness metering model | Accepted |
 
 ## Decision status (the five research forks)
 

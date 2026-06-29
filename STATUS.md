@@ -17,8 +17,8 @@ transport commands cross the bounded SPSC queue, scheduled render workers are bi
 replays reject/degrade malformed bundle and plugin-state rows, plugin failure actions persist blacklist
 rows, MIDI clips auto-wire through a built-in impulse instrument with transport-aware locate/loop behavior,
 and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
-mis-rendering stateful effects. **Now:** H10 kickoff docs are landing; first feature checkpoint is
-ADR-0028 loudness metering + `YesDawLoudnessCheck`.
+mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`. **Now:**
+ADR-0028 loudness metering is accepted; next commit lands `YesDawLoudnessCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -45,6 +45,11 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H10 opened; kickoff docs first
+- **Latest (2026-06-28): accepted ADR-0028 for loudness metering.** Decision: pin `libebur128` as the
+  canonical BS.1770 / EBU R128 loudness implementation/reference, keep the YES DAW wrapper control/offline
+  only (never called by the audio thread), support mono/stereo for H10, reject non-finite input, and gate
+  wrapper/channel mapping through `YesDawLoudnessCheck`. **Next:** land the dependency + headless wrapper +
+  focused loudness gate.
 - **Latest (2026-06-28): verified H9 remote-green and opened H10.** `git pull --ff-only` was already
   up to date on `main`; GitHub Actions run `28339991428` is green on `a5a1db4`. H10 is now the active
   horizon in `loop/horizon.md`; the focused plan is

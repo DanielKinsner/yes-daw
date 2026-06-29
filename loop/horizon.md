@@ -33,10 +33,11 @@ The focused regex becomes fully active as the four H10 gate targets land.
 
 ## Status: OPEN
 
-H10 kickoff docs are landing first: this horizon file, the live handoff, the roadmap status, and
-`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`.
+H10 kickoff docs are green on remote CI run `28340551455`: this horizon file, the live handoff, the
+roadmap status, and `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`.
 
-No H10 feature code has landed yet. The first feature checkpoint is the loudness-metering ADR and gate.
+ADR-0028 (loudness metering model) is accepted. No H10 feature code has landed yet. The next checkpoint is
+`YesDawLoudnessCheck`.
 
 ## The plan
 
