@@ -324,6 +324,33 @@ Temporarily rendering a track's processing to a cache to save CPU; reversible (l
 render preview). The permanent version — replace the track with its audio — is "flatten" (deferred).
 _Avoid_: commit
 
+### UI & accessibility
+
+**YES DAW app**:
+The native JUCE single-window application shell that presents the Project, timeline, transport, mixer,
+piano roll, and H7-H10 feature surfaces.
+_Avoid_: browser shell, prototype window
+
+**UI action registry**:
+The stable list of user-facing actions, each with an action ID, label, default key binding, enabled state,
+and command-layer implementation or read-only query. Menus, buttons, shortcuts, accessibility, tests, and
+future agents all use the same action IDs.
+_Avoid_: button callback as the source of truth
+
+**Keymap**:
+The remappable mapping from keyboard shortcuts to UI action IDs.
+_Avoid_: hard-coded shortcut
+
+**Timeline canvas**:
+The dense arrangement drawing surface inside the YES DAW app. It uses the Project/timeline projections and
+may use a GPU-backed renderer, but it is driven by measured frame-time gates rather than visual judgment.
+_Avoid_: WebView timeline, CPU-only proof of smoothness
+
+**Accessibility tree**:
+The semantic roles, names, keyboard reachability, and actions exposed by the YES DAW app for assistive
+technology and headless verification.
+_Avoid_: visual labels only
+
 ### Product & AI
 
 **Stem**:
@@ -345,6 +372,6 @@ separate stem/mastering apps; YES DAW itself also runs fully local.)
 - **Product name & wedge — RESOLVED.** YES DAW is a full general-purpose multi-track DAW (not a
   stem/finishing tool); "DAW" is the right word. "YES DAW" remains a working title. → ADR-0003.
 - **User-facing chain word** — what the user calls an item in a node chain (e.g. "device" vs. "effect").
-  Depends on the UI/wedge. → ADR fork #2.
+  Depends on the final H11 wording; ADR-0032 decides the UI stack, not this label.
 - **Project file specifics** — bundle extension, and whether storage-format words ("JSONB") ever
   surface to users. → ADR fork #5.

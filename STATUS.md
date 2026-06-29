@@ -9,36 +9,16 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-29
-**Current horizon:** **H10 (Mixing/mastering features & interchange) — CLOSED.** H9 is closed and
-remote-green: `main` was current at `a5a1db4`, GitHub Actions run `28339991428` passed, and the local H9
-gate was `ctest --preset ci --output-on-failure` **240/240**. H9 landed ADR-0023 through ADR-0027:
-transport commands cross the bounded SPSC queue, scheduled render workers are bit-identical across
-1/2/4/8 workers against the H7 serial render, scheduled Blocks feed the H6 deadline oracle, seeded parser
-replays reject/degrade malformed bundle and plugin-state rows, plugin failure actions persist blacklist
-rows, MIDI clips auto-wire through a built-in impulse instrument with transport-aware locate/loop behavior,
-and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
-mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
-green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
-the loudness remote-green docs are green on remote CI run `28341823599`; `YesDawDawprojectCheck` is green
-on remote CI run `28348385319`; and the DAWproject remote-green docs are green on remote CI run
-`28348848259`; ADR-0030 docs are green on remote CI run `28349381664`; and
-`YesDawTimeStretchCheck` is green on remote CI run `28350136910`; the time-stretch remote-green docs are
-green on remote CI run `28350591207`; ADR-0031 docs are green on remote CI run `28351125742`; and
-`YesDawDeviceHotSwapCheck` is green on remote CI run `28351880753`. **Now:** H10 is closed; H11 is not
-opened yet.
-Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
-cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
-exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
-production caller/monitoring/UI/persistence/final asset format yet). H6 is implemented by ADR-0019 and
-`YesDawReliabilityCheck`: a 100-track synthetic engine session built through `GraphBuilder` processes 60
-minutes of audio frames at a 128-frame Block (1,350,000 Blocks at 48 kHz), records every Block time, and
-fails unless p99.9 stays under the Block period with zero headless Underruns. The same gate writes a
-bundle-shaped last-good Autosave snapshot, simulates a hard kill by abandoning a later edit transaction,
-restores the Autosave snapshot, and reopens the Project bundle through the normal integrity, foreign-key,
-asset-file, and semantic validators. **Deferred H6 product slices:** final multicore work-stealing,
-DAWproject export, loudness metering, time-stretch, full accessibility, device hot-swap, and the
-self-hosted real-device soak. (Also still open from earlier horizons: H4 CP2b MIDI auto-wire; H3
-worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-0005 — not a CI gate.)
+**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — OPEN.** H10 and its
+follow-on adversarial-review patch batch are remote-green on `main`: latest tip `dd3b257`, GitHub Actions
+run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (run `28341446711`),
+`YesDawDawprojectCheck` (run `28348385319`), `YesDawTimeStretchCheck` (run `28350136910`), and
+`YesDawDeviceHotSwapCheck` (run `28351880753`). H11 opens with ADR-0032: native JUCE Components for the
+single-window app shell, a dedicated Timeline canvas for dense rendering, and a UI action registry as the
+command/keymap/accessibility seam. H11 kickoff docs are local-green: `cmake --preset ci`, VS DevShell
+`cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**. **Now:** commit and
+push the H11 kickoff docs. **Next:** App shell + action registry, replacing the H0 sine-spike window and
+adding `YesDawUiActionCheck`.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -51,27 +31,15 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 closed; H11 not opened
-- **Latest (2026-06-29): adversarial review of the H10 commits — patched 5 chunks, all local-green.**
-  Reviewed loudness, StoredZip, DAWproject, time-stretch, and device hot-swap (multi-agent + verify pass).
-  Patched the proven issues: (1) StoredZip wrote an out-of-range DOS date (day=0/month=0) and OR'd a dead
-  bounds clause; (2) the ZIP gate was a symmetric round-trip — added CRC-32 known-answer + spec-derived
-  byte-layout tests; (3) **DAWproject number I/O was locale-dependent** — `formatDouble`, the parse helpers,
-  AND the project.xml stream all followed the ambient locale, so a comma/grouping locale emitted invalid
-  XML (e.g. `sampleRate="48.000"`); imbued classic everywhere + a `[locale]` gate; (4) a -1 MIDI Note
-  channel was silently coerced to 0 and the verifier mirrored the coercion — now fails explicitly per
-  ADR-0029 with a biting negative control; (5) added a non-integer-factor time-stretch length test.
-  Loudness (libebur128 wrapper), the time-stretch DSP trim loop (golden-pinned), and the device-hot-swap
-  single-threaded handoff contract were reviewed and left as-is (no proven defect). Local gate after the
-  patches: VS DevShell `ninja -C build-ci` + `ctest --test-dir build-ci -j6` **245/245**. **Next:** push to
-  `main` and let remote CI confirm; then wait for Dan to open H11.
-- **Latest (2026-06-29): closed H10 remotely.** H10's four focused gates are green:
-  `YesDawLoudnessCheck` on remote CI run `28341446711`, `YesDawDawprojectCheck` on remote CI run
-  `28348385319`, `YesDawTimeStretchCheck` on remote CI run `28350136910`, and
-  `YesDawDeviceHotSwapCheck` on remote CI run `28351880753`. The latest full local verification before
-  the device hot-swap push was `cmake --preset ci`, VS DevShell `cmake --build --preset ci`, focused H10
-  lane **4/4**, and `ctest --preset ci --output-on-failure` **245/245**. **Next:** wait for Dan to open
-  H11; no H11 ADR or code has started.
+## Now — H11 opened; app-shell checkpoint next
+- **Latest (2026-06-29): opened H11 with ADR-0032 and a focused plan.** H10 is closed and the follow-on
+  adversarial-review patch batch is remote-green on `main` (`dd3b257`, GitHub Actions run `28379340005`).
+  ADR-0032 accepts native JUCE Components for the app shell, rejects WebView for the main shell, keeps the
+  dense arrangement view behind a dedicated Timeline canvas, and makes the UI action registry the common
+  seam for menus, buttons, shortcuts, accessibility, tests, and future agents. The H11 plan is
+  `docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`. Local gate: `cmake --preset ci`, VS
+  DevShell `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**. **Next:**
+  build the app shell + action registry checkpoint and land `YesDawUiActionCheck`.
 
 ## Done — H10 device hot-swap survival
 - **Latest (2026-06-29): landed `YesDawDeviceHotSwapCheck` and verified remote CI.** Added a control-side
@@ -88,7 +56,7 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
   --output-on-failure` **4/4**, VS DevShell `cmake --build --preset ci`, and
   `ctest --preset ci --output-on-failure` **245/245**. Remote CI run `28351880753` is green across Linux,
-  Windows, macOS, RTSan, and TSan. **Next:** H10 is closed; H11 is not opened yet.
+  Windows, macOS, RTSan, and TSan. **Next:** H11 is now open; build the app shell + action registry.
 - **Latest (2026-06-29): accepted ADR-0031 for device hot-swap survival.** Decision: H10 implements a
   control-side hot-swap coordinator around `PlaybackEngine`: stop/quiesce the old fake device callback,
   snapshot transport, rebuild playback for the new device max Block size, restore locate/loop/play state,
@@ -2794,8 +2762,9 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `YesDawPlaybackCheck`: Project playback through `RuntimeAudioDriver`, block-size independence, offline
   parity, play/stop/locate/loop transport, H5 recording capture from the transport playhead, and H6
   autosave tick recovery. Local full `ci` gate is green (239/239), and the H8 close-out CI run is green.
-- **Next rolling baton: H10 loudness metering.**
-  Write ADR-0028 first, then land `YesDawLoudnessCheck` as the first H10 feature gate.
+- **Next rolling baton: H11 app shell + action registry.**
+  Replace the H0 sine-spike window with the native JUCE single-window app shell and land
+  `YesDawUiActionCheck`.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

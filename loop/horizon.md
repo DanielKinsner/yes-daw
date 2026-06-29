@@ -1,26 +1,28 @@
-# Current horizon - H10 (Mixing/mastering features & interchange) - CLOSED
+# Current horizon - H11 (Single-window timeline UI shell + accessibility) - OPEN
 
-> This file is the oracle for "is the horizon done?". H10 opened on 2026-06-28
-> after H9 remote CI went green on `a5a1db4` (run `28339991428`) and closed on
-> 2026-06-29 after `YesDawDeviceHotSwapCheck` went remote-green on `f9d5a23`
-> (run `28351880753`).
+> This file is the oracle for "is the horizon done?". H11 opened on 2026-06-29 after H10 and the H10
+> adversarial-review patch batch were remote-green on `main` (`dd3b257`, GitHub Actions run
+> `28379340005`).
 
 ## Exit criterion (the finish line)
 
-The headless engine gains the mixing/mastering and interchange feature set that H11 will surface:
-loudness metering, DAWproject export, a time-stretch Node, and device hot-swap survival. Each feature
-lands as its own ADR-backed checkpoint with a mechanical gate.
+The first real YES DAW app replaces the H0 sine-spike window with a single-window native UI that loads a
+Project bundle, draws and scrolls the timeline, drives H8 playback transport, exposes mixer/meter/piano
+roll surfaces, and wires H7-H10 features through an agent-native action surface.
 
-The H10 focused gates are:
+The H11 focused gates are:
 
-- **`YesDawLoudnessCheck`**: loudness metering matches the libebur128/BS.1770 reference within tolerance,
-  with biting controls for channel weighting, silence, and non-finite input.
-- **`YesDawDawprojectCheck`**: a Project exports to DAWproject and round-trips through an independent
-  reference reader for tracks, clips, timing, gain/pan, and asset references.
-- **`YesDawTimeStretchCheck`**: the time-stretch Node preserves timing and produces samples that match a
-  checked-in golden/reference for fixed ratios, block splits, and edge cases.
-- **`YesDawDeviceHotSwapCheck`**: a simulated device change during playback is survived without an
-  Underrun, with frame continuity and deterministic recovery.
+- **`YesDawUiActionCheck`**: every shipped visible UI action has a stable action ID, label, default key
+  binding where relevant, enabled/disabled reason, accessible role/name, and a command-layer
+  implementation or explicit read-only query.
+- **`YesDawAppSmokeCheck`**: the app model loads a `.yesdaw` Project bundle and drives play/stop/locate/loop
+  through the same action IDs used by menus, buttons, shortcuts, and accessibility.
+- **`YesDawTimelineGpuCheck`**: the Timeline canvas scrolls a large arrangement fixture with
+  `max_frame_ms < 16.6`.
+- **`YesDawAccessibilityCheck`**: visible controls have semantic roles/names, keyboard reachability, and
+  action-registry backing.
+
+The one human spot-check is visual feel through a single launch command after mechanical gates pass.
 
 ## Green command
 
@@ -28,56 +30,24 @@ The H10 focused gates are:
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
-ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check" --output-on-failure
+ctest --test-dir build-ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure
 ```
 
-The focused regex becomes fully active as the four H10 gate targets land.
+The focused regex becomes fully active as the H11 gate targets land.
 
-## Status: CLOSED
+## Status: OPEN
 
-H10 kickoff docs are green on remote CI run `28340551455`: this horizon file, the live handoff, the
-roadmap status, and `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`.
+ADR-0032 (H11 UI stack and app shell) is accepted. H11 uses native JUCE Components for the app shell,
+a dedicated Timeline canvas for dense rendering, and a UI action registry as the command/keymap/
+accessibility seam. The main app shell does not use WebView.
 
-ADR-0028 (loudness metering model) is accepted and green on remote CI run `28340956377`.
-`YesDawLoudnessCheck` is implemented with the pinned `libebur128` wrapper, full local
-`ctest --preset ci --output-on-failure` **241/241**, and remote CI run `28341446711` green on
-`1d29c02`. The loudness remote-green docs are green on remote CI run `28341823599`.
+Kickoff docs are local-green: `cmake --preset ci`, VS DevShell `cmake --build --preset ci`, and
+`ctest --preset ci --output-on-failure` **245/245**.
 
-ADR-0029 (DAWproject export subset) is accepted. `YesDawDawprojectCheck` writes a stored `.dawproject`
-package with project/metadata XML plus canonical float32 WAV media, then verifies it through an
-independent ZIP/XML/WAV summary reader for tracks, audio Clips, MIDI Clips, timing, gain/pan, source
-windows, media paths, and decoded media bytes. Full local `ctest --preset ci --output-on-failure` is
-**243/243**, the focused H10 regex is **2/2** for the currently landed gates, and remote CI run
-`28348385319` is green on `910ea1c`. The next H10 checkpoint is ADR-0030 plus
-`YesDawTimeStretchCheck`.
-
-ADR-0030 (time-stretch Node) is accepted. H10 time-stretch uses pinned Signalsmith Stretch `1.1.0` to
-prepare stretched clip/source audio on the control side, then exposes it through a source-style
-`TimeStretchNode` whose audio-thread path is an absolute-frame read over immutable samples. ADR-0030 docs
-are green on remote CI run `28349381664`.
-
-`YesDawTimeStretchCheck` is locally green. It pins Signalsmith Stretch, validates control-side preparation,
-checks exact duration and fixed-ratio golden fingerprints, and proves `TimeStretchNode` timeline/block-split
-determinism, silence windows, fallback reset, and block-parallel-safe metadata. The focused H10 regex is
-locally green **3/3** for the currently landed gates; full local `ctest --preset ci --output-on-failure`
-is **244/244**. Remote CI run `28350136910` is green on `ad50721`. The next H10 checkpoint is ADR-0031
-plus `YesDawDeviceHotSwapCheck`.
-
-ADR-0031 (device hot-swap survival) is accepted. H10 hot-swap is a control-side state machine around
-`PlaybackEngine`: stop the old fake device callback, snapshot transport, rebuild playback for the new max
-Block size, restore transport commands, prime the new callback, and reclaim old graphs off the audio
-thread. ADR-0031 docs are green on remote CI run `28351125742`.
-
-`YesDawDeviceHotSwapCheck` is locally green. It adds a control-side `DeviceHotSwapCoordinator` plus a
-fake-device harness that proves bit-identical output continuity across a changed max Block size, loop and
-stopped-state survival, deterministic callback-while-stopped accounting, old graph reclamation, and
-negative controls for unsupported sample-rate/channel-count/max-Block/rebuild-while-active cases. Full
-local `ctest --preset ci --output-on-failure` is **245/245** and the focused H10 regex is **4/4**. Remote
-CI run `28351880753` is green on `f9d5a23` across Linux, Windows, macOS, RTSan, and TSan.
-
-H10 is CLOSED. H11 is not opened here; wait for Dan to start that horizon.
+The next checkpoint is **App shell + action registry**: replace the H0 sine-spike window with the native
+single-window shell and land `YesDawUiActionCheck`.
 
 ## The plan
 
 Full build order:
-[`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
+[`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md).

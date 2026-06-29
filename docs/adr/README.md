@@ -49,6 +49,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0029](0029-dawproject-export-subset.md) | DAWproject export subset | Accepted |
 | [0030](0030-time-stretch-node.md) | Time-stretch Node | Accepted |
 | [0031](0031-device-hot-swap-survival.md) | Device hot-swap survival | Accepted |
+| [0032](0032-h11-ui-stack-and-app-shell.md) | H11 UI stack and app shell | Accepted |
 
 ## Decision status (the five research forks)
 
@@ -58,7 +59,7 @@ The brainstorm and build plan resolved these. They are recorded as ADRs as each 
 |---|---|---|---|
 | **#1** | Product identity | **Full general-purpose multi-track DAW** (not a stem/finishing wedge) — the research's narrow-wedge premise didn't apply (owner already ships standalone stem + mastering apps). | ✅ ADR-0003 |
 | **#3** | Engine stack | **C++ / JUCE 8 framework + our own engine** (not Rust, not Tracktion Engine; not `AudioProcessorGraph`). | ✅ ADR-0004 |
-| **#2** | UI stack | Build plan recommends **native JUCE Components** + a GPU timeline canvas (not WebView) for data-dense surfaces. | ADR pending (**H2** — folded in with the deferred GPU render shell) |
+| **#2** | UI stack | **Native JUCE Components** + a dedicated GPU-capable Timeline canvas; no WebView main shell. | ✅ ADR-0032 |
 | **#4** | Plugin hosting | **Out-of-process / sandboxed from the start** — VST3 + AU first, then CLAP (H3). | ✅ ADR-0013 |
 | **#5** | Project format | Build plan: **SQLite `.yesdaw` bundle**, normalized tables (not JSONB), WAL, migration harness (H1). | ✅ ADR-0012 |
 

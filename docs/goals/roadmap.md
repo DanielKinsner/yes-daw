@@ -199,7 +199,12 @@ this H10 closeout. See
 ## H11 — Single-window timeline UI shell + accessibility (capstone)
 The first real application window, wiring up the complete H7–H10 feature set: load a Project bundle,
 draw/scroll the timeline, transport, per-track metering, mixer and piano-roll surfaces — all driving the
-H8 runtime. Needs the pending UI-stack ADR (native JUCE Components + GPU timeline canvas vs WebView).
+H8 runtime. ADR-0032 chooses native JUCE Components plus a dedicated Timeline canvas, not a WebView main
+shell.
 **Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent), a
 headless smoke that the app loads a bundle and drives the transport, and the GPU timeline holding 60fps
 while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**
+**Status (2026-06-29):** opened. ADR-0032 accepts native JUCE Components for the app shell, a dedicated
+Timeline canvas for dense rendering, and a UI action registry as the command/keymap/accessibility seam.
+The focused plan is
+[`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).
