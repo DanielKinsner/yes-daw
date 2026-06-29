@@ -154,7 +154,10 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (static_cast<int> (UiActionId::ProjectNew) == 0);
     REQUIRE (actions[0].stableId == std::string_view ("project.new"));
     REQUIRE (actions[1].stableId == std::string_view ("project.open"));
-    REQUIRE (actions[3].stableId == std::string_view ("transport.play"));
+    REQUIRE (descriptorForStableId ("project.export_audio")->id == UiActionId::ProjectExportAudio);
+    REQUIRE (descriptorForStableId ("project.export_dawproject")->id == UiActionId::ProjectExportDawproject);
+    REQUIRE (descriptorForStableId ("transport.play")->id == UiActionId::TransportPlay);
+    REQUIRE (descriptorForStableId ("device.refresh_audio")->id == UiActionId::DeviceRefreshAudio);
     REQUIRE (descriptorForStableId ("timeline.clip.move")->id == UiActionId::TimelineClipMove);
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
@@ -309,6 +312,11 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.activePanel == UiPanel::Timeline);
     REQUIRE (context.commandDispatchCount == 1);
 
+    REQUIRE (registry.dispatch (UiActionId::ProjectExportAudio, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::ProjectExportDawproject, context).dispatched);
+    REQUIRE (context.audioExportCount == 1);
+    REQUIRE (context.dawprojectExportCount == 1);
+
     REQUIRE (registry.dispatch (UiActionId::TransportPlay, context).dispatched);
     REQUIRE (context.isPlaying);
     REQUIRE (registry.dispatch (UiActionId::TransportStop, context).dispatched);
@@ -320,6 +328,8 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
 
     REQUIRE (registry.dispatch (UiActionId::TransportToggleLoop, context).dispatched);
     REQUIRE (context.loopEnabled);
+    REQUIRE (registry.dispatch (UiActionId::DeviceRefreshAudio, context).dispatched);
+    REQUIRE (context.deviceRefreshCount == 1);
 
     context.canUndo = true;
     REQUIRE (registry.dispatch (UiActionId::EditUndo, context).dispatched);

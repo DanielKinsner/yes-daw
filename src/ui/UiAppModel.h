@@ -129,6 +129,12 @@ public:
             case UiActionId::ProjectOpen:
                 return { id, { false, "open path required" }, false };
 
+            case UiActionId::ProjectExportAudio:
+                return { id, { false, "audio export path required" }, false };
+
+            case UiActionId::ProjectExportDawproject:
+                return { id, { false, "DAWproject export path required" }, false };
+
             case UiActionId::TransportPlay:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
 
@@ -152,6 +158,9 @@ public:
 
                     return playback_->setLoop (0, static_cast<std::int64_t> (playback_->frames()));
                 });
+
+            case UiActionId::DeviceRefreshAudio:
+                return { id, { false, "audio device refresh requires device payload" }, false };
 
             case UiActionId::ProjectSave:
             case UiActionId::EditUndo:

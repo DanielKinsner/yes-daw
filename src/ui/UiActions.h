@@ -18,10 +18,13 @@ enum class UiActionId : std::uint8_t
     ProjectNew = 0,
     ProjectOpen,
     ProjectSave,
+    ProjectExportAudio,
+    ProjectExportDawproject,
     TransportPlay,
     TransportStop,
     TransportLocateStart,
     TransportToggleLoop,
+    DeviceRefreshAudio,
     EditUndo,
     EditRedo,
     ViewTimeline,
@@ -107,6 +110,9 @@ struct UiActionContext
     std::int64_t playheadFrame = 0;
     int commandDispatchCount = 0;
     int saveCount = 0;
+    int audioExportCount = 0;
+    int dawprojectExportCount = 0;
+    int deviceRefreshCount = 0;
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
@@ -149,6 +155,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::ProjectSave, "project.save", "Save", "Ctrl+S", "Save project",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+Shift+E", "Export audio",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "Ctrl+Shift+D", "Export DAWproject package",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportPlay, "transport.play", "Play", "Space", "Play transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportStop, "transport.stop", "Stop", "K", "Stop transport",
@@ -157,6 +167,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "L", "Toggle loop",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::EditUndo, "edit.undo", "Undo", "Ctrl+Z", "Undo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false, false },
     { UiActionId::EditRedo, "edit.redo", "Redo", "Ctrl+Shift+Z", "Redo",
@@ -372,6 +384,14 @@ public:
                 ++context.saveCount;
                 break;
 
+            case UiActionId::ProjectExportAudio:
+                ++context.audioExportCount;
+                break;
+
+            case UiActionId::ProjectExportDawproject:
+                ++context.dawprojectExportCount;
+                break;
+
             case UiActionId::TransportPlay:
                 context.isPlaying = true;
                 break;
@@ -386,6 +406,10 @@ public:
 
             case UiActionId::TransportToggleLoop:
                 context.loopEnabled = ! context.loopEnabled;
+                break;
+
+            case UiActionId::DeviceRefreshAudio:
+                ++context.deviceRefreshCount;
                 break;
 
             case UiActionId::EditUndo:
