@@ -248,6 +248,15 @@ target_link_libraries(YesDawAppSmokeCheck PRIVATE Catch2::Catch2WithMain sqlite3
 yesdaw_harden(YesDawAppSmokeCheck)
 add_test(NAME YesDawAppSmokeCheck COMMAND $<TARGET_FILE:YesDawAppSmokeCheck>)
 
+# --- Accessibility parity check (H11; visible controls/regions -> role/name/key/action backing) ---
+add_executable(YesDawAccessibilityCheck tests/accessibility_tests.cpp)
+target_include_directories(YesDawAccessibilityCheck PRIVATE ${YESDAW_SRC_DIR})
+target_compile_definitions(YesDawAccessibilityCheck PRIVATE
+  YESDAW_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(YesDawAccessibilityCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawAccessibilityCheck)
+add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibilityCheck>)
+
 if (YESDAW_BUILD_APPS)
   # --- Timeline canvas GPU/frame-time check (H11; native canvas over large arrangement fixture) ---
   juce_add_console_app(YesDawTimelineGpuCheck PRODUCT_NAME "YesDawTimelineGpuCheck")
@@ -578,6 +587,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawDawprojectCheck
   YesDawTimeStretchCheck
   YesDawDeviceHotSwapCheck
+  YesDawAccessibilityCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck
