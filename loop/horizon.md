@@ -107,7 +107,7 @@ run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` swi
 Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run `28401313658` is green
 across Linux, Windows, macOS, RTSan, and TSan.
 
-The **Accessibility pass + launch script** checkpoint is local-green: H7 audio export, H10 DAWproject
+The **Accessibility pass + launch script** checkpoint is remote-green: H7 audio export, H10 DAWproject
 export, and H10 device refresh actions now route through `UiActionRegistry`; `UiAccessibility` defines the
 semantic app/menu/transport/timeline/inspector/mixer/piano-roll regions; `YesDawAccessibilityCheck` proves
 visible actions and regions have stable IDs, names, roles, keyboard reachability, and dispatch/query
@@ -117,8 +117,9 @@ visual-feel review. Local gates are green: VS DevShell
 `ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure`; focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **4/4**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **249/249**.
+Remote CI run `28403621292` passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **remote CI for Accessibility pass + launch script**, then **Close H11**.
+The next checkpoint is **Close H11**.
 
 ## The plan
 

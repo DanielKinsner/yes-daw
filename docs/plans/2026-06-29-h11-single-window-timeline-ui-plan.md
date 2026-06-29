@@ -71,7 +71,7 @@ surface.
    expression-lane readback for the H4 MIDI model. Gate proves action parity against the headless MIDI edit
    commands and keeps MIDI timing covered by existing gates.
 
-8. **Accessibility pass + launch script. [local-green]** Ensure every H11 visible control has a role/name,
+8. **Accessibility pass + launch script. [remote-green]** Ensure every H11 visible control has a role/name,
    keyboard path, and action registry backing. Add the one-command launch Dan uses for visual-feel review.
    Gate: `YesDawAccessibilityCheck` plus full focused H11 lane.
 
@@ -126,9 +126,9 @@ from that snapshot shape. Focused H11 is green at **3/3** and full local `ci` is
 Initial remote CI run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` switch
 cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run
 `28401313658` is green across Linux, Windows, macOS, RTSan, and TSan. The next checkpoint is
-Accessibility pass + launch script. The Accessibility pass + launch script checkpoint is local-green:
+Accessibility pass + launch script. The Accessibility pass + launch script checkpoint is remote-green:
 audio export, DAWproject export, and audio device refresh actions now route through `UiActionRegistry`;
 `UiAccessibility` defines semantic app/menu/transport/timeline/inspector/mixer/piano-roll regions; and
 `tools/launch-h11.ps1` / `tools/launch-h11.sh` provide the one-command visual-feel launch. Focused H11 is
-green at **4/4** and full local `ci` is green at **249/249**. Remote CI is pending before the H11 closeout
-checkpoint.
+green at **4/4** and full local `ci` is green at **249/249**. Remote CI run `28403621292` is green across
+Linux, Windows, macOS, RTSan, and TSan. The next checkpoint is H11 closeout.
