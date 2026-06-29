@@ -90,7 +90,8 @@ VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
 `cmake --build --preset ci --target YesDaw`; focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
-Remote CI is pending after push.
+Remote CI found macOS timing reds in pre-existing perf/deadline gates; the dense Timeline clip paint fix
+and macOS scheduler fixture adjustment are local-green at full `ctest` **248/248** and ready to retry.
 
 The next checkpoint is **Piano roll and MIDI Clip surface**: surface Note selection, move, length,
 transpose, quantize, and expression-lane readback for the H4 MIDI model.

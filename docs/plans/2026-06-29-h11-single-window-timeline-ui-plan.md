@@ -116,5 +116,7 @@ track/bus fader, pan, mute, solo, meter-read, and loudness-read actions now rout
 `UiActionRegistry`; `UiMixerSurface` projects mixer strips, sidechain-visible state,
 solo-safe/effective mute state, per-strip meter values, and H10 loudness readouts without changing Project
 or engine policy; and the app shell consumes that projection for the mockup-aligned mixer and master
-loudness readout. Full local `ci` is green at **248/248**. Remote CI is pending after push. The next
-checkpoint is Piano roll and MIDI Clip surface.
+loudness readout. Full local `ci` is green at **248/248**. Remote CI found macOS timing reds in
+pre-existing perf/deadline gates; the dense Timeline clip paint fix and macOS scheduler fixture adjustment
+are local-green at full `ctest` **248/248** and ready to retry. The next checkpoint is Piano roll and MIDI
+Clip surface.

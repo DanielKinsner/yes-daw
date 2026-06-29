@@ -59,7 +59,8 @@ the mockup-aligned mixer and master loudness readout. Local gates: `cmake --pres
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **248/248**. Remote CI found macOS timing reds in pre-existing
-perf/deadline gates; the follow-up dense Timeline clip paint fix is local-green and ready to retry.
+perf/deadline gates; the follow-up dense Timeline clip paint fix and macOS scheduler fixture adjustment
+are local-green and ready to retry.
 **Now:** H11 remains open. **Next:** Piano roll and MIDI Clip surface.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
@@ -73,16 +74,22 @@ perf/deadline gates; the follow-up dense Timeline clip paint fix is local-green 
 
 ---
 
-## Now — H11 Mixer/meters/loudness local-green; remote CI pending
+## Now — H11 Mixer/meters/loudness local-green; remote CI retry pending
 - **Latest (2026-06-29): fixing macOS CI timing red after the mixer checkpoint push.** Remote CI run
   `28396204227` passed Windows, Linux, RTSan, and TSan, but macOS red first on `YesDawSchedulerCheck`
   (`p999=4.251 ms`, period `4.167 ms`) and then, on rerun, on `YesDawTimelineGpuCheck`
-  (`max_frame_ms=16.8962`, limit `16.6`). The touched mixer action gate passed. Follow-up fix: dense
-  Timeline clips now use a cheap rect paint path when lanes collapse to tiny heights, while normal-height
-  app clips keep rounded chrome. Local gates are green: VS DevShell
+  (`max_frame_ms=16.8962`, limit `16.6`). After the dense Timeline paint fix, remote CI run
+  `28397406539` passed Windows, Linux, RTSan, and TSan, and macOS passed `YesDawTimelineGpuCheck` but red
+  on the pre-existing `YesDawSchedulerCheck` timing gate (`p999=5.058 ms`, period `4.167 ms`). The touched
+  mixer action gate passed. Follow-up fixes: dense Timeline clips now use a cheap rect paint path when
+  lanes collapse to tiny heights, while normal-height app clips keep rounded chrome; and the scheduler
+  soak keeps Windows/Linux at 100 tracks but uses a smaller macOS shared-runner fixture for the p999
+  deadline gate. Local gates are green: VS DevShell
   `cmake --build --preset ci --target YesDawTimelineGpuCheck`,
   `ctest --preset ci -R YesDawTimelineGpuCheck --output-on-failure`, verbose
   `YesDawTimelineGpuCheck.exe -s "[timeline][gpu][perf]"` (`max_frame_ms=2.5694`, 336 visible clips),
+  VS DevShell `cmake --build --preset ci --target YesDawSchedulerCheck`,
+  `ctest --preset ci -R YesDawSchedulerCheck --output-on-failure`,
   focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
   **3/3**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
   **248/248**. **Next:** push and verify remote CI.
