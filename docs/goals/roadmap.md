@@ -220,7 +220,8 @@ parity through a UI input harness.
 **Exit:** a self-asserting scripted session creates or opens a Project, imports audio, creates/edits Clips,
 edits mixer and piano-roll state, drives transport, saves, reopens, and verifies parity while the H11
 action, smoke, timeline frame-time, and accessibility gates remain green.
-**Status (2026-06-29):** opened by ADR-0033. The focused plan is
+**Status (2026-06-29):** opened by ADR-0033. Kickoff docs are remote-green on commit `7ad455e`, GitHub
+Actions run `28408643608`. The focused plan is
 [`docs/plans/2026-06-29-h12-operable-session-ux-plan.md`](../plans/2026-06-29-h12-operable-session-ux-plan.md).
 
 ## H13 — Recording and device UX

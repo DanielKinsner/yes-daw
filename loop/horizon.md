@@ -41,9 +41,9 @@ The `YesDawUiInputCheck` target lands during H12. Add it to the focused lane as 
 
 ## Status: OPEN
 
-ADR-0033 (H12 operable session UX) is accepted. The first checkpoint is docs-only: ADR-0033, the H12
-focused plan, roadmap/status/horizon updates, ADR index, and glossary terms. No H12 implementation code
-has landed yet.
+ADR-0033 (H12 operable session UX) is accepted. The docs-only kickoff checkpoint is done and remote-green
+on commit `7ad455e` with GitHub Actions run `28408643608` passing Linux, Windows, macOS, RTSan, and TSan.
+No H12 implementation code has landed yet. Next checkpoint: `YesDawUiInputCheck` harness skeleton.
 
 ## The plan
 

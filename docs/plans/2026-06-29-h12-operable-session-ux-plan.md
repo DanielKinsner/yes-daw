@@ -41,7 +41,7 @@ The `YesDawUiInputCheck` target lands during H12. Add it to the focused lane as 
 Each checkpoint is one small, independently green commit. H12 implementation code starts only after the
 kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 
-1. **Kickoff docs + H12 ADR. [in progress]** Accept ADR-0033, open `loop/horizon.md` to H12, add this plan,
+1. **Kickoff docs + H12 ADR. [done]** Accept ADR-0033, open `loop/horizon.md` to H12, add this plan,
    update `CONTEXT.md`, `docs/adr/README.md`, `docs/goals/roadmap.md`, and the live handoff. Docs-only.
 
 2. **UI input harness skeleton.** Add `YesDawUiInputCheck` with a headless driver that can open the app
@@ -91,7 +91,9 @@ should land as small implementation checkpoints behind ADR-0033.
 ## Status
 
 Opened on 2026-06-29 after H11 closeout was remote-green on `main` (`e9436af`, GitHub Actions run
-`28405529686`). ADR-0033 is accepted in this kickoff checkpoint. Local docs-checkpoint gates are green:
-`cmake --preset ci`, `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **249/249**.
-The focused current UI lane is also green with `ctest --test-dir build-ci -I 237,240 --output-on-failure`
-**4/4**. The next checkpoint is the UI input harness skeleton; no H12 implementation code has landed yet.
+`28405529686`). ADR-0033 is accepted and the kickoff docs checkpoint is remote-green on commit `7ad455e`
+with GitHub Actions run `28408643608` passing Linux, Windows, macOS, RTSan, and TSan. Local
+docs-checkpoint gates are green: `cmake --preset ci`, `cmake --build --preset ci`, and
+`ctest --preset ci --output-on-failure` **249/249**. The focused current UI lane is also green with
+`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The next checkpoint is the UI input
+harness skeleton; no H12 implementation code has landed yet.
