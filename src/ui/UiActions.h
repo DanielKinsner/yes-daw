@@ -33,6 +33,12 @@ enum class UiActionId : std::uint8_t
     TimelineClipSetGain,
     TimelineClipSetFades,
     TimelineClipTimeStretch,
+    MixerTargetSetFader,
+    MixerTargetSetPan,
+    MixerTargetToggleMute,
+    MixerTargetToggleSolo,
+    MixerReadMeters,
+    MixerReadLoudness,
     HelpShowKeymap,
     Count
 };
@@ -74,6 +80,7 @@ struct UiActionDescriptor
     bool requiresUndo;
     bool requiresRedo;
     bool requiresTimelineClip;
+    bool requiresMixerTarget = false;
 };
 
 struct UiActionContext
@@ -84,6 +91,7 @@ struct UiActionContext
     bool canUndo = false;
     bool canRedo = false;
     bool timelineClipSelected = false;
+    bool mixerTargetSelected = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
     std::int64_t playheadFrame = 0;
@@ -92,6 +100,8 @@ struct UiActionContext
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
+    int mixerEditCount = 0;
+    int mixerReadCount = 0;
 };
 
 struct UiActionState
@@ -157,6 +167,18 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "Alt+R", "Time-stretch selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "Ctrl+Alt+F", "Set selected mixer fader",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerTargetSetPan, "mixer.target.set_pan", "Pan", "Ctrl+Alt+P", "Set selected mixer pan",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerTargetToggleMute, "mixer.target.toggle_mute", "Mute", "Ctrl+Alt+M", "Toggle selected mixer mute",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
+    { UiActionId::MixerTargetToggleSolo, "mixer.target.toggle_solo", "Solo", "Ctrl+Alt+S", "Toggle selected mixer solo",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
+    { UiActionId::MixerReadMeters, "mixer.meters.read", "Meters", "Ctrl+Alt+V", "Read mixer meters",
+      AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
+    { UiActionId::MixerReadLoudness, "mixer.loudness.read", "Loudness", "Ctrl+Alt+L", "Read loudness",
+      AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
@@ -293,6 +315,8 @@ public:
             return { false, "nothing to redo" };
         if (descriptor->requiresTimelineClip && ! context.timelineClipSelected)
             return { false, "no clip selected" };
+        if (descriptor->requiresMixerTarget && ! context.mixerTargetSelected)
+            return { false, "no mixer target selected" };
 
         return { true, "" };
     }
@@ -370,6 +394,20 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineEditCount;
+                break;
+
+            case UiActionId::MixerTargetSetFader:
+            case UiActionId::MixerTargetSetPan:
+            case UiActionId::MixerTargetToggleMute:
+            case UiActionId::MixerTargetToggleSolo:
+                context.activePanel = UiPanel::Mixer;
+                ++context.mixerEditCount;
+                break;
+
+            case UiActionId::MixerReadMeters:
+            case UiActionId::MixerReadLoudness:
+                context.activePanel = UiPanel::Mixer;
+                ++context.mixerReadCount;
                 break;
 
             case UiActionId::HelpShowKeymap:

@@ -6,6 +6,7 @@
 
 #include "ui/TimelineCanvas.h"
 #include "ui/UiActions.h"
+#include "ui/UiMixerSurface.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -105,6 +106,39 @@ const std::array<MixerStrip, 11> kMixer {{
     { "Room Verb", kPurple.darker (0.15f), 0.55f, 0.57f, false },
     { "Delay", kBlue.darker (0.3f), 0.50f, 0.52f, false }
 }};
+
+yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
+{
+    yesdaw::ui::UiMixerSurfaceSnapshot surface;
+    surface.projectLoaded = true;
+    surface.loudness = yesdaw::ui::UiMixerLoudnessReadout { -7.2, -9.4, -8.8, 5.0, -1.0, true };
+
+    for (std::size_t i = 0; i < kMixer.size(); ++i)
+    {
+        const bool isBus = i >= 9;
+        const auto& source = kMixer[i];
+
+        yesdaw::ui::UiMixerStrip strip;
+        strip.kind = isBus ? yesdaw::ui::UiMixerTargetKind::Bus : yesdaw::ui::UiMixerTargetKind::Track;
+        strip.index = isBus ? i - 9u : i;
+        strip.name = source.name;
+        strip.linearGain = source.fader;
+        strip.pan = source.selected ? -0.08f : 0.0f;
+        strip.muted = false;
+        strip.soloed = source.selected;
+        strip.soloSafe = isBus;
+        strip.sidechainVisible = i == 1 || isBus;
+        strip.meter = yesdaw::ui::UiMixerMeterReadout { source.meter, source.meter * 0.92f,
+                                                        source.meter * 0.58f, source.meter * 0.52f, true };
+
+        if (isBus)
+            surface.buses.push_back (std::move (strip));
+        else
+            surface.tracks.push_back (std::move (strip));
+    }
+
+    return surface;
+}
 
 juce::String actionButtonText (yesdaw::ui::UiActionId id)
 {
@@ -326,7 +360,10 @@ private:
         drawSmallLabel (g, "MASTER", master.removeFromTop (14));
         auto meter = master.removeFromTop (16).withWidth (236);
         drawHorizontalMeter (g, meter, 0.76f);
-        drawSmallLabel (g, "-7.2 LUFS", juce::Rectangle<int> (1370, 33, 76, 16), juce::Justification::centred);
+        const juce::String lufs = mixerSurface.loudness.valid
+            ? juce::String (mixerSurface.loudness.integratedLufs, 1) + " LUFS"
+            : "-- LUFS";
+        drawSmallLabel (g, lufs, juce::Rectangle<int> (1370, 33, 76, 16), juce::Justification::centred);
 
         g.setColour (kMutedText);
         g.setFont (juce::Font (juce::FontOptions (19.0f)));
@@ -470,8 +507,13 @@ private:
         drawSmallLabel (g, "Short", leftTools.withTrimmedTop (120).withHeight (28).reduced (12, 0));
 
         const int stripWidth = juce::jmax (84, area.getWidth() / (static_cast<int> (kMixer.size()) + 1));
-        for (const auto& strip : kMixer)
+        for (std::size_t stripIndex = 0; stripIndex < kMixer.size(); ++stripIndex)
         {
+            const auto& strip = kMixer[stripIndex];
+            const bool isBus = stripIndex >= mixerSurface.tracks.size();
+            const auto& state = isBus ? mixerSurface.buses[stripIndex - mixerSurface.tracks.size()]
+                                      : mixerSurface.tracks[stripIndex];
+
             auto lane = area.removeFromLeft (stripWidth).reduced (3, 0);
             g.setColour (strip.selected ? juce::Colour (0xff1c1428) : kPanelRaised);
             g.fillRoundedRectangle (lane.toFloat(), 5.0f);
@@ -482,7 +524,7 @@ private:
             g.fillRect (lane.withHeight (28));
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (11.0f)));
-            g.drawFittedText (strip.name, lane.reduced (8, 4).withHeight (20), juce::Justification::centred, 1);
+            g.drawFittedText (state.name, lane.reduced (8, 4).withHeight (20), juce::Justification::centred, 1);
 
             auto knob = lane.withTrimmedTop (36).withHeight (38);
             g.setColour (juce::Colour (0xff070b10));
@@ -496,18 +538,30 @@ private:
                 auto cell = buttonsRow.removeFromLeft (30).reduced (3, 2);
                 g.setColour (juce::Colour (0xff0b1016));
                 g.fillRoundedRectangle (cell.toFloat(), 4.0f);
-                g.setColour (kText);
+                const bool on = (label == std::string ("S") && state.soloed)
+                             || (label == std::string ("M") && state.muted);
+                g.setColour (on ? strip.colour.brighter (0.55f) : kText);
                 g.drawText (label, cell, juce::Justification::centred, false);
+            }
+
+            if (state.sidechainVisible)
+            {
+                auto badge = lane.withTrimmedTop (106).withHeight (14).withTrimmedLeft (8).withWidth (28);
+                g.setColour (juce::Colour (0xff0b1016));
+                g.fillRoundedRectangle (badge.toFloat(), 3.0f);
+                g.setColour (kMutedText);
+                g.setFont (juce::Font (juce::FontOptions (8.0f)));
+                g.drawText ("SC", badge, juce::Justification::centred, false);
             }
 
             auto faderArea = lane.withTrimmedTop (112).withTrimmedBottom (28);
             auto meter = faderArea.removeFromRight (16).reduced (2, 0);
-            drawMeter (g, meter, strip.meter);
+            drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
 
             auto rail = faderArea.withWidth (18).withCentre ({ lane.getCentreX() - 8, faderArea.getCentreY() });
             g.setColour (juce::Colour (0xff05080b));
             g.fillRoundedRectangle (rail.toFloat(), 3.0f);
-            const int thumbY = rail.getBottom() - juce::roundToInt (strip.fader * static_cast<float> (rail.getHeight())) - 8;
+            const int thumbY = rail.getBottom() - juce::roundToInt (state.linearGain * static_cast<float> (rail.getHeight())) - 8;
             auto thumb = juce::Rectangle<int> (rail.getX() - 5, thumbY, rail.getWidth() + 10, 18);
             g.setColour (juce::Colour (0xffc4c9cf));
             g.fillRoundedRectangle (thumb.toFloat(), 3.0f);
@@ -516,6 +570,7 @@ private:
 
     yesdaw::ui::UiActionRegistry registry;
     yesdaw::ui::UiActionContext context;
+    yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

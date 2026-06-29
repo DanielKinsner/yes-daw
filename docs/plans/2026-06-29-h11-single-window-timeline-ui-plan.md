@@ -111,4 +111,10 @@ The Timeline canvas + frame-time harness checkpoint is remote-green on CI run `2
 remote-green on CI run `28393896442`: selected-clip move/trim/split/gain/fade/time-stretch actions now route through
 `UiActionRegistry` and `UiTimelineEditModel` to the existing Project edit/undo commands, with
 `YesDawUiActionCheck` proving action-to-command parity and disabled-edit negative controls. Full local
-`ci` is green at **248/248**. The next checkpoint is Mixer, meters, and loudness surface.
+`ci` is green at **248/248**. The Mixer, meters, and loudness surface checkpoint is local-green:
+track/bus fader, pan, mute, solo, meter-read, and loudness-read actions now route through
+`UiActionRegistry`; `UiMixerSurface` projects mixer strips, sidechain-visible state,
+solo-safe/effective mute state, per-strip meter values, and H10 loudness readouts without changing Project
+or engine policy; and the app shell consumes that projection for the mockup-aligned mixer and master
+loudness readout. Full local `ci` is green at **248/248**. Remote CI is pending after push. The next
+checkpoint is Piano roll and MIDI Clip surface.

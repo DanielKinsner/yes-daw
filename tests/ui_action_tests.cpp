@@ -1,10 +1,13 @@
 #include "ui/UiActions.h"
+#include "ui/UiMixerSurface.h"
 #include "ui/UiTimelineEdits.h"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <set>
 #include <string_view>
+#include <vector>
 
 using yesdaw::ui::AccessibilityRole;
 using yesdaw::engine::Asset;
@@ -13,6 +16,7 @@ using yesdaw::engine::EntityId;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::ProjectEditVerb;
+using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
@@ -21,12 +25,20 @@ using yesdaw::ui::UiActionContext;
 using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiActionKind;
 using yesdaw::ui::UiActionRegistry;
+using yesdaw::ui::UiMixerActionPayload;
+using yesdaw::ui::UiMixerActionStatus;
+using yesdaw::ui::UiMixerBusControl;
+using yesdaw::ui::UiMixerLoudnessReadout;
+using yesdaw::ui::UiMixerMeterReadout;
+using yesdaw::ui::UiMixerSurfaceModel;
+using yesdaw::ui::UiMixerTargetControl;
 using yesdaw::ui::UiPanel;
 using yesdaw::ui::UiTimelineEditModel;
 using yesdaw::ui::UiTimelineEditPayload;
 using yesdaw::ui::descriptorForStableId;
 using yesdaw::ui::kUiActionCount;
 using yesdaw::ui::mainShellToolbarActions;
+using yesdaw::engine::projectMixerNodeIdForClip;
 using yesdaw::ui::roleName;
 using yesdaw::ui::uiActionDescriptors;
 
@@ -68,6 +80,24 @@ Project makeTimelineEditProject()
     return project;
 }
 
+Project makeMixerProject()
+{
+    Project project = makeTimelineEditProject();
+
+    Asset secondAsset = project.assets.front();
+    secondAsset.id = idFromLowByte (5);
+    project.assets.push_back (secondAsset);
+
+    Clip secondClip = project.clips.front();
+    secondClip.id = idFromLowByte (6);
+    secondClip.assetId = secondAsset.id;
+    secondClip.timelineStart = 8192;
+    secondClip.gain = 0.5f;
+    project.clips.push_back (secondClip);
+
+    return project;
+}
+
 } // namespace
 
 TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and accessible names",
@@ -82,6 +112,9 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (actions[3].stableId == std::string_view ("transport.play"));
     REQUIRE (descriptorForStableId ("timeline.clip.move")->id == UiActionId::TimelineClipMove);
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
+    REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
+    REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
+    REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
     REQUIRE (descriptorForStableId ("help.show_keymap")->id == UiActionId::HelpShowKeymap);
 
     std::set<std::string_view> stableIds;
@@ -180,6 +213,18 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::TimelineClipSetGain, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineClipSetFades, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineClipTimeStretch, context).enabled);
+
+    const auto faderWithoutTarget = registry.stateFor (UiActionId::MixerTargetSetFader, context);
+    REQUIRE_FALSE (faderWithoutTarget.enabled);
+    REQUIRE (faderWithoutTarget.disabledReason == std::string_view ("no mixer target selected"));
+
+    context.mixerTargetSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::MixerTargetSetFader, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerTargetSetPan, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerTargetToggleMute, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerTargetToggleSolo, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerReadMeters, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerReadLoudness, context).enabled);
 }
 
 TEST_CASE ("H11 action dispatch mutates only the headless app model behind action ids",
@@ -231,6 +276,14 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.timelineEditCount == 1);
     REQUIRE (context.canUndo);
     REQUIRE_FALSE (context.canRedo);
+
+    context.mixerTargetSelected = true;
+    REQUIRE (registry.dispatch (UiActionId::MixerTargetSetFader, context).dispatched);
+    REQUIRE (context.activePanel == UiPanel::Mixer);
+    REQUIRE (context.mixerEditCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::MixerReadMeters, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::MixerReadLoudness, context).dispatched);
+    REQUIRE (context.mixerReadCount == 2);
 
     REQUIRE (registry.dispatch (UiActionId::HelpShowKeymap, context).dispatched);
     REQUIRE (context.keymapVisible);
@@ -334,4 +387,128 @@ TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo
     REQUIRE (result.undoStatus == ProjectUndoStatus::Applied);
     REQUIRE (model.project().clips[0].timelineLength == 3072);
     REQUIRE_FALSE (model.context().canRedo);
+}
+
+TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to the UI surface",
+           "[ui][actions][mixer]")
+{
+    UiMixerSurfaceModel emptyModel;
+    const auto noProject = emptyModel.dispatch (UiActionId::MixerReadMeters);
+    REQUIRE_FALSE (noProject.dispatch.dispatched);
+    REQUIRE (noProject.dispatch.state.disabledReason == std::string_view ("no project loaded"));
+
+    Project project = makeMixerProject();
+    const EntityId firstClipId = project.clips[0].id;
+    const EntityId secondClipId = project.clips[1].id;
+    const float originalFirstGain = project.clips[0].gain;
+
+    std::vector<UiMixerTargetControl> trackControls {
+        UiMixerTargetControl {
+            firstClipId,
+            "Vocal Lead",
+            0.9f,
+            0.25f,
+            false,
+            false,
+            false,
+            true,
+            UiMixerMeterReadout { 0.8f, 0.7f, 0.4f, 0.3f, true }
+        },
+        UiMixerTargetControl {
+            secondClipId,
+            "Bass DI",
+            0.5f,
+            -0.1f,
+            false,
+            false,
+            false,
+            false,
+            UiMixerMeterReadout { 0.45f, 0.4f, 0.2f, 0.18f, true }
+        }
+    };
+
+    std::vector<UiMixerBusControl> buses {
+        UiMixerBusControl {
+            "Room Verb",
+            7001,
+            7002,
+            7003,
+            7000,
+            0.65f,
+            0.15f,
+            false,
+            false,
+            true,
+            false,
+            UiMixerMeterReadout { 0.3f, 0.35f, 0.12f, 0.14f, true }
+        }
+    };
+
+    const UiMixerLoudnessReadout loudness { -14.2, -12.8, -13.4, 4.1, -1.1, true };
+    UiMixerSurfaceModel model (project, trackControls, buses, loudness);
+
+    auto snapshot = model.snapshot();
+    REQUIRE (snapshot.projectLoaded);
+    REQUIRE (snapshot.tracks.size() == 2u);
+    REQUIRE (snapshot.buses.size() == 1u);
+    REQUIRE (snapshot.tracks[0].name == "Vocal Lead");
+    REQUIRE (snapshot.tracks[0].sourceNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Source));
+    REQUIRE (snapshot.tracks[0].faderNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Fader));
+    REQUIRE (snapshot.tracks[0].panNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Pan));
+    REQUIRE (snapshot.tracks[0].meterNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Meter));
+    REQUIRE (snapshot.tracks[0].linearGain == 0.9f);
+    REQUIRE (snapshot.tracks[0].pan == 0.25f);
+    REQUIRE (snapshot.tracks[0].sidechainVisible);
+    REQUIRE (snapshot.tracks[0].meter.peakLeft == 0.8f);
+    REQUIRE (snapshot.buses[0].linearGain == 0.65f);
+    REQUIRE (snapshot.buses[0].soloSafe);
+    REQUIRE (snapshot.loudness.valid);
+    REQUIRE (snapshot.loudness.integratedLufs == -14.2);
+
+    const auto noSelection = model.dispatch (UiActionId::MixerTargetSetFader, UiMixerActionPayload::setFader (0.8f));
+    REQUIRE_FALSE (noSelection.dispatch.dispatched);
+    REQUIRE (noSelection.dispatch.state.disabledReason == std::string_view ("no mixer target selected"));
+
+    REQUIRE (model.selectTrack (0));
+    auto result = model.dispatch (UiActionId::MixerTargetSetFader, UiMixerActionPayload::setFader (0.72f));
+    REQUIRE (result.dispatch.dispatched);
+    REQUIRE (result.mixerStatus == UiMixerActionStatus::Ok);
+    result = model.dispatch (UiActionId::MixerTargetSetPan, UiMixerActionPayload::setPan (-0.35f));
+    REQUIRE (result.dispatch.dispatched);
+    result = model.dispatch (UiActionId::MixerTargetToggleSolo);
+    REQUIRE (result.dispatch.dispatched);
+
+    snapshot = model.snapshot();
+    REQUIRE (snapshot.tracks[0].linearGain == 0.72f);
+    REQUIRE (snapshot.tracks[0].pan == -0.35f);
+    REQUIRE (snapshot.tracks[0].soloed);
+    REQUIRE_FALSE (snapshot.tracks[0].effectivelyMuted);
+    REQUIRE (snapshot.tracks[1].effectivelyMuted);
+    REQUIRE_FALSE (snapshot.buses[0].effectivelyMuted);
+    REQUIRE (model.project().clips[0].gain == originalFirstGain);
+
+    result = model.dispatch (UiActionId::MixerTargetSetFader, UiMixerActionPayload::setFader (-0.1f));
+    REQUIRE_FALSE (result.dispatch.dispatched);
+    REQUIRE (result.mixerStatus == UiMixerActionStatus::InvalidValue);
+    result = model.dispatch (UiActionId::MixerTargetSetPan, UiMixerActionPayload::setPan (1.25f));
+    REQUIRE_FALSE (result.dispatch.dispatched);
+    REQUIRE (result.mixerStatus == UiMixerActionStatus::InvalidValue);
+
+    REQUIRE (model.selectBus (0));
+    result = model.dispatch (UiActionId::MixerTargetToggleMute);
+    REQUIRE (result.dispatch.dispatched);
+    result = model.dispatch (UiActionId::MixerTargetSetFader, UiMixerActionPayload::setFader (0.5f));
+    REQUIRE (result.dispatch.dispatched);
+
+    snapshot = model.snapshot();
+    REQUIRE (snapshot.buses[0].muted);
+    REQUIRE (snapshot.buses[0].effectivelyMuted);
+    REQUIRE (snapshot.buses[0].linearGain == 0.5f);
+    REQUIRE (model.context().mixerEditCount == 5);
+
+    result = model.dispatch (UiActionId::MixerReadMeters);
+    REQUIRE (result.dispatch.dispatched);
+    result = model.dispatch (UiActionId::MixerReadLoudness);
+    REQUIRE (result.dispatch.dispatched);
+    REQUIRE (model.context().mixerReadCount == 2);
 }

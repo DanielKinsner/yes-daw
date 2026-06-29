@@ -159,6 +159,8 @@ public:
             case UiActionId::ViewTimeline:
             case UiActionId::ViewMixer:
             case UiActionId::ViewPianoRoll:
+            case UiActionId::MixerReadMeters:
+            case UiActionId::MixerReadLoudness:
             case UiActionId::HelpShowKeymap:
             {
                 return registry_.dispatch (id, context_);
@@ -176,6 +178,18 @@ public:
                     return { id, currentState, false };
 
                 return { id, { false, "timeline edit payload required" }, false };
+            }
+
+            case UiActionId::MixerTargetSetFader:
+            case UiActionId::MixerTargetSetPan:
+            case UiActionId::MixerTargetToggleMute:
+            case UiActionId::MixerTargetToggleSolo:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "mixer control payload required" }, false };
             }
 
             case UiActionId::Count:

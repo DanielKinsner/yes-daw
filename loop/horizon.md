@@ -80,8 +80,20 @@ VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
 **3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
 Remote CI run `28393896442` passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **Mixer, meters, and loudness surface**: surface track/bus fader, pan, mute, solo,
-sidechain-visible state, per-track meters, and H10 loudness readings without changing engine policy.
+The **Mixer, meters, and loudness surface** checkpoint is local-green: `UiActionRegistry` now exposes
+track/bus fader, pan, mute, solo, meter-read, and loudness-read actions; `UiMixerSurface` projects
+track/bus strips, sidechain-visible state, solo-safe/effective mute state, per-strip meter values, and H10
+loudness readouts without changing Project or engine policy; and the app shell consumes that projection
+for the mockup-aligned mixer and master loudness readout. Local gates are green: `cmake --preset ci`;
+VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; VS DevShell
+`cmake --build --preset ci --target YesDaw`; focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
+Remote CI is pending after push.
+
+The next checkpoint is **Piano roll and MIDI Clip surface**: surface Note selection, move, length,
+transpose, quantize, and expression-lane readback for the H4 MIDI model.
 
 ## The plan
 
