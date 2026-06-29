@@ -72,8 +72,19 @@ a Piano Roll panel from the same snapshot shape. Local gates: VS DevShell
 DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**.
 Initial remote CI run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` switch
 cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run
-`28401313658` is green across Linux, Windows, macOS, RTSan, and TSan.
-**Now:** H11 Piano roll/MIDI is remote-green. **Next:** Accessibility pass + launch script.
+`28401313658` is green across Linux, Windows, macOS, RTSan, and TSan. The H11 Accessibility pass + launch
+script checkpoint is local-green: `UiActionRegistry` now covers H7 audio export, H10 DAWproject export,
+and H10 device refresh actions; `UiAccessibility` defines the semantic app/menu/transport/timeline/
+inspector/mixer/piano-roll regions; `YesDawAccessibilityCheck` proves every visible action has stable
+IDs, labels, roles/names, keymap reachability, and dispatch/query backing; and `tools/launch-h11.ps1` /
+`tools/launch-h11.sh` provide the one-command visual-feel launch. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawAccessibilityCheck`;
+`ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure`; focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**4/4**; VS DevShell full `cmake --build --preset ci`; and
+`ctest --preset ci --output-on-failure` **249/249**.
+**Now:** H11 Accessibility pass + launch script is local-green. **Next:** push and verify remote CI, then
+close H11.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -86,7 +97,22 @@ cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the sw
 
 ---
 
-## Now — H11 Piano roll/MIDI remote-green; Accessibility pass next
+## Now — H11 Accessibility pass local-green; remote CI pending
+- **Latest (2026-06-29): landed Accessibility pass + launch script locally.** Added stable H7/H10 UI action
+  IDs for audio export, DAWproject export, and audio device refresh. Added `UiAccessibility`, a headless
+  manifest for app, menu, transport, timeline, clip inspector, mixer, master meter, and piano-roll regions
+  with semantic names, roles, keyboard paths, and action backing where relevant. Added
+  `YesDawAccessibilityCheck` to the full `ci` preset so visible actions must have stable IDs, labels,
+  accessible names/roles, keymap reachability, and dispatch/query backing. Added one-command launch
+  scripts at `tools/launch-h11.ps1` and `tools/launch-h11.sh` for Dan's visual-feel review after the
+  mechanical gates are green. Local gates are green: VS DevShell
+  `cmake --build --preset ci --target YesDawAccessibilityCheck`;
+  `ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure`; focused H11
+  `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+  **4/4**; VS DevShell full `cmake --build --preset ci`; and
+  `ctest --preset ci --output-on-failure` **249/249**. **Next:** push and verify remote CI, then close
+  H11.
+
 - **Latest (2026-06-29): closed Piano roll and MIDI Clip surface on remote CI.** Added stable UI action
   IDs for Note selection, move, length, transpose, quantize, and expression-lane readback. Added
   `UiPianoRollSurface`, a pure UI projection over the existing H4 MIDI Clip/Note model that carries Note
