@@ -240,6 +240,14 @@ target_link_libraries(YesDawUiActionCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawUiActionCheck)
 add_test(NAME YesDawUiActionCheck COMMAND $<TARGET_FILE:YesDawUiActionCheck>)
 
+# --- App smoke check (H11; Project bundle load -> action IDs -> playback transport) ---
+add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp)
+target_include_directories(YesDawAppSmokeCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawAppSmokeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawAppSmokeCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawAppSmokeCheck)
+add_test(NAME YesDawAppSmokeCheck COMMAND $<TARGET_FILE:YesDawAppSmokeCheck>)
+
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---
 add_executable(YesDawEngineCheck tests/node_tests.cpp)
 target_include_directories(YesDawEngineCheck PRIVATE ${YESDAW_SRC_DIR})

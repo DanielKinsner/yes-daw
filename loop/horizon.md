@@ -52,8 +52,15 @@ is in the full `ci` preset. Local gates are green: `cmake --preset ci`, VS DevSh
 `ctest --preset ci --output-on-failure` **246/246**. Remote CI run `28385990090` passed across Linux,
 Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **Project-load smoke + transport controls**: wire `.yesdaw` Project bundle loading
-and H8 playback transport through the same action IDs, then land `YesDawAppSmokeCheck`.
+The **Project-load smoke + transport controls** checkpoint is local-green: `UiAppModel` opens an existing
+`.yesdaw` Project bundle, reads its Project snapshot, builds H8 playback from owned decoded audio, and
+routes play/stop/locate/loop through the same `UiActionId`s as menus, buttons, shortcuts, and
+accessibility. `YesDawAppSmokeCheck` is in the full `ci` preset. Local gates are green: VS DevShell
+`cmake --build --preset ci --target YesDawAppSmokeCheck`,
+`ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
+`cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. Remote CI is pending.
+
+The next checkpoint after remote green is **Timeline canvas GPU/perf**: land `YesDawTimelineGpuCheck`.
 
 ## The plan
 

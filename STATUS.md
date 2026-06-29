@@ -24,8 +24,14 @@ the H0 sine-spike audio window with a mockup-aligned native JUCE shell that cons
 gates: `cmake --preset ci`, VS DevShell `cmake --build --preset ci`,
 `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and `ctest --preset ci
 --output-on-failure` **246/246**. Remote CI run `28385990090` is green across Linux, Windows, macOS,
-RTSan, and TSan. **Now:** H11 remains open. **Next:** Project-load smoke + transport controls
-(`YesDawAppSmokeCheck`).
+RTSan, and TSan. The H11 Project-load smoke + transport controls checkpoint is local-green:
+`YesDawAppSmokeCheck` loads a real `.yesdaw` Project bundle through `UiAppModel` and drives
+play/stop/locate/loop through the same action IDs as the UI shell. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawAppSmokeCheck`,
+`ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
+`cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. **Now:** push this
+checkpoint and verify remote CI. **Next after remote green:** Timeline canvas GPU/perf gate
+(`YesDawTimelineGpuCheck`).
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -38,8 +44,19 @@ RTSan, and TSan. **Now:** H11 remains open. **Next:** Project-load smoke + trans
 
 ---
 
-## Now — H11 app shell + action registry remote-green; Project-load smoke next
-- **Latest (2026-06-29): closed the H11 app shell + action registry checkpoint on remote CI.** Remote CI
+## Now — H11 Project-load smoke local-green; remote CI next
+- **Latest (2026-06-29): landed Project-load smoke + transport controls locally.** Added
+  `src/ui/UiAppModel.h`, a headless app model that opens an existing `.yesdaw` Project bundle, reads the
+  Project snapshot, builds the H8 `PlaybackEngine` from owned decoded audio, and routes play/stop/locate/
+  loop through `UiActionId`s. Added `YesDawAppSmokeCheck`, which creates a real bundle, reopens it through
+  the app model, proves pre-load transport is disabled, then drives transport through the same action IDs
+  used by menus/buttons/shortcuts/accessibility. Local gates are green: VS DevShell
+  `cmake --build --preset ci --target YesDawAppSmokeCheck`,
+  `ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
+  `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. **Next:** push and
+  verify remote CI before starting `YesDawTimelineGpuCheck`.
+
+- **Earlier (2026-06-29): closed the H11 app shell + action registry checkpoint on remote CI.** Remote CI
   run `28385990090` is green across Linux, Windows, macOS, RTSan, and TSan.
 - **Earlier (2026-06-29): replaced the H0 sine-spike window with a mockup-aligned JUCE shell locally.**
   `src/Main.cpp` now draws the first native DAW frame: top menu/transport/readout strip, master meter,
