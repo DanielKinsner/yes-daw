@@ -58,7 +58,8 @@ the mockup-aligned mixer and master loudness readout. Local gates: `cmake --pres
 `cmake --build --preset ci --target YesDaw`; focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**; VS DevShell full `cmake --build --preset ci`; and
-`ctest --preset ci --output-on-failure` **248/248**. Remote CI is pending after push.
+`ctest --preset ci --output-on-failure` **248/248**. Remote CI found macOS timing reds in pre-existing
+perf/deadline gates; the follow-up dense Timeline clip paint fix is local-green and ready to retry.
 **Now:** H11 remains open. **Next:** Piano roll and MIDI Clip surface.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
@@ -73,6 +74,19 @@ the mockup-aligned mixer and master loudness readout. Local gates: `cmake --pres
 ---
 
 ## Now — H11 Mixer/meters/loudness local-green; remote CI pending
+- **Latest (2026-06-29): fixing macOS CI timing red after the mixer checkpoint push.** Remote CI run
+  `28396204227` passed Windows, Linux, RTSan, and TSan, but macOS red first on `YesDawSchedulerCheck`
+  (`p999=4.251 ms`, period `4.167 ms`) and then, on rerun, on `YesDawTimelineGpuCheck`
+  (`max_frame_ms=16.8962`, limit `16.6`). The touched mixer action gate passed. Follow-up fix: dense
+  Timeline clips now use a cheap rect paint path when lanes collapse to tiny heights, while normal-height
+  app clips keep rounded chrome. Local gates are green: VS DevShell
+  `cmake --build --preset ci --target YesDawTimelineGpuCheck`,
+  `ctest --preset ci -R YesDawTimelineGpuCheck --output-on-failure`, verbose
+  `YesDawTimelineGpuCheck.exe -s "[timeline][gpu][perf]"` (`max_frame_ms=2.5694`, 336 visible clips),
+  focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+  **3/3**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
+  **248/248**. **Next:** push and verify remote CI.
+
 - **Latest (2026-06-29): landed the Mixer, meters, and loudness surface locally.** Added stable UI action
   IDs for track/bus fader, pan, mute, solo, meter-read, and loudness-read operations. Added
   `UiMixerSurface`, a pure UI projection over the existing Project/mixer surfaces that carries track/bus

@@ -133,6 +133,15 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     if (area.getWidth() <= 2 || area.getHeight() <= 2)
         return;
 
+    if (area.getHeight() <= 8)
+    {
+        g.setColour (style.colour.withAlpha (0.44f));
+        g.fillRect (area);
+        g.setColour (style.colour.brighter (0.3f));
+        g.fillRect (area.withHeight (1));
+        return;
+    }
+
     g.setColour (style.colour.withAlpha (0.42f));
     g.fillRoundedRectangle (area.toFloat(), 4.0f);
     g.setColour (style.colour.brighter (0.35f));
