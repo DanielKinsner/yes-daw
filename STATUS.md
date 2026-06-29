@@ -17,9 +17,9 @@ transport commands cross the bounded SPSC queue, scheduled render workers are bi
 replays reject/degrade malformed bundle and plugin-state rows, plugin failure actions persist blacklist
 rows, MIDI clips auto-wire through a built-in impulse instrument with transport-aware locate/loop behavior,
 and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
-mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`. ADR-0028 is
-green on remote CI run `28340956377`. **Now:** `YesDawLoudnessCheck` is implemented and locally green;
-next gate is the remote CI run for this small code checkpoint.
+mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
+green on remote CI run `28340956377`; and `YesDawLoudnessCheck` is green on remote CI run `28341446711`
+at `1d29c02`. **Now:** write ADR-0029 for DAWproject export, then land `YesDawDawprojectCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -45,14 +45,15 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 loudness gate implemented locally
-- **Latest (2026-06-28): implemented `YesDawLoudnessCheck`.** Added the pinned `libebur128` dependency,
+## Now — H10 DAWproject ADR next
+- **Latest (2026-06-28): closed `YesDawLoudnessCheck`.** Added the pinned `libebur128` dependency,
   a control/offline-only mono/stereo loudness wrapper, non-finite/malformed-input rejection, channel-map
   checks, silence/peak edge coverage, chunked-feed coverage, and a pinned version check. Local gates are
   green: `cmake --preset ci`, VS DevShell `cmake --build --preset ci --target YesDawLoudnessCheck`,
   `ctest --test-dir build-ci -R "YesDawLoudnessCheck" --output-on-failure`, VS DevShell
-  `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **241/241**. **Next:** push
-  this code checkpoint and verify remote CI.
+  `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **241/241**. Remote CI run
+  `28341446711` is green on `1d29c02` across Linux, Windows, macOS, RTSan, and TSan. **Next:** ADR-0029
+  for DAWproject export.
 - **Latest (2026-06-28): accepted ADR-0028 for loudness metering.** Decision: pin `libebur128` as the
   canonical BS.1770 / EBU R128 loudness implementation/reference, keep the YES DAW wrapper control/offline
   only (never called by the audio thread), support mono/stereo for H10, reject non-finite input, and gate

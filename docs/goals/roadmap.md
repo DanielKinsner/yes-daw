@@ -181,7 +181,9 @@ Loudness metering (libebur128), DAWproject export (interchange insurance), a tim
 libebur128 reference within tolerance, a DAWproject export round-trips through a reference reader, the
 time-stretch Node is sample-accurate vs a golden, and a device change mid-session is survived without an
 Underrun.
-**Status (2026-06-28):** opened. See
+**Status (2026-06-28):** opened; the loudness checkpoint is closed. ADR-0028 is accepted, and
+`YesDawLoudnessCheck` is green in local `ctest` **241/241** plus remote CI run `28341446711` on
+`1d29c02`. Next checkpoint: ADR-0029 / `YesDawDawprojectCheck`. See
 [`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)
