@@ -70,9 +70,10 @@ a Piano Roll panel from the same snapshot shape. Local gates: VS DevShell
 `cmake --build --preset ci --target YesDaw`; focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu)Check" --output-on-failure` **3/3**; VS
 DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**.
-Remote CI is pending.
-**Now:** H11 Piano roll/MIDI is local-green; remote CI pending. **Next:** push and verify remote CI, then
-Accessibility pass + launch script.
+Initial remote CI run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` switch
+cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run
+`28401313658` is green across Linux, Windows, macOS, RTSan, and TSan.
+**Now:** H11 Piano roll/MIDI is remote-green. **Next:** Accessibility pass + launch script.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -85,9 +86,9 @@ Accessibility pass + launch script.
 
 ---
 
-## Now — H11 Piano roll/MIDI local-green; remote CI pending
-- **Latest (2026-06-29): landed Piano roll and MIDI Clip surface locally.** Added stable UI action IDs for
-  Note selection, move, length, transpose, quantize, and expression-lane readback. Added
+## Now — H11 Piano roll/MIDI remote-green; Accessibility pass next
+- **Latest (2026-06-29): closed Piano roll and MIDI Clip surface on remote CI.** Added stable UI action
+  IDs for Note selection, move, length, transpose, quantize, and expression-lane readback. Added
   `UiPianoRollSurface`, a pure UI projection over the existing H4 MIDI Clip/Note model that carries Note
   readback plus Velocity/Pitch expression lanes and dispatches edits through the existing
   `ProjectUndoStack` MIDI edit commands. Routed the app shell's Piano button to a visible Piano Roll panel
@@ -97,7 +98,10 @@ Accessibility pass + launch script.
   `cmake --build --preset ci --target YesDaw`; focused H11
   `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu)Check" --output-on-failure` **3/3**; VS
   DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**.
-  **Next:** push and verify remote CI, then start Accessibility pass + launch script.
+  Initial remote CI run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` switch
+  cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run
+  `28401313658` is green across Linux, Windows, macOS, RTSan, and TSan. **Next:** Accessibility pass +
+  launch script.
 
 - **Latest (2026-06-29): closed the Mixer, meters, and loudness surface checkpoint on remote CI.** Remote CI run
   `28396204227` passed Windows, Linux, RTSan, and TSan, but macOS red first on `YesDawSchedulerCheck`

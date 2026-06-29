@@ -67,7 +67,7 @@ surface.
    state, per-track meters, and H10 loudness readings without changing engine policy. Gate proves action
    parity plus read-only meter/loudness projections.
 
-7. **Piano roll and MIDI Clip surface. [local-green]** Surface Note selection, move, length, transpose, quantize, and
+7. **Piano roll and MIDI Clip surface. [done]** Surface Note selection, move, length, transpose, quantize, and
    expression-lane readback for the H4 MIDI model. Gate proves action parity against the headless MIDI edit
    commands and keeps MIDI timing covered by existing gates.
 
@@ -123,4 +123,7 @@ and MIDI Clip surface checkpoint is local-green: Note select/move/length/transpo
 expression-lane readback actions route through `UiActionRegistry`; `UiPianoRollSurface` projects H4 MIDI
 Clips/Notes and applies edits through `ProjectUndoStack`; and the app shell paints a Piano Roll panel
 from that snapshot shape. Focused H11 is green at **3/3** and full local `ci` is green at **248/248**.
-Remote CI is pending. The next checkpoint after remote green is Accessibility pass + launch script.
+Initial remote CI run `28400668189` failed Linux/macOS build on missing `UiAppModel::dispatch` switch
+cases for the new Piano Roll action IDs; follow-up commit `61efd1a` fixed the switch. Remote CI run
+`28401313658` is green across Linux, Windows, macOS, RTSan, and TSan. The next checkpoint is
+Accessibility pass + launch script.
