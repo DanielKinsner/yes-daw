@@ -359,10 +359,10 @@ mechanically asserted.
 _Avoid_: calling a painted mockup or projection-only surface "operable"
 
 **UI input harness**:
-The self-asserting H12 test driver that performs deterministic app gestures and command paths against the
-YES DAW app model/Components, then verifies Project, selection, transport, mixer, piano-roll, undo/redo,
-accessibility, frame-time, and save/reopen state without human judgment.
-_Avoid_: manual QA script, visual spot-check
+The self-asserting H12 test driver that constructs the shipped `MainComponent`, performs deterministic
+mouse/key gestures against hit-tested Components, and then verifies Project, selection, transport, mixer,
+piano-roll, undo/redo, accessibility, frame-time, and save/reopen state without human judgment.
+_Avoid_: manual QA script, visual spot-check, model-only harness, back-channel command path
 
 ### Product & AI
 

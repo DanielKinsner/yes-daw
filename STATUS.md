@@ -20,7 +20,11 @@ kickoff docs checkpoint is remote-green on commit `7ad455e` with GitHub Actions 
 passing Linux, Windows, macOS, RTSan, and TSan. Local docs-checkpoint gates are green:
 `cmake --preset ci`, `cmake --build --preset ci`, and
 `ctest --preset ci --output-on-failure` **249/249**; focused current UI lane
-`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. H11 closeout context follows. H10 and its
+`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The H12 kickoff bookkeeping follow-up
+`8025f59` is remote-green on GitHub Actions run `28409549889`, and the read-only adversarial review
+`8bef51d` is remote-green on run `28410002800`. This docs-only review follow-up tightens the H12 input gate
+so `YesDawUiInputCheck` must drive the real shipped `MainComponent`, adds proposed ADR-0034 for mixer-state
+schema/persistence before mixer controls, and keeps H12 implementation code at zero. H11 closeout context follows. H10 and its
 follow-on adversarial-review patch batch are remote-green on `main`: latest tip `dd3b257`, GitHub Actions
 run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (run `28341446711`),
 `YesDawDawprojectCheck` (run `28348385319`), `YesDawTimeStretchCheck` (run `28350136910`), and
@@ -99,9 +103,9 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 kickoff docs checkpoint is done and remote-green; this bookkeeping follow-up crosses it off.
+**Now:** H12 review-follow-up docs checkpoint is local-only until this commit is pushed and remote CI is green.
 **Next:** start the UI input harness skeleton (`YesDawUiInputCheck`) as the first H12 implementation
-checkpoint after this follow-up is committed, pushed, and remote-green.
+checkpoint after this docs follow-up is committed, pushed, and remote-green.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).

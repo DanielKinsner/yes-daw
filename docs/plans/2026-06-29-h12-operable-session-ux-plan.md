@@ -9,16 +9,23 @@ transport, undo/redo, save, reopen, and prove the same state mechanically.
 
 H12 closes only when these gates are green in the full CI preset:
 
-- **UI input harness:** a self-asserting test creates or opens a `.yesdaw` Project bundle, imports a WAV,
+- **UI input harness:** a self-asserting test that **constructs the real `MainComponent` shell**
+  (headless, via the JUCE `MessageManager`) creates or opens a `.yesdaw` Project bundle, imports a WAV,
   creates and edits Clips, drives play/stop/locate/loop, edits mixer and piano-roll state, saves, reopens,
-  and asserts state parity.
-- **Action/input parity:** every H12 user-visible mutation is reachable through the UI action registry,
-  direct Component input, or an explicit harness command path, with negative controls for disabled or
-  invalid edits.
+  and asserts state parity. The harness drives the **shipped window**, not a parallel model.
+- **Action/input parity:** every H12 user-visible mutation is reachable by driving **real `MainComponent`
+  input** - synthetic JUCE mouse/key events on the actual hit-tested Components - backed by the UI action
+  registry, with negative controls for disabled or invalid edits. Asserting against the headless app model
+  or a back-channel command path **does not** satisfy this gate; that is the H11 gap (the gates verified the
+  library beneath the UI, never the shipped shell) and H12 must not repeat it.
 - **Persistence parity:** imported Assets, Clips, mixer values, MIDI Notes, loop/locate state where saved,
-  and undoable edit results survive save/reopen through the normal Project bundle validators.
+  and undoable edit results survive save/reopen through the normal Project bundle validators. **Mixer
+  values require the ADR-0034 schema** - the Project/bundle has no pan/mute/solo/bus fields today (see
+  build order step 6).
 - **H11 regression lane:** `YesDawUiActionCheck`, `YesDawAppSmokeCheck`, `YesDawTimelineGpuCheck`, and
-  `YesDawAccessibilityCheck` remain green.
+  `YesDawAccessibilityCheck` remain green. Where H12 turns painted projections into real Components, the
+  accessibility gate is **upgraded to query the real `AccessibilityHandler`s** of those Components, not just
+  the static descriptor table.
 
 Human visual polish can keep using the one-command launch, but it is not the H12 gate.
 
@@ -44,25 +51,41 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 1. **Kickoff docs + H12 ADR. [done]** Accept ADR-0033, open `loop/horizon.md` to H12, add this plan,
    update `CONTEXT.md`, `docs/adr/README.md`, `docs/goals/roadmap.md`, and the live handoff. Docs-only.
 
-2. **UI input harness skeleton.** Add `YesDawUiInputCheck` with a headless driver that can open the app
-   model, target named UI regions, run deterministic pointer/key gestures, and assert failures. Gate:
-   harness boots against the existing H11 fixture and proves disabled/invalid input negative controls.
+2. **UI input harness skeleton.** Add `YesDawUiInputCheck` with a headless driver that **constructs the
+   real `MainComponent`** (via the JUCE `MessageManager`, no display), targets named UI regions, runs
+   deterministic pointer/key gestures **against the actual Components**, and asserts failures. Gate: harness
+   boots the real shell against the existing H11 fixture and proves disabled/invalid input negative
+   controls. (`MainComponent` currently lives inside `src/Main.cpp` with no header - extract a testable
+   entry point so a gate can construct it; today no test links `src/Main.cpp` at all.)
 
 3. **Project lifecycle controls.** Wire new/open/save through native JUCE controls or action-backed app
    model paths, keeping file dialogs isolated behind injectable test choices. Gate: create/open/save/reopen
    a `.yesdaw` Project through the harness.
 
-4. **Import WAV into Project bundle.** Add the user-facing import flow that copies a WAV into the Project
-   bundle as an Asset and places a Clip on a selected Track. Gate: imported bytes decode, Asset metadata
-   persists, and the Clip references the Asset without editing it in place.
+4. **Import WAV into Project bundle (highest-value checkpoint - import must *play*, not just display).**
+   Add the user-facing import flow that copies a WAV into the Project bundle as an Asset and places a Clip
+   on a selected Track. Gate: imported bytes decode through the **same `DecodedAssetAudio` path
+   `PlaybackEngine` consumes**, Asset metadata persists, the Clip references the Asset without editing it in
+   place, **and the imported audio is audible - the harness renders a block through the engine and asserts
+   non-zero output samples**. This closes the standing "decoder->source-node projection not built / the smoke
+   injects pre-decoded PCM" gap (roadmap H1/H2 note); without the audible assertion, import only *shows*
+   audio. May land as two commits: (4a) import + persist Asset/Clip, (4b) decoded audio reaches transport
+   output.
 
 5. **Timeline hit-testing and edit gestures.** Make tracks and Clips real input targets for select,
-   drag/move, trim, split, fade, gain, snap, locate, and loop. Gate: harness performs the edit sequence,
-   undo/redo restores expected state, and `YesDawTimelineGpuCheck` stays green.
+   drag/move, trim, split, fade, gain, snap, locate, and loop. **Pre-req:** promote `ui/TimelineLayout.h`
+   from H0 "throwaway spike code, not the real UI" to production (update its header and drop the
+   non-existent "GPU soak" promise) or replace it - hit-testing (pixels->clip, the inverse of `layoutVisible`)
+   makes it load-bearing for real input. Gate: harness performs the edit sequence through real Component
+   input, undo/redo restores expected state, and `YesDawTimelineGpuCheck` stays green.
 
 6. **Inspector and mixer controls.** Turn selected Clip fields, fader, pan, mute, solo, meter/loudness
-   readbacks, and relevant tabs into real controls instead of painted-only projections. Gate: harness edits
-   values, saves/reopens, and proves disabled-state behavior.
+   readbacks, and relevant tabs into real controls instead of painted-only projections. **Depends on
+   ADR-0034 (mixer-state schema):** the Project/bundle has no pan/mute/solo/bus fields today, so "mixer
+   values survive save/reopen" requires the ADR-0034 schema + migration to land first; this also resolves
+   the H11 one-strip-per-Clip model (real tracks hold many clips). At least one meter/loudness value must be
+   driven from the real engine, not echoed back from a test-injected constant. Gate: harness edits values
+   through real input, saves/reopens, and proves disabled-state behavior.
 
 7. **Piano-roll input wiring.** Make Note selection, move, length, transpose, quantize, and expression
    readback operable through input paths. Gate: harness edits a MIDI Clip, save/reopen parity holds, and
@@ -84,6 +107,11 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 
 - **ADR-0033 - H12 operable session UX:** session UX before plugin-hosting deepening; real input wiring;
   UI input harness; save/reopen parity; H11 gates remain live. **[accepted in kickoff]**
+- **ADR-0034 - Mixer-state schema and persistence:** add `Track`/`Bus` entities carrying ADR-0014 strip
+  state (gain/pan/mute/solo/solo-safe/sidechain) to the Project model + a bundle migration, so the operable
+  mixer can save/reopen and "tracks" stop being one-strip-per-Clip. This is an irreversible schema decision
+  (ADR-0011/0012 ground) and **must be grilled and accepted before step 6**, not discovered mid-checkpoint.
+  **[proposed]**
 
 Later H12 slices may add narrow ADRs only if they introduce a new irreversible decision. Otherwise they
 should land as small implementation checkpoints behind ADR-0033.
@@ -97,3 +125,14 @@ docs-checkpoint gates are green: `cmake --preset ci`, `cmake --build --preset ci
 `ctest --preset ci --output-on-failure` **249/249**. The focused current UI lane is also green with
 `ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The next checkpoint is the UI input
 harness skeleton; no H12 implementation code has landed yet.
+
+## Review notes (2026-06-29 adversarial pass)
+
+The exit-gate, step 2, step 4, step 5, step 6, and "Decisions to write" edits above came from the
+adversarial review in
+[`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](../reviews/2026-06-29-adversarial-review-h11-h12.md).
+The three load-bearing changes: (1) the harness must drive the **real `MainComponent`**, not the headless
+model - closing the H11 gap where the gates verified the library beneath the UI but never the shipped
+shell; (2) "mixer values survive save/reopen" needs **ADR-0034** (no mixer schema exists today); (3) import
+must be **audible through the engine**, not just decoded for display. Steps 1-3, 7-8 are unchanged from the
+original plan - they were already sound.
