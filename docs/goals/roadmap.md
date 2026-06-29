@@ -181,7 +181,7 @@ Loudness metering (libebur128), DAWproject export (interchange insurance), a tim
 libebur128 reference within tolerance, a DAWproject export round-trips through a reference reader, the
 time-stretch Node is sample-accurate vs a golden, and a device change mid-session is survived without an
 Underrun.
-**Status (2026-06-29):** opened; the loudness and DAWproject checkpoints are closed. ADR-0028 is accepted, and
+**Status (2026-06-29):** closed. ADR-0028 is accepted, and
 `YesDawLoudnessCheck` is green in local `ctest` **241/241** plus remote CI run `28341446711` on
 `1d29c02`. ADR-0029 is accepted; the DAWproject primitive preflight is locally green in
 `YesDawDawprojectPrimitivesCheck` with full `ci` preset **242/242**; `YesDawDawprojectCheck` is green with
@@ -192,7 +192,8 @@ full local `ctest` **244/244** and focused H10 lane **3/3** for landed gates; re
 is green on `ad50721`. ADR-0031 is accepted for a control-side stop/snapshot/rebuild/resume device
 hot-swap coordinator around `PlaybackEngine`, with ADR docs green on remote CI run `28351125742`;
 `YesDawDeviceHotSwapCheck` is locally green with full local `ctest` **245/245** and focused H10 lane
-**4/4**. Next checkpoint: remote CI for the device hot-swap code. See
+**4/4**; remote CI run `28351880753` is green on `f9d5a23`. H11 is the next horizon and is not opened by
+this H10 closeout. See
 [`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)

@@ -54,15 +54,16 @@ is written as an ADR.
    Stretch `1.1.0`. The local code gate now passes, full local `ctest` is **244/244**, and the focused
    H10 lane is **3/3** for landed gates. Remote CI run `28350136910` is green on `ad50721`.
 
-5. **Device hot-swap survival - ADR-0031 + `YesDawDeviceHotSwapCheck`. [local gate green]** Decide the device-change state
+5. **Device hot-swap survival - ADR-0031 + `YesDawDeviceHotSwapCheck`. [done]** Decide the device-change state
    machine around `PlaybackEngine` / `RuntimeAudioDriver`: stop old callback, preserve transport frame,
    rebuild or reconnect the driver, and resume without an Underrun. Gate this with a deterministic fake
    device harness; real hardware remains a one-command smoke, not a subjective check. ADR-0031 chooses a
    control-side stop/snapshot/rebuild/resume coordinator around `PlaybackEngine`. The local code gate is
-   green with full `ctest` **245/245** and the focused H10 lane **4/4**; remote CI is the next checkpoint.
+   green with full `ctest` **245/245** and the focused H10 lane **4/4**; remote CI run `28351880753` is
+   green on `f9d5a23`.
 
-6. **Close H10.** Run the focused H10 lane and full `ctest --preset ci --output-on-failure`, push, verify
-   remote CI, then update `STATUS.md`, `loop/horizon.md`, and `docs/goals/roadmap.md`.
+6. **Close H10. [done]** Run the focused H10 lane and full `ctest --preset ci --output-on-failure`, push,
+   verify remote CI, then update `STATUS.md`, `loop/horizon.md`, and `docs/goals/roadmap.md`.
 
 ## Non-goals (H10)
 
@@ -80,7 +81,7 @@ is written as an ADR.
 - **ADR-0030 - time-stretch Node:** Signalsmith integration, ratio limits, latency/tail policy, and
   scheduler safety. **[accepted; code checkpoint remote CI run `28350136910` green]**
 - **ADR-0031 - device hot-swap survival:** device-change state machine, fake-device gate, and hardware
-  smoke boundary. **[accepted; local code checkpoint green, remote CI next]**
+  smoke boundary. **[accepted; code checkpoint remote CI run `28351880753` green]**
 
 ## Status
 
@@ -93,4 +94,5 @@ and remote CI run `28348385319`. ADR-0030 is accepted and green on remote CI run
 `YesDawTimeStretchCheck` is locally green, full local `ctest` is **244/244**, and the focused H10 lane is
 **3/3** for currently landed gates; remote CI run `28350136910` is green on `ad50721`. ADR-0031 docs are
 green on remote CI run `28351125742`. `YesDawDeviceHotSwapCheck` is locally green, full local `ctest` is
-**245/245**, and the focused H10 lane is **4/4**; remote CI for the code checkpoint is next.
+**245/245**, focused H10 lane is **4/4**, and remote CI run `28351880753` is green on `f9d5a23`. H10 is
+closed; H11 is not opened by this plan.

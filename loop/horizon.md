@@ -1,7 +1,9 @@
-# Current horizon - H10 (Mixing/mastering features & interchange) - OPEN
+# Current horizon - H10 (Mixing/mastering features & interchange) - CLOSED
 
 > This file is the oracle for "is the horizon done?". H10 opened on 2026-06-28
-> after H9 remote CI went green on `a5a1db4` (run `28339991428`).
+> after H9 remote CI went green on `a5a1db4` (run `28339991428`) and closed on
+> 2026-06-29 after `YesDawDeviceHotSwapCheck` went remote-green on `f9d5a23`
+> (run `28351880753`).
 
 ## Exit criterion (the finish line)
 
@@ -31,7 +33,7 @@ ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSw
 
 The focused regex becomes fully active as the four H10 gate targets land.
 
-## Status: OPEN
+## Status: CLOSED
 
 H10 kickoff docs are green on remote CI run `28340551455`: this horizon file, the live handoff, the
 roadmap status, and `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`.
@@ -70,8 +72,10 @@ thread. ADR-0031 docs are green on remote CI run `28351125742`.
 fake-device harness that proves bit-identical output continuity across a changed max Block size, loop and
 stopped-state survival, deterministic callback-while-stopped accounting, old graph reclamation, and
 negative controls for unsupported sample-rate/channel-count/max-Block/rebuild-while-active cases. Full
-local `ctest --preset ci --output-on-failure` is **245/245** and the focused H10 regex is **4/4**. The
-next H10 checkpoint is the remote CI gate for this code commit.
+local `ctest --preset ci --output-on-failure` is **245/245** and the focused H10 regex is **4/4**. Remote
+CI run `28351880753` is green on `f9d5a23` across Linux, Windows, macOS, RTSan, and TSan.
+
+H10 is CLOSED. H11 is not opened here; wait for Dan to start that horizon.
 
 ## The plan
 
