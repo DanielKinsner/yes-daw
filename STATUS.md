@@ -17,15 +17,14 @@ run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (
 single-window app shell, a dedicated Timeline canvas for dense rendering, and a UI action registry as the
 command/keymap/accessibility seam. H11 kickoff docs are local-green: `cmake --preset ci`, VS DevShell
 `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**; remote CI run
-`28382745216` passed across Linux, Windows, macOS, RTSan, and TSan. The pure H11 UI action registry is
-local-green: `YesDawUiActionCheck` proves stable action IDs, default keymap remapping, enabled/disabled
-reasons, accessibility labels/roles, and headless dispatch. Local gates: `cmake --preset ci`, VS DevShell
-`cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
-`ctest --preset ci --output-on-failure` **246/246**. The H0 sine-spike window is replaced locally with an
-action-backed JUCE `Component` shell and the app target no longer links `juce_audio_utils`; focused gate:
-VS DevShell `cmake --build --preset ci` plus `ctest --test-dir build-ci -R YesDawUiActionCheck
---output-on-failure`. **Now:** layer the supplied mockup's DAW chrome over the shell. **Next:** push and
-verify remote CI for the app shell + action registry checkpoint.
+`28382745216` passed across Linux, Windows, macOS, RTSan, and TSan. The H11 app shell + action registry
+checkpoint is local-green: `YesDawUiActionCheck` proves stable action IDs, default keymap remapping,
+enabled/disabled reasons, accessibility labels/roles, and headless dispatch; `src/Main.cpp` now replaces
+the H0 sine-spike audio window with a mockup-aligned native JUCE shell that consumes the registry. Local
+gates: `cmake --preset ci`, VS DevShell `cmake --build --preset ci`,
+`ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and `ctest --preset ci
+--output-on-failure` **246/246**. **Now:** commit/push the app shell + action registry checkpoint and
+verify remote CI. **Next after remote green:** Project-load smoke + transport controls (`YesDawAppSmokeCheck`).
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -38,7 +37,16 @@ verify remote CI for the app shell + action registry checkpoint.
 
 ---
 
-## Now — H11 action registry local-green; app shell in progress
+## Now — H11 app shell + action registry local-green; remote CI pending
+- **Latest (2026-06-29): replaced the H0 sine-spike window with a mockup-aligned JUCE shell locally.**
+  `src/Main.cpp` now draws the first native DAW frame: top menu/transport/readout strip, master meter,
+  track list, arrangement/timeline placeholder with clips and playhead, clip inspector, and mixer strips.
+  The visible toolbar consumes `UiActionRegistry`/`UiActionContext`, and the old audio-device sine callback
+  remains removed from the app target. Local gates are green: `cmake --preset ci`, VS DevShell
+  `cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
+  `ctest --preset ci --output-on-failure` **246/246**. **Next:** push and verify remote CI. After remote
+  green, the next H11 checkpoint is Project-load smoke + transport controls (`YesDawAppSmokeCheck`).
+
 - **Latest (2026-06-29): replaced the H0 sine-spike app with an action-backed JUCE shell locally.** The
   standalone app now owns `UiActionRegistry`/`UiActionContext`, renders placeholder Timeline/Mixer/Piano
   Roll panels, and drives toolbar buttons through the same headless action IDs as `YesDawUiActionCheck`.
