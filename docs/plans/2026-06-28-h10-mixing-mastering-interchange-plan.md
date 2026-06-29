@@ -39,7 +39,7 @@ is written as an ADR.
    run offline over interleaved Project samples and later feed H11. Gate against libebur128/BS.1770
    fixtures with negative controls.
 
-3. **DAWproject export - ADR-0029 + `YesDawDawprojectCheck`. [next]** Decide the minimal supported DAWproject
+3. **DAWproject export - ADR-0029 + `YesDawDawprojectCheck`. [ADR accepted; code next]** Decide the minimal supported DAWproject
    subset, package layout, ID mapping, asset reference policy, and unsupported-feature degradation. Export
    the current Project surface and verify it through an independent reader, not a string comparison of our
    own writer.
@@ -68,7 +68,7 @@ is written as an ADR.
 - **ADR-0028 - loudness metering model:** BS.1770/libebur128 reference, channel handling, true-peak scope,
   and meter update surface. **[accepted; code checkpoint remote CI run `28341446711` green]**
 - **ADR-0029 - DAWproject export subset:** package shape, supported fields, ID/asset mapping, and
-  reference-reader gate.
+  reference-reader gate. **[accepted]**
 - **ADR-0030 - time-stretch Node:** Signalsmith integration, ratio limits, latency/tail policy, and
   scheduler safety.
 - **ADR-0031 - device hot-swap survival:** device-change state machine, fake-device gate, and hardware
@@ -79,4 +79,4 @@ is written as an ADR.
 Opened on 2026-06-28 after H9 remote CI went green on `a5a1db4` (run `28339991428`). Kickoff docs are
 green on remote CI run `28340551455`. ADR-0028 is accepted and green on remote CI run `28340956377`.
 `YesDawLoudnessCheck` is implemented and green on remote CI run `28341446711`; the next checkpoint is
-ADR-0029 for DAWproject export.
+`YesDawDawprojectCheck`. ADR-0029 is accepted.

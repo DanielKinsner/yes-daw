@@ -183,7 +183,7 @@ time-stretch Node is sample-accurate vs a golden, and a device change mid-sessio
 Underrun.
 **Status (2026-06-28):** opened; the loudness checkpoint is closed. ADR-0028 is accepted, and
 `YesDawLoudnessCheck` is green in local `ctest` **241/241** plus remote CI run `28341446711` on
-`1d29c02`. Next checkpoint: ADR-0029 / `YesDawDawprojectCheck`. See
+`1d29c02`. ADR-0029 is accepted; next checkpoint: `YesDawDawprojectCheck`. See
 [`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)

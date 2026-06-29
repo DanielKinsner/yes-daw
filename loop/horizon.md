@@ -39,7 +39,9 @@ roadmap status, and `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan
 ADR-0028 (loudness metering model) is accepted and green on remote CI run `28340956377`.
 `YesDawLoudnessCheck` is implemented with the pinned `libebur128` wrapper, full local
 `ctest --preset ci --output-on-failure` **241/241**, and remote CI run `28341446711` green on
-`1d29c02`. The next H10 checkpoint is ADR-0029 for DAWproject export.
+`1d29c02`. The loudness remote-green docs are green on remote CI run `28341823599`.
+
+ADR-0029 (DAWproject export subset) is accepted. The next H10 checkpoint is `YesDawDawprojectCheck`.
 
 ## The plan
 

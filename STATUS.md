@@ -18,8 +18,9 @@ replays reject/degrade malformed bundle and plugin-state rows, plugin failure ac
 rows, MIDI clips auto-wire through a built-in impulse instrument with transport-aware locate/loop behavior,
 and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
 mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
-green on remote CI run `28340956377`; and `YesDawLoudnessCheck` is green on remote CI run `28341446711`
-at `1d29c02`. **Now:** write ADR-0029 for DAWproject export, then land `YesDawDawprojectCheck`.
+green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
+the loudness remote-green docs are green on remote CI run `28341823599`. **Now:** ADR-0029 is accepted;
+next checkpoint lands `YesDawDawprojectCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -46,6 +47,11 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H10 DAWproject ADR next
+- **Latest (2026-06-28): accepted ADR-0029 for DAWproject export.** Decision: H10 writes an export-only
+  DAWproject 1.0 subset as a `.dawproject` ZIP with UTF-8 `project.xml` / `metadata.xml`, canonical
+  float32 WAV media under `audio/`, deterministic XML-safe IDs derived from YES DAW `EntityId`s, synthetic
+  tracks for today's audio Clips, grouped MIDI tracks by `MidiClip::trackId`, explicit unsupported statuses,
+  and an independent package/XML reader gate. **Next:** land `YesDawDawprojectCheck`.
 - **Latest (2026-06-28): closed `YesDawLoudnessCheck`.** Added the pinned `libebur128` dependency,
   a control/offline-only mono/stereo loudness wrapper, non-finite/malformed-input rejection, channel-map
   checks, silence/peak edge coverage, chunked-feed coverage, and a pinned version check. Local gates are
