@@ -6,10 +6,12 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <clocale>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <locale>
 #include <span>
 #include <string>
 #include <string_view>
@@ -326,6 +328,65 @@ TEST_CASE ("DAWproject export writes a stored package and verifies through an in
     REQUIRE (std::equal (read.summary.media.front().samples.begin(),
                          read.summary.media.front().samples.end(),
                          decoded.front().interleavedSamples.begin()));
+}
+
+TEST_CASE ("DAWproject number I/O stays radix-'.' under a comma-decimal locale", "[h10][dawproject][locale]")
+{
+    // Find any comma-decimal locale the host actually has; skip cleanly if none is installed.
+    std::locale commaLocale;
+    const char* chosen = nullptr;
+    for (const char* name : { "de_DE.UTF-8", "de-DE", "German_Germany.1252", "fr_FR.UTF-8", "fr-FR" })
+    {
+        try { commaLocale = std::locale (name); chosen = name; break; }
+        catch (...) {}
+    }
+    if (chosen == nullptr)
+    {
+        SUCCEED ("no comma-decimal locale installed; locale independence cannot be exercised on this host");
+        return;
+    }
+
+    // Mutate BOTH locale channels: the C++ global locale drives ostringstream (formatDouble) and C
+    // LC_NUMERIC drives strtod/std::stod (the old parse path). Restore both however the test exits.
+    const char* const previousCNumericRaw = std::setlocale (LC_NUMERIC, nullptr);
+    const std::string previousCNumeric = previousCNumericRaw != nullptr ? previousCNumericRaw : "C";
+    const std::locale previousGlobal = std::locale::global (commaLocale);
+    std::setlocale (LC_NUMERIC, chosen);
+    struct Restore
+    {
+        std::locale global;
+        std::string cNumeric;
+        ~Restore()
+        {
+            std::locale::global (global);
+            std::setlocale (LC_NUMERIC, cNumeric.c_str());
+        }
+    } restore { previousGlobal, previousCNumeric };
+
+    const Project project = makeInterchangeProject();
+    const std::vector<DecodedAssetAudio> decoded = makeDecodedAssets (project);
+    const std::filesystem::path packagePath = makeTempPath ("locale", ".dawproject");
+
+    REQUIRE (yesdaw::interchange::dawproject::exportProjectToDawproject (
+                 packagePath,
+                 project,
+                 std::span<const DecodedAssetAudio> (decoded.data(), decoded.size())).ok());
+
+    // Bites formatDouble: the clip gain must serialize as "0.75", never the locale's "0,75".
+    const std::string xml = projectXmlFromEntries (readEntries (packagePath));
+    REQUIRE (xml.find ("value=\"0.75\"") != std::string::npos);
+    REQUIRE (xml.find ("value=\"0,75\"") == std::string::npos);
+    REQUIRE (xml.find (',') == std::string::npos);
+
+    // Bites parseDouble/parseInt and the integer insertions in the export stream: the reader must
+    // round-trip the '.'-radix package under the comma/grouping locale.
+    REQUIRE (yesdaw::interchange::dawproject::verifyDawprojectPackageMatches (
+                 packagePath,
+                 project,
+                 std::span<const DecodedAssetAudio> (decoded.data(), decoded.size())).ok());
+
+    std::error_code ec;
+    std::filesystem::remove (packagePath, ec);
 }
 
 TEST_CASE ("DAWproject reader rejects missing media and malformed package summaries", "[h10][dawproject][negative]")

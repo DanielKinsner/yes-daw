@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <locale>
 #include <span>
 #include <sstream>
 #include <string>
@@ -138,9 +139,14 @@ inline ReadResult readFail (PackageStatus status, std::string message)
     return { status, std::move (message), {} };
 }
 
+// DAWproject XML numbers are radix-'.' always. std::ostringstream/std::stod follow the ambient locale
+// (the C++ global locale and C LC_NUMERIC respectively), so under a comma-decimal locale the exporter
+// would emit "1,5" (invalid XML) and the reader would misparse. Imbue the classic locale on every stream
+// so format/parse are locale-independent in both directions. setprecision(17) keeps double round-trip.
 inline std::string formatDouble (double value)
 {
     std::ostringstream out;
+    out.imbue (std::locale::classic());
     out << std::setprecision (17) << value;
     return out.str();
 }
@@ -149,9 +155,10 @@ inline bool parseDouble (std::string_view text, double& out) noexcept
 {
     try
     {
-        std::size_t consumed = 0;
-        const double value = std::stod (std::string (text), &consumed);
-        if (consumed != text.size() || ! std::isfinite (value))
+        std::istringstream in { std::string (text) };
+        in.imbue (std::locale::classic());
+        double value = 0.0;
+        if (! (in >> value) || in.get() != std::char_traits<char>::eof() || ! std::isfinite (value))
             return false;
 
         out = value;
@@ -167,9 +174,10 @@ inline bool parseInt (std::string_view text, int& out) noexcept
 {
     try
     {
-        std::size_t consumed = 0;
-        const int value = std::stoi (std::string (text), &consumed);
-        if (consumed != text.size())
+        std::istringstream in { std::string (text) };
+        in.imbue (std::locale::classic());
+        int value = 0;
+        if (! (in >> value) || in.get() != std::char_traits<char>::eof())
             return false;
 
         out = value;
@@ -574,6 +582,10 @@ inline bool midiTrackAlreadySeen (std::span<const engine::EntityId> tracks, engi
     std::vector<storedzip::Entry> entries;
 
     std::ostringstream projectXml;
+    // Locale-independent: integers inserted directly (sampleRate, channels, key, meter, ...) must never
+    // pick up the ambient locale's thousands separator (e.g. "48.000"), and formatDouble already imbues
+    // classic for its own radix. Without this, a grouping locale yields XML the reader cannot parse.
+    projectXml.imbue (std::locale::classic());
     projectXml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     projectXml << "<Project version=\"1.0\">\n";
     projectXml << "  <Application name=\"YES DAW\" version=\"0.0.0\"/>\n";
