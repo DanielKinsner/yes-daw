@@ -29,9 +29,9 @@ RTSan, and TSan. The H11 Project-load smoke + transport controls checkpoint is l
 play/stop/locate/loop through the same action IDs as the UI shell. Local gates: VS DevShell
 `cmake --build --preset ci --target YesDawAppSmokeCheck`,
 `ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
-`cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. **Now:** push this
-checkpoint and verify remote CI. **Next after remote green:** Timeline canvas GPU/perf gate
-(`YesDawTimelineGpuCheck`).
+`cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. Remote CI run
+`28388490955` is green across Linux, Windows, macOS, RTSan, and TSan. **Now:** H11 remains open.
+**Next:** Timeline canvas GPU/perf gate (`YesDawTimelineGpuCheck`).
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -44,8 +44,11 @@ checkpoint and verify remote CI. **Next after remote green:** Timeline canvas GP
 
 ---
 
-## Now — H11 Project-load smoke local-green; remote CI next
-- **Latest (2026-06-29): landed Project-load smoke + transport controls locally.** Added
+## Now — H11 Project-load smoke remote-green; Timeline GPU/perf next
+- **Latest (2026-06-29): closed Project-load smoke + transport controls on remote CI.** Remote CI run
+  `28388490955` is green across Linux, Windows, macOS, RTSan, and TSan.
+
+- **Earlier (2026-06-29): landed Project-load smoke + transport controls locally.** Added
   `src/ui/UiAppModel.h`, a headless app model that opens an existing `.yesdaw` Project bundle, reads the
   Project snapshot, builds the H8 `PlaybackEngine` from owned decoded audio, and routes play/stop/locate/
   loop through `UiActionId`s. Added `YesDawAppSmokeCheck`, which creates a real bundle, reopens it through
@@ -53,8 +56,8 @@ checkpoint and verify remote CI. **Next after remote green:** Timeline canvas GP
   used by menus/buttons/shortcuts/accessibility. Local gates are green: VS DevShell
   `cmake --build --preset ci --target YesDawAppSmokeCheck`,
   `ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
-  `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. **Next:** push and
-  verify remote CI before starting `YesDawTimelineGpuCheck`.
+  `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. **Next:**
+  `YesDawTimelineGpuCheck`.
 
 - **Earlier (2026-06-29): closed the H11 app shell + action registry checkpoint on remote CI.** Remote CI
   run `28385990090` is green across Linux, Windows, macOS, RTSan, and TSan.
