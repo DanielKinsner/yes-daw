@@ -32,3 +32,4 @@ build-*/
 
 # Soak run output (regenerated each run)
 soak-stats.json
+src/ui/yes-daw-ui-gold standard mockup.png
