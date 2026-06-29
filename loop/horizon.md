@@ -1,4 +1,4 @@
-# Current horizon - H11 (Single-window timeline UI shell + accessibility) - OPEN
+# Current horizon - H11 (Single-window timeline UI shell + accessibility) - OPEN, closeout local-green
 
 > This file is the oracle for "is the horizon done?". H11 opened on 2026-06-29 after H10 and the H10
 > adversarial-review patch batch were remote-green on `main` (`dd3b257`, GitHub Actions run
@@ -119,7 +119,14 @@ visual-feel review. Local gates are green: VS DevShell
 **4/4**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **249/249**.
 Remote CI run `28403621292` passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **Close H11**.
+The **Close H11** checkpoint is local-green: `cmake --preset ci`, VS DevShell
+`cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` **249/249**, and focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**4/4**. The exit-gate evidence maps to `YesDawUiActionCheck`, `YesDawAppSmokeCheck`,
+`YesDawTimelineGpuCheck`, and `YesDawAccessibilityCheck`, with the one-command visual-feel launch already
+handed off through `tools/launch-h11.ps1` / `tools/launch-h11.sh`.
+
+The next checkpoint is **remote CI for H11 closeout**, then mark H11 closed.
 
 ## The plan
 

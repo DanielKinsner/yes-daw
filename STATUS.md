@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-29
-**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — OPEN.** H10 and its
+**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — OPEN, closeout local-green.** H10 and its
 follow-on adversarial-review patch batch are remote-green on `main`: latest tip `dd3b257`, GitHub Actions
 run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (run `28341446711`),
 `YesDawDawprojectCheck` (run `28348385319`), `YesDawTimeStretchCheck` (run `28350136910`), and
@@ -83,8 +83,11 @@ IDs, labels, roles/names, keymap reachability, and dispatch/query backing; and `
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **4/4**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **249/249**. Remote CI run `28403621292` is green across Linux,
-Windows, macOS, RTSan, and TSan.
-**Now:** H11 Accessibility pass + launch script is remote-green. **Next:** Close H11.
+Windows, macOS, RTSan, and TSan. The H11 closeout checkpoint is local-green: `cmake --preset ci`, VS
+DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` **249/249**, and
+focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
+--output-on-failure` **4/4**. H11 remains open until the closeout commit is green on remote CI.
+**Now:** H11 closeout is local-green. **Next:** push and verify remote CI, then mark H11 closed.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -97,7 +100,18 @@ Windows, macOS, RTSan, and TSan.
 
 ---
 
-## Now — H11 Accessibility pass remote-green; Close H11 next
+## Now — H11 closeout local-green; remote CI pending
+- **Latest (2026-06-29): H11 closeout is local-green.** The H11 exit-gate audit maps to the four focused
+  gates in the full `ci` preset: `YesDawUiActionCheck` for action registry/keymap/accessibility parity,
+  `YesDawAppSmokeCheck` for Project bundle load plus transport action IDs, `YesDawTimelineGpuCheck` for
+  the dense Timeline canvas frame-time gate, and `YesDawAccessibilityCheck` for visible action/region
+  roles, names, keyboard reachability, action backing, and launch scripts. Local closeout gates are green:
+  `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; full
+  `ctest --preset ci --output-on-failure` **249/249**; and focused H11
+  `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+  **4/4**. H11 remains open until the closeout commit is green on remote CI. **Next:** push and verify
+  remote CI, then mark H11 closed.
+
 - **Latest (2026-06-29): closed Accessibility pass + launch script on remote CI.** Added stable H7/H10 UI action
   IDs for audio export, DAWproject export, and audio device refresh. Added `UiAccessibility`, a headless
   manifest for app, menu, transport, timeline, clip inspector, mixer, master meter, and piano-roll regions

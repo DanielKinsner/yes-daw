@@ -208,5 +208,6 @@ while scrolling. **Visual feel is the single human spot-check, via a one-command
 Timeline canvas for dense rendering, and a UI action registry as the command/keymap/accessibility seam.
 Checkpoints through Accessibility pass + launch script are remote-green. The accessibility/launch
 checkpoint is green with focused H11 **4/4**, full local `ci` **249/249**, and remote CI run
-`28403621292`; the H11 closeout checkpoint is next. The focused plan is
+`28403621292`. H11 closeout is local-green with full local `ci` **249/249** and focused H11 **4/4**;
+remote CI is pending before marking H11 closed. The focused plan is
 [`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).

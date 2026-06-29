@@ -75,9 +75,9 @@ surface.
    keyboard path, and action registry backing. Add the one-command launch Dan uses for visual-feel review.
    Gate: `YesDawAccessibilityCheck` plus full focused H11 lane.
 
-9. **Close H11.** Run full local `ci`, focused H11 lane, push, verify remote CI, update `STATUS.md`,
-   `loop/horizon.md`, and `docs/goals/roadmap.md`. If Dan's visual-feel launch finds a real issue, fix it
-   as a focused checkpoint; otherwise mark H11 closed.
+9. **Close H11. [local-green]** Run full local `ci`, focused H11 lane, push, verify remote CI, update
+   `STATUS.md`, `loop/horizon.md`, and `docs/goals/roadmap.md`. If Dan's visual-feel launch finds a real
+   issue, fix it as a focused checkpoint; otherwise mark H11 closed.
 
 ## Non-goals
 
@@ -131,4 +131,7 @@ audio export, DAWproject export, and audio device refresh actions now route thro
 `UiAccessibility` defines semantic app/menu/transport/timeline/inspector/mixer/piano-roll regions; and
 `tools/launch-h11.ps1` / `tools/launch-h11.sh` provide the one-command visual-feel launch. Focused H11 is
 green at **4/4** and full local `ci` is green at **249/249**. Remote CI run `28403621292` is green across
-Linux, Windows, macOS, RTSan, and TSan. The next checkpoint is H11 closeout.
+Linux, Windows, macOS, RTSan, and TSan. The H11 closeout checkpoint is local-green: `cmake --preset ci`,
+VS DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` **249/249**, and
+focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
+--output-on-failure` **4/4**. H11 remains open until the closeout commit is green on remote CI.
