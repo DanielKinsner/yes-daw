@@ -21,7 +21,9 @@ mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `283
 green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
 the loudness remote-green docs are green on remote CI run `28341823599`; `YesDawDawprojectCheck` is green
 on remote CI run `28348385319`; and the DAWproject remote-green docs are green on remote CI run
-`28348848259`. **Now:** land `YesDawTimeStretchCheck` from ADR-0030.
+`28348848259`; ADR-0030 docs are green on remote CI run `28349381664`; and
+`YesDawTimeStretchCheck` is locally green. **Now:** push the time-stretch checkpoint; remote CI is the
+gate.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -48,13 +50,28 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H10 time-stretch Node
+- **Latest (2026-06-29): landed `YesDawTimeStretchCheck` locally.** Added pinned
+  `signalsmith-stretch` `1.1.0` FetchContent at commit `44c8f865af9da8c29cc4a70a2d5a3ec83639c711`, a
+  control-side `prepareTimeStretch` wrapper that validates mono/stereo input and folds/trims Signalsmith
+  latency into exact prepared duration, and a source-style `TimeStretchNode` whose audio-thread path only
+  reads immutable interleaved samples by absolute timeline frame. The gate covers pinned dependency
+  version, malformed input rejection, shorter/longer fixed-ratio golden fingerprints, exact duration,
+  block-split/timeline equivalence, silence windows, block-parallel-safe metadata, and fallback cursor
+  reset. Local gates are green: `cmake --preset ci`, VS DevShell
+  `cmake --build --preset ci --target YesDawTimeStretchCheck`,
+  `ctest --test-dir build-ci -R "YesDawTimeStretchCheck" --output-on-failure`, and
+  VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **244/244**, and
+  `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
+  --output-on-failure` **3/3**. **Next:** push; remote CI is the gate, then record the remote-green
+  result and write ADR-0031 for device hot-swap survival.
 - **Latest (2026-06-29): accepted ADR-0030 for the time-stretch Node.** Decision: H10 uses
   Signalsmith Stretch `1.1.0` as a pinned control-side dependency, prepares stretched clip/source audio
   before it reaches the audio thread, and exposes it through a source-style `TimeStretchNode` whose
   `process()` path is an absolute-frame read over immutable samples. Stretch factor means
   `outputFrames / sourceFrames`; H10 supports mono/stereo and finite factors in `[0.5, 2.0]`; prepared
   output duration is exact after Signalsmith pre-roll/tail folding; and the Node may be block-parallel-safe
-  because its audio-thread path is order-independent. **Next:** implement `YesDawTimeStretchCheck`.
+  because its audio-thread path is order-independent. Remote CI run `28349381664` is green across Linux,
+  Windows, macOS, RTSan, and TSan. **Next:** `YesDawTimeStretchCheck` local gate, then remote CI.
 - **Latest (2026-06-29): closed `YesDawDawprojectCheck` remotely.**
   `YesDawDawprojectCheck` writes a stored `.dawproject` ZIP with UTF-8 `project.xml` / `metadata.xml`,
   canonical float32 WAV media under `audio/<content-hash>.wav`, deterministic XML-safe IDs, a master

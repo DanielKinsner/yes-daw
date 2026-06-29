@@ -51,8 +51,14 @@ windows, media paths, and decoded media bytes. Full local `ctest --preset ci --o
 
 ADR-0030 (time-stretch Node) is accepted. H10 time-stretch uses pinned Signalsmith Stretch `1.1.0` to
 prepare stretched clip/source audio on the control side, then exposes it through a source-style
-`TimeStretchNode` whose audio-thread path is an absolute-frame read over immutable samples. The next H10
-checkpoint is `YesDawTimeStretchCheck`.
+`TimeStretchNode` whose audio-thread path is an absolute-frame read over immutable samples. ADR-0030 docs
+are green on remote CI run `28349381664`.
+
+`YesDawTimeStretchCheck` is locally green. It pins Signalsmith Stretch, validates control-side preparation,
+checks exact duration and fixed-ratio golden fingerprints, and proves `TimeStretchNode` timeline/block-split
+determinism, silence windows, fallback reset, and block-parallel-safe metadata. The focused H10 regex is
+locally green **3/3** for the currently landed gates; full local `ctest --preset ci --output-on-failure`
+is **244/244**. The next H10 checkpoint after remote CI is ADR-0031 plus `YesDawDeviceHotSwapCheck`.
 
 ## The plan
 

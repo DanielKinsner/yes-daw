@@ -47,11 +47,12 @@ is written as an ADR.
    packages and verifies them through an independent reader with negative controls. Remote CI run
    `28348385319` is green on `910ea1c`.
 
-4. **Time-stretch Node - ADR-0030 + `YesDawTimeStretchCheck`. [ADR accepted]** Decide the
+4. **Time-stretch Node - ADR-0030 + `YesDawTimeStretchCheck`. [local gate green]** Decide the
    Signalsmith-backed Node contract, ratio/range limits, latency/tail handling, scheduler safety, and
    golden policy. Gate fixed ratios, block-size independence, duration accuracy, silence, and invalid
    inputs. ADR-0030 chooses an offline-prepared, source-style `TimeStretchNode` pinned to Signalsmith
-   Stretch `1.1.0`.
+   Stretch `1.1.0`. The local code gate now passes, full local `ctest` is **244/244**, and the focused
+   H10 lane is **3/3** for landed gates.
 
 5. **Device hot-swap survival - ADR-0031 + `YesDawDeviceHotSwapCheck`.** Decide the device-change state
    machine around `PlaybackEngine` / `RuntimeAudioDriver`: stop old callback, preserve transport frame,
@@ -75,7 +76,7 @@ is written as an ADR.
 - **ADR-0029 - DAWproject export subset:** package shape, supported fields, ID/asset mapping, and
   reference-reader gate. **[accepted; code checkpoint remote CI run `28348385319` green]**
 - **ADR-0030 - time-stretch Node:** Signalsmith integration, ratio limits, latency/tail policy, and
-  scheduler safety. **[accepted; code checkpoint next]**
+  scheduler safety. **[accepted; code checkpoint local gate green]**
 - **ADR-0031 - device hot-swap survival:** device-change state machine, fake-device gate, and hardware
   smoke boundary.
 
@@ -86,4 +87,6 @@ green on remote CI run `28340551455`. ADR-0028 is accepted and green on remote C
 `YesDawLoudnessCheck` is implemented and green on remote CI run `28341446711`. ADR-0029 is accepted;
 `YesDawDawprojectPrimitivesCheck` is locally green in the full `ci` preset **242/242**; and
 `YesDawDawprojectCheck` is green in the full local `ci` preset **243/243**, the focused H10 lane **2/2**,
-and remote CI run `28348385319`. ADR-0030 is accepted; the next checkpoint is `YesDawTimeStretchCheck`.
+and remote CI run `28348385319`. ADR-0030 is accepted and green on remote CI run `28349381664`.
+`YesDawTimeStretchCheck` is locally green, full local `ctest` is **244/244**, and the focused H10 lane is
+**3/3** for currently landed gates; remote CI is the gate before ADR-0031.

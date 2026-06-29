@@ -45,15 +45,21 @@ FetchContent_Declare(libebur128
   GIT_TAG        v1.2.6
   GIT_SHALLOW    TRUE
   SYSTEM)
+FetchContent_Declare(signalsmith_stretch
+  GIT_REPOSITORY https://github.com/Signalsmith-Audio/signalsmith-stretch.git
+  GIT_TAG        44c8f865af9da8c29cc4a70a2d5a3ec83639c711
+  GIT_SHALLOW    FALSE
+  SOURCE_SUBDIR  cmake-do-not-add
+  SYSTEM)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static dependencies" FORCE)
 set(ENABLE_TESTS OFF CACHE BOOL "Do not build libebur128 tests" FORCE)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 if (YESDAW_BUILD_APPS)
-  FetchContent_MakeAvailable(JUCE Catch2 choc sqlite3 libebur128)
+  FetchContent_MakeAvailable(JUCE Catch2 choc sqlite3 libebur128 signalsmith_stretch)
 else()
-  FetchContent_MakeAvailable(Catch2 choc sqlite3 libebur128)   # RTSan/TSan leg: skip the JUCE clone, still get choc
+  FetchContent_MakeAvailable(Catch2 choc sqlite3 libebur128 signalsmith_stretch)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
 
 add_library(sqlite3_amalgamation STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
@@ -377,6 +383,14 @@ target_link_libraries(YesDawDawprojectCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawDawprojectCheck)
 add_test(NAME YesDawDawprojectCheck COMMAND $<TARGET_FILE:YesDawDawprojectCheck>)
 
+# --- Time-stretch check (H10; Signalsmith-backed control-side preparation + source Node) ---
+add_executable(YesDawTimeStretchCheck tests/time_stretch_tests.cpp)
+target_include_directories(YesDawTimeStretchCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawTimeStretchCheck SYSTEM PRIVATE ${signalsmith_stretch_SOURCE_DIR})
+target_link_libraries(YesDawTimeStretchCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawTimeStretchCheck)
+add_test(NAME YesDawTimeStretchCheck COMMAND $<TARGET_FILE:YesDawTimeStretchCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -524,6 +538,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawLoudnessCheck
   YesDawDawprojectPrimitivesCheck
   YesDawDawprojectCheck
+  YesDawTimeStretchCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

@@ -187,7 +187,9 @@ Underrun.
 `YesDawDawprojectPrimitivesCheck` with full `ci` preset **242/242**; `YesDawDawprojectCheck` is green with
 full local `ci` preset **243/243**, focused H10 lane **2/2**, and remote CI run `28348385319` on
 `910ea1c`. ADR-0030 is accepted for an offline-prepared, Signalsmith-backed source-style
-`TimeStretchNode`; next checkpoint: `YesDawTimeStretchCheck`. See
+`TimeStretchNode`, green on remote CI run `28349381664`; `YesDawTimeStretchCheck` is locally green with
+full local `ctest` **244/244** and focused H10 lane **3/3** for landed gates. Remote CI is the gate before
+ADR-0031. See
 [`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)
