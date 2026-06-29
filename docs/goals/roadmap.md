@@ -164,13 +164,15 @@ blacklist-on-failure action; H4 CP2b MIDI auto-wire).
 **Exit:** the CompiledGraph produces bit-identical output across 1..N worker threads (determinism gate)
 under RTSan/TSan, the heavy-session soak holds the deadline with the parallel scheduler, and
 structure-aware fuzzing of the bundle / plugin-state parsers runs clean.
-**Status (2026-06-28):** closed locally. ADR-0023 through ADR-0026 are accepted. `YesDawSchedulerCheck`
+**Status (2026-06-28):** closed and remote-green. ADR-0023 through ADR-0027 are accepted. `YesDawSchedulerCheck`
 proves transport command queue concurrency, bit-identical scheduled render workers across 1/2/4/8 against
 H7 serial offline render, scheduled Blocks through the H6 deadline oracle, seeded bundle/plugin-state fuzz
-replay, plugin failure blacklist persistence, and MIDI auto-wire with transport locate/loop parity. Full
-local `ctest --preset ci --output-on-failure` passes 240/240. Honest scope: per-node DAG work-stealing
-inside one live `CompiledGraph` is still a scheduler deepening, and the live plugin-host coordinator still
-needs stable plugin-identity plumbing before automatic blacklist persistence from a child-process failure.
+replay, plugin failure blacklist persistence, MIDI auto-wire with transport locate/loop parity, and the
+ADR-0027 block-parallel safety guard that refuses unsafe graphs before scheduled rendering. Full local
+`ctest --preset ci --output-on-failure` passes 240/240, and remote CI run `28339991428` is green on
+`a5a1db4`. Honest scope: per-node DAG work-stealing inside one live `CompiledGraph` is still a scheduler
+deepening, and the live plugin-host coordinator still needs stable plugin-identity plumbing before
+automatic blacklist persistence from a child-process failure.
 
 ## H10 — Mixing/mastering features & interchange
 Loudness metering (libebur128), DAWproject export (interchange insurance), a time-stretch Node
@@ -179,6 +181,8 @@ Loudness metering (libebur128), DAWproject export (interchange insurance), a tim
 libebur128 reference within tolerance, a DAWproject export round-trips through a reference reader, the
 time-stretch Node is sample-accurate vs a golden, and a device change mid-session is survived without an
 Underrun.
+**Status (2026-06-28):** opened. See
+[`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)
 The first real application window, wiring up the complete H7–H10 feature set: load a Project bundle,

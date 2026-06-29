@@ -185,6 +185,11 @@ _Avoid_: volume
 The loudness a meter shows.
 _Avoid_: volume
 
+**Loudness meter**:
+The BS.1770/libebur128-aligned meter used for integrated, short-term, and momentary loudness checks.
+It is a measurement surface, not an automatic gain change.
+_Avoid_: auto-master, volume normalizer
+
 ### Timeline & arrangement
 
 **Track**:
@@ -245,6 +250,11 @@ _Avoid_: MIDI editor (too broad when you mean Note editing)
 A Node that consumes Note Events and produces audio.
 _Avoid_: synth plugin (unless it is specifically a hosted Plugin)
 
+**Time-stretch Node**:
+A Node that changes an audio signal's duration without changing Project placement. H10 decides its
+Signalsmith-backed contract, latency, tail, and scheduler-safety rules.
+_Avoid_: resample (that changes speed and pitch together), warp (too UI-specific)
+
 **Instrument track auto-wire**:
 The H9 headless bridge that turns a Project MIDI Clip into `DecodedMidiClipNode -> ImpulseInstrumentNode`
 inside the mixer graph. It proves timing and transport; it is not the final user-facing instrument model.
@@ -295,6 +305,17 @@ _Avoid_: bounce
 The H7 bit-exact export file: RIFF/WAVE, 32-bit IEEE float, Project sample rate, Master bus channels,
 interleaved samples.
 _Avoid_: treating integer WAV, compressed files, or resampled output as the canonical gate format
+
+**DAWproject export**:
+The interchange package YES DAW writes so another DAW or reference reader can reconstruct the supported
+Project surface. It is export-only in H10 unless a later ADR says otherwise.
+_Avoid_: backup, native project file
+
+**Device hot-swap**:
+Changing the active audio device while a Project is open without corrupting engine state or losing the
+Transport position. H10's gate is a deterministic fake-device survival check, not a subjective hardware
+test.
+_Avoid_: device setup (too broad), driver crash recovery (a different failure mode)
 
 **Freeze**:
 Temporarily rendering a track's processing to a cache to save CPU; reversible (like Premiere's

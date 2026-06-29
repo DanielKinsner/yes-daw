@@ -9,25 +9,16 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-28
-**Current horizon:** **H9 (Engine scaling & robustness) — CLOSED locally.** H8 rechecked cleanly first:
-`main` was already up to date, the latest remote CI on `a75399ab` was green, and `STATUS.md` /
-`loop/horizon.md` agreed H8 was closed and hardened. H9 then landed ADR-0023 through ADR-0026 plus
-`YesDawSchedulerCheck`: transport controls now cross a bounded SPSC command queue, scheduled render workers
-are bit-identical across 1/2/4/8 workers against the H7 serial render, scheduled Blocks feed the H6
-deadline oracle, seeded parser fuzz replays reject/degrade malformed bundle and plugin-state rows, plugin
-crash/watchdog failure actions persist blacklist rows, and MIDI clips auto-wire through a built-in impulse
-instrument with transport-aware locate/loop behavior. Local verification: `cmake --preset ci`; VS DevShell
-`cmake --build --preset ci`; focused H8/H9 lane **4/4**; full `ctest --preset ci --output-on-failure`
-**240/240**. Honest scope: ADR-0024 is the first deterministic scheduled-worker executor, not final
-per-node DAG work-stealing inside one live `CompiledGraph`; and the live plugin-host coordinator still
-needs stable plugin-identity plumbing before it can execute blacklist persistence automatically from a
-child-process failure. **H9 was then adversarially reviewed + hardened** (Claude): the determinism
-negative control was a float-math tautology and the parallel soak never compared parallel↔serial at scale —
-both fixed so the gate bites. **The scheduler-safety landmine is now CLOSED (ADR-0027):** the block-parallel
-scheduler is only correct for stateless graphs, so a `NodeProperties::blockParallelSafe` bit (default false =
-fail-safe) is ANDed across the graph and `renderProjectWithScheduler` refuses any unsafe graph
-(`GraphNotBlockParallelSafe`) — a future stateful effect (delay/reverb/automation/plugin) is refused, never
-silently mis-rendered. **Next:** push; remote CI is the gate; then H10 (mixing/mastering + interchange).
+**Current horizon:** **H10 (Mixing/mastering features & interchange) — OPEN.** H9 is closed and
+remote-green: `main` is current at `a5a1db4`, GitHub Actions run `28339991428` passed, and the local H9
+gate was `ctest --preset ci --output-on-failure` **240/240**. H9 landed ADR-0023 through ADR-0027:
+transport commands cross the bounded SPSC queue, scheduled render workers are bit-identical across
+1/2/4/8 workers against the H7 serial render, scheduled Blocks feed the H6 deadline oracle, seeded parser
+replays reject/degrade malformed bundle and plugin-state rows, plugin failure actions persist blacklist
+rows, MIDI clips auto-wire through a built-in impulse instrument with transport-aware locate/loop behavior,
+and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
+mis-rendering stateful effects. **Now:** H10 kickoff docs are landing; first feature checkpoint is
+ADR-0028 loudness metering + `YesDawLoudnessCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -53,7 +44,12 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H9 reviewed + hardened + scheduler-safety guard landed; push, then H10
+## Now — H10 opened; kickoff docs first
+- **Latest (2026-06-28): verified H9 remote-green and opened H10.** `git pull --ff-only` was already
+  up to date on `main`; GitHub Actions run `28339991428` is green on `a5a1db4`. H10 is now the active
+  horizon in `loop/horizon.md`; the focused plan is
+  `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`. First code slice after this docs
+  checkpoint: ADR-0028 loudness metering, then `YesDawLoudnessCheck`.
 - **Latest (2026-06-28): closed the scheduler-safety landmine — ADR-0027 block-parallel guard (Claude).**
   Dan approved doing it now (before H10). The parallel scheduler dispatches Blocks out of order, which is
   only correct for graphs whose every node is keyed by the absolute transport frame; a stateful node (delay
@@ -2680,8 +2676,8 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `YesDawPlaybackCheck`: Project playback through `RuntimeAudioDriver`, block-size independence, offline
   parity, play/stop/locate/loop transport, H5 recording capture from the transport playhead, and H6
   autosave tick recovery. Local full `ci` gate is green (239/239), and the H8 close-out CI run is green.
-- **Next rolling baton: H8 close-out review, then H9 planning.**
-  Do not start H9 code until the H8 pushed CI gate is green and the H9 focused plan/ADR is written.
+- **Next rolling baton: H10 loudness metering.**
+  Write ADR-0028 first, then land `YesDawLoudnessCheck` as the first H10 feature gate.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out
