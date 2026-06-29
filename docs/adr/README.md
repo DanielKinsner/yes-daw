@@ -47,6 +47,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0027](0027-scheduler-block-parallel-safety-guard.md) | Scheduler block-parallel safety guard | Accepted |
 | [0028](0028-loudness-metering-model.md) | Loudness metering model | Accepted |
 | [0029](0029-dawproject-export-subset.md) | DAWproject export subset | Accepted |
+| [0030](0030-time-stretch-node.md) | Time-stretch Node | Accepted |
 
 ## Decision status (the five research forks)
 

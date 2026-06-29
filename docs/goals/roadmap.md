@@ -186,7 +186,8 @@ Underrun.
 `1d29c02`. ADR-0029 is accepted; the DAWproject primitive preflight is locally green in
 `YesDawDawprojectPrimitivesCheck` with full `ci` preset **242/242**; `YesDawDawprojectCheck` is green with
 full local `ci` preset **243/243**, focused H10 lane **2/2**, and remote CI run `28348385319` on
-`910ea1c`; next checkpoint: ADR-0030 plus `YesDawTimeStretchCheck`. See
+`910ea1c`. ADR-0030 is accepted for an offline-prepared, Signalsmith-backed source-style
+`TimeStretchNode`; next checkpoint: `YesDawTimeStretchCheck`. See
 [`docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`](../plans/2026-06-28-h10-mixing-mastering-interchange-plan.md).
 
 ## H11 — Single-window timeline UI shell + accessibility (capstone)

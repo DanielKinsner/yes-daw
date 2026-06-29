@@ -49,6 +49,11 @@ windows, media paths, and decoded media bytes. Full local `ctest --preset ci --o
 `28348385319` is green on `910ea1c`. The next H10 checkpoint is ADR-0030 plus
 `YesDawTimeStretchCheck`.
 
+ADR-0030 (time-stretch Node) is accepted. H10 time-stretch uses pinned Signalsmith Stretch `1.1.0` to
+prepare stretched clip/source audio on the control side, then exposes it through a source-style
+`TimeStretchNode` whose audio-thread path is an absolute-frame read over immutable samples. The next H10
+checkpoint is `YesDawTimeStretchCheck`.
+
 ## The plan
 
 Full build order:
