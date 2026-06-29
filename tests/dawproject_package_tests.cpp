@@ -117,7 +117,7 @@ Project makeInterchangeProject()
     secondNote.key = 60;
     secondNote.pitchNote = 60.0;
     secondNote.normalizedVelocity = 0.5;
-    secondNote.channel = -1;
+    secondNote.channel = 1;
 
     midi.notes = { firstNote, secondNote };
     project.midiClips = { midi };
@@ -529,6 +529,19 @@ TEST_CASE ("DAWproject exporter rejects unsupported or lossy Project surfaces ex
                      wide,
                      std::span<const DecodedAssetAudio> (wideDecoded.data(), wideDecoded.size())).status
                  == PackageStatus::UnsupportedAssetChannels);
+    }
+
+    {
+        // -1 is a legal internal channel sentinel but a lossy DAWproject export; it must fail explicitly
+        // (ADR-0029) rather than silently coercing to channel 0.
+        Project unassignedChannel = project;
+        unassignedChannel.midiClips.front().notes.front().channel = -1;
+        REQUIRE (unassignedChannel.midiClips.front().isValid());
+        REQUIRE (yesdaw::interchange::dawproject::exportProjectToDawproject (
+                     makeTempPath ("unassigned-channel", ".dawproject"),
+                     unassignedChannel,
+                     std::span<const DecodedAssetAudio> (decoded.data(), decoded.size())).status
+                 == PackageStatus::InvalidProject);
     }
 
     {

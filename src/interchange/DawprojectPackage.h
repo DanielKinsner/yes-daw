@@ -830,10 +830,14 @@ inline bool midiTrackAlreadySeen (std::span<const engine::EntityId> tracks, engi
                     return detail::fail (PackageStatus::InvalidTimeline, "MIDI Note timing is invalid");
                 }
 
-                const int channel = note.channel >= 0 ? note.channel : 0;
+                // -1 is a legal internal "unassigned" sentinel, but DAWproject channel is 0..15. Per
+                // ADR-0029, a lossy case fails explicitly instead of silently coercing it to channel 0.
+                if (note.channel < 0)
+                    return detail::fail (PackageStatus::InvalidProject,
+                                         "MIDI Note channel is unassigned (-1); allocate a 0..15 channel before DAWproject export");
                 projectXml << "            <Note time=\"" << detail::formatDouble (noteTime)
                            << "\" duration=\"" << detail::formatDouble (noteDuration)
-                           << "\" channel=\"" << channel
+                           << "\" channel=\"" << note.channel
                            << "\" key=\"" << note.key
                            << "\" vel=\"" << detail::formatDouble (note.normalizedVelocity) << "\"/>\n";
             }
@@ -1292,10 +1296,11 @@ inline bool midiTrackAlreadySeen (std::span<const engine::EntityId> tracks, engi
                 return detail::fail (PackageStatus::InvalidTimeline, "failed to derive expected MIDI Note timing");
             }
 
-            const int expectedChannel = note.channel >= 0 ? note.channel : 0;
+            // Export rejects channel < 0, so a verified package always carries the real 0..15 channel;
+            // compare it strictly rather than re-applying the old lossy coercion (which would self-confirm).
             if (! detail::nearlyEqual (summary.time, expectedNoteTime)
                 || ! detail::nearlyEqual (summary.duration, expectedNoteDuration)
-                || summary.channel != expectedChannel
+                || summary.channel != static_cast<int> (note.channel)
                 || summary.key != note.key
                 || ! detail::nearlyEqual (summary.velocity, note.normalizedVelocity))
             {

@@ -89,6 +89,8 @@ Unsupported or lossy cases fail with explicit export statuses rather than silent
 - audio Assets wider than stereo;
 - tempo-locked audio Clips;
 - non-finite gain/timing values;
+- MIDI Notes with an unassigned channel (`-1`): legal as an internal sentinel, but DAWproject `channel`
+  is `0..15`, so the export fails rather than silently coercing the note to channel 0;
 - media write/package failures.
 
 `YesDawDawprojectCheck` is the mechanical gate:

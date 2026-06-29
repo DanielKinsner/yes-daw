@@ -308,7 +308,9 @@ _Avoid_: treating integer WAV, compressed files, or resampled output as the cano
 
 **DAWproject export**:
 The interchange package YES DAW writes so another DAW or reference reader can reconstruct the supported
-Project surface. It is export-only in H10 unless a later ADR says otherwise.
+Project surface. It is export-only in H10 unless a later ADR says otherwise. Unsupported or lossy cases
+fail with explicit statuses rather than degrade silently (ADR-0029) — e.g. a MIDI Note with an
+unassigned channel (`-1`) is rejected because DAWproject `channel` is `0..15`.
 _Avoid_: backup, native project file
 
 **Device hot-swap**:
