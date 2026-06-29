@@ -39,12 +39,13 @@ is written as an ADR.
    run offline over interleaved Project samples and later feed H11. Gate against libebur128/BS.1770
    fixtures with negative controls.
 
-3. **DAWproject export - ADR-0029 + `YesDawDawprojectCheck`. [local gate green]**
+3. **DAWproject export - ADR-0029 + `YesDawDawprojectCheck`. [done]**
    Decide the minimal supported DAWproject subset, package layout, ID mapping, asset reference policy, and
    unsupported-feature degradation. Export the current Project surface and verify it through an independent
    reader, not a string comparison of our own writer. The primitive preflight now locks deterministic XML
    IDs, media paths, timing conversion, and XML escaping; the package gate now writes stored ZIP/XML/WAV
-   packages and verifies them through an independent reader with negative controls.
+   packages and verifies them through an independent reader with negative controls. Remote CI run
+   `28348385319` is green on `910ea1c`.
 
 4. **Time-stretch Node - ADR-0030 + `YesDawTimeStretchCheck`.** Decide the Signalsmith-backed Node
    contract, ratio/range limits, latency/tail handling, scheduler safety, and golden policy. Gate fixed
@@ -70,7 +71,7 @@ is written as an ADR.
 - **ADR-0028 - loudness metering model:** BS.1770/libebur128 reference, channel handling, true-peak scope,
   and meter update surface. **[accepted; code checkpoint remote CI run `28341446711` green]**
 - **ADR-0029 - DAWproject export subset:** package shape, supported fields, ID/asset mapping, and
-  reference-reader gate. **[accepted; local gate green]**
+  reference-reader gate. **[accepted; code checkpoint remote CI run `28348385319` green]**
 - **ADR-0030 - time-stretch Node:** Signalsmith integration, ratio limits, latency/tail policy, and
   scheduler safety.
 - **ADR-0031 - device hot-swap survival:** device-change state machine, fake-device gate, and hardware
@@ -82,5 +83,5 @@ Opened on 2026-06-28 after H9 remote CI went green on `a5a1db4` (run `2833999142
 green on remote CI run `28340551455`. ADR-0028 is accepted and green on remote CI run `28340956377`.
 `YesDawLoudnessCheck` is implemented and green on remote CI run `28341446711`; the next checkpoint is
 ADR-0030 plus `YesDawTimeStretchCheck`. ADR-0029 is accepted; `YesDawDawprojectPrimitivesCheck` is locally
-green in the full `ci` preset **242/242**; and `YesDawDawprojectCheck` is locally green in the full `ci`
-preset **243/243** plus the focused H10 lane **2/2**.
+green in the full `ci` preset **242/242**; and `YesDawDawprojectCheck` is green in the full local `ci`
+preset **243/243**, the focused H10 lane **2/2**, and remote CI run `28348385319`.

@@ -19,8 +19,8 @@ rows, MIDI clips auto-wire through a built-in impulse instrument with transport-
 and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
 mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
 green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
-the loudness remote-green docs are green on remote CI run `28341823599`. **Now:** `YesDawDawprojectCheck`
-is locally green; next checkpoint writes ADR-0030 for the time-stretch Node.
+the loudness remote-green docs are green on remote CI run `28341823599`. `YesDawDawprojectCheck` is green
+on remote CI run `28348385319`. **Now:** write ADR-0030 for the time-stretch Node.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -46,8 +46,8 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 DAWproject export
-- **Latest (2026-06-29): landed the DAWproject package writer/reference-reader gate locally.**
+## Now — H10 time-stretch Node
+- **Latest (2026-06-29): closed `YesDawDawprojectCheck` remotely.**
   `YesDawDawprojectCheck` writes a stored `.dawproject` ZIP with UTF-8 `project.xml` / `metadata.xml`,
   canonical float32 WAV media under `audio/<content-hash>.wav`, deterministic XML-safe IDs, a master
   Track, synthetic audio Tracks per Clip, grouped MIDI Clips per `MidiClip::trackId`, sample-locked audio
@@ -60,8 +60,8 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `ctest --test-dir build-ci -R "YesDawDawprojectCheck" --output-on-failure`,
   VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **243/243**, and
   `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
-  --output-on-failure` **2/2**. **Next:** push and verify remote CI for this checkpoint, then write
-  ADR-0030 for the time-stretch Node.
+  --output-on-failure` **2/2**. Remote CI run `28348385319` is green on `910ea1c` across Linux, Windows,
+  macOS, RTSan, and TSan. **Next:** write ADR-0030 for the time-stretch Node.
 - **Latest (2026-06-28): added the DAWproject primitive preflight.** `YesDawDawprojectPrimitivesCheck`
   locks deterministic XML-safe IDs, parameter IDs, content-hash media paths, tick/frame conversions, XML
   escaping, and invalid-token/control-byte rejection before the package writer lands. Local gates are green:
