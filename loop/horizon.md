@@ -58,7 +58,8 @@ are green on remote CI run `28349381664`.
 checks exact duration and fixed-ratio golden fingerprints, and proves `TimeStretchNode` timeline/block-split
 determinism, silence windows, fallback reset, and block-parallel-safe metadata. The focused H10 regex is
 locally green **3/3** for the currently landed gates; full local `ctest --preset ci --output-on-failure`
-is **244/244**. The next H10 checkpoint after remote CI is ADR-0031 plus `YesDawDeviceHotSwapCheck`.
+is **244/244**. Remote CI run `28350136910` is green on `ad50721`. The next H10 checkpoint is ADR-0031
+plus `YesDawDeviceHotSwapCheck`.
 
 ## The plan
 

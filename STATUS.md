@@ -22,8 +22,8 @@ green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote C
 the loudness remote-green docs are green on remote CI run `28341823599`; `YesDawDawprojectCheck` is green
 on remote CI run `28348385319`; and the DAWproject remote-green docs are green on remote CI run
 `28348848259`; ADR-0030 docs are green on remote CI run `28349381664`; and
-`YesDawTimeStretchCheck` is locally green. **Now:** push the time-stretch checkpoint; remote CI is the
-gate.
+`YesDawTimeStretchCheck` is green on remote CI run `28350136910`. **Now:** write ADR-0031 for device
+hot-swap survival.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -62,8 +62,8 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   `ctest --test-dir build-ci -R "YesDawTimeStretchCheck" --output-on-failure`, and
   VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **244/244**, and
   `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
-  --output-on-failure` **3/3**. **Next:** push; remote CI is the gate, then record the remote-green
-  result and write ADR-0031 for device hot-swap survival.
+  --output-on-failure` **3/3**. Remote CI run `28350136910` is green on `ad50721` across Linux, Windows,
+  macOS, RTSan, and TSan. **Next:** write ADR-0031 for device hot-swap survival.
 - **Latest (2026-06-29): accepted ADR-0030 for the time-stretch Node.** Decision: H10 uses
   Signalsmith Stretch `1.1.0` as a pinned control-side dependency, prepares stretched clip/source audio
   before it reaches the audio thread, and exposes it through a source-style `TimeStretchNode` whose
