@@ -248,6 +248,21 @@ target_link_libraries(YesDawAppSmokeCheck PRIVATE Catch2::Catch2WithMain sqlite3
 yesdaw_harden(YesDawAppSmokeCheck)
 add_test(NAME YesDawAppSmokeCheck COMMAND $<TARGET_FILE:YesDawAppSmokeCheck>)
 
+if (YESDAW_BUILD_APPS)
+  # --- Timeline canvas GPU/frame-time check (H11; native canvas over large arrangement fixture) ---
+  juce_add_console_app(YesDawTimelineGpuCheck PRODUCT_NAME "YesDawTimelineGpuCheck")
+  target_sources(YesDawTimelineGpuCheck PRIVATE tests/timeline_gpu_tests.cpp)
+  target_include_directories(YesDawTimelineGpuCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_compile_definitions(YesDawTimelineGpuCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_link_libraries(YesDawTimelineGpuCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      juce::juce_gui_basics
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawTimelineGpuCheck)
+  add_test(NAME YesDawTimelineGpuCheck COMMAND $<TARGET_FILE:YesDawTimelineGpuCheck>)
+endif()
+
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---
 add_executable(YesDawEngineCheck tests/node_tests.cpp)
 target_include_directories(YesDawEngineCheck PRIVATE ${YESDAW_SRC_DIR})

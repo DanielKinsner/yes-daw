@@ -4,12 +4,12 @@
 // image-light and model-backed: later H11 slices wire Project loading, transport, timeline drawing,
 // accessibility traversal, and editing through the same action IDs.
 
+#include "ui/TimelineCanvas.h"
 #include "ui/UiActions.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -27,7 +27,6 @@ const juce::Colour kPanelRaised (0xff151b22);
 const juce::Colour kPanelStroke (0xff2a323b);
 const juce::Colour kText (0xfff0f3f6);
 const juce::Colour kMutedText (0xff9aa3ad);
-const juce::Colour kGrid (0xff24303a);
 const juce::Colour kBlue (0xff3b8cff);
 const juce::Colour kTeal (0xff1bb5a6);
 const juce::Colour kAmber (0xffd29118);
@@ -37,21 +36,8 @@ const juce::Colour kGreen (0xff74df35);
 const juce::Colour kYellow (0xffe2c832);
 const juce::Colour kRed (0xffff5757);
 
-struct TrackRow
-{
-    const char* name;
-    juce::Colour colour;
-    float meter;
-};
-
-struct ClipBlock
-{
-    int track;
-    int start;
-    int length;
-    juce::Colour colour;
-    float amp;
-};
+using TrackRow = yesdaw::ui::TimelineCanvasTrack;
+using TimelineClipStyle = yesdaw::ui::TimelineCanvasClipStyle;
 
 struct MixerStrip
 {
@@ -73,17 +59,37 @@ const std::array<TrackRow, 8> kTracks {{
     { "FX Risers", kPurple.darker (0.35f), 0.48f }
 }};
 
-const std::array<ClipBlock, 23> kClips {{
-    { 0, 1, 17, kBlue, 0.82f }, { 0, 18, 10, kBlue, 0.78f }, { 0, 28, 17, kBlue, 0.80f },
-    { 0, 49, 17, kBlue, 0.70f }, { 0, 66, 12, kBlue, 0.76f }, { 0, 78, 14, kBlue, 0.85f },
-    { 1, 5, 18, kTeal, 0.72f }, { 1, 23, 20, kTeal, 0.75f }, { 1, 48, 30, kTeal, 0.70f },
-    { 2, 4, 18, kAmber, 0.64f }, { 2, 26, 18, kAmber, 0.67f }, { 2, 42, 26, kAmber, 0.70f },
-    { 2, 70, 16, kAmber, 0.62f },
-    { 3, 12, 28, kPurple, 0.88f }, { 3, 40, 18, kPurple, 0.90f }, { 3, 58, 30, kPurple, 0.86f },
-    { 4, 12, 24, kPurple.darker (0.2f), 0.62f }, { 4, 38, 22, kPurple.darker (0.2f), 0.66f },
-    { 4, 60, 28, kPurple.darker (0.2f), 0.58f },
-    { 5, 8, 26, kCyan, 0.50f }, { 5, 34, 22, kCyan, 0.52f }, { 5, 66, 24, kCyan, 0.48f },
-    { 6, 1, 38, kBlue.darker (0.35f), 0.68f }
+const std::array<yesdaw::ui::Clip, 23> kClips {{
+    { 0, 0, 0.0, 17.0 }, { 1, 0, 17.0, 10.0 }, { 2, 0, 27.0, 17.0 },
+    { 3, 0, 48.0, 17.0 }, { 4, 0, 65.0, 12.0 }, { 5, 0, 77.0, 14.0 },
+    { 6, 1, 4.0, 18.0 }, { 7, 1, 22.0, 20.0 }, { 8, 1, 47.0, 30.0 },
+    { 9, 2, 3.0, 18.0 }, { 10, 2, 25.0, 18.0 }, { 11, 2, 41.0, 26.0 },
+    { 12, 2, 69.0, 16.0 },
+    { 13, 3, 11.0, 28.0 }, { 14, 3, 39.0, 18.0 }, { 15, 3, 57.0, 30.0 },
+    { 16, 4, 11.0, 24.0 }, { 17, 4, 37.0, 22.0 }, { 18, 4, 59.0, 28.0 },
+    { 19, 5, 7.0, 26.0 }, { 20, 5, 33.0, 22.0 }, { 21, 5, 65.0, 24.0 },
+    { 22, 6, 0.0, 38.0 }
+}};
+
+const std::array<TimelineClipStyle, 23> kClipStyles {{
+    { kBlue, 0.82f }, { kBlue, 0.78f }, { kBlue, 0.80f },
+    { kBlue, 0.70f }, { kBlue, 0.76f }, { kBlue, 0.85f },
+    { kTeal, 0.72f }, { kTeal, 0.75f }, { kTeal, 0.70f },
+    { kAmber, 0.64f }, { kAmber, 0.67f }, { kAmber, 0.70f },
+    { kAmber, 0.62f },
+    { kPurple, 0.88f }, { kPurple, 0.90f }, { kPurple, 0.86f },
+    { kPurple.darker (0.2f), 0.62f }, { kPurple.darker (0.2f), 0.66f },
+    { kPurple.darker (0.2f), 0.58f },
+    { kCyan, 0.50f }, { kCyan, 0.52f }, { kCyan, 0.48f },
+    { kBlue.darker (0.35f), 0.68f }
+}};
+
+const std::array<yesdaw::ui::TimelineMarker, 5> kTimelineMarkers {{
+    { 8.0, "Intro" },
+    { 24.0, "Verse" },
+    { 32.0, "Chorus" },
+    { 64.0, "Bridge" },
+    { 80.0, "Outro" }
 }};
 
 const std::array<MixerStrip, 11> kMixer {{
@@ -162,33 +168,6 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
     g.fillRect (live);
     g.setColour (kYellow);
     g.fillRect (hot);
-}
-
-void drawWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour, float amp)
-{
-    const auto midY = static_cast<float> (area.getCentreY());
-    const auto half = static_cast<float> (area.getHeight()) * amp * 0.42f;
-    juce::Path path;
-    path.startNewSubPath (static_cast<float> (area.getX()), midY);
-
-    for (int x = 0; x < area.getWidth(); x += 3)
-    {
-        const float phase = static_cast<float> (x) * 0.18f;
-        const float noise = std::sin (phase) * 0.62f + std::sin (phase * 2.37f) * 0.25f;
-        path.lineTo (static_cast<float> (area.getX() + x), midY + noise * half);
-    }
-
-    g.setColour (colour.brighter (0.45f));
-    g.strokePath (path, juce::PathStrokeType (1.2f));
-}
-
-void drawClip (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour, float amp)
-{
-    g.setColour (colour.withAlpha (0.42f));
-    g.fillRoundedRectangle (area.toFloat(), 4.0f);
-    g.setColour (colour.brighter (0.35f));
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), 4.0f, 1.0f);
-    drawWaveform (g, area.reduced (8, 5), colour, amp);
 }
 
 } // namespace
@@ -399,76 +378,20 @@ private:
 
     void drawTimeline (juce::Graphics& g, juce::Rectangle<int> area) const
     {
-        fillPanel (g, area);
-        auto toolbar = area.removeFromTop (36);
-        drawSmallLabel (g, "SNAP", toolbar.withTrimmedLeft (234).withWidth (42), juce::Justification::centred);
-        g.setColour (juce::Colour (0xff070b0f));
-        g.fillRoundedRectangle (toolbar.withTrimmedLeft (276).withWidth (80).reduced (0, 7).toFloat(), 3.0f);
-        g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (12.0f)));
-        g.drawText ("Bar", toolbar.withTrimmedLeft (284).withWidth (54), juce::Justification::centredLeft, false);
+        yesdaw::ui::TimelineCanvasState state;
+        state.tracks = kTracks.data();
+        state.trackCount = static_cast<int> (kTracks.size());
+        state.clips = kClips.data();
+        state.clipStyles = kClipStyles.data();
+        state.clipCount = static_cast<int> (kClips.size());
+        state.markers = kTimelineMarkers.data();
+        state.markerCount = static_cast<int> (kTimelineMarkers.size());
+        state.viewport.scrollSeconds = 0.0;
+        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (1, area.getWidth() - 24)) / 98.0;
+        state.totalSeconds = 98.0;
+        state.playheadSeconds = 32.0;
 
-        auto ruler = area.removeFromTop (48);
-        g.setColour (juce::Colour (0xff0b1117));
-        g.fillRect (ruler);
-        g.setColour (kGrid);
-        g.fillRect (ruler.removeFromBottom (1));
-
-        for (int bar = 1; bar <= 99; bar += 8)
-        {
-            const int x = area.getX() + juce::roundToInt ((bar - 1) / 98.0f * static_cast<float> (area.getWidth()));
-            g.setColour (kMutedText);
-            g.drawText (juce::String (bar), x - 18, ruler.getY() + 7, 36, 16, juce::Justification::centred, false);
-            g.setColour (kMutedText.withAlpha (0.65f));
-            g.fillRect (x, ruler.getBottom() - 14, 1, 14);
-        }
-
-        for (const auto& marker : { std::pair<int, const char*> { 9, "Intro" },
-                                    { 25, "Verse" },
-                                    { 33, "Chorus" },
-                                    { 65, "Bridge" },
-                                    { 81, "Outro" } })
-        {
-            const int x = area.getX() + juce::roundToInt ((marker.first - 1) / 98.0f * static_cast<float> (area.getWidth()));
-            g.setColour (kText);
-            g.setFont (juce::Font (juce::FontOptions (11.0f)));
-            g.drawText (marker.second, x + 4, ruler.getY() + 24, 60, 16, juce::Justification::centredLeft, false);
-        }
-
-        const auto clipArea = area.reduced (12, 0);
-        const int laneHeight = clipArea.getHeight() / static_cast<int> (kTracks.size());
-        g.setColour (juce::Colour (0xff0c1217));
-        g.fillRect (area);
-
-        for (int lane = 0; lane <= static_cast<int> (kTracks.size()); ++lane)
-        {
-            const int y = clipArea.getY() + lane * laneHeight;
-            g.setColour (kGrid.withAlpha (0.7f));
-            g.fillRect (clipArea.getX(), y, clipArea.getWidth(), 1);
-        }
-
-        for (int bar = 1; bar <= 99; bar += 4)
-        {
-            const int x = clipArea.getX() + juce::roundToInt ((bar - 1) / 98.0f * static_cast<float> (clipArea.getWidth()));
-            g.setColour ((bar - 1) % 16 == 0 ? kGrid.brighter (0.25f) : kGrid.withAlpha (0.38f));
-            g.fillRect (x, clipArea.getY(), 1, clipArea.getHeight());
-        }
-
-        for (const auto& clip : kClips)
-        {
-            auto lane = clipArea.withTop (clipArea.getY() + clip.track * laneHeight).withHeight (laneHeight).reduced (4, 5);
-            const int x = clipArea.getX() + juce::roundToInt ((clip.start - 1) / 98.0f * static_cast<float> (clipArea.getWidth()));
-            const int w = juce::roundToInt (clip.length / 98.0f * static_cast<float> (clipArea.getWidth()));
-            drawClip (g, lane.withX (x).withWidth (juce::jmax (18, w)), clip.colour, clip.amp);
-        }
-
-        const int playheadX = clipArea.getX() + juce::roundToInt (0.39f * static_cast<float> (clipArea.getWidth()));
-        g.setColour (juce::Colours::white);
-        g.fillRect (playheadX, ruler.getY(), 2, clipArea.getBottom() - ruler.getY());
-        g.setColour (kPurple);
-        g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4), 30.0f, 16.0f, 7.0f);
-        g.setColour (kText);
-        g.drawText ("33", playheadX - 12, ruler.getY() + 4, 24, 16, juce::Justification::centred, false);
+        (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
     }
 
     void drawInspector (juce::Graphics& g, juce::Rectangle<int> area) const

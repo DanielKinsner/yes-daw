@@ -103,4 +103,8 @@ Opened on 2026-06-29 after H10 and the follow-on adversarial review patch batch 
 The kickoff docs are green on remote CI run `28382745216`. The app shell + action registry checkpoint is
 remote-green on CI run `28385990090`: the H0 sine-spike window is replaced by the native JUCE shell, the
 shell is aligned to the supplied dark DAW mockup direction, and `YesDawUiActionCheck` is in the full `ci`
-preset. The next checkpoint is Project-load smoke + transport controls.
+preset. The Project-load smoke + transport controls checkpoint is remote-green on CI run `28388490955`.
+The Timeline canvas + frame-time harness checkpoint is local-green: `YesDawTimelineGpuCheck` scrolls a
+20,640-clip arrangement fixture through the shared native Timeline canvas and measured
+`max_frame_ms=3.2874` with 336 visible clips. Full local `ci` is green at **248/248**. The next checkpoint
+is remote CI verification for `YesDawTimelineGpuCheck`.
