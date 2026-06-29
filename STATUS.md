@@ -20,7 +20,8 @@ and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSa
 mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
 green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
 the loudness remote-green docs are green on remote CI run `28341823599`. **Now:** ADR-0029 is accepted;
-next checkpoint lands `YesDawDawprojectCheck`.
+the DAWproject primitive preflight is locally green in `YesDawDawprojectPrimitivesCheck`; next checkpoint
+lands the package writer/reference-reader `YesDawDawprojectCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -46,7 +47,15 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 DAWproject ADR next
+## Now — H10 DAWproject primitives
+- **Latest (2026-06-28): added the DAWproject primitive preflight.** `YesDawDawprojectPrimitivesCheck`
+  locks deterministic XML-safe IDs, parameter IDs, content-hash media paths, tick/frame conversions, XML
+  escaping, and invalid-token/control-byte rejection before the package writer lands. Local gates are green:
+  `cmake --preset ci`, VS DevShell `cmake --build --preset ci --target YesDawDawprojectPrimitivesCheck`,
+  `ctest --test-dir build-ci -R "YesDawDawprojectPrimitivesCheck" --output-on-failure`, VS DevShell
+  `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **242/242**. **Next:** promote
+  these primitives into the `.dawproject` package writer and independent reader gate
+  `YesDawDawprojectCheck`.
 - **Latest (2026-06-28): accepted ADR-0029 for DAWproject export.** Decision: H10 writes an export-only
   DAWproject 1.0 subset as a `.dawproject` ZIP with UTF-8 `project.xml` / `metadata.xml`, canonical
   float32 WAV media under `audio/`, deterministic XML-safe IDs derived from YES DAW `EntityId`s, synthetic

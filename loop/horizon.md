@@ -41,7 +41,11 @@ ADR-0028 (loudness metering model) is accepted and green on remote CI run `28340
 `ctest --preset ci --output-on-failure` **241/241**, and remote CI run `28341446711` green on
 `1d29c02`. The loudness remote-green docs are green on remote CI run `28341823599`.
 
-ADR-0029 (DAWproject export subset) is accepted. The next H10 checkpoint is `YesDawDawprojectCheck`.
+ADR-0029 (DAWproject export subset) is accepted. `YesDawDawprojectPrimitivesCheck` now proves the
+deterministic XML ID, parameter ID, media path, timing conversion, XML escaping, and rejection helpers that
+the exporter will use; full local `ctest --preset ci --output-on-failure` is **242/242**. The next H10
+checkpoint promotes those primitives into the `.dawproject` package writer and independent reader gate:
+`YesDawDawprojectCheck`.
 
 ## The plan
 

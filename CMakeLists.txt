@@ -363,6 +363,13 @@ target_link_libraries(YesDawLoudnessCheck PRIVATE Catch2::Catch2WithMain ebur128
 yesdaw_harden(YesDawLoudnessCheck)
 add_test(NAME YesDawLoudnessCheck COMMAND $<TARGET_FILE:YesDawLoudnessCheck>)
 
+# --- DAWproject primitive check (H10; deterministic XML ids/paths/timing before package writer) ---
+add_executable(YesDawDawprojectPrimitivesCheck tests/dawproject_primitives_tests.cpp)
+target_include_directories(YesDawDawprojectPrimitivesCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawDawprojectPrimitivesCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawDawprojectPrimitivesCheck)
+add_test(NAME YesDawDawprojectPrimitivesCheck COMMAND $<TARGET_FILE:YesDawDawprojectPrimitivesCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -508,6 +515,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawPlaybackCheck
   YesDawSchedulerCheck
   YesDawLoudnessCheck
+  YesDawDawprojectPrimitivesCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck
