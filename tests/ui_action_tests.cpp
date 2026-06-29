@@ -1,5 +1,6 @@
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"
+#include "ui/UiPianoRollSurface.h"
 #include "ui/UiTimelineEdits.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -13,12 +14,15 @@ using yesdaw::ui::AccessibilityRole;
 using yesdaw::engine::Asset;
 using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::MidiClip;
+using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::ProjectEditVerb;
 using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::SnapGrid;
 using yesdaw::engine::TimeBase;
 using yesdaw::ui::KeymapRebindStatus;
 using yesdaw::ui::UiActionContext;
@@ -33,6 +37,10 @@ using yesdaw::ui::UiMixerMeterReadout;
 using yesdaw::ui::UiMixerSurfaceModel;
 using yesdaw::ui::UiMixerTargetControl;
 using yesdaw::ui::UiPanel;
+using yesdaw::ui::UiPianoRollActionPayload;
+using yesdaw::ui::UiPianoRollActionStatus;
+using yesdaw::ui::UiPianoRollExpressionLaneKind;
+using yesdaw::ui::UiPianoRollSurfaceModel;
 using yesdaw::ui::UiTimelineEditModel;
 using yesdaw::ui::UiTimelineEditPayload;
 using yesdaw::ui::descriptorForStableId;
@@ -98,6 +106,43 @@ Project makeMixerProject()
     return project;
 }
 
+Note makeUiNote (EntityId id,
+                 yesdaw::engine::Tick start,
+                 yesdaw::engine::Tick length,
+                 std::int16_t key,
+                 double velocity)
+{
+    Note note;
+    note.id = id;
+    note.startTick = start;
+    note.lengthTicks = length;
+    note.key = key;
+    note.pitchNote = static_cast<double> (key) + 0.25;
+    note.normalizedVelocity = velocity;
+    note.portIndex = 2;
+    note.channel = 3;
+    return note;
+}
+
+Project makePianoRollProject()
+{
+    Project project = makeTimelineEditProject();
+
+    MidiClip midi;
+    midi.id = idFromLowByte (30);
+    midi.trackId = idFromLowByte (40);
+    midi.timelineStart = 0;
+    midi.timelineLength = 4096;
+    midi.timeBase = TimeBase::TempoLocked;
+    midi.notes = {
+        makeUiNote (idFromLowByte (31), 256, 512, 60, 0.5),
+        makeUiNote (idFromLowByte (32), 1024, 256, 67, 0.8)
+    };
+
+    project.midiClips = { midi };
+    return project;
+}
+
 } // namespace
 
 TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and accessible names",
@@ -115,6 +160,9 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
+    REQUIRE (descriptorForStableId ("piano_roll.note.select")->id == UiActionId::PianoRollNoteSelect);
+    REQUIRE (descriptorForStableId ("piano_roll.note.quantize")->id == UiActionId::PianoRollNoteQuantize);
+    REQUIRE (descriptorForStableId ("piano_roll.expression.read")->id == UiActionId::PianoRollReadExpressionLanes);
     REQUIRE (descriptorForStableId ("help.show_keymap")->id == UiActionId::HelpShowKeymap);
 
     std::set<std::string_view> stableIds;
@@ -225,6 +273,24 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::MixerTargetToggleSolo, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadMeters, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadLoudness, context).enabled);
+
+    const auto noteSelectWithoutClip = registry.stateFor (UiActionId::PianoRollNoteSelect, context);
+    REQUIRE_FALSE (noteSelectWithoutClip.enabled);
+    REQUIRE (noteSelectWithoutClip.disabledReason == std::string_view ("no MIDI clip selected"));
+
+    context.midiClipSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::PianoRollNoteSelect, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::PianoRollReadExpressionLanes, context).enabled);
+
+    const auto noteMoveWithoutNote = registry.stateFor (UiActionId::PianoRollNoteMove, context);
+    REQUIRE_FALSE (noteMoveWithoutNote.enabled);
+    REQUIRE (noteMoveWithoutNote.disabledReason == std::string_view ("no MIDI note selected"));
+
+    context.midiNoteSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::PianoRollNoteMove, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::PianoRollNoteSetLength, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::PianoRollNoteTranspose, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::PianoRollNoteQuantize, context).enabled);
 }
 
 TEST_CASE ("H11 action dispatch mutates only the headless app model behind action ids",
@@ -284,6 +350,18 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::MixerReadMeters, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadLoudness, context).dispatched);
     REQUIRE (context.mixerReadCount == 2);
+
+    context.midiClipSelected = true;
+    REQUIRE (registry.dispatch (UiActionId::PianoRollNoteSelect, context).dispatched);
+    REQUIRE (context.activePanel == UiPanel::PianoRoll);
+    REQUIRE (context.midiNoteSelected);
+    REQUIRE (registry.dispatch (UiActionId::PianoRollNoteMove, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::PianoRollNoteSetLength, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::PianoRollNoteTranspose, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::PianoRollNoteQuantize, context).dispatched);
+    REQUIRE (context.midiEditCount == 4);
+    REQUIRE (registry.dispatch (UiActionId::PianoRollReadExpressionLanes, context).dispatched);
+    REQUIRE (context.midiReadCount == 1);
 
     REQUIRE (registry.dispatch (UiActionId::HelpShowKeymap, context).dispatched);
     REQUIRE (context.keymapVisible);
@@ -511,4 +589,109 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     result = model.dispatch (UiActionId::MixerReadLoudness);
     REQUIRE (result.dispatch.dispatched);
     REQUIRE (model.context().mixerReadCount == 2);
+}
+
+TEST_CASE ("H11 piano roll actions dispatch to Project MIDI edit commands and expression readback",
+           "[ui][actions][piano-roll]")
+{
+    const EntityId midiClipId = idFromLowByte (30);
+    const EntityId noteId = idFromLowByte (31);
+
+    UiPianoRollSurfaceModel emptyModel;
+    const auto noProject = emptyModel.dispatch (
+        UiActionId::PianoRollNoteSelect,
+        UiPianoRollActionPayload::selectNote (midiClipId, noteId));
+    REQUIRE_FALSE (noProject.dispatched);
+    REQUIRE (noProject.state.disabledReason == std::string_view ("no project loaded"));
+
+    UiPianoRollSurfaceModel model (makePianoRollProject());
+    const auto noClipSelected = model.dispatch (
+        UiActionId::PianoRollNoteSelect,
+        UiPianoRollActionPayload::selectNote (midiClipId, noteId));
+    REQUIRE_FALSE (noClipSelected.dispatched);
+    REQUIRE (noClipSelected.state.disabledReason == std::string_view ("no MIDI clip selected"));
+
+    REQUIRE (model.selectMidiClip (midiClipId));
+    auto result = model.dispatch (
+        UiActionId::PianoRollNoteSelect,
+        UiPianoRollActionPayload::selectNote (midiClipId, noteId));
+    REQUIRE (result.dispatched);
+    REQUIRE (result.pianoStatus == UiPianoRollActionStatus::Ok);
+    REQUIRE (model.context().midiNoteSelected);
+
+    auto snapshot = model.snapshot();
+    REQUIRE (snapshot.projectLoaded);
+    REQUIRE (snapshot.midiClipSelected);
+    REQUIRE (snapshot.notes.size() == 2u);
+    REQUIRE (snapshot.notes[0].selected);
+    REQUIRE (snapshot.expressionLanes.size() == 2u);
+    REQUIRE (snapshot.expressionLanes[0].kind == UiPianoRollExpressionLaneKind::Velocity);
+    REQUIRE (snapshot.expressionLanes[0].points[0].value == 0.5);
+    REQUIRE (snapshot.expressionLanes[1].kind == UiPianoRollExpressionLaneKind::Pitch);
+    REQUIRE (snapshot.expressionLanes[1].points[0].value == 60.25);
+
+    result = model.dispatch (
+        UiActionId::PianoRollNoteMove,
+        UiPianoRollActionPayload::moveNoteTo (midiClipId, noteId, 384));
+    REQUIRE (result.dispatched);
+    REQUIRE (result.recorded);
+    REQUIRE (model.lastAppliedCommand() != nullptr);
+    REQUIRE (model.lastAppliedCommand()->verb == ProjectEditVerb::MoveNote);
+    REQUIRE (model.project().midiClips[0].notes[0].startTick == 384);
+
+    result = model.dispatch (
+        UiActionId::PianoRollNoteSetLength,
+        UiPianoRollActionPayload::setNoteLength (midiClipId, noteId, 768));
+    REQUIRE (result.dispatched);
+    REQUIRE (model.lastAppliedCommand()->verb == ProjectEditVerb::SetNoteLength);
+    REQUIRE (model.project().midiClips[0].notes[0].lengthTicks == 768);
+
+    result = model.dispatch (
+        UiActionId::PianoRollNoteQuantize,
+        UiPianoRollActionPayload::quantizeNoteTo (midiClipId, noteId, SnapGrid { 512 }));
+    REQUIRE (result.dispatched);
+    REQUIRE (model.lastAppliedCommand()->verb == ProjectEditVerb::QuantizeNote);
+    REQUIRE (model.project().midiClips[0].notes[0].startTick == 512);
+
+    result = model.dispatch (
+        UiActionId::PianoRollNoteTranspose,
+        UiPianoRollActionPayload::transposeNoteBy (midiClipId, noteId, 7));
+    REQUIRE (result.dispatched);
+    REQUIRE (model.lastAppliedCommand()->verb == ProjectEditVerb::TransposeNote);
+    REQUIRE (model.project().midiClips[0].notes[0].key == 67);
+    REQUIRE (model.project().midiClips[0].notes[0].pitchNote == 67.25);
+    REQUIRE (model.context().midiEditCount == 4);
+
+    snapshot = model.snapshot();
+    REQUIRE (snapshot.notes[0].startTick == 512);
+    REQUIRE (snapshot.notes[0].lengthTicks == 768);
+    REQUIRE (snapshot.notes[0].key == 67);
+    REQUIRE (snapshot.expressionLanes[0].points[0].tick == 512);
+    REQUIRE (snapshot.expressionLanes[0].points[0].value == 0.5);
+    REQUIRE (snapshot.expressionLanes[1].points[0].value == 67.25);
+
+    result = model.dispatch (UiActionId::PianoRollReadExpressionLanes);
+    REQUIRE (result.dispatched);
+    REQUIRE (model.context().midiReadCount == 1);
+
+    const std::size_t undoDepthBeforeInvalid = model.undoStack().undoDepth();
+    result = model.dispatch (
+        UiActionId::PianoRollNoteTranspose,
+        UiPianoRollActionPayload::transposeNoteBy (midiClipId, noteId, 80));
+    REQUIRE_FALSE (result.dispatched);
+    REQUIRE (result.editStatus == ProjectEditStatus::InvalidNoteValue);
+    REQUIRE (model.undoStack().undoDepth() == undoDepthBeforeInvalid);
+    REQUIRE (model.project().midiClips[0].notes[0].key == 67);
+
+    result = model.dispatch (UiActionId::EditUndo);
+    REQUIRE (result.dispatched);
+    REQUIRE (result.undoStatus == ProjectUndoStatus::Applied);
+    REQUIRE (model.project().midiClips[0].notes[0].key == 60);
+    REQUIRE (model.context().canRedo);
+
+    result = model.dispatch (UiActionId::EditRedo);
+    REQUIRE (result.dispatched);
+    REQUIRE (result.undoStatus == ProjectUndoStatus::Applied);
+    REQUIRE (model.project().midiClips[0].notes[0].key == 67);
+    REQUIRE_FALSE (model.context().canRedo);
 }

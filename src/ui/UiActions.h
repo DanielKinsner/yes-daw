@@ -39,6 +39,12 @@ enum class UiActionId : std::uint8_t
     MixerTargetToggleSolo,
     MixerReadMeters,
     MixerReadLoudness,
+    PianoRollNoteSelect,
+    PianoRollNoteMove,
+    PianoRollNoteSetLength,
+    PianoRollNoteTranspose,
+    PianoRollNoteQuantize,
+    PianoRollReadExpressionLanes,
     HelpShowKeymap,
     Count
 };
@@ -81,6 +87,8 @@ struct UiActionDescriptor
     bool requiresRedo;
     bool requiresTimelineClip;
     bool requiresMixerTarget = false;
+    bool requiresMidiClip = false;
+    bool requiresMidiNote = false;
 };
 
 struct UiActionContext
@@ -92,6 +100,8 @@ struct UiActionContext
     bool canRedo = false;
     bool timelineClipSelected = false;
     bool mixerTargetSelected = false;
+    bool midiClipSelected = false;
+    bool midiNoteSelected = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
     std::int64_t playheadFrame = 0;
@@ -102,6 +112,8 @@ struct UiActionContext
     int timelineEditCount = 0;
     int mixerEditCount = 0;
     int mixerReadCount = 0;
+    int midiEditCount = 0;
+    int midiReadCount = 0;
 };
 
 struct UiActionState
@@ -179,6 +191,18 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
     { UiActionId::MixerReadLoudness, "mixer.loudness.read", "Loudness", "Ctrl+Alt+L", "Read loudness",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
+    { UiActionId::PianoRollNoteSelect, "piano_roll.note.select", "Select Note", "Alt+N", "Select piano-roll note",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, false },
+    { UiActionId::PianoRollNoteMove, "piano_roll.note.move", "Move Note", "Alt+Shift+M", "Move selected note",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteSetLength, "piano_roll.note.set_length", "Note Length", "Alt+Shift+L", "Set selected note length",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteTranspose, "piano_roll.note.transpose", "Transpose", "Alt+Shift+Up", "Transpose selected note",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteQuantize, "piano_roll.note.quantize", "Quantize", "Alt+Shift+Q", "Quantize selected note",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollReadExpressionLanes, "piano_roll.expression.read", "Expression", "Alt+Shift+E", "Read MIDI expression lanes",
+      AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false, true, false },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
@@ -317,6 +341,10 @@ public:
             return { false, "no clip selected" };
         if (descriptor->requiresMixerTarget && ! context.mixerTargetSelected)
             return { false, "no mixer target selected" };
+        if (descriptor->requiresMidiClip && ! context.midiClipSelected)
+            return { false, "no MIDI clip selected" };
+        if (descriptor->requiresMidiNote && ! context.midiNoteSelected)
+            return { false, "no MIDI note selected" };
 
         return { true, "" };
     }
@@ -408,6 +436,26 @@ public:
             case UiActionId::MixerReadLoudness:
                 context.activePanel = UiPanel::Mixer;
                 ++context.mixerReadCount;
+                break;
+
+            case UiActionId::PianoRollNoteSelect:
+                context.activePanel = UiPanel::PianoRoll;
+                context.midiNoteSelected = true;
+                break;
+
+            case UiActionId::PianoRollNoteMove:
+            case UiActionId::PianoRollNoteSetLength:
+            case UiActionId::PianoRollNoteTranspose:
+            case UiActionId::PianoRollNoteQuantize:
+                context.activePanel = UiPanel::PianoRoll;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.midiEditCount;
+                break;
+
+            case UiActionId::PianoRollReadExpressionLanes:
+                context.activePanel = UiPanel::PianoRoll;
+                ++context.midiReadCount;
                 break;
 
             case UiActionId::HelpShowKeymap:
