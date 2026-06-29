@@ -211,3 +211,32 @@ checkpoint is green with focused H11 **4/4**, full local `ci` **249/249**, and r
 `28403621292`. H11 closeout is remote-green on closeout commit `e9436af`, CI run `28405529686`, with full
 local `ci` **249/249** and focused H11 **4/4**. No H12 has been opened by this closeout. The focused plan is
 [`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).
+
+## H12 — Operable Session UX
+Make the H11 shell actually operable before deepening plugin hosting: new/open/save a Project bundle,
+import a WAV as an immutable Asset, hit-test/select/edit timeline Clips and MIDI Clip Notes, adjust
+inspector and mixer controls, drive transport/loop/locate, undo/redo, save, reopen, and assert state
+parity through a UI input harness.
+**Exit:** a self-asserting scripted session creates or opens a Project, imports audio, creates/edits Clips,
+edits mixer and piano-roll state, drives transport, saves, reopens, and verifies parity while the H11
+action, smoke, timeline frame-time, and accessibility gates remain green.
+**Status (2026-06-29):** opened by ADR-0033. The focused plan is
+[`docs/plans/2026-06-29-h12-operable-session-ux-plan.md`](../plans/2026-06-29-h12-operable-session-ux-plan.md).
+
+## H13 — Recording and device UX
+Wire the H5/H8/H10 headless surfaces into user-facing flows: device selection, armed tracks, monitoring
+policy, record audio/MIDI into bundle Assets/Takes, take lanes/comp basics, latency calibration or hardware
+smoke, and autosave recovery prompts.
+**Exit:** a scripted record flow produces bundle-persistent Take/Clip data, survives save/reopen/recovery,
+and keeps the recording alignment and device survival gates green.
+
+## H14 — Session production polish
+Fill the remaining workflow depth needed before alpha: automation lanes, marker/tempo UI, waveform cache
+background behavior, export dialogs/presets, equal-power crossfade if still deferred, demo-project
+fixtures, keyboard/keymap completion, and packaging of the launch/test flow.
+**Exit:** one demo song can go import/record/edit/mix/export with mechanical assertions.
+
+## H15+ — Plugin hosting deepening
+Deepen real plugin scanner, identity, validation, blacklist UX, and plugin insert/editor flows after the
+session surface is operable.
+**Exit:** defined by later ADRs once H12-H14 expose the required product surface.

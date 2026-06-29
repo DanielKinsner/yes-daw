@@ -50,6 +50,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0030](0030-time-stretch-node.md) | Time-stretch Node | Accepted |
 | [0031](0031-device-hot-swap-survival.md) | Device hot-swap survival | Accepted |
 | [0032](0032-h11-ui-stack-and-app-shell.md) | H11 UI stack and app shell | Accepted |
+| [0033](0033-h12-operable-session-ux.md) | H12 operable session UX | Accepted |
 
 ## Decision status (the five research forks)
 

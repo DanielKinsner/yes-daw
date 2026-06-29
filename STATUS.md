@@ -9,7 +9,16 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-29
-**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — CLOSED.** H10 and its
+**Current horizon:** **H12 (Operable Session UX) — OPEN.** ADR-0033 opens H12 after H11 closeout was
+remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`). H12 makes the H11 native app shell
+operable before plugin hosting is deepened: new/open/save, import WAV into the Project bundle, timeline
+Clip hit-testing/editing, inspector/mixer controls, piano-roll Note input, transport feedback, undo/redo,
+save/reopen parity, and a self-asserting `YesDawUiInputCheck` while the H11 action/smoke/timeline/
+accessibility gates remain green. This checkpoint is docs-only: ADR-0033, the H12 focused plan, roadmap,
+ADR index, glossary, horizon file, and live handoff; no H12 implementation code has landed yet. Local
+docs-checkpoint gates are green: `cmake --preset ci`, `cmake --build --preset ci`, and
+`ctest --preset ci --output-on-failure` **249/249**; focused current UI lane
+`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. H11 closeout context follows. H10 and its
 follow-on adversarial-review patch batch are remote-green on `main`: latest tip `dd3b257`, GitHub Actions
 run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (run `28341446711`),
 `YesDawDawprojectCheck` (run `28348385319`), `YesDawTimeStretchCheck` (run `28350136910`), and
@@ -88,7 +97,9 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H11 closed; next horizon decision. **Next:** choose/open the next horizon.
+**Now:** H12 kickoff docs checkpoint is local-green; commit, push, and verify remote CI. **Next:** after
+remote green, start the UI input harness skeleton (`YesDawUiInputCheck`) as the first H12 implementation
+checkpoint.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).

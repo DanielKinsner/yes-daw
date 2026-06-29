@@ -351,6 +351,19 @@ The semantic roles, names, keyboard reachability, and actions exposed by the YES
 technology and headless verification.
 _Avoid_: visual labels only
 
+**Operable Session UX**:
+The H12 app state where a Project can be created/opened/saved, audio can be imported into the Project
+bundle, timeline Clips and MIDI Clip Notes can be selected and edited through real input paths, mixer and
+inspector values can be changed, transport feedback is visible, undo/redo works, and save/reopen parity is
+mechanically asserted.
+_Avoid_: calling a painted mockup or projection-only surface "operable"
+
+**UI input harness**:
+The self-asserting H12 test driver that performs deterministic app gestures and command paths against the
+YES DAW app model/Components, then verifies Project, selection, transport, mixer, piano-roll, undo/redo,
+accessibility, frame-time, and save/reopen state without human judgment.
+_Avoid_: manual QA script, visual spot-check
+
 ### Product & AI
 
 **Stem**:
