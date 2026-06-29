@@ -94,8 +94,20 @@ Remote CI found macOS timing reds in pre-existing perf/deadline gates; the dense
 and macOS scheduler fixture adjustment are green on remote CI run `28398414664` across Linux, Windows,
 macOS, RTSan, and TSan.
 
-The next checkpoint is **Piano roll and MIDI Clip surface**: surface Note selection, move, length,
-transpose, quantize, and expression-lane readback for the H4 MIDI model.
+The **Piano roll and MIDI Clip surface** checkpoint is local-green: `UiActionRegistry` now exposes Note
+selection, move, length, transpose, quantize, and expression-lane readback actions; `UiPianoRollSurface`
+projects H4 MIDI Clips/Notes and applies edits through `ProjectUndoStack`; and the app shell paints a
+Piano Roll panel from that snapshot shape. Local gates are green: VS DevShell
+`cmake --build --preset ci --target YesDawUiActionCheck`;
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; VS DevShell
+`cmake --build --preset ci --target YesDaw`; focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu)Check" --output-on-failure` **3/3**; and
+full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**. Remote CI is
+pending.
+
+The next checkpoint after remote green is **Accessibility pass + launch script**: visible controls have
+semantic roles/names, keyboard reachability, action-registry backing, and the one-command launch Dan uses
+for visual-feel review.
 
 ## The plan
 

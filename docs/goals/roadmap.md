@@ -204,8 +204,8 @@ shell.
 **Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent), a
 headless smoke that the app loads a bundle and drives the transport, and the GPU timeline holding 60fps
 while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**
-**Status (2026-06-29):** opened. ADR-0032 accepts native JUCE Components for the app shell, a dedicated
+**Status (2026-06-29):** open. ADR-0032 accepts native JUCE Components for the app shell, a dedicated
 Timeline canvas for dense rendering, and a UI action registry as the command/keymap/accessibility seam.
-The focused plan is
+Checkpoints through Mixer/meters/loudness are remote-green; Piano roll/MIDI Clip surface is local-green
+with remote CI pending. The focused plan is
 [`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).
-Kickoff docs are green on remote CI run `28382745216`.

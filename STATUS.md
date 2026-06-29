@@ -61,7 +61,18 @@ the mockup-aligned mixer and master loudness readout. Local gates: `cmake --pres
 `ctest --preset ci --output-on-failure` **248/248**. Remote CI found macOS timing reds in pre-existing
 perf/deadline gates; the follow-up dense Timeline clip paint fix and macOS scheduler fixture adjustment
 are remote-green on run `28398414664` across Linux, Windows, macOS, RTSan, and TSan.
-**Now:** H11 remains open. **Next:** Piano roll and MIDI Clip surface.
+The H11 Piano roll and MIDI Clip surface checkpoint is local-green: `UiActionRegistry` now exposes Note
+select, move, length, transpose, quantize, and expression-read actions; `UiPianoRollSurface` projects H4
+MIDI Clips/Notes into a UI snapshot and routes edits through `ProjectUndoStack`; and the app shell paints
+a Piano Roll panel from the same snapshot shape. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawUiActionCheck`;
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; VS DevShell
+`cmake --build --preset ci --target YesDaw`; focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu)Check" --output-on-failure` **3/3**; VS
+DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**.
+Remote CI is pending.
+**Now:** H11 Piano roll/MIDI is local-green; remote CI pending. **Next:** push and verify remote CI, then
+Accessibility pass + launch script.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -74,7 +85,20 @@ are remote-green on run `28398414664` across Linux, Windows, macOS, RTSan, and T
 
 ---
 
-## Now — H11 Mixer/meters/loudness remote-green; Piano roll next
+## Now — H11 Piano roll/MIDI local-green; remote CI pending
+- **Latest (2026-06-29): landed Piano roll and MIDI Clip surface locally.** Added stable UI action IDs for
+  Note selection, move, length, transpose, quantize, and expression-lane readback. Added
+  `UiPianoRollSurface`, a pure UI projection over the existing H4 MIDI Clip/Note model that carries Note
+  readback plus Velocity/Pitch expression lanes and dispatches edits through the existing
+  `ProjectUndoStack` MIDI edit commands. Routed the app shell's Piano button to a visible Piano Roll panel
+  drawn from the same snapshot shape. Local gates are green: VS DevShell
+  `cmake --build --preset ci --target YesDawUiActionCheck`;
+  `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; VS DevShell
+  `cmake --build --preset ci --target YesDaw`; focused H11
+  `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu)Check" --output-on-failure` **3/3**; VS
+  DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**.
+  **Next:** push and verify remote CI, then start Accessibility pass + launch script.
+
 - **Latest (2026-06-29): closed the Mixer, meters, and loudness surface checkpoint on remote CI.** Remote CI run
   `28396204227` passed Windows, Linux, RTSan, and TSan, but macOS red first on `YesDawSchedulerCheck`
   (`p999=4.251 ms`, period `4.167 ms`) and then, on rerun, on `YesDawTimelineGpuCheck`

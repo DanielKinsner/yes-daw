@@ -67,7 +67,7 @@ surface.
    state, per-track meters, and H10 loudness readings without changing engine policy. Gate proves action
    parity plus read-only meter/loudness projections.
 
-7. **Piano roll and MIDI Clip surface.** Surface Note selection, move, length, transpose, quantize, and
+7. **Piano roll and MIDI Clip surface. [local-green]** Surface Note selection, move, length, transpose, quantize, and
    expression-lane readback for the H4 MIDI model. Gate proves action parity against the headless MIDI edit
    commands and keeps MIDI timing covered by existing gates.
 
@@ -118,5 +118,9 @@ solo-safe/effective mute state, per-strip meter values, and H10 loudness readout
 or engine policy; and the app shell consumes that projection for the mockup-aligned mixer and master
 loudness readout. Full local `ci` is green at **248/248**. Remote CI found macOS timing reds in
 pre-existing perf/deadline gates; the dense Timeline clip paint fix and macOS scheduler fixture adjustment
-are green on remote CI run `28398414664` across Linux, Windows, macOS, RTSan, and TSan. The next checkpoint
-is Piano roll and MIDI Clip surface.
+are green on remote CI run `28398414664` across Linux, Windows, macOS, RTSan, and TSan. The Piano roll
+and MIDI Clip surface checkpoint is local-green: Note select/move/length/transpose/quantize and
+expression-lane readback actions route through `UiActionRegistry`; `UiPianoRollSurface` projects H4 MIDI
+Clips/Notes and applies edits through `ProjectUndoStack`; and the app shell paints a Piano Roll panel
+from that snapshot shape. Focused H11 is green at **3/3** and full local `ci` is green at **248/248**.
+Remote CI is pending. The next checkpoint after remote green is Accessibility pass + launch script.
