@@ -22,8 +22,9 @@ green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote C
 the loudness remote-green docs are green on remote CI run `28341823599`; `YesDawDawprojectCheck` is green
 on remote CI run `28348385319`; and the DAWproject remote-green docs are green on remote CI run
 `28348848259`; ADR-0030 docs are green on remote CI run `28349381664`; and
-`YesDawTimeStretchCheck` is green on remote CI run `28350136910`. **Now:** write ADR-0031 for device
-hot-swap survival.
+`YesDawTimeStretchCheck` is green on remote CI run `28350136910`; the time-stretch remote-green docs are
+green on remote CI run `28350591207`; and ADR-0031 is accepted. **Now:** land
+`YesDawDeviceHotSwapCheck`.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -49,7 +50,16 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 time-stretch Node
+## Now — H10 device hot-swap survival
+- **Latest (2026-06-29): accepted ADR-0031 for device hot-swap survival.** Decision: H10 implements a
+  control-side hot-swap coordinator around `PlaybackEngine`: stop/quiesce the old fake device callback,
+  snapshot transport, rebuild playback for the new device max Block size, restore locate/loop/play state,
+  prime the new callback, and reclaim old graphs on the control side. H10 supports same sample rate and
+  same output channel count with changed device identity/max Block size; unsupported sample-rate changes,
+  channel-count changes, invalid max Block sizes, and rebuild attempts while the old callback is active
+  must fail without replacing playback. **Next:** implement `YesDawDeviceHotSwapCheck`.
+
+## Done — H10 time-stretch Node
 - **Latest (2026-06-29): landed `YesDawTimeStretchCheck` locally.** Added pinned
   `signalsmith-stretch` `1.1.0` FetchContent at commit `44c8f865af9da8c29cc4a70a2d5a3ec83639c711`, a
   control-side `prepareTimeStretch` wrapper that validates mono/stereo input and folds/trims Signalsmith
@@ -63,7 +73,7 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
   VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **244/244**, and
   `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
   --output-on-failure` **3/3**. Remote CI run `28350136910` is green on `ad50721` across Linux, Windows,
-  macOS, RTSan, and TSan. **Next:** write ADR-0031 for device hot-swap survival.
+  macOS, RTSan, and TSan. **Next:** ADR-0031 accepted; implement `YesDawDeviceHotSwapCheck`.
 - **Latest (2026-06-29): accepted ADR-0030 for the time-stretch Node.** Decision: H10 uses
   Signalsmith Stretch `1.1.0` as a pinned control-side dependency, prepares stretched clip/source audio
   before it reaches the audio thread, and exposes it through a source-style `TimeStretchNode` whose

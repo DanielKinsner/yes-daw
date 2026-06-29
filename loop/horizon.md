@@ -61,6 +61,11 @@ locally green **3/3** for the currently landed gates; full local `ctest --preset
 is **244/244**. Remote CI run `28350136910` is green on `ad50721`. The next H10 checkpoint is ADR-0031
 plus `YesDawDeviceHotSwapCheck`.
 
+ADR-0031 (device hot-swap survival) is accepted. H10 hot-swap is a control-side state machine around
+`PlaybackEngine`: stop the old fake device callback, snapshot transport, rebuild playback for the new max
+Block size, restore transport commands, prime the new callback, and reclaim old graphs off the audio
+thread. The next H10 checkpoint is `YesDawDeviceHotSwapCheck`.
+
 ## The plan
 
 Full build order:
