@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-29
-**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — OPEN, closeout local-green.** H10 and its
+**Current horizon:** **H11 (Single-window timeline UI shell + accessibility) — CLOSED.** H10 and its
 follow-on adversarial-review patch batch are remote-green on `main`: latest tip `dd3b257`, GitHub Actions
 run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (run `28341446711`),
 `YesDawDawprojectCheck` (run `28348385319`), `YesDawTimeStretchCheck` (run `28350136910`), and
@@ -86,8 +86,9 @@ IDs, labels, roles/names, keymap reachability, and dispatch/query backing; and `
 Windows, macOS, RTSan, and TSan. The H11 closeout checkpoint is local-green: `cmake --preset ci`, VS
 DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` **249/249**, and
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
---output-on-failure` **4/4**. H11 remains open until the closeout commit is green on remote CI.
-**Now:** H11 closeout is local-green. **Next:** push and verify remote CI, then mark H11 closed.
+--output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
+and TSan. H11 is closed; no H12 has been opened by this closeout.
+**Now:** H11 closed; next horizon decision. **Next:** choose/open the next horizon.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -100,8 +101,8 @@ focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessib
 
 ---
 
-## Now — H11 closeout local-green; remote CI pending
-- **Latest (2026-06-29): H11 closeout is local-green.** The H11 exit-gate audit maps to the four focused
+## Now — H11 closed; next horizon decision
+- **Latest (2026-06-29): closed H11 on remote CI.** The H11 exit-gate audit maps to the four focused
   gates in the full `ci` preset: `YesDawUiActionCheck` for action registry/keymap/accessibility parity,
   `YesDawAppSmokeCheck` for Project bundle load plus transport action IDs, `YesDawTimelineGpuCheck` for
   the dense Timeline canvas frame-time gate, and `YesDawAccessibilityCheck` for visible action/region
@@ -109,8 +110,9 @@ focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessib
   `cmake --preset ci`; VS DevShell `cmake --build --preset ci`; full
   `ctest --preset ci --output-on-failure` **249/249**; and focused H11
   `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-  **4/4**. H11 remains open until the closeout commit is green on remote CI. **Next:** push and verify
-  remote CI, then mark H11 closed.
+  **4/4**. Closeout commit `e9436af` is remote-green on CI run `28405529686` across Linux, Windows,
+  macOS, RTSan, and TSan. H11 is closed. **Next:** choose/open the next horizon; no H12 has been opened by
+  this closeout.
 
 - **Latest (2026-06-29): closed Accessibility pass + launch script on remote CI.** Added stable H7/H10 UI action
   IDs for audio export, DAWproject export, and audio device refresh. Added `UiAccessibility`, a headless
@@ -2978,9 +2980,7 @@ focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessib
   `YesDawPlaybackCheck`: Project playback through `RuntimeAudioDriver`, block-size independence, offline
   parity, play/stop/locate/loop transport, H5 recording capture from the transport playhead, and H6
   autosave tick recovery. Local full `ci` gate is green (239/239), and the H8 close-out CI run is green.
-- **Next rolling baton: H11 app shell + action registry.**
-  Replace the H0 sine-spike window with the native JUCE single-window app shell and land
-  `YesDawUiActionCheck`.
+- **Next:** choose/open the next horizon. H11 is closed; no H12 has been opened by this closeout.
 
 ## Blocked / open threads
 - Engine concurrency model (plan's *Threading & the real-time boundary* + *The graph* sections) is out

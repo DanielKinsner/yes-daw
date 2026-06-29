@@ -1,4 +1,4 @@
-# Current horizon - H11 (Single-window timeline UI shell + accessibility) - OPEN, closeout local-green
+# Current horizon - H11 (Single-window timeline UI shell + accessibility) - CLOSED
 
 > This file is the oracle for "is the horizon done?". H11 opened on 2026-06-29 after H10 and the H10
 > adversarial-review patch batch were remote-green on `main` (`dd3b257`, GitHub Actions run
@@ -35,7 +35,7 @@ ctest --test-dir build-ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility
 
 The focused regex becomes fully active as the H11 gate targets land.
 
-## Status: OPEN
+## Status: CLOSED
 
 ADR-0032 (H11 UI stack and app shell) is accepted. H11 uses native JUCE Components for the app shell,
 a dedicated Timeline canvas for dense rendering, and a UI action registry as the command/keymap/
@@ -126,7 +126,8 @@ The **Close H11** checkpoint is local-green: `cmake --preset ci`, VS DevShell
 `YesDawTimelineGpuCheck`, and `YesDawAccessibilityCheck`, with the one-command visual-feel launch already
 handed off through `tools/launch-h11.ps1` / `tools/launch-h11.sh`.
 
-The next checkpoint is **remote CI for H11 closeout**, then mark H11 closed.
+Closeout commit `e9436af` is remote-green on CI run `28405529686` across Linux, Windows, macOS, RTSan,
+and TSan. H11 is closed; no H12 has been opened by this closeout.
 
 ## The plan
 

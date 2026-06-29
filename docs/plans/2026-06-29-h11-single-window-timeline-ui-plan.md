@@ -75,7 +75,7 @@ surface.
    keyboard path, and action registry backing. Add the one-command launch Dan uses for visual-feel review.
    Gate: `YesDawAccessibilityCheck` plus full focused H11 lane.
 
-9. **Close H11. [local-green]** Run full local `ci`, focused H11 lane, push, verify remote CI, update
+9. **Close H11. [remote-green]** Run full local `ci`, focused H11 lane, push, verify remote CI, update
    `STATUS.md`, `loop/horizon.md`, and `docs/goals/roadmap.md`. If Dan's visual-feel launch finds a real
    issue, fix it as a focused checkpoint; otherwise mark H11 closed.
 
@@ -134,4 +134,5 @@ green at **4/4** and full local `ci` is green at **249/249**. Remote CI run `284
 Linux, Windows, macOS, RTSan, and TSan. The H11 closeout checkpoint is local-green: `cmake --preset ci`,
 VS DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` **249/249**, and
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
---output-on-failure` **4/4**. H11 remains open until the closeout commit is green on remote CI.
+--output-on-failure` **4/4**. Closeout commit `e9436af` is remote-green on CI run `28405529686` across
+Linux, Windows, macOS, RTSan, and TSan. H11 is closed; no H12 has been opened by this closeout.

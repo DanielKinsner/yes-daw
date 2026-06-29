@@ -204,10 +204,10 @@ shell.
 **Exit:** mechanical — an agent-native-parity check (every UI action has an engine/command equivalent), a
 headless smoke that the app loads a bundle and drives the transport, and the GPU timeline holding 60fps
 while scrolling. **Visual feel is the single human spot-check, via a one-command launch.**
-**Status (2026-06-29):** open. ADR-0032 accepts native JUCE Components for the app shell, a dedicated
+**Status (2026-06-29):** closed. ADR-0032 accepts native JUCE Components for the app shell, a dedicated
 Timeline canvas for dense rendering, and a UI action registry as the command/keymap/accessibility seam.
 Checkpoints through Accessibility pass + launch script are remote-green. The accessibility/launch
 checkpoint is green with focused H11 **4/4**, full local `ci` **249/249**, and remote CI run
-`28403621292`. H11 closeout is local-green with full local `ci` **249/249** and focused H11 **4/4**;
-remote CI is pending before marking H11 closed. The focused plan is
+`28403621292`. H11 closeout is remote-green on closeout commit `e9436af`, CI run `28405529686`, with full
+local `ci` **249/249** and focused H11 **4/4**. No H12 has been opened by this closeout. The focused plan is
 [`docs/plans/2026-06-29-h11-single-window-timeline-ui-plan.md`](../plans/2026-06-29-h11-single-window-timeline-ui-plan.md).
