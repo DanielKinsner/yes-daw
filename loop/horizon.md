@@ -70,15 +70,18 @@ VS DevShell `cmake --build --preset ci --target YesDawTimelineGpuCheck`,
 **3/3**, and full `ctest --preset ci --output-on-failure` **248/248**. Remote CI run `28391576711`
 passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The **Timeline editing and clip affordances** checkpoint is local-green: `UiActionRegistry` now exposes
+The **Timeline editing and clip affordances** checkpoint is remote-green: `UiActionRegistry` now exposes
 selected-clip move/trim/split/gain/fade/time-stretch actions, `UiTimelineEditModel` maps them to the
 existing Project edit/undo commands, and `YesDawUiActionCheck` proves action-to-command parity,
 undo/redo, no-Project, no-selection, and failed-edit rejection. Local gates are green: `cmake --preset ci`;
 VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
 `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-**3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**. Remote CI is pending
-for this checkpoint.
+**3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**.
+Remote CI run `28393896442` passed across Linux, Windows, macOS, RTSan, and TSan.
+
+The next checkpoint is **Mixer, meters, and loudness surface**: surface track/bus fader, pan, mute, solo,
+sidechain-visible state, per-track meters, and H10 loudness readings without changing engine policy.
 
 ## The plan
 

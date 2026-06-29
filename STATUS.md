@@ -40,15 +40,15 @@ YesDawTimelineGpuCheck --output-on-failure`, verbose `YesDawTimelineGpuCheck.exe
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**, and VS DevShell full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure`
 **248/248**. Remote CI run `28391576711` is green across Linux, Windows, macOS, RTSan, and TSan.
-The H11 Timeline editing and clip affordances checkpoint is local-green: `UiActionRegistry` now exposes
+The H11 Timeline editing and clip affordances checkpoint is remote-green: `UiActionRegistry` now exposes
 clip move/trim/split, gain/fade, and time-stretch actions; `UiTimelineEditModel` maps those action IDs to
 the existing `ProjectUndoStack` commands; and `YesDawUiActionCheck` proves action-to-command parity,
 undo/redo, and disabled-edit negative controls. Local gates: `cmake --preset ci`; VS DevShell
 `cmake --build --preset ci --target YesDawUiActionCheck`; `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`;
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-**3/3**; VS DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **248/248**. Remote CI is
-pending for this checkpoint. **Now:** H11 remains open. **Next:** push and verify remote CI for Timeline
-editing and clip affordances.
+**3/3**; VS DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
+**248/248**. Remote CI run `28393896442` is green across Linux, Windows, macOS, RTSan, and TSan.
+**Now:** H11 remains open. **Next:** Mixer, meters, and loudness surface.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -61,8 +61,8 @@ editing and clip affordances.
 
 ---
 
-## Now — H11 Timeline editing local-green; remote CI pending
-- **Latest (2026-06-29): landed Timeline editing and clip affordances locally.** Added stable UI action
+## Now — H11 Timeline editing remote-green; Mixer/meters next
+- **Latest (2026-06-29): closed Timeline editing and clip affordances on remote CI.** Added stable UI action
   IDs for selected-clip move, trim, split, gain, fades, and time-stretch. Added `UiTimelineEditModel` so
   those action IDs apply the existing Project edit/undo commands, including undo/redo parity and failed
   edit rejection. Extended `YesDawUiActionCheck` with action-to-command coverage and disabled negative
@@ -71,7 +71,8 @@ editing and clip affordances.
   `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`, focused H11
   `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
   **3/3**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
-  **248/248**. **Next:** push and verify remote CI for Timeline editing and clip affordances.
+  **248/248**. Remote CI run `28393896442` is green across Linux, Windows, macOS, RTSan, and TSan.
+  **Next:** Mixer, meters, and loudness surface.
 
 - **Earlier (2026-06-29): closed Timeline canvas GPU/perf on remote CI.** Remote CI run `28391576711` is
   green across Linux, Windows, macOS, RTSan, and TSan.
