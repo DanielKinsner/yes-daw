@@ -107,5 +107,8 @@ preset. The Project-load smoke + transport controls checkpoint is remote-green o
 The Timeline canvas + frame-time harness checkpoint is remote-green on CI run `28391576711`:
 `YesDawTimelineGpuCheck` scrolls a
 20,640-clip arrangement fixture through the shared native Timeline canvas and measured
-`max_frame_ms=3.2874` with 336 visible clips. Full local `ci` is green at **248/248**. The next checkpoint
-is Timeline editing and clip affordances.
+`max_frame_ms=3.2874` with 336 visible clips. The Timeline editing and clip affordances checkpoint is
+local-green: selected-clip move/trim/split/gain/fade/time-stretch actions now route through
+`UiActionRegistry` and `UiTimelineEditModel` to the existing Project edit/undo commands, with
+`YesDawUiActionCheck` proving action-to-command parity and disabled-edit negative controls. Full local
+`ci` is green at **248/248**. Remote CI is pending for this checkpoint.

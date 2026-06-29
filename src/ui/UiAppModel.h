@@ -164,6 +164,20 @@ public:
                 return registry_.dispatch (id, context_);
             }
 
+            case UiActionId::TimelineClipMove:
+            case UiActionId::TimelineClipTrim:
+            case UiActionId::TimelineClipSplit:
+            case UiActionId::TimelineClipSetGain:
+            case UiActionId::TimelineClipSetFades:
+            case UiActionId::TimelineClipTimeStretch:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "timeline edit payload required" }, false };
+            }
+
             case UiActionId::Count:
                 break;
         }

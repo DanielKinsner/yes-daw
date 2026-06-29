@@ -70,8 +70,15 @@ VS DevShell `cmake --build --preset ci --target YesDawTimelineGpuCheck`,
 **3/3**, and full `ctest --preset ci --output-on-failure` **248/248**. Remote CI run `28391576711`
 passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **Timeline editing and clip affordances**: surface clip move/trim/split/gain/fade
-and time-stretch controls through the UI action registry, backed by existing Project edit/undo surfaces.
+The **Timeline editing and clip affordances** checkpoint is local-green: `UiActionRegistry` now exposes
+selected-clip move/trim/split/gain/fade/time-stretch actions, `UiTimelineEditModel` maps them to the
+existing Project edit/undo commands, and `YesDawUiActionCheck` proves action-to-command parity,
+undo/redo, no-Project, no-selection, and failed-edit rejection. Local gates are green: `cmake --preset ci`;
+VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure`; focused H11
+`ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**3/3**; and full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **248/248**. Remote CI is pending
+for this checkpoint.
 
 ## The plan
 

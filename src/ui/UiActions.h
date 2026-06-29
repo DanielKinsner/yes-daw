@@ -27,6 +27,12 @@ enum class UiActionId : std::uint8_t
     ViewTimeline,
     ViewMixer,
     ViewPianoRoll,
+    TimelineClipMove,
+    TimelineClipTrim,
+    TimelineClipSplit,
+    TimelineClipSetGain,
+    TimelineClipSetFades,
+    TimelineClipTimeStretch,
     HelpShowKeymap,
     Count
 };
@@ -67,6 +73,7 @@ struct UiActionDescriptor
     bool requiresProject;
     bool requiresUndo;
     bool requiresRedo;
+    bool requiresTimelineClip;
 };
 
 struct UiActionContext
@@ -76,6 +83,7 @@ struct UiActionContext
     bool loopEnabled = false;
     bool canUndo = false;
     bool canRedo = false;
+    bool timelineClipSelected = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
     std::int64_t playheadFrame = 0;
@@ -83,6 +91,7 @@ struct UiActionContext
     int saveCount = 0;
     int undoCount = 0;
     int redoCount = 0;
+    int timelineEditCount = 0;
 };
 
 struct UiActionState
@@ -113,31 +122,43 @@ constexpr std::size_t actionIndex (UiActionId id)
 
 inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescriptors {{
     { UiActionId::ProjectNew, "project.new", "New", "Ctrl+N", "New project",
-      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false },
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::ProjectOpen, "project.open", "Open", "Ctrl+O", "Open project",
-      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false },
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::ProjectSave, "project.save", "Save", "Ctrl+S", "Save project",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false },
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportPlay, "transport.play", "Play", "Space", "Play transport",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportStop, "transport.stop", "Stop", "K", "Stop transport",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateStart, "transport.locate_start", "Locate", "Home", "Locate start",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "L", "Toggle loop",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false },
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::EditUndo, "edit.undo", "Undo", "Ctrl+Z", "Undo",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false },
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false, false },
     { UiActionId::EditRedo, "edit.redo", "Redo", "Ctrl+Shift+Z", "Redo",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, true },
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, true, false },
     { UiActionId::ViewTimeline, "view.timeline", "Timeline", "1", "Show timeline",
-      AccessibilityRole::Button, UiActionKind::Command, false, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::ViewMixer, "view.mixer", "Mixer", "2", "Show mixer",
-      AccessibilityRole::Button, UiActionKind::Command, false, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "3", "Show piano roll",
-      AccessibilityRole::Button, UiActionKind::Command, false, false, false },
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineClipMove, "timeline.clip.move", "Move Clip", "Alt+M", "Move selected clip",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipTrim, "timeline.clip.trim", "Trim Clip", "Alt+T", "Trim selected clip",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipSplit, "timeline.clip.split", "Split Clip", "Ctrl+E", "Split selected clip",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipSetGain, "timeline.clip.set_gain", "Clip Gain", "Alt+G", "Set selected clip gain",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipSetFades, "timeline.clip.set_fades", "Clip Fades", "Alt+F", "Set selected clip fades",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "Alt+R", "Time-stretch selected clip",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 9> kMainShellToolbarActions {{
@@ -270,6 +291,8 @@ public:
             return { false, "nothing to undo" };
         if (descriptor->requiresRedo && ! context.canRedo)
             return { false, "nothing to redo" };
+        if (descriptor->requiresTimelineClip && ! context.timelineClipSelected)
+            return { false, "no clip selected" };
 
         return { true, "" };
     }
@@ -335,6 +358,18 @@ public:
 
             case UiActionId::ViewPianoRoll:
                 context.activePanel = UiPanel::PianoRoll;
+                break;
+
+            case UiActionId::TimelineClipMove:
+            case UiActionId::TimelineClipTrim:
+            case UiActionId::TimelineClipSplit:
+            case UiActionId::TimelineClipSetGain:
+            case UiActionId::TimelineClipSetFades:
+            case UiActionId::TimelineClipTimeStretch:
+                context.activePanel = UiPanel::Timeline;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
                 break;
 
             case UiActionId::HelpShowKeymap:
