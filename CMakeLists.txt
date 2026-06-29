@@ -370,6 +370,13 @@ target_link_libraries(YesDawDawprojectPrimitivesCheck PRIVATE Catch2::Catch2With
 yesdaw_harden(YesDawDawprojectPrimitivesCheck)
 add_test(NAME YesDawDawprojectPrimitivesCheck COMMAND $<TARGET_FILE:YesDawDawprojectPrimitivesCheck>)
 
+# --- DAWproject export check (H10; stored package + independent summary reader) ---
+add_executable(YesDawDawprojectCheck tests/dawproject_package_tests.cpp)
+target_include_directories(YesDawDawprojectCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawDawprojectCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawDawprojectCheck)
+add_test(NAME YesDawDawprojectCheck COMMAND $<TARGET_FILE:YesDawDawprojectCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -516,6 +523,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawSchedulerCheck
   YesDawLoudnessCheck
   YesDawDawprojectPrimitivesCheck
+  YesDawDawprojectCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

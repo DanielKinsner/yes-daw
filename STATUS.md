@@ -8,7 +8,7 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-**Last updated:** 2026-06-28
+**Last updated:** 2026-06-29
 **Current horizon:** **H10 (Mixing/mastering features & interchange) — OPEN.** H9 is closed and
 remote-green: `main` was current at `a5a1db4`, GitHub Actions run `28339991428` passed, and the local H9
 gate was `ctest --preset ci --output-on-failure` **240/240**. H9 landed ADR-0023 through ADR-0027:
@@ -19,9 +19,8 @@ rows, MIDI clips auto-wire through a built-in impulse instrument with transport-
 and the block-parallel scheduler refuses unsafe graphs (`GraphNotBlockParallelSafe`) instead of silently
 mis-rendering stateful effects. H10 kickoff docs are green on remote CI run `28340551455`; ADR-0028 is
 green on remote CI run `28340956377`; `YesDawLoudnessCheck` is green on remote CI run `28341446711`; and
-the loudness remote-green docs are green on remote CI run `28341823599`. **Now:** ADR-0029 is accepted;
-the DAWproject primitive preflight is locally green in `YesDawDawprojectPrimitivesCheck`; next checkpoint
-lands the package writer/reference-reader `YesDawDawprojectCheck`.
+the loudness remote-green docs are green on remote CI run `28341823599`. **Now:** `YesDawDawprojectCheck`
+is locally green; next checkpoint writes ADR-0030 for the time-stretch Node.
 Dan asked Codex to review H5, patch any proven H5 issues, then move onto and complete H6. H5 rechecked
 cleanly against the current docs, focused local gate, and latest remote CI: the H5 recording alignment
 exit criterion is genuinely met, and the scope boundary is now honest (recording spine only; no
@@ -47,7 +46,22 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 
 ---
 
-## Now — H10 DAWproject primitives
+## Now — H10 DAWproject export
+- **Latest (2026-06-29): landed the DAWproject package writer/reference-reader gate locally.**
+  `YesDawDawprojectCheck` writes a stored `.dawproject` ZIP with UTF-8 `project.xml` / `metadata.xml`,
+  canonical float32 WAV media under `audio/<content-hash>.wav`, deterministic XML-safe IDs, a master
+  Track, synthetic audio Tracks per Clip, grouped MIDI Clips per `MidiClip::trackId`, sample-locked audio
+  timing in seconds, tempo-locked MIDI timing in beats, gain/center-pan/fade/source-window data, and a
+  reader/verifier that parses ZIP/XML/WAV bytes rather than comparing writer strings. Negative controls
+  cover missing media, duplicate XML IDs, malformed timing, wrong media metadata, unsupported audio time
+  base, unsupported channel count, changed gain, changed MIDI note data, missing decoded audio, and decoded
+  metadata mismatch. Local gates are green: `cmake --preset ci`, VS DevShell
+  `cmake --build --preset ci --target YesDawDawprojectCheck`,
+  `ctest --test-dir build-ci -R "YesDawDawprojectCheck" --output-on-failure`,
+  VS DevShell `cmake --build --preset ci`, `ctest --preset ci --output-on-failure` **243/243**, and
+  `ctest --test-dir build-ci -R "YesDaw(Loudness|Dawproject|TimeStretch|DeviceHotSwap)Check"
+  --output-on-failure` **2/2**. **Next:** push and verify remote CI for this checkpoint, then write
+  ADR-0030 for the time-stretch Node.
 - **Latest (2026-06-28): added the DAWproject primitive preflight.** `YesDawDawprojectPrimitivesCheck`
   locks deterministic XML-safe IDs, parameter IDs, content-hash media paths, tick/frame conversions, XML
   escaping, and invalid-token/control-byte rejection before the package writer lands. Local gates are green:
