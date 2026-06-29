@@ -192,6 +192,20 @@ public:
                 return { id, { false, "mixer control payload required" }, false };
             }
 
+            case UiActionId::PianoRollNoteSelect:
+            case UiActionId::PianoRollNoteMove:
+            case UiActionId::PianoRollNoteSetLength:
+            case UiActionId::PianoRollNoteTranspose:
+            case UiActionId::PianoRollNoteQuantize:
+            case UiActionId::PianoRollReadExpressionLanes:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "piano roll payload required" }, false };
+            }
+
             case UiActionId::Count:
                 break;
         }
