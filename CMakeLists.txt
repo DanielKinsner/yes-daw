@@ -123,7 +123,6 @@ target_compile_definitions(YesDaw PRIVATE
 
 target_link_libraries(YesDaw
   PRIVATE
-    juce::juce_audio_utils
     juce::juce_gui_extra
     juce::juce_recommended_config_flags)
 

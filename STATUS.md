@@ -21,9 +21,11 @@ command/keymap/accessibility seam. H11 kickoff docs are local-green: `cmake --pr
 local-green: `YesDawUiActionCheck` proves stable action IDs, default keymap remapping, enabled/disabled
 reasons, accessibility labels/roles, and headless dispatch. Local gates: `cmake --preset ci`, VS DevShell
 `cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
-`ctest --preset ci --output-on-failure` **246/246**. **Now:** replace the H0 sine-spike window with the
-mockup-aligned JUCE app shell that consumes the registry. **Next:** push and verify remote CI for the app
-shell + action registry checkpoint.
+`ctest --preset ci --output-on-failure` **246/246**. The H0 sine-spike window is replaced locally with an
+action-backed JUCE `Component` shell and the app target no longer links `juce_audio_utils`; focused gate:
+VS DevShell `cmake --build --preset ci` plus `ctest --test-dir build-ci -R YesDawUiActionCheck
+--output-on-failure`. **Now:** layer the supplied mockup's DAW chrome over the shell. **Next:** push and
+verify remote CI for the app shell + action registry checkpoint.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -37,6 +39,14 @@ shell + action registry checkpoint.
 ---
 
 ## Now — H11 action registry local-green; app shell in progress
+- **Latest (2026-06-29): replaced the H0 sine-spike app with an action-backed JUCE shell locally.** The
+  standalone app now owns `UiActionRegistry`/`UiActionContext`, renders placeholder Timeline/Mixer/Piano
+  Roll panels, and drives toolbar buttons through the same headless action IDs as `YesDawUiActionCheck`.
+  `YesDaw` no longer links `juce_audio_utils` because the old audio-device sine callback is gone. Focused
+  local gate is green: VS DevShell `cmake --build --preset ci` plus `ctest --test-dir build-ci -R
+  YesDawUiActionCheck --output-on-failure`. **Next:** layer the supplied mockup's dark DAW chrome over this
+  shell without changing the registry contract.
+
 - **Latest (2026-06-29): landed the pure H11 UI action registry locally.** Added
   `src/ui/UiActions.h` and `YesDawUiActionCheck` so menus, toolbar buttons, shortcuts, accessibility, tests,
   and future agents share stable action IDs. The gate proves unique stable IDs/default keys, non-empty
