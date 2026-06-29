@@ -17,8 +17,13 @@ run `28379340005` passed. H10's closed feature gates are `YesDawLoudnessCheck` (
 single-window app shell, a dedicated Timeline canvas for dense rendering, and a UI action registry as the
 command/keymap/accessibility seam. H11 kickoff docs are local-green: `cmake --preset ci`, VS DevShell
 `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure` **245/245**; remote CI run
-`28382745216` passed across Linux, Windows, macOS, RTSan, and TSan. **Now:** H11 is open. **Next:** App
-shell + action registry, replacing the H0 sine-spike window and adding `YesDawUiActionCheck`.
+`28382745216` passed across Linux, Windows, macOS, RTSan, and TSan. The pure H11 UI action registry is
+local-green: `YesDawUiActionCheck` proves stable action IDs, default keymap remapping, enabled/disabled
+reasons, accessibility labels/roles, and headless dispatch. Local gates: `cmake --preset ci`, VS DevShell
+`cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
+`ctest --preset ci --output-on-failure` **246/246**. **Now:** replace the H0 sine-spike window with the
+mockup-aligned JUCE app shell that consumes the registry. **Next:** push and verify remote CI for the app
+shell + action registry checkpoint.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -31,7 +36,16 @@ shell + action registry, replacing the H0 sine-spike window and adding `YesDawUi
 
 ---
 
-## Now — H11 opened; app-shell checkpoint next
+## Now — H11 action registry local-green; app shell in progress
+- **Latest (2026-06-29): landed the pure H11 UI action registry locally.** Added
+  `src/ui/UiActions.h` and `YesDawUiActionCheck` so menus, toolbar buttons, shortcuts, accessibility, tests,
+  and future agents share stable action IDs. The gate proves unique stable IDs/default keys, non-empty
+  labels/accessibility names/roles, toolbar action lookup, keymap remapping/rejection, disabled-state
+  reasons, and headless dispatch state changes without a display. Local gates are green: `cmake --preset
+  ci`, VS DevShell `cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck
+  --output-on-failure`, and `ctest --preset ci --output-on-failure` **246/246**. **Next:** replace the H0
+  sine-spike window with the mockup-aligned JUCE shell that consumes the registry.
+
 - **Latest (2026-06-29): opened H11 with ADR-0032 and a focused plan.** H10 is closed and the follow-on
   adversarial-review patch batch is remote-green on `main` (`dd3b257`, GitHub Actions run `28379340005`).
   ADR-0032 accepts native JUCE Components for the app shell, rejects WebView for the main shell, keeps the

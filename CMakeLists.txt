@@ -234,6 +234,13 @@ target_link_libraries(YesDawUiCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawUiCheck)
 catch_discover_tests(YesDawUiCheck)
 
+# --- UI action registry check (H11; app shell command/keymap/accessibility seam) ---
+add_executable(YesDawUiActionCheck tests/ui_action_tests.cpp)
+target_include_directories(YesDawUiActionCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawUiActionCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawUiActionCheck)
+add_test(NAME YesDawUiActionCheck COMMAND $<TARGET_FILE:YesDawUiActionCheck>)
+
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---
 add_executable(YesDawEngineCheck tests/node_tests.cpp)
 target_include_directories(YesDawEngineCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -527,6 +534,7 @@ add_custom_target(bless-goldens
 set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawCheck
   YesDawUiCheck
+  YesDawUiActionCheck
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck
