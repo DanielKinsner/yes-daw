@@ -69,6 +69,12 @@ inline void appendLe32 (std::vector<std::uint8_t>& out, std::uint32_t value)
     out.push_back (static_cast<std::uint8_t> ((value >> 24u) & 0xffu));
 }
 
+// Canonical "unknown" DOS timestamp. A literal 0 date encodes day=0/month=0, which is out of range for
+// the FAT/DOS date bit-field (bits 0..4 day 1..31, 5..8 month 1..12, 9..15 year-since-1980) and trips
+// strict ZIP validators. 0x0021 == day 1, month 1, year 1980 (00:00:00 time stays a valid 0x0000).
+inline constexpr std::uint16_t kDosEpochTime = 0x0000u;
+inline constexpr std::uint16_t kDosEpochDate = 0x0021u;
+
 inline bool readLe16 (std::span<const std::uint8_t> bytes, std::size_t offset, std::uint16_t& out) noexcept
 {
     if (offset > bytes.size() || bytes.size() - offset < 2u)
@@ -169,8 +175,8 @@ struct CentralEntry
         detail::appendLe16 (out, 20u);
         detail::appendLe16 (out, 0u);
         detail::appendLe16 (out, 0u);
-        detail::appendLe16 (out, 0u);
-        detail::appendLe16 (out, 0u);
+        detail::appendLe16 (out, detail::kDosEpochTime);
+        detail::appendLe16 (out, detail::kDosEpochDate);
         detail::appendLe32 (out, crc);
         detail::appendLe32 (out, size);
         detail::appendLe32 (out, size);
@@ -193,8 +199,8 @@ struct CentralEntry
         detail::appendLe16 (out, 20u);
         detail::appendLe16 (out, 0u);
         detail::appendLe16 (out, 0u);
-        detail::appendLe16 (out, 0u);
-        detail::appendLe16 (out, 0u);
+        detail::appendLe16 (out, detail::kDosEpochTime);
+        detail::appendLe16 (out, detail::kDosEpochDate);
         detail::appendLe32 (out, entry.crc);
         detail::appendLe32 (out, entry.compressedSize);
         detail::appendLe32 (out, entry.uncompressedSize);
@@ -406,7 +412,7 @@ struct CentralEntry
             return { ZipStatus::MalformedArchive, "ZIP local entry exceeds file", {} };
         }
 
-        if (dataStart < central.path.size() || local + 30u + nameLength > bytes.size())
+        if (local + 30u + static_cast<std::size_t> (nameLength) > bytes.size())
             return { ZipStatus::MalformedArchive, "ZIP local entry path is malformed", {} };
 
         const std::string localPath (reinterpret_cast<const char*> (bytes.data() + local + 30u), nameLength);
