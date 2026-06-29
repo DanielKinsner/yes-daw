@@ -101,6 +101,6 @@ should be small implementation checkpoints behind ADR-0032.
 Opened on 2026-06-29 after H10 and the follow-on adversarial review patch batch were remote-green on
 `main` (`dd3b257`, GitHub Actions run `28379340005`). ADR-0032 is accepted in this kickoff checkpoint.
 The kickoff docs are green on remote CI run `28382745216`. The app shell + action registry checkpoint is
-local-green and remote-CI pending: the H0 sine-spike window is replaced by the native JUCE shell, the shell
-is aligned to the supplied dark DAW mockup direction, and `YesDawUiActionCheck` is in the full `ci` preset.
-The next checkpoint after remote green is Project-load smoke + transport controls.
+remote-green on CI run `28385990090`: the H0 sine-spike window is replaced by the native JUCE shell, the
+shell is aligned to the supplied dark DAW mockup direction, and `YesDawUiActionCheck` is in the full `ci`
+preset. The next checkpoint is Project-load smoke + transport controls.

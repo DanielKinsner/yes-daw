@@ -23,8 +23,9 @@ enabled/disabled reasons, accessibility labels/roles, and headless dispatch; `sr
 the H0 sine-spike audio window with a mockup-aligned native JUCE shell that consumes the registry. Local
 gates: `cmake --preset ci`, VS DevShell `cmake --build --preset ci`,
 `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and `ctest --preset ci
---output-on-failure` **246/246**. **Now:** commit/push the app shell + action registry checkpoint and
-verify remote CI. **Next after remote green:** Project-load smoke + transport controls (`YesDawAppSmokeCheck`).
+--output-on-failure` **246/246**. Remote CI run `28385990090` is green across Linux, Windows, macOS,
+RTSan, and TSan. **Now:** H11 remains open. **Next:** Project-load smoke + transport controls
+(`YesDawAppSmokeCheck`).
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -37,15 +38,17 @@ verify remote CI. **Next after remote green:** Project-load smoke + transport co
 
 ---
 
-## Now — H11 app shell + action registry local-green; remote CI pending
-- **Latest (2026-06-29): replaced the H0 sine-spike window with a mockup-aligned JUCE shell locally.**
+## Now — H11 app shell + action registry remote-green; Project-load smoke next
+- **Latest (2026-06-29): closed the H11 app shell + action registry checkpoint on remote CI.** Remote CI
+  run `28385990090` is green across Linux, Windows, macOS, RTSan, and TSan.
+- **Earlier (2026-06-29): replaced the H0 sine-spike window with a mockup-aligned JUCE shell locally.**
   `src/Main.cpp` now draws the first native DAW frame: top menu/transport/readout strip, master meter,
   track list, arrangement/timeline placeholder with clips and playhead, clip inspector, and mixer strips.
   The visible toolbar consumes `UiActionRegistry`/`UiActionContext`, and the old audio-device sine callback
   remains removed from the app target. Local gates are green: `cmake --preset ci`, VS DevShell
   `cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
-  `ctest --preset ci --output-on-failure` **246/246**. **Next:** push and verify remote CI. After remote
-  green, the next H11 checkpoint is Project-load smoke + transport controls (`YesDawAppSmokeCheck`).
+  `ctest --preset ci --output-on-failure` **246/246**. **Next:** Project-load smoke + transport controls
+  (`YesDawAppSmokeCheck`).
 
 - **Latest (2026-06-29): replaced the H0 sine-spike app with an action-backed JUCE shell locally.** The
   standalone app now owns `UiActionRegistry`/`UiActionContext`, renders placeholder Timeline/Mixer/Piano

@@ -45,14 +45,15 @@ Kickoff docs are green: local `cmake --preset ci`, VS DevShell `cmake --build --
 `ctest --preset ci --output-on-failure` **245/245**; remote CI run `28382745216` passed across Linux,
 Windows, macOS, RTSan, and TSan.
 
-The **App shell + action registry** checkpoint is local-green and remote-CI pending: the H0 sine-spike
-window is replaced by the native single-window shell, the visible toolbar consumes `UiActionRegistry`, and
-`YesDawUiActionCheck` is in the full `ci` preset. Local gates are green: `cmake --preset ci`, VS DevShell
+The **App shell + action registry** checkpoint is remote-green: the H0 sine-spike window is replaced by
+the native single-window shell, the visible toolbar consumes `UiActionRegistry`, and `YesDawUiActionCheck`
+is in the full `ci` preset. Local gates are green: `cmake --preset ci`, VS DevShell
 `cmake --build --preset ci`, `ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure`, and
-`ctest --preset ci --output-on-failure` **246/246**.
+`ctest --preset ci --output-on-failure` **246/246**. Remote CI run `28385990090` passed across Linux,
+Windows, macOS, RTSan, and TSan.
 
-The next checkpoint after remote CI is **Project-load smoke + transport controls**: wire `.yesdaw` Project
-bundle loading and H8 playback transport through the same action IDs, then land `YesDawAppSmokeCheck`.
+The next checkpoint is **Project-load smoke + transport controls**: wire `.yesdaw` Project bundle loading
+and H8 playback transport through the same action IDs, then land `YesDawAppSmokeCheck`.
 
 ## The plan
 
