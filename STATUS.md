@@ -52,6 +52,19 @@ worker-mode + blacklist wiring; the H0 real-hardware audio soak, tracked by ADR-
 ---
 
 ## Now — H10 closed; H11 not opened
+- **Latest (2026-06-29): adversarial review of the H10 commits — patched 5 chunks, all local-green.**
+  Reviewed loudness, StoredZip, DAWproject, time-stretch, and device hot-swap (multi-agent + verify pass).
+  Patched the proven issues: (1) StoredZip wrote an out-of-range DOS date (day=0/month=0) and OR'd a dead
+  bounds clause; (2) the ZIP gate was a symmetric round-trip — added CRC-32 known-answer + spec-derived
+  byte-layout tests; (3) **DAWproject number I/O was locale-dependent** — `formatDouble`, the parse helpers,
+  AND the project.xml stream all followed the ambient locale, so a comma/grouping locale emitted invalid
+  XML (e.g. `sampleRate="48.000"`); imbued classic everywhere + a `[locale]` gate; (4) a -1 MIDI Note
+  channel was silently coerced to 0 and the verifier mirrored the coercion — now fails explicitly per
+  ADR-0029 with a biting negative control; (5) added a non-integer-factor time-stretch length test.
+  Loudness (libebur128 wrapper), the time-stretch DSP trim loop (golden-pinned), and the device-hot-swap
+  single-threaded handoff contract were reviewed and left as-is (no proven defect). Local gate after the
+  patches: VS DevShell `ninja -C build-ci` + `ctest --test-dir build-ci -j6` **245/245**. **Next:** push to
+  `main` and let remote CI confirm; then wait for Dan to open H11.
 - **Latest (2026-06-29): closed H10 remotely.** H10's four focused gates are green:
   `YesDawLoudnessCheck` on remote CI run `28341446711`, `YesDawDawprojectCheck` on remote CI run
   `28348385319`, `YesDawTimeStretchCheck` on remote CI run `28350136910`, and
