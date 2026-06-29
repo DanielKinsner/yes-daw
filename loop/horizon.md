@@ -61,16 +61,17 @@ accessibility. `YesDawAppSmokeCheck` is in the full `ci` preset. Local gates are
 `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. Remote CI run
 `28388490955` passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The **Timeline canvas GPU/perf** checkpoint is local-green: `src/ui/TimelineCanvas.h` is the shared native
-Timeline canvas used by the app shell and `YesDawTimelineGpuCheck`; the gate scrolls a 20,640-clip
+The **Timeline canvas GPU/perf** checkpoint is remote-green: `src/ui/TimelineCanvas.h` is the shared
+native Timeline canvas used by the app shell and `YesDawTimelineGpuCheck`; the gate scrolls a 20,640-clip
 arrangement fixture and measured `max_frame_ms=3.2874` with 336 visible clips. Local gates are green:
 VS DevShell `cmake --build --preset ci --target YesDawTimelineGpuCheck`,
 `ctest --preset ci -R YesDawTimelineGpuCheck --output-on-failure`, focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-**3/3**, and full `ctest --preset ci --output-on-failure` **248/248**.
+**3/3**, and full `ctest --preset ci --output-on-failure` **248/248**. Remote CI run `28391576711`
+passed across Linux, Windows, macOS, RTSan, and TSan.
 
-The next checkpoint is **Timeline canvas GPU/perf remote CI receipt**: push and verify CI for
-`YesDawTimelineGpuCheck`.
+The next checkpoint is **Timeline editing and clip affordances**: surface clip move/trim/split/gain/fade
+and time-stretch controls through the UI action registry, backed by existing Project edit/undo surfaces.
 
 ## The plan
 

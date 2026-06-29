@@ -31,7 +31,7 @@ play/stop/locate/loop through the same action IDs as the UI shell. Local gates: 
 `ctest --preset ci -R YesDawAppSmokeCheck --output-on-failure`, and VS DevShell full
 `cmake --build --preset ci` + `ctest --preset ci --output-on-failure` **247/247**. Remote CI run
 `28388490955` is green across Linux, Windows, macOS, RTSan, and TSan. The H11 Timeline canvas GPU/perf
-checkpoint is local-green: `src/ui/TimelineCanvas.h` is the shared native Timeline canvas used by both
+checkpoint is remote-green: `src/ui/TimelineCanvas.h` is the shared native Timeline canvas used by both
 the app shell and `YesDawTimelineGpuCheck`, and the gate scrolls a 20,640-clip arrangement fixture with
 `max_frame_ms=3.2874` and 336 visible clips. Local gates: VS DevShell
 `cmake --build --preset ci --target YesDawTimelineGpuCheck`, `ctest --preset ci -R
@@ -39,8 +39,10 @@ YesDawTimelineGpuCheck --output-on-failure`, verbose `YesDawTimelineGpuCheck.exe
 "[timeline][gpu][perf]"`, VS DevShell `cmake --build --preset ci --target YesDaw`, focused H11
 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **3/3**, and VS DevShell full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure`
-**248/248**. **Now:** H11 remains open. **Next:** push and verify remote CI for
-`YesDawTimelineGpuCheck`.
+**248/248**. Remote CI run `28391576711` is green across Linux, Windows, macOS, RTSan, and TSan.
+**Now:** H11 remains open. **Next:** Timeline editing and clip affordances: surface clip move/trim/split,
+gain/fade, and time-stretch controls through the UI action registry and extend `YesDawUiActionCheck` with
+action-to-command parity plus disabled-edit negative controls.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
@@ -53,8 +55,11 @@ YesDawTimelineGpuCheck --output-on-failure`, verbose `YesDawTimelineGpuCheck.exe
 
 ---
 
-## Now — H11 Timeline GPU/perf local-green; remote CI next
-- **Latest (2026-06-29): landed Timeline canvas GPU/perf locally.** Added
+## Now — H11 Timeline GPU/perf remote-green; Timeline editing next
+- **Latest (2026-06-29): closed Timeline canvas GPU/perf on remote CI.** Remote CI run `28391576711` is
+  green across Linux, Windows, macOS, RTSan, and TSan.
+
+- **Earlier (2026-06-29): landed Timeline canvas GPU/perf locally.** Added
   `src/ui/TimelineCanvas.h` as the shared native Timeline canvas and routed `src/Main.cpp` through it,
   replacing the private hand-drawn arrangement path with the same renderer used by the gate. Added
   `YesDawTimelineGpuCheck`, which scrolls a 20,640-clip arrangement fixture through an offscreen JUCE
@@ -66,7 +71,7 @@ YesDawTimelineGpuCheck --output-on-failure`, verbose `YesDawTimelineGpuCheck.exe
   `cmake --build --preset ci --target YesDaw`, focused H11
   `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
   **3/3**, and VS DevShell full `cmake --build --preset ci` + `ctest --preset ci --output-on-failure`
-  **248/248**. **Next:** push and verify remote CI for `YesDawTimelineGpuCheck`.
+  **248/248**. **Next:** Timeline editing and clip affordances.
 
 - **Earlier (2026-06-29): closed Project-load smoke + transport controls on remote CI.** Remote CI run
   `28388490955` is green across Linux, Windows, macOS, RTSan, and TSan.
