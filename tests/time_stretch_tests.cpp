@@ -271,6 +271,27 @@ TEST_CASE ("Time-stretch preparation has exact duration and checked-in golden fi
     requireGoldenSummary (longer, kLongerGolden);
 }
 
+TEST_CASE ("Time-stretch output length rounds (not truncates) on a non-integer factor product",
+           "[h10][time-stretch]")
+{
+    // The golden factors (0.75, 1.5) both give exact integer products with 8192, so a floor()/trunc()
+    // regression in the output-length math would pass them. 8192 * 1.3 = 10649.6 must round to 10650.
+    const std::vector<float> stereo = makeStereoFixture();
+    constexpr double factor = 1.3;
+    const auto prepared = yesdaw::engine::prepareTimeStretch (stereo, 2u, kSampleRate, factor);
+    REQUIRE (prepared.ok());
+
+    const auto expectedFrames =
+        static_cast<std::uint64_t> (std::llround (static_cast<double> (kSourceFrames) * factor));
+    REQUIRE (expectedFrames == 10650u); // pin the intent so a truncating impl (10649) bites
+    REQUIRE (prepared.outputFrames == expectedFrames);
+    REQUIRE (prepared.sourceFrames == kSourceFrames);
+    REQUIRE (prepared.interleavedSamples.size()
+             == static_cast<std::size_t> (prepared.outputFrames) * static_cast<std::size_t> (prepared.channels));
+    for (const float sample : prepared.interleavedSamples)
+        REQUIRE (std::isfinite (sample));
+}
+
 TEST_CASE ("TimeStretchNode renders prepared samples by absolute timeline frame across block splits",
            "[h10][time-stretch][node]")
 {
