@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -203,7 +204,96 @@ void writeEntries (const std::filesystem::path& packagePath,
     REQUIRE (result.ok());
 }
 
+std::uint32_t crc32OfText (std::string_view text) noexcept
+{
+    return yesdaw::interchange::storedzip::detail::crc32 (
+        std::span<const std::uint8_t> (reinterpret_cast<const std::uint8_t*> (text.data()), text.size()));
+}
+
+std::vector<std::uint8_t> readRawBytes (const std::filesystem::path& path)
+{
+    std::ifstream file (path, std::ios::binary);
+    REQUIRE (file.good());
+    return std::vector<std::uint8_t> (std::istreambuf_iterator<char> (file), std::istreambuf_iterator<char> ());
+}
+
+// Independent little-endian decoders so the byte-layout assertions never reuse the reader's own helpers.
+std::uint16_t le16At (const std::vector<std::uint8_t>& bytes, std::size_t offset)
+{
+    REQUIRE (offset + 2u <= bytes.size());
+    return static_cast<std::uint16_t> (bytes[offset]) | static_cast<std::uint16_t> (bytes[offset + 1u] << 8u);
+}
+
+std::uint32_t le32At (const std::vector<std::uint8_t>& bytes, std::size_t offset)
+{
+    REQUIRE (offset + 4u <= bytes.size());
+    return static_cast<std::uint32_t> (bytes[offset])
+         | (static_cast<std::uint32_t> (bytes[offset + 1u]) << 8u)
+         | (static_cast<std::uint32_t> (bytes[offset + 2u]) << 16u)
+         | (static_cast<std::uint32_t> (bytes[offset + 3u]) << 24u);
+}
+
 } // namespace
+
+TEST_CASE ("StoredZip CRC-32 matches published known-answer vectors", "[h10][dawproject][zip]")
+{
+    // The whole package gate is otherwise a symmetric writer/reader round-trip, so a wrong CRC polynomial,
+    // init, or final-XOR would self-mask. These vectors come from the CRC-32/ISO-HDLC reference, not our code.
+    REQUIRE (crc32OfText ("") == 0x00000000u);
+    REQUIRE (crc32OfText ("123456789") == 0xCBF43926u);
+    REQUIRE (crc32OfText ("a") == 0xE8B7BE43u);
+    REQUIRE (crc32OfText ("The quick brown fox jumps over the lazy dog") == 0x414FA339u);
+}
+
+TEST_CASE ("StoredZip writer emits a spec-correct STORED archive byte layout", "[h10][dawproject][zip]")
+{
+    // Hand-verify the exact PKZIP byte layout of a one-entry stored archive, decoding every multi-byte
+    // field independently of readStoredZip. This bites endianness, field-offset, size, CRC-placement, and
+    // central-directory-offset regressions that a symmetric round-trip cannot see.
+    std::vector<yesdaw::interchange::storedzip::Entry> entries {
+        { "a", std::vector<std::uint8_t> { static_cast<std::uint8_t> ('b') } }
+    };
+    const std::filesystem::path packagePath = makeTempPath ("zip-layout", ".zip");
+    writeEntries (packagePath, entries);
+    const std::vector<std::uint8_t> bytes = readRawBytes (packagePath);
+
+    constexpr std::size_t kLocalSize = 30u + 1u + 1u; // fixed header + name "a" + data "b"
+    constexpr std::size_t kCentralSize = 46u + 1u;    // fixed header + name "a"
+    REQUIRE (bytes.size() == kLocalSize + kCentralSize + 22u);
+
+    // --- Local file header at offset 0 ---
+    REQUIRE (le32At (bytes, 0) == 0x04034b50u);                 // signature
+    REQUIRE (le16At (bytes, 8) == 0u);                          // compression method = stored
+    REQUIRE (le16At (bytes, 10) == 0x0000u);                    // DOS time (valid 00:00:00)
+    REQUIRE (le16At (bytes, 12) == 0x0021u);                    // DOS date (valid 1980-01-01, not 0)
+    REQUIRE ((le16At (bytes, 12) & 0x1Fu) >= 1u);               // day in 1..31
+    REQUIRE ((le16At (bytes, 12) & 0x1Fu) <= 31u);
+    REQUIRE (((le16At (bytes, 12) >> 5u) & 0x0Fu) >= 1u);       // month in 1..12
+    REQUIRE (((le16At (bytes, 12) >> 5u) & 0x0Fu) <= 12u);
+    REQUIRE (le32At (bytes, 14) == crc32OfText ("b"));          // CRC stored little-endian
+    REQUIRE (le32At (bytes, 18) == 1u);                         // compressed size
+    REQUIRE (le32At (bytes, 22) == 1u);                         // uncompressed size
+    REQUIRE (le16At (bytes, 26) == 1u);                         // file name length
+    REQUIRE (le16At (bytes, 28) == 0u);                         // extra length
+    REQUIRE (bytes[30] == static_cast<std::uint8_t> ('a'));     // name
+    REQUIRE (bytes[31] == static_cast<std::uint8_t> ('b'));     // payload
+
+    // --- Central directory header at offset kLocalSize ---
+    REQUIRE (le32At (bytes, kLocalSize) == 0x02014b50u);                 // signature
+    REQUIRE (le32At (bytes, kLocalSize + 16u) == crc32OfText ("b"));     // CRC
+    REQUIRE (le32At (bytes, kLocalSize + 42u) == 0u);                    // local header offset
+
+    // --- End of central directory at offset kLocalSize + kCentralSize ---
+    const std::size_t eocd = kLocalSize + kCentralSize;
+    REQUIRE (le32At (bytes, eocd) == 0x06054b50u);              // signature
+    REQUIRE (le16At (bytes, eocd + 8u) == 1u);                  // entries on this disk
+    REQUIRE (le16At (bytes, eocd + 10u) == 1u);                 // total entries
+    REQUIRE (le32At (bytes, eocd + 12u) == kCentralSize);       // central directory size
+    REQUIRE (le32At (bytes, eocd + 16u) == kLocalSize);         // central directory offset
+
+    std::error_code ec;
+    std::filesystem::remove (packagePath, ec);
+}
 
 TEST_CASE ("DAWproject export writes a stored package and verifies through an independent summary reader",
            "[h10][dawproject]")
