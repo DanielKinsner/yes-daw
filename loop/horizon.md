@@ -36,8 +36,10 @@ The focused regex becomes fully active as the four H10 gate targets land.
 H10 kickoff docs are green on remote CI run `28340551455`: this horizon file, the live handoff, the
 roadmap status, and `docs/plans/2026-06-28-h10-mixing-mastering-interchange-plan.md`.
 
-ADR-0028 (loudness metering model) is accepted. No H10 feature code has landed yet. The next checkpoint is
-`YesDawLoudnessCheck`.
+ADR-0028 (loudness metering model) is accepted and green on remote CI run `28340956377`.
+`YesDawLoudnessCheck` is implemented locally with the pinned `libebur128` wrapper and full local
+`ctest --preset ci --output-on-failure` **241/241**. The next gate is remote CI for the code checkpoint;
+after that, the next H10 checkpoint is ADR-0029 for DAWproject export.
 
 ## The plan
 

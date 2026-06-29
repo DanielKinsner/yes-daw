@@ -40,11 +40,20 @@ FetchContent_Declare(sqlite3
   URL       https://www.sqlite.org/2026/sqlite-amalgamation-3530200.zip
   URL_HASH SHA3_256=81142986038e18f96c4a54e1a72562ae17e502a916f2a7701eff43388cbf1a40
   SYSTEM)
+FetchContent_Declare(libebur128
+  GIT_REPOSITORY https://github.com/jiixyj/libebur128.git
+  GIT_TAG        v1.2.6
+  GIT_SHALLOW    TRUE
+  SYSTEM)
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static dependencies" FORCE)
+set(ENABLE_TESTS OFF CACHE BOOL "Do not build libebur128 tests" FORCE)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 if (YESDAW_BUILD_APPS)
-  FetchContent_MakeAvailable(JUCE Catch2 choc sqlite3)
+  FetchContent_MakeAvailable(JUCE Catch2 choc sqlite3 libebur128)
 else()
-  FetchContent_MakeAvailable(Catch2 choc sqlite3)   # RTSan/TSan leg: skip the JUCE clone, still get choc
+  FetchContent_MakeAvailable(Catch2 choc sqlite3 libebur128)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
 
 add_library(sqlite3_amalgamation STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
@@ -346,6 +355,14 @@ endif()
 yesdaw_harden(YesDawSchedulerCheck)
 add_test(NAME YesDawSchedulerCheck COMMAND $<TARGET_FILE:YesDawSchedulerCheck>)
 
+# --- Loudness check (H10; libebur128-backed BS.1770 / EBU R128 wrapper) ---
+add_executable(YesDawLoudnessCheck tests/loudness_tests.cpp)
+target_include_directories(YesDawLoudnessCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawLoudnessCheck SYSTEM PRIVATE ${libebur128_SOURCE_DIR}/ebur128)
+target_link_libraries(YesDawLoudnessCheck PRIVATE Catch2::Catch2WithMain ebur128)
+yesdaw_harden(YesDawLoudnessCheck)
+add_test(NAME YesDawLoudnessCheck COMMAND $<TARGET_FILE:YesDawLoudnessCheck>)
+
 # --- DelayNode check (H1; pure, the ONE delay primitive for PDC + feedback — ADR-0007 #5) ---
 add_executable(YesDawDelayCheck tests/delaynode_tests.cpp)
 target_include_directories(YesDawDelayCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -490,6 +507,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawOfflineRenderCheck
   YesDawPlaybackCheck
   YesDawSchedulerCheck
+  YesDawLoudnessCheck
   YesDawDelayCheck
   YesDawFaderCheck
   YesDawPanCheck

@@ -34,7 +34,7 @@ is written as an ADR.
 1. **Kickoff docs. [done]** Switch `loop/horizon.md` to H10, record H9's remote-green closeout,
    add this plan, and add the H10 glossary terms to `CONTEXT.md`.
 
-2. **Loudness metering - ADR-0028 + `YesDawLoudnessCheck`. [ADR accepted; code next]** Decide the metering surface, channel
+2. **Loudness metering - ADR-0028 + `YesDawLoudnessCheck`. [implemented locally; remote CI next]** Decide the metering surface, channel
    weighting, block/update model, true-peak scope, and reference tolerance. Land a headless meter that can
    run offline over interleaved Project samples and later feed H11. Gate against libebur128/BS.1770
    fixtures with negative controls.
@@ -66,7 +66,7 @@ is written as an ADR.
 ## Decisions to write (ADRs, in order)
 
 - **ADR-0028 - loudness metering model:** BS.1770/libebur128 reference, channel handling, true-peak scope,
-  and meter update surface. **[accepted]**
+  and meter update surface. **[accepted; remote CI run `28340956377` green]**
 - **ADR-0029 - DAWproject export subset:** package shape, supported fields, ID/asset mapping, and
   reference-reader gate.
 - **ADR-0030 - time-stretch Node:** Signalsmith integration, ratio limits, latency/tail policy, and
@@ -77,4 +77,5 @@ is written as an ADR.
 ## Status
 
 Opened on 2026-06-28 after H9 remote CI went green on `a5a1db4` (run `28339991428`). Kickoff docs are
-green on remote CI run `28340551455`. ADR-0028 is accepted; the next commit lands `YesDawLoudnessCheck`.
+green on remote CI run `28340551455`. ADR-0028 is accepted and green on remote CI run `28340956377`.
+`YesDawLoudnessCheck` is implemented and locally green; remote CI is the next gate for the code checkpoint.
