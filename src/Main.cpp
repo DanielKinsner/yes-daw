@@ -7,11 +7,13 @@
 #include "ui/TimelineCanvas.h"
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"
+#include "ui/UiPianoRollSurface.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -39,6 +41,17 @@ const juce::Colour kRed (0xffff5757);
 
 using TrackRow = yesdaw::ui::TimelineCanvasTrack;
 using TimelineClipStyle = yesdaw::ui::TimelineCanvasClipStyle;
+
+constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
+{
+    return yesdaw::engine::EntityId::fromBigEndianParts (0, low);
+}
+
+constexpr bool isBlackMidiKey (int key) noexcept
+{
+    const int octaveKey = key % 12;
+    return octaveKey == 1 || octaveKey == 3 || octaveKey == 6 || octaveKey == 8 || octaveKey == 10;
+}
 
 struct MixerStrip
 {
@@ -135,6 +148,45 @@ yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
             surface.buses.push_back (std::move (strip));
         else
             surface.tracks.push_back (std::move (strip));
+    }
+
+    return surface;
+}
+
+yesdaw::ui::UiPianoRollSurfaceSnapshot makeDemoPianoRollSurface()
+{
+    yesdaw::ui::UiPianoRollSurfaceSnapshot surface;
+    surface.projectLoaded = true;
+    surface.midiClipSelected = true;
+    surface.midiClipId = demoEntityId (80);
+    surface.timelineStart = 0;
+    surface.timelineLength = 4096;
+    surface.notes = {
+        { demoEntityId (81), 0, 512, 60, 60.25, 0.70, 0, 1, true },
+        { demoEntityId (82), 512, 384, 64, 64.10, 0.58, 0, 1, false },
+        { demoEntityId (83), 1024, 512, 67, 67.35, 0.82, 0, 1, false },
+        { demoEntityId (84), 1792, 768, 72, 72.00, 0.64, 0, 1, false },
+        { demoEntityId (85), 2560, 512, 69, 69.20, 0.90, 0, 1, false },
+        { demoEntityId (86), 3328, 512, 67, 66.85, 0.74, 0, 1, false }
+    };
+
+    for (const auto kind : { yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity,
+                             yesdaw::ui::UiPianoRollExpressionLaneKind::Pitch })
+    {
+        yesdaw::ui::UiPianoRollExpressionLaneReadout lane;
+        lane.kind = kind;
+        lane.valid = true;
+        lane.points.reserve (surface.notes.size());
+
+        for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
+        {
+            const double value = kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
+                ? note.normalizedVelocity
+                : note.pitchNote;
+            lane.points.push_back ({ note.noteId, note.startTick, value });
+        }
+
+        surface.expressionLanes.push_back (std::move (lane));
     }
 
     return surface;
@@ -258,7 +310,10 @@ public:
         auto timeline = work.reduced (6, 10);
 
         drawTrackList (g, left);
-        drawTimeline (g, timeline);
+        if (context.activePanel == yesdaw::ui::UiPanel::PianoRoll)
+            drawPianoRoll (g, timeline);
+        else
+            drawTimeline (g, timeline);
         drawInspector (g, inspector);
         drawMixer (g, mixer.reduced (6, 8));
     }
@@ -431,6 +486,114 @@ private:
         (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
     }
 
+    void drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        fillPanel (g, area);
+        auto header = area.removeFromTop (38);
+        drawSmallLabel (g, "PIANO ROLL", header.reduced (14, 0));
+        drawSmallLabel (g, "MIDI Clip_01  |  Note edits: select move length transpose quantize",
+                        header.reduced (14, 0), juce::Justification::centredRight);
+
+        area.reduce (12, 8);
+        auto expression = area.removeFromBottom (84);
+        auto keyboard = area.removeFromLeft (70);
+        auto grid = area.reduced (0, 2);
+
+        constexpr int kLowKey = 48;
+        constexpr int kHighKey = 72;
+        constexpr int kKeyCount = kHighKey - kLowKey + 1;
+        const float rowHeight = static_cast<float> (grid.getHeight()) / static_cast<float> (kKeyCount);
+
+        auto keyY = [grid, rowHeight] (int key) {
+            return grid.getY() + juce::roundToInt (static_cast<float> (kHighKey - key) * rowHeight);
+        };
+
+        const double timelineLength = static_cast<double> (juce::jmax<yesdaw::engine::Tick> (1, pianoSurface.timelineLength));
+        auto tickX = [grid, timelineLength] (yesdaw::engine::Tick tick) {
+            const double normalized = static_cast<double> (tick) / timelineLength;
+            return grid.getX() + juce::roundToInt (static_cast<float> (normalized) * static_cast<float> (grid.getWidth()));
+        };
+
+        g.setColour (juce::Colour (0xff070b10));
+        g.fillRect (grid);
+
+        for (int key = kHighKey; key >= kLowKey; --key)
+        {
+            const int y = keyY (key);
+            auto keyRow = juce::Rectangle<int> (keyboard.getX(), y, keyboard.getWidth(), juce::jmax (1, juce::roundToInt (rowHeight)));
+            g.setColour (isBlackMidiKey (key) ? juce::Colour (0xff0a0e13) : juce::Colour (0xff151c24));
+            g.fillRect (keyRow.reduced (0, 1));
+            g.setColour (kPanelStroke.withAlpha (0.72f));
+            g.fillRect (juce::Rectangle<int> (grid.getX(), y, grid.getWidth(), 1));
+
+            if (key % 12 == 0)
+            {
+                g.setColour (kMutedText);
+                g.setFont (juce::Font (juce::FontOptions (10.0f)));
+                g.drawText ("C" + juce::String (key / 12 - 1), keyRow.reduced (8, 0),
+                            juce::Justification::centredLeft, false);
+            }
+        }
+
+        for (yesdaw::engine::Tick tick = 0; tick <= pianoSurface.timelineLength; tick += 512)
+        {
+            const int x = tickX (tick);
+            g.setColour ((tick % 2048) == 0 ? juce::Colour (0xff344150) : juce::Colour (0xff202a34));
+            g.fillRect (x, grid.getY(), 1, grid.getHeight());
+        }
+
+        for (const yesdaw::ui::UiPianoRollNoteView& note : pianoSurface.notes)
+        {
+            if (note.key < kLowKey || note.key > kHighKey)
+                continue;
+
+            const int x = tickX (note.startTick);
+            const int width = juce::jmax (10, tickX (note.startTick + note.lengthTicks) - x);
+            const int y = keyY (note.key) + 2;
+            const int height = juce::jmax (8, juce::roundToInt (rowHeight) - 4);
+            auto noteRect = juce::Rectangle<int> (x, y, width, height).reduced (1, 0);
+
+            g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
+            g.fillRoundedRectangle (noteRect.expanded (1).toFloat(), 4.0f);
+            g.setColour (note.selected ? kPurple.brighter (0.35f) : kCyan);
+            g.fillRoundedRectangle (noteRect.toFloat(), 3.0f);
+        }
+
+        expression.reduce (0, 6);
+        for (const yesdaw::ui::UiPianoRollExpressionLaneReadout& lane : pianoSurface.expressionLanes)
+        {
+            auto laneArea = expression.removeFromTop (36).reduced (0, 2);
+            g.setColour (juce::Colour (0xff0b1016));
+            g.fillRect (laneArea);
+            drawSmallLabel (g,
+                            lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? "Velocity" : "Pitch",
+                            laneArea.reduced (8, 0));
+
+            const double minValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 0.0 : 48.0;
+            const double maxValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 1.0 : 76.0;
+            juce::Path path;
+
+            for (std::size_t i = 0; i < lane.points.size(); ++i)
+            {
+                const auto& point = lane.points[i];
+                const double normalized = juce::jlimit (0.0, 1.0, (point.value - minValue) / (maxValue - minValue));
+                const float x = static_cast<float> (tickX (point.tick));
+                const float y = static_cast<float> (laneArea.getBottom() - 5)
+                    - static_cast<float> (normalized) * static_cast<float> (laneArea.getHeight() - 10);
+                if (i == 0)
+                    path.startNewSubPath (x, y);
+                else
+                    path.lineTo (x, y);
+
+                g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? kGreen : kPurple);
+                g.fillEllipse (x - 2.5f, y - 2.5f, 5.0f, 5.0f);
+            }
+
+            g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? kGreen : kPurple);
+            g.strokePath (path, juce::PathStrokeType (1.5f));
+        }
+    }
+
     void drawInspector (juce::Graphics& g, juce::Rectangle<int> area) const
     {
         fillPanel (g, area);
@@ -571,6 +734,7 @@ private:
     yesdaw::ui::UiActionRegistry registry;
     yesdaw::ui::UiActionContext context;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
+    yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
