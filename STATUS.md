@@ -103,9 +103,10 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 transport feedback and session smoke closeout checkpoint is local-green. The piano-roll input
-checkpoint `e23d821` is remote-green on GitHub Actions run `28452388337` across Linux, Windows, macOS,
-RTSan, and TSan. This checkpoint ties H12's separate input surfaces into one scripted shipped-shell
+**Now:** H12 transport feedback and session smoke closeout checkpoint is remote-green. The piano-roll input
+checkpoint `e23d821` is remote-green on GitHub Actions run `28452388337`, and the end-to-end session smoke
+checkpoint `3151829` is remote-green on run `28454041449`, both across Linux, Windows, macOS, RTSan, and
+TSan. The end-to-end checkpoint ties H12's separate input surfaces into one scripted shipped-shell
 session: the `ProjectNew` toolbar path can accept a test-provided initial Project while default shipped
 New still creates the normal empty session; `YesDawUiInputCheck` now clicks New, imports WAV, edits
 Timeline Clips through real pointer gestures, drives Play/Locate/Loop/Stop and meter/loudness-producing
@@ -128,8 +129,8 @@ locate/loop/stop plus scheduler repair `a9a57bf` on run `28418515621`, Timeline 
 shift-drag `3b0a337` on run `28419232690`, and Timeline Clip fades via real-shell Alt-edge drags
 `ca59170` on run `28426496982`, and Timeline Clip snap via real-shell Ctrl-drag `2d09fb6` on run
 `28428780783`, Track/Bus Project state + schema v4 bundle migration `abb92af` on run `28433828816`,
-mixer controls CI portability follow-up `adc8279` on run `28450407292`, and piano-roll input wiring
-`e23d821` on run `28452388337`.
+mixer controls CI portability follow-up `adc8279` on run `28450407292`, piano-roll input wiring
+`e23d821` on run `28452388337`, and end-to-end session smoke `3151829` on run `28454041449`.
 The transport checkpoint extends `YesDawUiInputCheck` so the imported-session harness drives Play, Locate,
 Loop, and Stop through the shipped toolbar `Button` Components after audible playback, then asserts playhead
 reset, loop toggle state, stop state, and command dispatch counts through the real `MainComponent` snapshot.
@@ -141,9 +142,9 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): push this end-to-end session smoke checkpoint and wait for remote CI. If
-it is green, run the H12 closeout audit/gate and update the handoff before closing H12. Do not start H13
-until H12 closeout is remote-green.**
+**Next (Codex - H12 closeout): run the H12 closeout audit/gate against the current plan and horizon exit
+criterion, update the handoff, commit, push, and wait for remote CI. Do not start H13 until H12 closeout is
+remote-green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
