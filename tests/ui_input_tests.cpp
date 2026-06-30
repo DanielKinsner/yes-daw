@@ -128,7 +128,8 @@ void clickButton (juce::Button& button)
 juce::MouseEvent makeMouseEvent (juce::Component& component,
                                  juce::Point<int> position,
                                  juce::Point<int> mouseDownPosition,
-                                 bool mouseWasDragged)
+                                 bool mouseWasDragged,
+                                 int numberOfClicks = 1)
 {
     const juce::Time now = juce::Time::getCurrentTime();
     return juce::MouseEvent (
@@ -145,7 +146,7 @@ juce::MouseEvent makeMouseEvent (juce::Component& component,
         now,
         mouseDownPosition.toFloat(),
         now,
-        1,
+        numberOfClicks,
         mouseWasDragged);
 }
 
@@ -166,6 +167,13 @@ void dragFromTo (juce::Component& component, juce::Point<int> start, juce::Point
 
     juce::MouseEvent up = makeMouseEvent (component, end, start, true);
     component.mouseUp (up);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+void doubleClickAt (juce::Component& component, juce::Point<int> position)
+{
+    juce::MouseEvent event = makeMouseEvent (component, position, position, false, 2);
+    component.mouseDoubleClick (event);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
@@ -384,6 +392,58 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.canUndo);
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 5);
+
+    doubleClickAt (timeline, { 80, 100 });
+
+    const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+    REQUIRE (split.clips.size() == 2u);
+    const yesdaw::engine::Clip& splitLeft = split.clips[0];
+    const yesdaw::engine::Clip& splitRight = split.clips[1];
+    REQUIRE (splitLeft.id == moved.clips.front().id);
+    REQUIRE (splitRight.id.isValid());
+    REQUIRE_FALSE (splitRight.id == splitLeft.id);
+    REQUIRE (splitLeft.assetId == asset.id);
+    REQUIRE (splitRight.assetId == asset.id);
+    REQUIRE (splitLeft.timelineStart == moved.clips.front().timelineStart);
+    REQUIRE (splitLeft.timelineLength > 0);
+    REQUIRE (splitRight.timelineLength > 0);
+    REQUIRE (splitRight.timelineStart == splitLeft.timelineStart + splitLeft.timelineLength);
+    REQUIRE (splitLeft.timelineLength + splitRight.timelineLength == moved.clips.front().timelineLength);
+    REQUIRE (splitLeft.srcOffset == moved.clips.front().srcOffset);
+    REQUIRE (splitRight.srcOffset == splitLeft.srcOffset + splitLeft.srcLen);
+    REQUIRE (splitLeft.srcLen + splitRight.srcLen == moved.clips.front().srcLen);
+    REQUIRE (splitLeft.sourceWindowFits (asset));
+    REQUIRE (splitRight.sourceWindowFits (asset));
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.timelineEditCount == 2);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 6);
+
+    clickButton (undo);
+
+    const yesdaw::engine::Project splitUndone = readProjectSnapshot (bundlePath);
+    REQUIRE (splitUndone.clips.size() == 1u);
+    REQUIRE (splitUndone.clips.front() == moved.clips.front());
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 2);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 7);
+
+    clickButton (redo);
+
+    const yesdaw::engine::Project splitRedone = readProjectSnapshot (bundlePath);
+    REQUIRE (splitRedone.clips == split.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 2);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 8);
 
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

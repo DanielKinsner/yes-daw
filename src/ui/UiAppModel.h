@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <utility>
 #include <vector>
@@ -345,6 +346,44 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult splitSelectedTimelineClipAt (engine::Tick timelineTick)
+    {
+        const UiActionId id = UiActionId::TimelineClipSplit;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        if (timelineTick <= clip->timelineStart)
+            return { id, { false, "split must be inside selected clip" }, false };
+
+        const engine::Tick leftTimelineLength = timelineTick - clip->timelineStart;
+        const std::optional<std::uint64_t> leftSourceLength = sourceLengthForSplit (*clip, leftTimelineLength);
+        if (! leftSourceLength)
+            return { id, { false, "split must be inside selected clip" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId rightClipId = allocateSessionEntityId (0xC2u, nextProject);
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::splitClip (
+                selectedTimelineClipId_, rightClipId, leftTimelineLength, *leftSourceLength));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -529,6 +568,31 @@ private:
                 return &clip;
 
         return nullptr;
+    }
+
+    [[nodiscard]] static std::optional<std::uint64_t> sourceLengthForSplit (
+        const engine::Clip& clip,
+        engine::Tick leftTimelineLength) noexcept
+    {
+        if (clip.timelineLength <= 0
+            || leftTimelineLength <= 0
+            || leftTimelineLength >= clip.timelineLength
+            || clip.srcLen <= 1u)
+        {
+            return std::nullopt;
+        }
+
+        const long double scaled =
+            (static_cast<long double> (leftTimelineLength) * static_cast<long double> (clip.srcLen))
+            / static_cast<long double> (clip.timelineLength);
+        if (scaled <= 0.0L || scaled >= static_cast<long double> (clip.srcLen))
+            return std::nullopt;
+
+        const auto sourceLength = static_cast<std::uint64_t> (scaled + 0.5L);
+        if (sourceLength == 0u || sourceLength >= clip.srcLen)
+            return std::nullopt;
+
+        return sourceLength;
     }
 
     void syncProjectEditContext() noexcept

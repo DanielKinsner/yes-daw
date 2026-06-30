@@ -315,6 +315,7 @@ public:
     std::function<void (int)> onClipClicked;
     std::function<void()> onEmptyClicked;
     std::function<void (int, double)> onClipMoved;
+    std::function<void (int, double)> onClipSplit;
 
     void paint (juce::Graphics& g) override
     {
@@ -378,6 +379,25 @@ public:
             onClipMoved (drag.layoutClipId, nextStartSeconds);
     }
 
+    void mouseDoubleClick (const juce::MouseEvent& event) override
+    {
+        if (! stateProvider)
+            return;
+
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineHitTestResult hit =
+            yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
+        if (! hit.hit)
+            return;
+
+        if (onClipClicked)
+            onClipClicked (hit.id);
+
+        if (const std::optional<double> splitSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+            if (onClipSplit)
+                onClipSplit (hit.id, *splitSeconds);
+    }
+
 private:
     struct TimelineDragState
     {
@@ -399,6 +419,20 @@ private:
                 return &state.clips[i];
 
         return nullptr;
+    }
+
+    [[nodiscard]] static std::optional<double> timelineSecondsAt (const yesdaw::ui::TimelineCanvasState& state,
+                                                                  juce::Rectangle<int> bounds,
+                                                                  juce::Point<int> position) noexcept
+    {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+        if (! geometry.clipArea.contains (position))
+            return std::nullopt;
+
+        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double seconds = geometry.viewport.scrollSeconds
+                             + static_cast<double> (position.x - geometry.clipArea.getX()) / pixelsPerSecond;
+        return std::max (0.0, seconds);
     }
 
     TimelineDragState dragState;
@@ -453,6 +487,9 @@ public:
         };
         timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds) {
             moveTimelineClipByLayoutId (timelineClipId, startSeconds);
+        };
+        timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
+            splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
         };
         addAndMakeVisible (timelineInput);
 
@@ -803,6 +840,19 @@ private:
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
             (void) appModel.moveSelectedTimelineClipTo (*tick);
+
+        refreshActionState();
+        repaint();
+    }
+
+    void splitTimelineClipByLayoutId (int layoutClipId, double splitSeconds)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        if (const auto tick = timelineTickFromSeconds (splitSeconds))
+            (void) appModel.splitSelectedTimelineClipAt (*tick);
 
         refreshActionState();
         repaint();
