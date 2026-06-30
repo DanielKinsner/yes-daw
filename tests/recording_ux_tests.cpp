@@ -187,6 +187,7 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.context.recordingCommandCount == 1);
     REQUIRE (snapshot.playbackReady);
     REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.midiClipSelected);
     REQUIRE (snapshot.lastRecordedAudioTake.assetId.isValid());
     REQUIRE (snapshot.lastRecordedAudioTake.clipId.isValid());
     REQUIRE (snapshot.lastRecordedAudioTake.takeId.isValid());
@@ -194,16 +195,23 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.lastRecordedAudioTake.timelineStart == 0);
     REQUIRE (snapshot.lastRecordedAudioTake.frames == 256u);
     REQUIRE (snapshot.lastRecordedAudioTake.channels == 1u);
+    REQUIRE (snapshot.lastRecordedMidiTake.midiClipId.isValid());
+    REQUIRE (snapshot.lastRecordedMidiTake.trackId == snapshot.recordingTrackInput.trackId);
+    REQUIRE (snapshot.lastRecordedMidiTake.timelineStart == snapshot.lastRecordedAudioTake.timelineStart);
+    REQUIRE (snapshot.lastRecordedMidiTake.timelineLength == static_cast<yesdaw::engine::Tick> (snapshot.lastRecordedAudioTake.frames));
+    REQUIRE (snapshot.lastRecordedMidiTake.noteCount == 2u);
 
     const yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
     REQUIRE (recorded.assets.size() == 1u);
     REQUIRE (recorded.clips.size() == 1u);
     REQUIRE (recorded.tracks.size() == 1u);
     REQUIRE (recorded.recordingTakes.size() == 1u);
+    REQUIRE (recorded.midiClips.size() == 1u);
 
     const yesdaw::engine::Asset& asset = recorded.assets.front();
     const yesdaw::engine::Clip& clip = recorded.clips.front();
     const yesdaw::engine::RecordingTake& take = recorded.recordingTakes.front();
+    const yesdaw::engine::MidiClip& midiClip = recorded.midiClips.front();
     REQUIRE (asset.id == snapshot.lastRecordedAudioTake.assetId);
     REQUIRE (asset.frames == 256u);
     REQUIRE (asset.sampleRate.hz == 48000.0);
@@ -226,6 +234,30 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (take.inputChannel == snapshot.recordingTrackInput.inputChannel);
     REQUIRE (take.deviceStableId == snapshot.recordingDevice.stableDeviceId);
     REQUIRE (take.monitoringPolicy == yesdaw::engine::RecordingMonitoringPolicy::DirectInput);
+    REQUIRE (midiClip.id == snapshot.lastRecordedMidiTake.midiClipId);
+    REQUIRE (midiClip.trackId == snapshot.recordingTrackInput.trackId);
+    REQUIRE (midiClip.timelineStart == clip.timelineStart);
+    REQUIRE (midiClip.timelineLength == clip.timelineLength);
+    REQUIRE (midiClip.timeBase == yesdaw::engine::TimeBase::SampleLocked);
+    REQUIRE (midiClip.notes.size() == 2u);
+    REQUIRE (midiClip.notes[0].startTick == 32);
+    REQUIRE (midiClip.notes[0].lengthTicks == 48);
+    REQUIRE (midiClip.notes[0].key == 60);
+    REQUIRE (midiClip.notes[0].pitchNote == 60.0);
+    REQUIRE (midiClip.notes[0].normalizedVelocity == 0.75);
+    REQUIRE (midiClip.notes[0].portIndex == 0);
+    REQUIRE (midiClip.notes[0].channel == snapshot.recordingTrackInput.inputChannel);
+    REQUIRE (midiClip.notes[1].startTick == 128);
+    REQUIRE (midiClip.notes[1].lengthTicks == 64);
+    REQUIRE (midiClip.notes[1].key == 67);
+    REQUIRE (midiClip.notes[1].pitchNote == 67.0);
+    REQUIRE (midiClip.notes[1].normalizedVelocity == 0.5);
+    REQUIRE (midiClip.notes[1].portIndex == 0);
+    REQUIRE (midiClip.notes[1].channel == snapshot.recordingTrackInput.inputChannel);
+
+    UiAppModel reopened;
+    REQUIRE (reopened.openProjectBundle (bundlePath).ok());
+    REQUIRE (reopened.project().midiClips == recorded.midiClips);
 
     const std::filesystem::path assetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

@@ -24,20 +24,25 @@ Assets as RIFF/WAVE 32-bit IEEE float PCM plus normalized Take metadata requirem
 recording checkpoint is remote-green on `main` (`908c530`, GitHub Actions run `28477123969`) and stores
 deterministic test-device captures as canonical float WAV Assets that reopen/decode byte-for-byte.
 
-**Now:** H13 Take metadata migration checkpoint is local-green and ready to commit/push. Schema v5 adds
-`recording_takes`; `Project` now carries `RecordingTake` rows linked to Asset/Track/Clip placement; the
-shipped `MainComponent` record path writes one Take for the deterministic audio capture with device,
-input-channel, ordinal, and monitoring-policy metadata; persistence tests round-trip the Take row and
-reject stored Take rows that no longer match their Clip/Asset window. Local gates: VS DevShell
-`cmake --build --preset ci --target YesDawPersistenceCheck YesDawRecordingUxCheck YesDawUiActionCheck
-YesDawAccessibilityCheck YesDawAppSmokeCheck`; direct `build-ci\YesDawPersistenceCheck.exe` **697
-assertions / 30 test cases**; `ctest --test-dir build-ci -R
-"YesDaw(RecordingUx|UiAction|Accessibility|AppSmoke)Check" --output-on-failure` **4/4**; VS DevShell
-`cmake --build --preset ci`; `ctest --preset ci --output-on-failure` **257/257**; and `git diff --check`.
+**Now:** H13 implementation checkpoint 7 is local-green and ready to commit/push. The Take metadata
+migration checkpoint is already remote-green on `main` (`0a13b49`, GitHub Actions run `28478650930`).
+The shipped `MainComponent` record path now writes deterministic MIDI Project data alongside the
+deterministic audio Take: one sample-locked MIDI Clip on the armed Track, two known-offset Notes on the
+selected input channel, and save/reopen parity through the bundle. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawRecordingUxCheck YesDawMidiTimingCheck YesDawDeviceHotSwapCheck
+YesDawUiActionCheck YesDawAccessibilityCheck YesDawAppSmokeCheck`; `ctest --test-dir build-ci -C Release
+-R "YesDaw(RecordingUx|MidiTiming|DeviceHotSwap|UiAction|Accessibility|AppSmoke)Check" --output-on-failure`
+**6/6**; and targeted Take/recording alignment cases `Project recording Takes round-trip through a
+reopened bundle`, `Opening an existing bundle rejects recording Takes that no longer match their Clip`,
+`punch loop recording creates deterministic take ordinals and comp selection`, `MIDI recording uses the
+same latency compensation as audio recording`, `MIDI recording filters out-of-window events and reports an
+undersized output`, and `direct-input recording compensates input latency only` **6/6**.
+Full local gate: VS DevShell `cmake --build --preset ci`; `ctest --preset ci --output-on-failure`
+**257/257**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 7):** add the shipped-shell MIDI recording path against the
-same Project-frame placement model: record deterministic MIDI input into bundle-persistent Project data,
-reopen it, and keep recording alignment plus device survival gates green.
+**Next (Codex - H13 implementation checkpoint 8):** add the H13 monitoring policy + latency calibration
+checkpoint: make the supported monitoring modes scriptable and mechanically assert direct-input versus
+latency-compensated placement without subjective listening.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

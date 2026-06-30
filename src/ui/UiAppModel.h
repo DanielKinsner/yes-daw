@@ -95,11 +95,21 @@ struct UiRecordedAudioTake
     std::uint16_t channels = 0;
 };
 
+struct UiRecordedMidiTake
+{
+    engine::EntityId midiClipId;
+    engine::EntityId trackId;
+    engine::Tick timelineStart = 0;
+    engine::Tick timelineLength = 0;
+    std::size_t noteCount = 0;
+};
+
 struct UiAppRecordResult
 {
     UiAppRecordStatus status = UiAppRecordStatus::Ok;
     UiAppImportResult importResult;
     UiRecordedAudioTake take;
+    UiRecordedMidiTake midiTake;
     UiActionState actionState {};
 
     [[nodiscard]] bool ok() const noexcept { return status == UiAppRecordStatus::Ok; }
@@ -137,6 +147,7 @@ public:
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
     [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
+    [[nodiscard]] const UiRecordedMidiTake& lastRecordedMidiTake() const noexcept { return lastRecordedMidiTake_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -296,7 +307,9 @@ public:
         }
 
         lastRecordedAudioTake_ = pendingAudioPlacement_;
+        lastRecordedMidiTake_ = pendingMidiPlacement_;
         result.take = lastRecordedAudioTake_;
+        result.midiTake = lastRecordedMidiTake_;
         context_.isRecording = true;
         ++context_.commandDispatchCount;
         ++context_.recordingCommandCount;
@@ -400,6 +413,48 @@ private:
             nextProject.recordingTakes.push_back (take);
         }
 
+        UiRecordedMidiTake placedMidiTake;
+        if (recordingTakeDraft)
+        {
+            engine::MidiClip midiClip;
+            midiClip.id = allocateSessionEntityId (0xD1u, nextProject);
+            midiClip.trackId = placedTrackId;
+            midiClip.timelineStart = clip.timelineStart;
+            midiClip.timelineLength = clip.timelineLength;
+            midiClip.timeBase = engine::TimeBase::SampleLocked;
+
+            engine::Note noteA;
+            noteA.id = allocateSessionEntityId (0xD2u, nextProject);
+            noteA.startTick = 32;
+            noteA.lengthTicks = 48;
+            noteA.key = 60;
+            noteA.pitchNote = 60.0;
+            noteA.normalizedVelocity = 0.75;
+            noteA.portIndex = 0;
+            noteA.channel = static_cast<std::int16_t> (recordingTakeDraft->inputChannel);
+
+            engine::Note noteB;
+            noteB.id = allocateSessionEntityId (0xD3u, nextProject);
+            noteB.startTick = 128;
+            noteB.lengthTicks = 64;
+            noteB.key = 67;
+            noteB.pitchNote = 67.0;
+            noteB.normalizedVelocity = 0.5;
+            noteB.portIndex = 0;
+            noteB.channel = static_cast<std::int16_t> (recordingTakeDraft->inputChannel);
+
+            midiClip.notes.push_back (noteA);
+            midiClip.notes.push_back (noteB);
+            placedMidiTake = {
+                midiClip.id,
+                placedTrackId,
+                midiClip.timelineStart,
+                midiClip.timelineLength,
+                midiClip.notes.size()
+            };
+            nextProject.midiClips.push_back (std::move (midiClip));
+        }
+
         if (! nextProject.hasValidAssetClipIndirection())
         {
             result.status = UiAppImportStatus::InvalidDecodedAudio;
@@ -441,9 +496,11 @@ private:
         context_.projectLoaded = true;
         selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
+        if (placedMidiTake.midiClipId.isValid())
+            selectedMidiClipId_ = placedMidiTake.midiClipId;
         context_.canUndo = false;
         context_.canRedo = false;
-        syncRecordingContext();
+        syncProjectEditContext();
         syncContextFromPlayback();
 
         pendingAudioPlacement_ = {
@@ -455,6 +512,7 @@ private:
             imported.frames,
             imported.channels
         };
+        pendingMidiPlacement_ = placedMidiTake;
 
         result.status = UiAppImportStatus::Ok;
         return result;
@@ -1677,7 +1735,9 @@ private:
         recordingDevice_ = {};
         recordingTrackInput_ = {};
         lastRecordedAudioTake_ = {};
+        lastRecordedMidiTake_ = {};
         pendingAudioPlacement_ = {};
+        pendingMidiPlacement_ = {};
         syncRecordingContext();
     }
 
@@ -1717,6 +1777,8 @@ private:
     UiRecordingTrackInputSelection recordingTrackInput_;
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
+    UiRecordedMidiTake lastRecordedMidiTake_;
+    UiRecordedMidiTake pendingMidiPlacement_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
