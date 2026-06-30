@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <fstream>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -73,6 +74,36 @@ struct UiAppImportResult
     [[nodiscard]] bool ok() const noexcept { return status == UiAppImportStatus::Ok; }
 };
 
+enum class UiAppRecordStatus : std::uint8_t
+{
+    Ok = 0,
+    PreconditionsNotMet,
+    SourceWriteFailed,
+    AssetImportFailed,
+    ProjectWriteFailed,
+    PlaybackBuildFailed
+};
+
+struct UiRecordedAudioTake
+{
+    engine::EntityId assetId;
+    engine::EntityId clipId;
+    engine::EntityId trackId;
+    engine::Tick timelineStart = 0;
+    std::uint64_t frames = 0;
+    std::uint16_t channels = 0;
+};
+
+struct UiAppRecordResult
+{
+    UiAppRecordStatus status = UiAppRecordStatus::Ok;
+    UiAppImportResult importResult;
+    UiRecordedAudioTake take;
+    UiActionState actionState {};
+
+    [[nodiscard]] bool ok() const noexcept { return status == UiAppRecordStatus::Ok; }
+};
+
 struct UiRecordingDeviceSelection
 {
     bool selected = false;
@@ -104,6 +135,7 @@ public:
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
+    [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -179,6 +211,96 @@ public:
     [[nodiscard]] UiAppImportResult importAudioFile (const std::filesystem::path& sourcePath,
                                                      UiDecodedAsset decoded)
     {
+        UiAppImportResult result = addAudioAssetClipFromSource (
+            sourcePath,
+            std::move (decoded),
+            std::nullopt,
+            0xA1u,
+            0xC1u);
+
+        if (result.ok())
+        {
+            ++context_.importCount;
+            ++context_.commandDispatchCount;
+        }
+
+        return result;
+    }
+
+    [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake()
+    {
+        UiAppRecordResult result;
+        syncRecordingContext();
+
+        const UiActionId id = UiActionId::TransportRecord;
+        result.actionState = registry_.stateFor (id, context_);
+        if (! result.actionState.enabled)
+        {
+            result.status = UiAppRecordStatus::PreconditionsNotMet;
+            return result;
+        }
+
+        if (context_.isRecording)
+        {
+            context_.isRecording = false;
+            ++context_.commandDispatchCount;
+            ++context_.recordingCommandCount;
+            return result;
+        }
+
+        UiDecodedAsset decoded = makeDeterministicRecordedAudio();
+        const std::filesystem::path sourcePath = makeRecordingSourceTempPath();
+        if (! writeDecodedAudioSourceBytes (sourcePath, decoded))
+        {
+            result.status = UiAppRecordStatus::SourceWriteFailed;
+            return result;
+        }
+
+        result.importResult = addAudioAssetClipFromSource (
+            sourcePath,
+            std::move (decoded),
+            recordingTrackInput_.trackId,
+            0xA2u,
+            0xC3u);
+
+        std::error_code removeError;
+        std::filesystem::remove (sourcePath, removeError);
+
+        switch (result.importResult.status)
+        {
+            case UiAppImportStatus::Ok:
+                break;
+            case UiAppImportStatus::AssetImportFailed:
+                result.status = UiAppRecordStatus::AssetImportFailed;
+                return result;
+            case UiAppImportStatus::ProjectWriteFailed:
+                result.status = UiAppRecordStatus::ProjectWriteFailed;
+                return result;
+            case UiAppImportStatus::PlaybackBuildFailed:
+                result.status = UiAppRecordStatus::PlaybackBuildFailed;
+                return result;
+            case UiAppImportStatus::NoBundleOpen:
+            case UiAppImportStatus::InvalidDecodedAudio:
+                result.status = UiAppRecordStatus::PreconditionsNotMet;
+                return result;
+        }
+
+        lastRecordedAudioTake_ = pendingAudioPlacement_;
+        result.take = lastRecordedAudioTake_;
+        context_.isRecording = true;
+        ++context_.commandDispatchCount;
+        ++context_.recordingCommandCount;
+        syncRecordingContext();
+        return result;
+    }
+
+private:
+    [[nodiscard]] UiAppImportResult addAudioAssetClipFromSource (const std::filesystem::path& sourcePath,
+                                                                 UiDecodedAsset decoded,
+                                                                 std::optional<engine::EntityId> targetTrackId,
+                                                                 std::uint8_t assetSeed,
+                                                                 std::uint8_t clipSeed)
+    {
         UiAppImportResult result;
 
         if (! bundleDb_.isOpen())
@@ -193,7 +315,7 @@ public:
             return result;
         }
 
-        const engine::EntityId requestedAssetId = allocateSessionEntityId (0xA1u);
+        const engine::EntityId requestedAssetId = allocateSessionEntityId (assetSeed);
         engine::Asset imported;
         const persistence::AssetImportRequest request {
             sourcePath,
@@ -213,12 +335,24 @@ public:
         engine::Project nextProject = project_;
         if (nextProject.findAsset (imported.id) == nullptr)
             nextProject.assets.push_back (imported);
-        const engine::Track& targetTrack = ensureDefaultAudioTrack (nextProject);
+
+        engine::Track* targetTrack = nullptr;
+        if (targetTrackId && targetTrackId->isValid())
+        {
+            for (engine::Track& track : nextProject.tracks)
+                if (track.id == *targetTrackId)
+                    targetTrack = &track;
+        }
+
+        if (targetTrack == nullptr)
+            targetTrack = &ensureDefaultAudioTrack (nextProject);
+
+        const engine::EntityId placedTrackId = targetTrack->id;
 
         engine::Clip clip;
-        clip.id = allocateSessionEntityId (0xC1u, nextProject);
+        clip.id = allocateSessionEntityId (clipSeed, nextProject);
         clip.assetId = imported.id;
-        clip.trackId = targetTrack.id;
+        clip.trackId = placedTrackId;
         clip.timelineStart = timelineEnd (nextProject);
         clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
         clip.srcOffset = 0;
@@ -272,14 +406,23 @@ public:
         context_.timelineClipSelected = true;
         context_.canUndo = false;
         context_.canRedo = false;
-        ++context_.importCount;
-        ++context_.commandDispatchCount;
+        syncRecordingContext();
         syncContextFromPlayback();
+
+        pendingAudioPlacement_ = {
+            imported.id,
+            clip.id,
+            placedTrackId,
+            clip.timelineStart,
+            imported.frames,
+            imported.channels
+        };
 
         result.status = UiAppImportStatus::Ok;
         return result;
     }
 
+public:
     [[nodiscard]] std::vector<float> renderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         if (playback_ == nullptr || frames == 0 || blockSize <= 0)
@@ -797,7 +940,10 @@ public:
                 return selectInputMonitoringPolicy();
 
             case UiActionId::TransportRecord:
-                return registry_.dispatch (id, context_);
+            {
+                const UiAppRecordResult recorded = recordDeterministicTestAudioTake();
+                return { id, recorded.actionState, recorded.ok() };
+            }
 
             case UiActionId::EditUndo:
                 return dispatchUndo (id, state);
@@ -1251,6 +1397,57 @@ private:
             && decoded.interleavedSamples.size() == static_cast<std::size_t> (expectedSamples);
     }
 
+    [[nodiscard]] UiDecodedAsset makeDeterministicRecordedAudio() const
+    {
+        constexpr std::uint64_t kFrames = 256;
+
+        UiDecodedAsset decoded;
+        decoded.sampleRate = recordingDevice_.sampleRate.isValid()
+            ? recordingDevice_.sampleRate
+            : engine::SampleRate { 48000.0 };
+        decoded.frames = kFrames;
+        decoded.channels = 1;
+        decoded.interleavedSamples.reserve (static_cast<std::size_t> (kFrames));
+
+        for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+        {
+            const int phase = static_cast<int> (frame % 16u);
+            decoded.interleavedSamples.push_back ((static_cast<float> (phase) - 7.5f) / 16.0f);
+        }
+
+        return decoded;
+    }
+
+    [[nodiscard]] std::filesystem::path makeRecordingSourceTempPath() const
+    {
+        const auto now = std::chrono::steady_clock::now().time_since_epoch();
+        const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds> (now).count();
+        return std::filesystem::temp_directory_path()
+             / ("yesdaw-recorded-test-device-" + std::to_string (nanos) + ".asset-source");
+    }
+
+    [[nodiscard]] static bool writeDecodedAudioSourceBytes (const std::filesystem::path& path,
+                                                            const UiDecodedAsset& decoded)
+    {
+        if (! decodedAudioIsValid (decoded))
+            return false;
+
+        std::error_code ec;
+        std::filesystem::create_directories (path.parent_path(), ec);
+        if (ec)
+            return false;
+
+        std::ofstream output (path, std::ios::binary | std::ios::trunc);
+        if (! output)
+            return false;
+
+        const auto bytes = static_cast<std::streamsize> (
+            decoded.interleavedSamples.size() * sizeof (float));
+        output.write (reinterpret_cast<const char*> (decoded.interleavedSamples.data()), bytes);
+        output.close();
+        return static_cast<bool> (output);
+    }
+
     static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
     {
         std::vector<engine::DecodedAssetAudio> views;
@@ -1445,6 +1642,8 @@ private:
         context_.activePanel = UiPanel::Timeline;
         recordingDevice_ = {};
         recordingTrackInput_ = {};
+        lastRecordedAudioTake_ = {};
+        pendingAudioPlacement_ = {};
         syncRecordingContext();
     }
 
@@ -1482,6 +1681,8 @@ private:
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     UiRecordingTrackInputSelection recordingTrackInput_;
+    UiRecordedAudioTake lastRecordedAudioTake_;
+    UiRecordedAudioTake pendingAudioPlacement_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

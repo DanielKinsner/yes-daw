@@ -14,24 +14,28 @@ worklog.
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
 adds the shipped-shell recording UX skeleton only; no irreversible bundle schema or recorded-audio asset
-format change is included.
+format change is included. The second implementation checkpoint is remote-green on `main` (`d9f4623`,
+GitHub Actions run `28473663050`) and wires deterministic test-device selection/refresh plus default
+Track/input arm state through `UiAppModel`.
 
-**Now:** H13 device selection + Track arm/input selection is local-green and ready to commit/push. The
-shipped `MainComponent` now drives deterministic test-device selection/refresh and default Track/input arm
-state through `UiAppModel`; invalid no-Track Projects keep Arm/Record disabled; refresh preserves the
-selected test device and armed input; accessibility/action parity remains green; and ADR-0031 device
-hot-swap survival remains green. No irreversible bundle schema or recorded-audio asset format change is
-included. Local gates: VS DevShell `cmake --build --preset ci --target YesDawRecordingUxCheck
-YesDawUiActionCheck YesDawAccessibilityCheck`; `ctest --test-dir build-ci -R
-"YesDaw(RecordingUx|UiAction|Accessibility)Check" --output-on-failure` **3/3**; `ctest --test-dir
-build-ci -R YesDawDeviceHotSwapCheck --output-on-failure`; VS DevShell `cmake --build --preset ci`;
-`ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
+**Now:** H13 first scripted audio recording path is local-green and ready to commit/push. The shipped
+`MainComponent` record flow now selects the test device, chooses monitoring, arms the default Track/input,
+clicks Record, copies deterministic test-device sample bytes through the existing bundle Asset import path,
+places a sample-locked non-destructive Clip on the armed Track, rebuilds playback from the recorded decoded
+samples, and proves the reopened Project contains the persisted Asset/Clip plus content-addressed asset
+file. No irreversible bundle schema is added; `.ysdtake` is not promoted; and no user-facing recorded-audio
+asset format is locked beyond existing opaque Asset bytes. Local gates: VS DevShell `cmake --build --preset
+ci --target YesDawRecordingUxCheck`; `ctest --test-dir build-ci -R YesDawRecordingUxCheck
+--output-on-failure`; VS DevShell `cmake --build --preset ci --target YesDawRecordingUxCheck
+YesDawUiActionCheck YesDawAccessibilityCheck YesDawAppSmokeCheck`; `ctest --test-dir build-ci -R
+"YesDaw(RecordingUx|UiAction|Accessibility|AppSmoke)Check" --output-on-failure` **4/4**; VS DevShell
+`cmake --build --preset ci`; `ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 3):** wire the first scripted audio recording path through
-the shipped shell: with a selected test device, armed Track/input, and monitoring policy, record deterministic
-audio into bundle-owned data and place a non-destructive Clip on the armed Track. Before implementation code
-lands, verify whether existing Asset + Project truth can represent the needed Take metadata; if a new
-irreversible bundle schema or recorded-audio asset format is required, write a focused ADR first.
+**Next (Codex - H13 implementation checkpoint 4):** make recorded audio survive save/reopen as a decoded
+recording, not only persisted Project/Asset/Clip truth: decide whether H13 needs a focused ADR for a
+permanent recorded-audio asset format and/or Take metadata schema, then add the narrow gate that reopens the
+bundle, decodes the recorded Asset, verifies deterministic samples, and keeps the non-destructive Clip on
+the armed Track.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

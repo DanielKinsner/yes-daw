@@ -1,6 +1,7 @@
 // YES DAW - H13 recording UX shipped-shell harness skeleton.
 
 #include "ui/MainComponent.h"
+#include "persistence/ProjectBundle.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -16,6 +17,7 @@ using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiAppModel;
 using yesdaw::ui::findMainComponentChildForAction;
 using yesdaw::ui::snapshotMainComponent;
+using yesdaw::persistence::ProjectBundleDb;
 
 namespace {
 
@@ -57,6 +59,16 @@ void clickButton (juce::Button& button)
 {
     button.triggerClick();
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+yesdaw::engine::Project readProjectSnapshot (const std::filesystem::path& bundlePath)
+{
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+
+    yesdaw::engine::Project project;
+    REQUIRE (db.readProjectSnapshot (project).ok());
+    return project;
 }
 
 } // namespace
@@ -166,6 +178,39 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isRecording);
     REQUIRE (snapshot.context.recordingCommandCount == 1);
+    REQUIRE (snapshot.playbackReady);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.lastRecordedAudioTake.assetId.isValid());
+    REQUIRE (snapshot.lastRecordedAudioTake.clipId.isValid());
+    REQUIRE (snapshot.lastRecordedAudioTake.trackId == snapshot.recordingTrackInput.trackId);
+    REQUIRE (snapshot.lastRecordedAudioTake.timelineStart == 0);
+    REQUIRE (snapshot.lastRecordedAudioTake.frames == 256u);
+    REQUIRE (snapshot.lastRecordedAudioTake.channels == 1u);
+
+    const yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.assets.size() == 1u);
+    REQUIRE (recorded.clips.size() == 1u);
+    REQUIRE (recorded.tracks.size() == 1u);
+
+    const yesdaw::engine::Asset& asset = recorded.assets.front();
+    const yesdaw::engine::Clip& clip = recorded.clips.front();
+    REQUIRE (asset.id == snapshot.lastRecordedAudioTake.assetId);
+    REQUIRE (asset.frames == 256u);
+    REQUIRE (asset.sampleRate.hz == 48000.0);
+    REQUIRE (asset.channels == 1u);
+    REQUIRE (clip.id == snapshot.lastRecordedAudioTake.clipId);
+    REQUIRE (clip.assetId == asset.id);
+    REQUIRE (clip.trackId == snapshot.recordingTrackInput.trackId);
+    REQUIRE (clip.timelineStart == 0);
+    REQUIRE (clip.timelineLength == 256);
+    REQUIRE (clip.srcOffset == 0u);
+    REQUIRE (clip.srcLen == 256u);
+    REQUIRE (clip.timeBase == yesdaw::engine::TimeBase::SampleLocked);
+
+    const std::filesystem::path assetPath =
+        bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
+    REQUIRE (std::filesystem::is_regular_file (assetPath));
+    REQUIRE (std::filesystem::file_size (assetPath) == 256u * sizeof (float));
 }
 
 TEST_CASE ("H13 recording UX rejects arming when the loaded Project has no Track",
