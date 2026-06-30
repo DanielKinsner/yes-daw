@@ -16,6 +16,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -29,6 +30,7 @@ constexpr int kHeaderHeight = 88;
 constexpr int kLeftRailWidth = 318;
 constexpr int kInspectorWidth = 248;
 constexpr int kMixerHeight = 260;
+constexpr const char* kTimelineComponentId = "timeline.canvas";
 
 const juce::Colour kBackground (0xff080c11);
 const juce::Colour kPanel (0xff11161c);
@@ -302,6 +304,40 @@ std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWavForImport (const std::fil
 
 } // namespace
 
+class TimelineInputComponent final : public juce::Component
+{
+public:
+    std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
+    std::function<void (int)> onClipClicked;
+    std::function<void()> onEmptyClicked;
+
+    void paint (juce::Graphics& g) override
+    {
+        if (stateProvider)
+            (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), stateProvider());
+    }
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (! stateProvider)
+            return;
+
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineHitTestResult hit =
+            yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
+
+        if (hit.hit)
+        {
+            if (onClipClicked)
+                onClipClicked (hit.id);
+            return;
+        }
+
+        if (onEmptyClicked)
+            onEmptyClicked();
+    }
+};
+
 class MainComponent : public juce::Component
 {
 public:
@@ -337,6 +373,20 @@ public:
             addAndMakeVisible (button);
         }
 
+        timelineInput.setComponentID (kTimelineComponentId);
+        timelineInput.setName ("Timeline");
+        timelineInput.setTitle ("Timeline");
+        timelineInput.stateProvider = [this] { return makeTimelineState(); };
+        timelineInput.onClipClicked = [this] (int timelineClipId) {
+            selectTimelineClipByLayoutId (timelineClipId);
+        };
+        timelineInput.onEmptyClicked = [this] {
+            appModel.clearTimelineClipSelection();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (timelineInput);
+
         refreshActionState();
     }
 
@@ -367,8 +417,6 @@ public:
         drawTrackList (g, left);
         if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
             drawPianoRoll (g, timeline);
-        else
-            drawTimeline (g, timeline);
         drawInspector (g, inspector);
         drawMixer (g, mixer.reduced (6, 8));
     }
@@ -395,9 +443,20 @@ public:
                 default: buttons[i].setBounds ({});
             }
         }
+
+        timelineInput.setBounds (timelineBounds());
     }
 
 private:
+    [[nodiscard]] juce::Rectangle<int> timelineBounds() const
+    {
+        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        work.removeFromBottom (kMixerHeight);
+        work.removeFromLeft (kLeftRailWidth);
+        work.removeFromRight (kInspectorWidth);
+        return work.reduced (6, 10);
+    }
+
     void handleAction (yesdaw::ui::UiActionId action)
     {
         switch (action)
@@ -452,6 +511,8 @@ private:
                                                && appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll),
                                        juce::dontSendNotification);
         }
+
+        timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -563,22 +624,91 @@ private:
         }
     }
 
-    void drawTimeline (juce::Graphics& g, juce::Rectangle<int> area) const
+    yesdaw::ui::TimelineCanvasState makeTimelineState()
     {
+        rebuildTimelineClipViews();
+
         yesdaw::ui::TimelineCanvasState state;
-        state.tracks = kTracks.data();
-        state.trackCount = static_cast<int> (kTracks.size());
-        state.clips = kClips.data();
-        state.clipStyles = kClipStyles.data();
-        state.clipCount = static_cast<int> (kClips.size());
+        if (timelineClips.empty())
+        {
+            state.tracks = kTracks.data();
+            state.trackCount = static_cast<int> (kTracks.size());
+            state.clips = kClips.data();
+            state.clipStyles = kClipStyles.data();
+            state.clipCount = static_cast<int> (kClips.size());
+            state.totalSeconds = 98.0;
+            state.playheadSeconds = 32.0;
+        }
+        else
+        {
+            state.tracks = projectTimelineTrack.data();
+            state.trackCount = static_cast<int> (projectTimelineTrack.size());
+            state.clips = timelineClips.data();
+            state.clipStyles = timelineClipStyles.data();
+            state.clipCount = static_cast<int> (timelineClips.size());
+            state.totalSeconds = timelineTotalSeconds;
+            state.playheadSeconds = 0.0;
+        }
+
         state.markers = kTimelineMarkers.data();
         state.markerCount = static_cast<int> (kTimelineMarkers.size());
         state.viewport.scrollSeconds = 0.0;
-        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (1, area.getWidth() - 24)) / 98.0;
-        state.totalSeconds = 98.0;
-        state.playheadSeconds = 32.0;
+        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (1, timelineInput.getWidth() - 26))
+                                      / std::max (1.0, state.totalSeconds);
+        return state;
+    }
 
-        (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
+    void rebuildTimelineClipViews()
+    {
+        timelineClips.clear();
+        timelineClipStyles.clear();
+        timelineClipIds.clear();
+
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! appModel.context().projectLoaded || project.clips.empty() || ! project.sampleRate.isValid())
+        {
+            timelineTotalSeconds = 98.0;
+            return;
+        }
+
+        double endSeconds = 0.0;
+        const double sampleRate = project.sampleRate.hz;
+
+        for (const yesdaw::engine::Clip& clip : project.clips)
+        {
+            if (! clip.id.isValid()
+                || clip.timelineStart < 0
+                || clip.timelineLength <= 0
+                || project.findAsset (clip.assetId) == nullptr)
+            {
+                continue;
+            }
+
+            const double startSeconds = static_cast<double> (clip.timelineStart) / sampleRate;
+            const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
+            const int id = static_cast<int> (timelineClips.size());
+            timelineClips.push_back ({ id, 0, startSeconds, lengthSeconds });
+            timelineClipStyles.push_back ({ kPurple, 0.82f });
+            timelineClipIds.push_back (clip.id);
+            endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+        }
+
+        timelineTotalSeconds = std::max (1.0, endSeconds * 1.25);
+    }
+
+    void selectTimelineClipByLayoutId (int layoutClipId)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+        {
+            appModel.clearTimelineClipSelection();
+        }
+        else
+        {
+            (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        }
+
+        refreshActionState();
+        repaint();
     }
 
     void drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area) const
@@ -830,6 +960,12 @@ private:
     yesdaw::ui::MainComponentFileChoices fileChoices;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
     yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
+    std::array<TrackRow, 1> projectTimelineTrack {{{ "Audio 1", kPurple, 0.75f }}};
+    std::vector<yesdaw::ui::Clip> timelineClips;
+    std::vector<TimelineClipStyle> timelineClipStyles;
+    std::vector<yesdaw::engine::EntityId> timelineClipIds;
+    double timelineTotalSeconds = 98.0;
+    TimelineInputComponent timelineInput;
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

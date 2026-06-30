@@ -59,6 +59,15 @@ struct TimelineCanvasPaintStats
     bool hitVisibleClipCapacity = false;
 };
 
+struct TimelineCanvasGeometry
+{
+    juce::Rectangle<int> toolbarArea;
+    juce::Rectangle<int> rulerArea;
+    juce::Rectangle<int> clipArea;
+    Viewport viewport;
+    int laneHeight = 0;
+};
+
 namespace timeline_canvas_detail {
 
 constexpr int kVisibleClipCapacity = 4096;
@@ -253,6 +262,44 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
 
 } // namespace timeline_canvas_detail
 
+inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
+                                                       const TimelineCanvasState& state)
+{
+    TimelineCanvasGeometry geometry;
+    if (area.getWidth() <= 0 || area.getHeight() <= 0)
+        return geometry;
+
+    auto content = area.reduced (1);
+    geometry.toolbarArea = content.removeFromTop (36);
+    geometry.rulerArea = content.removeFromTop (48);
+    geometry.clipArea = content.reduced (12, 0);
+
+    const int laneCount = std::max (1, state.trackCount);
+    geometry.laneHeight = std::max (8, geometry.clipArea.getHeight() / laneCount);
+
+    geometry.viewport = state.viewport;
+    geometry.viewport.pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+    geometry.viewport.widthPixels = static_cast<double> (geometry.clipArea.getWidth());
+    geometry.viewport.laneHeightPixels = static_cast<double> (geometry.laneHeight);
+    return geometry;
+}
+
+inline TimelineHitTestResult hitTestTimelineCanvas (juce::Rectangle<int> area,
+                                                    const TimelineCanvasState& state,
+                                                    juce::Point<int> position)
+{
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    if (state.clips == nullptr || state.clipCount <= 0 || ! geometry.clipArea.contains (position))
+        return {};
+
+    return hitTestVisibleClip (
+        state.clips,
+        state.clipCount,
+        geometry.viewport,
+        static_cast<double> (position.x - geometry.clipArea.getX()),
+        static_cast<double> (position.y - geometry.clipArea.getY()));
+}
+
 inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Rectangle<int> area,
                                                      const TimelineCanvasState& state)
 {
@@ -266,19 +313,13 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
 
     fillPanel (g, area);
 
-    auto content = area.reduced (1);
-    drawToolbar (g, content.removeFromTop (36));
-    auto ruler = content.removeFromTop (48);
-    auto clipArea = content.reduced (12, 0);
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const auto clipArea = geometry.clipArea;
+    const auto ruler = geometry.rulerArea;
+    const auto vp = geometry.viewport;
+    const int laneHeight = geometry.laneHeight;
 
-    const int laneCount = std::max (1, state.trackCount);
-    const int laneHeight = std::max (8, clipArea.getHeight() / laneCount);
-
-    Viewport vp = state.viewport;
-    vp.pixelsPerSecond = std::max (1.0, vp.pixelsPerSecond);
-    vp.widthPixels = static_cast<double> (clipArea.getWidth());
-    vp.laneHeightPixels = static_cast<double> (laneHeight);
-
+    drawToolbar (g, geometry.toolbarArea);
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, vp, laneHeight);
 

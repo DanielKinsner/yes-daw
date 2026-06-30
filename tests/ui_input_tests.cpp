@@ -30,6 +30,8 @@ using yesdaw::ui::snapshotMainComponent;
 
 namespace {
 
+constexpr const char* kTimelineComponentId = "timeline.canvas";
+
 std::filesystem::path makeTempBundlePath (std::string label)
 {
     const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -81,6 +83,19 @@ std::unique_ptr<juce::Component> makeShell (MainComponentFileChoices fileChoices
     return shell;
 }
 
+juce::Component* findChildWithComponentId (juce::Component& component, const juce::String& componentId)
+{
+    if (component.getComponentID() == componentId)
+        return &component;
+
+    for (int i = 0; i < component.getNumChildComponents(); ++i)
+        if (juce::Component* child = component.getChildComponent (i))
+            if (juce::Component* found = findChildWithComponentId (*child, componentId))
+                return found;
+
+    return nullptr;
+}
+
 juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 {
     juce::Component* component = findMainComponentChildForAction (shell, action);
@@ -94,9 +109,43 @@ juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
     return *button;
 }
 
+juce::Component& requireTimelineComponent (juce::Component& shell)
+{
+    juce::Component* component = findChildWithComponentId (shell, kTimelineComponentId);
+    REQUIRE (component != nullptr);
+    REQUIRE (component->isVisible());
+    REQUIRE (component->getWidth() > 0);
+    REQUIRE (component->getHeight() > 0);
+    return *component;
+}
+
 void clickButton (juce::Button& button)
 {
     button.triggerClick();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+void mouseDownAt (juce::Component& component, juce::Point<int> position)
+{
+    const juce::Time now = juce::Time::getCurrentTime();
+    juce::MouseEvent event (
+        juce::Desktop::getInstance().getMainMouseSource(),
+        position.toFloat(),
+        juce::ModifierKeys::leftButtonModifier,
+        juce::MouseInputSource::defaultPressure,
+        juce::MouseInputSource::defaultOrientation,
+        juce::MouseInputSource::defaultRotation,
+        juce::MouseInputSource::defaultTiltX,
+        juce::MouseInputSource::defaultTiltY,
+        &component,
+        &component,
+        now,
+        position.toFloat(),
+        now,
+        1,
+        false);
+
+    component.mouseDown (event);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
@@ -108,7 +157,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size()));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 1u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -259,6 +308,21 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (clip.srcOffset == 0u);
     REQUIRE (clip.srcLen == asset.frames);
     REQUIRE (clip.sourceWindowFits (asset));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.commandDispatchCount == 2);
+    REQUIRE (snapshot.context.timelineEditCount == 0);
+
+    mouseDownAt (timeline, { 30, 100 });
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.commandDispatchCount == 2);
+    REQUIRE (snapshot.context.timelineEditCount == 0);
 
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

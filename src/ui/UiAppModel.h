@@ -77,6 +77,7 @@ public:
     [[nodiscard]] const UiActionRegistry& registry() const noexcept { return registry_; }
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
     [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
+    [[nodiscard]] engine::EntityId selectedTimelineClipId() const noexcept { return selectedTimelineClipId_; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
 
@@ -240,6 +241,7 @@ public:
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         playback_ = std::move (built.engine);
         context_.projectLoaded = true;
+        selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
         context_.canUndo = false;
         context_.canRedo = false;
@@ -295,6 +297,28 @@ public:
         (void) playback_->reclaim();
         syncContextFromPlayback();
         return interleaved;
+    }
+
+    [[nodiscard]] bool selectTimelineClip (engine::EntityId clipId) noexcept
+    {
+        if (findClip (clipId) == nullptr)
+        {
+            clearTimelineClipSelection();
+            return false;
+        }
+
+        selectedTimelineClipId_ = clipId;
+        context_.timelineClipSelected = true;
+        context_.activePanel = UiPanel::Timeline;
+        return true;
+    }
+
+    void clearTimelineClipSelection() noexcept
+    {
+        selectedTimelineClipId_ = {};
+        context_.timelineClipSelected = false;
+        if (context_.activePanel != UiPanel::PianoRoll)
+            context_.activePanel = UiPanel::Timeline;
     }
 
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
@@ -467,6 +491,18 @@ public:
     }
 
 private:
+    [[nodiscard]] const engine::Clip* findClip (engine::EntityId clipId) const noexcept
+    {
+        if (! clipId.isValid())
+            return nullptr;
+
+        for (const engine::Clip& clip : project_.clips)
+            if (clip.id == clipId)
+                return &clip;
+
+        return nullptr;
+    }
+
     [[nodiscard]] static bool decodedAudioIsValid (const UiDecodedAsset& decoded) noexcept
     {
         if (! decoded.sampleRate.isValid() || decoded.frames == 0 || decoded.channels == 0)
@@ -633,6 +669,7 @@ private:
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
         project_ = std::move (project);
+        selectedTimelineClipId_ = {};
         decodedAssets_.clear();
         decodedAssetViews_.clear();
         playback_.reset();
@@ -669,6 +706,7 @@ private:
     persistence::ProjectBundleDb bundleDb_;
     std::filesystem::path bundlePath_;
     engine::Project project_;
+    engine::EntityId selectedTimelineClipId_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

@@ -15,6 +15,7 @@
 using yesdaw::ui::Clip;
 using yesdaw::ui::Viewport;
 using yesdaw::ui::ElementRect;
+using yesdaw::ui::hitTestVisibleClip;
 using yesdaw::ui::layoutVisible;
 
 namespace {
@@ -91,6 +92,32 @@ TEST_CASE ("output capacity is respected", "[timeline][capacity]")
     ElementRect out[10];
     const int n = layoutVisible (clips.data(), (int) clips.size(), vp, out, 10);
     REQUIRE (n == 10);   // never writes past the buffer
+}
+
+TEST_CASE ("timeline hit-testing maps pixels back to the topmost visible clip", "[timeline][hit-test]")
+{
+    Viewport vp; vp.scrollSeconds = 10.0; vp.pixelsPerSecond = 100.0; vp.widthPixels = 640.0;
+    vp.laneHeightPixels = 50.0;
+
+    const Clip clips[] = {
+        { 10, 0, 10.0, 2.0 },
+        { 11, 0, 10.5, 2.0 },
+        { 12, 1, 10.0, 2.0 },
+    };
+
+    const auto overlapped = hitTestVisibleClip (clips, 3, vp, 75.0, 20.0);
+    REQUIRE (overlapped.hit);
+    REQUIRE (overlapped.id == 11);
+    REQUIRE (overlapped.lane == 0);
+    REQUIRE (overlapped.clipIndex == 1);
+
+    const auto secondLane = hitTestVisibleClip (clips, 3, vp, 75.0, 70.0);
+    REQUIRE (secondLane.hit);
+    REQUIRE (secondLane.id == 12);
+    REQUIRE (secondLane.lane == 1);
+
+    REQUIRE_FALSE (hitTestVisibleClip (clips, 3, vp, 630.0, 20.0).hit);
+    REQUIRE_FALSE (hitTestVisibleClip (clips, 3, vp, -1.0, 20.0).hit);
 }
 
 TEST_CASE ("laying out a big project costs far less than one 60 fps frame", "[timeline][perf]")
