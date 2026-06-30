@@ -125,10 +125,13 @@ void clickButton (juce::Button& button)
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
-void mouseDownAt (juce::Component& component, juce::Point<int> position)
+juce::MouseEvent makeMouseEvent (juce::Component& component,
+                                 juce::Point<int> position,
+                                 juce::Point<int> mouseDownPosition,
+                                 bool mouseWasDragged)
 {
     const juce::Time now = juce::Time::getCurrentTime();
-    juce::MouseEvent event (
+    return juce::MouseEvent (
         juce::Desktop::getInstance().getMainMouseSource(),
         position.toFloat(),
         juce::ModifierKeys::leftButtonModifier,
@@ -140,12 +143,29 @@ void mouseDownAt (juce::Component& component, juce::Point<int> position)
         &component,
         &component,
         now,
-        position.toFloat(),
+        mouseDownPosition.toFloat(),
         now,
         1,
-        false);
+        mouseWasDragged);
+}
 
+void mouseDownAt (juce::Component& component, juce::Point<int> position)
+{
+    juce::MouseEvent event = makeMouseEvent (component, position, position, false);
     component.mouseDown (event);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+void dragFromTo (juce::Component& component, juce::Point<int> start, juce::Point<int> end)
+{
+    juce::MouseEvent down = makeMouseEvent (component, start, start, false);
+    component.mouseDown (down);
+
+    juce::MouseEvent drag = makeMouseEvent (component, end, start, true);
+    component.mouseDrag (drag);
+
+    juce::MouseEvent up = makeMouseEvent (component, end, start, true);
+    component.mouseUp (up);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
@@ -323,6 +343,47 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.timelineClipSelected);
     REQUIRE (snapshot.context.commandDispatchCount == 2);
     REQUIRE (snapshot.context.timelineEditCount == 0);
+
+    dragFromTo (timeline, { 30, 100 }, { 34, 100 });
+
+    const yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    REQUIRE (moved.clips.size() == 1u);
+    REQUIRE (moved.clips.front().timelineStart > 0);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.timelineEditCount == 1);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 3);
+
+    juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
+    REQUIRE (undo.isEnabled());
+    clickButton (undo);
+
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.clips.size() == 1u);
+    REQUIRE (undone.clips.front().timelineStart == 0);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 1);
+    REQUIRE_FALSE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 4);
+
+    juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
+    REQUIRE (redo.isEnabled());
+    clickButton (redo);
+
+    const yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.clips.size() == 1u);
+    REQUIRE (redone.clips.front().timelineStart == moved.clips.front().timelineStart);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 1);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 5);
 
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

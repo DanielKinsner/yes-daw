@@ -7,6 +7,7 @@
 
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "engine/ProjectUndo.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 
@@ -321,6 +322,29 @@ public:
             context_.activePanel = UiPanel::Timeline;
     }
 
+    [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (engine::Tick timelineStart)
+    {
+        const UiActionId id = UiActionId::TimelineClipMove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::moveClip (selectedTimelineClipId_, timelineStart));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -432,7 +456,11 @@ public:
                 return { id, { false, "audio device refresh requires device payload" }, false };
 
             case UiActionId::EditUndo:
+                return dispatchUndo (id, state);
+
             case UiActionId::EditRedo:
+                return dispatchRedo (id, state);
+
             case UiActionId::ViewTimeline:
             case UiActionId::ViewMixer:
             case UiActionId::ViewPianoRoll:
@@ -501,6 +529,76 @@ private:
                 return &clip;
 
         return nullptr;
+    }
+
+    void syncProjectEditContext() noexcept
+    {
+        context_.projectLoaded = project_.hasValidAssetClipIndirection();
+        context_.canUndo = undo_.canUndo();
+        context_.canRedo = undo_.canRedo();
+        context_.timelineClipSelected = selectedTimelineClipId_.isValid() && findClip (selectedTimelineClipId_) != nullptr;
+    }
+
+    [[nodiscard]] bool adoptEditedProject (engine::Project nextProject,
+                                           engine::ProjectUndoStack nextUndo)
+    {
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
+            nextProject,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+
+        if (! built.ok())
+            return false;
+
+        if (bundleDb_.isOpen())
+        {
+            persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return false;
+        }
+
+        (void) built.engine->stop();
+        drainTransport (*built.engine);
+
+        project_ = std::move (nextProject);
+        undo_ = std::move (nextUndo);
+        decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        playback_ = std::move (built.engine);
+        syncProjectEditContext();
+        syncContextFromPlayback();
+        return true;
+    }
+
+    [[nodiscard]] UiActionDispatchResult dispatchUndo (UiActionId id, UiActionState state)
+    {
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectUndoStatus undoStatus = nextUndo.undo (nextProject);
+        if (undoStatus != engine::ProjectUndoStatus::Applied)
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "undo did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.undoCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult dispatchRedo (UiActionId id, UiActionState state)
+    {
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectUndoStatus undoStatus = nextUndo.redo (nextProject);
+        if (undoStatus != engine::ProjectUndoStatus::Applied)
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "redo did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.redoCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] static bool decodedAudioIsValid (const UiDecodedAsset& decoded) noexcept
@@ -670,6 +768,7 @@ private:
         bundlePath_ = bundlePath;
         project_ = std::move (project);
         selectedTimelineClipId_ = {};
+        undo_ = {};
         decodedAssets_.clear();
         decodedAssetViews_.clear();
         playback_.reset();
@@ -706,6 +805,7 @@ private:
     persistence::ProjectBundleDb bundleDb_;
     std::filesystem::path bundlePath_;
     engine::Project project_;
+    engine::ProjectUndoStack undo_;
     engine::EntityId selectedTimelineClipId_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;

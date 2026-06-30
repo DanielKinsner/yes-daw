@@ -223,11 +223,13 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
-inline constexpr std::array<UiActionId, 10> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 12> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
     UiActionId::ProjectImportAudio,
+    UiActionId::EditUndo,
+    UiActionId::EditRedo,
     UiActionId::TransportPlay,
     UiActionId::TransportStop,
     UiActionId::TransportLocateStart,
@@ -241,7 +243,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 10>& mainShellToolbarActions()
+inline const std::array<UiActionId, 12>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }

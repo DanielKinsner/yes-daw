@@ -13,7 +13,9 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -208,6 +210,8 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::ProjectOpen: return "Open";
         case yesdaw::ui::UiActionId::ProjectSave: return "Save";
         case yesdaw::ui::UiActionId::ProjectImportAudio: return "Import";
+        case yesdaw::ui::UiActionId::EditUndo: return "Undo";
+        case yesdaw::ui::UiActionId::EditRedo: return "Redo";
         case yesdaw::ui::UiActionId::TransportPlay: return "Play";
         case yesdaw::ui::UiActionId::TransportStop: return "Stop";
         case yesdaw::ui::UiActionId::TransportLocateStart: return "|<";
@@ -310,6 +314,7 @@ public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
     std::function<void (int)> onClipClicked;
     std::function<void()> onEmptyClicked;
+    std::function<void (int, double)> onClipMoved;
 
     void paint (juce::Graphics& g) override
     {
@@ -330,12 +335,73 @@ public:
         {
             if (onClipClicked)
                 onClipClicked (hit.id);
+
+            dragState = {};
+            dragState.active = true;
+            dragState.layoutClipId = hit.id;
+            dragState.downPosition = event.getPosition();
+            if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
+                dragState.startSeconds = clip->startSeconds;
             return;
         }
 
+        dragState = {};
         if (onEmptyClicked)
             onEmptyClicked();
     }
+
+    void mouseDrag (const juce::MouseEvent&) override
+    {
+        if (dragState.active)
+            dragState.moved = true;
+    }
+
+    void mouseUp (const juce::MouseEvent& event) override
+    {
+        if (! dragState.active)
+            return;
+
+        const TimelineDragState drag = dragState;
+        dragState = {};
+
+        const int deltaX = event.getPosition().x - drag.downPosition.x;
+        if (! drag.moved || std::abs (deltaX) < 2 || ! stateProvider)
+            return;
+
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double nextStartSeconds = std::max (0.0, drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
+
+        if (onClipMoved)
+            onClipMoved (drag.layoutClipId, nextStartSeconds);
+    }
+
+private:
+    struct TimelineDragState
+    {
+        bool active = false;
+        bool moved = false;
+        int layoutClipId = -1;
+        double startSeconds = 0.0;
+        juce::Point<int> downPosition;
+    };
+
+    [[nodiscard]] static const yesdaw::ui::Clip* findClipByLayoutId (const yesdaw::ui::TimelineCanvasState& state,
+                                                                     int layoutClipId) noexcept
+    {
+        if (state.clips == nullptr)
+            return nullptr;
+
+        for (int i = 0; i < state.clipCount; ++i)
+            if (state.clips[i].id == layoutClipId)
+                return &state.clips[i];
+
+        return nullptr;
+    }
+
+    TimelineDragState dragState;
 };
 
 class MainComponent : public juce::Component
@@ -384,6 +450,9 @@ public:
             appModel.clearTimelineClipSelection();
             refreshActionState();
             repaint();
+        };
+        timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds) {
+            moveTimelineClipByLayoutId (timelineClipId, startSeconds);
         };
         addAndMakeVisible (timelineInput);
 
@@ -434,6 +503,8 @@ public:
                 case yesdaw::ui::UiActionId::ProjectOpen: buttons[i].setBounds (64, 50, 50, 26); break;
                 case yesdaw::ui::UiActionId::ProjectSave: buttons[i].setBounds (118, 50, 48, 26); break;
                 case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (170, 50, 64, 26); break;
+                case yesdaw::ui::UiActionId::EditUndo: buttons[i].setBounds (244, 50, 42, 26); break;
+                case yesdaw::ui::UiActionId::EditRedo: buttons[i].setBounds (290, 50, 42, 26); break;
                 case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (336, 16, 56, 56); break;
                 case yesdaw::ui::UiActionId::TransportPlay: buttons[i].setBounds (392, 16, 56, 56); break;
                 case yesdaw::ui::UiActionId::TransportStop: buttons[i].setBounds (448, 16, 56, 56); break;
@@ -706,6 +777,32 @@ private:
         {
             (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         }
+
+        refreshActionState();
+        repaint();
+    }
+
+    [[nodiscard]] std::optional<yesdaw::engine::Tick> timelineTickFromSeconds (double seconds) const noexcept
+    {
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! project.sampleRate.isValid() || ! std::isfinite (seconds) || seconds < 0.0)
+            return std::nullopt;
+
+        const double ticks = seconds * project.sampleRate.hz;
+        if (ticks > static_cast<double> (std::numeric_limits<yesdaw::engine::Tick>::max()))
+            return std::nullopt;
+
+        return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
+    }
+
+    void moveTimelineClipByLayoutId (int layoutClipId, double startSeconds)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        if (const auto tick = timelineTickFromSeconds (startSeconds))
+            (void) appModel.moveSelectedTimelineClipTo (*tick);
 
         refreshActionState();
         repaint();
