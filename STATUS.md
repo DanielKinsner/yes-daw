@@ -111,13 +111,14 @@ H12, and unblocks the next implementation checkpoint: Track/Bus Project state pl
 H12 step 6 mixer controls claim save/reopen parity. Remote CI run `28429772220` passed Linux, Windows,
 RTSan, and TSan, but macOS failed only `YesDawTimelineGpuCheck`: the old single-worst-frame gate saw
 `max_frame_ms=33.4825` while the same run still painted 336 visible clips and hit the expected checksum.
-The active follow-up keeps the same 20,640-clip canvas fixture plus visible/content assertions, records all
-measured frames, and fails on sustained over-budget paint (`p99_frame_ms < 16.6` and `slow_frames <= 1`)
-so one shared-runner scheduler pause does not masquerade as a renderer regression. Local gates are green:
-`git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawTimelineGpuCheck`;
-`ctest --preset ci -R YesDawTimelineGpuCheck --output-on-failure` **1/1**; verbose
-`YesDawTimelineGpuCheck.exe -s "[timeline][gpu][perf]"` (`max_frame_ms=3.2852`, `p99_frame_ms=2.8829`,
-`slow_frames=0`, `max_visible_clips=336`); VS DevShell `cmake --build --preset ci`; and
+Follow-up commit `fe00ac4` keeps the same 20,640-clip canvas fixture plus visible/content assertions,
+records all measured frames, and fails on sustained over-budget paint (`p99_frame_ms < 16.6` and
+`slow_frames <= 1`) so one shared-runner scheduler pause does not masquerade as a renderer regression.
+That follow-up is remote-green on GitHub Actions run `28430803662` across Linux, Windows, macOS, RTSan,
+and TSan. Local gates were green: `git diff --check`; VS DevShell focused Timeline build; `ctest --preset
+ci -R YesDawTimelineGpuCheck --output-on-failure` **1/1**; verbose
+`YesDawTimelineGpuCheck.exe -s "[timeline][gpu][perf]"` (`max_frame_ms=3.2852`,
+`p99_frame_ms=2.8829`, `slow_frames=0`, `max_visible_clips=336`); VS DevShell full build; and
 `ctest --preset ci --output-on-failure` **251/251**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
@@ -141,9 +142,8 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): commit/push this timeline gate follow-up, wait for remote CI, then start
-the H12 Track/Bus Project state + bundle migration checkpoint. Do not wire H12 step 6 mixer controls until
-that schema/migration checkpoint is mechanically green.**
+**Next (Codex - H12 end-to-end): start the H12 Track/Bus Project state + bundle migration checkpoint. Do
+not wire H12 step 6 mixer controls until that schema/migration checkpoint is mechanically green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
