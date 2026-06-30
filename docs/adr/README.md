@@ -53,6 +53,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0033](0033-h12-operable-session-ux.md) | H12 operable session UX | Accepted |
 | [0034](0034-mixer-state-schema-and-persistence.md) | Mixer-state schema and persistence (Track/Bus/strip state) | Accepted |
 | [0035](0035-h13-recording-and-device-ux.md) | H13 recording and device UX | Accepted |
+| [0036](0036-recorded-audio-assets-and-takes.md) | Recorded audio assets and Take metadata | Accepted |
 
 ## Decision status (the five research forks)
 

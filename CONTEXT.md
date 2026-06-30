@@ -230,6 +230,11 @@ _Avoid_: MIDI region, MIDI file (unless discussing import/export)
 One recorded pass placed on the timeline. Loop recording creates one Take per loop iteration.
 _Avoid_: clip (when discussing the recorded pass before comping)
 
+**Take metadata**:
+Saved Project bundle rows that identify a Take and link it to its Asset, Track, Clip, timing window,
+device/input, and monitoring policy. It is Project truth, not something inferred from a filename.
+_Avoid_: treating a recorded Clip as the Take identity
+
 **Comp**:
 A timeline selection assembled from one or more Takes.
 _Avoid_: best take (too subjective), flatten (that means destructive replacement)
@@ -246,6 +251,11 @@ _Avoid_: overdub (unless the mode actually merges into an existing Take)
 The underlying audio a clip points into. Copied into the project by default. Immutable and
 content-hashed; never edited in place.
 _Avoid_: file, sample (when you mean the imported audio)
+
+**Recorded audio asset**:
+A recorded Take's immutable audio bytes inside the Project bundle Asset store. Canonical recorded audio is
+RIFF/WAVE, 32-bit IEEE float, interleaved, at the Project/device sample rate.
+_Avoid_: `.ysdtake` (internal test artifact), raw float blob
 
 **time_base**:
 A clip's choice of how its position follows time: **tempo-locked** (moves with the tempo map) or

@@ -16,26 +16,22 @@ implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions r
 adds the shipped-shell recording UX skeleton only; no irreversible bundle schema or recorded-audio asset
 format change is included. The second implementation checkpoint is remote-green on `main` (`d9f4623`,
 GitHub Actions run `28473663050`) and wires deterministic test-device selection/refresh plus default
-Track/input arm state through `UiAppModel`.
+Track/input arm state through `UiAppModel`. The third implementation checkpoint is remote-green on `main`
+(`983b82f`, GitHub Actions run `28474967917`) and wires the first scripted shipped-shell audio record flow
+using existing opaque Asset bytes plus non-destructive Clip placement.
 
-**Now:** H13 first scripted audio recording path is local-green and ready to commit/push. The shipped
-`MainComponent` record flow now selects the test device, chooses monitoring, arms the default Track/input,
-clicks Record, copies deterministic test-device sample bytes through the existing bundle Asset import path,
-places a sample-locked non-destructive Clip on the armed Track, rebuilds playback from the recorded decoded
-samples, and proves the reopened Project contains the persisted Asset/Clip plus content-addressed asset
-file. No irreversible bundle schema is added; `.ysdtake` is not promoted; and no user-facing recorded-audio
-asset format is locked beyond existing opaque Asset bytes. Local gates: VS DevShell `cmake --build --preset
-ci --target YesDawRecordingUxCheck`; `ctest --test-dir build-ci -R YesDawRecordingUxCheck
---output-on-failure`; VS DevShell `cmake --build --preset ci --target YesDawRecordingUxCheck
-YesDawUiActionCheck YesDawAccessibilityCheck YesDawAppSmokeCheck`; `ctest --test-dir build-ci -R
-"YesDaw(RecordingUx|UiAction|Accessibility|AppSmoke)Check" --output-on-failure` **4/4**; VS DevShell
-`cmake --build --preset ci`; `ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
+**Now:** H13 recorded-audio Asset + Take metadata ADR checkpoint is local-green and ready to commit/push.
+ADR-0036 accepts canonical recorded audio Assets as RIFF/WAVE 32-bit IEEE float PCM, keeps `.ysdtake` as an
+internal test artifact, and requires normalized Take metadata linked to Asset/Track/Clip plus future Comp
+segments. `CONTEXT.md` now defines Recorded audio asset and Take metadata. No implementation code or schema
+migration is included in this docs-only checkpoint. Local gates: VS DevShell `cmake --build --preset ci`;
+`ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 4):** make recorded audio survive save/reopen as a decoded
-recording, not only persisted Project/Asset/Clip truth: decide whether H13 needs a focused ADR for a
-permanent recorded-audio asset format and/or Take metadata schema, then add the narrow gate that reopens the
-bundle, decodes the recorded Asset, verifies deterministic samples, and keeps the non-destructive Clip on
-the armed Track.
+**Next (Codex - H13 implementation checkpoint 5):** implement the narrow save/reopen/decode recording gate
+from ADR-0036: make the shipped-shell record path write canonical float WAV Asset bytes, reopen the bundle,
+decode the recorded Asset, verify deterministic samples, and keep the sample-locked non-destructive Clip on
+the armed Track. If Take metadata schema is touched in the same slice, add the migration and negative
+controls before Project code depends on it.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
