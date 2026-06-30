@@ -384,6 +384,44 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult trimSelectedTimelineClipRightTo (engine::Tick timelineEnd)
+    {
+        const UiActionId id = UiActionId::TimelineClipTrim;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        if (timelineEnd <= clip->timelineStart)
+            return { id, { false, "trim must leave a positive clip length" }, false };
+
+        const engine::Tick nextTimelineLength = timelineEnd - clip->timelineStart;
+        const std::optional<std::uint64_t> nextSourceLength =
+            sourceLengthForShortenedRightEdge (*clip, nextTimelineLength);
+        if (! nextSourceLength)
+            return { id, { false, "trim must shorten selected clip" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::trimClip (
+                selectedTimelineClipId_, clip->timelineStart, nextTimelineLength, clip->srcOffset, *nextSourceLength));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -593,6 +631,13 @@ private:
             return std::nullopt;
 
         return sourceLength;
+    }
+
+    [[nodiscard]] static std::optional<std::uint64_t> sourceLengthForShortenedRightEdge (
+        const engine::Clip& clip,
+        engine::Tick nextTimelineLength) noexcept
+    {
+        return sourceLengthForSplit (clip, nextTimelineLength);
     }
 
     void syncProjectEditContext() noexcept

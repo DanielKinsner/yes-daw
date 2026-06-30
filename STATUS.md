@@ -103,17 +103,18 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 Timeline Clip split via real-shell double-click is local-green. Prior H12 checkpoints are remote-green:
+**Now:** H12 Timeline Clip right-edge trim via real-shell drag is local-green. Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
 Import WAV through the shipped shell `2110c3b` on run `28414262811`, Timeline hit-testing +
 real-shell Clip selection `102c94a` on run `28415151322`, and Timeline Clip move via real-shell drag
-`5089ebc` on run `28415965271`. Current work lets the real Timeline child `Component` split a selected
-imported Clip by double-clicking inside it, derives the split from the shared Timeline canvas geometry,
-routes the edit through `UiAppModel` + `ProjectUndoStack`, persists the two adjacent non-destructive Clip
-rows back into the `.yesdaw` bundle, rebuilds playback from the edited Project, and extends
-`YesDawUiInputCheck` so split, Undo, and Redo are all proven through the shipped `MainComponent` while the
-imported Clip remains audible. Local gates: `git diff --check`; VS DevShell
+`5089ebc` on run `28415965271`, and Timeline Clip split via real-shell double-click `7576771` on run
+`28416653470`. Current work lets the real Timeline child `Component` detect a selected Clip's right edge,
+drag it left to shorten the Clip, derive the trim end from the shared Timeline canvas geometry, route the
+edit through `UiAppModel` + `ProjectUndoStack`, persist the shortened non-destructive Clip metadata back
+into the `.yesdaw` bundle, rebuild playback from the edited Project, and extend `YesDawUiInputCheck` so
+trim, Undo, and Redo are all proven through the shipped `MainComponent` while the imported Clip remains
+audible. Local gates: `git diff --check`; VS DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck`;
 `ctest --preset ci -R YesDawUiInputCheck --output-on-failure` **1/1**; VS DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck YesDawUiActionCheck YesDawAppSmokeCheck
@@ -121,8 +122,8 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): commit/push this Timeline split checkpoint and wait for remote CI, then
-continue H12 step 5 with trim/fade/gain/snap/locate/loop gestures through real Component input plus
+**Next (Codex - H12 end-to-end): commit/push this Timeline trim checkpoint and wait for remote CI, then
+continue H12 step 5 with fade/gain/snap/locate/loop gestures through real Component input plus
 undo/redo parity.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):

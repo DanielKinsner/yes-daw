@@ -1,6 +1,7 @@
 // YES DAW - H12 real-shell UI input harness skeleton.
 
 #include "ui/MainComponent.h"
+#include "ui/TimelineCanvas.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -10,6 +11,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -175,6 +177,47 @@ void doubleClickAt (juce::Component& component, juce::Point<int> position)
     juce::MouseEvent event = makeMouseEvent (component, position, position, false, 2);
     component.mouseDoubleClick (event);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+juce::Point<int> timelineClipRightEdgeDragPoint (juce::Component& timeline,
+                                                 const yesdaw::engine::Project& project,
+                                                 std::size_t clipIndex)
+{
+    REQUIRE (project.sampleRate.isValid());
+    REQUIRE (clipIndex < project.clips.size());
+
+    std::vector<yesdaw::ui::Clip> clips;
+    clips.reserve (project.clips.size());
+
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.clips = clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (1.0, endSeconds * 1.25);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (1, timeline.getWidth() - 26))
+                                   / std::max (1.0, state.totalSeconds);
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const yesdaw::ui::Clip& clip = clips[clipIndex];
+    const double rightX = static_cast<double> (geometry.clipArea.getX())
+                        + ((clip.startSeconds + clip.lengthSeconds) - geometry.viewport.scrollSeconds)
+                              * geometry.viewport.pixelsPerSecond;
+
+    const int x = std::max (geometry.clipArea.getX(), static_cast<int> (std::llround (rightX)) - 2);
+    const int y = geometry.clipArea.getY() + std::max (1, geometry.laneHeight / 2);
+    return { x, y };
 }
 
 } // namespace
@@ -444,6 +487,54 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.canUndo);
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 8);
+
+    const juce::Point<int> trimStart = timelineClipRightEdgeDragPoint (timeline, splitRedone, 1u);
+    dragFromTo (timeline, trimStart, trimStart.translated (-6, 0));
+
+    const yesdaw::engine::Project trimmed = readProjectSnapshot (bundlePath);
+    REQUIRE (trimmed.clips.size() == 2u);
+    const yesdaw::engine::Clip& trimmedLeft = trimmed.clips[0];
+    const yesdaw::engine::Clip& trimmedRight = trimmed.clips[1];
+    REQUIRE (trimmedLeft == splitLeft);
+    REQUIRE (trimmedRight.id == splitRight.id);
+    REQUIRE (trimmedRight.timelineStart == splitRight.timelineStart);
+    REQUIRE (trimmedRight.timelineLength > 0);
+    REQUIRE (trimmedRight.timelineLength < splitRight.timelineLength);
+    REQUIRE (trimmedRight.srcOffset == splitRight.srcOffset);
+    REQUIRE (trimmedRight.srcLen > 0u);
+    REQUIRE (trimmedRight.srcLen < splitRight.srcLen);
+    REQUIRE (trimmedRight.timelineStart + trimmedRight.timelineLength
+             < splitRight.timelineStart + splitRight.timelineLength);
+    REQUIRE (trimmedRight.sourceWindowFits (asset));
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.timelineEditCount == 3);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 9);
+
+    clickButton (undo);
+
+    const yesdaw::engine::Project trimUndone = readProjectSnapshot (bundlePath);
+    REQUIRE (trimUndone.clips == split.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 3);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 10);
+
+    clickButton (redo);
+
+    const yesdaw::engine::Project trimRedone = readProjectSnapshot (bundlePath);
+    REQUIRE (trimRedone.clips == trimmed.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 3);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 11);
 
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

@@ -316,6 +316,7 @@ public:
     std::function<void()> onEmptyClicked;
     std::function<void (int, double)> onClipMoved;
     std::function<void (int, double)> onClipSplit;
+    std::function<void (int, double)> onClipTrimmedRight;
 
     void paint (juce::Graphics& g) override
     {
@@ -341,6 +342,7 @@ public:
             dragState.active = true;
             dragState.layoutClipId = hit.id;
             dragState.downPosition = event.getPosition();
+            dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition());
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
                 dragState.startSeconds = clip->startSeconds;
             return;
@@ -370,6 +372,14 @@ public:
             return;
 
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        if (drag.mode == TimelineDragMode::TrimRight)
+        {
+            if (const std::optional<double> trimEndSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                if (onClipTrimmedRight)
+                    onClipTrimmedRight (drag.layoutClipId, *trimEndSeconds);
+            return;
+        }
+
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
@@ -399,12 +409,19 @@ public:
     }
 
 private:
+    enum class TimelineDragMode
+    {
+        Move,
+        TrimRight
+    };
+
     struct TimelineDragState
     {
         bool active = false;
         bool moved = false;
         int layoutClipId = -1;
         double startSeconds = 0.0;
+        TimelineDragMode mode = TimelineDragMode::Move;
         juce::Point<int> downPosition;
     };
 
@@ -433,6 +450,28 @@ private:
         const double seconds = geometry.viewport.scrollSeconds
                              + static_cast<double> (position.x - geometry.clipArea.getX()) / pixelsPerSecond;
         return std::max (0.0, seconds);
+    }
+
+    [[nodiscard]] static TimelineDragMode dragModeForPointer (const yesdaw::ui::TimelineCanvasState& state,
+                                                              juce::Rectangle<int> bounds,
+                                                              int layoutClipId,
+                                                              juce::Point<int> position) noexcept
+    {
+        constexpr int kTrimEdgePixels = 8;
+        const yesdaw::ui::Clip* const clip = findClipByLayoutId (state, layoutClipId);
+        if (clip == nullptr)
+            return TimelineDragMode::Move;
+
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double clipRightX = static_cast<double> (geometry.clipArea.getX())
+                                + ((clip->startSeconds + clip->lengthSeconds) - geometry.viewport.scrollSeconds)
+                                      * pixelsPerSecond;
+
+        if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
+            return TimelineDragMode::TrimRight;
+
+        return TimelineDragMode::Move;
     }
 
     TimelineDragState dragState;
@@ -490,6 +529,9 @@ public:
         };
         timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
             splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
+        };
+        timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds) {
+            trimTimelineClipRightByLayoutId (timelineClipId, endSeconds);
         };
         addAndMakeVisible (timelineInput);
 
@@ -853,6 +895,19 @@ private:
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (splitSeconds))
             (void) appModel.splitSelectedTimelineClipAt (*tick);
+
+        refreshActionState();
+        repaint();
+    }
+
+    void trimTimelineClipRightByLayoutId (int layoutClipId, double endSeconds)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        if (const auto tick = timelineTickFromSeconds (endSeconds))
+            (void) appModel.trimSelectedTimelineClipRightTo (*tick);
 
         refreshActionState();
         repaint();
