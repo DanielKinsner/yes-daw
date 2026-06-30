@@ -32,12 +32,13 @@ a hard dependency.
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
+ctest --test-dir build-ci -R YesDawRecordingUxCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawRecordingCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawDeviceHotSwapCheck --output-on-failure
 ctest --test-dir build-ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure
 ```
 
-Add `YesDawRecordingUxCheck` to the focused lane as soon as it exists.
+`YesDawRecordingUxCheck` is part of the focused lane from the H13 recording UX skeleton checkpoint.
 
 ## Status: OPEN
 

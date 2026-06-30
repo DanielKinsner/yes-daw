@@ -34,6 +34,10 @@ UiActionContext fullyReachableContext()
     context.mixerTargetSelected = true;
     context.midiClipSelected = true;
     context.midiNoteSelected = true;
+    context.recordingDeviceSelected = true;
+    context.recordingTrackArmed = true;
+    context.recordingInputSelected = true;
+    context.recordingMonitoringSelected = true;
     return context;
 }
 

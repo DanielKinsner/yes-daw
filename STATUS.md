@@ -9,20 +9,27 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-30
-**Current horizon:** **H13 (Recording and device UX) — OPEN DOCS-FIRST.** H12 is closed remote-green on
-current `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and
-TSan. H13 opens only after that closeout. The kickoff checkpoint is docs-only: ADR-0035, the H13 focused
-plan, ADR index, roadmap, glossary, horizon oracle, and this live handoff; no H13 implementation code is
-included.
+**Current horizon:** **H13 (Recording and device UX) — OPEN.** H12 is closed remote-green on current
+`main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
+docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
+implementation checkpoint adds the shipped-shell recording UX skeleton only; no irreversible bundle schema
+or recorded-audio asset format change is included.
 
-**Now:** H13 kickoff docs are local-green and ready to commit/push. Local gates: `git diff --check`;
-`cmake --preset ci`; VS DevShell `cmake --build --preset ci`; and
-`ctest --preset ci --output-on-failure` **254/254**.
+**Now:** H13 recording UX harness skeleton is local-green and ready to commit/push. Added
+`YesDawRecordingUxCheck` around the real shipped `MainComponent`, deterministic test-device/recording
+controls, Record disabled until Project + test device + monitoring policy + armed Track/input exist, and
+the focused H13/H12 lane includes the new gate. Local gates: `cmake --preset ci`; VS DevShell
+`cmake --build --preset ci --target YesDawRecordingUxCheck`; `ctest --test-dir build-ci -R
+YesDawRecordingUxCheck --output-on-failure`; VS DevShell focused build for `YesDawUiActionCheck`,
+`YesDawAccessibilityCheck`, `YesDawUiInputCheck`, `YesDawRecordingCheck`, `YesDawDeviceHotSwapCheck`,
+`YesDawAppSmokeCheck`, and `YesDawTimelineGpuCheck`; focused ctests for H12/H13 UI lane, device hot-swap,
+and H5 recording tests #142-#150; VS DevShell `cmake --build --preset ci`; `ctest --preset ci
+--output-on-failure` **255/255**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 1):** after this docs checkpoint is remote-green, build the
-`YesDawRecordingUxCheck` skeleton around the shipped `MainComponent`: deterministic fake/test device
-surface, Record disabled with no armed Track/input, real recording controls targeted by the harness, and
-H12 focused UI lane still green.
+**Next (Codex - H13 implementation checkpoint 2):** after this skeleton checkpoint is remote-green, wire
+device selection/refresh and Track arm/input selection through shipped controls and the UI action registry.
+Gate: selecting a device and arming a Track changes control-side Project/UI state, invalid combinations are
+rejected, accessibility/action parity holds, and device refresh/hot-swap keeps ADR-0031 survival green.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

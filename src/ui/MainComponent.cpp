@@ -226,6 +226,11 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::TransportStop: return "Stop";
         case yesdaw::ui::UiActionId::TransportLocateStart: return "|<";
         case yesdaw::ui::UiActionId::TransportToggleLoop: return "Loop";
+        case yesdaw::ui::UiActionId::DeviceRefreshAudio: return "Refresh";
+        case yesdaw::ui::UiActionId::DeviceSelectTestAudio: return "Test Device";
+        case yesdaw::ui::UiActionId::RecordingArmTrack: return "Arm";
+        case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: return "Monitor";
+        case yesdaw::ui::UiActionId::TransportRecord: return "Record";
         case yesdaw::ui::UiActionId::ViewMixer: return "Mixer";
         case yesdaw::ui::UiActionId::ViewPianoRoll: return "Piano";
         default: break;
@@ -954,6 +959,11 @@ public:
                 case yesdaw::ui::UiActionId::ProjectOpen: buttons[i].setBounds (64, 50, 50, 26); break;
                 case yesdaw::ui::UiActionId::ProjectSave: buttons[i].setBounds (118, 50, 48, 26); break;
                 case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (170, 50, 64, 26); break;
+                case yesdaw::ui::UiActionId::DeviceRefreshAudio: buttons[i].setBounds (22, 104, 78, 26); break;
+                case yesdaw::ui::UiActionId::DeviceSelectTestAudio: buttons[i].setBounds (104, 104, 104, 26); break;
+                case yesdaw::ui::UiActionId::RecordingArmTrack: buttons[i].setBounds (212, 104, 68, 26); break;
+                case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: buttons[i].setBounds (22, 134, 96, 26); break;
+                case yesdaw::ui::UiActionId::TransportRecord: buttons[i].setBounds (122, 134, 86, 26); break;
                 case yesdaw::ui::UiActionId::EditUndo: buttons[i].setBounds (244, 50, 42, 26); break;
                 case yesdaw::ui::UiActionId::EditRedo: buttons[i].setBounds (290, 50, 42, 26); break;
                 case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (336, 16, 56, 56); break;
@@ -1224,6 +1234,10 @@ private:
             const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
             buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
             buttons[i].setToggleState ((action == yesdaw::ui::UiActionId::TransportToggleLoop && appModel.context().loopEnabled)
+                                           || (action == yesdaw::ui::UiActionId::RecordingArmTrack
+                                               && appModel.context().recordingTrackArmed)
+                                           || (action == yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy
+                                               && appModel.context().recordingMonitoringSelected)
                                            || (action == yesdaw::ui::UiActionId::ViewMixer
                                                && appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
                                            || (action == yesdaw::ui::UiActionId::ViewPianoRoll

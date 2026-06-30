@@ -281,6 +281,26 @@ if (YESDAW_BUILD_APPS)
   yesdaw_harden(YesDawUiInputCheck)
   add_test(NAME YesDawUiInputCheck COMMAND $<TARGET_FILE:YesDawUiInputCheck>)
 
+  # --- Recording UX harness (H13; shipped MainComponent recording/device skeleton) ---
+  juce_add_console_app(YesDawRecordingUxCheck PRODUCT_NAME "YesDawRecordingUxCheck")
+  target_sources(YesDawRecordingUxCheck PRIVATE tests/recording_ux_tests.cpp src/ui/MainComponent.cpp)
+  target_include_directories(YesDawRecordingUxCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawRecordingUxCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawRecordingUxCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawRecordingUxCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      sqlite3_amalgamation
+      juce::juce_audio_formats
+      juce::juce_gui_extra
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawRecordingUxCheck)
+  add_test(NAME YesDawRecordingUxCheck COMMAND $<TARGET_FILE:YesDawRecordingUxCheck>)
+
   # --- Timeline canvas GPU/frame-time check (H11; native canvas over large arrangement fixture) ---
   juce_add_console_app(YesDawTimelineGpuCheck PRODUCT_NAME "YesDawTimelineGpuCheck")
   target_sources(YesDawTimelineGpuCheck PRIVATE tests/timeline_gpu_tests.cpp)

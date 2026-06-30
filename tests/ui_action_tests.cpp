@@ -175,6 +175,10 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("project.export_dawproject")->id == UiActionId::ProjectExportDawproject);
     REQUIRE (descriptorForStableId ("transport.play")->id == UiActionId::TransportPlay);
     REQUIRE (descriptorForStableId ("device.refresh_audio")->id == UiActionId::DeviceRefreshAudio);
+    REQUIRE (descriptorForStableId ("device.select_test_audio")->id == UiActionId::DeviceSelectTestAudio);
+    REQUIRE (descriptorForStableId ("record.track.arm")->id == UiActionId::RecordingArmTrack);
+    REQUIRE (descriptorForStableId ("record.monitoring_policy")->id == UiActionId::RecordingSetMonitoringPolicy);
+    REQUIRE (descriptorForStableId ("transport.record")->id == UiActionId::TransportRecord);
     REQUIRE (descriptorForStableId ("timeline.clip.move")->id == UiActionId::TimelineClipMove);
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
@@ -311,6 +315,27 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::PianoRollNoteSetLength, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::PianoRollNoteTranspose, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::PianoRollNoteQuantize, context).enabled);
+
+    const auto armWithoutDevice = registry.stateFor (UiActionId::RecordingArmTrack, context);
+    REQUIRE_FALSE (armWithoutDevice.enabled);
+    REQUIRE (armWithoutDevice.disabledReason == std::string_view ("no recording device selected"));
+
+    context.recordingDeviceSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::RecordingArmTrack, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::RecordingSetMonitoringPolicy, context).enabled);
+
+    const auto recordWithoutArmedInput = registry.stateFor (UiActionId::TransportRecord, context);
+    REQUIRE_FALSE (recordWithoutArmedInput.enabled);
+    REQUIRE (recordWithoutArmedInput.disabledReason == std::string_view ("no armed recording Track/input"));
+
+    context.recordingTrackArmed = true;
+    context.recordingInputSelected = true;
+    const auto recordWithoutMonitoring = registry.stateFor (UiActionId::TransportRecord, context);
+    REQUIRE_FALSE (recordWithoutMonitoring.enabled);
+    REQUIRE (recordWithoutMonitoring.disabledReason == std::string_view ("no recording monitoring policy"));
+
+    context.recordingMonitoringSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::TransportRecord, context).enabled);
 }
 
 TEST_CASE ("H11 action dispatch mutates only the headless app model behind action ids",
@@ -349,6 +374,19 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.loopEnabled);
     REQUIRE (registry.dispatch (UiActionId::DeviceRefreshAudio, context).dispatched);
     REQUIRE (context.deviceRefreshCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::DeviceSelectTestAudio, context).dispatched);
+    REQUIRE (context.recordingDeviceSelected);
+    REQUIRE (context.deviceSelectCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::RecordingSetMonitoringPolicy, context).dispatched);
+    REQUIRE (context.recordingMonitoringSelected);
+    REQUIRE (context.recordingMonitoringCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::RecordingArmTrack, context).dispatched);
+    REQUIRE (context.recordingTrackArmed);
+    REQUIRE (context.recordingInputSelected);
+    REQUIRE (context.recordingArmCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::TransportRecord, context).dispatched);
+    REQUIRE (context.isRecording);
+    REQUIRE (context.recordingCommandCount == 1);
 
     context.canUndo = true;
     REQUIRE (registry.dispatch (UiActionId::EditUndo, context).dispatched);

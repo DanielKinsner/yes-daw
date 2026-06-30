@@ -26,6 +26,10 @@ enum class UiActionId : std::uint8_t
     TransportLocateStart,
     TransportToggleLoop,
     DeviceRefreshAudio,
+    DeviceSelectTestAudio,
+    RecordingArmTrack,
+    RecordingSetMonitoringPolicy,
+    TransportRecord,
     EditUndo,
     EditRedo,
     ViewTimeline,
@@ -93,6 +97,9 @@ struct UiActionDescriptor
     bool requiresMixerTarget = false;
     bool requiresMidiClip = false;
     bool requiresMidiNote = false;
+    bool requiresRecordingDevice = false;
+    bool requiresRecordingTrackInput = false;
+    bool requiresRecordingMonitoring = false;
 };
 
 struct UiActionContext
@@ -106,6 +113,11 @@ struct UiActionContext
     bool mixerTargetSelected = false;
     bool midiClipSelected = false;
     bool midiNoteSelected = false;
+    bool recordingDeviceSelected = false;
+    bool recordingTrackArmed = false;
+    bool recordingInputSelected = false;
+    bool recordingMonitoringSelected = false;
+    bool isRecording = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
     std::int64_t playheadFrame = 0;
@@ -115,6 +127,10 @@ struct UiActionContext
     int audioExportCount = 0;
     int dawprojectExportCount = 0;
     int deviceRefreshCount = 0;
+    int deviceSelectCount = 0;
+    int recordingArmCount = 0;
+    int recordingMonitoringCount = 0;
+    int recordingCommandCount = 0;
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
@@ -173,6 +189,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "Ctrl+Alt+T", "Select test audio device",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "Ctrl+Alt+A", "Arm selected Track for recording",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
+    { UiActionId::RecordingSetMonitoringPolicy, "record.monitoring_policy", "Monitor", "Ctrl+Alt+O", "Choose recording monitoring policy",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
+    { UiActionId::TransportRecord, "transport.record", "Record", "R", "Record transport",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, true, true, true },
     { UiActionId::EditUndo, "edit.undo", "Undo", "Ctrl+Z", "Undo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false, false },
     { UiActionId::EditRedo, "edit.redo", "Redo", "Ctrl+Shift+Z", "Redo",
@@ -223,11 +247,16 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
-inline constexpr std::array<UiActionId, 12> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 17> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
     UiActionId::ProjectImportAudio,
+    UiActionId::DeviceRefreshAudio,
+    UiActionId::DeviceSelectTestAudio,
+    UiActionId::RecordingArmTrack,
+    UiActionId::RecordingSetMonitoringPolicy,
+    UiActionId::TransportRecord,
     UiActionId::EditUndo,
     UiActionId::EditRedo,
     UiActionId::TransportPlay,
@@ -243,7 +272,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 12>& mainShellToolbarActions()
+inline const std::array<UiActionId, 17>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }
@@ -364,6 +393,13 @@ public:
             return { false, "no MIDI clip selected" };
         if (descriptor->requiresMidiNote && ! context.midiNoteSelected)
             return { false, "no MIDI note selected" };
+        if (descriptor->requiresRecordingDevice && ! context.recordingDeviceSelected)
+            return { false, "no recording device selected" };
+        if (descriptor->requiresRecordingTrackInput
+            && (! context.recordingTrackArmed || ! context.recordingInputSelected))
+            return { false, "no armed recording Track/input" };
+        if (descriptor->requiresRecordingMonitoring && ! context.recordingMonitoringSelected)
+            return { false, "no recording monitoring policy" };
 
         return { true, "" };
     }
@@ -421,6 +457,29 @@ public:
 
             case UiActionId::DeviceRefreshAudio:
                 ++context.deviceRefreshCount;
+                break;
+
+            case UiActionId::DeviceSelectTestAudio:
+                context.recordingDeviceSelected = true;
+                ++context.deviceSelectCount;
+                break;
+
+            case UiActionId::RecordingArmTrack:
+                context.recordingTrackArmed = ! context.recordingTrackArmed;
+                context.recordingInputSelected = context.recordingTrackArmed;
+                if (! context.recordingTrackArmed)
+                    context.isRecording = false;
+                ++context.recordingArmCount;
+                break;
+
+            case UiActionId::RecordingSetMonitoringPolicy:
+                context.recordingMonitoringSelected = true;
+                ++context.recordingMonitoringCount;
+                break;
+
+            case UiActionId::TransportRecord:
+                context.isRecording = ! context.isRecording;
+                ++context.recordingCommandCount;
                 break;
 
             case UiActionId::EditUndo:

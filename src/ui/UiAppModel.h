@@ -765,7 +765,11 @@ public:
                 });
 
             case UiActionId::DeviceRefreshAudio:
-                return { id, { false, "audio device refresh requires device payload" }, false };
+            case UiActionId::DeviceSelectTestAudio:
+            case UiActionId::RecordingArmTrack:
+            case UiActionId::RecordingSetMonitoringPolicy:
+            case UiActionId::TransportRecord:
+                return registry_.dispatch (id, context_);
 
             case UiActionId::EditUndo:
                 return dispatchUndo (id, state);
