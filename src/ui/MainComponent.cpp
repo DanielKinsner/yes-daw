@@ -606,6 +606,7 @@ public:
         };
         addAndMakeVisible (timelineInput);
 
+        configureMixerControls();
         refreshActionState();
     }
 
@@ -666,9 +667,97 @@ public:
         }
 
         timelineInput.setBounds (timelineBounds());
+        layoutMixerControls();
     }
 
 private:
+    template <typename Component>
+    void configureActionComponent (Component& component,
+                                   yesdaw::ui::UiActionId action,
+                                   const juce::String& fallbackName)
+    {
+        if (const auto* descriptor = appModel.registry().descriptor (action))
+        {
+            component.setComponentID (descriptor->stableId);
+            component.setName (descriptor->accessibleName);
+            component.setTitle (descriptor->label);
+            component.setTooltip (juce::String (descriptor->stableId) + "  " + descriptor->defaultKey);
+            return;
+        }
+
+        component.setName (fallbackName);
+    }
+
+    void configureMixerControls()
+    {
+        mixerTrackSelect.setButtonText ("Audio 1");
+        mixerTrackSelect.setComponentID ("mixer.track.0.select");
+        mixerTrackSelect.setName ("Select first mixer track");
+        mixerTrackSelect.setTooltip ("mixer.track.0.select");
+        mixerTrackSelect.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff121820));
+        mixerTrackSelect.setColour (juce::TextButton::textColourOffId, kText);
+        mixerTrackSelect.onClick = [this] {
+            (void) appModel.selectMixerTrack (0);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerTrackSelect);
+
+        configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
+        mixerFader.setSliderStyle (juce::Slider::LinearVertical);
+        mixerFader.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        mixerFader.setRange (0.0, 2.0, 0.01);
+        mixerFader.setValue (1.0, juce::dontSendNotification);
+        mixerFader.onValueChange = [this] {
+            if (refreshingMixerControls || ! mixerFader.isEnabled())
+                return;
+
+            (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerFader);
+
+        configureActionComponent (mixerPan, yesdaw::ui::UiActionId::MixerTargetSetPan, "Mixer pan");
+        mixerPan.setSliderStyle (juce::Slider::LinearHorizontal);
+        mixerPan.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        mixerPan.setRange (-1.0, 1.0, 0.01);
+        mixerPan.setValue (0.0, juce::dontSendNotification);
+        mixerPan.onValueChange = [this] {
+            if (refreshingMixerControls || ! mixerPan.isEnabled())
+                return;
+
+            (void) appModel.setSelectedMixerPan (static_cast<float> (mixerPan.getValue()));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerPan);
+
+        configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
+        mixerMute.setButtonText ("M");
+        mixerMute.onClick = [this] {
+            if (refreshingMixerControls || ! mixerMute.isEnabled())
+                return;
+
+            (void) appModel.toggleSelectedMixerMute();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerMute);
+
+        configureActionComponent (mixerSolo, yesdaw::ui::UiActionId::MixerTargetToggleSolo, "Mixer solo");
+        mixerSolo.setButtonText ("S");
+        mixerSolo.onClick = [this] {
+            if (refreshingMixerControls || ! mixerSolo.isEnabled())
+                return;
+
+            (void) appModel.toggleSelectedMixerSolo();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerSolo);
+    }
+
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
@@ -676,6 +765,32 @@ private:
         work.removeFromLeft (kLeftRailWidth);
         work.removeFromRight (kInspectorWidth);
         return work.reduced (6, 10);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const
+    {
+        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        auto mixer = work.removeFromBottom (kMixerHeight).reduced (6, 8);
+        mixer.removeFromLeft (120);
+
+        const auto surface = currentMixerSurface();
+        const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
+        const int stripWidth = juce::jmax (84, mixer.getWidth() / (stripCount + 1));
+        return mixer.withWidth (stripWidth).reduced (3, 0);
+    }
+
+    void layoutMixerControls()
+    {
+        auto lane = mixerFirstStripBounds().reduced (8, 6);
+        mixerTrackSelect.setBounds (lane.removeFromTop (26));
+        lane.removeFromTop (7);
+        mixerPan.setBounds (lane.removeFromTop (34).reduced (2, 6));
+        auto buttonRow = lane.removeFromTop (30).reduced (5, 4);
+        mixerSolo.setBounds (buttonRow.removeFromLeft (30));
+        mixerMute.setBounds (buttonRow.removeFromLeft (30));
+        lane.removeFromTop (4);
+        auto faderArea = lane.removeFromTop (juce::jmax (72, lane.getHeight() - 18));
+        mixerFader.setBounds (faderArea.withWidth (42).withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
     }
 
     void handleAction (yesdaw::ui::UiActionId action)
@@ -734,6 +849,44 @@ private:
         }
 
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
+        refreshMixerControls();
+    }
+
+    void refreshMixerControls()
+    {
+        const yesdaw::engine::Project& project = appModel.project();
+        const bool projectHasTrack = appModel.context().projectLoaded && ! project.tracks.empty();
+        const bool selected = appModel.context().mixerTargetSelected;
+
+        mixerTrackSelect.setEnabled (projectHasTrack);
+        mixerFader.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetFader,
+                                                             appModel.context()).enabled);
+        mixerPan.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetPan,
+                                                           appModel.context()).enabled);
+        mixerMute.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleMute,
+                                                            appModel.context()).enabled);
+        mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
+                                                            appModel.context()).enabled);
+
+        refreshingMixerControls = true;
+        if (projectHasTrack)
+        {
+            const auto& strip = project.tracks.front().strip;
+            mixerTrackSelect.setButtonText (strip.name.empty() ? "Track 1" : juce::String (strip.name));
+            mixerFader.setValue (strip.linearGain, juce::dontSendNotification);
+            mixerPan.setValue (strip.pan, juce::dontSendNotification);
+            mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
+            mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
+        }
+        else
+        {
+            mixerTrackSelect.setButtonText ("Audio 1");
+            mixerFader.setValue (1.0, juce::dontSendNotification);
+            mixerPan.setValue (0.0, juce::dontSendNotification);
+            mixerMute.setToggleState (false, juce::dontSendNotification);
+            mixerSolo.setToggleState (false, juce::dontSendNotification);
+        }
+        refreshingMixerControls = false;
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -792,8 +945,9 @@ private:
         drawSmallLabel (g, "MASTER", master.removeFromTop (14));
         auto meter = master.removeFromTop (16).withWidth (236);
         drawHorizontalMeter (g, meter, 0.76f);
-        const juce::String lufs = mixerSurface.loudness.valid
-            ? juce::String (mixerSurface.loudness.integratedLufs, 1) + " LUFS"
+        const auto surface = currentMixerSurface();
+        const juce::String lufs = surface.loudness.valid
+            ? juce::String (surface.loudness.integratedLufs, 1) + " LUFS"
             : "-- LUFS";
         drawSmallLabel (g, lufs, juce::Rectangle<int> (1370, 33, 76, 16), juce::Justification::centred);
 
@@ -1234,6 +1388,9 @@ private:
 
     void drawMixer (juce::Graphics& g, juce::Rectangle<int> area) const
     {
+        const auto surface = currentMixerSurface();
+        const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
+
         g.setColour (juce::Colour (0xff0a0f14));
         g.fillRect (area);
 
@@ -1243,21 +1400,22 @@ private:
         drawSmallLabel (g, "VIEW", leftTools.withTrimmedTop (96).withHeight (24).reduced (12, 0));
         drawSmallLabel (g, "Short", leftTools.withTrimmedTop (120).withHeight (28).reduced (12, 0));
 
-        const int stripWidth = juce::jmax (84, area.getWidth() / (static_cast<int> (kMixer.size()) + 1));
-        for (std::size_t stripIndex = 0; stripIndex < kMixer.size(); ++stripIndex)
+        const int stripWidth = juce::jmax (84, area.getWidth() / (juce::jmax (1, static_cast<int> (stripCount)) + 1));
+        for (std::size_t stripIndex = 0; stripIndex < stripCount; ++stripIndex)
         {
-            const auto& strip = kMixer[stripIndex];
-            const bool isBus = stripIndex >= mixerSurface.tracks.size();
-            const auto& state = isBus ? mixerSurface.buses[stripIndex - mixerSurface.tracks.size()]
-                                      : mixerSurface.tracks[stripIndex];
+            const bool isBus = stripIndex >= surface.tracks.size();
+            const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
+                                      : surface.tracks[stripIndex];
+            const auto& demoStrip = kMixer[std::min (stripIndex, kMixer.size() - 1u)];
+            const bool selected = appModel.context().mixerTargetSelected && stripIndex == 0;
 
             auto lane = area.removeFromLeft (stripWidth).reduced (3, 0);
-            g.setColour (strip.selected ? juce::Colour (0xff1c1428) : kPanelRaised);
+            g.setColour (selected ? juce::Colour (0xff1c1428) : kPanelRaised);
             g.fillRoundedRectangle (lane.toFloat(), 5.0f);
-            g.setColour (strip.selected ? kPurple : kPanelStroke);
-            g.drawRoundedRectangle (lane.toFloat().reduced (0.5f), 5.0f, strip.selected ? 2.0f : 1.0f);
+            g.setColour (selected ? kPurple : kPanelStroke);
+            g.drawRoundedRectangle (lane.toFloat().reduced (0.5f), 5.0f, selected ? 2.0f : 1.0f);
 
-            g.setColour (strip.colour.withAlpha (0.30f));
+            g.setColour (demoStrip.colour.withAlpha (0.30f));
             g.fillRect (lane.withHeight (28));
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (11.0f)));
@@ -1266,7 +1424,7 @@ private:
             auto knob = lane.withTrimmedTop (36).withHeight (38);
             g.setColour (juce::Colour (0xff070b10));
             g.fillEllipse (static_cast<float> (knob.getCentreX() - 13), static_cast<float> (knob.getY() + 4), 26.0f, 26.0f);
-            g.setColour (strip.colour.brighter (0.45f));
+            g.setColour (demoStrip.colour.brighter (0.45f));
             g.drawEllipse (static_cast<float> (knob.getCentreX() - 13), static_cast<float> (knob.getY() + 4), 26.0f, 26.0f, 1.2f);
 
             auto buttonsRow = lane.withTrimmedTop (78).withHeight (28).reduced (14, 0);
@@ -1277,7 +1435,7 @@ private:
                 g.fillRoundedRectangle (cell.toFloat(), 4.0f);
                 const bool on = (label == std::string ("S") && state.soloed)
                              || (label == std::string ("M") && state.muted);
-                g.setColour (on ? strip.colour.brighter (0.55f) : kText);
+                g.setColour (on ? demoStrip.colour.brighter (0.55f) : kText);
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
@@ -1305,6 +1463,14 @@ private:
         }
     }
 
+    [[nodiscard]] yesdaw::ui::UiMixerSurfaceSnapshot currentMixerSurface() const
+    {
+        if (appModel.context().projectLoaded)
+            return yesdaw::ui::projectUiMixerSurface (appModel.project());
+
+        return mixerSurface;
+    }
+
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
@@ -1315,7 +1481,13 @@ private:
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     double timelineTotalSeconds = 98.0;
     TimelineInputComponent timelineInput;
+    juce::TextButton mixerTrackSelect;
+    juce::Slider mixerFader;
+    juce::Slider mixerPan;
+    juce::ToggleButton mixerMute;
+    juce::ToggleButton mixerSolo;
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
+    bool refreshingMixerControls = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

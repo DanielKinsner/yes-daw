@@ -105,8 +105,14 @@ Project makeMixerProject()
     Clip secondClip = project.clips.front();
     secondClip.id = idFromLowByte (6);
     secondClip.assetId = secondAsset.id;
+    secondClip.trackId = idFromLowByte (7);
     secondClip.timelineStart = 8192;
     secondClip.gain = 0.5f;
+
+    Track secondTrack;
+    secondTrack.id = secondClip.trackId;
+    secondTrack.strip.name = "Bass DI";
+    project.tracks.push_back (secondTrack);
     project.clips.push_back (secondClip);
 
     return project;
@@ -501,11 +507,13 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     Project project = makeMixerProject();
     const EntityId firstClipId = project.clips[0].id;
     const EntityId secondClipId = project.clips[1].id;
+    const EntityId firstTrackId = project.tracks[0].id;
+    const EntityId secondTrackId = project.tracks[1].id;
     const float originalFirstGain = project.clips[0].gain;
 
     std::vector<UiMixerTargetControl> trackControls {
         UiMixerTargetControl {
-            firstClipId,
+            firstTrackId,
             "Vocal Lead",
             0.9f,
             0.25f,
@@ -516,7 +524,7 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
             UiMixerMeterReadout { 0.8f, 0.7f, 0.4f, 0.3f, true }
         },
         UiMixerTargetControl {
-            secondClipId,
+            secondTrackId,
             "Bass DI",
             0.5f,
             -0.1f,

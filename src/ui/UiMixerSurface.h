@@ -1,7 +1,7 @@
 // YES DAW - H11 mixer/meter/loudness UI surface.
 //
-// Pure control-side projection: the UI can surface mixer controls, meter values, and loudness readings
-// without adding a new Project schema or changing the H3 mixer policy.
+// Pure control-side projection: the UI surfaces saved Track/Bus strip controls, meter values, and
+// loudness readings without changing the H3 mixer policy.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "engine/ProjectMixerProjection.h"
 #include "ui/UiActions.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -61,7 +62,7 @@ struct UiMixerLoudnessReadout
 
 struct UiMixerTargetControl
 {
-    engine::EntityId clipId {};
+    engine::EntityId targetId {};
     std::string name;
     float linearGain = 1.0f;
     float pan = 0.0f;
@@ -93,6 +94,7 @@ struct UiMixerStrip
     UiMixerTargetKind kind = UiMixerTargetKind::Track;
     std::size_t index = 0;
     engine::EntityId clipId {};
+    engine::EntityId targetId {};
     std::string name;
     engine::NodeId sourceNodeId = 0;
     engine::NodeId faderNodeId = 0;
@@ -145,12 +147,21 @@ struct UiMixerActionResult
 
 namespace detail {
 
-inline const UiMixerTargetControl* findControlForClip (std::span<const UiMixerTargetControl> controls,
-                                                       engine::EntityId clipId) noexcept
+inline const UiMixerTargetControl* findControlForTarget (std::span<const UiMixerTargetControl> controls,
+                                                         engine::EntityId targetId) noexcept
 {
     for (const UiMixerTargetControl& control : controls)
-        if (control.clipId == clipId)
+        if (control.targetId == targetId)
             return &control;
+    return nullptr;
+}
+
+inline const engine::Clip* findFirstClipForTrack (const engine::Project& project, engine::EntityId trackId) noexcept
+{
+    for (const engine::Clip& clip : project.clips)
+        if (clip.trackId == trackId)
+            return &clip;
+
     return nullptr;
 }
 
@@ -207,52 +218,62 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
     if (! snapshot.projectLoaded)
         return snapshot;
 
-    snapshot.tracks.reserve (project.clips.size());
-    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    snapshot.tracks.reserve (project.tracks.size());
+    for (std::size_t i = 0; i < project.tracks.size(); ++i)
     {
-        const engine::Clip& clip = project.clips[i];
-        const UiMixerTargetControl* const control = detail::findControlForClip (trackControls, clip.id);
+        const engine::Track& trackRow = project.tracks[i];
+        const engine::Clip* const firstClip = detail::findFirstClipForTrack (project, trackRow.id);
+        const engine::EntityId nodeSeed = firstClip != nullptr ? firstClip->id : trackRow.id;
+        const UiMixerTargetControl* const control = detail::findControlForTarget (trackControls, trackRow.id);
 
         UiMixerStrip strip;
         strip.kind = UiMixerTargetKind::Track;
         strip.index = i;
-        strip.clipId = clip.id;
-        strip.name = control != nullptr && ! control->name.empty() ? control->name : detail::fallbackTrackName (i);
-        strip.sourceNodeId = engine::projectMixerNodeIdForClip (clip.id, engine::ProjectMixerNodeRole::Source);
-        strip.faderNodeId = engine::projectMixerNodeIdForClip (clip.id, engine::ProjectMixerNodeRole::Fader);
-        strip.panNodeId = engine::projectMixerNodeIdForClip (clip.id, engine::ProjectMixerNodeRole::Pan);
-        strip.meterNodeId = engine::projectMixerNodeIdForClip (clip.id, engine::ProjectMixerNodeRole::Meter);
+        strip.clipId = firstClip != nullptr ? firstClip->id : engine::EntityId {};
+        strip.targetId = trackRow.id;
+        strip.name = control != nullptr && ! control->name.empty()
+            ? control->name
+            : (! trackRow.strip.name.empty() ? trackRow.strip.name : detail::fallbackTrackName (i));
+        strip.sourceNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Source);
+        strip.faderNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Fader);
+        strip.panNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Pan);
+        strip.meterNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Meter);
         strip.muteNodeId = strip.sourceNodeId;
-        strip.linearGain = control != nullptr ? control->linearGain : clip.gain;
-        strip.pan = control != nullptr ? control->pan : 0.0f;
-        strip.muted = control != nullptr && control->muted;
-        strip.soloed = control != nullptr && control->soloed;
-        strip.soloSafe = control != nullptr && control->soloSafe;
+        strip.linearGain = control != nullptr ? control->linearGain : trackRow.strip.linearGain;
+        strip.pan = control != nullptr ? control->pan : trackRow.strip.pan;
+        strip.muted = control != nullptr ? control->muted : trackRow.strip.muted;
+        strip.soloed = control != nullptr ? control->soloed : trackRow.strip.soloed;
+        strip.soloSafe = control != nullptr ? control->soloSafe : trackRow.strip.soloSafe;
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         snapshot.tracks.push_back (std::move (strip));
     }
 
-    snapshot.buses.reserve (busControls.size());
-    for (std::size_t i = 0; i < busControls.size(); ++i)
+    const std::size_t busCount = std::max (project.buses.size(), busControls.size());
+    snapshot.buses.reserve (busCount);
+    for (std::size_t i = 0; i < busCount; ++i)
     {
-        const UiMixerBusControl& control = busControls[i];
+        const UiMixerBusControl* const control = i < busControls.size() ? &busControls[i] : nullptr;
+        const engine::Bus* const bus = i < project.buses.size() ? &project.buses[i] : nullptr;
 
         UiMixerStrip strip;
         strip.kind = UiMixerTargetKind::Bus;
         strip.index = i;
-        strip.name = ! control.name.empty() ? control.name : detail::fallbackBusName (i);
-        strip.faderNodeId = control.faderNodeId;
-        strip.panNodeId = control.panNodeId;
-        strip.meterNodeId = control.meterNodeId;
-        strip.muteNodeId = control.muteNodeId != 0 ? control.muteNodeId : control.faderNodeId;
-        strip.linearGain = control.linearGain;
-        strip.pan = control.pan;
-        strip.muted = control.muted;
-        strip.soloed = control.soloed;
-        strip.soloSafe = control.soloSafe;
-        strip.sidechainVisible = control.sidechainVisible;
-        strip.meter = control.meter;
+        strip.targetId = bus != nullptr ? bus->id : engine::EntityId {};
+        strip.name = control != nullptr && ! control->name.empty()
+            ? control->name
+            : (bus != nullptr && ! bus->strip.name.empty() ? bus->strip.name : detail::fallbackBusName (i));
+        strip.faderNodeId = control != nullptr ? control->faderNodeId : 0;
+        strip.panNodeId = control != nullptr ? control->panNodeId : 0;
+        strip.meterNodeId = control != nullptr ? control->meterNodeId : 0;
+        strip.muteNodeId = control != nullptr && control->muteNodeId != 0 ? control->muteNodeId : strip.faderNodeId;
+        strip.linearGain = control != nullptr ? control->linearGain : (bus != nullptr ? bus->strip.linearGain : 1.0f);
+        strip.pan = control != nullptr ? control->pan : (bus != nullptr ? bus->strip.pan : 0.0f);
+        strip.muted = control != nullptr ? control->muted : (bus != nullptr && bus->strip.muted);
+        strip.soloed = control != nullptr ? control->soloed : (bus != nullptr && bus->strip.soloed);
+        strip.soloSafe = control != nullptr ? control->soloSafe : (bus != nullptr && bus->strip.soloSafe);
+        strip.sidechainVisible = control != nullptr && control->sidechainVisible;
+        strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         snapshot.buses.push_back (std::move (strip));
     }
 
@@ -292,7 +313,7 @@ public:
 
     [[nodiscard]] bool selectTrack (std::size_t index) noexcept
     {
-        if (index >= project_.clips.size())
+        if (index >= project_.tracks.size())
             return false;
 
         selected_ = { UiMixerTargetKind::Track, index };
@@ -359,14 +380,18 @@ public:
 private:
     UiMixerTargetControl& trackControlForSelected()
     {
-        const engine::Clip& clip = project_.clips[selected_.index];
         for (UiMixerTargetControl& control : trackControls_)
-            if (control.clipId == clip.id)
+            if (control.targetId == project_.tracks[selected_.index].id)
                 return control;
 
         UiMixerTargetControl control;
-        control.clipId = clip.id;
-        control.linearGain = clip.gain;
+        control.targetId = project_.tracks[selected_.index].id;
+        control.name = project_.tracks[selected_.index].strip.name;
+        control.linearGain = project_.tracks[selected_.index].strip.linearGain;
+        control.pan = project_.tracks[selected_.index].strip.pan;
+        control.muted = project_.tracks[selected_.index].strip.muted;
+        control.soloed = project_.tracks[selected_.index].strip.soloed;
+        control.soloSafe = project_.tracks[selected_.index].strip.soloSafe;
         trackControls_.push_back (std::move (control));
         return trackControls_.back();
     }
@@ -379,7 +404,7 @@ private:
 
         if (selected_.kind == UiMixerTargetKind::Track)
         {
-            if (selected_.index >= project_.clips.size())
+            if (selected_.index >= project_.tracks.size())
                 return false;
 
             fn (trackControlForSelected());

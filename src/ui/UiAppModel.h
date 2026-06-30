@@ -326,6 +326,74 @@ public:
             context_.activePanel = UiPanel::Timeline;
     }
 
+    [[nodiscard]] bool selectMixerTrack (std::size_t index) noexcept
+    {
+        if (! context_.projectLoaded || index >= project_.tracks.size())
+        {
+            clearMixerTargetSelection();
+            return false;
+        }
+
+        selectedMixerTarget_ = { MixerTargetKind::Track, index };
+        context_.mixerTargetSelected = true;
+        context_.activePanel = UiPanel::Mixer;
+        return true;
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedMixerFader (float linearGain)
+    {
+        const UiActionId id = UiActionId::MixerTargetSetFader;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! engine::mixerGainIsValid (linearGain))
+            return { id, { false, "invalid mixer fader" }, false };
+
+        return editSelectedMixerStrip (id, state, [linearGain] (engine::MixerStripState& strip) {
+            strip.linearGain = linearGain;
+        });
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedMixerPan (float pan)
+    {
+        const UiActionId id = UiActionId::MixerTargetSetPan;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! engine::mixerPanIsValid (pan))
+            return { id, { false, "invalid mixer pan" }, false };
+
+        return editSelectedMixerStrip (id, state, [pan] (engine::MixerStripState& strip) {
+            strip.pan = pan;
+        });
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleSelectedMixerMute()
+    {
+        const UiActionId id = UiActionId::MixerTargetToggleMute;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMixerStrip (id, state, [] (engine::MixerStripState& strip) {
+            strip.muted = ! strip.muted;
+        });
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleSelectedMixerSolo()
+    {
+        const UiActionId id = UiActionId::MixerTargetToggleSolo;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMixerStrip (id, state, [] (engine::MixerStripState& strip) {
+            strip.soloed = ! strip.soloed;
+        });
+    }
+
     [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (engine::Tick timelineStart)
     {
         const UiActionId id = UiActionId::TimelineClipMove;
@@ -646,6 +714,18 @@ public:
     }
 
 private:
+    enum class MixerTargetKind : std::uint8_t
+    {
+        Track,
+        Bus
+    };
+
+    struct MixerTargetSelection
+    {
+        MixerTargetKind kind = MixerTargetKind::Track;
+        std::size_t index = 0;
+    };
+
     [[nodiscard]] const engine::Clip* findClip (engine::EntityId clipId) const noexcept
     {
         if (! clipId.isValid())
@@ -656,6 +736,58 @@ private:
                 return &clip;
 
         return nullptr;
+    }
+
+    void clearMixerTargetSelection() noexcept
+    {
+        selectedMixerTarget_ = {};
+        context_.mixerTargetSelected = false;
+        if (context_.activePanel == UiPanel::Mixer)
+            context_.activePanel = UiPanel::Timeline;
+    }
+
+    [[nodiscard]] engine::MixerStripState* selectedMixerStrip (engine::Project& project) const noexcept
+    {
+        if (! context_.mixerTargetSelected)
+            return nullptr;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Track)
+        {
+            if (selectedMixerTarget_.index >= project.tracks.size())
+                return nullptr;
+
+            return &project.tracks[selectedMixerTarget_.index].strip;
+        }
+
+        if (selectedMixerTarget_.index >= project.buses.size())
+            return nullptr;
+
+        return &project.buses[selectedMixerTarget_.index].strip;
+    }
+
+    template <typename Fn>
+    [[nodiscard]] UiActionDispatchResult editSelectedMixerStrip (UiActionId id,
+                                                                 UiActionState state,
+                                                                 Fn&& fn)
+    {
+        engine::Project nextProject = project_;
+        engine::MixerStripState* const strip = selectedMixerStrip (nextProject);
+        if (strip == nullptr)
+            return { id, { false, "selected mixer target missing" }, false };
+
+        fn (*strip);
+        if (! nextProject.hasValidAssetClipIndirection())
+            return { id, { false, "invalid mixer strip" }, false };
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "mixer edit did not persist" }, false };
+
+        context_.mixerTargetSelected = true;
+        context_.activePanel = UiPanel::Mixer;
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] static std::optional<std::uint64_t> sourceLengthForSplit (
@@ -957,6 +1089,7 @@ private:
         bundlePath_ = bundlePath;
         project_ = std::move (project);
         selectedTimelineClipId_ = {};
+        selectedMixerTarget_ = {};
         undo_ = {};
         decodedAssets_.clear();
         decodedAssetViews_.clear();
@@ -996,6 +1129,7 @@ private:
     engine::Project project_;
     engine::ProjectUndoStack undo_;
     engine::EntityId selectedTimelineClipId_;
+    MixerTargetSelection selectedMixerTarget_ {};
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

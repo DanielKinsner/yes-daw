@@ -103,19 +103,31 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 Track/Bus Project state + bundle migration checkpoint is local-green. The snap checkpoint
-`2d09fb6` is remote-green on GitHub Actions run `28428780783`, the ADR-0034 docs checkpoint `8a5d355`
-is remote-green on run `28429772220` for Linux, Windows, RTSan, and TSan, and the macOS Timeline GPU
+**Now:** H12 mixer controls against schema v4 Track/Bus strip state checkpoint is local-green. The snap
+checkpoint `2d09fb6` is remote-green on GitHub Actions run `28428780783`, the ADR-0034 docs checkpoint
+`8a5d355` is remote-green on run `28429772220` for Linux, Windows, RTSan, and TSan, the macOS Timeline GPU
 flakiness follow-up `fe00ac4` is remote-green on run `28430803662` across Linux, Windows, macOS, RTSan,
-and TSan. Project now has first-class Track/Bus entities with saved strip state, audio and MIDI Clips
-reference Track rows, `.yesdaw` bundles are schema v4, old bundles migrate audio Clips to default
-`Audio 1` and distinct MIDI track IDs to Track rows, and stored Projects reject orphan Clip/Track
-references plus invalid strip ranges before load succeeds. Local gates for this checkpoint are green:
-`git diff --check`; VS DevShell focused build for `YesDawProjectCheck` and `YesDawPersistenceCheck`;
-direct `YesDawProjectCheck.exe` **2433 assertions / 24 test cases**; direct
-`YesDawPersistenceCheck.exe` **651 assertions / 28 test cases**; VS DevShell full
-`cmake --build --preset ci`; focused rebuild/direct rerun for `YesDawUiActionCheck` and
-`YesDawSchedulerCheck`; and full `ctest --preset ci --output-on-failure` **254/254**.
+and TSan, and the Track/Bus Project state + schema v4 bundle migration checkpoint `abb92af` is
+remote-green on run `28433828816` across Linux, Windows, macOS, RTSan, and TSan. Project now has
+first-class Track/Bus entities with saved strip state, audio and MIDI Clips reference Track rows,
+`.yesdaw` bundles are schema v4, old bundles migrate audio Clips to default `Audio 1` and distinct MIDI
+track IDs to Track rows, and stored Projects reject orphan Clip/Track references plus invalid strip ranges
+before load succeeds. The mixer-control checkpoint adds real shipped `MainComponent` controls for first
+Track select, fader, pan, mute, and solo; `UiAppModel` writes selected Track strip edits into the schema v4
+Project bundle and rebuilds playback; `ProjectMixerProjection` applies saved Track gain/pan to the
+playback graph; and `UiMixerSurface` now projects saved Track/Bus strip rows. `YesDawUiInputCheck` drives
+the real mixer slider/button Components, proves disabled controls before Track selection, proves fader/pan
+change rendered playback, and proves fader/pan/mute/solo save/reopen parity through the bundle. Local gates
+for this checkpoint are green: `git diff --check`; VS DevShell
+`cmake --build --preset ci --target YesDawUiInputCheck`;
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` **1/1**; VS DevShell
+`cmake --build --preset ci --target YesDawUiInputCheck YesDawUiActionCheck YesDawAppSmokeCheck
+YesDawTimelineGpuCheck YesDawAccessibilityCheck`; focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
+--output-on-failure` **5/5**; focused mixer projection
+`ctest --preset ci -R "Project projector emits MixerProjectionInputs from Project clips" --output-on-failure`
+**1/1**; VS DevShell full `cmake --build --preset ci`; and full
+`ctest --preset ci --output-on-failure` **254/254**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
@@ -126,7 +138,7 @@ real-shell Clip selection `102c94a` on run `28415151322`, and Timeline Clip move
 locate/loop/stop plus scheduler repair `a9a57bf` on run `28418515621`, Timeline Clip gain via real-shell
 shift-drag `3b0a337` on run `28419232690`, and Timeline Clip fades via real-shell Alt-edge drags
 `ca59170` on run `28426496982`, and Timeline Clip snap via real-shell Ctrl-drag `2d09fb6` on run
-`28428780783`.
+`28428780783`, and Track/Bus Project state + schema v4 bundle migration `abb92af` on run `28433828816`.
 The transport checkpoint extends `YesDawUiInputCheck` so the imported-session harness drives Play, Locate,
 Loop, and Stop through the shipped toolbar `Button` Components after audible playback, then asserts playhead
 reset, loop toggle state, stop state, and command dispatch counts through the real `MainComponent` snapshot.
@@ -138,9 +150,9 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): after this checkpoint is remote-green, start H12 step 6 mixer controls
-against the schema v4 Track/Bus strip state and prove save/reopen parity through mechanical UI/bundle
-checks. Do not start H13 until H12 closeout is remote-green.**
+**Next (Codex - H12 end-to-end): after this checkpoint is remote-green, start H12 step 7 piano-roll input
+wiring and prove Note edit save/reopen parity through mechanical real-shell UI/bundle checks. Do not start
+H13 until H12 closeout is remote-green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`

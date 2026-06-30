@@ -291,7 +291,8 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
 
 TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "[mixer][projection][project]")
 {
-    const Project project = makeMixerProjectionProject();
+    Project project = makeMixerProjectionProject();
+    project.tracks[0].strip.linearGain = 0.75f;
 
     ProjectMixerProjectionConfig config;
     config.id = 70;
@@ -327,7 +328,7 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     REQUIRE (projection.tracks[0].faderNodeId == firstFader);
     REQUIRE (projection.tracks[0].panNodeId == firstPan);
     REQUIRE (projection.tracks[0].meterNodeId == firstMeter);
-    REQUIRE (projection.tracks[0].linearGain == project.clips[0].gain);
+    REQUIRE (projection.tracks[0].linearGain == project.clips[0].gain * project.tracks[0].strip.linearGain);
     REQUIRE (projection.tracks[0].pan == 0.0f);
 
     MixerProjectionError graphError;
@@ -339,8 +340,8 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == project.clips.size());
 
     const float expected =
-        (sourceDcForAsset (project.assets[0]) * project.clips[0].gain
-         + sourceDcForAsset (project.assets[1]) * project.clips[1].gain)
+        (sourceDcForAsset (project.assets[0]) * project.clips[0].gain * project.tracks[0].strip.linearGain
+         + sourceDcForAsset (project.assets[1]) * project.clips[1].gain * project.tracks[0].strip.linearGain)
         * kCenterGain;
     const StereoCapture out = render (*graph, kMaxBlock);
     REQUIRE (out.left.back() == Approx (expected).margin (1.0e-4f));

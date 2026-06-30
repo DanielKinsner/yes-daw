@@ -1,8 +1,8 @@
 // YES DAW - Project to mixer projection bridge (H3 item 4a).
 //
-// Control-thread-only: translate today's saved Project value surface into the existing
-// MixerProjectionInputs shape without inventing a new schema. The caller supplies the source Node for
-// each Clip/Asset pair; this bridge owns deterministic mixer node identity and validation.
+// Control-thread-only: translate saved Project Clip and Track strip state into the existing
+// MixerProjectionInputs shape. The caller supplies the source Node for each Clip/Asset pair; this bridge
+// owns deterministic mixer node identity and validation.
 
 #pragma once
 
@@ -44,6 +44,7 @@ struct ProjectMixerProjectionError
         None,
         InvalidProject,
         InvalidClipGain,
+        InvalidTrackGain,
         DuplicateNodeId,
         SourceFactoryFailed,
         SourceNodeIdMismatch
@@ -147,6 +148,22 @@ template <typename SourceFactory>
             return false;
         }
 
+        const Track* const owningTrack = project.findTrack (clip.trackId);
+        if (owningTrack == nullptr || ! mixerGainIsValid (owningTrack->strip.linearGain))
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, i, 0, ProjectMixerNodeRole::Fader };
+            return false;
+        }
+
+        const double combinedGain = static_cast<double> (clip.gain) * static_cast<double> (owningTrack->strip.linearGain);
+        if (combinedGain > static_cast<double> (FaderNode::kMaxLinearGain))
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, i, 0, ProjectMixerNodeRole::Fader };
+            return false;
+        }
+
         const NodeId sourceId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Source);
         const NodeId faderId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Fader);
         const NodeId panId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Pan);
@@ -178,8 +195,8 @@ template <typename SourceFactory>
         track.faderNodeId = faderId;
         track.panNodeId = panId;
         track.meterNodeId = meterId;
-        track.linearGain = clip.gain;
-        track.pan = 0.0f;
+        track.linearGain = static_cast<float> (combinedGain);
+        track.pan = owningTrack->strip.pan;
         projection.tracks.push_back (std::move (track));
     }
 

@@ -76,6 +76,18 @@ double peakAbs (std::span<const float> samples) noexcept
     return peak;
 }
 
+double channelPeakAbs (std::span<const float> interleaved, std::size_t channel, std::size_t channels) noexcept
+{
+    double peak = 0.0;
+    if (channels == 0 || channel >= channels)
+        return peak;
+
+    for (std::size_t i = channel; i < interleaved.size(); i += channels)
+        peak = std::max (peak, std::fabs (static_cast<double> (interleaved[i])));
+
+    return peak;
+}
+
 std::unique_ptr<juce::Component> makeShell (MainComponentFileChoices fileChoices = {})
 {
     juce::MessageManager::getInstance();
@@ -102,6 +114,32 @@ juce::Component* findChildWithComponentId (juce::Component& component, const juc
 juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 {
     juce::Component* component = findMainComponentChildForAction (shell, action);
+    REQUIRE (component != nullptr);
+
+    auto* button = dynamic_cast<juce::Button*> (component);
+    REQUIRE (button != nullptr);
+    REQUIRE (button->isVisible());
+    REQUIRE (button->getWidth() > 0);
+    REQUIRE (button->getHeight() > 0);
+    return *button;
+}
+
+juce::Slider& requireSliderForAction (juce::Component& shell, UiActionId action)
+{
+    juce::Component* component = findMainComponentChildForAction (shell, action);
+    REQUIRE (component != nullptr);
+
+    auto* slider = dynamic_cast<juce::Slider*> (component);
+    REQUIRE (slider != nullptr);
+    REQUIRE (slider->isVisible());
+    REQUIRE (slider->getWidth() > 0);
+    REQUIRE (slider->getHeight() > 0);
+    return *slider;
+}
+
+juce::Button& requireButtonWithComponentId (juce::Component& shell, const juce::String& componentId)
+{
+    juce::Component* component = findChildWithComponentId (shell, componentId);
     REQUIRE (component != nullptr);
 
     auto* button = dynamic_cast<juce::Button*> (component);
@@ -175,6 +213,32 @@ void dragFromTo (juce::Component& component,
     juce::MouseEvent up = makeMouseEvent (component, end, start, true, 1, modifiers);
     component.mouseUp (up);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+void dragVerticalSliderToNormalizedValue (juce::Slider& slider, double normalizedFromMin)
+{
+    REQUIRE (slider.isEnabled());
+    auto bounds = slider.getLocalBounds().reduced (3);
+    REQUIRE (bounds.getWidth() > 0);
+    REQUIRE (bounds.getHeight() > 0);
+
+    const double clamped = std::clamp (normalizedFromMin, 0.0, 1.0);
+    const int y = bounds.getBottom() - 1
+                - static_cast<int> (std::llround (clamped * static_cast<double> (bounds.getHeight() - 1)));
+    dragFromTo (slider, bounds.getCentre(), { bounds.getCentreX(), std::clamp (y, bounds.getY(), bounds.getBottom() - 1) });
+}
+
+void dragHorizontalSliderToNormalizedValue (juce::Slider& slider, double normalizedFromMin)
+{
+    REQUIRE (slider.isEnabled());
+    auto bounds = slider.getLocalBounds().reduced (3);
+    REQUIRE (bounds.getWidth() > 0);
+    REQUIRE (bounds.getHeight() > 0);
+
+    const double clamped = std::clamp (normalizedFromMin, 0.0, 1.0);
+    const int x = bounds.getX()
+                + static_cast<int> (std::llround (clamped * static_cast<double> (bounds.getWidth() - 1)));
+    dragFromTo (slider, bounds.getCentre(), { std::clamp (x, bounds.getX(), bounds.getRight() - 1), bounds.getCentreY() });
 }
 
 void doubleClickAt (juce::Component& component, juce::Point<int> position)
@@ -349,7 +413,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 1u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 6u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -462,6 +526,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
 
     MainComponentFileChoices choices;
     choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
     choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
 
     auto shell = makeShell (std::move (choices));
@@ -911,4 +976,114 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.playheadFrame == 0);
     REQUIRE (snapshot.context.commandDispatchCount == 27);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+    REQUIRE_FALSE (snapshot.context.mixerTargetSelected);
+    REQUIRE (snapshot.context.commandDispatchCount == 28);
+
+    juce::Slider& fader = requireSliderForAction (*shell, UiActionId::MixerTargetSetFader);
+    juce::Slider& pan = requireSliderForAction (*shell, UiActionId::MixerTargetSetPan);
+    juce::Button& mute = requireButtonForAction (*shell, UiActionId::MixerTargetToggleMute);
+    juce::Button& solo = requireButtonForAction (*shell, UiActionId::MixerTargetToggleSolo);
+    REQUIRE_FALSE (fader.isEnabled());
+    REQUIRE_FALSE (pan.isEnabled());
+    REQUIRE_FALSE (mute.isEnabled());
+    REQUIRE_FALSE (solo.isEnabled());
+
+    const yesdaw::engine::Project preMixer = readProjectSnapshot (bundlePath);
+    REQUIRE (preMixer.tracks.size() == 1u);
+    REQUIRE_FALSE (preMixer.clips.empty());
+    REQUIRE (preMixer.tracks.front().strip.linearGain == 1.0f);
+    REQUIRE (preMixer.tracks.front().strip.pan == 0.0f);
+    REQUIRE_FALSE (preMixer.tracks.front().strip.muted);
+    REQUIRE_FALSE (preMixer.tracks.front().strip.soloed);
+    yesdaw::engine::Tick mixerTimelineEnd = 0;
+    for (const yesdaw::engine::Clip& mixerClip : preMixer.clips)
+        if (mixerClip.timelineStart >= 0 && mixerClip.timelineLength > 0)
+            mixerTimelineEnd = std::max (mixerTimelineEnd, mixerClip.timelineStart + mixerClip.timelineLength);
+
+    const std::uint64_t mixerRenderFrames =
+        static_cast<std::uint64_t> (std::max<yesdaw::engine::Tick> (512, mixerTimelineEnd));
+
+    clickButton (requireButtonWithComponentId (*shell, "mixer.track.0.select"));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerTargetSelected);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+    REQUIRE (fader.isEnabled());
+    REQUIRE (pan.isEnabled());
+    REQUIRE (mute.isEnabled());
+    REQUIRE (solo.isEnabled());
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    const std::vector<float> beforeMixRender = renderMainComponentPlayback (*shell, mixerRenderFrames, 128);
+    REQUIRE (beforeMixRender.size() == static_cast<std::size_t> (mixerRenderFrames * 2u));
+    const double beforeMixLeftPeak = channelPeakAbs (
+        std::span<const float> (beforeMixRender.data(), beforeMixRender.size()), 0u, 2u);
+    const double beforeMixRightPeak = channelPeakAbs (
+        std::span<const float> (beforeMixRender.data(), beforeMixRender.size()), 1u, 2u);
+    REQUIRE (beforeMixLeftPeak > 0.01);
+    REQUIRE (beforeMixRightPeak > 0.01);
+
+    dragVerticalSliderToNormalizedValue (fader, 0.28);
+    dragHorizontalSliderToNormalizedValue (pan, 0.32);
+    clickButton (mute);
+    clickButton (solo);
+
+    const yesdaw::engine::Project mixed = readProjectSnapshot (bundlePath);
+    REQUIRE (mixed.tracks.size() == 1u);
+    REQUIRE (mixed.tracks.front().strip.linearGain < preMixer.tracks.front().strip.linearGain);
+    REQUIRE (mixed.tracks.front().strip.linearGain > 0.0f);
+    REQUIRE (mixed.tracks.front().strip.pan < -0.05f);
+    REQUIRE (mixed.tracks.front().strip.pan >= -1.0f);
+    REQUIRE (mixed.tracks.front().strip.muted);
+    REQUIRE (mixed.tracks.front().strip.soloed);
+    REQUIRE (mixed.tracks.front().strip.name == "Audio 1");
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    const std::vector<float> afterMixRender = renderMainComponentPlayback (*shell, mixerRenderFrames, 128);
+    REQUIRE (afterMixRender.size() == static_cast<std::size_t> (mixerRenderFrames * 2u));
+    const double afterMixLeftPeak = channelPeakAbs (
+        std::span<const float> (afterMixRender.data(), afterMixRender.size()), 0u, 2u);
+    const double afterMixRightPeak = channelPeakAbs (
+        std::span<const float> (afterMixRender.data(), afterMixRender.size()), 1u, 2u);
+    REQUIRE (afterMixLeftPeak < beforeMixLeftPeak);
+    REQUIRE (afterMixRightPeak < beforeMixRightPeak);
+    REQUIRE (afterMixLeftPeak > afterMixRightPeak);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerEditCount >= 4);
+    REQUIRE (snapshot.context.commandDispatchCount >= 34);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.saveCount == 1);
+    REQUIRE (snapshot.context.commandDispatchCount >= 35);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.context.mixerTargetSelected);
+    REQUIRE_FALSE (snapshot.playbackReady);
+    REQUIRE (snapshot.bundlePath == bundlePath);
+
+    const yesdaw::engine::Project reopenedMixer = readProjectSnapshot (bundlePath);
+    REQUIRE (reopenedMixer.tracks == mixed.tracks);
+    REQUIRE (reopenedMixer.clips == mixed.clips);
+
+    REQUIRE_FALSE (fader.isEnabled());
+    REQUIRE_FALSE (pan.isEnabled());
+    REQUIRE_FALSE (mute.isEnabled());
+    REQUIRE_FALSE (solo.isEnabled());
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonWithComponentId (*shell, "mixer.track.0.select"));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerTargetSelected);
+    REQUIRE (std::fabs (fader.getValue() - static_cast<double> (mixed.tracks.front().strip.linearGain)) < 0.0001);
+    REQUIRE (std::fabs (pan.getValue() - static_cast<double> (mixed.tracks.front().strip.pan)) < 0.0001);
+    REQUIRE (mute.getToggleState());
+    REQUIRE (solo.getToggleState());
 }
