@@ -100,6 +100,7 @@ struct UiActionDescriptor
     bool requiresRecordingDevice = false;
     bool requiresRecordingTrackInput = false;
     bool requiresRecordingMonitoring = false;
+    bool requiresRecordingTrackAvailable = false;
 };
 
 struct UiActionContext
@@ -114,6 +115,7 @@ struct UiActionContext
     bool midiClipSelected = false;
     bool midiNoteSelected = false;
     bool recordingDeviceSelected = false;
+    bool recordingTrackAvailable = false;
     bool recordingTrackArmed = false;
     bool recordingInputSelected = false;
     bool recordingMonitoringSelected = false;
@@ -128,6 +130,10 @@ struct UiActionContext
     int dawprojectExportCount = 0;
     int deviceRefreshCount = 0;
     int deviceSelectCount = 0;
+    std::uint32_t recordingDeviceGeneration = 0;
+    std::uint32_t selectedRecordingDeviceId = 0;
+    int selectedRecordingTrackIndex = -1;
+    int selectedRecordingInputChannel = -1;
     int recordingArmCount = 0;
     int recordingMonitoringCount = 0;
     int recordingCommandCount = 0;
@@ -192,7 +198,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "Ctrl+Alt+T", "Select test audio device",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "Ctrl+Alt+A", "Arm selected Track for recording",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
     { UiActionId::RecordingSetMonitoringPolicy, "record.monitoring_policy", "Monitor", "Ctrl+Alt+O", "Choose recording monitoring policy",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
     { UiActionId::TransportRecord, "transport.record", "Record", "R", "Record transport",
@@ -395,6 +401,8 @@ public:
             return { false, "no MIDI note selected" };
         if (descriptor->requiresRecordingDevice && ! context.recordingDeviceSelected)
             return { false, "no recording device selected" };
+        if (descriptor->requiresRecordingTrackAvailable && ! context.recordingTrackAvailable)
+            return { false, "no recording Track available" };
         if (descriptor->requiresRecordingTrackInput
             && (! context.recordingTrackArmed || ! context.recordingInputSelected))
             return { false, "no armed recording Track/input" };
@@ -456,17 +464,23 @@ public:
                 break;
 
             case UiActionId::DeviceRefreshAudio:
+                ++context.recordingDeviceGeneration;
                 ++context.deviceRefreshCount;
                 break;
 
             case UiActionId::DeviceSelectTestAudio:
                 context.recordingDeviceSelected = true;
+                context.selectedRecordingDeviceId = 1u;
+                if (context.recordingDeviceGeneration == 0u)
+                    context.recordingDeviceGeneration = 1u;
                 ++context.deviceSelectCount;
                 break;
 
             case UiActionId::RecordingArmTrack:
                 context.recordingTrackArmed = ! context.recordingTrackArmed;
                 context.recordingInputSelected = context.recordingTrackArmed;
+                context.selectedRecordingTrackIndex = context.recordingTrackArmed ? 0 : -1;
+                context.selectedRecordingInputChannel = context.recordingTrackArmed ? 0 : -1;
                 if (! context.recordingTrackArmed)
                     context.isRecording = false;
                 ++context.recordingArmCount;

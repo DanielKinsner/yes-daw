@@ -321,6 +321,11 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (armWithoutDevice.disabledReason == std::string_view ("no recording device selected"));
 
     context.recordingDeviceSelected = true;
+    const auto armWithoutTrack = registry.stateFor (UiActionId::RecordingArmTrack, context);
+    REQUIRE_FALSE (armWithoutTrack.enabled);
+    REQUIRE (armWithoutTrack.disabledReason == std::string_view ("no recording Track available"));
+
+    context.recordingTrackAvailable = true;
     REQUIRE (registry.stateFor (UiActionId::RecordingArmTrack, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::RecordingSetMonitoringPolicy, context).enabled);
 
@@ -376,13 +381,18 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.deviceRefreshCount == 1);
     REQUIRE (registry.dispatch (UiActionId::DeviceSelectTestAudio, context).dispatched);
     REQUIRE (context.recordingDeviceSelected);
+    REQUIRE (context.selectedRecordingDeviceId == 1u);
+    REQUIRE (context.recordingDeviceGeneration == 1u);
     REQUIRE (context.deviceSelectCount == 1);
     REQUIRE (registry.dispatch (UiActionId::RecordingSetMonitoringPolicy, context).dispatched);
     REQUIRE (context.recordingMonitoringSelected);
     REQUIRE (context.recordingMonitoringCount == 1);
+    context.recordingTrackAvailable = true;
     REQUIRE (registry.dispatch (UiActionId::RecordingArmTrack, context).dispatched);
     REQUIRE (context.recordingTrackArmed);
     REQUIRE (context.recordingInputSelected);
+    REQUIRE (context.selectedRecordingTrackIndex == 0);
+    REQUIRE (context.selectedRecordingInputChannel == 0);
     REQUIRE (context.recordingArmCount == 1);
     REQUIRE (registry.dispatch (UiActionId::TransportRecord, context).dispatched);
     REQUIRE (context.isRecording);

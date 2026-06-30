@@ -12,24 +12,26 @@ worklog.
 **Current horizon:** **H13 (Recording and device UX) — OPEN.** H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
-implementation checkpoint adds the shipped-shell recording UX skeleton only; no irreversible bundle schema
-or recorded-audio asset format change is included.
+implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
+adds the shipped-shell recording UX skeleton only; no irreversible bundle schema or recorded-audio asset
+format change is included.
 
-**Now:** H13 recording UX harness skeleton is local-green and ready to commit/push. Added
-`YesDawRecordingUxCheck` around the real shipped `MainComponent`, deterministic test-device/recording
-controls, Record disabled until Project + test device + monitoring policy + armed Track/input exist, and
-the focused H13/H12 lane includes the new gate. Local gates: `cmake --preset ci`; VS DevShell
-`cmake --build --preset ci --target YesDawRecordingUxCheck`; `ctest --test-dir build-ci -R
-YesDawRecordingUxCheck --output-on-failure`; VS DevShell focused build for `YesDawUiActionCheck`,
-`YesDawAccessibilityCheck`, `YesDawUiInputCheck`, `YesDawRecordingCheck`, `YesDawDeviceHotSwapCheck`,
-`YesDawAppSmokeCheck`, and `YesDawTimelineGpuCheck`; focused ctests for H12/H13 UI lane, device hot-swap,
-and H5 recording tests #142-#150; VS DevShell `cmake --build --preset ci`; `ctest --preset ci
---output-on-failure` **255/255**; and `git diff --check`.
+**Now:** H13 device selection + Track arm/input selection is local-green and ready to commit/push. The
+shipped `MainComponent` now drives deterministic test-device selection/refresh and default Track/input arm
+state through `UiAppModel`; invalid no-Track Projects keep Arm/Record disabled; refresh preserves the
+selected test device and armed input; accessibility/action parity remains green; and ADR-0031 device
+hot-swap survival remains green. No irreversible bundle schema or recorded-audio asset format change is
+included. Local gates: VS DevShell `cmake --build --preset ci --target YesDawRecordingUxCheck
+YesDawUiActionCheck YesDawAccessibilityCheck`; `ctest --test-dir build-ci -R
+"YesDaw(RecordingUx|UiAction|Accessibility)Check" --output-on-failure` **3/3**; `ctest --test-dir
+build-ci -R YesDawDeviceHotSwapCheck --output-on-failure`; VS DevShell `cmake --build --preset ci`;
+`ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 2):** after this skeleton checkpoint is remote-green, wire
-device selection/refresh and Track arm/input selection through shipped controls and the UI action registry.
-Gate: selecting a device and arming a Track changes control-side Project/UI state, invalid combinations are
-rejected, accessibility/action parity holds, and device refresh/hot-swap keeps ADR-0031 survival green.
+**Next (Codex - H13 implementation checkpoint 3):** wire the first scripted audio recording path through
+the shipped shell: with a selected test device, armed Track/input, and monitoring policy, record deterministic
+audio into bundle-owned data and place a non-destructive Clip on the armed Track. Before implementation code
+lands, verify whether existing Asset + Project truth can represent the needed Take metadata; if a new
+irreversible bundle schema or recorded-audio asset format is required, write a focused ADR first.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

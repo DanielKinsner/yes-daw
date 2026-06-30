@@ -35,6 +35,7 @@ UiActionContext fullyReachableContext()
     context.midiClipSelected = true;
     context.midiNoteSelected = true;
     context.recordingDeviceSelected = true;
+    context.recordingTrackAvailable = true;
     context.recordingTrackArmed = true;
     context.recordingInputSelected = true;
     context.recordingMonitoringSelected = true;

@@ -916,6 +916,14 @@ public:
     }
 
     [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }
+    [[nodiscard]] const yesdaw::ui::UiRecordingDeviceSelection& harnessRecordingDevice() const noexcept
+    {
+        return appModel.recordingDeviceSelection();
+    }
+    [[nodiscard]] const yesdaw::ui::UiRecordingTrackInputSelection& harnessRecordingTrackInput() const noexcept
+    {
+        return appModel.recordingTrackInputSelection();
+    }
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
@@ -2019,6 +2027,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.bundlePath = mainComponent->harnessBundlePath();
         snapshot.context = mainComponent->harnessContext();
+        snapshot.recordingDevice = mainComponent->harnessRecordingDevice();
+        snapshot.recordingTrackInput = mainComponent->harnessRecordingTrackInput();
     }
 
     return snapshot;

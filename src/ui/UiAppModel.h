@@ -73,6 +73,24 @@ struct UiAppImportResult
     [[nodiscard]] bool ok() const noexcept { return status == UiAppImportStatus::Ok; }
 };
 
+struct UiRecordingDeviceSelection
+{
+    bool selected = false;
+    std::uint32_t stableDeviceId = 0;
+    std::uint32_t generation = 0;
+    engine::SampleRate sampleRate;
+    std::uint16_t inputChannels = 0;
+    std::uint32_t maxBlockSize = 0;
+};
+
+struct UiRecordingTrackInputSelection
+{
+    bool armed = false;
+    engine::EntityId trackId;
+    std::size_t trackIndex = 0;
+    std::uint16_t inputChannel = 0;
+};
+
 class UiAppModel
 {
 public:
@@ -84,6 +102,8 @@ public:
     [[nodiscard]] engine::EntityId selectedMidiNoteId() const noexcept { return selectedMidiNoteId_; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
+    [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
+    [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -765,9 +785,17 @@ public:
                 });
 
             case UiActionId::DeviceRefreshAudio:
+                return refreshAudioDevices();
+
             case UiActionId::DeviceSelectTestAudio:
+                return selectTestAudioDevice();
+
             case UiActionId::RecordingArmTrack:
+                return toggleDefaultTrackRecordingArm();
+
             case UiActionId::RecordingSetMonitoringPolicy:
+                return selectInputMonitoringPolicy();
+
             case UiActionId::TransportRecord:
                 return registry_.dispatch (id, context_);
 
@@ -899,6 +927,138 @@ private:
             context_.activePanel = UiPanel::Timeline;
     }
 
+    [[nodiscard]] const engine::Track* findTrack (engine::EntityId trackId) const noexcept
+    {
+        if (! trackId.isValid())
+            return nullptr;
+
+        for (const engine::Track& track : project_.tracks)
+            if (track.id == trackId)
+                return &track;
+
+        return nullptr;
+    }
+
+    void clearRecordingTrackInput() noexcept
+    {
+        recordingTrackInput_ = {};
+        context_.recordingTrackArmed = false;
+        context_.recordingInputSelected = false;
+        context_.selectedRecordingTrackIndex = -1;
+        context_.selectedRecordingInputChannel = -1;
+        context_.isRecording = false;
+    }
+
+    void syncRecordingContext() noexcept
+    {
+        context_.recordingDeviceSelected = recordingDevice_.selected;
+        context_.recordingDeviceGeneration = recordingDevice_.generation;
+        context_.selectedRecordingDeviceId = recordingDevice_.stableDeviceId;
+        context_.recordingTrackAvailable = context_.projectLoaded && ! project_.tracks.empty();
+
+        if (! recordingTrackInput_.armed
+            || ! context_.recordingTrackAvailable
+            || findTrack (recordingTrackInput_.trackId) == nullptr
+            || ! recordingDevice_.selected
+            || recordingTrackInput_.inputChannel >= recordingDevice_.inputChannels)
+        {
+            clearRecordingTrackInput();
+            return;
+        }
+
+        context_.recordingTrackArmed = true;
+        context_.recordingInputSelected = true;
+        context_.selectedRecordingTrackIndex = static_cast<int> (recordingTrackInput_.trackIndex);
+        context_.selectedRecordingInputChannel = static_cast<int> (recordingTrackInput_.inputChannel);
+    }
+
+    [[nodiscard]] UiActionDispatchResult refreshAudioDevices()
+    {
+        const UiActionId id = UiActionId::DeviceRefreshAudio;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        ++recordingDevice_.generation;
+        if (recordingDevice_.selected)
+        {
+            recordingDevice_.stableDeviceId = 1u;
+            recordingDevice_.sampleRate = engine::SampleRate { 48000.0 };
+            recordingDevice_.inputChannels = 2u;
+            recordingDevice_.maxBlockSize = 128u;
+        }
+
+        ++context_.commandDispatchCount;
+        ++context_.deviceRefreshCount;
+        syncRecordingContext();
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult selectTestAudioDevice()
+    {
+        const UiActionId id = UiActionId::DeviceSelectTestAudio;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        recordingDevice_.selected = true;
+        recordingDevice_.stableDeviceId = 1u;
+        if (recordingDevice_.generation == 0u)
+            recordingDevice_.generation = 1u;
+        recordingDevice_.sampleRate = engine::SampleRate { 48000.0 };
+        recordingDevice_.inputChannels = 2u;
+        recordingDevice_.maxBlockSize = 128u;
+
+        ++context_.commandDispatchCount;
+        ++context_.deviceSelectCount;
+        syncRecordingContext();
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleDefaultTrackRecordingArm()
+    {
+        syncRecordingContext();
+
+        const UiActionId id = UiActionId::RecordingArmTrack;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! recordingTrackInput_.armed)
+        {
+            if (project_.tracks.empty() || ! recordingDevice_.selected || recordingDevice_.inputChannels == 0u)
+                return { id, { false, "no armed recording Track/input" }, false };
+
+            recordingTrackInput_.armed = true;
+            recordingTrackInput_.trackId = project_.tracks.front().id;
+            recordingTrackInput_.trackIndex = 0;
+            recordingTrackInput_.inputChannel = 0;
+        }
+        else
+        {
+            clearRecordingTrackInput();
+        }
+
+        ++context_.commandDispatchCount;
+        ++context_.recordingArmCount;
+        syncRecordingContext();
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult selectInputMonitoringPolicy()
+    {
+        const UiActionId id = UiActionId::RecordingSetMonitoringPolicy;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        context_.recordingMonitoringSelected = true;
+        ++context_.commandDispatchCount;
+        ++context_.recordingMonitoringCount;
+        syncRecordingContext();
+        return { id, state, true };
+    }
+
     [[nodiscard]] engine::MixerStripState* selectedMixerStrip (engine::Project& project) const noexcept
     {
         if (! context_.mixerTargetSelected)
@@ -990,6 +1150,7 @@ private:
         context_.midiNoteSelected = midiClip != nullptr
             && selectedMidiNoteId_.isValid()
             && findNote (*midiClip, selectedMidiNoteId_) != nullptr;
+        syncRecordingContext();
     }
 
     [[nodiscard]] UiActionDispatchResult editSelectedMidiNote (UiActionId id,
@@ -1282,6 +1443,9 @@ private:
         context_ = {};
         context_.projectLoaded = true;
         context_.activePanel = UiPanel::Timeline;
+        recordingDevice_ = {};
+        recordingTrackInput_ = {};
+        syncRecordingContext();
     }
 
     template <typename Fn>
@@ -1316,6 +1480,8 @@ private:
     engine::EntityId selectedMidiClipId_;
     engine::EntityId selectedMidiNoteId_;
     MixerTargetSelection selectedMixerTarget_ {};
+    UiRecordingDeviceSelection recordingDevice_;
+    UiRecordingTrackInputSelection recordingTrackInput_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

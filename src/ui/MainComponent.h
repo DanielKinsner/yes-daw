@@ -6,7 +6,7 @@
 #pragma once
 
 #include "engine/Project.h"
-#include "ui/UiActions.h"
+#include "ui/UiAppModel.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -34,6 +34,8 @@ struct MainComponentSnapshot
     int childCount = 0;
     std::filesystem::path bundlePath;
     UiActionContext context;
+    UiRecordingDeviceSelection recordingDevice;
+    UiRecordingTrackInputSelection recordingTrackInput;
 };
 
 [[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices = {});
