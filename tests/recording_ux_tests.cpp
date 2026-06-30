@@ -1,5 +1,6 @@
 // YES DAW - H13 recording UX shipped-shell harness skeleton.
 
+#include "io/WavFile.h"
 #include "ui/MainComponent.h"
 #include "persistence/ProjectBundle.h"
 
@@ -69,6 +70,12 @@ yesdaw::engine::Project readProjectSnapshot (const std::filesystem::path& bundle
     yesdaw::engine::Project project;
     REQUIRE (db.readProjectSnapshot (project).ok());
     return project;
+}
+
+float expectedRecordedSample (std::uint64_t frame) noexcept
+{
+    const int phase = static_cast<int> (frame % 16u);
+    return (static_cast<float> (phase) - 7.5f) / 16.0f;
 }
 
 } // namespace
@@ -210,7 +217,15 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     const std::filesystem::path assetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
     REQUIRE (std::filesystem::is_regular_file (assetPath));
-    REQUIRE (std::filesystem::file_size (assetPath) == 256u * sizeof (float));
+
+    yesdaw::io::Float32Wav decoded;
+    REQUIRE (yesdaw::io::readFloat32WavFile (assetPath, decoded).ok());
+    REQUIRE (decoded.sampleRate == asset.sampleRate);
+    REQUIRE (decoded.frames == asset.frames);
+    REQUIRE (decoded.channels == asset.channels);
+    REQUIRE (decoded.interleavedSamples.size() == 256u);
+    for (std::uint64_t frame = 0; frame < decoded.frames; ++frame)
+        REQUIRE (decoded.interleavedSamples[static_cast<std::size_t> (frame)] == expectedRecordedSample (frame));
 }
 
 TEST_CASE ("H13 recording UX rejects arming when the loaded Project has no Track",

@@ -8,13 +8,13 @@
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/ProjectUndo.h"
+#include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <fstream>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -250,7 +250,7 @@ public:
 
         UiDecodedAsset decoded = makeDeterministicRecordedAudio();
         const std::filesystem::path sourcePath = makeRecordingSourceTempPath();
-        if (! writeDecodedAudioSourceBytes (sourcePath, decoded))
+        if (! writeDecodedAudioSourceWav (sourcePath, decoded))
         {
             result.status = UiAppRecordStatus::SourceWriteFailed;
             return result;
@@ -1423,29 +1423,21 @@ private:
         const auto now = std::chrono::steady_clock::now().time_since_epoch();
         const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds> (now).count();
         return std::filesystem::temp_directory_path()
-             / ("yesdaw-recorded-test-device-" + std::to_string (nanos) + ".asset-source");
+             / ("yesdaw-recorded-test-device-" + std::to_string (nanos) + ".wav");
     }
 
-    [[nodiscard]] static bool writeDecodedAudioSourceBytes (const std::filesystem::path& path,
-                                                            const UiDecodedAsset& decoded)
+    [[nodiscard]] static bool writeDecodedAudioSourceWav (const std::filesystem::path& path,
+                                                          const UiDecodedAsset& decoded)
     {
         if (! decodedAudioIsValid (decoded))
             return false;
 
-        std::error_code ec;
-        std::filesystem::create_directories (path.parent_path(), ec);
-        if (ec)
-            return false;
-
-        std::ofstream output (path, std::ios::binary | std::ios::trunc);
-        if (! output)
-            return false;
-
-        const auto bytes = static_cast<std::streamsize> (
-            decoded.interleavedSamples.size() * sizeof (float));
-        output.write (reinterpret_cast<const char*> (decoded.interleavedSamples.data()), bytes);
-        output.close();
-        return static_cast<bool> (output);
+        return io::writeFloat32WavFile (
+            path,
+            decoded.sampleRate,
+            decoded.channels,
+            decoded.frames,
+            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size())).ok();
     }
 
     static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
