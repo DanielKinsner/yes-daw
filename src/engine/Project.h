@@ -341,6 +341,42 @@ struct MidiClip
     friend bool operator== (const MidiClip&, const MidiClip&) = default;
 };
 
+enum class RecordingMonitoringPolicy : std::uint8_t
+{
+    Off = 0,
+    DirectInput,
+    LatencyCompensated
+};
+
+struct RecordingTake
+{
+    EntityId id;
+    EntityId assetId;
+    EntityId trackId;
+    EntityId clipId;
+    Tick timelineStart = 0;
+    std::uint64_t frameCount = 0;
+    std::uint32_t takeOrdinal = 0;
+    std::uint16_t inputChannel = 0;
+    std::uint32_t deviceStableId = 0;
+    RecordingMonitoringPolicy monitoringPolicy = RecordingMonitoringPolicy::Off;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return id.isValid()
+            && assetId.isValid()
+            && trackId.isValid()
+            && clipId.isValid()
+            && timelineStart >= 0
+            && frameCount > 0
+            && (monitoringPolicy == RecordingMonitoringPolicy::Off
+                || monitoringPolicy == RecordingMonitoringPolicy::DirectInput
+                || monitoringPolicy == RecordingMonitoringPolicy::LatencyCompensated);
+    }
+
+    friend constexpr bool operator== (const RecordingTake&, const RecordingTake&) noexcept = default;
+};
+
 enum class ProjectEditStatus : std::uint8_t
 {
     Applied = 0,
@@ -376,6 +412,9 @@ struct Project
     // H4 MIDI edit surface (ADR-0017): MIDI Clips own editable Notes. They flatten to Events only at the
     // render boundary; persistence keeps the stable Note IDs intact for piano-roll edits and MPE.
     std::vector<MidiClip>    midiClips;
+    // H13 recording surface (ADR-0036): Takes identify recorded passes and link immutable recorded audio
+    // Assets to their Track/Clip placement without making Clip identity carry recording history.
+    std::vector<RecordingTake> recordingTakes;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -418,6 +457,10 @@ struct Project
 
         for (const MidiClip& midiClip : midiClips)
             if (! midiClip.isValid())
+                return false;
+
+        for (const RecordingTake& take : recordingTakes)
+            if (! take.isValid())
                 return false;
 
         return true;
@@ -544,6 +587,38 @@ struct Project
                     return false;
         }
 
+        for (std::size_t i = 0; i < recordingTakes.size(); ++i)
+        {
+            const RecordingTake& take = recordingTakes[i];
+
+            if (take.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (take.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (take.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (take.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (take.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (take.id == midiClip.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (take.id == recordingTakes[j].id)
+                    return false;
+        }
+
         const auto isExistingProjectEntity = [this] (EntityId entity) noexcept
         {
             if (entity == id)
@@ -567,6 +642,10 @@ struct Project
 
             for (const MidiClip& midiClip : midiClips)
                 if (entity == midiClip.id)
+                    return true;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (entity == take.id)
                     return true;
 
             return false;
@@ -620,6 +699,36 @@ struct Project
         return true;
     }
 
+    [[nodiscard]] bool recordingTakesReferenceProjectRows() const noexcept
+    {
+        for (const RecordingTake& take : recordingTakes)
+        {
+            const Asset* const asset = findAsset (take.assetId);
+            const Track* const track = findTrack (take.trackId);
+            if (asset == nullptr || track == nullptr || take.frameCount > asset->frames)
+                return false;
+
+            const Clip* clip = nullptr;
+            for (const Clip& candidate : clips)
+            {
+                if (candidate.id == take.clipId)
+                {
+                    clip = &candidate;
+                    break;
+                }
+            }
+
+            if (clip == nullptr
+                || clip->assetId != take.assetId
+                || clip->trackId != take.trackId
+                || clip->timelineStart != take.timelineStart
+                || clip->srcLen != take.frameCount)
+                return false;
+        }
+
+        return true;
+    }
+
     [[nodiscard]] bool hasValidAssetClipIndirection() const noexcept
     {
         return sampleRate.isValid()
@@ -629,7 +738,8 @@ struct Project
                && busesAreValid()
                && hasUniqueEntityIds()
                && clipsReferenceAssets()
-               && clipsReferenceTracks();
+               && clipsReferenceTracks()
+               && recordingTakesReferenceProjectRows();
     }
 };
 
@@ -721,6 +831,10 @@ namespace detail {
             if (note.id == id)
                 return true;
     }
+
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.id == id)
+            return true;
 
     return false;
 }

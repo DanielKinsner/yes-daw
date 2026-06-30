@@ -20,23 +20,24 @@ Track/input arm state through `UiAppModel`. The third implementation checkpoint 
 (`983b82f`, GitHub Actions run `28474967917`) and wires the first scripted shipped-shell audio record flow
 using existing opaque Asset bytes plus non-destructive Clip placement. The ADR-0036 checkpoint is
 remote-green on `main` (`202c2ec`, GitHub Actions run `28476033753`) and accepts canonical recorded audio
-Assets as RIFF/WAVE 32-bit IEEE float PCM plus normalized Take metadata requirements.
+Assets as RIFF/WAVE 32-bit IEEE float PCM plus normalized Take metadata requirements. The save/reopen/decode
+recording checkpoint is remote-green on `main` (`908c530`, GitHub Actions run `28477123969`) and stores
+deterministic test-device captures as canonical float WAV Assets that reopen/decode byte-for-byte.
 
-**Now:** H13 save/reopen/decode recording checkpoint is local-green and ready to commit/push. The shipped
-`MainComponent` record path now writes the deterministic test-device capture as canonical float WAV Asset
-bytes using the existing ADR-0021 WAV writer. `YesDawRecordingUxCheck` reopens the Project bundle, decodes
-the recorded Asset with `io::readFloat32WavFile`, verifies sample rate/frame/channel metadata plus every
-deterministic sample, and keeps the sample-locked non-destructive Clip on the armed Track. No Take metadata
-schema migration is included in this slice. Local gates: VS DevShell `cmake --build --preset ci --target
-YesDawRecordingUxCheck`; `ctest --test-dir build-ci -R YesDawRecordingUxCheck --output-on-failure`; VS
-DevShell `cmake --build --preset ci --target YesDawRecordingUxCheck YesDawUiActionCheck
-YesDawAccessibilityCheck YesDawAppSmokeCheck`; `ctest --test-dir build-ci -R
+**Now:** H13 Take metadata migration checkpoint is local-green and ready to commit/push. Schema v5 adds
+`recording_takes`; `Project` now carries `RecordingTake` rows linked to Asset/Track/Clip placement; the
+shipped `MainComponent` record path writes one Take for the deterministic audio capture with device,
+input-channel, ordinal, and monitoring-policy metadata; persistence tests round-trip the Take row and
+reject stored Take rows that no longer match their Clip/Asset window. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawPersistenceCheck YesDawRecordingUxCheck YesDawUiActionCheck
+YesDawAccessibilityCheck YesDawAppSmokeCheck`; direct `build-ci\YesDawPersistenceCheck.exe` **697
+assertions / 30 test cases**; `ctest --test-dir build-ci -R
 "YesDaw(RecordingUx|UiAction|Accessibility|AppSmoke)Check" --output-on-failure` **4/4**; VS DevShell
-`cmake --build --preset ci`; `ctest --preset ci --output-on-failure` **255/255**; and `git diff --check`.
+`cmake --build --preset ci`; `ctest --preset ci --output-on-failure` **257/257**; and `git diff --check`.
 
-**Next (Codex - H13 implementation checkpoint 6):** add the ADR-0036 Take metadata migration and Project
-round-trip surface: persist a single recorded Take linked to Asset/Track/Clip, reject invalid Take
-references/windows with negative controls, and keep the shipped-shell recording gate green.
+**Next (Codex - H13 implementation checkpoint 7):** add the shipped-shell MIDI recording path against the
+same Project-frame placement model: record deterministic MIDI input into bundle-persistent Project data,
+reopen it, and keep recording alignment plus device survival gates green.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

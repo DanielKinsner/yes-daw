@@ -189,6 +189,7 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.context.timelineClipSelected);
     REQUIRE (snapshot.lastRecordedAudioTake.assetId.isValid());
     REQUIRE (snapshot.lastRecordedAudioTake.clipId.isValid());
+    REQUIRE (snapshot.lastRecordedAudioTake.takeId.isValid());
     REQUIRE (snapshot.lastRecordedAudioTake.trackId == snapshot.recordingTrackInput.trackId);
     REQUIRE (snapshot.lastRecordedAudioTake.timelineStart == 0);
     REQUIRE (snapshot.lastRecordedAudioTake.frames == 256u);
@@ -198,9 +199,11 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (recorded.assets.size() == 1u);
     REQUIRE (recorded.clips.size() == 1u);
     REQUIRE (recorded.tracks.size() == 1u);
+    REQUIRE (recorded.recordingTakes.size() == 1u);
 
     const yesdaw::engine::Asset& asset = recorded.assets.front();
     const yesdaw::engine::Clip& clip = recorded.clips.front();
+    const yesdaw::engine::RecordingTake& take = recorded.recordingTakes.front();
     REQUIRE (asset.id == snapshot.lastRecordedAudioTake.assetId);
     REQUIRE (asset.frames == 256u);
     REQUIRE (asset.sampleRate.hz == 48000.0);
@@ -213,6 +216,16 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (clip.srcOffset == 0u);
     REQUIRE (clip.srcLen == 256u);
     REQUIRE (clip.timeBase == yesdaw::engine::TimeBase::SampleLocked);
+    REQUIRE (take.id == snapshot.lastRecordedAudioTake.takeId);
+    REQUIRE (take.assetId == asset.id);
+    REQUIRE (take.clipId == clip.id);
+    REQUIRE (take.trackId == snapshot.recordingTrackInput.trackId);
+    REQUIRE (take.timelineStart == clip.timelineStart);
+    REQUIRE (take.frameCount == clip.srcLen);
+    REQUIRE (take.takeOrdinal == 0u);
+    REQUIRE (take.inputChannel == snapshot.recordingTrackInput.inputChannel);
+    REQUIRE (take.deviceStableId == snapshot.recordingDevice.stableDeviceId);
+    REQUIRE (take.monitoringPolicy == yesdaw::engine::RecordingMonitoringPolicy::DirectInput);
 
     const std::filesystem::path assetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);

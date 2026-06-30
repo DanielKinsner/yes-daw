@@ -30,6 +30,8 @@ using yesdaw::engine::moveClip;
 using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
+using yesdaw::engine::RecordingMonitoringPolicy;
+using yesdaw::engine::RecordingTake;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
@@ -305,6 +307,27 @@ MidiClip makeMidiClip (EntityId id, EntityId trackId)
     return midiClip;
 }
 
+RecordingTake makeRecordingTake (EntityId id,
+                                 EntityId assetId,
+                                 EntityId trackId,
+                                 EntityId clipId,
+                                 Tick timelineStart,
+                                 std::uint64_t frameCount)
+{
+    RecordingTake take;
+    take.id = id;
+    take.assetId = assetId;
+    take.trackId = trackId;
+    take.clipId = clipId;
+    take.timelineStart = timelineStart;
+    take.frameCount = frameCount;
+    take.takeOrdinal = 3;
+    take.inputChannel = 1;
+    take.deviceStableId = 42;
+    take.monitoringPolicy = RecordingMonitoringPolicy::DirectInput;
+    return take;
+}
+
 Project makeProject()
 {
     Project project;
@@ -352,6 +375,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.buses == expected.buses);
     REQUIRE (actual.clips == expected.clips);
     REQUIRE (actual.midiClips == expected.midiClips);
+    REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.hasValidAssetClipIndirection());
 }
 
@@ -657,6 +681,50 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
     REQUIRE (invalidDb.writeProjectSnapshot (noteExtendsPastClip).status == BundleStatus::SemanticInvalid);
 }
 
+TEST_CASE ("Project recording Takes round-trip through a reopened bundle",
+           "[persistence][project][round-trip][recording]")
+{
+    const auto path = makeTempBundlePath ("recording-take-round-trip");
+
+    Project project = makeProject();
+    project.clips[1].timelineStart = 15360;
+    project.clips[1].timelineLength = static_cast<Tick> (project.clips[1].srcLen);
+    project.recordingTakes = {
+        makeRecordingTake (idFromLowByte (80),
+                           project.assets[1].id,
+                           project.tracks[0].id,
+                           project.clips[1].id,
+                           project.clips[1].timelineStart,
+                           project.clips[1].srcLen),
+    };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+
+        sqlite3_int64 count = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM recording_takes;", count).ok());
+        REQUIRE (count == 1);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.recordingTakes[0].takeOrdinal == 3u);
+    REQUIRE (readback.recordingTakes[0].inputChannel == 1u);
+    REQUIRE (readback.recordingTakes[0].deviceStableId == 42u);
+    REQUIRE (readback.recordingTakes[0].monitoringPolicy == RecordingMonitoringPolicy::DirectInput);
+
+    Project mismatchedClip = project;
+    mismatchedClip.recordingTakes[0].frameCount = project.assets[1].frames + 1u;
+    ProjectBundleDb invalidDb = openFreshBundle (makeTempBundlePath ("recording-take-invalid"));
+    REQUIRE (invalidDb.writeProjectSnapshot (mismatchedClip).status == BundleStatus::SemanticInvalid);
+}
+
 TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "[persistence][project][clip-edit]")
 {
     const auto path = makeTempBundlePath ("clip-edit-round-trip");
@@ -886,6 +954,35 @@ TEST_CASE ("Opening an existing bundle rejects MIDI Notes outside their Clip", "
     ProjectBundleDb reopened;
     const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
     REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
+}
+
+TEST_CASE ("Opening an existing bundle rejects recording Takes that no longer match their Clip",
+           "[persistence][semantic][open][recording]")
+{
+    const auto path = makeTempBundlePath ("semantic-recording-open");
+    Project project = makeProject();
+    project.recordingTakes = {
+        makeRecordingTake (idFromLowByte (80),
+                           project.assets[1].id,
+                           project.tracks[0].id,
+                           project.clips[1].id,
+                           project.clips[1].timelineStart,
+                           project.clips[1].srcLen),
+    };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "UPDATE recording_takes SET frame_count = 999999 "
+                    "WHERE id = X'00000000000000000000000000000050';")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Opening an existing bundle rejects orphan Clip track references", "[persistence][semantic][open][track]")

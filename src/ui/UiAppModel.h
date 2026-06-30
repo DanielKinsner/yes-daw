@@ -89,6 +89,7 @@ struct UiRecordedAudioTake
     engine::EntityId assetId;
     engine::EntityId clipId;
     engine::EntityId trackId;
+    engine::EntityId takeId;
     engine::Tick timelineStart = 0;
     std::uint64_t frames = 0;
     std::uint16_t channels = 0;
@@ -256,12 +257,21 @@ public:
             return result;
         }
 
+        RecordingTakeDraft takeDraft;
+        takeDraft.deviceStableId = recordingDevice_.stableDeviceId;
+        takeDraft.inputChannel = recordingTrackInput_.inputChannel;
+        takeDraft.takeOrdinal = 0;
+        takeDraft.monitoringPolicy = context_.recordingMonitoringSelected
+            ? engine::RecordingMonitoringPolicy::DirectInput
+            : engine::RecordingMonitoringPolicy::Off;
+
         result.importResult = addAudioAssetClipFromSource (
             sourcePath,
             std::move (decoded),
             recordingTrackInput_.trackId,
             0xA2u,
-            0xC3u);
+            0xC3u,
+            takeDraft);
 
         std::error_code removeError;
         std::filesystem::remove (sourcePath, removeError);
@@ -295,11 +305,20 @@ public:
     }
 
 private:
+    struct RecordingTakeDraft
+    {
+        std::uint32_t deviceStableId = 0;
+        std::uint16_t inputChannel = 0;
+        std::uint32_t takeOrdinal = 0;
+        engine::RecordingMonitoringPolicy monitoringPolicy = engine::RecordingMonitoringPolicy::Off;
+    };
+
     [[nodiscard]] UiAppImportResult addAudioAssetClipFromSource (const std::filesystem::path& sourcePath,
                                                                  UiDecodedAsset decoded,
                                                                  std::optional<engine::EntityId> targetTrackId,
                                                                  std::uint8_t assetSeed,
-                                                                 std::uint8_t clipSeed)
+                                                                 std::uint8_t clipSeed,
+                                                                 std::optional<RecordingTakeDraft> recordingTakeDraft = std::nullopt)
     {
         UiAppImportResult result;
 
@@ -363,6 +382,24 @@ private:
         clip.timeBase = engine::TimeBase::SampleLocked;
         nextProject.clips.push_back (clip);
 
+        engine::EntityId placedTakeId;
+        if (recordingTakeDraft)
+        {
+            engine::RecordingTake take;
+            take.id = allocateSessionEntityId (0xA4u, nextProject);
+            take.assetId = imported.id;
+            take.trackId = placedTrackId;
+            take.clipId = clip.id;
+            take.timelineStart = clip.timelineStart;
+            take.frameCount = imported.frames;
+            take.takeOrdinal = recordingTakeDraft->takeOrdinal;
+            take.inputChannel = recordingTakeDraft->inputChannel;
+            take.deviceStableId = recordingTakeDraft->deviceStableId;
+            take.monitoringPolicy = recordingTakeDraft->monitoringPolicy;
+            placedTakeId = take.id;
+            nextProject.recordingTakes.push_back (take);
+        }
+
         if (! nextProject.hasValidAssetClipIndirection())
         {
             result.status = UiAppImportStatus::InvalidDecodedAudio;
@@ -413,6 +450,7 @@ private:
             imported.id,
             clip.id,
             placedTrackId,
+            placedTakeId,
             clip.timelineStart,
             imported.frames,
             imported.channels
@@ -1509,6 +1547,10 @@ private:
 
         for (const engine::Clip& clip : project.clips)
             if (clip.id == id)
+                return true;
+
+        for (const engine::RecordingTake& take : project.recordingTakes)
+            if (take.id == id)
                 return true;
 
         for (const engine::MidiClip& midiClip : project.midiClips)
