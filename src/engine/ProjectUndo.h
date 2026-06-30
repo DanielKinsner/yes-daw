@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -27,7 +28,8 @@ enum class ProjectEditVerb : std::uint8_t
     SplitNote,
     CutNote,
     QuantizeNote,
-    TransposeNote
+    TransposeNote,
+    SetRecordingCompSelection
 };
 
 struct ProjectEditCommand
@@ -49,6 +51,16 @@ struct ProjectEditCommand
     Tick noteLengthTicks = 0;
     Tick snapGridTicks = 0;
     std::int32_t semitones = 0;
+    EntityId firstCompSegmentId;
+    EntityId firstCompTakeId;
+    Tick firstCompTimelineStart = 0;
+    Tick firstCompTimelineLength = 0;
+    std::uint64_t firstCompSourceOffset = 0;
+    EntityId secondCompSegmentId;
+    EntityId secondCompTakeId;
+    Tick secondCompTimelineStart = 0;
+    Tick secondCompTimelineLength = 0;
+    std::uint64_t secondCompSourceOffset = 0;
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -180,6 +192,33 @@ struct ProjectEditCommand
         command.semitones = semitones;
         return command;
     }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setRecordingCompSelection (
+        EntityId firstSegmentId,
+        EntityId firstTakeId,
+        Tick firstTimelineStart,
+        Tick firstTimelineLength,
+        std::uint64_t firstSourceOffset,
+        EntityId secondSegmentId,
+        EntityId secondTakeId,
+        Tick secondTimelineStart,
+        Tick secondTimelineLength,
+        std::uint64_t secondSourceOffset) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetRecordingCompSelection;
+        command.firstCompSegmentId = firstSegmentId;
+        command.firstCompTakeId = firstTakeId;
+        command.firstCompTimelineStart = firstTimelineStart;
+        command.firstCompTimelineLength = firstTimelineLength;
+        command.firstCompSourceOffset = firstSourceOffset;
+        command.secondCompSegmentId = secondSegmentId;
+        command.secondCompTakeId = secondTakeId;
+        command.secondCompTimelineStart = secondTimelineStart;
+        command.secondCompTimelineLength = secondTimelineLength;
+        command.secondCompSourceOffset = secondSourceOffset;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -199,11 +238,18 @@ struct ProjectMidiClipRowsDiff
     std::vector<MidiClip> after;
 };
 
+struct ProjectRecordingCompRowsDiff
+{
+    std::vector<ProjectRecordingCompSegment> before;
+    std::vector<ProjectRecordingCompSegment> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
     ProjectClipRowsDiff diff;
     ProjectMidiClipRowsDiff midiDiff;
+    ProjectRecordingCompRowsDiff recordingCompDiff;
 };
 
 struct ProjectEditApplyResult
@@ -266,6 +312,11 @@ namespace detail {
            || verb == ProjectEditVerb::TransposeNote;
 }
 
+[[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::SetRecordingCompSelection;
+}
+
 [[nodiscard]] inline ProjectEditStatus applyProjectEditCommandToProject (Project& project,
                                                                          const ProjectEditCommand& command)
 {
@@ -303,6 +354,20 @@ namespace detail {
 
         case ProjectEditVerb::TransposeNote:
             return transposeNote (project, command.midiClipId, command.noteId, command.semitones);
+
+        case ProjectEditVerb::SetRecordingCompSelection:
+            return setRecordingCompSelection (
+                project,
+                command.firstCompSegmentId,
+                command.firstCompTakeId,
+                command.firstCompTimelineStart,
+                command.firstCompTimelineLength,
+                command.firstCompSourceOffset,
+                command.secondCompSegmentId,
+                command.secondCompTakeId,
+                command.secondCompTimelineStart,
+                command.secondCompTimelineLength,
+                command.secondCompSourceOffset);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -361,6 +426,20 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool buildProjectRecordingCompRowsDiff (const Project& before,
+                                                             const Project& after,
+                                                             ProjectRecordingCompRowsDiff& out)
+{
+    if (after.recordingCompSegments.empty()
+        || after.recordingCompSegments == before.recordingCompSegments)
+        return false;
+
+    out = {};
+    out.before = before.recordingCompSegments;
+    out.after = after.recordingCompSegments;
+    return true;
+}
+
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
                                            std::size_t firstClipIndex,
                                            const std::vector<Clip>& expected) noexcept
@@ -387,6 +466,12 @@ namespace detail {
             return false;
 
     return true;
+}
+
+[[nodiscard]] inline bool recordingCompRowsEqual (const Project& project,
+                                                  const std::vector<ProjectRecordingCompSegment>& expected) noexcept
+{
+    return project.recordingCompSegments == expected;
 }
 
 [[nodiscard]] inline bool applyClipRowsDiff (Project& project,
@@ -424,6 +509,22 @@ namespace detail {
                              replacement.end());
 
     project = edited;
+    return true;
+}
+
+[[nodiscard]] inline bool applyRecordingCompRowsDiff (Project& project,
+                                                      const std::vector<ProjectRecordingCompSegment>& expected,
+                                                      const std::vector<ProjectRecordingCompSegment>& replacement)
+{
+    if (! recordingCompRowsEqual (project, expected))
+        return false;
+
+    Project edited = project;
+    edited.recordingCompSegments = replacement;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
     return true;
 }
 
@@ -474,6 +575,12 @@ namespace detail {
                     : applyMidiClipRowsDiff (project, transaction.midiDiff, transaction.midiDiff.after, transaction.midiDiff.before);
     }
 
+    if (isRecordingCompEditVerb (transaction.command.verb))
+    {
+        return redo ? applyRecordingCompRowsDiff (project, transaction.recordingCompDiff.before, transaction.recordingCompDiff.after)
+                    : applyRecordingCompRowsDiff (project, transaction.recordingCompDiff.after, transaction.recordingCompDiff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -492,9 +599,13 @@ namespace detail {
 
     ProjectEditTransaction transaction;
     transaction.command = command;
-    const bool diffBuilt = detail::isMidiNoteEditVerb (command.verb)
-        ? detail::buildProjectMidiClipRowsDiff (before, project, command, transaction.midiDiff)
-        : detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
+    bool diffBuilt = false;
+    if (detail::isMidiNoteEditVerb (command.verb))
+        diffBuilt = detail::buildProjectMidiClipRowsDiff (before, project, command, transaction.midiDiff);
+    else if (detail::isRecordingCompEditVerb (command.verb))
+        diffBuilt = detail::buildProjectRecordingCompRowsDiff (before, project, transaction.recordingCompDiff);
+    else
+        diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 
     if (! diffBuilt)
     {

@@ -137,6 +137,20 @@ struct UiRecordingTrackInputSelection
     std::uint16_t inputChannel = 0;
 };
 
+struct UiRecordingCompSelection
+{
+    bool selected = false;
+    std::size_t segmentCount = 0;
+    engine::EntityId firstTakeId;
+    engine::EntityId secondTakeId;
+    engine::Tick firstTimelineStart = 0;
+    engine::Tick firstTimelineLength = 0;
+    engine::Tick gapStart = 0;
+    engine::Tick gapLength = 0;
+    engine::Tick secondTimelineStart = 0;
+    engine::Tick secondTimelineLength = 0;
+};
+
 class UiAppModel
 {
 public:
@@ -152,6 +166,7 @@ public:
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
     [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
     [[nodiscard]] const UiRecordedMidiTake& lastRecordedMidiTake() const noexcept { return lastRecordedMidiTake_; }
+    [[nodiscard]] const UiRecordingCompSelection& recordingCompSelection() const noexcept { return recordingCompSelection_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -275,7 +290,7 @@ public:
         RecordingTakeDraft takeDraft;
         takeDraft.deviceStableId = recordingDevice_.stableDeviceId;
         takeDraft.inputChannel = recordingTrackInput_.inputChannel;
-        takeDraft.takeOrdinal = 0;
+        takeDraft.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
         takeDraft.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
 
         result.importResult = addAudioAssetClipFromSource (
@@ -1043,6 +1058,9 @@ public:
                 return { id, recorded.actionState, recorded.ok() };
             }
 
+            case UiActionId::RecordingAssembleComp:
+                return assembleBasicRecordingCompSelection();
+
             case UiActionId::EditUndo:
                 return dispatchUndo (id, state);
 
@@ -1150,6 +1168,11 @@ private:
         return nullptr;
     }
 
+    [[nodiscard]] const engine::RecordingTake* findRecordingTake (engine::EntityId takeId) const noexcept
+    {
+        return project_.findRecordingTake (takeId);
+    }
+
     [[nodiscard]] static const engine::Note* findNote (const engine::MidiClip& midiClip,
                                                        engine::EntityId noteId) noexcept
     {
@@ -1244,6 +1267,36 @@ private:
         context_.selectedRecordingInputChannel = static_cast<int> (recordingTrackInput_.inputChannel);
     }
 
+    void syncRecordingCompContext() noexcept
+    {
+        context_.recordingCompTakesAvailable = project_.recordingTakes.size() >= 2u;
+        context_.recordingCompSelected = ! project_.recordingCompSegments.empty();
+        context_.recordingCompSegmentCount = static_cast<int> (project_.recordingCompSegments.size());
+
+        recordingCompSelection_ = {};
+        recordingCompSelection_.selected = context_.recordingCompSelected;
+        recordingCompSelection_.segmentCount = project_.recordingCompSegments.size();
+
+        if (project_.recordingCompSegments.size() >= 2u)
+        {
+            const engine::ProjectRecordingCompSegment& first = project_.recordingCompSegments[0];
+            const engine::ProjectRecordingCompSegment& second = project_.recordingCompSegments[1];
+            recordingCompSelection_.firstTakeId = first.takeId;
+            recordingCompSelection_.secondTakeId = second.takeId;
+            recordingCompSelection_.firstTimelineStart = first.timelineStart;
+            recordingCompSelection_.firstTimelineLength = first.timelineLength;
+            recordingCompSelection_.secondTimelineStart = second.timelineStart;
+            recordingCompSelection_.secondTimelineLength = second.timelineLength;
+
+            const engine::Tick firstEnd = first.timelineStart + first.timelineLength;
+            if (second.timelineStart > firstEnd)
+            {
+                recordingCompSelection_.gapStart = firstEnd;
+                recordingCompSelection_.gapLength = second.timelineStart - firstEnd;
+            }
+        }
+    }
+
     [[nodiscard]] UiActionDispatchResult refreshAudioDevices()
     {
         const UiActionId id = UiActionId::DeviceRefreshAudio;
@@ -1327,6 +1380,89 @@ private:
         ++context_.commandDispatchCount;
         ++context_.recordingMonitoringCount;
         syncRecordingContext();
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult assembleBasicRecordingCompSelection()
+    {
+        syncProjectEditContext();
+
+        const UiActionId id = UiActionId::RecordingAssembleComp;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::RecordingTake* firstTake = nullptr;
+        const engine::RecordingTake* secondTake = nullptr;
+        for (const engine::RecordingTake& take : project_.recordingTakes)
+        {
+            if (recordingTrackInput_.armed && take.trackId != recordingTrackInput_.trackId)
+                continue;
+
+            if (firstTake == nullptr)
+                firstTake = &take;
+            else
+            {
+                secondTake = &take;
+                break;
+            }
+        }
+
+        if (firstTake == nullptr || secondTake == nullptr)
+        {
+            firstTake = nullptr;
+            secondTake = nullptr;
+            for (const engine::RecordingTake& take : project_.recordingTakes)
+            {
+                if (firstTake == nullptr)
+                    firstTake = &take;
+                else
+                {
+                    secondTake = &take;
+                    break;
+                }
+            }
+        }
+
+        if (firstTake == nullptr || secondTake == nullptr)
+            return { id, { false, "not enough recording Takes" }, false };
+
+        const std::uint64_t shortestTakeFrames = std::min (firstTake->frameCount, secondTake->frameCount);
+        if (shortestTakeFrames < 4u || shortestTakeFrames > static_cast<std::uint64_t> (std::numeric_limits<engine::Tick>::max()))
+            return { id, { false, "recording Takes are too short" }, false };
+
+        const auto segmentLength = static_cast<engine::Tick> (std::min<std::uint64_t> (96u, shortestTakeFrames / 2u));
+        const auto gapLength = static_cast<engine::Tick> (std::max<std::uint64_t> (1u, std::min<std::uint64_t> (64u, shortestTakeFrames / 4u)));
+        if (segmentLength <= 0 || gapLength <= 0 || segmentLength > std::numeric_limits<engine::Tick>::max() - gapLength)
+            return { id, { false, "recording Comp window is invalid" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId firstSegmentId = allocateSessionEntityId (0xE1u, nextProject);
+        const engine::EntityId secondSegmentId = allocateSessionEntityId (0xE2u, nextProject);
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setRecordingCompSelection (
+                firstSegmentId,
+                firstTake->id,
+                0,
+                segmentLength,
+                0,
+                secondSegmentId,
+                secondTake->id,
+                segmentLength + gapLength,
+                segmentLength,
+                0));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "recording Comp selection did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.recordingCompCommandCount;
+        syncRecordingCompContext();
         return { id, state, true };
     }
 
@@ -1422,6 +1558,7 @@ private:
             && selectedMidiNoteId_.isValid()
             && findNote (*midiClip, selectedMidiNoteId_) != nullptr;
         syncRecordingContext();
+        syncRecordingCompContext();
     }
 
     [[nodiscard]] UiActionDispatchResult editSelectedMidiNote (UiActionId id,
@@ -1640,6 +1777,10 @@ private:
             if (take.id == id)
                 return true;
 
+        for (const engine::ProjectRecordingCompSegment& segment : project.recordingCompSegments)
+            if (segment.id == id)
+                return true;
+
         for (const engine::MidiClip& midiClip : project.midiClips)
         {
             if (midiClip.id == id)
@@ -1683,6 +1824,23 @@ private:
 
         return engine::EntityId::fromBigEndianParts (0x5944490000000000ull | static_cast<std::uint64_t> (seedByte),
                                                      static_cast<std::uint64_t> (project.assets.size() + project.clips.size() + 1u));
+    }
+
+    [[nodiscard]] std::uint32_t nextRecordingTakeOrdinal (engine::EntityId trackId) const noexcept
+    {
+        std::uint32_t ordinal = 0;
+        for (const engine::RecordingTake& take : project_.recordingTakes)
+        {
+            if (take.trackId != trackId || take.takeOrdinal < ordinal)
+                continue;
+
+            if (take.takeOrdinal == std::numeric_limits<std::uint32_t>::max())
+                return take.takeOrdinal;
+
+            ordinal = take.takeOrdinal + 1u;
+        }
+
+        return ordinal;
     }
 
     [[nodiscard]] static engine::Track makeDefaultAudioTrack (engine::EntityId id = engine::kDefaultAudioTrackId)
@@ -1767,7 +1925,8 @@ private:
         lastRecordedMidiTake_ = {};
         pendingAudioPlacement_ = {};
         pendingMidiPlacement_ = {};
-        syncRecordingContext();
+        recordingCompSelection_ = {};
+        syncProjectEditContext();
     }
 
     template <typename Fn>
@@ -1808,6 +1967,7 @@ private:
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;
     UiRecordedMidiTake pendingMidiPlacement_;
+    UiRecordingCompSelection recordingCompSelection_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

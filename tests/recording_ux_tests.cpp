@@ -109,6 +109,17 @@ std::int64_t mappedTimelineFrame (const yesdaw::engine::RecordingConfig& config,
     return timelineFrame;
 }
 
+float compMaskSampleAt (const yesdaw::engine::Project& project, yesdaw::engine::Tick frame)
+{
+    for (const yesdaw::engine::ProjectRecordingCompSegment& segment : project.recordingCompSegments)
+    {
+        if (frame >= segment.timelineStart && frame < segment.timelineStart + segment.timelineLength)
+            return 1.0f;
+    }
+
+    return 0.0f;
+}
+
 } // namespace
 
 TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording controls",
@@ -124,6 +135,7 @@ TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording con
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
+    juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
 
     REQUIRE (refreshDevice.getComponentID() == "device.refresh_audio");
     REQUIRE (testDevice.getComponentID() == "device.select_test_audio");
@@ -131,6 +143,8 @@ TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording con
     REQUIRE (armTrack.getComponentID() == "record.track.arm");
     REQUIRE (monitor.getComponentID() == "record.monitoring_policy");
     REQUIRE (record.getComponentID() == "transport.record");
+    REQUIRE (comp.getComponentID() == "record.comp.assemble");
+    REQUIRE (comp.getButtonText() == "Comp");
 }
 
 TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device and armed Track input exist",
@@ -423,4 +437,105 @@ TEST_CASE ("H13 recording UX rejects arming when the loaded Project has no Track
     REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
     REQUIRE_FALSE (snapshot.context.recordingInputSelected);
     REQUIRE (snapshot.context.recordingArmCount == 0);
+}
+
+TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped MainComponent",
+           "[recording][ux][shell][comp]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("take-lane-comp");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
+    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
+    juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
+    juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
+    juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
+    juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
+    juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
+    juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
+
+    clickButton (newProject);
+    clickButton (testDevice);
+    clickButton (armTrack);
+    clickButton (monitor);
+
+    REQUIRE_FALSE (comp.isEnabled());
+
+    clickButton (record);
+    clickButton (record);
+    clickButton (record);
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isRecording);
+    REQUIRE (snapshot.context.recordingCommandCount == 3);
+    REQUIRE (snapshot.context.recordingCompTakesAvailable);
+    REQUIRE (comp.isEnabled());
+
+    yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.recordingTakes.size() == 2u);
+    REQUIRE (recorded.clips.size() == 2u);
+    REQUIRE (recorded.midiClips.size() == 2u);
+    REQUIRE (recorded.recordingTakes[0].takeOrdinal == 0u);
+    REQUIRE (recorded.recordingTakes[1].takeOrdinal == 1u);
+    REQUIRE (recorded.recordingCompSegments.empty());
+
+    clickButton (comp);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingCompSelected);
+    REQUIRE (snapshot.context.recordingCompSegmentCount == 2);
+    REQUIRE (snapshot.context.recordingCompCommandCount == 1);
+    REQUIRE (snapshot.recordingComp.selected);
+    REQUIRE (snapshot.recordingComp.segmentCount == 2u);
+    REQUIRE (snapshot.recordingComp.gapStart == 96);
+    REQUIRE (snapshot.recordingComp.gapLength == 64);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (undo.isEnabled());
+
+    yesdaw::engine::Project comped = readProjectSnapshot (bundlePath);
+    REQUIRE (comped.recordingTakes == recorded.recordingTakes);
+    REQUIRE (comped.clips == recorded.clips);
+    REQUIRE (comped.midiClips == recorded.midiClips);
+    REQUIRE (comped.recordingCompSegments.size() == 2u);
+    REQUIRE (comped.recordingCompSegments[0].takeId == comped.recordingTakes[0].id);
+    REQUIRE (comped.recordingCompSegments[0].timelineStart == 0);
+    REQUIRE (comped.recordingCompSegments[0].timelineLength == 96);
+    REQUIRE (comped.recordingCompSegments[1].takeId == comped.recordingTakes[1].id);
+    REQUIRE (comped.recordingCompSegments[1].timelineStart == 160);
+    REQUIRE (comped.recordingCompSegments[1].timelineLength == 96);
+    REQUIRE (compMaskSampleAt (comped, 32) == 1.0f);
+    REQUIRE (compMaskSampleAt (comped, 128) == 0.0f);
+    REQUIRE (compMaskSampleAt (comped, 192) == 1.0f);
+
+    UiAppModel reopened;
+    REQUIRE (reopened.openProjectBundle (bundlePath).ok());
+    REQUIRE (reopened.project().recordingTakes == comped.recordingTakes);
+    REQUIRE (reopened.project().recordingCompSegments == comped.recordingCompSegments);
+    REQUIRE (reopened.context().recordingCompSelected);
+    REQUIRE (reopened.context().recordingCompSegmentCount == 2);
+
+    clickButton (undo);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.recordingCompSelected);
+    REQUIRE (snapshot.context.recordingCompSegmentCount == 0);
+    REQUIRE_FALSE (snapshot.recordingComp.selected);
+    REQUIRE_FALSE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (redo.isEnabled());
+    yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.recordingTakes == recorded.recordingTakes);
+    REQUIRE (undone.clips == recorded.clips);
+    REQUIRE (undone.recordingCompSegments.empty());
+
+    clickButton (redo);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingCompSelected);
+    REQUIRE (snapshot.context.recordingCompSegmentCount == 2);
+    yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.recordingCompSegments == comped.recordingCompSegments);
+    REQUIRE (redone.clips == recorded.clips);
 }

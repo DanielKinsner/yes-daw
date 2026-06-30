@@ -38,6 +38,9 @@ using yesdaw::engine::ProjectEditStatus;
 using yesdaw::engine::ProjectEditVerb;
 using yesdaw::engine::ProjectUndoStack;
 using yesdaw::engine::ProjectUndoStatus;
+using yesdaw::engine::ProjectRecordingCompSegment;
+using yesdaw::engine::RecordingMonitoringPolicy;
+using yesdaw::engine::RecordingTake;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
@@ -179,6 +182,35 @@ Project makeMidiEditableProject()
     return project;
 }
 
+Project makeRecordingCompEditableProject()
+{
+    Project project = makeTwoClipEditableProject();
+    project.assets.push_back (makeAsset (idFromLowByte (34), 1200));
+    project.clips[1].assetId = project.assets[1].id;
+    project.clips[1].srcLen = 800;
+    project.clips[1].timelineLength = 50'000;
+
+    RecordingTake firstTake;
+    firstTake.id = idFromLowByte (50);
+    firstTake.assetId = project.clips[0].assetId;
+    firstTake.trackId = project.clips[0].trackId;
+    firstTake.clipId = project.clips[0].id;
+    firstTake.timelineStart = project.clips[0].timelineStart;
+    firstTake.frameCount = project.clips[0].srcLen;
+    firstTake.takeOrdinal = 0;
+    firstTake.monitoringPolicy = RecordingMonitoringPolicy::DirectInput;
+
+    RecordingTake secondTake = firstTake;
+    secondTake.id = idFromLowByte (51);
+    secondTake.assetId = project.clips[1].assetId;
+    secondTake.clipId = project.clips[1].id;
+    secondTake.timelineStart = project.clips[1].timelineStart;
+    secondTake.takeOrdinal = 1;
+
+    project.recordingTakes = { firstTake, secondTake };
+    return project;
+}
+
 void requireProjectValueUnchanged (const Project& actual, const Project& expected)
 {
     REQUIRE (actual.id == expected.id);
@@ -191,6 +223,8 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.meterMap == expected.meterMap);
     REQUIRE (actual.markers == expected.markers);
     REQUIRE (actual.midiClips == expected.midiClips);
+    REQUIRE (actual.recordingTakes == expected.recordingTakes);
+    REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
 }
 
 enum class GeneratedUndoSequenceStepKind : std::uint8_t
@@ -834,6 +868,49 @@ TEST_CASE ("Project undo stack records command diffs for clip metadata edits", "
     REQUIRE (undo.canUndo());
     REQUIRE_FALSE (undo.canRedo());
     REQUIRE (undo.redoDepth() == 0u);
+}
+
+TEST_CASE ("Project undo stack records command diffs for recording Comp selection", "[project][recording][comp][undo]")
+{
+    Project project = makeRecordingCompEditableProject();
+    const Project original = project;
+    const EntityId firstTakeId = project.recordingTakes[0].id;
+    const EntityId secondTakeId = project.recordingTakes[1].id;
+
+    ProjectUndoStack undo;
+    const auto result = undo.apply (
+        project,
+        ProjectEditCommand::setRecordingCompSelection (
+            idFromLowByte (60),
+            firstTakeId,
+            0,
+            96,
+            0,
+            idFromLowByte (61),
+            secondTakeId,
+            160,
+            96,
+            0));
+
+    REQUIRE (result.applied());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetRecordingCompSelection);
+    REQUIRE (undo.nextUndo()->recordingCompDiff.before.empty());
+    REQUIRE (undo.nextUndo()->recordingCompDiff.after.size() == 2u);
+    REQUIRE (project.recordingCompSegments.size() == 2u);
+    REQUIRE (project.recordingCompSegments[0].takeId == firstTakeId);
+    REQUIRE (project.recordingCompSegments[0].timelineStart == 0);
+    REQUIRE (project.recordingCompSegments[0].timelineLength == 96);
+    REQUIRE (project.recordingCompSegments[1].takeId == secondTakeId);
+    REQUIRE (project.recordingCompSegments[1].timelineStart == 160);
+    REQUIRE (project.recordingCompSegments[1].timelineLength == 96);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project edited = project;
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
 }
 
 TEST_CASE ("Project undo stack records command diffs for MIDI Note edits", "[project][midi][note-edit][undo]")

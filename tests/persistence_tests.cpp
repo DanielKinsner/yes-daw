@@ -30,6 +30,7 @@ using yesdaw::engine::moveClip;
 using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::ProjectEditStatus;
+using yesdaw::engine::ProjectRecordingCompSegment;
 using yesdaw::engine::RecordingMonitoringPolicy;
 using yesdaw::engine::RecordingTake;
 using yesdaw::engine::SampleRate;
@@ -328,6 +329,21 @@ RecordingTake makeRecordingTake (EntityId id,
     return take;
 }
 
+ProjectRecordingCompSegment makeProjectRecordingCompSegment (EntityId id,
+                                                             EntityId takeId,
+                                                             Tick timelineStart,
+                                                             Tick timelineLength,
+                                                             std::uint64_t sourceOffset)
+{
+    ProjectRecordingCompSegment segment;
+    segment.id = id;
+    segment.takeId = takeId;
+    segment.timelineStart = timelineStart;
+    segment.timelineLength = timelineLength;
+    segment.sourceOffset = sourceOffset;
+    return segment;
+}
+
 Project makeProject()
 {
     Project project;
@@ -376,6 +392,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.clips == expected.clips);
     REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
+    REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
     REQUIRE (actual.hasValidAssetClipIndirection());
 }
 
@@ -420,6 +437,10 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 4;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 5;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 6;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
@@ -433,6 +454,10 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'tracks';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'buses';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'recording_takes';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'recording_comp_segments';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -687,6 +712,7 @@ TEST_CASE ("Project recording Takes round-trip through a reopened bundle",
     const auto path = makeTempBundlePath ("recording-take-round-trip");
 
     Project project = makeProject();
+    project.clips[0].timelineLength = static_cast<Tick> (project.clips[0].srcLen);
     project.clips[1].timelineStart = 15360;
     project.clips[1].timelineLength = static_cast<Tick> (project.clips[1].srcLen);
     project.recordingTakes = {
@@ -696,6 +722,16 @@ TEST_CASE ("Project recording Takes round-trip through a reopened bundle",
                            project.clips[1].id,
                            project.clips[1].timelineStart,
                            project.clips[1].srcLen),
+        makeRecordingTake (idFromLowByte (81),
+                           project.assets[0].id,
+                           project.tracks[0].id,
+                           project.clips[0].id,
+                           project.clips[0].timelineStart,
+                           project.clips[0].srcLen),
+    };
+    project.recordingCompSegments = {
+        makeProjectRecordingCompSegment (idFromLowByte (82), project.recordingTakes[0].id, 0, 64, 0),
+        makeProjectRecordingCompSegment (idFromLowByte (83), project.recordingTakes[1].id, 128, 96, 32),
     };
 
     {
@@ -705,7 +741,9 @@ TEST_CASE ("Project recording Takes round-trip through a reopened bundle",
 
         sqlite3_int64 count = 0;
         REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM recording_takes;", count).ok());
-        REQUIRE (count == 1);
+        REQUIRE (count == 2);
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM recording_comp_segments;", count).ok());
+        REQUIRE (count == 2);
     }
 
     ProjectBundleDb reopened;
@@ -718,6 +756,10 @@ TEST_CASE ("Project recording Takes round-trip through a reopened bundle",
     REQUIRE (readback.recordingTakes[0].inputChannel == 1u);
     REQUIRE (readback.recordingTakes[0].deviceStableId == 42u);
     REQUIRE (readback.recordingTakes[0].monitoringPolicy == RecordingMonitoringPolicy::DirectInput);
+    REQUIRE (readback.recordingCompSegments[0].takeId == project.recordingTakes[0].id);
+    REQUIRE (readback.recordingCompSegments[0].timelineLength == 64);
+    REQUIRE (readback.recordingCompSegments[1].takeId == project.recordingTakes[1].id);
+    REQUIRE (readback.recordingCompSegments[1].sourceOffset == 32u);
 
     Project mismatchedClip = project;
     mismatchedClip.recordingTakes[0].frameCount = project.assets[1].frames + 1u;
@@ -977,6 +1019,38 @@ TEST_CASE ("Opening an existing bundle rejects recording Takes that no longer ma
         REQUIRE (db.executeSql (
                     "UPDATE recording_takes SET frame_count = 999999 "
                     "WHERE id = X'00000000000000000000000000000050';")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects recording Comp segments outside their Take",
+           "[persistence][semantic][open][recording][comp]")
+{
+    const auto path = makeTempBundlePath ("semantic-recording-comp-open");
+    Project project = makeProject();
+    project.recordingTakes = {
+        makeRecordingTake (idFromLowByte (80),
+                           project.assets[1].id,
+                           project.tracks[0].id,
+                           project.clips[1].id,
+                           project.clips[1].timelineStart,
+                           project.clips[1].srcLen),
+    };
+    project.recordingCompSegments = {
+        makeProjectRecordingCompSegment (idFromLowByte (81), project.recordingTakes[0].id, 0, 64, 0),
+    };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "UPDATE recording_comp_segments SET source_offset = 128 "
+                    "WHERE id = X'00000000000000000000000000000051';")
                      .ok());
     }
 

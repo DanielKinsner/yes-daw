@@ -39,6 +39,7 @@ UiActionContext fullyReachableContext()
     context.recordingTrackArmed = true;
     context.recordingInputSelected = true;
     context.recordingMonitoringSelected = true;
+    context.recordingCompTakesAvailable = true;
     return context;
 }
 

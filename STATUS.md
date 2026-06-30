@@ -25,28 +25,25 @@ recording checkpoint is remote-green on `main` (`908c530`, GitHub Actions run `2
 deterministic test-device captures as canonical float WAV Assets that reopen/decode byte-for-byte. The
 Take metadata migration checkpoint is remote-green on `main` (`0a13b49`, GitHub Actions run `28478650930`).
 The MIDI recording checkpoint is remote-green on `main` (`5b3d515`, GitHub Actions run `28479924426`) and
-writes deterministic MIDI Project data alongside the deterministic audio Take.
+writes deterministic MIDI Project data alongside the deterministic audio Take. The monitoring policy and
+fake-device latency calibration checkpoint is remote-green on `main` (`4d4c712`, GitHub Actions run
+`28481100296`).
 
-**Now:** H13 implementation checkpoint 8 is local-green and ready to commit/push. The shipped
-`MainComponent` monitoring control now scripts explicit Direct Input, Latency Compensated, and Off
-policies; deterministic test-device selection/refresh carries fake latency calibration metadata; and the
-H13 harness mechanically proves direct-input placement excludes output latency, latency-compensated
-placement includes input+output latency, a no-compensation negative lands wrong, and latency-compensated
-Take metadata persists through the bundle. Local gates: VS DevShell
-`cmake --build --preset ci --target YesDawRecordingUxCheck YesDawRecordingCheck YesDawMidiTimingCheck
-YesDawDeviceHotSwapCheck YesDawUiActionCheck YesDawAccessibilityCheck YesDawAppSmokeCheck`; `ctest
---test-dir build-ci -C Release -R "YesDaw(RecordingUx|MidiTiming|DeviceHotSwap|UiAction|Accessibility|AppSmoke)Check"
---output-on-failure` **6/6**; targeted Take/recording alignment cases `Project recording Takes round-trip
-through a reopened bundle`, `Opening an existing bundle rejects recording Takes that no longer match their
-Clip`, `punch loop recording creates deterministic take ordinals and comp selection`, `MIDI recording uses
-the same latency compensation as audio recording`, `MIDI recording filters out-of-window events and reports
-an undersized output`, and `direct-input recording compensates input latency only` **6/6**; `git diff
+**Now:** H13 implementation checkpoint 9 is local-green and ready to commit/push. It adds Project-persistent
+basic Comp segments for recorded Takes via schema v6 `recording_comp_segments`, wires a shipped
+`MainComponent` `Comp` action that assembles two non-destructive Take ranges with a mechanically asserted
+zero-filled gap, keeps recorded Clips unchanged, and verifies save/reopen plus undo/redo persistence through
+the bundle. Local gates: VS DevShell `cmake --build --preset ci --target YesDawProjectCheck
+YesDawPersistenceCheck YesDawUiActionCheck YesDawRecordingUxCheck YesDawAccessibilityCheck
+YesDawAppSmokeCheck`; targeted CTest cases `Project undo stack records command diffs for recording Comp
+selection`, `Project recording Takes round-trip through a reopened bundle`, `Opening an existing bundle
+rejects recording Comp segments outside their Take`, `YesDawUiActionCheck`, `YesDawAppSmokeCheck`,
+`YesDawAccessibilityCheck`, and `YesDawRecordingUxCheck` **7/7** after rebuilding touched targets; `git diff
 --check`; and full local gate VS DevShell `cmake --build --preset ci`; `ctest --preset ci
---output-on-failure` **257/257**.
+--output-on-failure` **259/259**.
 
-**Next (Codex - H13 implementation checkpoint 9):** add H13 take lanes and comp basics: surface recorded
-Takes on the timeline, allow simple lane/Comp range selection, keep Clips non-destructive, and mechanically
-verify save/reopen plus undo/redo of the selection.
+**Next (Codex - H13 implementation checkpoint 10):** add H13 autosave recovery restore/discard prompt
+through the shipped shell and mechanically verify recovery choices without subjective UI review.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

@@ -231,6 +231,7 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::RecordingArmTrack: return "Arm";
         case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: return "Monitor";
         case yesdaw::ui::UiActionId::TransportRecord: return "Record";
+        case yesdaw::ui::UiActionId::RecordingAssembleComp: return "Comp";
         case yesdaw::ui::UiActionId::ViewMixer: return "Mixer";
         case yesdaw::ui::UiActionId::ViewPianoRoll: return "Piano";
         default: break;
@@ -932,6 +933,10 @@ public:
     {
         return appModel.lastRecordedMidiTake();
     }
+    [[nodiscard]] const yesdaw::ui::UiRecordingCompSelection& harnessRecordingComp() const noexcept
+    {
+        return appModel.recordingCompSelection();
+    }
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
@@ -979,7 +984,8 @@ public:
                 case yesdaw::ui::UiActionId::DeviceSelectTestAudio: buttons[i].setBounds (104, 104, 104, 26); break;
                 case yesdaw::ui::UiActionId::RecordingArmTrack: buttons[i].setBounds (212, 104, 68, 26); break;
                 case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: buttons[i].setBounds (22, 134, 96, 26); break;
-                case yesdaw::ui::UiActionId::TransportRecord: buttons[i].setBounds (122, 134, 86, 26); break;
+                case yesdaw::ui::UiActionId::TransportRecord: buttons[i].setBounds (122, 134, 76, 26); break;
+                case yesdaw::ui::UiActionId::RecordingAssembleComp: buttons[i].setBounds (202, 134, 72, 26); break;
                 case yesdaw::ui::UiActionId::EditUndo: buttons[i].setBounds (244, 50, 42, 26); break;
                 case yesdaw::ui::UiActionId::EditRedo: buttons[i].setBounds (290, 50, 42, 26); break;
                 case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (336, 16, 56, 56); break;
@@ -1254,6 +1260,8 @@ private:
                                                && appModel.context().recordingTrackArmed)
                                            || (action == yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy
                                                && appModel.context().recordingMonitoringSelected)
+                                           || (action == yesdaw::ui::UiActionId::RecordingAssembleComp
+                                               && appModel.context().recordingCompSelected)
                                            || (action == yesdaw::ui::UiActionId::ViewMixer
                                                && appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
                                            || (action == yesdaw::ui::UiActionId::ViewPianoRoll
@@ -2039,6 +2047,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.recordingTrackInput = mainComponent->harnessRecordingTrackInput();
         snapshot.lastRecordedAudioTake = mainComponent->harnessLastRecordedAudioTake();
         snapshot.lastRecordedMidiTake = mainComponent->harnessLastRecordedMidiTake();
+        snapshot.recordingComp = mainComponent->harnessRecordingComp();
     }
 
     return snapshot;

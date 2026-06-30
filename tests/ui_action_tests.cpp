@@ -180,6 +180,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("record.track.arm")->id == UiActionId::RecordingArmTrack);
     REQUIRE (descriptorForStableId ("record.monitoring_policy")->id == UiActionId::RecordingSetMonitoringPolicy);
     REQUIRE (descriptorForStableId ("transport.record")->id == UiActionId::TransportRecord);
+    REQUIRE (descriptorForStableId ("record.comp.assemble")->id == UiActionId::RecordingAssembleComp);
     REQUIRE (descriptorForStableId ("timeline.clip.move")->id == UiActionId::TimelineClipMove);
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
@@ -342,6 +343,13 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
 
     context.recordingMonitoringSelected = true;
     REQUIRE (registry.stateFor (UiActionId::TransportRecord, context).enabled);
+
+    const auto compWithoutTakes = registry.stateFor (UiActionId::RecordingAssembleComp, context);
+    REQUIRE_FALSE (compWithoutTakes.enabled);
+    REQUIRE (compWithoutTakes.disabledReason == std::string_view ("not enough recording Takes"));
+
+    context.recordingCompTakesAvailable = true;
+    REQUIRE (registry.stateFor (UiActionId::RecordingAssembleComp, context).enabled);
 }
 
 TEST_CASE ("H11 action dispatch mutates only the headless app model behind action ids",
@@ -407,6 +415,13 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::TransportRecord, context).dispatched);
     REQUIRE (context.isRecording);
     REQUIRE (context.recordingCommandCount == 1);
+    context.recordingCompTakesAvailable = true;
+    REQUIRE (registry.dispatch (UiActionId::RecordingAssembleComp, context).dispatched);
+    REQUIRE (context.recordingCompSelected);
+    REQUIRE (context.recordingCompSegmentCount == 2);
+    REQUIRE (context.recordingCompCommandCount == 1);
+    REQUIRE (context.canUndo);
+    REQUIRE_FALSE (context.canRedo);
 
     context.canUndo = true;
     REQUIRE (registry.dispatch (UiActionId::EditUndo, context).dispatched);

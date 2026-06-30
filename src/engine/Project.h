@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -377,6 +378,25 @@ struct RecordingTake
     friend constexpr bool operator== (const RecordingTake&, const RecordingTake&) noexcept = default;
 };
 
+struct ProjectRecordingCompSegment
+{
+    EntityId id;
+    EntityId takeId;
+    Tick timelineStart = 0;
+    Tick timelineLength = 0;
+    std::uint64_t sourceOffset = 0;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return id.isValid()
+            && takeId.isValid()
+            && timelineStart >= 0
+            && timelineLength > 0;
+    }
+
+    friend constexpr bool operator== (const ProjectRecordingCompSegment&, const ProjectRecordingCompSegment&) noexcept = default;
+};
+
 enum class ProjectEditStatus : std::uint8_t
 {
     Applied = 0,
@@ -393,7 +413,11 @@ enum class ProjectEditStatus : std::uint8_t
     NoteNotFound,
     InvalidNoteWindow,
     InvalidNoteValue,
-    InvalidSnapGrid
+    InvalidSnapGrid,
+    InvalidRecordingTakeId,
+    RecordingTakeNotFound,
+    InvalidRecordingCompSegmentId,
+    InvalidRecordingCompWindow
 };
 
 struct Project
@@ -415,6 +439,8 @@ struct Project
     // H13 recording surface (ADR-0036): Takes identify recorded passes and link immutable recorded audio
     // Assets to their Track/Clip placement without making Clip identity carry recording history.
     std::vector<RecordingTake> recordingTakes;
+    // H13 basic Comp surface (ADR-0036): ordered non-destructive segments choose source windows from Takes.
+    std::vector<ProjectRecordingCompSegment> recordingCompSegments;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -430,6 +456,15 @@ struct Project
         for (const Track& track : tracks)
             if (track.id == trackId)
                 return &track;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const RecordingTake* findRecordingTake (EntityId takeId) const noexcept
+    {
+        for (const RecordingTake& take : recordingTakes)
+            if (take.id == takeId)
+                return &take;
 
         return nullptr;
     }
@@ -461,6 +496,10 @@ struct Project
 
         for (const RecordingTake& take : recordingTakes)
             if (! take.isValid())
+                return false;
+
+        for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+            if (! segment.isValid())
                 return false;
 
         return true;
@@ -619,6 +658,42 @@ struct Project
                     return false;
         }
 
+        for (std::size_t i = 0; i < recordingCompSegments.size(); ++i)
+        {
+            const ProjectRecordingCompSegment& segment = recordingCompSegments[i];
+
+            if (segment.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (segment.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (segment.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (segment.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (segment.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (segment.id == midiClip.id)
+                    return false;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (segment.id == take.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (segment.id == recordingCompSegments[j].id)
+                    return false;
+        }
+
         const auto isExistingProjectEntity = [this] (EntityId entity) noexcept
         {
             if (entity == id)
@@ -646,6 +721,10 @@ struct Project
 
             for (const RecordingTake& take : recordingTakes)
                 if (entity == take.id)
+                    return true;
+
+            for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+                if (entity == segment.id)
                     return true;
 
             return false;
@@ -729,6 +808,22 @@ struct Project
         return true;
     }
 
+    [[nodiscard]] bool recordingCompSegmentsReferenceTakes() const noexcept
+    {
+        for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+        {
+            const RecordingTake* const take = findRecordingTake (segment.takeId);
+            if (take == nullptr || segment.sourceOffset > take->frameCount)
+                return false;
+
+            const auto remaining = take->frameCount - segment.sourceOffset;
+            if (static_cast<std::uint64_t> (segment.timelineLength) > remaining)
+                return false;
+        }
+
+        return true;
+    }
+
     [[nodiscard]] bool hasValidAssetClipIndirection() const noexcept
     {
         return sampleRate.isValid()
@@ -739,7 +834,8 @@ struct Project
                && hasUniqueEntityIds()
                && clipsReferenceAssets()
                && clipsReferenceTracks()
-               && recordingTakesReferenceProjectRows();
+               && recordingTakesReferenceProjectRows()
+               && recordingCompSegmentsReferenceTakes();
     }
 };
 
@@ -836,7 +932,16 @@ namespace detail {
         if (take.id == id)
             return true;
 
+    for (const ProjectRecordingCompSegment& segment : project.recordingCompSegments)
+        if (segment.id == id)
+            return true;
+
     return false;
+}
+
+[[nodiscard]] inline const RecordingTake* findRecordingTake (const Project& project, EntityId takeId) noexcept
+{
+    return project.findRecordingTake (takeId);
 }
 
 [[nodiscard]] inline bool clipSourceWindowFitsProject (const Project& project, const Clip& clip) noexcept
@@ -886,6 +991,14 @@ namespace detail {
 [[nodiscard]] inline bool projectCanApplyMidiEdit (const Project& project) noexcept
 {
     return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool compSegmentWindowFitsTake (const ProjectRecordingCompSegment& segment,
+                                                     const RecordingTake& take) noexcept
+{
+    return segment.isValid()
+           && segment.sourceOffset <= take.frameCount
+           && static_cast<std::uint64_t> (segment.timelineLength) <= take.frameCount - segment.sourceOffset;
 }
 
 } // namespace detail
@@ -1256,6 +1369,65 @@ namespace detail {
         return ProjectEditStatus::InvalidNoteValue;
 
     *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setRecordingCompSelection (
+    Project& project,
+    EntityId firstSegmentId,
+    EntityId firstTakeId,
+    Tick firstTimelineStart,
+    Tick firstTimelineLength,
+    std::uint64_t firstSourceOffset,
+    EntityId secondSegmentId,
+    EntityId secondTakeId,
+    Tick secondTimelineStart,
+    Tick secondTimelineLength,
+    std::uint64_t secondSourceOffset)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! firstSegmentId.isValid() || ! secondSegmentId.isValid() || firstSegmentId == secondSegmentId)
+        return ProjectEditStatus::InvalidRecordingCompSegmentId;
+
+    if (detail::projectContainsEntityId (project, firstSegmentId)
+        || detail::projectContainsEntityId (project, secondSegmentId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! firstTakeId.isValid() || ! secondTakeId.isValid())
+        return ProjectEditStatus::InvalidRecordingTakeId;
+
+    const RecordingTake* const firstTake = detail::findRecordingTake (project, firstTakeId);
+    const RecordingTake* const secondTake = detail::findRecordingTake (project, secondTakeId);
+    if (firstTake == nullptr || secondTake == nullptr)
+        return ProjectEditStatus::RecordingTakeNotFound;
+
+    const ProjectRecordingCompSegment first {
+        firstSegmentId,
+        firstTakeId,
+        firstTimelineStart,
+        firstTimelineLength,
+        firstSourceOffset
+    };
+    const ProjectRecordingCompSegment second {
+        secondSegmentId,
+        secondTakeId,
+        secondTimelineStart,
+        secondTimelineLength,
+        secondSourceOffset
+    };
+
+    if (! detail::compSegmentWindowFitsTake (first, *firstTake)
+        || ! detail::compSegmentWindowFitsTake (second, *secondTake))
+        return ProjectEditStatus::InvalidRecordingCompWindow;
+
+    Project edited = project;
+    edited.recordingCompSegments = { first, second };
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
     return ProjectEditStatus::Applied;
 }
 

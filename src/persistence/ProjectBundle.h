@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 5;
+inline constexpr int          kCodeSchemaVersion = 6;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -881,6 +881,14 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
         if (! take.isValid() || ! fitsSqliteInteger (take.frameCount))
             return false;
 
+    for (const engine::ProjectRecordingCompSegment& segment : project.recordingCompSegments)
+    {
+        if (! segment.isValid()
+            || ! fitsSqliteInteger (segment.sourceOffset)
+            || segment.timelineLength > std::numeric_limits<sqlite3_int64>::max())
+            return false;
+    }
+
     return true;
 }
 
@@ -1084,18 +1092,32 @@ CREATE INDEX recording_takes_asset_id_idx ON recording_takes(asset_id);
 CREATE INDEX recording_takes_track_id_idx ON recording_takes(track_id);
 )SQL";
 
+inline constexpr std::string_view kSchemaV6Sql = R"SQL(
+CREATE TABLE recording_comp_segments (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  take_id BLOB NOT NULL,
+  sort_index INTEGER NOT NULL CHECK (sort_index >= 0),
+  timeline_start INTEGER NOT NULL CHECK (timeline_start >= 0),
+  timeline_length INTEGER NOT NULL CHECK (timeline_length > 0),
+  source_offset INTEGER NOT NULL CHECK (source_offset >= 0),
+  FOREIGN KEY (take_id) REFERENCES recording_takes(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+CREATE INDEX recording_comp_segments_take_id_idx ON recording_comp_segments(take_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 5> kMigrations {
+inline constexpr std::array<SchemaMigration, 6> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
     SchemaMigration { 4, kSchemaV4Sql },
     SchemaMigration { 5, kSchemaV5Sql },
+    SchemaMigration { 6, kSchemaV6Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1689,7 +1711,7 @@ public:
 
         if (auto result = detail::exec (
                 db_,
-                "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_takes; DELETE FROM clips; "
+                "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
                 "DELETE FROM assets; DELETE FROM project;");
@@ -1888,6 +1910,26 @@ public:
                 if (auto result = takeStmt.bindInt64 (9, static_cast<sqlite3_int64> (take.deviceStableId)); ! result.ok()) { rollback(); return result; }
                 if (auto result = takeStmt.bindInt64 (10, static_cast<sqlite3_int64> (take.monitoringPolicy)); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, takeStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        {
+            detail::Statement compStmt (
+                db_,
+                "INSERT INTO recording_comp_segments(id, take_id, sort_index, timeline_start, timeline_length, source_offset) "
+                "VALUES (?, ?, ?, ?, ?, ?);");
+
+            for (std::size_t i = 0; i < project.recordingCompSegments.size(); ++i)
+            {
+                const engine::ProjectRecordingCompSegment& segment = project.recordingCompSegments[i];
+                compStmt.reset();
+                if (auto result = compStmt.bindBlob (1, segment.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = compStmt.bindBlob (2, segment.takeId.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = compStmt.bindInt64 (3, static_cast<sqlite3_int64> (i)); ! result.ok()) { rollback(); return result; }
+                if (auto result = compStmt.bindInt64 (4, segment.timelineStart); ! result.ok()) { rollback(); return result; }
+                if (auto result = compStmt.bindInt64 (5, segment.timelineLength); ! result.ok()) { rollback(); return result; }
+                if (auto result = compStmt.bindInt64 (6, static_cast<sqlite3_int64> (segment.sourceOffset)); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, compStmt); ! result.ok()) { rollback(); return result; }
             }
         }
 
@@ -2215,6 +2257,41 @@ public:
         }
 
         {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, take_id, timeline_start, timeline_length, source_offset "
+                    "FROM recording_comp_segments ORDER BY sort_index, rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::ProjectRecordingCompSegment segment;
+                if (auto result = detail::columnBlob (stmt.get(), 0, segment.id.bytes, "recording_comp_segments.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, segment.takeId.bytes, "recording_comp_segments.take_id"); ! result.ok())
+                    return result;
+
+                segment.timelineStart = sqlite3_column_int64 (stmt.get(), 2);
+                segment.timelineLength = sqlite3_column_int64 (stmt.get(), 3);
+
+                const sqlite3_int64 sourceOffset = sqlite3_column_int64 (stmt.get(), 4);
+                if (sourceOffset < 0)
+                    return detail::semanticInvalid ("recording_comp_segments.source_offset is outside the Project value range");
+                segment.sourceOffset = static_cast<std::uint64_t> (sourceOffset);
+
+                project.recordingCompSegments.push_back (segment);
+            }
+        }
+
+        {
             detail::Statement clipStmt;
             if (auto result = clipStmt.prepare (
                     db_,
@@ -2492,6 +2569,17 @@ public:
             return result;
         if (takeClipProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "recording Take does not match its Clip placement" };
+
+        bool compWindowProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM recording_comp_segments cs JOIN recording_takes rt ON rt.id = cs.take_id "
+                "WHERE cs.source_offset > rt.frame_count OR cs.timeline_length > rt.frame_count - cs.source_offset LIMIT 1;",
+                compWindowProblem);
+            ! result.ok())
+            return result;
+        if (compWindowProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "recording Comp segment window exceeds Take frames" };
 
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
@@ -2926,6 +3014,7 @@ private:
                 "UNION ALL SELECT 1 FROM buses WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "
+                "UNION ALL SELECT 1 FROM recording_comp_segments WHERE id = zeroblob(16) OR take_id = zeroblob(16) OR sort_index < 0 OR timeline_start < 0 OR timeline_length <= 0 OR source_offset < 0 "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
@@ -2953,6 +3042,7 @@ private:
                 "UNION ALL SELECT 1 FROM buses WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' "
                 "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(frame_count) != 'integer' OR typeof(take_ordinal) != 'integer' OR typeof(input_channel) != 'integer' OR typeof(device_stable_id) != 'integer' OR typeof(monitoring_policy) != 'integer' "
+                "UNION ALL SELECT 1 FROM recording_comp_segments WHERE typeof(id) != 'blob' OR typeof(take_id) != 'blob' OR typeof(sort_index) != 'integer' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(source_offset) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
                 "LIMIT 1;",

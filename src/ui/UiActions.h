@@ -30,6 +30,7 @@ enum class UiActionId : std::uint8_t
     RecordingArmTrack,
     RecordingSetMonitoringPolicy,
     TransportRecord,
+    RecordingAssembleComp,
     EditUndo,
     EditRedo,
     ViewTimeline,
@@ -109,6 +110,7 @@ struct UiActionDescriptor
     bool requiresRecordingTrackInput = false;
     bool requiresRecordingMonitoring = false;
     bool requiresRecordingTrackAvailable = false;
+    bool requiresRecordingCompTakes = false;
 };
 
 struct UiActionContext
@@ -146,6 +148,10 @@ struct UiActionContext
     int recordingArmCount = 0;
     int recordingMonitoringCount = 0;
     int recordingCommandCount = 0;
+    bool recordingCompTakesAvailable = false;
+    bool recordingCompSelected = false;
+    int recordingCompSegmentCount = 0;
+    int recordingCompCommandCount = 0;
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
@@ -212,6 +218,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
     { UiActionId::TransportRecord, "transport.record", "Record", "R", "Record transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, true, true, true },
+    { UiActionId::RecordingAssembleComp, "record.comp.assemble", "Comp", "Ctrl+Alt+C", "Assemble recording Comp selection",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, true },
     { UiActionId::EditUndo, "edit.undo", "Undo", "Ctrl+Z", "Undo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false, false },
     { UiActionId::EditRedo, "edit.redo", "Redo", "Ctrl+Shift+Z", "Redo",
@@ -262,7 +270,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
-inline constexpr std::array<UiActionId, 17> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
@@ -272,6 +280,7 @@ inline constexpr std::array<UiActionId, 17> kMainShellToolbarActions {{
     UiActionId::RecordingArmTrack,
     UiActionId::RecordingSetMonitoringPolicy,
     UiActionId::TransportRecord,
+    UiActionId::RecordingAssembleComp,
     UiActionId::EditUndo,
     UiActionId::EditRedo,
     UiActionId::TransportPlay,
@@ -287,7 +296,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 17>& mainShellToolbarActions()
+inline const std::array<UiActionId, 18>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }
@@ -434,6 +443,8 @@ public:
             return { false, "no armed recording Track/input" };
         if (descriptor->requiresRecordingMonitoring && ! context.recordingMonitoringSelected)
             return { false, "no recording monitoring policy" };
+        if (descriptor->requiresRecordingCompTakes && ! context.recordingCompTakesAvailable)
+            return { false, "not enough recording Takes" };
 
         return { true, "" };
     }
@@ -523,6 +534,14 @@ public:
             case UiActionId::TransportRecord:
                 context.isRecording = ! context.isRecording;
                 ++context.recordingCommandCount;
+                break;
+
+            case UiActionId::RecordingAssembleComp:
+                context.recordingCompSelected = true;
+                context.recordingCompSegmentCount = 2;
+                ++context.recordingCompCommandCount;
+                context.canUndo = true;
+                context.canRedo = false;
                 break;
 
             case UiActionId::EditUndo:
