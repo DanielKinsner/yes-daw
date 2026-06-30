@@ -20,6 +20,7 @@ using yesdaw::engine::EntityId;
 using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiAppLoadStatus;
@@ -97,6 +98,7 @@ Project makeSmokeProject()
     Clip clip;
     clip.id = idFromLowByte (3);
     clip.assetId = asset.id;
+    clip.trackId = idFromLowByte (4);
     clip.timelineStart = 0;
     clip.timelineLength = 8;
     clip.srcOffset = 0;
@@ -107,6 +109,10 @@ Project makeSmokeProject()
     clip.timeBase = TimeBase::SampleLocked;
 
     project.assets = { asset };
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Audio 1";
+    project.tracks = { track };
     project.clips = { clip };
     REQUIRE (project.hasValidAssetClipIndirection());
     return project;

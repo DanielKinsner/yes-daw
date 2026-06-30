@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "engine/MixerValue.h"
 #include "engine/Time.h"
 
 #include <array>
@@ -190,10 +191,59 @@ struct Asset
     friend constexpr bool operator== (const Asset&, const Asset&) noexcept = default;
 };
 
+struct MixerStripState
+{
+    std::string name;
+    float linearGain = 1.0f;
+    float pan = 0.0f;
+    bool muted = false;
+    bool soloed = false;
+    bool soloSafe = false;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return mixerGainIsValid (linearGain) && mixerPanIsValid (pan);
+    }
+
+    friend bool operator== (const MixerStripState&, const MixerStripState&) = default;
+};
+
+struct Track
+{
+    EntityId id;
+    MixerStripState strip;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid() && strip.isValid();
+    }
+
+    friend bool operator== (const Track&, const Track&) = default;
+};
+
+struct Bus
+{
+    EntityId id;
+    MixerStripState strip;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid() && strip.isValid();
+    }
+
+    friend bool operator== (const Bus&, const Bus&) = default;
+};
+
+inline constexpr EntityId kDefaultAudioTrackId = EntityId::fromBytes ({
+    0x59u, 0x45u, 0x53u, 0x44u, 0x41u, 0x57u, 0x5Fu, 0x41u,
+    0x55u, 0x44u, 0x49u, 0x4Fu, 0x5Fu, 0x30u, 0x30u, 0x31u,
+});
+
 struct Clip
 {
     EntityId id;
     EntityId assetId;
+    EntityId trackId;
     Tick timelineStart = 0;
     Tick timelineLength = 0;
     std::uint64_t srcOffset = 0; // schema: clip.src_offset, measured in Asset frames
@@ -315,6 +365,8 @@ struct Project
     EntityId id;
     SampleRate sampleRate;
     std::vector<Asset> assets;
+    std::vector<Track> tracks;
+    std::vector<Bus> buses;
     std::vector<Clip> clips;
     // Time-model surface (ADR-0010): tempo map, meter map, and markers round-trip with the Project (H1
     // exit clause). Stored in canonical tick order; the bundle reads them back ORDER BY tick.
@@ -334,6 +386,15 @@ struct Project
         return nullptr;
     }
 
+    [[nodiscard]] const Track* findTrack (EntityId trackId) const noexcept
+    {
+        for (const Track& track : tracks)
+            if (track.id == trackId)
+                return &track;
+
+        return nullptr;
+    }
+
     [[nodiscard]] bool hasValidEntityIds() const noexcept
     {
         if (! id.isValid())
@@ -343,12 +404,38 @@ struct Project
             if (! asset.id.isValid())
                 return false;
 
+        for (const Track& track : tracks)
+            if (! track.id.isValid())
+                return false;
+
+        for (const Bus& bus : buses)
+            if (! bus.id.isValid())
+                return false;
+
         for (const Clip& clip : clips)
-            if (! clip.id.isValid() || ! clip.assetId.isValid())
+            if (! clip.id.isValid() || ! clip.assetId.isValid() || ! clip.trackId.isValid())
                 return false;
 
         for (const MidiClip& midiClip : midiClips)
             if (! midiClip.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool tracksAreValid() const noexcept
+    {
+        for (const Track& track : tracks)
+            if (! track.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool busesAreValid() const noexcept
+    {
+        for (const Bus& bus : buses)
+            if (! bus.isValid())
                 return false;
 
         return true;
@@ -375,6 +462,38 @@ struct Project
                     return false;
         }
 
+        for (std::size_t i = 0; i < tracks.size(); ++i)
+        {
+            if (tracks[i].id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (tracks[i].id == asset.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (tracks[i].id == tracks[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < buses.size(); ++i)
+        {
+            if (buses[i].id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (buses[i].id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (buses[i].id == track.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (buses[i].id == buses[j].id)
+                    return false;
+        }
+
         for (std::size_t i = 0; i < clips.size(); ++i)
         {
             if (clips[i].id == id)
@@ -382,6 +501,14 @@ struct Project
 
             for (const Asset& asset : assets)
                 if (clips[i].id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (clips[i].id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (clips[i].id == bus.id)
                     return false;
 
             for (std::size_t j = 0; j < i; ++j)
@@ -400,6 +527,14 @@ struct Project
                 if (midiClip.id == asset.id)
                     return false;
 
+            for (const Track& track : tracks)
+                if (midiClip.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (midiClip.id == bus.id)
+                    return false;
+
             for (const Clip& clip : clips)
                 if (midiClip.id == clip.id)
                     return false;
@@ -416,6 +551,14 @@ struct Project
 
             for (const Asset& asset : assets)
                 if (entity == asset.id)
+                    return true;
+
+            for (const Track& track : tracks)
+                if (entity == track.id)
+                    return true;
+
+            for (const Bus& bus : buses)
+                if (entity == bus.id)
                     return true;
 
             for (const Clip& clip : clips)
@@ -464,9 +607,29 @@ struct Project
         return true;
     }
 
+    [[nodiscard]] bool clipsReferenceTracks() const noexcept
+    {
+        for (const Clip& clip : clips)
+            if (findTrack (clip.trackId) == nullptr)
+                return false;
+
+        for (const MidiClip& midiClip : midiClips)
+            if (findTrack (midiClip.trackId) == nullptr)
+                return false;
+
+        return true;
+    }
+
     [[nodiscard]] bool hasValidAssetClipIndirection() const noexcept
     {
-        return sampleRate.isValid() && hasValidEntityIds() && assetsAreValid() && hasUniqueEntityIds() && clipsReferenceAssets();
+        return sampleRate.isValid()
+               && hasValidEntityIds()
+               && assetsAreValid()
+               && tracksAreValid()
+               && busesAreValid()
+               && hasUniqueEntityIds()
+               && clipsReferenceAssets()
+               && clipsReferenceTracks();
     }
 };
 
@@ -535,6 +698,14 @@ namespace detail {
 
     for (const Asset& asset : project.assets)
         if (asset.id == id)
+            return true;
+
+    for (const Track& track : project.tracks)
+        if (track.id == id)
+            return true;
+
+    for (const Bus& bus : project.buses)
+        if (bus.id == id)
             return true;
 
     for (const Clip& clip : project.clips)

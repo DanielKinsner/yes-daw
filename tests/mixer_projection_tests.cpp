@@ -45,6 +45,7 @@ using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::ProjectMixerProjectionConfig;
 using yesdaw::engine::ProjectMixerProjectionError;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::Track;
 using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::projectMixerNodeIdForClip;
 using yesdaw::engine::projectToMixerProjectionInputs;
@@ -190,11 +191,12 @@ Asset makeProjectAsset (std::uint8_t id, std::uint64_t frames)
     return asset;
 }
 
-Clip makeProjectClip (std::uint8_t id, EntityId assetId, float gain)
+Clip makeProjectClip (std::uint8_t id, EntityId assetId, EntityId trackId, float gain)
 {
     Clip clip;
     clip.id = entityIdFromLowByte (id);
     clip.assetId = assetId;
+    clip.trackId = trackId;
     clip.timelineStart = 0;
     clip.timelineLength = 15360;
     clip.srcOffset = 0;
@@ -212,9 +214,13 @@ Project makeMixerProjectionProject()
         makeProjectAsset (2, 100),
         makeProjectAsset (3, 200),
     };
+    Track track;
+    track.id = entityIdFromLowByte (6);
+    track.strip.name = "Audio 1";
+    project.tracks = { track };
     project.clips = {
-        makeProjectClip (4, project.assets[0].id, 0.5f),
-        makeProjectClip (5, project.assets[1].id, 0.25f),
+        makeProjectClip (4, project.assets[0].id, track.id, 0.5f),
+        makeProjectClip (5, project.assets[1].id, track.id, 0.25f),
     };
     return project;
 }

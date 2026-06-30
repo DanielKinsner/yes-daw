@@ -29,6 +29,7 @@ using yesdaw::engine::Note;
 using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::interchange::dawproject::PackageStatus;
 
 EntityId idFromLowByte (std::uint8_t low) noexcept
@@ -72,6 +73,7 @@ Project makeInterchangeProject()
     Clip first;
     first.id = idFromLowByte (10);
     first.assetId = asset.id;
+    first.trackId = idFromLowByte (30);
     first.timelineStart = 4800;
     first.timelineLength = 9600;
     first.srcOffset = 1;
@@ -84,6 +86,7 @@ Project makeInterchangeProject()
     Clip second;
     second.id = idFromLowByte (11);
     second.assetId = asset.id;
+    second.trackId = first.trackId;
     second.timelineStart = 20000;
     second.timelineLength = 2400;
     second.srcOffset = 2;
@@ -120,6 +123,13 @@ Project makeInterchangeProject()
     secondNote.channel = 1;
 
     midi.notes = { firstNote, secondNote };
+    Track audioTrack;
+    audioTrack.id = first.trackId;
+    audioTrack.strip.name = "Audio 1";
+    Track midiTrack;
+    midiTrack.id = midi.trackId;
+    midiTrack.strip.name = "MIDI Track";
+    project.tracks = { audioTrack, midiTrack };
     project.midiClips = { midi };
 
     REQUIRE (project.hasValidAssetClipIndirection());
@@ -545,14 +555,13 @@ TEST_CASE ("DAWproject exporter rejects unsupported or lossy Project surfaces ex
     }
 
     {
-        Project duplicateXmlId = project;
-        duplicateXmlId.midiClips.front().trackId = duplicateXmlId.clips.front().id;
-        REQUIRE (duplicateXmlId.hasValidAssetClipIndirection());
-        REQUIRE (duplicateXmlId.midiClips.front().isValid());
+        Project invalidTrackOwner = project;
+        invalidTrackOwner.midiClips.front().trackId = invalidTrackOwner.clips.front().id;
+        REQUIRE_FALSE (invalidTrackOwner.hasValidAssetClipIndirection());
         REQUIRE (yesdaw::interchange::dawproject::exportProjectToDawproject (
-                     makeTempPath ("duplicate-id", ".dawproject"),
-                     duplicateXmlId,
+                     makeTempPath ("invalid-track-owner", ".dawproject"),
+                     invalidTrackOwner,
                      std::span<const DecodedAssetAudio> (decoded.data(), decoded.size())).status
-                 == PackageStatus::DuplicateXmlId);
+                 == PackageStatus::InvalidProject);
     }
 }

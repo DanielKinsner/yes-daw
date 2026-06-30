@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 3;
+inline constexpr int          kCodeSchemaVersion = 4;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -828,6 +828,18 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
             return false;
     }
 
+    for (const engine::Track& track : project.tracks)
+    {
+        if (! track.isValid())
+            return false;
+    }
+
+    for (const engine::Bus& bus : project.buses)
+    {
+        if (! bus.isValid())
+            return false;
+    }
+
     for (const engine::Clip& clip : project.clips)
     {
         if (! fitsSqliteInteger (clip.srcOffset) || ! fitsSqliteInteger (clip.srcLen))
@@ -989,16 +1001,73 @@ CREATE TABLE midi_notes (
 CREATE INDEX midi_notes_clip_id_idx ON midi_notes(clip_id);
 )SQL";
 
+inline constexpr std::string_view kSchemaV4Sql = R"SQL(
+CREATE TABLE tracks (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  name TEXT NOT NULL,
+  linear_gain REAL NOT NULL CHECK (linear_gain >= 0 AND linear_gain <= 1000.0),
+  pan REAL NOT NULL CHECK (pan >= -1.0 AND pan <= 1.0),
+  muted INTEGER NOT NULL CHECK (muted IN (0, 1)),
+  soloed INTEGER NOT NULL CHECK (soloed IN (0, 1)),
+  solo_safe INTEGER NOT NULL CHECK (solo_safe IN (0, 1))
+);
+
+CREATE TABLE buses (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  name TEXT NOT NULL,
+  linear_gain REAL NOT NULL CHECK (linear_gain >= 0 AND linear_gain <= 1000.0),
+  pan REAL NOT NULL CHECK (pan >= -1.0 AND pan <= 1.0),
+  muted INTEGER NOT NULL CHECK (muted IN (0, 1)),
+  soloed INTEGER NOT NULL CHECK (soloed IN (0, 1)),
+  solo_safe INTEGER NOT NULL CHECK (solo_safe IN (0, 1))
+);
+
+INSERT OR IGNORE INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe)
+SELECT X'5945534441575F415544494F5F303031', 'Audio 1', 1.0, 0.0, 0, 0, 0
+WHERE EXISTS (SELECT 1 FROM clips);
+
+INSERT OR IGNORE INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe)
+SELECT DISTINCT track_id, 'MIDI Track', 1.0, 0.0, 0, 0, 0
+FROM midi_clips;
+
+CREATE TABLE clips_v4 (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  asset_id BLOB NOT NULL,
+  track_id BLOB NOT NULL CHECK (length(track_id) = 16),
+  timeline_start INTEGER NOT NULL,
+  timeline_length INTEGER NOT NULL CHECK (timeline_length >= 0),
+  src_offset INTEGER NOT NULL CHECK (src_offset >= 0),
+  src_len INTEGER NOT NULL CHECK (src_len >= 0),
+  gain REAL NOT NULL CHECK (gain >= 0),
+  fade_in INTEGER NOT NULL CHECK (fade_in >= 0),
+  fade_out INTEGER NOT NULL CHECK (fade_out >= 0),
+  time_base INTEGER NOT NULL CHECK (time_base IN (0, 1)),
+  FOREIGN KEY (asset_id) REFERENCES assets(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  FOREIGN KEY (track_id) REFERENCES tracks(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+
+INSERT INTO clips_v4(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base)
+SELECT id, asset_id, X'5945534441575F415544494F5F303031', timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base
+FROM clips;
+
+DROP TABLE clips;
+ALTER TABLE clips_v4 RENAME TO clips;
+CREATE INDEX clips_asset_id_idx ON clips(asset_id);
+CREATE INDEX clips_track_id_idx ON clips(track_id);
+CREATE INDEX midi_clips_track_id_idx ON midi_clips(track_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 3> kMigrations {
+inline constexpr std::array<SchemaMigration, 4> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
+    SchemaMigration { 4, kSchemaV4Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1593,6 +1662,7 @@ public:
         if (auto result = detail::exec (
                 db_,
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM clips; "
+                "DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
@@ -1666,10 +1736,44 @@ public:
             }
         }
 
+        detail::Statement trackStmt (
+            db_,
+            "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?);");
+        for (const engine::Track& track : project.tracks)
+        {
+            trackStmt.reset();
+            if (auto result = trackStmt.bindBlob (1, track.id.bytes); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindText (2, track.strip.name); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindDouble (3, track.strip.linearGain); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindDouble (4, track.strip.pan); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindInt64 (5, track.strip.muted ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindInt64 (6, track.strip.soloed ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindInt64 (7, track.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, trackStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        detail::Statement busStmt (
+            db_,
+            "INSERT INTO buses(id, name, linear_gain, pan, muted, soloed, solo_safe) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?);");
+        for (const engine::Bus& bus : project.buses)
+        {
+            busStmt.reset();
+            if (auto result = busStmt.bindBlob (1, bus.id.bytes); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindText (2, bus.strip.name); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindDouble (3, bus.strip.linearGain); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindDouble (4, bus.strip.pan); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindInt64 (5, bus.strip.muted ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindInt64 (6, bus.strip.soloed ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = busStmt.bindInt64 (7, bus.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, busStmt); ! result.ok()) { rollback(); return result; }
+        }
+
         detail::Statement clipStmt (
             db_,
-            "INSERT INTO clips(id, asset_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
         for (const engine::Clip& clip : project.clips)
         {
@@ -1684,42 +1788,47 @@ public:
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (3, clip.timelineStart); ! result.ok())
+            if (auto result = clipStmt.bindBlob (3, clip.trackId.bytes); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (4, clip.timelineLength); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (4, clip.timelineStart); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (5, static_cast<sqlite3_int64> (clip.srcOffset)); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (5, clip.timelineLength); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (6, static_cast<sqlite3_int64> (clip.srcLen)); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (6, static_cast<sqlite3_int64> (clip.srcOffset)); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindDouble (7, clip.gain); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (7, static_cast<sqlite3_int64> (clip.srcLen)); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (8, clip.fadeIn); ! result.ok())
+            if (auto result = clipStmt.bindDouble (8, clip.gain); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (9, clip.fadeOut); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (9, clip.fadeIn); ! result.ok())
             {
                 rollback();
                 return result;
             }
-            if (auto result = clipStmt.bindInt64 (10, static_cast<sqlite3_int64> (clip.timeBase)); ! result.ok())
+            if (auto result = clipStmt.bindInt64 (10, clip.fadeOut); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindInt64 (11, static_cast<sqlite3_int64> (clip.timeBase)); ! result.ok())
             {
                 rollback();
                 return result;
@@ -1882,7 +1991,75 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, asset_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base "
+                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe FROM tracks ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::Track track;
+                if (auto result = detail::columnBlob (stmt.get(), 0, track.id.bytes, "tracks.id"); ! result.ok())
+                    return result;
+
+                const unsigned char* const name = sqlite3_column_text (stmt.get(), 1);
+                const int nameBytes = sqlite3_column_bytes (stmt.get(), 1);
+                if (name != nullptr && nameBytes > 0)
+                    track.strip.name.assign (reinterpret_cast<const char*> (name), static_cast<std::size_t> (nameBytes));
+
+                track.strip.linearGain = static_cast<float> (sqlite3_column_double (stmt.get(), 2));
+                track.strip.pan = static_cast<float> (sqlite3_column_double (stmt.get(), 3));
+                track.strip.muted = sqlite3_column_int64 (stmt.get(), 4) != 0;
+                track.strip.soloed = sqlite3_column_int64 (stmt.get(), 5) != 0;
+                track.strip.soloSafe = sqlite3_column_int64 (stmt.get(), 6) != 0;
+                project.tracks.push_back (std::move (track));
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe FROM buses ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::Bus bus;
+                if (auto result = detail::columnBlob (stmt.get(), 0, bus.id.bytes, "buses.id"); ! result.ok())
+                    return result;
+
+                const unsigned char* const name = sqlite3_column_text (stmt.get(), 1);
+                const int nameBytes = sqlite3_column_bytes (stmt.get(), 1);
+                if (name != nullptr && nameBytes > 0)
+                    bus.strip.name.assign (reinterpret_cast<const char*> (name), static_cast<std::size_t> (nameBytes));
+
+                bus.strip.linearGain = static_cast<float> (sqlite3_column_double (stmt.get(), 2));
+                bus.strip.pan = static_cast<float> (sqlite3_column_double (stmt.get(), 3));
+                bus.strip.muted = sqlite3_column_int64 (stmt.get(), 4) != 0;
+                bus.strip.soloed = sqlite3_column_int64 (stmt.get(), 5) != 0;
+                bus.strip.soloSafe = sqlite3_column_int64 (stmt.get(), 6) != 0;
+                project.buses.push_back (std::move (bus));
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base "
                     "FROM clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
@@ -1900,22 +2077,24 @@ public:
                     return result;
                 if (auto result = detail::columnBlob (stmt.get(), 1, clip.assetId.bytes, "clips.asset_id"); ! result.ok())
                     return result;
+                if (auto result = detail::columnBlob (stmt.get(), 2, clip.trackId.bytes, "clips.track_id"); ! result.ok())
+                    return result;
 
-                clip.timelineStart = sqlite3_column_int64 (stmt.get(), 2);
-                clip.timelineLength = sqlite3_column_int64 (stmt.get(), 3);
+                clip.timelineStart = sqlite3_column_int64 (stmt.get(), 3);
+                clip.timelineLength = sqlite3_column_int64 (stmt.get(), 4);
 
-                const sqlite3_int64 srcOffset = sqlite3_column_int64 (stmt.get(), 4);
-                const sqlite3_int64 srcLen = sqlite3_column_int64 (stmt.get(), 5);
+                const sqlite3_int64 srcOffset = sqlite3_column_int64 (stmt.get(), 5);
+                const sqlite3_int64 srcLen = sqlite3_column_int64 (stmt.get(), 6);
                 if (srcOffset < 0 || srcLen < 0)
                     return detail::semanticInvalid ("clips source window is outside the Project value range");
                 clip.srcOffset = static_cast<std::uint64_t> (srcOffset);
                 clip.srcLen = static_cast<std::uint64_t> (srcLen);
 
-                clip.gain = static_cast<float> (sqlite3_column_double (stmt.get(), 6));
-                clip.fadeIn = sqlite3_column_int64 (stmt.get(), 7);
-                clip.fadeOut = sqlite3_column_int64 (stmt.get(), 8);
+                clip.gain = static_cast<float> (sqlite3_column_double (stmt.get(), 7));
+                clip.fadeIn = sqlite3_column_int64 (stmt.get(), 8);
+                clip.fadeOut = sqlite3_column_int64 (stmt.get(), 9);
 
-                const sqlite3_int64 timeBase = sqlite3_column_int64 (stmt.get(), 9);
+                const sqlite3_int64 timeBase = sqlite3_column_int64 (stmt.get(), 10);
                 if (timeBase != static_cast<sqlite3_int64> (engine::TimeBase::TempoLocked)
                     && timeBase != static_cast<sqlite3_int64> (engine::TimeBase::SampleLocked))
                     return detail::semanticInvalid ("clips.time_base is outside the Project value range");
@@ -2168,6 +2347,18 @@ public:
             return result;
         if (midiNoteWindowProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "MIDI note window exceeds MIDI Clip length" };
+
+        bool trackReferenceProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM clips c LEFT JOIN tracks t ON t.id = c.track_id WHERE t.id IS NULL "
+                "UNION ALL SELECT 1 FROM midi_clips c LEFT JOIN tracks t ON t.id = c.track_id WHERE t.id IS NULL "
+                "LIMIT 1;",
+                trackReferenceProblem);
+            ! result.ok())
+            return result;
+        if (trackReferenceProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Clip track reference does not resolve to a Track" };
 
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
@@ -2571,6 +2762,10 @@ private:
             "UNION ALL SELECT bpm FROM tempo_changes "
             "UNION ALL SELECT value FROM automation_points "
             "UNION ALL SELECT gain FROM clips "
+            "UNION ALL SELECT linear_gain FROM tracks "
+            "UNION ALL SELECT pan FROM tracks "
+            "UNION ALL SELECT linear_gain FROM buses "
+            "UNION ALL SELECT pan FROM buses "
             "UNION ALL SELECT pitch_note FROM midi_notes "
             "UNION ALL SELECT normalized_velocity FROM midi_notes;");
         while (true)
@@ -2594,8 +2789,10 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE sample_rate_hz <= 0 "
                 "UNION ALL SELECT 1 FROM assets WHERE frames <= 0 OR sample_rate_hz <= 0 OR channels <= 0 "
-                "UNION ALL SELECT 1 FROM clips WHERE timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
-                "UNION ALL SELECT 1 FROM midi_clips WHERE timeline_length < 0 OR time_base NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM buses WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM midi_clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM meter_changes WHERE numerator <= 0 OR denominator <= 0 "
@@ -2618,7 +2815,9 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE typeof(id) != 'blob' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') "
                 "UNION ALL SELECT 1 FROM assets WHERE typeof(id) != 'blob' OR typeof(content_hash) != 'blob' OR typeof(frames) != 'integer' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') OR typeof(channels) != 'integer' "
-                "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
+                "UNION ALL SELECT 1 FROM tracks WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' "
+                "UNION ALL SELECT 1 FROM buses WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' "
+                "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
                 "LIMIT 1;",

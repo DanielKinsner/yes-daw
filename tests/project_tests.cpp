@@ -14,7 +14,9 @@
 #include <cstdint>
 #include <limits>
 #include <random>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 using Catch::Approx;
 using yesdaw::engine::Asset;
@@ -45,6 +47,7 @@ using yesdaw::engine::splitClip;
 using yesdaw::engine::splitNote;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Tick;
+using yesdaw::engine::Track;
 using yesdaw::engine::trimClip;
 using yesdaw::engine::transposeNote;
 using yesdaw::engine::quantizeNote;
@@ -79,11 +82,20 @@ Asset makeAsset (EntityId id, std::uint64_t frames = 48000)
     return asset;
 }
 
-Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint64_t srcLen)
+Track makeTrack (EntityId id, std::string name = "Audio 1")
+{
+    Track track;
+    track.id = id;
+    track.strip.name = std::move (name);
+    return track;
+}
+
+Clip makeClip (EntityId id, EntityId assetId, EntityId trackId, std::uint64_t srcOffset, std::uint64_t srcLen)
 {
     Clip clip;
     clip.id = id;
     clip.assetId = assetId;
+    clip.trackId = trackId;
     clip.srcOffset = srcOffset;
     clip.srcLen = srcLen;
     clip.timelineLength = 15360;
@@ -122,8 +134,9 @@ MidiClip makeMidiClip (EntityId id, EntityId trackId)
 Project makeEditableProject()
 {
     const EntityId assetId = idFromLowByte (30);
+    const EntityId trackId = idFromLowByte (36);
 
-    Clip clip = makeClip (idFromLowByte (31), assetId, 100, 800);
+    Clip clip = makeClip (idFromLowByte (31), assetId, trackId, 100, 800);
     clip.timelineStart = 777;
     clip.timelineLength = 50'000;
     clip.gain = 0.625f;
@@ -135,6 +148,7 @@ Project makeEditableProject()
     project.id = idFromLowByte (29);
     project.sampleRate = SampleRate { 48000.0 };
     project.assets = { makeAsset (assetId, 1200) };
+    project.tracks = { makeTrack (trackId, "Audio 1") };
     project.clips = { clip };
     return project;
 }
@@ -160,6 +174,7 @@ Project makeTwoClipEditableProject()
 Project makeMidiEditableProject()
 {
     Project project = makeEditableProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
     return project;
 }
@@ -169,6 +184,8 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.id == expected.id);
     REQUIRE (actual.sampleRate == expected.sampleRate);
     REQUIRE (actual.assets == expected.assets);
+    REQUIRE (actual.tracks == expected.tracks);
+    REQUIRE (actual.buses == expected.buses);
     REQUIRE (actual.clips == expected.clips);
     REQUIRE (actual.tempoMap == expected.tempoMap);
     REQUIRE (actual.meterMap == expected.meterMap);
@@ -364,9 +381,10 @@ TEST_CASE ("EntityIdAllocator reports entropy exhaustion instead of reusing an i
 TEST_CASE ("Asset and Clip values carry ADR-0011 storage invariants", "[project][asset][clip]")
 {
     const EntityId assetId = idFromLowByte (1);
+    const EntityId trackId = idFromLowByte (6);
     const Asset asset = makeAsset (assetId, 400);
 
-    Clip clip = makeClip (idFromLowByte (2), assetId, 100, 300);
+    Clip clip = makeClip (idFromLowByte (2), assetId, trackId, 100, 300);
     clip.timelineStart = 15360;
     clip.timelineLength = 15360 * 4;
     clip.gain = 0.75f;
@@ -380,14 +398,14 @@ TEST_CASE ("Asset and Clip values carry ADR-0011 storage invariants", "[project]
     REQUIRE (clip.srcOffset + clip.srcLen == asset.frames);
     REQUIRE (clip.timeBase == TimeBase::SampleLocked);
 
-    const Clip unknownAsset = makeClip (idFromLowByte (3), idFromLowByte (99), 0, 1);
+    const Clip unknownAsset = makeClip (idFromLowByte (3), idFromLowByte (99), trackId, 0, 1);
     REQUIRE_FALSE (unknownAsset.references (asset));
     REQUIRE_FALSE (unknownAsset.sourceWindowFits (asset));
 
-    const Clip tooLong = makeClip (idFromLowByte (4), assetId, 100, 301);
+    const Clip tooLong = makeClip (idFromLowByte (4), assetId, trackId, 100, 301);
     REQUIRE_FALSE (tooLong.sourceWindowFits (asset));
 
-    const Clip overflow = makeClip (idFromLowByte (5), assetId, std::numeric_limits<std::uint64_t>::max(), 1);
+    const Clip overflow = makeClip (idFromLowByte (5), assetId, trackId, std::numeric_limits<std::uint64_t>::max(), 1);
     REQUIRE_FALSE (overflow.sourceWindowFits (Asset { assetId, {}, std::numeric_limits<std::uint64_t>::max(), SampleRate {}, 1 }));
 }
 
@@ -396,6 +414,7 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     const EntityId projectId = idFromLowByte (10);
     const EntityId assetA = idFromLowByte (11);
     const EntityId assetB = idFromLowByte (12);
+    const EntityId trackId = idFromLowByte (13);
 
     Project project;
     project.id = projectId;
@@ -403,9 +422,10 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
         makeAsset (assetA, 1000),
         makeAsset (assetB, 256),
     };
+    project.tracks = { makeTrack (trackId, "Audio 1") };
     project.clips = {
-        makeClip (idFromLowByte (20), assetA, 100, 900),
-        makeClip (idFromLowByte (21), assetB, 0, 128),
+        makeClip (idFromLowByte (20), assetA, trackId, 100, 900),
+        makeClip (idFromLowByte (21), assetB, trackId, 0, 128),
     };
 
     REQUIRE (project.findAsset (assetA) == &project.assets[0]);
@@ -432,6 +452,11 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     REQUIRE_FALSE (clipMatchesAssetId.hasUniqueEntityIds());
     REQUIRE_FALSE (clipMatchesAssetId.hasValidAssetClipIndirection());
 
+    Project clipMatchesTrackId = project;
+    clipMatchesTrackId.clips[1].id = project.tracks[0].id;
+    REQUIRE_FALSE (clipMatchesTrackId.hasUniqueEntityIds());
+    REQUIRE_FALSE (clipMatchesTrackId.hasValidAssetClipIndirection());
+
     Project invalidAsset = project;
     invalidAsset.assets[0].frames = 0;
     REQUIRE_FALSE (invalidAsset.assetsAreValid());
@@ -441,6 +466,11 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
     orphanClip.clips[0].assetId = idFromLowByte (99);
     REQUIRE_FALSE (orphanClip.clipsReferenceAssets());
     REQUIRE_FALSE (orphanClip.hasValidAssetClipIndirection());
+
+    Project orphanTrack = project;
+    orphanTrack.clips[0].trackId = idFromLowByte (99);
+    REQUIRE_FALSE (orphanTrack.clipsReferenceTracks());
+    REQUIRE_FALSE (orphanTrack.hasValidAssetClipIndirection());
 
     Project corruptSourceWindow = project;
     corruptSourceWindow.clips[1].srcOffset = 200;
@@ -452,6 +482,7 @@ TEST_CASE ("Project validates Asset to Clip indirection by EntityId", "[project]
 TEST_CASE ("Project validates MIDI Clips and Note identity", "[project][midi]")
 {
     Project project = makeEditableProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
 
     REQUIRE (project.midiClips.front().isValid());
@@ -1456,6 +1487,7 @@ TEST_CASE ("Project clip edit operations reject invalid input without mutating P
 TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and redo back", "[project][undo][property]")
 {
     Project project = makeTwoClipEditableProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
 
     const std::array<EntityId, 2> clipIds { idFromLowByte (31), idFromLowByte (33) };

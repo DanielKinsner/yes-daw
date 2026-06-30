@@ -35,6 +35,7 @@ using yesdaw::engine::ProjectMixerProjectionError;
 using yesdaw::engine::RuntimeAudioDriver;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::projectToMixerProjectionInputs;
 
@@ -73,6 +74,7 @@ Project makeSingleClipProject()
     Clip clip;
     clip.id = idFromLowByte (3);
     clip.assetId = asset.id;
+    clip.trackId = idFromLowByte (4);
     clip.timelineStart = 0;
     clip.timelineLength = 512;
     clip.srcOffset = 0;
@@ -86,6 +88,10 @@ Project makeSingleClipProject()
     project.id = idFromLowByte (1);
     project.sampleRate = SampleRate { 48000.0 };
     project.assets.push_back (asset);
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Audio 1";
+    project.tracks.push_back (track);
     project.clips.push_back (clip);
     return project;
 }

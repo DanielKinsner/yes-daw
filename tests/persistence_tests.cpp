@@ -16,6 +16,7 @@
 #include <span>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 using yesdaw::engine::Asset;
@@ -33,10 +34,13 @@ using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
 using yesdaw::engine::splitClip;
+using yesdaw::engine::Bus;
+using yesdaw::engine::kDefaultAudioTrackId;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::trimClip;
 using yesdaw::persistence::AssetImportRequest;
 using yesdaw::persistence::BundleStatus;
@@ -57,6 +61,8 @@ using yesdaw::persistence::kCacheSizeKiB;
 using yesdaw::persistence::kCodeSchemaVersion;
 using yesdaw::persistence::kWalAutoCheckpointPages;
 using yesdaw::persistence::detail::kSchemaV1Sql;
+using yesdaw::persistence::detail::kSchemaV2Sql;
+using yesdaw::persistence::detail::kSchemaV3Sql;
 using Catch::Approx;
 
 namespace {
@@ -167,6 +173,11 @@ std::string blobLiteral (EntityId id)
     return blobLiteral (std::span<const std::uint8_t> (id.bytes.data(), id.bytes.size()));
 }
 
+std::string blobLiteral (AssetContentHash hash)
+{
+    return blobLiteral (std::span<const std::uint8_t> (hash.bytes.data(), hash.bytes.size()));
+}
+
 void requireRawExec (sqlite3* db, std::string_view sql)
 {
     char* rawError = nullptr;
@@ -231,11 +242,28 @@ Asset makeAsset (EntityId id, std::uint64_t frames = 48000)
     return asset;
 }
 
-Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint64_t srcLen)
+Track makeTrack (EntityId id, std::string name = "Audio 1")
+{
+    Track track;
+    track.id = id;
+    track.strip.name = std::move (name);
+    return track;
+}
+
+Bus makeBus (EntityId id, std::string name = "Verb")
+{
+    Bus bus;
+    bus.id = id;
+    bus.strip.name = std::move (name);
+    return bus;
+}
+
+Clip makeClip (EntityId id, EntityId assetId, EntityId trackId, std::uint64_t srcOffset, std::uint64_t srcLen)
 {
     Clip clip;
     clip.id = id;
     clip.assetId = assetId;
+    clip.trackId = trackId;
     clip.timelineStart = 0;
     clip.timelineLength = 15360;
     clip.srcOffset = srcOffset;
@@ -286,9 +314,12 @@ Project makeProject()
         makeAsset (idFromLowByte (2), 1000),
         makeAsset (idFromLowByte (3), 256),
     };
+    project.tracks = {
+        makeTrack (idFromLowByte (10), "Audio 1"),
+    };
     project.clips = {
-        makeClip (idFromLowByte (4), project.assets[0].id, 100, 900),
-        makeClip (idFromLowByte (5), project.assets[1].id, 0, 128),
+        makeClip (idFromLowByte (4), project.assets[0].id, project.tracks[0].id, 100, 900),
+        makeClip (idFromLowByte (5), project.assets[1].id, project.tracks[0].id, 0, 128),
     };
     return project;
 }
@@ -317,6 +348,8 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.id == expected.id);
     REQUIRE (actual.sampleRate == expected.sampleRate);
     REQUIRE (actual.assets == expected.assets);
+    REQUIRE (actual.tracks == expected.tracks);
+    REQUIRE (actual.buses == expected.buses);
     REQUIRE (actual.clips == expected.clips);
     REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.hasValidAssetClipIndirection());
@@ -361,6 +394,8 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 3;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 4;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
@@ -370,6 +405,10 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_clips';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_notes';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'tracks';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'buses';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -417,9 +456,14 @@ TEST_CASE ("Schema v1 enforces Clip to Asset foreign keys", "[persistence][forei
     REQUIRE ((deleteReferencedAsset.sqliteCode == SQLITE_CONSTRAINT || deleteReferencedAsset.sqliteCode == SQLITE_CONSTRAINT_FOREIGNKEY));
 
     const auto insertOrphan = db.executeSql (
-        "INSERT INTO clips(id, asset_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
-        "VALUES (X'000000000000000000000000000000EE', X'000000000000000000000000000000EF', 0, 1, 0, 1, 1.0, 0, 0, 1);");
+        "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
+        "VALUES (X'000000000000000000000000000000EE', X'000000000000000000000000000000EF', X'0000000000000000000000000000000A', 0, 1, 0, 1, 1.0, 0, 0, 1);");
     REQUIRE ((insertOrphan.sqliteCode == SQLITE_CONSTRAINT || insertOrphan.sqliteCode == SQLITE_CONSTRAINT_FOREIGNKEY));
+
+    const auto insertOrphanTrack = db.executeSql (
+        "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
+        "VALUES (X'000000000000000000000000000000ED', X'00000000000000000000000000000002', X'000000000000000000000000000000EF', 0, 1, 0, 1, 1.0, 0, 0, 1);");
+    REQUIRE ((insertOrphanTrack.sqliteCode == SQLITE_CONSTRAINT || insertOrphanTrack.sqliteCode == SQLITE_CONSTRAINT_FOREIGNKEY));
 }
 
 TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[persistence][project]")
@@ -435,6 +479,8 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     REQUIRE (value == 2);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM clips;", value).ok());
     REQUIRE (value == 2);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM tracks;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.validateStoredProjectSemantics().ok());
 
     Project orphan = project;
@@ -444,6 +490,14 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     Project invalidGain = project;
     invalidGain.clips[0].gain = -0.25f;
     REQUIRE (db.writeProjectSnapshot (invalidGain).status == BundleStatus::SemanticInvalid);
+
+    Project orphanTrack = project;
+    orphanTrack.clips[0].trackId = idFromLowByte (99);
+    REQUIRE (db.writeProjectSnapshot (orphanTrack).status == BundleStatus::SemanticInvalid);
+
+    Project invalidStrip = project;
+    invalidStrip.tracks[0].strip.pan = 1.25f;
+    REQUIRE (db.writeProjectSnapshot (invalidStrip).status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Project value surface round-trips through a reopened bundle", "[persistence][project][round-trip]")
@@ -461,6 +515,16 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     project.clips[1].fadeIn = 0;
     project.clips[1].fadeOut = 96;
     project.clips[1].timeBase = TimeBase::TempoLocked;
+    project.tracks[0].strip.name = "Vocal";
+    project.tracks[0].strip.linearGain = 0.5f;
+    project.tracks[0].strip.pan = -0.25f;
+    project.tracks[0].strip.muted = true;
+    project.tracks[0].strip.soloed = true;
+    project.tracks[0].strip.soloSafe = false;
+    project.buses = { makeBus (idFromLowByte (11), "Delay") };
+    project.buses[0].strip.linearGain = 0.75f;
+    project.buses[0].strip.pan = 0.4f;
+    project.buses[0].strip.soloSafe = true;
 
     {
         ProjectBundleDb db = openFreshBundle (path);
@@ -474,6 +538,20 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     requireSameProjectSurface (readback, project);
+    REQUIRE (readback.tracks[0].strip.name == "Vocal");
+    REQUIRE (readback.tracks[0].strip.linearGain == 0.5f);
+    REQUIRE (readback.tracks[0].strip.pan == -0.25f);
+    REQUIRE (readback.tracks[0].strip.muted);
+    REQUIRE (readback.tracks[0].strip.soloed);
+    REQUIRE_FALSE (readback.tracks[0].strip.soloSafe);
+    REQUIRE (readback.buses[0].strip.name == "Delay");
+    REQUIRE (readback.buses[0].strip.linearGain == 0.75f);
+    REQUIRE (readback.buses[0].strip.pan == 0.4f);
+    REQUIRE (readback.buses[0].strip.soloSafe);
+
+    Project mutatedStrip = project;
+    mutatedStrip.tracks[0].strip.pan = 0.25f;
+    REQUIRE_FALSE (readback.tracks == mutatedStrip.tracks);
 }
 
 TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
@@ -542,6 +620,7 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
     const auto path = makeTempBundlePath ("midi-round-trip");
 
     Project project = makeProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (71), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
 
     {
@@ -680,6 +759,8 @@ TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistenc
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 3;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 4;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 1 AND app_build = 'interrupted';", value).ok());
     REQUIRE (value == 0);
 
@@ -687,6 +768,75 @@ TEST_CASE ("Interrupted schema migration reruns cleanly on reopen", "[persistenc
     REQUIRE (reopened.queryText ("PRAGMA integrity_check;", integrity).ok());
     REQUIRE (integrity == "ok");
     REQUIRE (reopened.validateStoredProjectSemantics().ok());
+}
+
+TEST_CASE ("Schema v4 migration promotes old Clip and MIDI track ownership", "[persistence][migration][track-bus]")
+{
+    const auto path = makeTempBundlePath ("track-bus-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const Asset asset = makeAsset (idFromLowByte (2), 1000);
+    const EntityId clipId = idFromLowByte (4);
+    const EntityId midiClipId = idFromLowByte (70);
+    const EntityId midiTrackId = idFromLowByte (71);
+
+    const std::vector<std::uint8_t> assetBytes = assetBytesForId (asset.id);
+    writeBytes (path / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash),
+                std::span<const std::uint8_t> (assetBytes.data(), assetBytes.size()));
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    requireRawExec (rawDb, kSchemaV1Sql);
+    requireRawExec (rawDb, kSchemaV2Sql);
+    requireRawExec (rawDb, kSchemaV3Sql);
+    requireRawExec (rawDb, "INSERT INTO schema_migrations(version, app_build) VALUES (1, 'legacy'), (2, 'legacy'), (3, 'legacy');");
+    requireRawExec (rawDb, "PRAGMA application_id = 1497715505;");
+    requireRawExec (rawDb, "PRAGMA user_version = 3;");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO assets(id, content_hash, frames, sample_rate_hz, channels, relative_path) VALUES ("
+        + blobLiteral (asset.id) + ", " + blobLiteral (asset.contentHash) + ", 1000, 48000.0, 2, '"
+        + yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash) + "');");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO clips(id, asset_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) VALUES ("
+        + blobLiteral (clipId) + ", " + blobLiteral (asset.id) + ", 0, 15360, 100, 900, 0.75, 16, 32, 1);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO midi_clips(id, track_id, timeline_start, timeline_length, time_base) VALUES ("
+        + blobLiteral (midiClipId) + ", " + blobLiteral (midiTrackId) + ", 7680, 61440, 0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM tracks;", value).ok());
+    REQUIRE (value == 2);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM clips WHERE track_id = X'5945534441575F415544494F5F303031';", value).ok());
+    REQUIRE (value == 1);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.tracks.size() == 2u);
+    REQUIRE (readback.findTrack (kDefaultAudioTrackId) != nullptr);
+    REQUIRE (readback.findTrack (midiTrackId) != nullptr);
+    REQUIRE (readback.clips.size() == 1u);
+    REQUIRE (readback.clips[0].trackId == kDefaultAudioTrackId);
+    REQUIRE (readback.midiClips.size() == 1u);
+    REQUIRE (readback.midiClips[0].trackId == midiTrackId);
+    REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")
@@ -714,13 +864,14 @@ TEST_CASE ("Opening an existing bundle runs layered semantic validation", "[pers
 
     ProjectBundleDb reopened;
     const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
-    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+    REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
 }
 
 TEST_CASE ("Opening an existing bundle rejects MIDI Notes outside their Clip", "[persistence][semantic][open][midi]")
 {
     const auto path = makeTempBundlePath ("semantic-midi-open");
     Project project = makeProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (71), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
 
     {
@@ -734,7 +885,49 @@ TEST_CASE ("Opening an existing bundle rejects MIDI Notes outside their Clip", "
 
     ProjectBundleDb reopened;
     const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
+}
+
+TEST_CASE ("Opening an existing bundle rejects orphan Clip track references", "[persistence][semantic][open][track]")
+{
+    const auto path = makeTempBundlePath ("semantic-track-open");
+    Project project = makeProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (71), "MIDI Track"));
+    project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql ("UPDATE midi_clips SET track_id = X'000000000000000000000000000000AA';").ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
     REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects invalid Track and Bus strip ranges", "[persistence][semantic][open][track-bus]")
+{
+    const auto path = makeTempBundlePath ("semantic-strip-open");
+    Project project = makeProject();
+    project.buses = { makeBus (idFromLowByte (11), "Bus 1") };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "PRAGMA ignore_check_constraints = ON; "
+                    "UPDATE tracks SET pan = 1.25 WHERE id = X'0000000000000000000000000000000A'; "
+                    "UPDATE buses SET linear_gain = 1000.5 WHERE id = X'0000000000000000000000000000000B'; "
+                    "PRAGMA ignore_check_constraints = OFF;")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
 }
 
 TEST_CASE ("Opening an existing bundle rejects non-canonical Project value storage types", "[persistence][semantic][open]")

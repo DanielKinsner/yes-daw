@@ -103,23 +103,19 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 ADR-0034 mixer-state schema docs checkpoint was committed/pushed as `8a5d355`. The snap
-checkpoint `2d09fb6` is remote-green on GitHub Actions run `28428780783` across Windows, Linux, macOS,
-RTSan, and TSan. ADR-0034 now accepts first-class Track/Bus Project entities with saved strip state,
-settles the clip->track ownership and migration/default-track rules, defers fader/pan automation out of
-H12, and unblocks the next implementation checkpoint: Track/Bus Project state plus bundle migration before
-H12 step 6 mixer controls claim save/reopen parity. Remote CI run `28429772220` passed Linux, Windows,
-RTSan, and TSan, but macOS failed only `YesDawTimelineGpuCheck`: the old single-worst-frame gate saw
-`max_frame_ms=33.4825` while the same run still painted 336 visible clips and hit the expected checksum.
-Follow-up commit `fe00ac4` keeps the same 20,640-clip canvas fixture plus visible/content assertions,
-records all measured frames, and fails on sustained over-budget paint (`p99_frame_ms < 16.6` and
-`slow_frames <= 1`) so one shared-runner scheduler pause does not masquerade as a renderer regression.
-That follow-up is remote-green on GitHub Actions run `28430803662` across Linux, Windows, macOS, RTSan,
-and TSan. Local gates were green: `git diff --check`; VS DevShell focused Timeline build; `ctest --preset
-ci -R YesDawTimelineGpuCheck --output-on-failure` **1/1**; verbose
-`YesDawTimelineGpuCheck.exe -s "[timeline][gpu][perf]"` (`max_frame_ms=3.2852`,
-`p99_frame_ms=2.8829`, `slow_frames=0`, `max_visible_clips=336`); VS DevShell full build; and
-`ctest --preset ci --output-on-failure` **251/251**.
+**Now:** H12 Track/Bus Project state + bundle migration checkpoint is local-green. The snap checkpoint
+`2d09fb6` is remote-green on GitHub Actions run `28428780783`, the ADR-0034 docs checkpoint `8a5d355`
+is remote-green on run `28429772220` for Linux, Windows, RTSan, and TSan, and the macOS Timeline GPU
+flakiness follow-up `fe00ac4` is remote-green on run `28430803662` across Linux, Windows, macOS, RTSan,
+and TSan. Project now has first-class Track/Bus entities with saved strip state, audio and MIDI Clips
+reference Track rows, `.yesdaw` bundles are schema v4, old bundles migrate audio Clips to default
+`Audio 1` and distinct MIDI track IDs to Track rows, and stored Projects reject orphan Clip/Track
+references plus invalid strip ranges before load succeeds. Local gates for this checkpoint are green:
+`git diff --check`; VS DevShell focused build for `YesDawProjectCheck` and `YesDawPersistenceCheck`;
+direct `YesDawProjectCheck.exe` **2433 assertions / 24 test cases**; direct
+`YesDawPersistenceCheck.exe` **651 assertions / 28 test cases**; VS DevShell full
+`cmake --build --preset ci`; focused rebuild/direct rerun for `YesDawUiActionCheck` and
+`YesDawSchedulerCheck`; and full `ctest --preset ci --output-on-failure` **254/254**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
@@ -142,8 +138,9 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): start the H12 Track/Bus Project state + bundle migration checkpoint. Do
-not wire H12 step 6 mixer controls until that schema/migration checkpoint is mechanically green.**
+**Next (Codex - H12 end-to-end): after this checkpoint is remote-green, start H12 step 6 mixer controls
+against the schema v4 Track/Bus strip state and prove save/reopen parity through mechanical UI/bundle
+checks. Do not start H13 until H12 closeout is remote-green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`

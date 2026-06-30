@@ -38,6 +38,7 @@ using yesdaw::engine::renderOfflineProject;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::readAutosaveSnapshot;
 using yesdaw::persistence::writeAutosaveFromControlTick;
@@ -93,6 +94,7 @@ PlaybackFixture makePlaybackFixture()
     Clip left;
     left.id = idFromLowByte (20);
     left.assetId = first.id;
+    left.trackId = idFromLowByte (30);
     left.timelineStart = 2;
     left.timelineLength = 6;
     left.srcOffset = 1;
@@ -105,6 +107,7 @@ PlaybackFixture makePlaybackFixture()
     Clip overlap;
     overlap.id = idFromLowByte (21);
     overlap.assetId = second.id;
+    overlap.trackId = left.trackId;
     overlap.timelineStart = 5;
     overlap.timelineLength = 4;
     overlap.srcOffset = 0;
@@ -117,6 +120,10 @@ PlaybackFixture makePlaybackFixture()
     fixture.project.id = idFromLowByte (1);
     fixture.project.sampleRate = SampleRate { 48000.0 };
     fixture.project.assets = { first, second };
+    Track track;
+    track.id = left.trackId;
+    track.strip.name = "Audio 1";
+    fixture.project.tracks = { track };
     fixture.project.clips = { left, overlap };
     REQUIRE (fixture.project.hasValidAssetClipIndirection());
 

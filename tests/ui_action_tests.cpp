@@ -24,6 +24,7 @@ using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::SnapGrid;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::ui::KeymapRebindStatus;
 using yesdaw::ui::UiActionContext;
 using yesdaw::ui::UiActionId;
@@ -74,6 +75,7 @@ Project makeTimelineEditProject()
     Clip clip;
     clip.id = idFromLowByte (3);
     clip.assetId = asset.id;
+    clip.trackId = idFromLowByte (4);
     clip.timelineStart = 0;
     clip.timelineLength = 8192;
     clip.srcOffset = 0;
@@ -84,6 +86,10 @@ Project makeTimelineEditProject()
     clip.timeBase = TimeBase::SampleLocked;
 
     project.assets = { asset };
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Audio 1";
+    project.tracks = { track };
     project.clips = { clip };
     return project;
 }
@@ -139,6 +145,10 @@ Project makePianoRollProject()
         makeUiNote (idFromLowByte (32), 1024, 256, 67, 0.8)
     };
 
+    Track midiTrack;
+    midiTrack.id = midi.trackId;
+    midiTrack.strip.name = "MIDI Track";
+    project.tracks.push_back (midiTrack);
     project.midiClips = { midi };
     return project;
 }
@@ -384,7 +394,7 @@ TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo
            "[ui][actions][timeline-edit]")
 {
     const EntityId clipId = idFromLowByte (3);
-    const EntityId rightClipId = idFromLowByte (4);
+    const EntityId rightClipId = idFromLowByte (7);
 
     UiTimelineEditModel emptyModel;
     const auto noProject = emptyModel.dispatch (

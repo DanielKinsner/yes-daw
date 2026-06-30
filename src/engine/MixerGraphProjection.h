@@ -9,6 +9,7 @@
 #pragma once
 
 #include "engine/GraphBuilder.h"
+#include "engine/MixerValue.h"
 #include "engine/Node.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
@@ -17,7 +18,6 @@
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 
-#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -25,6 +25,8 @@
 #include <vector>
 
 namespace yesdaw::engine {
+
+static_assert (kMixerMaxLinearGain == FaderNode::kMaxLinearGain);
 
 struct MixerProjectionError
 {
@@ -102,20 +104,6 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 {
     if (std::find (inputs.begin(), inputs.end(), node) == inputs.end())
         inputs.push_back (node);
-}
-
-[[nodiscard]] inline bool mixerGainIsValid (float gain) noexcept
-{
-    // The upper bound is FaderNode's shared linear-gain ceiling, NOT float max: `<= float max` is a
-    // tautology for any finite float and rejected nothing, so a pathological gain (e.g. 1e30) would
-    // reach FaderNode::processRange and yield inf/NaN. Bounding here and clamping in FaderNode are the
-    // two halves of the same guard.
-    return std::isfinite (gain) && gain >= 0.0f && gain <= FaderNode::kMaxLinearGain;
-}
-
-[[nodiscard]] inline bool mixerPanIsValid (float pan) noexcept
-{
-    return std::isfinite (pan) && pan >= -1.0f && pan <= 1.0f;
 }
 
 [[nodiscard]] inline std::unique_ptr<CompiledGraph> buildMixerGraphProjection (MixerProjectionInputs&& projection,

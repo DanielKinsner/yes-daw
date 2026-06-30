@@ -47,6 +47,7 @@ using yesdaw::engine::Runtime;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
@@ -351,6 +352,7 @@ TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into gr
         Clip first;
         first.id = idFromLowByte (20);
         first.assetId = imported.id;
+        first.trackId = idFromLowByte (30);
         first.timelineStart = 0;
         first.timelineLength = 256;
         first.srcOffset = 1000;
@@ -363,6 +365,7 @@ TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into gr
         Clip second;
         second.id = idFromLowByte (21);
         second.assetId = imported.id;
+        second.trackId = first.trackId;
         second.timelineStart = 0;
         second.timelineLength = 128;
         second.srcOffset = 1200;
@@ -376,6 +379,10 @@ TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into gr
         project.id = idFromLowByte (1);
         project.sampleRate = SampleRate { 48000.0 };
         project.assets.push_back (imported);
+        Track track;
+        track.id = first.trackId;
+        track.strip.name = "Audio 1";
+        project.tracks.push_back (track);
         project.clips.push_back (first);
         project.clips.push_back (second);
         REQUIRE (project.hasValidAssetClipIndirection());
@@ -426,6 +433,7 @@ TEST_CASE ("bundled Asset bytes decode through Clip envelope indirection into gr
     REQUIRE (project.id == projectBeforeRender.id);
     REQUIRE (project.sampleRate == projectBeforeRender.sampleRate);
     REQUIRE (project.assets == projectBeforeRender.assets);
+    REQUIRE (project.tracks == projectBeforeRender.tracks);
     REQUIRE (project.clips == projectBeforeRender.clips);
     REQUIRE (readBytes (bundledAssetPath) == bytesBefore);
 
@@ -455,6 +463,7 @@ TEST_CASE ("split Clip with crossfade metadata renders identically through RT an
         Clip original;
         original.id = idFromLowByte (41);
         original.assetId = imported.id;
+        original.trackId = idFromLowByte (44);
         original.timelineStart = 512;
         original.timelineLength = 256;
         original.srcOffset = 960;
@@ -468,6 +477,10 @@ TEST_CASE ("split Clip with crossfade metadata renders identically through RT an
         project.id = idFromLowByte (42);
         project.sampleRate = SampleRate { 48000.0 };
         project.assets.push_back (imported);
+        Track track;
+        track.id = original.trackId;
+        track.strip.name = "Audio 1";
+        project.tracks.push_back (track);
         project.clips.push_back (original);
         REQUIRE (project.hasValidAssetClipIndirection());
 
@@ -511,6 +524,7 @@ TEST_CASE ("split Clip with crossfade metadata renders identically through RT an
         REQUIRE (project.id == projectBeforeWrite.id);
         REQUIRE (project.sampleRate == projectBeforeWrite.sampleRate);
         REQUIRE (project.assets == projectBeforeWrite.assets);
+        REQUIRE (project.tracks == projectBeforeWrite.tracks);
         REQUIRE (project.clips == projectBeforeWrite.clips);
     }
 
@@ -561,6 +575,7 @@ TEST_CASE ("split Clip with crossfade metadata renders identically through RT an
     REQUIRE (project.id == projectBeforeRender.id);
     REQUIRE (project.sampleRate == projectBeforeRender.sampleRate);
     REQUIRE (project.assets == projectBeforeRender.assets);
+    REQUIRE (project.tracks == projectBeforeRender.tracks);
     REQUIRE (project.clips == projectBeforeRender.clips);
     REQUIRE (readBytes (bundledAssetPath) == bytesBefore);
 

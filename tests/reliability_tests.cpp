@@ -38,6 +38,7 @@ using yesdaw::engine::NodeId;
 using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::summarizeDeadlineSoak;
 using yesdaw::persistence::autosaveSnapshotPath;
 using yesdaw::persistence::ProjectBundleDb;
@@ -97,11 +98,12 @@ Asset makeAsset (EntityId id, std::uint64_t frames = 48000)
     return asset;
 }
 
-Clip makeClip (EntityId id, EntityId assetId, std::uint64_t srcOffset, std::uint64_t srcLen)
+Clip makeClip (EntityId id, EntityId assetId, EntityId trackId, std::uint64_t srcOffset, std::uint64_t srcLen)
 {
     Clip clip;
     clip.id = id;
     clip.assetId = assetId;
+    clip.trackId = trackId;
     clip.timelineStart = 0;
     clip.timelineLength = 15360;
     clip.srcOffset = srcOffset;
@@ -122,9 +124,15 @@ Project makeProject()
         makeAsset (idFromLowByte (2), 1000),
         makeAsset (idFromLowByte (3), 256),
     };
+    project.tracks = [] {
+        Track track;
+        track.id = idFromLowByte (10);
+        track.strip.name = "Audio 1";
+        return std::vector<Track> { track };
+    }();
     project.clips = {
-        makeClip (idFromLowByte (4), project.assets[0].id, 100, 900),
-        makeClip (idFromLowByte (5), project.assets[1].id, 0, 128),
+        makeClip (idFromLowByte (4), project.assets[0].id, project.tracks[0].id, 100, 900),
+        makeClip (idFromLowByte (5), project.assets[1].id, project.tracks[0].id, 0, 128),
     };
     return project;
 }

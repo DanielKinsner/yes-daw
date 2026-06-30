@@ -40,6 +40,7 @@ using yesdaw::engine::Runtime;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 
 namespace {
 
@@ -81,6 +82,7 @@ Project makeMinimalRenderProject()
     Clip left;
     left.id             = id (0x0200, 0x0001);
     left.assetId        = first.id;
+    left.trackId        = id (0x0300, 0x0001);
     left.timelineStart  = 0;
     left.timelineLength = static_cast<Tick> (yesdaw::engine::kTicksPerQuarter);
     left.srcOffset      = 0;
@@ -93,6 +95,7 @@ Project makeMinimalRenderProject()
     Clip right;
     right.id             = id (0x0200, 0x0002);
     right.assetId        = second.id;
+    right.trackId        = left.trackId;
     right.timelineStart  = 0;
     right.timelineLength = static_cast<Tick> (yesdaw::engine::kTicksPerQuarter);
     right.srcOffset      = 128;
@@ -107,6 +110,10 @@ Project makeMinimalRenderProject()
     project.sampleRate = SampleRate { 48000.0 };
     project.assets.push_back (first);
     project.assets.push_back (second);
+    Track track;
+    track.id = left.trackId;
+    track.strip.name = "Audio 1";
+    project.tracks.push_back (track);
     project.clips.push_back (left);
     project.clips.push_back (right);
     return project;

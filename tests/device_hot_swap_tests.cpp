@@ -28,6 +28,7 @@ using yesdaw::engine::PlaybackEngine;
 using yesdaw::engine::Project;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::renderOfflineProject;
 
 namespace {
@@ -103,6 +104,7 @@ HotSwapFixture makeFixture()
     Clip clip;
     clip.id = idFromLowByte (20);
     clip.assetId = asset.id;
+    clip.trackId = idFromLowByte (30);
     clip.timelineStart = 0;
     clip.timelineLength = static_cast<yesdaw::engine::Tick> (asset.frames);
     clip.srcOffset = 0;
@@ -115,6 +117,10 @@ HotSwapFixture makeFixture()
     fixture.project.id = idFromLowByte (1);
     fixture.project.sampleRate = kSampleRate;
     fixture.project.assets = { asset };
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Audio 1";
+    fixture.project.tracks = { track };
     fixture.project.clips = { clip };
     REQUIRE (fixture.project.hasValidAssetClipIndirection());
 

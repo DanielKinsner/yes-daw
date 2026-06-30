@@ -44,6 +44,7 @@ using yesdaw::engine::ScheduledRenderResult;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
 using yesdaw::engine::TimeBase;
+using yesdaw::engine::Track;
 using yesdaw::engine::renderOfflineProject;
 using yesdaw::engine::renderProjectWithScheduler;
 using yesdaw::engine::summarizeDeadlineSoak;
@@ -158,6 +159,7 @@ SchedulerFixture makeSchedulerFixture()
     left.assetId = first.id;
     left.timelineStart = 3;
     left.timelineLength = 16;
+    left.trackId = idFromLowByte (40);
     left.srcOffset = 0;
     left.srcLen = 16;
     left.gain = 0.5f;
@@ -168,6 +170,7 @@ SchedulerFixture makeSchedulerFixture()
     Clip overlap;
     overlap.id = idFromLowByte (21);
     overlap.assetId = second.id;
+    overlap.trackId = left.trackId;
     overlap.timelineStart = 12;
     overlap.timelineLength = 8;
     overlap.srcOffset = 0;
@@ -186,6 +189,13 @@ SchedulerFixture makeSchedulerFixture()
     fixture.project.id = idFromLowByte (1);
     fixture.project.sampleRate = SampleRate { kSampleRate };
     fixture.project.assets = { first, second };
+    Track audioTrack;
+    audioTrack.id = left.trackId;
+    audioTrack.strip.name = "Audio 1";
+    Track midiTrack;
+    midiTrack.id = midi.trackId;
+    midiTrack.strip.name = "MIDI Track";
+    fixture.project.tracks = { audioTrack, midiTrack };
     fixture.project.clips = { left, overlap };
     fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
     fixture.project.midiClips = { midi };
@@ -568,12 +578,21 @@ TEST_CASE ("Parallel scheduler soak feeds the H6 deadline oracle with measured s
         Clip clip;
         clip.id = idFromLowByte (clipByte);
         clip.assetId = asset.id;
+        clip.trackId = idFromLowByte (230);
         clip.timelineStart = 0;
         clip.timelineLength = kSoakFrames;
         clip.srcOffset = 0;
         clip.srcLen = 128;
         clip.gain = 0.25f + 0.001f * static_cast<float> (track % 11);
         clip.timeBase = TimeBase::SampleLocked;
+
+        if (fixture.project.tracks.empty())
+        {
+            Track soakTrack;
+            soakTrack.id = clip.trackId;
+            soakTrack.strip.name = "Audio 1";
+            fixture.project.tracks.push_back (soakTrack);
+        }
 
         fixture.project.assets.push_back (asset);
         fixture.project.clips.push_back (clip);

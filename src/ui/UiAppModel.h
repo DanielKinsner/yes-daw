@@ -90,6 +90,7 @@ public:
         project.sampleRate = engine::SampleRate { 48000.0 };
         project.tempoMap.push_back ({ 0, 120.0, engine::TempoCurve::Jump });
         project.meterMap.push_back ({ 0, 4, 4 });
+        project.tracks.push_back (makeDefaultAudioTrack());
         return project;
     }
 
@@ -190,10 +191,12 @@ public:
         engine::Project nextProject = project_;
         if (nextProject.findAsset (imported.id) == nullptr)
             nextProject.assets.push_back (imported);
+        const engine::Track& targetTrack = ensureDefaultAudioTrack (nextProject);
 
         engine::Clip clip;
         clip.id = allocateSessionEntityId (0xC1u, nextProject);
         clip.assetId = imported.id;
+        clip.trackId = targetTrack.id;
         clip.timelineStart = timelineEnd (nextProject);
         clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
         clip.srcOffset = 0;
@@ -832,6 +835,14 @@ private:
             if (asset.id == id)
                 return true;
 
+        for (const engine::Track& track : project.tracks)
+            if (track.id == id)
+                return true;
+
+        for (const engine::Bus& bus : project.buses)
+            if (bus.id == id)
+                return true;
+
         for (const engine::Clip& clip : project.clips)
             if (clip.id == id)
                 return true;
@@ -879,6 +890,28 @@ private:
 
         return engine::EntityId::fromBigEndianParts (0x5944490000000000ull | static_cast<std::uint64_t> (seedByte),
                                                      static_cast<std::uint64_t> (project.assets.size() + project.clips.size() + 1u));
+    }
+
+    [[nodiscard]] static engine::Track makeDefaultAudioTrack (engine::EntityId id = engine::kDefaultAudioTrackId)
+    {
+        engine::Track track;
+        track.id = id;
+        track.strip.name = "Audio 1";
+        return track;
+    }
+
+    [[nodiscard]] engine::Track& ensureDefaultAudioTrack (engine::Project& project) const
+    {
+        for (engine::Track& track : project.tracks)
+            if (track.id == engine::kDefaultAudioTrackId || track.strip.name == "Audio 1")
+                return track;
+
+        engine::EntityId id = engine::kDefaultAudioTrackId;
+        if (projectContainsEntityId (project, id))
+            id = allocateSessionEntityId (0x54u, project);
+
+        project.tracks.push_back (makeDefaultAudioTrack (id));
+        return project.tracks.back();
     }
 
     [[nodiscard]] static engine::Tick timelineEnd (const engine::Project& project) noexcept
