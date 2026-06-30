@@ -8,11 +8,12 @@
 
 ## Context
 
-H11 closed the native YES DAW app shell: the window launches, loads a Project bundle, draws the timeline,
-projects mixer and piano-roll surfaces, exposes actions through the UI action registry, and keeps the H11
-mechanical gates green. The next risk is not deeper plugin hosting. The next risk is whether a Project can
-be operated as a session: create/open/save, import audio, select/edit timeline material, adjust mixer and
-inspector state, edit Notes, drive transport, undo/redo, and reopen with the same state.
+H11 closed the native YES DAW app shell and the headless app model can load a Project bundle. The shipped
+window launches, draws the timeline, projects mixer and piano-roll surfaces, exposes actions through the
+UI action registry, and keeps the H11 mechanical gates green. The next risk is not deeper plugin hosting.
+The next risk is whether a Project can be operated as a session through the shipped window:
+create/open/save, import audio, select/edit timeline material, adjust mixer and inspector state, edit Notes,
+drive transport, undo/redo, and reopen with the same state.
 
 The supplied gold-standard mockup shows the product direction, but H11 still leaves much of that surface as
 painted projection rather than real hit-tested controls. H12 exists to make the app functionally testable

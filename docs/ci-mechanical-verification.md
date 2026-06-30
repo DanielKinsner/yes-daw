@@ -40,7 +40,7 @@ Restating each H0 exit criterion from STATUS.md (lines 20–29). Every "human co
 | H0 item (STATUS.md) | Old gate | **New mechanical gate** | CI-able? |
 |---|---|---|---|
 | Toolchain installs; `cmake -B build` fetches JUCE | "no error" (already mechanical) | Build job configures + builds → exit 0 | ✅ cloud |
-| App builds, window opens | human sees window | `YesDaw` target links; under Xvfb, construct `MainComponent`, assert no crash/assert and `getBounds()==600×300` | ✅ cloud (Xvfb) |
+| App builds, window opens | human sees window | `YesDaw` target links. H12 adds `YesDawUiInputCheck` to construct the shipped `MainComponent` headlessly and drive real input; until that lands, this row is compile/link coverage only. | ✅ cloud for build; H12 gate pending |
 | **440 Hz tone plays** | **human listens** | Extract the sine generator to `fillSine(buffer, freq, sr)`. Test: render 1 s offline → FFT → **assert peak bin is 440 Hz ±1 Hz and amplitude ≈ 0.10**. Proves pitch+level with zero listening. | ✅ cloud |
 | Gentle fade-in / lower level / start-stop | human "isn't jumpscared" | Render the fade ramp offline → assert sample[0]≈0, monotonic non-decreasing envelope over the fade window, steady-state == target amplitude | ✅ cloud |
 | **Load + scrub one WAV** | human hears it | Commit a tiny fixture WAV. Test: load via `WavAudioFormat` → assert sample-rate/channel/length metadata, then **golden-diff the decoded buffer** (tolerance 1e-4). Scrub = render a sub-range, assert it equals the matching slice of the source. | ✅ cloud |

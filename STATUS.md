@@ -103,10 +103,13 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 review follow-up is committed and pushed on `main` (`d3a54b6`): H12 plan gates tightened,
-proposed ADR-0034 (mixer-state schema) added, and the CONTEXT.md UI-input-harness term scoped to the real
-shell. H12 implementation code is still at zero.
-**Next (Codex — H12 end-to-end): read the patched H12 plan + ADR-0034 before writing code.** Three
+**Now:** H12 review follow-up is committed and pushed on `main` (`ef0c264` latest docs-status tip):
+H12 plan gates tightened, proposed ADR-0034 (mixer-state schema) added, the CONTEXT.md UI-input-harness
+term scoped to the real shell, and Codex is patching the two remaining doc-precision leftovers from the
+review before code: ADR-0033's "window loads a Project bundle" overstatement and the stale Xvfb/
+`MainComponent` verification-matrix row. H12 implementation code is still at zero.
+**Next (Codex — H12 end-to-end): after this doc-precision patch is green, build the UI input harness skeleton.**
+Three
 load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
