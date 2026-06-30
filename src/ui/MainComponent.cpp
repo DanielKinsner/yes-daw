@@ -34,7 +34,12 @@ constexpr int kLeftRailWidth = 318;
 constexpr int kInspectorWidth = 248;
 constexpr int kMixerHeight = 260;
 constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;
+constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks = 512;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
+constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr int kPianoRollLowKey = 48;
+constexpr int kPianoRollHighKey = 72;
+constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
 
 const juce::Colour kBackground (0xff080c11);
 const juce::Colour kPanel (0xff11161c);
@@ -542,6 +547,248 @@ private:
     TimelineDragState dragState;
 };
 
+struct PianoRollCanvasGeometry
+{
+    juce::Rectangle<int> expression;
+    juce::Rectangle<int> keyboard;
+    juce::Rectangle<int> grid;
+    float rowHeight = 1.0f;
+};
+
+[[nodiscard]] PianoRollCanvasGeometry pianoRollCanvasGeometry (juce::Rectangle<int> area) noexcept
+{
+    area.removeFromTop (38);
+    area.reduce (12, 8);
+    PianoRollCanvasGeometry geometry;
+    geometry.expression = area.removeFromBottom (84);
+    geometry.keyboard = area.removeFromLeft (70);
+    geometry.grid = area.reduced (0, 2);
+    geometry.rowHeight = static_cast<float> (juce::jmax (1, geometry.grid.getHeight()))
+                       / static_cast<float> (kPianoRollKeyCount);
+    return geometry;
+}
+
+[[nodiscard]] yesdaw::engine::Tick pianoRollTimelineLength (
+    const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
+{
+    return juce::jmax<yesdaw::engine::Tick> (1, surface.timelineLength);
+}
+
+[[nodiscard]] int pianoRollKeyY (const PianoRollCanvasGeometry& geometry, int key) noexcept
+{
+    return geometry.grid.getY()
+         + juce::roundToInt (static_cast<float> (kPianoRollHighKey - key) * geometry.rowHeight);
+}
+
+[[nodiscard]] int pianoRollTickX (const PianoRollCanvasGeometry& geometry,
+                                  const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                  yesdaw::engine::Tick tick) noexcept
+{
+    const double timelineLength = static_cast<double> (pianoRollTimelineLength (surface));
+    const double normalized = static_cast<double> (tick) / timelineLength;
+    return geometry.grid.getX()
+         + juce::roundToInt (static_cast<float> (normalized) * static_cast<float> (geometry.grid.getWidth()));
+}
+
+[[nodiscard]] yesdaw::engine::Tick pianoRollTickDeltaForPixels (
+    const PianoRollCanvasGeometry& geometry,
+    const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+    int deltaPixels) noexcept
+{
+    const int gridWidth = juce::jmax (1, geometry.grid.getWidth());
+    const double ticks = static_cast<double> (deltaPixels)
+                       * static_cast<double> (pianoRollTimelineLength (surface))
+                       / static_cast<double> (gridWidth);
+    return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
+}
+
+[[nodiscard]] juce::Rectangle<int> pianoRollNoteBounds (
+    const PianoRollCanvasGeometry& geometry,
+    const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+    const yesdaw::ui::UiPianoRollNoteView& note) noexcept
+{
+    const int x = pianoRollTickX (geometry, surface, note.startTick);
+    const int width = juce::jmax (10, pianoRollTickX (geometry, surface, note.startTick + note.lengthTicks) - x);
+    const int y = pianoRollKeyY (geometry, note.key) + 2;
+    const int height = juce::jmax (8, juce::roundToInt (geometry.rowHeight) - 4);
+    return juce::Rectangle<int> (x, y, width, height).reduced (1, 0);
+}
+
+class PianoRollInputComponent final : public juce::Component
+{
+public:
+    std::function<yesdaw::ui::UiPianoRollSurfaceSnapshot()> stateProvider;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteClicked;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteMoved;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteLengthChanged;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, std::int32_t)> onNoteTransposed;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteQuantized;
+    std::function<void()> onExpressionRead;
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (! stateProvider)
+            return;
+
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const auto hit = noteAt (surface, event.getPosition());
+        if (! hit)
+        {
+            dragState = {};
+            return;
+        }
+
+        if (onNoteClicked)
+            onNoteClicked (surface.midiClipId, hit->noteId);
+
+        dragState = {};
+        dragState.active = true;
+        dragState.noteId = hit->noteId;
+        dragState.midiClipId = surface.midiClipId;
+        dragState.startTick = hit->startTick;
+        dragState.lengthTicks = hit->lengthTicks;
+        dragState.downPosition = event.getPosition();
+        dragState.mode = dragModeForPointer (surface, *hit, event.getPosition(), event.mods);
+    }
+
+    void mouseDrag (const juce::MouseEvent&) override
+    {
+        if (dragState.active)
+            dragState.moved = true;
+    }
+
+    void mouseUp (const juce::MouseEvent& event) override
+    {
+        if (! dragState.active)
+            return;
+
+        const PianoDragState drag = dragState;
+        dragState = {};
+
+        if (! drag.moved || ! stateProvider)
+            return;
+
+        const int deltaX = event.getPosition().x - drag.downPosition.x;
+        if (std::abs (deltaX) < 2)
+            return;
+
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        const yesdaw::engine::Tick deltaTicks = pianoRollTickDeltaForPixels (geometry, surface, deltaX);
+
+        if (drag.mode == PianoDragMode::SetLength)
+        {
+            const yesdaw::engine::Tick maxLength =
+                juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.startTick);
+            const yesdaw::engine::Tick nextLength =
+                std::clamp<yesdaw::engine::Tick> (drag.lengthTicks + deltaTicks, 0, maxLength);
+            if (nextLength != drag.lengthTicks && onNoteLengthChanged)
+                onNoteLengthChanged (drag.midiClipId, drag.noteId, nextLength);
+            return;
+        }
+
+        const yesdaw::engine::Tick maxStart =
+            juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.lengthTicks);
+        const yesdaw::engine::Tick nextStart =
+            std::clamp<yesdaw::engine::Tick> (drag.startTick + deltaTicks, 0, maxStart);
+        if (nextStart != drag.startTick && onNoteMoved)
+            onNoteMoved (drag.midiClipId, drag.noteId, nextStart);
+    }
+
+    void mouseDoubleClick (const juce::MouseEvent& event) override
+    {
+        if (! stateProvider)
+            return;
+
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const auto hit = noteAt (surface, event.getPosition());
+        if (! hit)
+            return;
+
+        if (onNoteClicked)
+            onNoteClicked (surface.midiClipId, hit->noteId);
+
+        if (event.mods.isShiftDown())
+        {
+            if (onExpressionRead)
+                onExpressionRead();
+            return;
+        }
+
+        if (event.mods.isCtrlDown())
+        {
+            if (onNoteQuantized)
+                onNoteQuantized (surface.midiClipId, hit->noteId, kPianoRollSnapGridTicks);
+            return;
+        }
+
+        if (event.mods.isAltDown())
+        {
+            if (onNoteTransposed)
+                onNoteTransposed (surface.midiClipId, hit->noteId, 1);
+        }
+    }
+
+private:
+    enum class PianoDragMode
+    {
+        Move,
+        SetLength
+    };
+
+    struct PianoDragState
+    {
+        bool active = false;
+        bool moved = false;
+        yesdaw::engine::EntityId midiClipId {};
+        yesdaw::engine::EntityId noteId {};
+        yesdaw::engine::Tick startTick = 0;
+        yesdaw::engine::Tick lengthTicks = 0;
+        PianoDragMode mode = PianoDragMode::Move;
+        juce::Point<int> downPosition;
+    };
+
+    [[nodiscard]] std::optional<yesdaw::ui::UiPianoRollNoteView> noteAt (
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+        juce::Point<int> position) const noexcept
+    {
+        if (! surface.midiClipSelected)
+            return std::nullopt;
+
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        for (auto it = surface.notes.rbegin(); it != surface.notes.rend(); ++it)
+        {
+            if (it->key < kPianoRollLowKey || it->key > kPianoRollHighKey)
+                continue;
+
+            if (pianoRollNoteBounds (geometry, surface, *it).contains (position))
+                return *it;
+        }
+
+        return std::nullopt;
+    }
+
+    [[nodiscard]] PianoDragMode dragModeForPointer (
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+        const yesdaw::ui::UiPianoRollNoteView& note,
+        juce::Point<int> position,
+        juce::ModifierKeys modifiers) const noexcept
+    {
+        constexpr int kLengthEdgePixels = 8;
+        if (modifiers.isShiftDown())
+            return PianoDragMode::SetLength;
+
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        const int rightEdge = pianoRollNoteBounds (geometry, surface, note).getRight();
+        if (std::abs (position.x - rightEdge) <= kLengthEdgePixels)
+            return PianoDragMode::SetLength;
+
+        return PianoDragMode::Move;
+    }
+
+    PianoDragState dragState;
+};
+
 class MainComponent : public juce::Component
 {
 public:
@@ -606,6 +853,55 @@ public:
         };
         addAndMakeVisible (timelineInput);
 
+        pianoRollInput.setComponentID (kPianoRollComponentId);
+        pianoRollInput.setName ("Piano Roll");
+        pianoRollInput.setTitle ("Piano Roll");
+        pianoRollInput.stateProvider = [this] { return currentPianoRollSurface(); };
+        pianoRollInput.onNoteClicked = [this] (yesdaw::engine::EntityId midiClipId,
+                                               yesdaw::engine::EntityId noteId) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteMoved = [this] (yesdaw::engine::EntityId midiClipId,
+                                             yesdaw::engine::EntityId noteId,
+                                             yesdaw::engine::Tick startTick) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            (void) appModel.moveSelectedPianoRollNoteTo (startTick);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteLengthChanged = [this] (yesdaw::engine::EntityId midiClipId,
+                                                     yesdaw::engine::EntityId noteId,
+                                                     yesdaw::engine::Tick lengthTicks) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            (void) appModel.setSelectedPianoRollNoteLength (lengthTicks);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteTransposed = [this] (yesdaw::engine::EntityId midiClipId,
+                                                  yesdaw::engine::EntityId noteId,
+                                                  std::int32_t semitones) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            (void) appModel.transposeSelectedPianoRollNote (semitones);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteQuantized = [this] (yesdaw::engine::EntityId midiClipId,
+                                                 yesdaw::engine::EntityId noteId,
+                                                 yesdaw::engine::Tick snapGridTicks) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            (void) appModel.quantizeSelectedPianoRollNoteTo (yesdaw::engine::SnapGrid { snapGridTicks });
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onExpressionRead = [this] {
+            (void) appModel.readPianoRollExpressionLanes();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (pianoRollInput);
+
         configureMixerControls();
         refreshActionState();
     }
@@ -667,6 +963,7 @@ public:
         }
 
         timelineInput.setBounds (timelineBounds());
+        pianoRollInput.setBounds (timelineBounds());
         layoutMixerControls();
     }
 
@@ -825,6 +1122,11 @@ private:
                 }
                 return;
 
+            case yesdaw::ui::UiActionId::ViewPianoRoll:
+                (void) appModel.dispatch (action);
+                (void) appModel.selectFirstMidiClip();
+                return;
+
             default:
                 (void) appModel.dispatch (action);
                 return;
@@ -849,6 +1151,7 @@ private:
         }
 
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
+        pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
         refreshMixerControls();
     }
 
@@ -1216,43 +1519,33 @@ private:
 
     void drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area) const
     {
+        const auto surface = currentPianoRollSurface();
+        const auto panelArea = area;
+
         fillPanel (g, area);
         auto header = area.removeFromTop (38);
         drawSmallLabel (g, "PIANO ROLL", header.reduced (14, 0));
-        drawSmallLabel (g, "MIDI Clip_01  |  Note edits: select move length transpose quantize",
+        drawSmallLabel (g, surface.midiClipSelected
+                            ? "MIDI Clip  |  Note edits: select move length transpose quantize"
+                            : "No MIDI Clip selected",
                         header.reduced (14, 0), juce::Justification::centredRight);
 
-        area.reduce (12, 8);
-        auto expression = area.removeFromBottom (84);
-        auto keyboard = area.removeFromLeft (70);
-        auto grid = area.reduced (0, 2);
-
-        constexpr int kLowKey = 48;
-        constexpr int kHighKey = 72;
-        constexpr int kKeyCount = kHighKey - kLowKey + 1;
-        const float rowHeight = static_cast<float> (grid.getHeight()) / static_cast<float> (kKeyCount);
-
-        auto keyY = [grid, rowHeight] (int key) {
-            return grid.getY() + juce::roundToInt (static_cast<float> (kHighKey - key) * rowHeight);
-        };
-
-        const double timelineLength = static_cast<double> (juce::jmax<yesdaw::engine::Tick> (1, pianoSurface.timelineLength));
-        auto tickX = [grid, timelineLength] (yesdaw::engine::Tick tick) {
-            const double normalized = static_cast<double> (tick) / timelineLength;
-            return grid.getX() + juce::roundToInt (static_cast<float> (normalized) * static_cast<float> (grid.getWidth()));
-        };
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (panelArea);
 
         g.setColour (juce::Colour (0xff070b10));
-        g.fillRect (grid);
+        g.fillRect (geometry.grid);
 
-        for (int key = kHighKey; key >= kLowKey; --key)
+        for (int key = kPianoRollHighKey; key >= kPianoRollLowKey; --key)
         {
-            const int y = keyY (key);
-            auto keyRow = juce::Rectangle<int> (keyboard.getX(), y, keyboard.getWidth(), juce::jmax (1, juce::roundToInt (rowHeight)));
+            const int y = pianoRollKeyY (geometry, key);
+            auto keyRow = juce::Rectangle<int> (geometry.keyboard.getX(),
+                                                y,
+                                                geometry.keyboard.getWidth(),
+                                                juce::jmax (1, juce::roundToInt (geometry.rowHeight)));
             g.setColour (isBlackMidiKey (key) ? juce::Colour (0xff0a0e13) : juce::Colour (0xff151c24));
             g.fillRect (keyRow.reduced (0, 1));
             g.setColour (kPanelStroke.withAlpha (0.72f));
-            g.fillRect (juce::Rectangle<int> (grid.getX(), y, grid.getWidth(), 1));
+            g.fillRect (juce::Rectangle<int> (geometry.grid.getX(), y, geometry.grid.getWidth(), 1));
 
             if (key % 12 == 0)
             {
@@ -1263,23 +1556,19 @@ private:
             }
         }
 
-        for (yesdaw::engine::Tick tick = 0; tick <= pianoSurface.timelineLength; tick += 512)
+        for (yesdaw::engine::Tick tick = 0; tick <= surface.timelineLength; tick += 512)
         {
-            const int x = tickX (tick);
+            const int x = pianoRollTickX (geometry, surface, tick);
             g.setColour ((tick % 2048) == 0 ? juce::Colour (0xff344150) : juce::Colour (0xff202a34));
-            g.fillRect (x, grid.getY(), 1, grid.getHeight());
+            g.fillRect (x, geometry.grid.getY(), 1, geometry.grid.getHeight());
         }
 
-        for (const yesdaw::ui::UiPianoRollNoteView& note : pianoSurface.notes)
+        for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
         {
-            if (note.key < kLowKey || note.key > kHighKey)
+            if (note.key < kPianoRollLowKey || note.key > kPianoRollHighKey)
                 continue;
 
-            const int x = tickX (note.startTick);
-            const int width = juce::jmax (10, tickX (note.startTick + note.lengthTicks) - x);
-            const int y = keyY (note.key) + 2;
-            const int height = juce::jmax (8, juce::roundToInt (rowHeight) - 4);
-            auto noteRect = juce::Rectangle<int> (x, y, width, height).reduced (1, 0);
+            const auto noteRect = pianoRollNoteBounds (geometry, surface, note);
 
             g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
             g.fillRoundedRectangle (noteRect.expanded (1).toFloat(), 4.0f);
@@ -1287,8 +1576,9 @@ private:
             g.fillRoundedRectangle (noteRect.toFloat(), 3.0f);
         }
 
+        auto expression = geometry.expression;
         expression.reduce (0, 6);
-        for (const yesdaw::ui::UiPianoRollExpressionLaneReadout& lane : pianoSurface.expressionLanes)
+        for (const yesdaw::ui::UiPianoRollExpressionLaneReadout& lane : surface.expressionLanes)
         {
             auto laneArea = expression.removeFromTop (36).reduced (0, 2);
             g.setColour (juce::Colour (0xff0b1016));
@@ -1305,7 +1595,7 @@ private:
             {
                 const auto& point = lane.points[i];
                 const double normalized = juce::jlimit (0.0, 1.0, (point.value - minValue) / (maxValue - minValue));
-                const float x = static_cast<float> (tickX (point.tick));
+                const float x = static_cast<float> (pianoRollTickX (geometry, surface, point.tick));
                 const float y = static_cast<float> (laneArea.getBottom() - 5)
                     - static_cast<float> (normalized) * static_cast<float> (laneArea.getHeight() - 10);
                 if (i == 0)
@@ -1471,6 +1761,23 @@ private:
         return mixerSurface;
     }
 
+    [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot currentPianoRollSurface() const
+    {
+        if (appModel.context().projectLoaded)
+        {
+            yesdaw::engine::EntityId midiClipId = appModel.selectedMidiClipId();
+            if (! midiClipId.isValid() && ! appModel.project().midiClips.empty())
+                midiClipId = appModel.project().midiClips.front().id;
+
+            return yesdaw::ui::projectUiPianoRollSurface (
+                appModel.project(),
+                midiClipId,
+                appModel.selectedMidiNoteId());
+        }
+
+        return pianoSurface;
+    }
+
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
@@ -1481,6 +1788,7 @@ private:
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     double timelineTotalSeconds = 98.0;
     TimelineInputComponent timelineInput;
+    PianoRollInputComponent pianoRollInput;
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;

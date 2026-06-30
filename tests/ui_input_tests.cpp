@@ -34,6 +34,17 @@ using yesdaw::ui::snapshotMainComponent;
 namespace {
 
 constexpr const char* kTimelineComponentId = "timeline.canvas";
+constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr int kPianoRollLowKey = 48;
+constexpr int kPianoRollHighKey = 72;
+constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
+
+constexpr yesdaw::engine::EntityId idFromLowByte (std::uint8_t low) noexcept
+{
+    yesdaw::engine::EntityId::StorageBytes bytes {};
+    bytes.back() = low;
+    return yesdaw::engine::EntityId::fromBytes (bytes);
+}
 
 std::filesystem::path makeTempBundlePath (std::string label)
 {
@@ -53,6 +64,58 @@ yesdaw::engine::Project readProjectSnapshot (const std::filesystem::path& bundle
 
     yesdaw::engine::Project project;
     REQUIRE (db.readProjectSnapshot (project).ok());
+    return project;
+}
+
+void writeProjectSnapshot (const std::filesystem::path& bundlePath, const yesdaw::engine::Project& project)
+{
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+}
+
+yesdaw::engine::Note makeMidiInputNote (yesdaw::engine::EntityId id,
+                                        yesdaw::engine::Tick start,
+                                        yesdaw::engine::Tick length,
+                                        std::int16_t key,
+                                        double velocity)
+{
+    yesdaw::engine::Note note;
+    note.id = id;
+    note.startTick = start;
+    note.lengthTicks = length;
+    note.key = key;
+    note.pitchNote = static_cast<double> (key) + 0.25;
+    note.normalizedVelocity = velocity;
+    note.portIndex = 1;
+    note.channel = 2;
+    return note;
+}
+
+yesdaw::engine::Project makeMidiInputProject()
+{
+    yesdaw::engine::Project project;
+    project.id = idFromLowByte (1);
+    project.sampleRate = yesdaw::engine::SampleRate { 48000.0 };
+    project.tempoMap.push_back ({ 0, 120.0, yesdaw::engine::TempoCurve::Jump });
+    project.meterMap.push_back ({ 0, 4, 4 });
+
+    yesdaw::engine::Track track;
+    track.id = idFromLowByte (2);
+    track.strip.name = "MIDI Track";
+    project.tracks.push_back (track);
+
+    yesdaw::engine::MidiClip midiClip;
+    midiClip.id = idFromLowByte (3);
+    midiClip.trackId = track.id;
+    midiClip.timelineStart = 0;
+    midiClip.timelineLength = 4096;
+    midiClip.timeBase = yesdaw::engine::TimeBase::TempoLocked;
+    midiClip.notes = {
+        makeMidiInputNote (idFromLowByte (4), 256, 512, 60, 0.55),
+        makeMidiInputNote (idFromLowByte (5), 1408, 384, 67, 0.82)
+    };
+    project.midiClips.push_back (std::move (midiClip));
     return project;
 }
 
@@ -160,6 +223,16 @@ juce::Component& requireTimelineComponent (juce::Component& shell)
     return *component;
 }
 
+juce::Component& requirePianoRollComponent (juce::Component& shell)
+{
+    juce::Component* component = findChildWithComponentId (shell, kPianoRollComponentId);
+    REQUIRE (component != nullptr);
+    REQUIRE (component->isVisible());
+    REQUIRE (component->getWidth() > 0);
+    REQUIRE (component->getHeight() > 0);
+    return *component;
+}
+
 void clickButton (juce::Button& button)
 {
     button.triggerClick();
@@ -241,9 +314,11 @@ void dragHorizontalSliderToNormalizedValue (juce::Slider& slider, double normali
     dragFromTo (slider, bounds.getCentre(), { std::clamp (x, bounds.getX(), bounds.getRight() - 1), bounds.getCentreY() });
 }
 
-void doubleClickAt (juce::Component& component, juce::Point<int> position)
+void doubleClickAt (juce::Component& component,
+                    juce::Point<int> position,
+                    juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
 {
-    juce::MouseEvent event = makeMouseEvent (component, position, position, false, 2);
+    juce::MouseEvent event = makeMouseEvent (component, position, position, false, 2, modifiers);
     component.mouseDoubleClick (event);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
@@ -405,6 +480,49 @@ double timelinePixelsPerSecond (juce::Component& timeline, const yesdaw::engine:
     return geometry.viewport.pixelsPerSecond;
 }
 
+juce::Rectangle<int> pianoRollGridBounds (juce::Component& pianoRoll)
+{
+    auto area = pianoRoll.getLocalBounds();
+    area.removeFromTop (38);
+    area.reduce (12, 8);
+    area.removeFromBottom (84);
+    area.removeFromLeft (70);
+    return area.reduced (0, 2);
+}
+
+juce::Point<int> pianoRollNoteCenterPoint (juce::Component& pianoRoll,
+                                           const yesdaw::engine::MidiClip& midiClip,
+                                           const yesdaw::engine::Note& note)
+{
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const double timelineLength = static_cast<double> (std::max<yesdaw::engine::Tick> (1, midiClip.timelineLength));
+    const double noteCenterTick = static_cast<double> (note.startTick)
+                                + static_cast<double> (note.lengthTicks) * 0.5;
+    const int x = grid.getX()
+                + static_cast<int> (std::llround (noteCenterTick / timelineLength
+                                                  * static_cast<double> (grid.getWidth())));
+    const double rowHeight = static_cast<double> (std::max (1, grid.getHeight()))
+                           / static_cast<double> (kPianoRollKeyCount);
+    const int y = grid.getY()
+                + static_cast<int> (std::llround (static_cast<double> (kPianoRollHighKey - note.key) * rowHeight
+                                                  + rowHeight * 0.5));
+    return {
+        std::clamp (x, grid.getX(), grid.getRight() - 1),
+        std::clamp (y, grid.getY(), grid.getBottom() - 1)
+    };
+}
+
+yesdaw::engine::Tick pianoRollDeltaTicksForPixels (juce::Component& pianoRoll,
+                                                   const yesdaw::engine::MidiClip& midiClip,
+                                                   int deltaPixels)
+{
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const double ticks = static_cast<double> (deltaPixels)
+                       * static_cast<double> (std::max<yesdaw::engine::Tick> (1, midiClip.timelineLength))
+                       / static_cast<double> (std::max (1, grid.getWidth()));
+    return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
+}
+
 } // namespace
 
 TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][input][shell]")
@@ -413,7 +531,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 6u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 7u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -516,6 +634,172 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
     clickButton (piano);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
+}
+
+TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Roll Component",
+           "[ui][input][shell][project][midi]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("piano-roll-midi");
+    const yesdaw::engine::Project seed = makeMidiInputProject();
+    REQUIRE (seed.hasValidAssetClipIndirection());
+    writeProjectSnapshot (bundlePath, seed);
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.context.midiClipSelected);
+    REQUIRE (snapshot.context.commandDispatchCount == 1);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
+    REQUIRE (snapshot.context.midiClipSelected);
+    REQUIRE_FALSE (snapshot.context.midiNoteSelected);
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.size() == 1u);
+    REQUIRE (edited.midiClips.front().notes.size() == 2u);
+
+    const yesdaw::engine::MidiClip originalMidi = edited.midiClips.front();
+    const yesdaw::engine::EntityId noteId = originalMidi.notes.front().id;
+    const yesdaw::engine::Note originalNote = originalMidi.notes.front();
+    const yesdaw::engine::Note untouchedNote = originalMidi.notes[1];
+
+    const juce::Point<int> noteCenter = pianoRollNoteCenterPoint (pianoRoll, originalMidi, originalNote);
+    mouseDownAt (pianoRoll, noteCenter);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiNoteSelected);
+    REQUIRE (snapshot.context.midiEditCount == 0);
+
+    constexpr int kMoveDeltaPixels = 42;
+    const yesdaw::engine::Tick expectedMoveDelta =
+        pianoRollDeltaTicksForPixels (pianoRoll, originalMidi, kMoveDeltaPixels);
+    const yesdaw::engine::Tick expectedMovedStart =
+        std::clamp<yesdaw::engine::Tick> (
+            originalNote.startTick + expectedMoveDelta,
+            0,
+            std::max<yesdaw::engine::Tick> (0, originalMidi.timelineLength - originalNote.lengthTicks));
+
+    dragFromTo (pianoRoll, noteCenter, noteCenter.translated (kMoveDeltaPixels, 0));
+
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.front().id == noteId);
+    REQUIRE (edited.midiClips.front().notes.front().startTick == expectedMovedStart);
+    REQUIRE (edited.midiClips.front().notes.front().lengthTicks == originalNote.lengthTicks);
+    REQUIRE (edited.midiClips.front().notes[1] == untouchedNote);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiEditCount == 1);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+
+    const yesdaw::engine::MidiClip movedMidi = edited.midiClips.front();
+    const yesdaw::engine::Note movedNote = movedMidi.notes.front();
+    const juce::Point<int> movedCenter = pianoRollNoteCenterPoint (pianoRoll, movedMidi, movedNote);
+    constexpr int kLengthDeltaPixels = 36;
+    const yesdaw::engine::Tick expectedLengthDelta =
+        pianoRollDeltaTicksForPixels (pianoRoll, movedMidi, kLengthDeltaPixels);
+    const yesdaw::engine::Tick expectedLength =
+        std::clamp<yesdaw::engine::Tick> (
+            movedNote.lengthTicks + expectedLengthDelta,
+            0,
+            std::max<yesdaw::engine::Tick> (0, movedMidi.timelineLength - movedNote.startTick));
+    const juce::ModifierKeys shiftDrag {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier
+    };
+
+    dragFromTo (pianoRoll, movedCenter, movedCenter.translated (kLengthDeltaPixels, 0), shiftDrag);
+
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.front().startTick == expectedMovedStart);
+    REQUIRE (edited.midiClips.front().notes.front().lengthTicks == expectedLength);
+    REQUIRE (edited.midiClips.front().notes[1] == untouchedNote);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiEditCount == 2);
+
+    const yesdaw::engine::MidiClip lengthenedMidi = edited.midiClips.front();
+    const yesdaw::engine::Note lengthenedNote = lengthenedMidi.notes.front();
+    const juce::ModifierKeys altDoubleClick {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier
+    };
+
+    doubleClickAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, lengthenedMidi, lengthenedNote), altDoubleClick);
+
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.front().startTick == expectedMovedStart);
+    REQUIRE (edited.midiClips.front().notes.front().lengthTicks == expectedLength);
+    REQUIRE (edited.midiClips.front().notes.front().key == originalNote.key + 1);
+    REQUIRE (std::fabs (edited.midiClips.front().notes.front().pitchNote - (originalNote.pitchNote + 1.0)) < 0.000001);
+    REQUIRE (edited.midiClips.front().notes[1] == untouchedNote);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiEditCount == 3);
+
+    const yesdaw::engine::MidiClip transposedMidi = edited.midiClips.front();
+    const yesdaw::engine::Note transposedNote = transposedMidi.notes.front();
+    yesdaw::engine::Tick expectedQuantizedStart = 0;
+    REQUIRE (yesdaw::engine::snapTick (
+        transposedNote.startTick,
+        yesdaw::engine::SnapGrid { 512 },
+        expectedQuantizedStart));
+    REQUIRE (expectedQuantizedStart != transposedNote.startTick);
+    const juce::ModifierKeys ctrlDoubleClick {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
+    };
+
+    doubleClickAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, transposedMidi, transposedNote), ctrlDoubleClick);
+
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.front().startTick == expectedQuantizedStart);
+    REQUIRE (edited.midiClips.front().notes.front().lengthTicks == expectedLength);
+    REQUIRE (edited.midiClips.front().notes.front().key == originalNote.key + 1);
+    REQUIRE (edited.midiClips.front().notes[1] == untouchedNote);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiEditCount == 4);
+
+    const yesdaw::engine::MidiClip quantizedMidi = edited.midiClips.front();
+    const yesdaw::engine::Note quantizedNote = quantizedMidi.notes.front();
+    const juce::ModifierKeys shiftDoubleClick {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier
+    };
+
+    doubleClickAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, quantizedMidi, quantizedNote), shiftDoubleClick);
+
+    const yesdaw::engine::Project afterExpressionRead = readProjectSnapshot (bundlePath);
+    REQUIRE (afterExpressionRead.midiClips == edited.midiClips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiReadCount == 1);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.saveCount == 1);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.context.midiClipSelected);
+    REQUIRE_FALSE (snapshot.context.midiNoteSelected);
+    REQUIRE (snapshot.bundlePath == bundlePath);
+
+    const yesdaw::engine::Project reopened = readProjectSnapshot (bundlePath);
+    REQUIRE (reopened.midiClips == afterExpressionRead.midiClips);
+    REQUIRE (reopened.tracks == afterExpressionRead.tracks);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.midiClipSelected);
+    REQUIRE_FALSE (snapshot.context.midiNoteSelected);
+    (void) requirePianoRollComponent (*shell);
 }
 
 TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves audible playback",

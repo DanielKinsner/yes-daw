@@ -80,6 +80,8 @@ public:
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
     [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
     [[nodiscard]] engine::EntityId selectedTimelineClipId() const noexcept { return selectedTimelineClipId_; }
+    [[nodiscard]] engine::EntityId selectedMidiClipId() const noexcept { return selectedMidiClipId_; }
+    [[nodiscard]] engine::EntityId selectedMidiNoteId() const noexcept { return selectedMidiNoteId_; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
 
@@ -324,6 +326,121 @@ public:
         context_.timelineClipSelected = false;
         if (context_.activePanel != UiPanel::PianoRoll)
             context_.activePanel = UiPanel::Timeline;
+    }
+
+    [[nodiscard]] bool selectFirstMidiClip() noexcept
+    {
+        if (! context_.projectLoaded || project_.midiClips.empty())
+        {
+            selectedMidiClipId_ = {};
+            selectedMidiNoteId_ = {};
+            syncProjectEditContext();
+            return false;
+        }
+
+        if (findMidiClip (selectedMidiClipId_) == nullptr)
+        {
+            selectedMidiClipId_ = project_.midiClips.front().id;
+            selectedMidiNoteId_ = {};
+        }
+
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        return true;
+    }
+
+    [[nodiscard]] UiActionDispatchResult selectPianoRollNote (engine::EntityId midiClipId,
+                                                              engine::EntityId noteId) noexcept
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSelect;
+        if (! midiClipId.isValid() || ! noteId.isValid())
+            return { id, { false, "invalid piano roll selection" }, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        if (midiClip == nullptr)
+            return { id, { false, "MIDI clip missing" }, false };
+
+        selectedMidiClipId_ = midiClipId;
+        selectedMidiNoteId_ = {};
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (findNote (*midiClip, noteId) == nullptr)
+            return { id, { false, "MIDI note missing" }, false };
+
+        selectedMidiNoteId_ = noteId;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult moveSelectedPianoRollNoteTo (engine::Tick startTick)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteMove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMidiNote (
+            id,
+            state,
+            engine::ProjectEditCommand::moveNote (selectedMidiClipId_, selectedMidiNoteId_, startTick));
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedPianoRollNoteLength (engine::Tick lengthTicks)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSetLength;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMidiNote (
+            id,
+            state,
+            engine::ProjectEditCommand::setNoteLength (selectedMidiClipId_, selectedMidiNoteId_, lengthTicks));
+    }
+
+    [[nodiscard]] UiActionDispatchResult transposeSelectedPianoRollNote (std::int32_t semitones)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteTranspose;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMidiNote (
+            id,
+            state,
+            engine::ProjectEditCommand::transposeNote (selectedMidiClipId_, selectedMidiNoteId_, semitones));
+    }
+
+    [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNoteTo (engine::SnapGrid grid)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteQuantize;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMidiNote (
+            id,
+            state,
+            engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_, selectedMidiNoteId_, grid));
+    }
+
+    [[nodiscard]] UiActionDispatchResult readPianoRollExpressionLanes()
+    {
+        const UiActionId id = UiActionId::PianoRollReadExpressionLanes;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        context_.activePanel = UiPanel::PianoRoll;
+        ++context_.commandDispatchCount;
+        ++context_.midiReadCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] bool selectMixerTrack (std::size_t index) noexcept
@@ -658,12 +775,19 @@ public:
 
             case UiActionId::ViewTimeline:
             case UiActionId::ViewMixer:
-            case UiActionId::ViewPianoRoll:
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
             case UiActionId::HelpShowKeymap:
             {
                 return registry_.dispatch (id, context_);
+            }
+
+            case UiActionId::ViewPianoRoll:
+            {
+                UiActionDispatchResult result = registry_.dispatch (id, context_);
+                if (result.dispatched && ! context_.midiClipSelected)
+                    (void) selectFirstMidiClip();
+                return result;
             }
 
             case UiActionId::TimelineClipMove:
@@ -734,6 +858,31 @@ private:
         for (const engine::Clip& clip : project_.clips)
             if (clip.id == clipId)
                 return &clip;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const engine::MidiClip* findMidiClip (engine::EntityId midiClipId) const noexcept
+    {
+        if (! midiClipId.isValid())
+            return nullptr;
+
+        for (const engine::MidiClip& midiClip : project_.midiClips)
+            if (midiClip.id == midiClipId)
+                return &midiClip;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] static const engine::Note* findNote (const engine::MidiClip& midiClip,
+                                                       engine::EntityId noteId) noexcept
+    {
+        if (! noteId.isValid())
+            return nullptr;
+
+        for (const engine::Note& note : midiClip.notes)
+            if (note.id == noteId)
+                return &note;
 
         return nullptr;
     }
@@ -828,6 +977,35 @@ private:
         context_.canUndo = undo_.canUndo();
         context_.canRedo = undo_.canRedo();
         context_.timelineClipSelected = selectedTimelineClipId_.isValid() && findClip (selectedTimelineClipId_) != nullptr;
+
+        const engine::MidiClip* const midiClip = context_.projectLoaded ? findMidiClip (selectedMidiClipId_) : nullptr;
+        if (midiClip == nullptr)
+            selectedMidiNoteId_ = {};
+
+        context_.midiClipSelected = midiClip != nullptr;
+        context_.midiNoteSelected = midiClip != nullptr
+            && selectedMidiNoteId_.isValid()
+            && findNote (*midiClip, selectedMidiNoteId_) != nullptr;
+    }
+
+    [[nodiscard]] UiActionDispatchResult editSelectedMidiNote (UiActionId id,
+                                                               UiActionState state,
+                                                               const engine::ProjectEditCommand& command)
+    {
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (nextProject, command);
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "piano roll edit did not persist" }, false };
+
+        context_.activePanel = UiPanel::PianoRoll;
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] bool adoptEditedProject (engine::Project nextProject,
@@ -1089,6 +1267,8 @@ private:
         bundlePath_ = bundlePath;
         project_ = std::move (project);
         selectedTimelineClipId_ = {};
+        selectedMidiClipId_ = {};
+        selectedMidiNoteId_ = {};
         selectedMixerTarget_ = {};
         undo_ = {};
         decodedAssets_.clear();
@@ -1129,6 +1309,8 @@ private:
     engine::Project project_;
     engine::ProjectUndoStack undo_;
     engine::EntityId selectedTimelineClipId_;
+    engine::EntityId selectedMidiClipId_;
+    engine::EntityId selectedMidiNoteId_;
     MixerTargetSelection selectedMixerTarget_ {};
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
