@@ -144,6 +144,16 @@ The frame-placement rule that subtracts known input latency, and for loopback cl
 also output latency, so a recorded take lands on the Project frame it represents.
 _Avoid_: nudging, manual offset
 
+**Monitoring policy**:
+The user-visible choice for whether live input is heard during recording and which latency-compensation
+rule applies to that monitoring path.
+_Avoid_: listening mode (too subjective), monitor hack
+
+**Latency calibration**:
+A mechanical measurement or declared device-delay value used to place recorded input on the Project frame
+it represents.
+_Avoid_: manual nudge, by-ear sync
+
 **CompiledGraph**:
 The flat, contiguous, read-only result of compiling the editable routing — what a Snapshot *is*. The
 audio thread iterates it in order with no scheduling or allocation.
@@ -202,6 +212,10 @@ _Avoid_: auto-master, volume normalizer
 A saved lane in the arrangement. It owns audio Clips and MIDI Clips, carries strip state, and compiles to
 the graph path that makes the Track audible. There is no separate channel-strip object.
 _Avoid_: channel
+
+**Armed Track**:
+A Track selected to receive the next audio or MIDI recording pass.
+_Avoid_: record-enabled channel, armed clip
 
 **Clip**:
 A non-destructive placement of (part of) an asset on a track, with its own start/end, gain, fades.
@@ -284,6 +298,11 @@ A bundle-shaped last-good copy under a Project bundle's `autosave/` area. It is 
 normal Project bundle validators accept it.
 _Avoid_: temp file (too vague), backup (not necessarily user-managed)
 
+**Autosave recovery prompt**:
+The user-facing choice to restore or discard a valid Autosave snapshot when opening a Project after an
+interrupted edit.
+_Avoid_: crash dialog (too narrow), backup chooser
+
 **Plugin state chunk**:
 Opaque saved bytes returned by a plugin, wrapped by YES DAW metadata before storage and associated with
 the saved plugin node's Entity ID. It is restored as plugin-owned state, not rebuilt from parameter
@@ -363,6 +382,12 @@ bundle, timeline Clips and MIDI Clip Notes can be selected and edited through re
 inspector values can be changed, transport feedback is visible, undo/redo works, and save/reopen parity is
 mechanically asserted.
 _Avoid_: calling a painted mockup or projection-only surface "operable"
+
+**Recording and device UX**:
+The H13 app state where device selection, Track arming, monitoring policy, recording, take lanes, basic
+Comp assembly, latency calibration, and Autosave recovery prompts are driven through real input paths and
+mechanically asserted.
+_Avoid_: recording feature (too broad), device setup (too narrow)
 
 **UI input harness**:
 The self-asserting H12 test driver that constructs the shipped `MainComponent`, performs deterministic

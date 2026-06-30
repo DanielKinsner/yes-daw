@@ -220,12 +220,11 @@ parity through a UI input harness.
 **Exit:** a self-asserting scripted session creates or opens a Project, imports audio, creates/edits Clips,
 edits mixer and piano-roll state, drives transport, saves, reopens, and verifies parity while the H11
 action, smoke, timeline frame-time, and accessibility gates remain green.
-**Status (2026-06-30):** closed locally by the H12 closeout audit/gate. ADR-0033 and ADR-0034 are
-accepted; the focused implementation checkpoints through end-to-end session smoke are remote-green; and
-the closeout audit fixed the remaining painted-only Clip inspector gap by adding real selected Clip
-gain/fade controls to the shipped `MainComponent`. Local closeout gates are green: focused H12 **5/5** and
-full `ctest --preset ci --output-on-failure` **254/254**. H13 must not open until this closeout commit is
-remote-green. The focused plan is
+**Status (2026-06-30):** closed remote-green on `main` (`2dbb257`, GitHub Actions run `28459661398`).
+ADR-0033 and ADR-0034 are accepted; the focused implementation checkpoints through end-to-end session
+smoke are remote-green; and the closeout audit fixed the remaining painted-only Clip inspector gap by
+adding real selected Clip gain/fade controls to the shipped `MainComponent`. Local closeout gates were
+green: focused H12 **5/5** and full `ctest --preset ci --output-on-failure` **254/254**. The focused plan is
 [`docs/plans/2026-06-29-h12-operable-session-ux-plan.md`](../plans/2026-06-29-h12-operable-session-ux-plan.md).
 
 ## H13 — Recording and device UX
@@ -234,6 +233,9 @@ policy, record audio/MIDI into bundle Assets/Takes, take lanes/comp basics, late
 smoke, and autosave recovery prompts.
 **Exit:** a scripted record flow produces bundle-persistent Take/Clip data, survives save/reopen/recovery,
 and keeps the recording alignment and device survival gates green.
+**Status (2026-06-30):** opened docs-first after H12 closeout was remote-green. ADR-0035 is accepted and
+the focused plan is
+[`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`](../plans/2026-06-30-h13-recording-device-ux-plan.md).
 
 ## H14 — Session production polish
 Fill the remaining workflow depth needed before alpha: automation lanes, marker/tempo UI, waveform cache

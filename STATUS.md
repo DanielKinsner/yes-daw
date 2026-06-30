@@ -9,6 +9,35 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-30
+**Current horizon:** **H13 (Recording and device UX) — OPEN DOCS-FIRST.** H12 is closed remote-green on
+current `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and
+TSan. H13 opens only after that closeout. The kickoff checkpoint is docs-only: ADR-0035, the H13 focused
+plan, ADR index, roadmap, glossary, horizon oracle, and this live handoff; no H13 implementation code is
+included.
+
+**Now:** H13 kickoff docs are local-green and ready to commit/push. Local gates: `git diff --check`;
+`cmake --preset ci`; VS DevShell `cmake --build --preset ci`; and
+`ctest --preset ci --output-on-failure` **254/254**.
+
+**Next (Codex - H13 implementation checkpoint 1):** after this docs checkpoint is remote-green, build the
+`YesDawRecordingUxCheck` skeleton around the shipped `MainComponent`: deterministic fake/test device
+surface, Record disabled with no armed Track/input, real recording controls targeted by the harness, and
+H12 focused UI lane still green.
+
+> **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
+> monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
+>
+> **Rolling baton loop.** Each baton thread first REVIEW/FIXES the previous checkpoint, then, only if that
+> review is clean/green, WORKS the next small checkpoint in the same thread. The baton may create exactly
+> one successor baton only after its own `STATUS.md` update, commit, push, and CI result are complete and
+> green. Do not create separate reviewer/worker threads in parallel, and never spawn ahead while CI is
+> pending, stuck, red, or being rerun.
+
+---
+
+## Historical packet - H12 closeout
+
+**Last updated:** 2026-06-30
 **Current horizon:** **H12 (Operable Session UX) — CLOSED REMOTE-GREEN.** ADR-0033 opens H12 after H11 closeout was
 remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`). H12 makes the H11 native app shell
 operable before plugin hosting is deepened: new/open/save, import WAV into the Project bundle, timeline

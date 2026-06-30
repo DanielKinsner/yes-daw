@@ -1,29 +1,30 @@
-# Current horizon - H12 (Operable Session UX) - CLOSED
+# Current horizon - H13 (Recording and device UX) - OPEN
 
-> This file is the oracle for "is the horizon done?". H12 opened on 2026-06-29 after H11 closeout was
-> remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`).
+> This file is the oracle for "is the horizon done?". H13 opened on 2026-06-30 after H12 closeout was
+> remote-green on `main` (`2dbb257`, GitHub Actions run `28459661398`).
 
 ## Exit criterion (the finish line)
 
-The H11 native app shell becomes an operable session workflow. A user or harness can create/open/save a
-Project bundle, import a WAV into the bundle as an immutable Asset, create and edit timeline Clips, edit
-MIDI Clip Notes in the Piano roll, adjust inspector and mixer values, drive play/stop/locate/loop, use
-undo/redo, save, reopen, and prove the same Project state mechanically.
+A scripted record flow can select a test/fake device, arm a Track, choose a monitoring policy, record audio
+and MIDI through the shipped `MainComponent`, create bundle-persistent Take/Clip data, save, reopen, drive
+autosave recovery restore/discard choices, and prove recording alignment plus device survival mechanically.
 
-The H12 focused gates are:
+The H13 focused gates are:
 
-- **`YesDawUiInputCheck`**: a self-asserting UI input harness creates or opens a `.yesdaw` Project,
-  imports a WAV, edits Clips/Notes/mixer state, drives transport, saves, reopens, and asserts parity.
-- **`YesDawUiActionCheck`**: every H12 visible mutation has action/input parity, enabled/disabled reasons,
-  command/query backing, undo/redo coverage where applicable, and negative controls.
-- **`YesDawAppSmokeCheck`**: the app model keeps opening Projects and driving H8 transport through the same
-  action IDs used by the UI.
-- **`YesDawTimelineGpuCheck`**: Timeline input wiring does not regress the dense Timeline frame-time gate.
-- **`YesDawAccessibilityCheck`**: new H12 controls keep stable IDs, names, roles, keyboard reachability,
-  and action/input backing.
+- **`YesDawRecordingUxCheck`**: the shipped-shell harness for device selection, Track arming, monitoring
+  policy, audio/MIDI recording, Take/Clip persistence, take-lane/Comp basics, save/reopen, and autosave
+  recovery. If implementation folds this into an existing target, update this file in the same checkpoint.
+- **`YesDawRecordingCheck`**: the H5 recording alignment gate stays green, including latency-compensation
+  negative controls.
+- **`YesDawDeviceHotSwapCheck`**: the H10 control-side device survival gate stays green as H13 wires device
+  selection/refresh into the UI.
+- **`YesDawUiInputCheck`**, **`YesDawUiActionCheck`**, **`YesDawAppSmokeCheck`**,
+  **`YesDawTimelineGpuCheck`**, and **`YesDawAccessibilityCheck`**: H12/H11 shipped-shell, action,
+  smoke, frame-time, and accessibility gates remain green as recording controls become real Components.
 
-Plugin scanner, plugin validation, plugin editor embedding, and third-party plugin insert UX are deferred
-unless an H12 gate proves a hard dependency.
+Plugin scanner, plugin validation, plugin editor embedding, advanced comping, driver crash recovery,
+sample-rate/channel remap on device changes, and visual-only polish are deferred unless an H13 gate proves
+a hard dependency.
 
 ## Green command
 
@@ -31,29 +32,21 @@ unless an H12 gate proves a hard dependency.
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
-ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure
-ctest --test-dir build-ci -R YesDawAppSmokeCheck --output-on-failure
-ctest --test-dir build-ci -R YesDawTimelineGpuCheck --output-on-failure
-ctest --test-dir build-ci -R YesDawAccessibilityCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawRecordingCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawDeviceHotSwapCheck --output-on-failure
+ctest --test-dir build-ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure
 ```
 
-The `YesDawUiInputCheck` target lands during H12. Add it to the focused lane as soon as it exists.
+Add `YesDawRecordingUxCheck` to the focused lane as soon as it exists.
 
-## Status: CLOSED
+## Status: OPEN
 
-ADR-0033 (H12 operable session UX) and ADR-0034 (mixer-state schema and persistence) are accepted. The
-H12 implementation checkpoints through end-to-end session smoke are remote-green. The 2026-06-30 closeout
-audit found one remaining written-plan gap: the Clip inspector fields were still painted-only. The closeout
-fix turns selected Clip gain/fade fields into real JUCE controls in the shipped `MainComponent`, drives
-them from `YesDawUiInputCheck`, and proves disabled state plus save/reopen parity. Local closeout gates are
-green: `git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawUiInputCheck`; direct
-`YesDawUiInputCheck.exe` **832 assertions / 7 test cases**; focused H12
-`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-**5/5**; VS DevShell full `cmake --build --preset ci`; and full
-`ctest --preset ci --output-on-failure` **254/254**. This closeout commit must be remote-green before H13
-opens.
+ADR-0035 (H13 recording and device UX) is accepted by the kickoff docs checkpoint. The focused H13 plan is
+`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`. No H13 implementation code has landed. Local
+docs-checkpoint gates are green: `git diff --check`; `cmake --preset ci`; VS DevShell
+`cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **254/254**.
 
 ## The plan
 
 Full build order:
-[`docs/plans/2026-06-29-h12-operable-session-ux-plan.md`](../docs/plans/2026-06-29-h12-operable-session-ux-plan.md).
+[`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`](../docs/plans/2026-06-30-h13-recording-device-ux-plan.md).
