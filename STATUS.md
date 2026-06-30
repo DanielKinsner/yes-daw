@@ -103,20 +103,21 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 Project lifecycle controls are local-green. The prior H12 UI input harness checkpoint
-`908ff08` is remote-green on GitHub Actions run `28412582848`; the pre-code docs precision patch
-`c622a6c` is remote-green on run `28411881766`. Current work wires real bundle lifecycle into the shipped
-`MainComponent`: `UiAppModel` can create/open/save a default `.yesdaw` Project, the shell owns that model,
-New/Open use injectable file choices for CI instead of native dialogs, Save writes through
-`ProjectBundleDb`, and `YesDawUiInputCheck` clicks New/Save/Open on real toolbar Components then reopens
-the bundle and asserts Project parity. Empty-session transport stays disabled until the import/playback
-checkpoint supplies an actual playback-ready session. Local gates: VS DevShell
+**Now:** H12 Import WAV into Project bundle is local-green. Prior H12 checkpoints are remote-green:
+pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
+harness `908ff08` on run `28412582848`, and Project lifecycle controls `5eb4267` on run `28413370943`.
+Current work wires `ProjectImportAudio` into the shipped `MainComponent`: the shell chooses a WAV through
+the injectable CI file-choice seam, decodes mono WAV with JUCE, copies the source bytes into the
+`.yesdaw` bundle as an `Asset`, creates a full-window sample-locked `Clip`, persists the Project snapshot,
+rebuilds `PlaybackEngine` from the same `DecodedAssetAudio` path used by playback, and keeps undo/redo
+disabled until import has a real undo transaction. `YesDawUiInputCheck` clicks New, Import, and Play on
+real toolbar Components, reopens the bundle state, asserts bundled bytes match the fixture, asserts Asset
+and Clip metadata/indirection, renders the imported session through the engine, and requires non-zero
+output samples. Local gates after the undo-state cleanup: VS DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck`; `ctest --preset ci -R YesDawUiInputCheck
---output-on-failure`; VS DevShell `cmake --build --preset ci --target YesDaw`; focused H12
-`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
-**5/5**; VS DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
-**250/250**.
-**Next (Codex — H12 end-to-end): commit/push this Project lifecycle checkpoint and wait for remote CI, then build Import WAV into Project bundle with the required audible playback assertion.**
+--output-on-failure`; VS DevShell full `cmake --build --preset ci`; and
+`ctest --preset ci --output-on-failure` **250/250**.
+**Next (Codex — H12 end-to-end): commit/push this Import WAV checkpoint and wait for remote CI, then build Timeline Clip hit-testing/edit gestures (H12 step 5).**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`

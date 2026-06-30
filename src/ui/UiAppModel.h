@@ -10,6 +10,7 @@
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -47,6 +48,27 @@ struct UiAppLoadResult
     engine::MixerProjectionError mixerError;
 
     [[nodiscard]] bool ok() const noexcept { return status == UiAppLoadStatus::Ok; }
+};
+
+enum class UiAppImportStatus : std::uint8_t
+{
+    Ok = 0,
+    NoBundleOpen,
+    InvalidDecodedAudio,
+    AssetImportFailed,
+    ProjectWriteFailed,
+    PlaybackBuildFailed
+};
+
+struct UiAppImportResult
+{
+    UiAppImportStatus            status = UiAppImportStatus::Ok;
+    persistence::BundleResult    bundleResult;
+    engine::OfflineRenderStatus  playbackStatus = engine::OfflineRenderStatus::Ok;
+    engine::ProjectMixerProjectionError projectError;
+    engine::MixerProjectionError mixerError;
+
+    [[nodiscard]] bool ok() const noexcept { return status == UiAppImportStatus::Ok; }
 };
 
 class UiAppModel
@@ -128,6 +150,153 @@ public:
         return result;
     }
 
+    [[nodiscard]] UiAppImportResult importAudioFile (const std::filesystem::path& sourcePath,
+                                                     UiDecodedAsset decoded)
+    {
+        UiAppImportResult result;
+
+        if (! bundleDb_.isOpen())
+        {
+            result.status = UiAppImportStatus::NoBundleOpen;
+            return result;
+        }
+
+        if (! decodedAudioIsValid (decoded))
+        {
+            result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+
+        const engine::EntityId requestedAssetId = allocateSessionEntityId (0xA1u);
+        engine::Asset imported;
+        const persistence::AssetImportRequest request {
+            sourcePath,
+            requestedAssetId,
+            decoded.frames,
+            decoded.sampleRate,
+            decoded.channels
+        };
+
+        result.bundleResult = bundleDb_.importAssetBytes (request, imported);
+        if (! result.bundleResult.ok())
+        {
+            result.status = UiAppImportStatus::AssetImportFailed;
+            return result;
+        }
+
+        engine::Project nextProject = project_;
+        if (nextProject.findAsset (imported.id) == nullptr)
+            nextProject.assets.push_back (imported);
+
+        engine::Clip clip;
+        clip.id = allocateSessionEntityId (0xC1u, nextProject);
+        clip.assetId = imported.id;
+        clip.timelineStart = timelineEnd (nextProject);
+        clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
+        clip.srcOffset = 0;
+        clip.srcLen = decoded.frames;
+        clip.gain = 1.0f;
+        clip.fadeIn = 0;
+        clip.fadeOut = 0;
+        clip.timeBase = engine::TimeBase::SampleLocked;
+        nextProject.clips.push_back (clip);
+
+        if (! nextProject.hasValidAssetClipIndirection())
+        {
+            result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+
+        result.bundleResult = bundleDb_.writeProjectSnapshot (nextProject);
+        if (! result.bundleResult.ok())
+        {
+            result.status = UiAppImportStatus::ProjectWriteFailed;
+            return result;
+        }
+
+        decoded.assetId = imported.id;
+        std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
+        upsertDecodedAsset (nextDecoded, std::move (decoded));
+
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
+        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
+            nextProject,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+
+        result.playbackStatus = built.status;
+        result.projectError = built.projectError;
+        result.mixerError = built.mixerError;
+        if (! built.ok())
+        {
+            result.status = UiAppImportStatus::PlaybackBuildFailed;
+            return result;
+        }
+
+        (void) built.engine->stop();
+        drainTransport (*built.engine);
+
+        project_ = std::move (nextProject);
+        decodedAssets_ = std::move (nextDecoded);
+        decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        playback_ = std::move (built.engine);
+        context_.projectLoaded = true;
+        context_.timelineClipSelected = true;
+        context_.canUndo = false;
+        context_.canRedo = false;
+        ++context_.importCount;
+        ++context_.commandDispatchCount;
+        syncContextFromPlayback();
+
+        result.status = UiAppImportStatus::Ok;
+        return result;
+    }
+
+    [[nodiscard]] std::vector<float> renderPlaybackFrames (std::uint64_t frames, int blockSize)
+    {
+        if (playback_ == nullptr || frames == 0 || blockSize <= 0)
+            return {};
+
+        const int channels = static_cast<int> (playback_->channels());
+        if (channels <= 0)
+            return {};
+
+        std::vector<float> interleaved (
+            static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels),
+            0.0f);
+        std::vector<float> channelStorage (
+            static_cast<std::size_t> (channels) * static_cast<std::size_t> (blockSize),
+            0.0f);
+        std::vector<float*> channelPtrs (static_cast<std::size_t> (channels), nullptr);
+
+        std::uint64_t offset = 0;
+        while (offset < frames)
+        {
+            const int n = static_cast<int> (std::min<std::uint64_t> (
+                frames - offset,
+                static_cast<std::uint64_t> (blockSize)));
+
+            for (int channel = 0; channel < channels; ++channel)
+                channelPtrs[static_cast<std::size_t> (channel)] =
+                    channelStorage.data() + static_cast<std::size_t> (channel) * static_cast<std::size_t> (blockSize);
+
+            playback_->processBlock (channelPtrs.data(), channels, n);
+
+            for (int frame = 0; frame < n; ++frame)
+            {
+                const std::size_t outFrame = static_cast<std::size_t> (offset) + static_cast<std::size_t> (frame);
+                for (int channel = 0; channel < channels; ++channel)
+                    interleaved[outFrame * static_cast<std::size_t> (channels) + static_cast<std::size_t> (channel)] =
+                        channelPtrs[static_cast<std::size_t> (channel)][frame];
+            }
+
+            offset += static_cast<std::uint64_t> (n);
+        }
+
+        (void) playback_->reclaim();
+        syncContextFromPlayback();
+        return interleaved;
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -195,6 +364,9 @@ public:
 
             case UiActionId::ProjectOpen:
                 return { id, { false, "open path required" }, false };
+
+            case UiActionId::ProjectImportAudio:
+                return { id, { false, "audio import path required" }, false };
 
             case UiActionId::ProjectExportAudio:
                 return { id, { false, "audio export path required" }, false };
@@ -295,6 +467,22 @@ public:
     }
 
 private:
+    [[nodiscard]] static bool decodedAudioIsValid (const UiDecodedAsset& decoded) noexcept
+    {
+        if (! decoded.sampleRate.isValid() || decoded.frames == 0 || decoded.channels == 0)
+            return false;
+
+        if (decoded.frames > static_cast<std::uint64_t> (std::numeric_limits<engine::Tick>::max()))
+            return false;
+
+        if (decoded.frames > std::numeric_limits<std::uint64_t>::max() / decoded.channels)
+            return false;
+
+        const std::uint64_t expectedSamples = decoded.frames * decoded.channels;
+        return expectedSamples <= static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max())
+            && decoded.interleavedSamples.size() == static_cast<std::size_t> (expectedSamples);
+    }
+
     static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
     {
         std::vector<engine::DecodedAssetAudio> views;
@@ -339,6 +527,102 @@ private:
             return id;
 
         return engine::EntityId::fromBigEndianParts (0x5945534441570000ull, 1ull);
+    }
+
+    [[nodiscard]] static bool projectContainsEntityId (const engine::Project& project,
+                                                       engine::EntityId id) noexcept
+    {
+        if (! id.isValid())
+            return false;
+
+        if (project.id == id)
+            return true;
+
+        for (const engine::Asset& asset : project.assets)
+            if (asset.id == id)
+                return true;
+
+        for (const engine::Clip& clip : project.clips)
+            if (clip.id == id)
+                return true;
+
+        for (const engine::MidiClip& midiClip : project.midiClips)
+        {
+            if (midiClip.id == id)
+                return true;
+
+            for (const engine::Note& note : midiClip.notes)
+                if (note.id == id)
+                    return true;
+        }
+
+        return false;
+    }
+
+    [[nodiscard]] engine::EntityId allocateSessionEntityId (std::uint8_t seedByte) const
+    {
+        return allocateSessionEntityId (seedByte, project_);
+    }
+
+    [[nodiscard]] engine::EntityId allocateSessionEntityId (std::uint8_t seedByte,
+                                                            const engine::Project& project) const
+    {
+        engine::UlidEntropy entropy {};
+        entropy[0] = 0x59u;
+        entropy[1] = 0x44u;
+        entropy[2] = 0x49u;
+        entropy[3] = seedByte;
+        entropy[4] = static_cast<std::uint8_t> (project.assets.size() & 0xffu);
+        entropy[5] = static_cast<std::uint8_t> (project.clips.size() & 0xffu);
+
+        const auto now = std::chrono::system_clock::now().time_since_epoch();
+        const auto millis = std::chrono::duration_cast<std::chrono::milliseconds> (now).count();
+        const auto timestamp = millis > 0 ? static_cast<std::uint64_t> (millis) : std::uint64_t { 0 };
+
+        engine::EntityIdAllocator allocator (entropy);
+        for (std::uint64_t attempt = 0; attempt < 256; ++attempt)
+        {
+            engine::EntityId id = allocator.allocate (timestamp + attempt);
+            if (id.isValid() && ! projectContainsEntityId (project, id))
+                return id;
+        }
+
+        return engine::EntityId::fromBigEndianParts (0x5944490000000000ull | static_cast<std::uint64_t> (seedByte),
+                                                     static_cast<std::uint64_t> (project.assets.size() + project.clips.size() + 1u));
+    }
+
+    [[nodiscard]] static engine::Tick timelineEnd (const engine::Project& project) noexcept
+    {
+        engine::Tick end = 0;
+        for (const engine::Clip& clip : project.clips)
+        {
+            if (clip.timelineStart < 0 || clip.timelineLength < 0)
+                continue;
+
+            if (clip.timelineStart > std::numeric_limits<engine::Tick>::max() - clip.timelineLength)
+                continue;
+
+            const engine::Tick clipEnd = clip.timelineStart + clip.timelineLength;
+            if (clipEnd > end)
+                end = clipEnd;
+        }
+
+        return end;
+    }
+
+    static void upsertDecodedAsset (std::vector<UiDecodedAsset>& decodedAssets,
+                                    UiDecodedAsset decoded)
+    {
+        for (UiDecodedAsset& existing : decodedAssets)
+        {
+            if (existing.assetId == decoded.assetId)
+            {
+                existing = std::move (decoded);
+                return;
+            }
+        }
+
+        decodedAssets.push_back (std::move (decoded));
     }
 
     void attachProjectBundle (

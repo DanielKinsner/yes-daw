@@ -154,6 +154,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (static_cast<int> (UiActionId::ProjectNew) == 0);
     REQUIRE (actions[0].stableId == std::string_view ("project.new"));
     REQUIRE (actions[1].stableId == std::string_view ("project.open"));
+    REQUIRE (descriptorForStableId ("project.import_audio")->id == UiActionId::ProjectImportAudio);
     REQUIRE (descriptorForStableId ("project.export_audio")->id == UiActionId::ProjectExportAudio);
     REQUIRE (descriptorForStableId ("project.export_dawproject")->id == UiActionId::ProjectExportDawproject);
     REQUIRE (descriptorForStableId ("transport.play")->id == UiActionId::TransportPlay);
@@ -313,7 +314,9 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.commandDispatchCount == 1);
 
     REQUIRE (registry.dispatch (UiActionId::ProjectExportAudio, context).dispatched);
+    REQUIRE (registry.dispatch (UiActionId::ProjectImportAudio, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::ProjectExportDawproject, context).dispatched);
+    REQUIRE (context.importCount == 1);
     REQUIRE (context.audioExportCount == 1);
     REQUIRE (context.dawprojectExportCount == 1);
 

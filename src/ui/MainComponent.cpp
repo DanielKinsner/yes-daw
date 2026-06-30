@@ -10,14 +10,18 @@
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"
 
+#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -201,6 +205,7 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::ProjectNew: return "New";
         case yesdaw::ui::UiActionId::ProjectOpen: return "Open";
         case yesdaw::ui::UiActionId::ProjectSave: return "Save";
+        case yesdaw::ui::UiActionId::ProjectImportAudio: return "Import";
         case yesdaw::ui::UiActionId::TransportPlay: return "Play";
         case yesdaw::ui::UiActionId::TransportStop: return "Stop";
         case yesdaw::ui::UiActionId::TransportLocateStart: return "|<";
@@ -266,6 +271,35 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
     g.fillRect (hot);
 }
 
+std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWavForImport (const std::filesystem::path& sourcePath)
+{
+    juce::WavAudioFormat wav;
+    const juce::File file { juce::String { sourcePath.string() } };
+    std::unique_ptr<juce::AudioFormatReader> reader (
+        wav.createReaderFor (new juce::FileInputStream (file), true));
+    if (reader == nullptr)
+        return std::nullopt;
+
+    if (reader->sampleRate <= 0.0
+        || reader->numChannels != 1u
+        || reader->lengthInSamples <= 0
+        || reader->lengthInSamples > static_cast<juce::int64> (std::numeric_limits<int>::max()))
+        return std::nullopt;
+
+    const int frames = static_cast<int> (reader->lengthInSamples);
+    juce::AudioBuffer<float> decodedBuffer (1, frames);
+    if (! reader->read (&decodedBuffer, 0, frames, 0, true, false))
+        return std::nullopt;
+
+    const float* const channel = decodedBuffer.getReadPointer (0);
+    yesdaw::ui::UiDecodedAsset decoded;
+    decoded.sampleRate = yesdaw::engine::SampleRate { reader->sampleRate };
+    decoded.frames = static_cast<std::uint64_t> (frames);
+    decoded.channels = 1;
+    decoded.interleavedSamples.assign (channel, channel + frames);
+    return decoded;
+}
+
 } // namespace
 
 class MainComponent : public juce::Component
@@ -309,6 +343,10 @@ public:
     [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
+    [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
+    {
+        return appModel.renderPlaybackFrames (frames, blockSize);
+    }
 
     void paint (juce::Graphics& g) override
     {
@@ -347,6 +385,7 @@ public:
                 case yesdaw::ui::UiActionId::ProjectNew: buttons[i].setBounds (16, 50, 44, 26); break;
                 case yesdaw::ui::UiActionId::ProjectOpen: buttons[i].setBounds (64, 50, 50, 26); break;
                 case yesdaw::ui::UiActionId::ProjectSave: buttons[i].setBounds (118, 50, 48, 26); break;
+                case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (170, 50, 64, 26); break;
                 case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (336, 16, 56, 56); break;
                 case yesdaw::ui::UiActionId::TransportPlay: buttons[i].setBounds (392, 16, 56, 56); break;
                 case yesdaw::ui::UiActionId::TransportStop: buttons[i].setBounds (448, 16, 56, 56); break;
@@ -378,6 +417,16 @@ private:
                     const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
                     if (! path.empty())
                         (void) appModel.openProjectBundle (path);
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::ProjectImportAudio:
+                if (fileChoices.chooseImportAudioFile)
+                {
+                    const std::filesystem::path path = fileChoices.chooseImportAudioFile();
+                    if (! path.empty())
+                        if (auto decoded = decodeMonoWavForImport (path))
+                            (void) appModel.importAudioFile (path, std::move (*decoded));
                 }
                 return;
 
@@ -844,6 +893,16 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
     }
 
     return snapshot;
+}
+
+std::vector<float> renderMainComponentPlayback (juce::Component& component,
+                                                std::uint64_t frames,
+                                                int blockSize)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessRenderPlaybackFrames (frames, blockSize);
+
+    return {};
 }
 
 juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action)

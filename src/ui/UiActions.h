@@ -18,6 +18,7 @@ enum class UiActionId : std::uint8_t
     ProjectNew = 0,
     ProjectOpen,
     ProjectSave,
+    ProjectImportAudio,
     ProjectExportAudio,
     ProjectExportDawproject,
     TransportPlay,
@@ -110,6 +111,7 @@ struct UiActionContext
     std::int64_t playheadFrame = 0;
     int commandDispatchCount = 0;
     int saveCount = 0;
+    int importCount = 0;
     int audioExportCount = 0;
     int dawprojectExportCount = 0;
     int deviceRefreshCount = 0;
@@ -154,6 +156,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::ProjectOpen, "project.open", "Open", "Ctrl+O", "Open project",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::ProjectSave, "project.save", "Save", "Ctrl+S", "Save project",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectImportAudio, "project.import_audio", "Import WAV", "Ctrl+I", "Import audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+Shift+E", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -219,10 +223,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
-inline constexpr std::array<UiActionId, 9> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 10> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
+    UiActionId::ProjectImportAudio,
     UiActionId::TransportPlay,
     UiActionId::TransportStop,
     UiActionId::TransportLocateStart,
@@ -236,7 +241,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 9>& mainShellToolbarActions()
+inline const std::array<UiActionId, 10>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }
@@ -382,6 +387,10 @@ public:
 
             case UiActionId::ProjectSave:
                 ++context.saveCount;
+                break;
+
+            case UiActionId::ProjectImportAudio:
+                ++context.importCount;
                 break;
 
             case UiActionId::ProjectExportAudio:

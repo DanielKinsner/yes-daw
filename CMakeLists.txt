@@ -125,6 +125,7 @@ target_compile_definitions(YesDaw PRIVATE
 target_link_libraries(YesDaw
   PRIVATE
     sqlite3_amalgamation
+    juce::juce_audio_formats
     juce::juce_gui_extra
     juce::juce_recommended_config_flags)
 
@@ -268,11 +269,13 @@ if (YESDAW_BUILD_APPS)
   target_compile_definitions(YesDawUiInputCheck PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
-    JUCE_MODAL_LOOPS_PERMITTED=1)
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
   target_link_libraries(YesDawUiInputCheck
     PRIVATE
       Catch2::Catch2WithMain
       sqlite3_amalgamation
+      juce::juce_audio_formats
       juce::juce_gui_extra
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawUiInputCheck)

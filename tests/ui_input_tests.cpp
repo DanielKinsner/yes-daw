@@ -7,11 +7,17 @@
 
 #include "persistence/ProjectBundle.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 using yesdaw::ui::MainComponentSnapshot;
 using yesdaw::ui::MainComponentFileChoices;
@@ -19,6 +25,7 @@ using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiPanel;
 using yesdaw::ui::findMainComponentChildForAction;
 using yesdaw::ui::mainShellToolbarActions;
+using yesdaw::ui::renderMainComponentPlayback;
 using yesdaw::ui::snapshotMainComponent;
 
 namespace {
@@ -42,6 +49,26 @@ yesdaw::engine::Project readProjectSnapshot (const std::filesystem::path& bundle
     yesdaw::engine::Project project;
     REQUIRE (db.readProjectSnapshot (project).ok());
     return project;
+}
+
+std::vector<std::uint8_t> readBytes (const std::filesystem::path& path)
+{
+    const auto size = std::filesystem::file_size (path);
+    std::vector<std::uint8_t> bytes (static_cast<std::size_t> (size));
+
+    std::ifstream input (path, std::ios::binary);
+    REQUIRE (input.good());
+    input.read (reinterpret_cast<char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()));
+    REQUIRE (input.good());
+    return bytes;
+}
+
+double peakAbs (std::span<const float> samples) noexcept
+{
+    double peak = 0.0;
+    for (const float sample : samples)
+        peak = std::max (peak, std::fabs (static_cast<double> (sample)));
+    return peak;
 }
 
 std::unique_ptr<juce::Component> makeShell (MainComponentFileChoices fileChoices = {})
@@ -184,4 +211,67 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
     clickButton (piano);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
+}
+
+TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves audible playback",
+           "[ui][input][shell][project][import][playback]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("import-wav");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.playbackReady);
+
+    juce::Button& import = requireButtonForAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (import.isEnabled());
+    clickButton (import);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.playbackReady);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE_FALSE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.importCount == 1);
+    REQUIRE (snapshot.context.commandDispatchCount == 2);
+
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.assets.size() == 1u);
+    REQUIRE (imported.clips.size() == 1u);
+    REQUIRE (imported.hasValidAssetClipIndirection());
+
+    const yesdaw::engine::Asset& asset = imported.assets.front();
+    const yesdaw::engine::Clip& clip = imported.clips.front();
+    REQUIRE (asset.frames == 4096u);
+    REQUIRE (asset.channels == 1u);
+    REQUIRE (asset.sampleRate == yesdaw::engine::SampleRate { 48000.0 });
+    REQUIRE (clip.assetId == asset.id);
+    REQUIRE (clip.timelineStart == 0);
+    REQUIRE (clip.timelineLength == static_cast<yesdaw::engine::Tick> (asset.frames));
+    REQUIRE (clip.srcOffset == 0u);
+    REQUIRE (clip.srcLen == asset.frames);
+    REQUIRE (clip.sourceWindowFits (asset));
+
+    const std::filesystem::path bundledAssetPath =
+        bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
+    REQUIRE (readBytes (bundledAssetPath) == readBytes (fixturePath));
+
+    juce::Button& play = requireButtonForAction (*shell, UiActionId::TransportPlay);
+    REQUIRE (play.isEnabled());
+    clickButton (play);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+
+    const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (rendered.size() == 1024u);
+    REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.01);
 }

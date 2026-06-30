@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace yesdaw::ui {
 
@@ -19,6 +20,7 @@ struct MainComponentFileChoices
 {
     std::function<std::filesystem::path()> chooseNewProjectBundle;
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
+    std::function<std::filesystem::path()> chooseImportAudioFile;
 };
 
 struct MainComponentSnapshot
@@ -34,6 +36,9 @@ struct MainComponentSnapshot
 
 [[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices = {});
 [[nodiscard]] MainComponentSnapshot snapshotMainComponent (const juce::Component& component);
+[[nodiscard]] std::vector<float> renderMainComponentPlayback (juce::Component& component,
+                                                              std::uint64_t frames,
+                                                              int blockSize);
 
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
