@@ -102,7 +102,8 @@ The one-way flow of nodes from inputs to outputs; never loops back on itself.
 _Avoid_: chain (when the routing branches or merges), pipeline
 
 **Bus**:
-A node that sums several inputs into one (e.g. a group, or the master).
+A saved mixer target for a Return or sub-mix. It gathers one or more routed signals and has its own
+strip state. The Master bus is the final output and is not the same as a user-editable Bus.
 _Avoid_: channel, channel strip
 
 **Master bus**:
@@ -181,6 +182,11 @@ _Avoid_: volume
 A track or bus's main output control.
 _Avoid_: volume
 
+**Strip state**:
+The saved mixer controls attached to a Track or Bus: fader, pan, mute, solo, and solo-safe. Meter and
+loudness values are readbacks, not strip state.
+_Avoid_: channel-strip object, transient UI control state
+
 **Level**:
 The loudness a meter shows.
 _Avoid_: volume
@@ -193,8 +199,8 @@ _Avoid_: auto-master, volume normalizer
 ### Timeline & arrangement
 
 **Track**:
-A lane in the arrangement holding clips and a chain of nodes. Its mixer controls (fader, pan, meter)
-belong to the track and *compile to* graph nodes — there is no separate channel-strip object.
+A saved lane in the arrangement. It owns audio Clips and MIDI Clips, carries strip state, and compiles to
+the graph path that makes the Track audible. There is no separate channel-strip object.
 _Avoid_: channel
 
 **Clip**:

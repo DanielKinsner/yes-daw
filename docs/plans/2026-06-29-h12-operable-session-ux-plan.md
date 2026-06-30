@@ -86,11 +86,11 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 
 6. **Inspector and mixer controls.** Turn selected Clip fields, fader, pan, mute, solo, meter/loudness
    readbacks, and relevant tabs into real controls instead of painted-only projections. **Depends on
-   ADR-0034 (mixer-state schema):** the Project/bundle has no pan/mute/solo/bus fields today, so "mixer
-   values survive save/reopen" requires the ADR-0034 schema + migration to land first; this also resolves
-   the H11 one-strip-per-Clip model (real tracks hold many clips). At least one meter/loudness value must be
-   driven from the real engine, not echoed back from a test-injected constant. Gate: harness edits values
-   through real input, saves/reopens, and proves disabled-state behavior.
+   ADR-0034 (accepted mixer-state schema):** the next implementation checkpoint must add Track/Bus
+   Project state and the bundle migration before mixer controls can claim save/reopen parity; this also
+   resolves the H11 one-strip-per-Clip model (real tracks hold many clips). At least one meter/loudness
+   value must be driven from the real engine, not echoed back from a test-injected constant. Gate: harness
+   edits values through real input, saves/reopens, and proves disabled-state behavior.
 
 7. **Piano-roll input wiring.** Make Note selection, move, length, transpose, quantize, and expression
    readback operable through input paths. Gate: harness edits a MIDI Clip, save/reopen parity holds, and
@@ -115,8 +115,8 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 - **ADR-0034 - Mixer-state schema and persistence:** add `Track`/`Bus` entities carrying ADR-0014 strip
   state (gain/pan/mute/solo/solo-safe/sidechain) to the Project model + a bundle migration, so the operable
   mixer can save/reopen and "tracks" stop being one-strip-per-Clip. This is an irreversible schema decision
-  (ADR-0011/0012 ground) and **must be grilled and accepted before step 6**, not discovered mid-checkpoint.
-  **[proposed]**
+  (ADR-0011/0012 ground) and **must be implemented before step 6 mixer-control edits claim persistence
+  parity**. **[accepted]**
 
 Later H12 slices may add narrow ADRs only if they introduce a new irreversible decision. Otherwise they
 should land as small implementation checkpoints behind ADR-0033.

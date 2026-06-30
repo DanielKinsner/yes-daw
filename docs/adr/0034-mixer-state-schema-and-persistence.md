@@ -1,7 +1,7 @@
 # 0034. Mixer-state schema and persistence (Track / Bus / strip state)
 
-- **Status:** Proposed <!-- drafted by the 2026-06-29 adversarial review as a stub; grill before accepting -->
-- **Date:** 2026-06-29
+- **Status:** Accepted
+- **Date:** 2026-06-30
 - **Deciders:** Dan (owner), build agent
 - **Related:** ADR-0011 (asset/clip/project + IDs), ADR-0012 (SQLite bundle schema + migrations),
   ADR-0014 (mixer policy: mute/SIP-solo/solo-safe/sidechain), ADR-0033 (H12 operable session UX),
@@ -55,18 +55,39 @@ and mixer controls), not be discovered mid-checkpoint.
 
 ## Decision
 
-**Proposed: Option 1.** Introduce `Track` (owning audio + MIDI Clips) and `Bus` entities carrying the
-ADR-0014 strip state, persisted via a new ADR-0012 migration, with `ProjectMixerProjection` deriving the
-mixer graph from Tracks/Buses rather than per-Clip. A mixing-capable DAW needs a real strip identity;
-doing it at H12 - before more UI assumes the per-Clip projection - avoids a worse migration later and is
-what unblocks H12 step 6.
+**Option 1 is accepted.** Introduce first-class `Track` and `Bus` entities carrying the saved mixer strip
+state, persisted by the next ADR-0012 migration after the current schema. `ProjectMixerProjection` must
+derive mixer strips from Tracks/Buses rather than from individual Clips.
 
-**Open questions to settle in the grill (do not treat as decided):**
-- Exact strip-state field set and value ranges (reuse `mixerGainIsValid`/`mixerPanIsValid`?).
-- Track vs Bus row layout and the clip->track foreign key; how `MidiClip.trackId` is reconciled.
-- Migration shape and backward-compat (ADR-0012 round-trip + negative-control coverage).
-- Default track for imported/placed Clips (ties into H12 step 4 import).
-- Whether automation (ADR-0009) lanes for fader/pan ride on Track now or wait for H14.
+The grill resolves the open questions this way:
+
+- **Strip-state fields and ranges.** A saved Track/Bus strip carries `name`, `linearGain`, `pan`, `muted`,
+  `soloed`, and `soloSafe`. `linearGain` uses the existing `mixerGainIsValid` range; `pan` uses the
+  existing `mixerPanIsValid` range (`[-1, 1]`, finite). Meter and loudness readbacks are not persisted
+  strip state; they are derived from the engine/metering surface. Sidechain routing remains ADR-0014
+  policy and is owned by Track/Bus routing when that routing surface lands; H12 step 6 must not invent a
+  loose UI-only sidechain flag as saved Project truth.
+- **Track owns Clips.** Audio `Clip` gains a `trackId`. `MidiClip.trackId` is no longer a dangling
+  grouping ID; it refers to the same Track table. A Track can own many audio Clips and many MIDI Clips.
+  The Master bus remains the implicit final output, not a user-editable Bus row and not a solo target.
+- **Bus rows are mixer targets for Returns/sub-mixes.** A Bus row carries its own strip state and can be
+  solo-safe per ADR-0014. Bus/Return routing is still graph-projection work; this ADR only decides that
+  the saved identity and strip state live in the Project instead of transient UI structs.
+- **Migration and backward compatibility.** Do not renumber or rewrite existing migrations. The next
+  migration from the current schema adds Track/Bus tables and the audio `clips.track_id` foreign key.
+  Existing audio-only Projects receive one default Track (`Audio 1`) and all existing audio Clips are
+  assigned to it. Existing distinct `midi_clips.track_id` values become Track rows so MIDI Clip identity is
+  preserved. The migration must round-trip through `ProjectBundleDb`, keep old bundles openable, reject
+  orphaned Clip/MIDI Clip track references, and include a negative control for invalid strip ranges.
+- **Default Track for imports and placement.** A new or imported audio Clip uses the selected Track when
+  one exists; otherwise the Project creates or reuses the default `Audio 1` Track. Import must not create
+  a new mixer strip per Clip.
+- **Automation waits.** H12 stores static fader/pan/mute/solo/solo-safe state. Automation lanes for Track
+  fader/pan are deferred to the automation/mixer deepening horizon unless a later ADR brings them forward.
+  This keeps ADR-0009's event model intact without adding a half-designed automation target surface here.
+
+A mixing-capable DAW needs real strip identity; doing this at H12 - before more UI assumes the per-Clip
+projection - avoids a worse migration later and unblocks H12 step 6.
 
 ## Consequences
 
@@ -76,6 +97,6 @@ what unblocks H12 step 6.
 - **Negative / accepted costs:** a Project-model + bundle-schema migration is a meaty change touching frozen
   ADR-0011/0012 ground; it must be migration-tested with a real negative control (per ADR-0012) and keep
   existing bundles loadable; it enlarges H12 beyond pure UI wiring.
-- **Follow-ups:** add **Track**, **Bus**, **strip state** to `CONTEXT.md`; write the bundle migration +
-  round-trip test; repoint `ProjectMixerProjection` and `UiMixerSurfaceModel` at Track/Bus; make H12 plan
-  step 6 depend on this ADR; confirm `MidiClip.trackId` unification doesn't regress H4 MIDI gates.
+- **Follow-ups:** keep **Track**, **Bus**, and **strip state** aligned in `CONTEXT.md`; write the bundle
+  migration + round-trip/negative-control tests; repoint `ProjectMixerProjection` and `UiMixerSurfaceModel`
+  at Track/Bus; confirm `MidiClip.trackId` unification doesn't regress H4 MIDI gates.

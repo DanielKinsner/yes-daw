@@ -51,7 +51,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0031](0031-device-hot-swap-survival.md) | Device hot-swap survival | Accepted |
 | [0032](0032-h11-ui-stack-and-app-shell.md) | H11 UI stack and app shell | Accepted |
 | [0033](0033-h12-operable-session-ux.md) | H12 operable session UX | Accepted |
-| [0034](0034-mixer-state-schema-and-persistence.md) | Mixer-state schema and persistence (Track/Bus/strip state) | Proposed |
+| [0034](0034-mixer-state-schema-and-persistence.md) | Mixer-state schema and persistence (Track/Bus/strip state) | Accepted |
 
 ## Decision status (the five research forks)
 

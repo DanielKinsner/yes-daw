@@ -103,20 +103,13 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 snap gestures via real-shell timeline input are local-green. The fade checkpoint `ca59170` is
-remote-green on GitHub Actions run `28426496982` across Windows, Linux, macOS, RTSan, and TSan. The new
-snap checkpoint adds Ctrl-drag on a hit-tested Timeline Clip body in the shipped `MainComponent`; it routes
-through the existing `TimelineClipMove` command, snaps the derived target Tick through ADR-0010
-`SnapGrid`, persists the Project bundle, rebuilds playback, and proves undo/redo parity in
-`YesDawUiInputCheck`. The harness also keeps the audible-import assertion meaningful after the snapped Clip
-starts on the grid by rendering through the snapped start. Local gates are green: `git diff --check`; VS
-BuildTools DevShell `cmake --build --preset ci --target YesDawUiInputCheck`;
-`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` **1/1**; VS BuildTools DevShell
-`cmake --build --preset ci --target YesDawUiInputCheck YesDawUiActionCheck YesDawAppSmokeCheck
-YesDawTimelineGpuCheck YesDawAccessibilityCheck`; `ctest --preset ci -R
-"YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure` **5/5**; VS
-BuildTools DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
-**251/251**.
+**Now:** H12 ADR-0034 mixer-state schema grill/acceptance is the active docs-only checkpoint. The snap
+checkpoint `2d09fb6` is remote-green on GitHub Actions run `28428780783` across Windows, Linux, macOS,
+RTSan, and TSan. ADR-0034 now accepts first-class Track/Bus Project entities with saved strip state,
+settles the clip->track ownership and migration/default-track rules, defers fader/pan automation out of
+H12, and unblocks the next implementation checkpoint: Track/Bus Project state plus bundle migration before
+H12 step 6 mixer controls claim save/reopen parity. Local gates are green: `git diff --check`;
+`cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **251/251**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
@@ -126,7 +119,8 @@ real-shell Clip selection `102c94a` on run `28415151322`, and Timeline Clip move
 `28416653470`, Timeline Clip right-edge trim via real-shell drag `a8f4b39` on run `28417399129`, transport
 locate/loop/stop plus scheduler repair `a9a57bf` on run `28418515621`, Timeline Clip gain via real-shell
 shift-drag `3b0a337` on run `28419232690`, and Timeline Clip fades via real-shell Alt-edge drags
-`ca59170` on run `28426496982`.
+`ca59170` on run `28426496982`, and Timeline Clip snap via real-shell Ctrl-drag `2d09fb6` on run
+`28428780783`.
 The transport checkpoint extends `YesDawUiInputCheck` so the imported-session harness drives Play, Locate,
 Loop, and Stop through the shipped toolbar `Button` Components after audible playback, then asserts playhead
 reset, loop toggle state, stop state, and command dispatch counts through the real `MainComponent` snapshot.
@@ -138,8 +132,9 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): commit/push the snap input checkpoint, wait for remote CI, then review H12
-step 5 closure. Do not start H12 step 6 inspector/mixer controls until ADR-0034 is grilled and accepted.**
+**Next (Codex - H12 end-to-end): finish this ADR-0034 docs checkpoint with local gates, commit/push it,
+wait for remote CI, then start the H12 Track/Bus Project state + bundle migration checkpoint. Do not wire
+H12 step 6 mixer controls until that schema/migration checkpoint is mechanically green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
