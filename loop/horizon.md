@@ -1,4 +1,4 @@
-# Current horizon - H12 (Operable Session UX) - OPEN
+# Current horizon - H12 (Operable Session UX) - CLOSED
 
 > This file is the oracle for "is the horizon done?". H12 opened on 2026-06-29 after H11 closeout was
 > remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`).
@@ -39,11 +39,19 @@ ctest --test-dir build-ci -R YesDawAccessibilityCheck --output-on-failure
 
 The `YesDawUiInputCheck` target lands during H12. Add it to the focused lane as soon as it exists.
 
-## Status: OPEN
+## Status: CLOSED
 
-ADR-0033 (H12 operable session UX) is accepted. The docs-only kickoff checkpoint is done and remote-green
-on commit `7ad455e` with GitHub Actions run `28408643608` passing Linux, Windows, macOS, RTSan, and TSan.
-No H12 implementation code has landed yet. Next checkpoint: `YesDawUiInputCheck` harness skeleton.
+ADR-0033 (H12 operable session UX) and ADR-0034 (mixer-state schema and persistence) are accepted. The
+H12 implementation checkpoints through end-to-end session smoke are remote-green. The 2026-06-30 closeout
+audit found one remaining written-plan gap: the Clip inspector fields were still painted-only. The closeout
+fix turns selected Clip gain/fade fields into real JUCE controls in the shipped `MainComponent`, drives
+them from `YesDawUiInputCheck`, and proves disabled state plus save/reopen parity. Local closeout gates are
+green: `git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawUiInputCheck`; direct
+`YesDawUiInputCheck.exe` **832 assertions / 7 test cases**; focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**; VS DevShell full `cmake --build --preset ci`; and full
+`ctest --preset ci --output-on-failure` **254/254**. This closeout commit must be remote-green before H13
+opens.
 
 ## The plan
 

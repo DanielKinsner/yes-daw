@@ -159,3 +159,16 @@ model - closing the H11 gap where the gates verified the library beneath the UI 
 shell; (2) "mixer values survive save/reopen" needs **ADR-0034** (no mixer schema exists today); (3) import
 must be **audible through the engine**, not just decoded for display. Steps 1-3, 7-8 are unchanged from the
 original plan - they were already sound.
+
+## Closeout
+
+Closed locally on 2026-06-30 after the exit-gate audit fixed the remaining step 6 gap: selected Clip
+gain/fade fields are now real inspector controls in the shipped `MainComponent`, not painted-only
+projections. `YesDawUiInputCheck` drives those controls through JUCE Components, proves disabled-state
+behavior, mutates Project Clip metadata, saves, reopens, and asserts parity. Local closeout gates are green:
+`git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawUiInputCheck`; direct
+`YesDawUiInputCheck.exe` **832 assertions / 7 test cases**; focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**; VS DevShell full `cmake --build --preset ci`; and full
+`ctest --preset ci --output-on-failure` **254/254**. H13 stays closed until this closeout commit is
+remote-green.

@@ -35,6 +35,8 @@ namespace {
 
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
+constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr int kPianoRollLowKey = 48;
 constexpr int kPianoRollHighKey = 72;
 constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
@@ -222,6 +224,19 @@ juce::Button& requireButtonWithComponentId (juce::Component& shell, const juce::
     REQUIRE (button->getWidth() > 0);
     REQUIRE (button->getHeight() > 0);
     return *button;
+}
+
+juce::Slider& requireSliderWithComponentId (juce::Component& shell, const juce::String& componentId)
+{
+    juce::Component* component = findChildWithComponentId (shell, componentId);
+    REQUIRE (component != nullptr);
+
+    auto* slider = dynamic_cast<juce::Slider*> (component);
+    REQUIRE (slider != nullptr);
+    REQUIRE (slider->isVisible());
+    REQUIRE (slider->getWidth() > 0);
+    REQUIRE (slider->getHeight() > 0);
+    return *slider;
 }
 
 juce::Component& requireTimelineComponent (juce::Component& shell)
@@ -542,7 +557,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 7u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 10u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -811,6 +826,71 @@ TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Ro
     REQUIRE (snapshot.context.midiClipSelected);
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
     (void) requirePianoRollComponent (*shell);
+}
+
+TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspector controls",
+           "[ui][input][shell][inspector][clip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("inspector");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Slider& gain = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
+    juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
+    juce::Slider& fadeOut = requireSliderWithComponentId (*shell, kInspectorFadeOutComponentId);
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (gain.isEnabled());
+    REQUIRE (fadeIn.isEnabled());
+    REQUIRE (fadeOut.isEnabled());
+
+    mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineClipSelected);
+    REQUIRE_FALSE (gain.isEnabled());
+    REQUIRE_FALSE (fadeIn.isEnabled());
+    REQUIRE_FALSE (fadeOut.isEnabled());
+
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (gain.isEnabled());
+    REQUIRE (fadeIn.isEnabled());
+    REQUIRE (fadeOut.isEnabled());
+
+    dragHorizontalSliderToNormalizedValue (gain, 0.65);
+    dragHorizontalSliderToNormalizedValue (fadeIn, 0.08);
+    dragHorizontalSliderToNormalizedValue (fadeOut, 0.95);
+
+    const yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.clips.size() == 1u);
+    REQUIRE (edited.clips.front().gain > imported.clips.front().gain);
+    REQUIRE (edited.clips.front().gain <= 2.0f);
+    REQUIRE (edited.clips.front().fadeIn > 0);
+    REQUIRE (edited.clips.front().fadeOut > edited.clips.front().fadeIn);
+    REQUIRE (edited.clips.front().fadeOut <= edited.clips.front().timelineLength);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineEditCount >= 3);
+    REQUIRE (snapshot.context.canUndo);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+
+    const yesdaw::engine::Project reopened = readProjectSnapshot (bundlePath);
+    REQUIRE (reopened.clips == edited.clips);
 }
 
 TEST_CASE ("H12 UI input harness drives an end-to-end saved session through shipped Components",

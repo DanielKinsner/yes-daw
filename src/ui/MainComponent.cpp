@@ -37,9 +37,12 @@ constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks = 512;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
+constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr int kPianoRollLowKey = 48;
 constexpr int kPianoRollHighKey = 72;
 constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
+constexpr double kMaxInspectorFadeSeconds = 1.0;
 
 const juce::Colour kBackground (0xff080c11);
 const juce::Colour kPanel (0xff11161c);
@@ -902,6 +905,7 @@ public:
         };
         addAndMakeVisible (pianoRollInput);
 
+        configureInspectorControls();
         configureMixerControls();
         refreshActionState();
     }
@@ -964,6 +968,7 @@ public:
 
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
+        layoutInspectorControls();
         layoutMixerControls();
     }
 
@@ -983,6 +988,54 @@ private:
         }
 
         component.setName (fallbackName);
+    }
+
+    void configureInspectorControls()
+    {
+        configureActionComponent (inspectorGain, yesdaw::ui::UiActionId::TimelineClipSetGain, "Clip gain");
+        inspectorGain.setSliderStyle (juce::Slider::LinearHorizontal);
+        inspectorGain.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        inspectorGain.setRange (0.0, 2.0, 0.01);
+        inspectorGain.setValue (1.0, juce::dontSendNotification);
+        inspectorGain.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorGain.isEnabled())
+                return;
+
+            (void) appModel.setSelectedTimelineClipGain (static_cast<float> (inspectorGain.getValue()));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (inspectorGain);
+
+        configureInspectorFadeSlider (inspectorFadeIn, kInspectorFadeInComponentId, "Clip fade in");
+        inspectorFadeIn.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorFadeIn.isEnabled())
+                return;
+
+            setSelectedInspectorFadesFromSliders();
+        };
+        addAndMakeVisible (inspectorFadeIn);
+
+        configureInspectorFadeSlider (inspectorFadeOut, kInspectorFadeOutComponentId, "Clip fade out");
+        inspectorFadeOut.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorFadeOut.isEnabled())
+                return;
+
+            setSelectedInspectorFadesFromSliders();
+        };
+        addAndMakeVisible (inspectorFadeOut);
+    }
+
+    void configureInspectorFadeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
+    {
+        slider.setComponentID (componentId);
+        slider.setName (name);
+        slider.setTitle (name);
+        slider.setTooltip (componentId);
+        slider.setSliderStyle (juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        slider.setRange (0.0, kMaxInspectorFadeSeconds, 0.001);
+        slider.setValue (0.0, juce::dontSendNotification);
     }
 
     void configureMixerControls()
@@ -1076,6 +1129,29 @@ private:
         return mixer.withWidth (stripWidth).reduced (3, 0);
     }
 
+    [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
+    {
+        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        work.removeFromBottom (kMixerHeight);
+        return work.removeFromRight (kInspectorWidth).reduced (6, 10);
+    }
+
+    void layoutInspectorControls()
+    {
+        auto area = inspectorBounds();
+        area.removeFromTop (40);
+        area.reduce (16, 14);
+
+        auto gain = area.withTrimmedTop (118).withHeight (84);
+        gain.removeFromTop (28);
+        inspectorGain.setBounds (gain.removeFromTop (24).withTrimmedLeft (72));
+
+        auto fades = area.withTrimmedTop (214).withHeight (94);
+        fades.removeFromTop (22);
+        inspectorFadeIn.setBounds (fades.removeFromTop (32).withTrimmedLeft (78).reduced (0, 6));
+        inspectorFadeOut.setBounds (fades.removeFromTop (32).withTrimmedLeft (78).reduced (0, 6));
+    }
+
     void layoutMixerControls()
     {
         auto lane = mixerFirstStripBounds().reduced (8, 6);
@@ -1157,7 +1233,64 @@ private:
 
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        refreshInspectorControls();
         refreshMixerControls();
+    }
+
+    void refreshInspectorControls()
+    {
+        const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
+        const bool selected = appModel.context().timelineClipSelected && clip != nullptr;
+
+        inspectorGain.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetGain,
+                                                                appModel.context()).enabled);
+        inspectorFadeIn.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
+                                                                  appModel.context()).enabled);
+        inspectorFadeOut.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
+                                                                   appModel.context()).enabled);
+
+        refreshingInspectorControls = true;
+        if (selected && appModel.project().sampleRate.isValid())
+        {
+            const double sampleRate = appModel.project().sampleRate.hz;
+            inspectorGain.setValue (clip->gain, juce::dontSendNotification);
+            inspectorFadeIn.setValue (std::clamp (static_cast<double> (clip->fadeIn) / sampleRate,
+                                                  0.0,
+                                                  kMaxInspectorFadeSeconds),
+                                      juce::dontSendNotification);
+            inspectorFadeOut.setValue (std::clamp (static_cast<double> (clip->fadeOut) / sampleRate,
+                                                   0.0,
+                                                   kMaxInspectorFadeSeconds),
+                                       juce::dontSendNotification);
+        }
+        else
+        {
+            inspectorGain.setValue (1.0, juce::dontSendNotification);
+            inspectorFadeIn.setValue (0.0, juce::dontSendNotification);
+            inspectorFadeOut.setValue (0.0, juce::dontSendNotification);
+        }
+        refreshingInspectorControls = false;
+    }
+
+    void setSelectedInspectorFadesFromSliders()
+    {
+        const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
+        if (clip == nullptr || ! appModel.project().sampleRate.isValid())
+            return;
+
+        const double sampleRate = appModel.project().sampleRate.hz;
+        const auto toTicks = [sampleRate, clip] (double seconds) {
+            return std::clamp<yesdaw::engine::Tick> (
+                static_cast<yesdaw::engine::Tick> (std::llround (seconds * sampleRate)),
+                0,
+                std::max<yesdaw::engine::Tick> (0, clip->timelineLength));
+        };
+
+        (void) appModel.setSelectedTimelineClipFades (
+            toTicks (inspectorFadeIn.getValue()),
+            toTicks (inspectorFadeOut.getValue()));
+        refreshActionState();
+        repaint();
     }
 
     void refreshMixerControls()
@@ -1654,12 +1787,20 @@ private:
         drawSmallLabel (g, "GAIN", gain.removeFromTop (20));
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (13.0f)));
-        g.drawText ("+2.4 dB", gain.withTrimmedLeft (72).withHeight (24), juce::Justification::centredLeft, false);
-        drawHorizontalMeter (g, gain.withTrimmedLeft (72).withTrimmedTop (32).withHeight (12), 0.76f);
+        const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
+        const float gainValue = selectedClip != nullptr ? selectedClip->gain : 1.0f;
+        g.drawText (juce::String (gainValue, 2) + "x",
+                    gain.withTrimmedLeft (72).withHeight (22),
+                    juce::Justification::centredLeft,
+                    false);
 
         auto fades = area.withTrimmedTop (214).withHeight (94);
         drawSmallLabel (g, "FADES", fades.removeFromTop (20));
-        for (const auto* label : { "Fade In     0.10 s", "Fade Out    0.25 s" })
+        const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
+        const double fadeInSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeIn) / sampleRate : 0.0;
+        const double fadeOutSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeOut) / sampleRate : 0.0;
+        for (const auto label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
+                                  juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
         {
             auto row = fades.removeFromTop (32).reduced (0, 3);
             g.setColour (juce::Colour (0xff0b1016));
@@ -1799,7 +1940,11 @@ private:
     juce::Slider mixerPan;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
+    juce::Slider inspectorGain;
+    juce::Slider inspectorFadeIn;
+    juce::Slider inspectorFadeOut;
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
+    bool refreshingInspectorControls = false;
     bool refreshingMixerControls = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
