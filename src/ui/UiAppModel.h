@@ -10,6 +10,7 @@
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
@@ -57,6 +58,76 @@ public:
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
 
+    [[nodiscard]] static engine::Project makeDefaultSessionProject()
+    {
+        engine::Project project;
+        project.id = allocateDefaultProjectId();
+        project.sampleRate = engine::SampleRate { 48000.0 };
+        project.tempoMap.push_back ({ 0, 120.0, engine::TempoCurve::Jump });
+        project.meterMap.push_back ({ 0, 4, 4 });
+        return project;
+    }
+
+    [[nodiscard]] persistence::BundleResult createProjectBundle (const std::filesystem::path& bundlePath)
+    {
+        return createProjectBundle (bundlePath, makeDefaultSessionProject());
+    }
+
+    [[nodiscard]] persistence::BundleResult createProjectBundle (
+        const std::filesystem::path& bundlePath,
+        engine::Project project)
+    {
+        persistence::ProjectBundleDb opened;
+        persistence::BundleResult result = persistence::ProjectBundleDb::openOrCreateBundle (bundlePath, opened);
+        if (! result.ok())
+            return result;
+
+        result = opened.writeProjectSnapshot (project);
+        if (! result.ok())
+            return result;
+
+        attachProjectBundle (std::move (opened), bundlePath, std::move (project));
+        ++context_.commandDispatchCount;
+        return result;
+    }
+
+    [[nodiscard]] persistence::BundleResult openProjectBundle (const std::filesystem::path& bundlePath)
+    {
+        persistence::ProjectBundleDb opened;
+        persistence::BundleResult result = persistence::ProjectBundleDb::openExistingBundle (bundlePath, opened);
+        if (! result.ok())
+            return result;
+
+        engine::Project loadedProject;
+        result = opened.readProjectSnapshot (loadedProject);
+        if (! result.ok())
+            return result;
+
+        attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
+        ++context_.commandDispatchCount;
+        return result;
+    }
+
+    [[nodiscard]] persistence::BundleResult saveProjectBundle()
+    {
+        if (! bundleDb_.isOpen())
+            return persistence::BundleResult {
+                persistence::BundleStatus::SqliteError,
+                SQLITE_MISUSE,
+                0,
+                "no Project bundle is open"
+            };
+
+        persistence::BundleResult result = bundleDb_.writeProjectSnapshot (project_);
+        if (result.ok())
+        {
+            ++context_.saveCount;
+            ++context_.commandDispatchCount;
+        }
+
+        return result;
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -100,15 +171,11 @@ public:
         (void) built.engine->stop();
         drainTransport (*built.engine);
 
-        bundleDb_ = std::move (opened);
-        bundlePath_ = bundlePath;
-        project_ = std::move (loadedProject);
+        attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         playback_ = std::move (built.engine);
 
-        context_ = {};
-        context_.projectLoaded = true;
         syncContextFromPlayback();
 
         result.status = UiAppLoadStatus::Ok;
@@ -134,6 +201,12 @@ public:
 
             case UiActionId::ProjectExportDawproject:
                 return { id, { false, "DAWproject export path required" }, false };
+
+            case UiActionId::ProjectSave:
+            {
+                const persistence::BundleResult saved = saveProjectBundle();
+                return { id, state, saved.ok() };
+            }
 
             case UiActionId::TransportPlay:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
@@ -162,7 +235,6 @@ public:
             case UiActionId::DeviceRefreshAudio:
                 return { id, { false, "audio device refresh requires device payload" }, false };
 
-            case UiActionId::ProjectSave:
             case UiActionId::EditUndo:
             case UiActionId::EditRedo:
             case UiActionId::ViewTimeline:
@@ -245,6 +317,45 @@ private:
     static void drainTransport (engine::PlaybackEngine& playback) noexcept
     {
         playback.processBlock (nullptr, 0, 0);
+    }
+
+    [[nodiscard]] static engine::EntityId allocateDefaultProjectId()
+    {
+        engine::UlidEntropy entropy {};
+        entropy[0] = 0x59u; // "YESDAW" seed prefix, enough entropy for one allocation per new Project.
+        entropy[1] = 0x45u;
+        entropy[2] = 0x53u;
+        entropy[3] = 0x44u;
+        entropy[4] = 0x41u;
+        entropy[5] = 0x57u;
+
+        const auto now = std::chrono::system_clock::now().time_since_epoch();
+        const auto millis = std::chrono::duration_cast<std::chrono::milliseconds> (now).count();
+        const auto timestamp = millis > 0 ? static_cast<std::uint64_t> (millis) : std::uint64_t { 0 };
+
+        engine::EntityIdAllocator allocator (entropy);
+        engine::EntityId id = allocator.allocate (timestamp);
+        if (id.isValid())
+            return id;
+
+        return engine::EntityId::fromBigEndianParts (0x5945534441570000ull, 1ull);
+    }
+
+    void attachProjectBundle (
+        persistence::ProjectBundleDb opened,
+        const std::filesystem::path& bundlePath,
+        engine::Project project)
+    {
+        bundleDb_ = std::move (opened);
+        bundlePath_ = bundlePath;
+        project_ = std::move (project);
+        decodedAssets_.clear();
+        decodedAssetViews_.clear();
+        playback_.reset();
+
+        context_ = {};
+        context_.projectLoaded = true;
+        context_.activePanel = UiPanel::Timeline;
     }
 
     template <typename Fn>

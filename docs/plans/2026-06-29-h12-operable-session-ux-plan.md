@@ -61,9 +61,11 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
    previously lived inside `src/Main.cpp` with no header - it is now extracted behind a testable entry
    point so a gate can construct it.)
 
-3. **Project lifecycle controls.** Wire new/open/save through native JUCE controls or action-backed app
-   model paths, keeping file dialogs isolated behind injectable test choices. Gate: create/open/save/reopen
-   a `.yesdaw` Project through the harness.
+3. **Project lifecycle controls. [done]** Wire new/open/save through native JUCE controls or action-backed
+   app model paths, keeping file dialogs isolated behind injectable test choices. Gate: create/open/save/
+   reopen a `.yesdaw` Project through the harness. The shipped `MainComponent` now owns `UiAppModel`,
+   injects deterministic file choices for tests, creates/saves/opens the real bundle path through toolbar
+   button clicks, and leaves transport disabled until a playback-ready/imported session exists.
 
 4. **Import WAV into Project bundle (highest-value checkpoint - import must *play*, not just display).**
    Add the user-facing import flow that copies a WAV into the Project bundle as an Asset and places a Clip
@@ -126,15 +128,26 @@ Opened on 2026-06-29 after H11 closeout was remote-green on `main` (`e9436af`, G
 with GitHub Actions run `28408643608` passing Linux, Windows, macOS, RTSan, and TSan. Local
 docs-checkpoint gates are green: `cmake --preset ci`, `cmake --build --preset ci`, and
 `ctest --preset ci --output-on-failure` **249/249**. The focused current UI lane is also green with
-`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The UI input harness skeleton lands in
+`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The UI input harness skeleton landed in
 the first H12 implementation checkpoint: `YesDawUiInputCheck` constructs the shipped `MainComponent`,
-targets stable toolbar Component IDs, rejects disabled Play before Project load, and clicks New/Play/Stop/
-Mixer/Piano through the real button Components. Local gates are green: VS DevShell
+targets stable toolbar Component IDs, rejects disabled Play before Project load, and targets real toolbar
+button Components. Local gates were green: VS DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck`, `ctest --preset ci -R YesDawUiInputCheck
 --output-on-failure`, VS DevShell `cmake --build --preset ci --target YesDaw`, focused H12
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **5/5**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
-**250/250**. The next checkpoint is Project lifecycle controls.
+**250/250**. That harness checkpoint is remote-green on commit `908ff08`, GitHub Actions run
+`28412582848`. The Project lifecycle checkpoint is local-green: `UiAppModel` can create/open/save a
+default session Project bundle, the shipped `MainComponent` drives New/Save/Open through injected file
+choices, `YesDawUiInputCheck` reopens the `.yesdaw` through `ProjectBundleDb` and checks Project parity,
+and empty-session transport stays disabled until the import/playback step supplies a playback-ready
+session. Local gates are green: VS DevShell `cmake --build --preset ci --target YesDawUiInputCheck`,
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure`, VS DevShell
+`cmake --build --preset ci --target YesDaw`, focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
+**250/250**. The next checkpoint is Import WAV into Project bundle, with the audible playback assertion
+split as needed into small commits.
 
 ## Review notes (2026-06-29 adversarial pass)
 

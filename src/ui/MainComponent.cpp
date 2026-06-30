@@ -6,7 +6,7 @@
 
 #include "ui/MainComponent.h"
 #include "ui/TimelineCanvas.h"
-#include "ui/UiActions.h"
+#include "ui/UiAppModel.h"
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"
 
@@ -212,6 +212,14 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
     return "?";
 }
 
+constexpr bool toolbarActionRequiresPlayback (yesdaw::ui::UiActionId id) noexcept
+{
+    return id == yesdaw::ui::UiActionId::TransportPlay
+        || id == yesdaw::ui::UiActionId::TransportStop
+        || id == yesdaw::ui::UiActionId::TransportLocateStart
+        || id == yesdaw::ui::UiActionId::TransportToggleLoop;
+}
+
 void fillPanel (juce::Graphics& g, juce::Rectangle<int> area, float radius = 6.0f)
 {
     g.setColour (kPanel);
@@ -263,7 +271,8 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
 class MainComponent : public juce::Component
 {
 public:
-    MainComponent()
+    explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices)
+        : fileChoices (std::move (choices))
     {
         setSize (1536, 960);
 
@@ -271,7 +280,7 @@ public:
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const yesdaw::ui::UiActionId action = toolbarActions[i];
-            const auto* descriptor = registry.descriptor (action);
+            const auto* descriptor = appModel.registry().descriptor (action);
             if (descriptor == nullptr)
                 continue;
 
@@ -287,7 +296,7 @@ public:
             button.setColour (juce::TextButton::textColourOffId, kText);
             button.setColour (juce::TextButton::textColourOnId, kText);
             button.onClick = [this, action] {
-                (void) registry.dispatch (action, context);
+                handleAction (action);
                 refreshActionState();
                 repaint();
             };
@@ -297,7 +306,9 @@ public:
         refreshActionState();
     }
 
-    [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return context; }
+    [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }
+    [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
+    [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
 
     void paint (juce::Graphics& g) override
     {
@@ -316,7 +327,7 @@ public:
         auto timeline = work.reduced (6, 10);
 
         drawTrackList (g, left);
-        if (context.activePanel == yesdaw::ui::UiPanel::PianoRoll)
+        if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
             drawPianoRoll (g, timeline);
         else
             drawTimeline (g, timeline);
@@ -348,19 +359,48 @@ public:
     }
 
 private:
+    void handleAction (yesdaw::ui::UiActionId action)
+    {
+        switch (action)
+        {
+            case yesdaw::ui::UiActionId::ProjectNew:
+                if (fileChoices.chooseNewProjectBundle)
+                {
+                    const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
+                    if (! path.empty())
+                        (void) appModel.createProjectBundle (path);
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::ProjectOpen:
+                if (fileChoices.chooseOpenProjectBundle)
+                {
+                    const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
+                    if (! path.empty())
+                        (void) appModel.openProjectBundle (path);
+                }
+                return;
+
+            default:
+                (void) appModel.dispatch (action);
+                return;
+        }
+    }
+
     void refreshActionState()
     {
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const auto action = toolbarActions[i];
-            const auto state = registry.stateFor (action, context);
-            buttons[i].setEnabled (state.enabled);
-            buttons[i].setToggleState ((action == yesdaw::ui::UiActionId::TransportToggleLoop && context.loopEnabled)
+            const auto state = appModel.registry().stateFor (action, appModel.context());
+            const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
+            buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
+            buttons[i].setToggleState ((action == yesdaw::ui::UiActionId::TransportToggleLoop && appModel.context().loopEnabled)
                                            || (action == yesdaw::ui::UiActionId::ViewMixer
-                                               && context.activePanel == yesdaw::ui::UiPanel::Mixer)
+                                               && appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
                                            || (action == yesdaw::ui::UiActionId::ViewPianoRoll
-                                               && context.activePanel == yesdaw::ui::UiPanel::PianoRoll),
+                                               && appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll),
                                        juce::dontSendNotification);
         }
     }
@@ -737,8 +777,8 @@ private:
         }
     }
 
-    yesdaw::ui::UiActionRegistry registry;
-    yesdaw::ui::UiActionContext context;
+    yesdaw::ui::UiAppModel appModel;
+    yesdaw::ui::MainComponentFileChoices fileChoices;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
     yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
@@ -783,9 +823,9 @@ juce::String stableIdForAction (yesdaw::ui::UiActionId action)
 
 namespace yesdaw::ui {
 
-std::unique_ptr<juce::Component> createMainComponent()
+std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices)
 {
-    return std::make_unique<MainComponent>();
+    return std::make_unique<MainComponent> (std::move (fileChoices));
 }
 
 MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
@@ -798,6 +838,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
     {
         snapshot.isMainComponent = true;
+        snapshot.playbackReady = mainComponent->harnessPlaybackReady();
+        snapshot.bundlePath = mainComponent->harnessBundlePath();
         snapshot.context = mainComponent->harnessContext();
     }
 

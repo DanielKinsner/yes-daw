@@ -114,6 +114,7 @@ juce_add_gui_app(YesDaw
 
 target_sources(YesDaw PRIVATE src/Main.cpp src/ui/MainComponent.cpp)
 target_include_directories(YesDaw PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDaw SYSTEM PRIVATE ${choc_SOURCE_DIR})
 
 target_compile_definitions(YesDaw PRIVATE
   JUCE_WEB_BROWSER=0
@@ -123,6 +124,7 @@ target_compile_definitions(YesDaw PRIVATE
 
 target_link_libraries(YesDaw
   PRIVATE
+    sqlite3_amalgamation
     juce::juce_gui_extra
     juce::juce_recommended_config_flags)
 
@@ -262,6 +264,7 @@ if (YESDAW_BUILD_APPS)
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
   target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp src/ui/MainComponent.cpp)
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -269,6 +272,7 @@ if (YESDAW_BUILD_APPS)
   target_link_libraries(YesDawUiInputCheck
     PRIVATE
       Catch2::Catch2WithMain
+      sqlite3_amalgamation
       juce::juce_gui_extra
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawUiInputCheck)

@@ -9,20 +9,30 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <filesystem>
+#include <functional>
 #include <memory>
 
 namespace yesdaw::ui {
 
+struct MainComponentFileChoices
+{
+    std::function<std::filesystem::path()> chooseNewProjectBundle;
+    std::function<std::filesystem::path()> chooseOpenProjectBundle;
+};
+
 struct MainComponentSnapshot
 {
     bool isMainComponent = false;
+    bool playbackReady = false;
     int width = 0;
     int height = 0;
     int childCount = 0;
+    std::filesystem::path bundlePath;
     UiActionContext context;
 };
 
-[[nodiscard]] std::unique_ptr<juce::Component> createMainComponent();
+[[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices = {});
 [[nodiscard]] MainComponentSnapshot snapshotMainComponent (const juce::Component& component);
 
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);

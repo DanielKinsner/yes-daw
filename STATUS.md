@@ -8,15 +8,15 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-**Last updated:** 2026-06-29
+**Last updated:** 2026-06-30
 **Current horizon:** **H12 (Operable Session UX) — OPEN.** ADR-0033 opens H12 after H11 closeout was
 remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`). H12 makes the H11 native app shell
 operable before plugin hosting is deepened: new/open/save, import WAV into the Project bundle, timeline
 Clip hit-testing/editing, inspector/mixer controls, piano-roll Note input, transport feedback, undo/redo,
 save/reopen parity, and a self-asserting `YesDawUiInputCheck` while the H11 action/smoke/timeline/
-accessibility gates remain green. This checkpoint is docs-only: ADR-0033, the H12 focused plan, roadmap,
-ADR index, glossary, horizon file, and live handoff; no H12 implementation code has landed yet. The H12
-kickoff docs checkpoint is remote-green on commit `7ad455e` with GitHub Actions run `28408643608`
+accessibility gates remain green. The H12 kickoff checkpoint was docs-only: ADR-0033, the H12 focused plan,
+roadmap, ADR index, glossary, horizon file, and live handoff; no implementation code landed in that
+checkpoint. The H12 kickoff docs checkpoint is remote-green on commit `7ad455e` with GitHub Actions run `28408643608`
 passing Linux, Windows, macOS, RTSan, and TSan. Local docs-checkpoint gates are green:
 `cmake --preset ci`, `cmake --build --preset ci`, and
 `ctest --preset ci --output-on-failure` **249/249**; focused current UI lane
@@ -103,19 +103,21 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 UI input harness skeleton is local-green: `MainComponent` is extracted behind a testable
-factory while the shipped `YesDaw` app still uses the same shell; toolbar Components carry stable action
-IDs/names; `YesDawUiInputCheck` constructs the real shell, rejects disabled Play before Project load, and
-clicks New/Play/Stop/Mixer/Piano through the real button Components. Local gates: VS DevShell
+**Now:** H12 Project lifecycle controls are local-green. The prior H12 UI input harness checkpoint
+`908ff08` is remote-green on GitHub Actions run `28412582848`; the pre-code docs precision patch
+`c622a6c` is remote-green on run `28411881766`. Current work wires real bundle lifecycle into the shipped
+`MainComponent`: `UiAppModel` can create/open/save a default `.yesdaw` Project, the shell owns that model,
+New/Open use injectable file choices for CI instead of native dialogs, Save writes through
+`ProjectBundleDb`, and `YesDawUiInputCheck` clicks New/Save/Open on real toolbar Components then reopens
+the bundle and asserts Project parity. Empty-session transport stays disabled until the import/playback
+checkpoint supplies an actual playback-ready session. Local gates: VS DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck`; `ctest --preset ci -R YesDawUiInputCheck
 --output-on-failure`; VS DevShell `cmake --build --preset ci --target YesDaw`; focused H12
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
 **5/5**; VS DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
-**250/250**. The pre-code docs precision patch `c622a6c` is remote-green on GitHub Actions run
-`28411881766`. H12 implementation code is no longer zero; this is the first implementation checkpoint.
-**Next (Codex — H12 end-to-end): commit/push this harness checkpoint and wait for remote CI, then build Project lifecycle controls.**
-Three
-load-bearing items from the 2026-06-29 adversarial review
+**250/250**.
+**Next (Codex — H12 end-to-end): commit/push this Project lifecycle checkpoint and wait for remote CI, then build Import WAV into Project bundle with the required audible playback assertion.**
+Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
    behind a header first, then drive synthetic JUCE mouse/key events, NOT the headless `UiAppModel`.
