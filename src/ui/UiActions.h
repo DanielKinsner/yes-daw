@@ -81,6 +81,14 @@ enum class UiPanel : std::uint8_t
     PianoRoll
 };
 
+enum class UiRecordingMonitoringPolicy : std::uint8_t
+{
+    Unselected = 0,
+    DirectInput,
+    LatencyCompensated,
+    Off
+};
+
 struct UiActionDescriptor
 {
     UiActionId id;
@@ -119,6 +127,7 @@ struct UiActionContext
     bool recordingTrackArmed = false;
     bool recordingInputSelected = false;
     bool recordingMonitoringSelected = false;
+    UiRecordingMonitoringPolicy selectedRecordingMonitoringPolicy = UiRecordingMonitoringPolicy::Unselected;
     bool isRecording = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
@@ -315,6 +324,23 @@ inline const char* roleName (AccessibilityRole role)
     return "unknown";
 }
 
+inline constexpr UiRecordingMonitoringPolicy nextRecordingMonitoringPolicy (
+    UiRecordingMonitoringPolicy policy) noexcept
+{
+    switch (policy)
+    {
+        case UiRecordingMonitoringPolicy::Unselected:
+        case UiRecordingMonitoringPolicy::Off:
+            return UiRecordingMonitoringPolicy::DirectInput;
+        case UiRecordingMonitoringPolicy::DirectInput:
+            return UiRecordingMonitoringPolicy::LatencyCompensated;
+        case UiRecordingMonitoringPolicy::LatencyCompensated:
+            return UiRecordingMonitoringPolicy::Off;
+    }
+
+    return UiRecordingMonitoringPolicy::DirectInput;
+}
+
 class Keymap
 {
 public:
@@ -487,7 +513,10 @@ public:
                 break;
 
             case UiActionId::RecordingSetMonitoringPolicy:
-                context.recordingMonitoringSelected = true;
+                context.selectedRecordingMonitoringPolicy =
+                    nextRecordingMonitoringPolicy (context.selectedRecordingMonitoringPolicy);
+                context.recordingMonitoringSelected =
+                    context.selectedRecordingMonitoringPolicy != UiRecordingMonitoringPolicy::Unselected;
                 ++context.recordingMonitoringCount;
                 break;
 

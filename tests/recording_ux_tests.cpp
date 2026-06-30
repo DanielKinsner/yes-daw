@@ -1,5 +1,6 @@
 // YES DAW - H13 recording UX shipped-shell harness skeleton.
 
+#include "engine/Recording.h"
 #include "io/WavFile.h"
 #include "ui/MainComponent.h"
 #include "persistence/ProjectBundle.h"
@@ -16,6 +17,7 @@ using yesdaw::ui::MainComponentFileChoices;
 using yesdaw::ui::MainComponentSnapshot;
 using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiAppModel;
+using yesdaw::ui::UiRecordingMonitoringPolicy;
 using yesdaw::ui::findMainComponentChildForAction;
 using yesdaw::ui::snapshotMainComponent;
 using yesdaw::persistence::ProjectBundleDb;
@@ -76,6 +78,35 @@ float expectedRecordedSample (std::uint64_t frame) noexcept
 {
     const int phase = static_cast<int> (frame % 16u);
     return (static_cast<float> (phase) - 7.5f) / 16.0f;
+}
+
+yesdaw::engine::RecordingConfig makeRecordingConfigForSnapshot (
+    const MainComponentSnapshot& snapshot,
+    UiRecordingMonitoringPolicy policy)
+{
+    yesdaw::engine::RecordingConfig config;
+    config.sampleRateHz = snapshot.recordingDevice.sampleRate.hz;
+    config.channels = 1;
+    config.latency.inputLatencyFrames = snapshot.recordingDevice.inputLatencyFrames;
+    config.latency.outputLatencyFrames = snapshot.recordingDevice.outputLatencyFrames;
+    config.latency.includeOutputLatency = policy == UiRecordingMonitoringPolicy::LatencyCompensated;
+    config.window.punchStartFrame = 0;
+    config.window.punchEndFrame = 512;
+    return config;
+}
+
+std::int64_t mappedTimelineFrame (const yesdaw::engine::RecordingConfig& config,
+                                  std::int64_t deviceInputFrame)
+{
+    std::int64_t timelineFrame = -1;
+    std::uint32_t takeOrdinal = 99;
+    REQUIRE (yesdaw::engine::mapDeviceInputFrameToRecordingFrame (
+        config,
+        deviceInputFrame,
+        timelineFrame,
+        takeOrdinal));
+    REQUIRE (takeOrdinal == 0u);
+    return timelineFrame;
 }
 
 } // namespace
@@ -142,6 +173,9 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.recordingDevice.stableDeviceId == 1u);
     REQUIRE (snapshot.recordingDevice.inputChannels == 2u);
     REQUIRE (snapshot.recordingDevice.maxBlockSize == 128u);
+    REQUIRE (snapshot.recordingDevice.latencyCalibrated);
+    REQUIRE (snapshot.recordingDevice.inputLatencyFrames == 40);
+    REQUIRE (snapshot.recordingDevice.outputLatencyFrames == 60);
     REQUIRE (snapshot.context.deviceSelectCount == 1);
     REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
     REQUIRE_FALSE (record.isEnabled());
@@ -150,6 +184,7 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingMonitoringSelected);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::DirectInput);
     REQUIRE (snapshot.context.recordingMonitoringCount == 1);
     REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
     REQUIRE_FALSE (snapshot.context.recordingInputSelected);
@@ -176,6 +211,9 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.context.deviceRefreshCount == 1);
     REQUIRE (snapshot.context.recordingDeviceGeneration == 2u);
     REQUIRE (snapshot.context.recordingDeviceSelected);
+    REQUIRE (snapshot.recordingDevice.latencyCalibrated);
+    REQUIRE (snapshot.recordingDevice.inputLatencyFrames == 40);
+    REQUIRE (snapshot.recordingDevice.outputLatencyFrames == 60);
     REQUIRE (snapshot.context.recordingTrackArmed);
     REQUIRE (snapshot.context.recordingInputSelected);
     REQUIRE (record.isEnabled());
@@ -271,6 +309,83 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (decoded.interleavedSamples.size() == 256u);
     for (std::uint64_t frame = 0; frame < decoded.frames; ++frame)
         REQUIRE (decoded.interleavedSamples[static_cast<std::size_t> (frame)] == expectedRecordedSample (frame));
+}
+
+TEST_CASE ("H13 monitoring policy and fake-device latency calibration are scriptable through MainComponent",
+           "[recording][ux][shell][latency]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("monitoring-latency");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
+    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
+    juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
+    juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
+    juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
+
+    clickButton (newProject);
+    clickButton (testDevice);
+    clickButton (armTrack);
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.recordingDevice.latencyCalibrated);
+    REQUIRE (snapshot.recordingDevice.inputLatencyFrames == 40);
+    REQUIRE (snapshot.recordingDevice.outputLatencyFrames == 60);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::Unselected);
+    REQUIRE_FALSE (record.isEnabled());
+
+    clickButton (monitor);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingMonitoringSelected);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::DirectInput);
+    REQUIRE (record.isEnabled());
+
+    const auto directConfig = makeRecordingConfigForSnapshot (
+        snapshot,
+        snapshot.context.selectedRecordingMonitoringPolicy);
+    REQUIRE (directConfig.latency.includeOutputLatency == false);
+    REQUIRE (mappedTimelineFrame (directConfig, 200) == 160);
+
+    clickButton (monitor);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingMonitoringSelected);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::LatencyCompensated);
+    REQUIRE (record.isEnabled());
+
+    const auto latencyCompensatedConfig = makeRecordingConfigForSnapshot (
+        snapshot,
+        snapshot.context.selectedRecordingMonitoringPolicy);
+    REQUIRE (latencyCompensatedConfig.latency.includeOutputLatency);
+    REQUIRE (mappedTimelineFrame (latencyCompensatedConfig, 200) == 100);
+
+    yesdaw::engine::RecordingConfig noCompensation = latencyCompensatedConfig;
+    noCompensation.latency.inputLatencyFrames = 0;
+    noCompensation.latency.outputLatencyFrames = 0;
+    REQUIRE (mappedTimelineFrame (noCompensation, 200) == 200);
+
+    clickButton (monitor);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingMonitoringSelected);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::Off);
+    REQUIRE (record.isEnabled());
+
+    clickButton (monitor);
+    clickButton (monitor);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::LatencyCompensated);
+
+    clickButton (record);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isRecording);
+    REQUIRE (snapshot.lastRecordedAudioTake.takeId.isValid());
+
+    const yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.recordingTakes.size() == 1u);
+    REQUIRE (recorded.recordingTakes.front().monitoringPolicy
+             == yesdaw::engine::RecordingMonitoringPolicy::LatencyCompensated);
 }
 
 TEST_CASE ("H13 recording UX rejects arming when the loaded Project has no Track",

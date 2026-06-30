@@ -8,6 +8,7 @@
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/ProjectUndo.h"
+#include "engine/Recording.h"
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
@@ -123,6 +124,9 @@ struct UiRecordingDeviceSelection
     engine::SampleRate sampleRate;
     std::uint16_t inputChannels = 0;
     std::uint32_t maxBlockSize = 0;
+    bool latencyCalibrated = false;
+    std::int64_t inputLatencyFrames = 0;
+    std::int64_t outputLatencyFrames = 0;
 };
 
 struct UiRecordingTrackInputSelection
@@ -272,9 +276,7 @@ public:
         takeDraft.deviceStableId = recordingDevice_.stableDeviceId;
         takeDraft.inputChannel = recordingTrackInput_.inputChannel;
         takeDraft.takeOrdinal = 0;
-        takeDraft.monitoringPolicy = context_.recordingMonitoringSelected
-            ? engine::RecordingMonitoringPolicy::DirectInput
-            : engine::RecordingMonitoringPolicy::Off;
+        takeDraft.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
 
         result.importResult = addAudioAssetClipFromSource (
             sourcePath,
@@ -1191,6 +1193,34 @@ private:
         context_.isRecording = false;
     }
 
+    static void applyDeterministicTestDeviceProfile (UiRecordingDeviceSelection& device) noexcept
+    {
+        device.stableDeviceId = 1u;
+        device.sampleRate = engine::SampleRate { 48000.0 };
+        device.inputChannels = 2u;
+        device.maxBlockSize = 128u;
+        device.latencyCalibrated = true;
+        device.inputLatencyFrames = 40;
+        device.outputLatencyFrames = 60;
+    }
+
+    [[nodiscard]] static engine::RecordingMonitoringPolicy engineMonitoringPolicyForUi (
+        UiRecordingMonitoringPolicy policy) noexcept
+    {
+        switch (policy)
+        {
+            case UiRecordingMonitoringPolicy::DirectInput:
+                return engine::RecordingMonitoringPolicy::DirectInput;
+            case UiRecordingMonitoringPolicy::LatencyCompensated:
+                return engine::RecordingMonitoringPolicy::LatencyCompensated;
+            case UiRecordingMonitoringPolicy::Off:
+            case UiRecordingMonitoringPolicy::Unselected:
+                return engine::RecordingMonitoringPolicy::Off;
+        }
+
+        return engine::RecordingMonitoringPolicy::Off;
+    }
+
     void syncRecordingContext() noexcept
     {
         context_.recordingDeviceSelected = recordingDevice_.selected;
@@ -1224,10 +1254,7 @@ private:
         ++recordingDevice_.generation;
         if (recordingDevice_.selected)
         {
-            recordingDevice_.stableDeviceId = 1u;
-            recordingDevice_.sampleRate = engine::SampleRate { 48000.0 };
-            recordingDevice_.inputChannels = 2u;
-            recordingDevice_.maxBlockSize = 128u;
+            applyDeterministicTestDeviceProfile (recordingDevice_);
         }
 
         ++context_.commandDispatchCount;
@@ -1244,12 +1271,9 @@ private:
             return { id, state, false };
 
         recordingDevice_.selected = true;
-        recordingDevice_.stableDeviceId = 1u;
         if (recordingDevice_.generation == 0u)
             recordingDevice_.generation = 1u;
-        recordingDevice_.sampleRate = engine::SampleRate { 48000.0 };
-        recordingDevice_.inputChannels = 2u;
-        recordingDevice_.maxBlockSize = 128u;
+        applyDeterministicTestDeviceProfile (recordingDevice_);
 
         ++context_.commandDispatchCount;
         ++context_.deviceSelectCount;
@@ -1289,12 +1313,17 @@ private:
 
     [[nodiscard]] UiActionDispatchResult selectInputMonitoringPolicy()
     {
+        syncRecordingContext();
+
         const UiActionId id = UiActionId::RecordingSetMonitoringPolicy;
         const UiActionState state = registry_.stateFor (id, context_);
         if (! state.enabled)
             return { id, state, false };
 
-        context_.recordingMonitoringSelected = true;
+        context_.selectedRecordingMonitoringPolicy =
+            nextRecordingMonitoringPolicy (context_.selectedRecordingMonitoringPolicy);
+        context_.recordingMonitoringSelected =
+            context_.selectedRecordingMonitoringPolicy != UiRecordingMonitoringPolicy::Unselected;
         ++context_.commandDispatchCount;
         ++context_.recordingMonitoringCount;
         syncRecordingContext();

@@ -45,10 +45,10 @@ ctest --test-dir build-ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Acces
 ADR-0035 (H13 recording and device UX) is accepted by the kickoff docs checkpoint. The focused H13 plan is
 `docs/plans/2026-06-30-h13-recording-device-ux-plan.md`. H13 implementation is in progress on `main`:
 the shipped-shell recording harness, deterministic test-device selection/refresh, Track arming,
-canonical recorded-WAV Assets, schema-v5 Take metadata, and shipped-shell deterministic MIDI recording are
-implemented as small checkpoints. The current live handoff and next checkpoint are in `STATUS.md`; the
-horizon remains open until monitoring policy/latency calibration, take-lane/Comp basics, autosave recovery
-restore/discard choices, and final full-lane closeout are green.
+canonical recorded-WAV Assets, schema-v5 Take metadata, shipped-shell deterministic MIDI recording, and
+scripted monitoring policy plus fake-device latency calibration are implemented as small checkpoints. The
+current live handoff and next checkpoint are in `STATUS.md`; the horizon remains open until take-lane/Comp
+basics, autosave recovery restore/discard choices, and final full-lane closeout are green.
 
 ## The plan
 
