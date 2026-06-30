@@ -1799,8 +1799,8 @@ private:
         const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
         const double fadeInSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeIn) / sampleRate : 0.0;
         const double fadeOutSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeOut) / sampleRate : 0.0;
-        for (const auto label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
-                                  juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
+        for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
+                                   juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
         {
             auto row = fades.removeFromTop (32).reduced (0, 3);
             g.setColour (juce::Colour (0xff0b1016));

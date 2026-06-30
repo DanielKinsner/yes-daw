@@ -9,7 +9,7 @@ worklog.
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
 **Last updated:** 2026-06-30
-**Current horizon:** **H12 (Operable Session UX) — CLOSED LOCALLY; CLOSEOUT CI PENDING.** ADR-0033 opens H12 after H11 closeout was
+**Current horizon:** **H12 (Operable Session UX) — CLOSED LOCALLY; CLOSEOUT FOLLOW-UP CI PENDING.** ADR-0033 opens H12 after H11 closeout was
 remote-green on `main` (`e9436af`, GitHub Actions run `28405529686`). H12 makes the H11 native app shell
 operable before plugin hosting is deepened: new/open/save, import WAV into the Project bundle, timeline
 Clip hit-testing/editing, inspector/mixer controls, piano-roll Note input, transport feedback, undo/redo,
@@ -103,7 +103,16 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 closeout audit/gate is local-green and ready to push. The audit found one remaining written-plan
+**Now:** H12 closeout audit/gate is local-green with a portability follow-up ready to push. The first
+closeout push `fe7e0ae` failed remote CI run `28456766036` on Linux/macOS build because GCC/Clang treated
+the inspector label range loop copy as `-Werror=range-loop-construct`; RTSan and TSan were green. The
+follow-up binds the loop label by reference. Local follow-up gates are green: `git diff --check`; VS
+DevShell `cmake --build --preset ci --target YesDawUiInputCheck`; direct `YesDawUiInputCheck.exe`
+**832 assertions / 7 test cases**; focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**; VS DevShell full `cmake --build --preset ci`; and full
+`ctest --preset ci --output-on-failure` **254/254**.
+The audit found one remaining written-plan
 gap: selected Clip inspector fields were still painted-only. The closeout fix turns Clip gain/fade fields
 into real inspector sliders in the shipped `MainComponent`, disables them when no Clip is selected, drives
 them through `YesDawUiInputCheck`, and proves Project mutation plus save/reopen parity. Local closeout gates
@@ -152,8 +161,8 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 closeout): commit and push the local-green H12 closeout, then wait for remote CI. Do not
-start H13 until H12 closeout is remote-green.**
+**Next (Codex - H12 closeout): commit and push the local-green portability follow-up, then wait for remote
+CI. Do not start H13 until H12 closeout follow-up is remote-green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
