@@ -1099,7 +1099,12 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
                     if (! path.empty())
-                        (void) appModel.createProjectBundle (path);
+                    {
+                        if (fileChoices.makeNewProject)
+                            (void) appModel.createProjectBundle (path, fileChoices.makeNewProject());
+                        else
+                            (void) appModel.createProjectBundle (path);
+                    }
                 }
                 return;
 

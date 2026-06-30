@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "engine/Project.h"
 #include "ui/UiActions.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -21,6 +22,7 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseNewProjectBundle;
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
     std::function<std::filesystem::path()> chooseImportAudioFile;
+    std::function<engine::Project()> makeNewProject;
 };
 
 struct MainComponentSnapshot
