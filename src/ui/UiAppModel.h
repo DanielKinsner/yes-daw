@@ -445,6 +445,30 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFades (engine::Tick fadeIn, engine::Tick fadeOut)
+    {
+        const UiActionId id = UiActionId::TimelineClipSetFades;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setClipFades (selectedTimelineClipId_, fadeIn, fadeOut));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,

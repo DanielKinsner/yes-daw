@@ -318,6 +318,7 @@ public:
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
     std::function<void (int, int)> onClipGainAdjusted;
+    std::function<void (int, bool, double)> onClipFadeAdjusted;
 
     void paint (juce::Graphics& g) override
     {
@@ -345,7 +346,10 @@ public:
             dragState.downPosition = event.getPosition();
             dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition(), event.mods);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
+            {
                 dragState.startSeconds = clip->startSeconds;
+                dragState.lengthSeconds = clip->lengthSeconds;
+            }
             return;
         }
 
@@ -374,14 +378,15 @@ public:
             return;
 
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const std::optional<double> eventSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition());
         if (drag.mode == TimelineDragMode::TrimRight)
         {
             if (std::abs (deltaX) < 2)
                 return;
 
-            if (const std::optional<double> trimEndSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+            if (eventSeconds)
                 if (onClipTrimmedRight)
-                    onClipTrimmedRight (drag.layoutClipId, *trimEndSeconds);
+                    onClipTrimmedRight (drag.layoutClipId, *eventSeconds);
             return;
         }
 
@@ -392,6 +397,23 @@ public:
 
             if (onClipGainAdjusted)
                 onClipGainAdjusted (drag.layoutClipId, -deltaY);
+            return;
+        }
+
+        if (drag.mode == TimelineDragMode::FadeIn || drag.mode == TimelineDragMode::FadeOut)
+        {
+            if (std::abs (deltaX) < 2 || ! eventSeconds)
+                return;
+
+            const double fadeSeconds = drag.mode == TimelineDragMode::FadeIn
+                ? *eventSeconds - drag.startSeconds
+                : (drag.startSeconds + drag.lengthSeconds) - *eventSeconds;
+
+            if (onClipFadeAdjusted)
+                onClipFadeAdjusted (
+                    drag.layoutClipId,
+                    drag.mode == TimelineDragMode::FadeIn,
+                    std::clamp (fadeSeconds, 0.0, drag.lengthSeconds));
             return;
         }
 
@@ -431,7 +453,9 @@ private:
     {
         Move,
         TrimRight,
-        Gain
+        Gain,
+        FadeIn,
+        FadeOut
     };
 
     struct TimelineDragState
@@ -440,6 +464,7 @@ private:
         bool moved = false;
         int layoutClipId = -1;
         double startSeconds = 0.0;
+        double lengthSeconds = 0.0;
         TimelineDragMode mode = TimelineDragMode::Move;
         juce::Point<int> downPosition;
     };
@@ -484,9 +509,20 @@ private:
 
         const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
         const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double clipLeftX = static_cast<double> (geometry.clipArea.getX())
+                               + (clip->startSeconds - geometry.viewport.scrollSeconds) * pixelsPerSecond;
         const double clipRightX = static_cast<double> (geometry.clipArea.getX())
                                 + ((clip->startSeconds + clip->lengthSeconds) - geometry.viewport.scrollSeconds)
                                       * pixelsPerSecond;
+
+        if (modifiers.isAltDown())
+        {
+            if (std::fabs (static_cast<double> (position.x) - clipLeftX) <= static_cast<double> (kTrimEdgePixels))
+                return TimelineDragMode::FadeIn;
+
+            if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
+                return TimelineDragMode::FadeOut;
+        }
 
         if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
             return TimelineDragMode::TrimRight;
@@ -558,6 +594,9 @@ public:
         };
         timelineInput.onClipGainAdjusted = [this] (int timelineClipId, int deltaPixels) {
             adjustTimelineClipGainByLayoutId (timelineClipId, deltaPixels);
+        };
+        timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds) {
+            adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds);
         };
         addAndMakeVisible (timelineInput);
 
@@ -945,16 +984,7 @@ private:
             return;
 
         const yesdaw::engine::EntityId clipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
-        const yesdaw::engine::Clip* clip = nullptr;
-        for (const yesdaw::engine::Clip& candidate : appModel.project().clips)
-        {
-            if (candidate.id == clipId)
-            {
-                clip = &candidate;
-                break;
-            }
-        }
-
+        const yesdaw::engine::Clip* const clip = findProjectClipById (clipId);
         if (clip == nullptr)
             return;
 
@@ -973,6 +1003,43 @@ private:
 
         refreshActionState();
         repaint();
+    }
+
+    void adjustTimelineClipFadeByLayoutId (int layoutClipId, bool fadeIn, double fadeSeconds)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        const yesdaw::engine::EntityId clipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        const yesdaw::engine::Clip* const clip = findProjectClipById (clipId);
+        if (clip == nullptr)
+            return;
+
+        const std::optional<yesdaw::engine::Tick> fadeTicks = timelineTickFromSeconds (fadeSeconds);
+        if (! fadeTicks)
+            return;
+
+        const yesdaw::engine::Tick clampedFade =
+            std::clamp<yesdaw::engine::Tick> (*fadeTicks, 0, std::max<yesdaw::engine::Tick> (0, clip->timelineLength));
+        const yesdaw::engine::Tick nextFadeIn = fadeIn ? clampedFade : clip->fadeIn;
+        const yesdaw::engine::Tick nextFadeOut = fadeIn ? clip->fadeOut : clampedFade;
+        if (nextFadeIn == clip->fadeIn && nextFadeOut == clip->fadeOut)
+            return;
+
+        (void) appModel.selectTimelineClip (clipId);
+        (void) appModel.setSelectedTimelineClipFades (nextFadeIn, nextFadeOut);
+
+        refreshActionState();
+        repaint();
+    }
+
+    [[nodiscard]] const yesdaw::engine::Clip* findProjectClipById (yesdaw::engine::EntityId clipId) const noexcept
+    {
+        for (const yesdaw::engine::Clip& candidate : appModel.project().clips)
+            if (candidate.id == clipId)
+                return &candidate;
+
+        return nullptr;
     }
 
     void drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area) const

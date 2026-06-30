@@ -103,22 +103,19 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 clip gain via real-shell timeline input is local-green. The prior scheduler CI repair is
-remote-green: the transport checkpoint commit `4d20258` initially went red in the pre-existing macOS
-`YesDawSchedulerCheck` timing predicate (`p999=4948208`, period `4166666`, max `8581458`) even though the
-H12 input lane itself passed; follow-up `a9a57bf` keeps the macOS scheduler soak's measured-block and
-parallel-vs-serial determinism assertions, leaves the hard shared-runner `passesDeadline()` predicate to
-Linux non-sanitizer CI, and is green on GitHub Actions run `28418515621` across Windows, Linux, macOS,
-RTSan, and TSan. The new clip-gain checkpoint adds a shift-drag gesture on a hit-tested Timeline Clip in
-the shipped `MainComponent`; it routes through `UiAppModel::setSelectedTimelineClipGain`, persists the
-Project bundle, rebuilds playback, and proves undo/redo parity in `YesDawUiInputCheck`. Local gates are
-green: `git diff --check`; VS DevShell
+**Now:** H12 fade gestures via real-shell timeline input are local-green. The clip-gain checkpoint
+`3b0a337` is remote-green on GitHub Actions run `28419232690` across Windows, Linux, macOS, RTSan, and
+TSan. The new fade checkpoint adds Alt-left-edge and Alt-right-edge drags on a hit-tested Timeline Clip in
+the shipped `MainComponent`; it routes through `UiAppModel::setSelectedTimelineClipFades`, persists the
+Project bundle, rebuilds playback, and proves both fade-in/fade-out undo/redo parity in
+`YesDawUiInputCheck`. Local gates are green: `git diff --check`; VS BuildTools DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck`;
-`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` **1/1**; VS DevShell
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` **1/1**; VS BuildTools DevShell
 `cmake --build --preset ci --target YesDawUiInputCheck YesDawUiActionCheck YesDawAppSmokeCheck
 YesDawTimelineGpuCheck YesDawAccessibilityCheck`; `ctest --preset ci -R
 "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure` **5/5**; VS
-DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **251/251**.
+BuildTools DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
+**251/251**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
@@ -126,7 +123,8 @@ Import WAV through the shipped shell `2110c3b` on run `28414262811`, Timeline hi
 real-shell Clip selection `102c94a` on run `28415151322`, and Timeline Clip move via real-shell drag
 `5089ebc` on run `28415965271`, and Timeline Clip split via real-shell double-click `7576771` on run
 `28416653470`, Timeline Clip right-edge trim via real-shell drag `a8f4b39` on run `28417399129`, and
-transport locate/loop/stop plus scheduler repair `a9a57bf` on run `28418515621`.
+transport locate/loop/stop plus scheduler repair `a9a57bf` on run `28418515621`, and Timeline Clip gain
+via real-shell shift-drag `3b0a337` on run `28419232690`.
 The transport checkpoint extends `YesDawUiInputCheck` so the imported-session harness drives Play, Locate,
 Loop, and Stop through the shipped toolbar `Button` Components after audible playback, then asserts playhead
 reset, loop toggle state, stop state, and command dispatch counts through the real `MainComponent` snapshot.
@@ -138,8 +136,8 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): commit/push the clip-gain input checkpoint, wait for remote CI, then
-continue H12 step 5 with fade and snap gestures through real Component input plus undo/redo parity.**
+**Next (Codex - H12 end-to-end): commit/push the fade input checkpoint, wait for remote CI, then continue
+H12 step 5 with snap gestures through real Component input plus undo/redo parity.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
