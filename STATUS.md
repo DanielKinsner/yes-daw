@@ -103,9 +103,23 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 review-follow-up docs checkpoint is local-only until this commit is pushed and remote CI is green.
-**Next:** start the UI input harness skeleton (`YesDawUiInputCheck`) as the first H12 implementation
-checkpoint after this docs follow-up is committed, pushed, and remote-green.
+**Now:** H12 review follow-up is committed and pushed on `main` (`d3a54b6`): H12 plan gates tightened,
+proposed ADR-0034 (mixer-state schema) added, and the CONTEXT.md UI-input-harness term scoped to the real
+shell. H12 implementation code is still at zero.
+**Next (Codex — H12 end-to-end): read the patched H12 plan + ADR-0034 before writing code.** Three
+load-bearing items from the 2026-06-29 adversarial review
+([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
+1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`
+   behind a header first, then drive synthetic JUCE mouse/key events, NOT the headless `UiAppModel`.
+   Asserting the model is the H11 gap (the gates verified the library beneath the UI, never the shipped
+   window); `CONTEXT.md` now bars a model-only/back-channel harness.
+2. **Grill + accept ADR-0034 (mixer-state schema) before step 6.** No `Track`/`Bus`/pan/mute/solo exists in
+   the Project or bundle today, so "mixer values survive save/reopen" has nowhere to write until that schema
+   + migration lands.
+3. **Import (step 4) must be *audible*** — decoded WAV bytes reach `PlaybackEngine` output (assert non-zero
+   samples), not just decoded for waveform display.
+Plan steps 1–3 and 7–8 were already sound and are unchanged. First implementation checkpoint is the UI
+input harness skeleton (`YesDawUiInputCheck`).
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. The only
 > human step is blessing a golden on an intended audio change (`cmake --build --preset ci --target bless-goldens`).
