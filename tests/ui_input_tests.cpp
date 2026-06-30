@@ -131,13 +131,14 @@ juce::MouseEvent makeMouseEvent (juce::Component& component,
                                  juce::Point<int> position,
                                  juce::Point<int> mouseDownPosition,
                                  bool mouseWasDragged,
-                                 int numberOfClicks = 1)
+                                 int numberOfClicks = 1,
+                                 juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
 {
     const juce::Time now = juce::Time::getCurrentTime();
     return juce::MouseEvent (
         juce::Desktop::getInstance().getMainMouseSource(),
         position.toFloat(),
-        juce::ModifierKeys::leftButtonModifier,
+        modifiers,
         juce::MouseInputSource::defaultPressure,
         juce::MouseInputSource::defaultOrientation,
         juce::MouseInputSource::defaultRotation,
@@ -159,15 +160,18 @@ void mouseDownAt (juce::Component& component, juce::Point<int> position)
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
-void dragFromTo (juce::Component& component, juce::Point<int> start, juce::Point<int> end)
+void dragFromTo (juce::Component& component,
+                 juce::Point<int> start,
+                 juce::Point<int> end,
+                 juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
 {
-    juce::MouseEvent down = makeMouseEvent (component, start, start, false);
+    juce::MouseEvent down = makeMouseEvent (component, start, start, false, 1, modifiers);
     component.mouseDown (down);
 
-    juce::MouseEvent drag = makeMouseEvent (component, end, start, true);
+    juce::MouseEvent drag = makeMouseEvent (component, end, start, true, 1, modifiers);
     component.mouseDrag (drag);
 
-    juce::MouseEvent up = makeMouseEvent (component, end, start, true);
+    juce::MouseEvent up = makeMouseEvent (component, end, start, true, 1, modifiers);
     component.mouseUp (up);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
@@ -216,6 +220,49 @@ juce::Point<int> timelineClipRightEdgeDragPoint (juce::Component& timeline,
                               * geometry.viewport.pixelsPerSecond;
 
     const int x = std::max (geometry.clipArea.getX(), static_cast<int> (std::llround (rightX)) - 2);
+    const int y = geometry.clipArea.getY() + std::max (1, geometry.laneHeight / 2);
+    return { x, y };
+}
+
+juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
+                                          const yesdaw::engine::Project& project,
+                                          std::size_t clipIndex)
+{
+    REQUIRE (project.sampleRate.isValid());
+    REQUIRE (clipIndex < project.clips.size());
+
+    std::vector<yesdaw::ui::Clip> clips;
+    clips.reserve (project.clips.size());
+
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.clips = clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (1.0, endSeconds * 1.25);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (1, timeline.getWidth() - 26))
+                                   / std::max (1.0, state.totalSeconds);
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const yesdaw::ui::Clip& clip = clips[clipIndex];
+    const double centerSeconds = clip.startSeconds + clip.lengthSeconds * 0.5;
+    const double centerX = static_cast<double> (geometry.clipArea.getX())
+                         + (centerSeconds - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond;
+
+    const int x = std::clamp (static_cast<int> (std::llround (centerX)),
+                              geometry.clipArea.getX(),
+                              geometry.clipArea.getRight() - 1);
     const int y = geometry.clipArea.getY() + std::max (1, geometry.laneHeight / 2);
     return { x, y };
 }
@@ -536,6 +583,54 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 11);
 
+    const juce::Point<int> gainStart = timelineClipCenterPoint (timeline, trimRedone, 0u);
+    const juce::ModifierKeys shiftDrag {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier
+    };
+    dragFromTo (timeline, gainStart, gainStart.translated (0, -20), shiftDrag);
+
+    const yesdaw::engine::Project gained = readProjectSnapshot (bundlePath);
+    REQUIRE (gained.clips.size() == 2u);
+    REQUIRE (gained.clips[1] == trimRedone.clips[1]);
+    REQUIRE (gained.clips[0].id == trimRedone.clips[0].id);
+    REQUIRE (gained.clips[0].timelineStart == trimRedone.clips[0].timelineStart);
+    REQUIRE (gained.clips[0].timelineLength == trimRedone.clips[0].timelineLength);
+    REQUIRE (gained.clips[0].srcOffset == trimRedone.clips[0].srcOffset);
+    REQUIRE (gained.clips[0].srcLen == trimRedone.clips[0].srcLen);
+    REQUIRE (gained.clips[0].fadeIn == trimRedone.clips[0].fadeIn);
+    REQUIRE (gained.clips[0].fadeOut == trimRedone.clips[0].fadeOut);
+    REQUIRE (gained.clips[0].gain > trimRedone.clips[0].gain);
+    REQUIRE (std::fabs (gained.clips[0].gain - 1.2f) < 0.000001f);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.timelineEditCount == 4);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 12);
+
+    clickButton (undo);
+
+    const yesdaw::engine::Project gainUndone = readProjectSnapshot (bundlePath);
+    REQUIRE (gainUndone.clips == trimRedone.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 4);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 13);
+
+    clickButton (redo);
+
+    const yesdaw::engine::Project gainRedone = readProjectSnapshot (bundlePath);
+    REQUIRE (gainRedone.clips == gained.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 4);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 14);
+
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
     REQUIRE (readBytes (bundledAssetPath) == readBytes (fixturePath));
@@ -548,7 +643,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 12);
+    REQUIRE (snapshot.context.commandDispatchCount == 15);
 
     const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (rendered.size() == 1024u);
@@ -565,7 +660,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 13);
+    REQUIRE (snapshot.context.commandDispatchCount == 16);
 
     juce::Button& loop = requireButtonForAction (*shell, UiActionId::TransportToggleLoop);
     REQUIRE (loop.isEnabled());
@@ -575,7 +670,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (loop.getToggleState());
-    REQUIRE (snapshot.context.commandDispatchCount == 14);
+    REQUIRE (snapshot.context.commandDispatchCount == 17);
 
     juce::Button& stop = requireButtonForAction (*shell, UiActionId::TransportStop);
     REQUIRE (stop.isEnabled());
@@ -585,5 +680,5 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 15);
+    REQUIRE (snapshot.context.commandDispatchCount == 18);
 }

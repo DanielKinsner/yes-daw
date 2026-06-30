@@ -317,6 +317,7 @@ public:
     std::function<void (int, double)> onClipMoved;
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
+    std::function<void (int, int)> onClipGainAdjusted;
 
     void paint (juce::Graphics& g) override
     {
@@ -342,7 +343,7 @@ public:
             dragState.active = true;
             dragState.layoutClipId = hit.id;
             dragState.downPosition = event.getPosition();
-            dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition());
+            dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition(), event.mods);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
                 dragState.startSeconds = clip->startSeconds;
             return;
@@ -368,17 +369,34 @@ public:
         dragState = {};
 
         const int deltaX = event.getPosition().x - drag.downPosition.x;
-        if (! drag.moved || std::abs (deltaX) < 2 || ! stateProvider)
+        const int deltaY = event.getPosition().y - drag.downPosition.y;
+        if (! drag.moved || ! stateProvider)
             return;
 
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         if (drag.mode == TimelineDragMode::TrimRight)
         {
+            if (std::abs (deltaX) < 2)
+                return;
+
             if (const std::optional<double> trimEndSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                 if (onClipTrimmedRight)
                     onClipTrimmedRight (drag.layoutClipId, *trimEndSeconds);
             return;
         }
+
+        if (drag.mode == TimelineDragMode::Gain)
+        {
+            if (std::abs (deltaY) < 2)
+                return;
+
+            if (onClipGainAdjusted)
+                onClipGainAdjusted (drag.layoutClipId, -deltaY);
+            return;
+        }
+
+        if (std::abs (deltaX) < 2)
+            return;
 
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
@@ -412,7 +430,8 @@ private:
     enum class TimelineDragMode
     {
         Move,
-        TrimRight
+        TrimRight,
+        Gain
     };
 
     struct TimelineDragState
@@ -455,7 +474,8 @@ private:
     [[nodiscard]] static TimelineDragMode dragModeForPointer (const yesdaw::ui::TimelineCanvasState& state,
                                                               juce::Rectangle<int> bounds,
                                                               int layoutClipId,
-                                                              juce::Point<int> position) noexcept
+                                                              juce::Point<int> position,
+                                                              juce::ModifierKeys modifiers) noexcept
     {
         constexpr int kTrimEdgePixels = 8;
         const yesdaw::ui::Clip* const clip = findClipByLayoutId (state, layoutClipId);
@@ -470,6 +490,9 @@ private:
 
         if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
             return TimelineDragMode::TrimRight;
+
+        if (modifiers.isShiftDown())
+            return TimelineDragMode::Gain;
 
         return TimelineDragMode::Move;
     }
@@ -532,6 +555,9 @@ public:
         };
         timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds) {
             trimTimelineClipRightByLayoutId (timelineClipId, endSeconds);
+        };
+        timelineInput.onClipGainAdjusted = [this] (int timelineClipId, int deltaPixels) {
+            adjustTimelineClipGainByLayoutId (timelineClipId, deltaPixels);
         };
         addAndMakeVisible (timelineInput);
 
@@ -908,6 +934,42 @@ private:
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (endSeconds))
             (void) appModel.trimSelectedTimelineClipRightTo (*tick);
+
+        refreshActionState();
+        repaint();
+    }
+
+    void adjustTimelineClipGainByLayoutId (int layoutClipId, int deltaPixels)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        const yesdaw::engine::EntityId clipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        const yesdaw::engine::Clip* clip = nullptr;
+        for (const yesdaw::engine::Clip& candidate : appModel.project().clips)
+        {
+            if (candidate.id == clipId)
+            {
+                clip = &candidate;
+                break;
+            }
+        }
+
+        if (clip == nullptr)
+            return;
+
+        constexpr float kGainPerPixel = 0.01f;
+        constexpr float kMaxGestureGain = 4.0f;
+        const float nextGain = std::clamp (
+            clip->gain + static_cast<float> (deltaPixels) * kGainPerPixel,
+            0.0f,
+            kMaxGestureGain);
+
+        if (std::fabs (nextGain - clip->gain) <= 0.000001f)
+            return;
+
+        (void) appModel.selectTimelineClip (clipId);
+        (void) appModel.setSelectedTimelineClipGain (nextGain);
 
         refreshActionState();
         repaint();
