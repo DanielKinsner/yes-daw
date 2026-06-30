@@ -6,6 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include "engine/Time.h"
 #include "persistence/ProjectBundle.h"
 
 #include <algorithm>
@@ -307,6 +308,37 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
                               geometry.clipArea.getRight() - 1);
     const int y = geometry.clipArea.getY() + std::max (1, geometry.laneHeight / 2);
     return { x, y };
+}
+
+double timelinePixelsPerSecond (juce::Component& timeline, const yesdaw::engine::Project& project)
+{
+    REQUIRE (project.sampleRate.isValid());
+
+    std::vector<yesdaw::ui::Clip> clips;
+    clips.reserve (project.clips.size());
+
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.clips = clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (1.0, endSeconds * 1.25);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (1, timeline.getWidth() - 26))
+                                   / std::max (1.0, state.totalSeconds);
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    return geometry.viewport.pixelsPerSecond;
 }
 
 } // namespace
@@ -766,6 +798,67 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 20);
 
+    const juce::Point<int> snapStart = timelineClipCenterPoint (timeline, fadeOutRedone, 0u);
+    constexpr int kSnapDeltaPixels = 9;
+    constexpr yesdaw::engine::SnapGrid kSnapGrid { 512 };
+    const double unsnappedSeconds = static_cast<double> (fadeOutRedone.clips[0].timelineStart)
+                                      / fadeOutRedone.sampleRate.hz
+                                  + static_cast<double> (kSnapDeltaPixels)
+                                      / timelinePixelsPerSecond (timeline, fadeOutRedone);
+    const yesdaw::engine::Tick unsnappedTick =
+        static_cast<yesdaw::engine::Tick> (std::llround (unsnappedSeconds * fadeOutRedone.sampleRate.hz));
+    yesdaw::engine::Tick expectedSnappedStart = 0;
+    REQUIRE (yesdaw::engine::snapTick (unsnappedTick, kSnapGrid, expectedSnappedStart));
+    expectedSnappedStart = std::max<yesdaw::engine::Tick> (0, expectedSnappedStart);
+    REQUIRE (expectedSnappedStart != fadeOutRedone.clips[0].timelineStart);
+
+    const juce::ModifierKeys ctrlDrag {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
+    };
+    dragFromTo (timeline, snapStart, snapStart.translated (kSnapDeltaPixels, 0), ctrlDrag);
+
+    const yesdaw::engine::Project snapped = readProjectSnapshot (bundlePath);
+    REQUIRE (snapped.clips.size() == 2u);
+    REQUIRE (snapped.clips[1] == fadeOutRedone.clips[1]);
+    REQUIRE (snapped.clips[0].id == fadeOutRedone.clips[0].id);
+    REQUIRE (snapped.clips[0].timelineStart == expectedSnappedStart);
+    REQUIRE (snapped.clips[0].timelineStart % kSnapGrid.intervalTicks == 0);
+    REQUIRE (snapped.clips[0].timelineLength == fadeOutRedone.clips[0].timelineLength);
+    REQUIRE (snapped.clips[0].srcOffset == fadeOutRedone.clips[0].srcOffset);
+    REQUIRE (snapped.clips[0].srcLen == fadeOutRedone.clips[0].srcLen);
+    REQUIRE (snapped.clips[0].gain == fadeOutRedone.clips[0].gain);
+    REQUIRE (snapped.clips[0].fadeIn == fadeOutRedone.clips[0].fadeIn);
+    REQUIRE (snapped.clips[0].fadeOut == fadeOutRedone.clips[0].fadeOut);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (snapshot.context.timelineEditCount == 7);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 21);
+
+    clickButton (undo);
+
+    const yesdaw::engine::Project snapUndone = readProjectSnapshot (bundlePath);
+    REQUIRE (snapUndone.clips == fadeOutRedone.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 7);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 22);
+
+    clickButton (redo);
+
+    const yesdaw::engine::Project snapRedone = readProjectSnapshot (bundlePath);
+    REQUIRE (snapRedone.clips == snapped.clips);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 7);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (snapshot.context.commandDispatchCount == 23);
+
     const std::filesystem::path bundledAssetPath =
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash);
     REQUIRE (readBytes (bundledAssetPath) == readBytes (fixturePath));
@@ -778,15 +871,17 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 21);
+    REQUIRE (snapshot.context.commandDispatchCount == 24);
 
-    const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (rendered.size() == 1024u);
+    const std::uint64_t framesToRender =
+        static_cast<std::uint64_t> (std::max<yesdaw::engine::Tick> (512, snapRedone.clips[0].timelineStart + 512));
+    const std::vector<float> rendered = renderMainComponentPlayback (*shell, framesToRender, 128);
+    REQUIRE (rendered.size() == static_cast<std::size_t> (framesToRender * 2u));
     REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.01);
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
-    REQUIRE (snapshot.context.playheadFrame == 512);
+    REQUIRE (snapshot.context.playheadFrame == static_cast<std::int64_t> (framesToRender));
 
     juce::Button& locate = requireButtonForAction (*shell, UiActionId::TransportLocateStart);
     REQUIRE (locate.isEnabled());
@@ -795,7 +890,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 22);
+    REQUIRE (snapshot.context.commandDispatchCount == 25);
 
     juce::Button& loop = requireButtonForAction (*shell, UiActionId::TransportToggleLoop);
     REQUIRE (loop.isEnabled());
@@ -805,7 +900,7 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (loop.getToggleState());
-    REQUIRE (snapshot.context.commandDispatchCount == 23);
+    REQUIRE (snapshot.context.commandDispatchCount == 26);
 
     juce::Button& stop = requireButtonForAction (*shell, UiActionId::TransportStop);
     REQUIRE (stop.isEnabled());
@@ -815,5 +910,5 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (snapshot.context.commandDispatchCount == 24);
+    REQUIRE (snapshot.context.commandDispatchCount == 27);
 }

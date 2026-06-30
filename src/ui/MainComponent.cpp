@@ -5,6 +5,7 @@
 // accessibility traversal, and editing through the same action IDs.
 
 #include "ui/MainComponent.h"
+#include "engine/Time.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 #include "ui/UiMixerSurface.h"
@@ -32,6 +33,7 @@ constexpr int kHeaderHeight = 88;
 constexpr int kLeftRailWidth = 318;
 constexpr int kInspectorWidth = 248;
 constexpr int kMixerHeight = 260;
+constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 
 const juce::Colour kBackground (0xff080c11);
@@ -314,7 +316,7 @@ public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
     std::function<void (int)> onClipClicked;
     std::function<void()> onEmptyClicked;
-    std::function<void (int, double)> onClipMoved;
+    std::function<void (int, double, bool)> onClipMoved;
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
     std::function<void (int, int)> onClipGainAdjusted;
@@ -426,7 +428,7 @@ public:
         const double nextStartSeconds = std::max (0.0, drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
 
         if (onClipMoved)
-            onClipMoved (drag.layoutClipId, nextStartSeconds);
+            onClipMoved (drag.layoutClipId, nextStartSeconds, drag.mode == TimelineDragMode::SnapMove);
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -452,6 +454,7 @@ private:
     enum class TimelineDragMode
     {
         Move,
+        SnapMove,
         TrimRight,
         Gain,
         FadeIn,
@@ -530,6 +533,9 @@ private:
         if (modifiers.isShiftDown())
             return TimelineDragMode::Gain;
 
+        if (modifiers.isCtrlDown())
+            return TimelineDragMode::SnapMove;
+
         return TimelineDragMode::Move;
     }
 
@@ -583,8 +589,8 @@ public:
             refreshActionState();
             repaint();
         };
-        timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds) {
-            moveTimelineClipByLayoutId (timelineClipId, startSeconds);
+        timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds, bool snapToGrid) {
+            moveTimelineClipByLayoutId (timelineClipId, startSeconds, snapToGrid);
         };
         timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
             splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
@@ -939,14 +945,26 @@ private:
         return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
     }
 
-    void moveTimelineClipByLayoutId (int layoutClipId, double startSeconds)
+    void moveTimelineClipByLayoutId (int layoutClipId, double startSeconds, bool snapToGrid)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
             return;
 
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
-            (void) appModel.moveSelectedTimelineClipTo (*tick);
+        {
+            yesdaw::engine::Tick moveTick = *tick;
+            if (snapToGrid)
+            {
+                yesdaw::engine::Tick snapped = 0;
+                if (! yesdaw::engine::snapTick (moveTick, yesdaw::engine::SnapGrid { kTimelineSnapGridTicks }, snapped))
+                    return;
+
+                moveTick = std::max<yesdaw::engine::Tick> (0, snapped);
+            }
+
+            (void) appModel.moveSelectedTimelineClipTo (moveTick);
+        }
 
         refreshActionState();
         repaint();
