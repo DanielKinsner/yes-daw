@@ -546,8 +546,44 @@ TEST_CASE ("H12 UI input harness imports WAV into the Project bundle and proves 
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
+    REQUIRE_FALSE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (snapshot.context.commandDispatchCount == 12);
 
     const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (rendered.size() == 1024u);
     REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.01);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == 512);
+
+    juce::Button& locate = requireButtonForAction (*shell, UiActionId::TransportLocateStart);
+    REQUIRE (locate.isEnabled());
+    clickButton (locate);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (snapshot.context.commandDispatchCount == 13);
+
+    juce::Button& loop = requireButtonForAction (*shell, UiActionId::TransportToggleLoop);
+    REQUIRE (loop.isEnabled());
+    REQUIRE_FALSE (loop.getToggleState());
+    clickButton (loop);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (loop.getToggleState());
+    REQUIRE (snapshot.context.commandDispatchCount == 14);
+
+    juce::Button& stop = requireButtonForAction (*shell, UiActionId::TransportStop);
+    REQUIRE (stop.isEnabled());
+    clickButton (stop);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (snapshot.context.commandDispatchCount == 15);
 }
