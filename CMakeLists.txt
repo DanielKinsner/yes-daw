@@ -112,7 +112,7 @@ juce_add_gui_app(YesDaw
   PRODUCT_NAME "YesDaw"
   COMPANY_NAME "YesDaw")
 
-target_sources(YesDaw PRIVATE src/Main.cpp)
+target_sources(YesDaw PRIVATE src/Main.cpp src/ui/MainComponent.cpp)
 target_include_directories(YesDaw PRIVATE ${YESDAW_SRC_DIR})
 
 target_compile_definitions(YesDaw PRIVATE
@@ -258,6 +258,22 @@ yesdaw_harden(YesDawAccessibilityCheck)
 add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibilityCheck>)
 
 if (YESDAW_BUILD_APPS)
+  # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
+  juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp src/ui/MainComponent.cpp)
+  target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_compile_definitions(YesDawUiInputCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_MODAL_LOOPS_PERMITTED=1)
+  target_link_libraries(YesDawUiInputCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      juce::juce_gui_extra
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawUiInputCheck)
+  add_test(NAME YesDawUiInputCheck COMMAND $<TARGET_FILE:YesDawUiInputCheck>)
+
   # --- Timeline canvas GPU/frame-time check (H11; native canvas over large arrangement fixture) ---
   juce_add_console_app(YesDawTimelineGpuCheck PRODUCT_NAME "YesDawTimelineGpuCheck")
   target_sources(YesDawTimelineGpuCheck PRIVATE tests/timeline_gpu_tests.cpp)

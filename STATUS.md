@@ -103,12 +103,17 @@ DevShell `cmake --build --preset ci`, full `ctest --preset ci --output-on-failur
 focused H11 `ctest --preset ci -R "YesDaw(UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **4/4**; remote CI run `28405529686` is green across Linux, Windows, macOS, RTSan,
 and TSan. H11 is closed; no H12 has been opened by this closeout.
-**Now:** H12 review follow-up is committed and pushed on `main` (`ef0c264` latest docs-status tip):
-H12 plan gates tightened, proposed ADR-0034 (mixer-state schema) added, the CONTEXT.md UI-input-harness
-term scoped to the real shell, and Codex is patching the two remaining doc-precision leftovers from the
-review before code: ADR-0033's "window loads a Project bundle" overstatement and the stale Xvfb/
-`MainComponent` verification-matrix row. H12 implementation code is still at zero.
-**Next (Codex — H12 end-to-end): after this doc-precision patch is green, build the UI input harness skeleton.**
+**Now:** H12 UI input harness skeleton is local-green: `MainComponent` is extracted behind a testable
+factory while the shipped `YesDaw` app still uses the same shell; toolbar Components carry stable action
+IDs/names; `YesDawUiInputCheck` constructs the real shell, rejects disabled Play before Project load, and
+clicks New/Play/Stop/Mixer/Piano through the real button Components. Local gates: VS DevShell
+`cmake --build --preset ci --target YesDawUiInputCheck`; `ctest --preset ci -R YesDawUiInputCheck
+--output-on-failure`; VS DevShell `cmake --build --preset ci --target YesDaw`; focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**; VS DevShell full `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure`
+**250/250**. The pre-code docs precision patch `c622a6c` is remote-green on GitHub Actions run
+`28411881766`. H12 implementation code is no longer zero; this is the first implementation checkpoint.
+**Next (Codex — H12 end-to-end): commit/push this harness checkpoint and wait for remote CI, then build Project lifecycle controls.**
 Three
 load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):

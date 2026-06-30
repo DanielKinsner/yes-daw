@@ -37,11 +37,12 @@ cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawAppSmokeCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawUiInputCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawTimelineGpuCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawAccessibilityCheck --output-on-failure
 ```
 
-The `YesDawUiInputCheck` target lands during H12. Add it to the focused lane as soon as it exists.
+The focused H12 UI lane is `YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check`.
 
 ## Build order
 
@@ -51,12 +52,14 @@ kickoff ADR/plan checkpoint is committed, pushed, and remote-green.
 1. **Kickoff docs + H12 ADR. [done]** Accept ADR-0033, open `loop/horizon.md` to H12, add this plan,
    update `CONTEXT.md`, `docs/adr/README.md`, `docs/goals/roadmap.md`, and the live handoff. Docs-only.
 
-2. **UI input harness skeleton.** Add `YesDawUiInputCheck` with a headless driver that **constructs the
+2. **UI input harness skeleton. [done]** Add `YesDawUiInputCheck` with a headless driver that **constructs the
    real `MainComponent`** (via the JUCE `MessageManager`, no display), targets named UI regions, runs
-   deterministic pointer/key gestures **against the actual Components**, and asserts failures. Gate: harness
-   boots the real shell against the existing H11 fixture and proves disabled/invalid input negative
-   controls. (`MainComponent` currently lives inside `src/Main.cpp` with no header - extract a testable
-   entry point so a gate can construct it; today no test links `src/Main.cpp` at all.)
+   deterministic activation **against the actual Components**, and asserts failures. The skeleton starts
+   with toolbar Button activation through JUCE's public click path; later non-button controls must add
+   synthetic pointer/key gestures to satisfy the H12 exit gate. Gate: harness boots the real shell against
+   the existing H11 fixture and proves disabled/invalid input negative controls. (`MainComponent`
+   previously lived inside `src/Main.cpp` with no header - it is now extracted behind a testable entry
+   point so a gate can construct it.)
 
 3. **Project lifecycle controls.** Wire new/open/save through native JUCE controls or action-backed app
    model paths, keeping file dialogs isolated behind injectable test choices. Gate: create/open/save/reopen
@@ -123,8 +126,15 @@ Opened on 2026-06-29 after H11 closeout was remote-green on `main` (`e9436af`, G
 with GitHub Actions run `28408643608` passing Linux, Windows, macOS, RTSan, and TSan. Local
 docs-checkpoint gates are green: `cmake --preset ci`, `cmake --build --preset ci`, and
 `ctest --preset ci --output-on-failure` **249/249**. The focused current UI lane is also green with
-`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The next checkpoint is the UI input
-harness skeleton; no H12 implementation code has landed yet.
+`ctest --test-dir build-ci -I 237,240 --output-on-failure` **4/4**. The UI input harness skeleton lands in
+the first H12 implementation checkpoint: `YesDawUiInputCheck` constructs the shipped `MainComponent`,
+targets stable toolbar Component IDs, rejects disabled Play before Project load, and clicks New/Play/Stop/
+Mixer/Piano through the real button Components. Local gates are green: VS DevShell
+`cmake --build --preset ci --target YesDawUiInputCheck`, `ctest --preset ci -R YesDawUiInputCheck
+--output-on-failure`, VS DevShell `cmake --build --preset ci --target YesDaw`, focused H12
+`ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure`
+**5/5**, VS DevShell full `cmake --build --preset ci`, and `ctest --preset ci --output-on-failure`
+**250/250**. The next checkpoint is Project lifecycle controls.
 
 ## Review notes (2026-06-29 adversarial pass)
 
