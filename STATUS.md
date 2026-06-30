@@ -128,6 +128,12 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`; focused H12
 `ctest --preset ci -R "Project projector emits MixerProjectionInputs from Project clips" --output-on-failure`
 **1/1**; VS DevShell full `cmake --build --preset ci`; and full
 `ctest --preset ci --output-on-failure` **254/254**.
+First remote CI run for the mixer-controls checkpoint (`daf4fc9`, GitHub Actions run `28449750432`) found
+a Linux/macOS `-Werror` build failure in `tests/ui_action_tests.cpp`: unused local `secondClipId`. This
+follow-up removes that dead test local only. Local gates for the follow-up are green: `git diff --check`;
+VS DevShell `cmake --build --preset ci --target YesDawUiActionCheck`;
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` **1/1**; VS DevShell full
+`cmake --build --preset ci`; and full `ctest --preset ci --output-on-failure` **254/254**.
 Prior H12 checkpoints are remote-green:
 pre-code docs precision patch `c622a6c` on GitHub Actions run `28411881766`, real shipped-shell input
 harness `908ff08` on run `28412582848`, Project lifecycle controls `5eb4267` on run `28413370943`,
@@ -150,9 +156,9 @@ YesDawTimelineGpuCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check"
 --output-on-failure` **5/5**; VS DevShell full `cmake --build --preset ci`; and
 `ctest --preset ci --output-on-failure` **251/251**.
-**Next (Codex - H12 end-to-end): after this checkpoint is remote-green, start H12 step 7 piano-roll input
-wiring and prove Note edit save/reopen parity through mechanical real-shell UI/bundle checks. Do not start
-H13 until H12 closeout is remote-green.**
+**Next (Codex - H12 end-to-end): push this CI portability follow-up and wait for remote CI. If it is green,
+start H12 step 7 piano-roll input wiring and prove Note edit save/reopen parity through mechanical
+real-shell UI/bundle checks. Do not start H13 until H12 closeout is remote-green.**
 Three load-bearing items from the 2026-06-29 adversarial review
 ([`docs/reviews/2026-06-29-adversarial-review-h11-h12.md`](docs/reviews/2026-06-29-adversarial-review-h11-h12.md)):
 1. **`YesDawUiInputCheck` must drive the real shipped `MainComponent`** — extract it from `src/Main.cpp`

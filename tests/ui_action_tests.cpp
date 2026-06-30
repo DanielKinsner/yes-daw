@@ -506,7 +506,6 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
 
     Project project = makeMixerProject();
     const EntityId firstClipId = project.clips[0].id;
-    const EntityId secondClipId = project.clips[1].id;
     const EntityId firstTrackId = project.tracks[0].id;
     const EntityId secondTrackId = project.tracks[1].id;
     const float originalFirstGain = project.clips[0].gain;
