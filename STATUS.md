@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP6 FxDelayNode implementation CLOSED REMOTE-GREEN; closeout push/CI pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP6 FxDelayNode CLOSED REMOTE-GREEN; CP7 successor pending creation.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -84,22 +84,22 @@ CP9 insert-chain mixer wiring, FX UI, schema change, ADR edit, golden regenerati
 `[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
 Implementation commit `8501f93` passed GitHub Actions run `28721683671` across Linux, Windows,
-macOS, RTSan, and TSan.
+macOS, RTSan, and TSan. Closeout commit `55ed607` passed GitHub Actions run `28722100076` across
+Linux, Windows, macOS, RTSan, and TSan. CP6 is closed remote-green.
 
-**Now:** CP6 implementation is remote-green; commit and push this `STATUS.md` closeout, then wait for
-remote CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64)
+**Now:** CP6 is closed remote-green; create exactly one CP7 successor thread, then stop. Local gates:
+`git diff --check`; VS DevShell (BuildTools x64)
 `cmake --preset ci`; VS DevShell `cmake --build --preset ci --target YesDawFxDelayCheck`; VS
 DevShell `ctest --preset ci -R "^YesDawFxDelayCheck$" --output-on-failure` passed; VS DevShell
 `ctest --preset ci --output-on-failure` **273/273**; VS DevShell `cmake --build --preset ci`;
 VS DevShell repeat `ctest --preset ci --output-on-failure` **273/273**. Remote prior-checkpoint gate:
 GitHub Actions run `28720932073` passed Linux, Windows, macOS, RTSan, and TSan for CP5 final baton.
 Remote CP6 implementation gate: GitHub Actions run `28721683671` passed Linux, Windows, macOS, RTSan,
-and TSan for implementation commit `8501f93`. Remote CP6 closeout gate: pending until this docs
-closeout commit is pushed.
+and TSan for implementation commit `8501f93`. Remote CP6 closeout gate: GitHub Actions run
+`28722100076` passed Linux, Windows, macOS, RTSan, and TSan for closeout commit `55ed607`.
 
-**Next:** after this closeout commit is pushed and remote-green across Linux, Windows, macOS, RTSan,
-and TSan, create exactly one CP7 successor thread with the recursive CP7->CP10 baton rule. Do not start
-CP7 here.
+**Next:** create exactly one CP7 successor thread with the recursive CP7->CP10 baton rule, then stop.
+Do not start CP7 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
