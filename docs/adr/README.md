@@ -56,6 +56,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0036](0036-recorded-audio-assets-and-takes.md) | Recorded audio assets and Take metadata | Accepted |
 | [0037](0037-alpha-target-and-h14-h19-recarve.md) | Alpha target and the H14–H19 re-carve | Proposed |
 | [0038](0038-built-in-fx-suite.md) | Built-in FX suite: five Nodes, ParamSpec, insert chains, tails | Proposed |
+| [0039](0039-automation-lanes-runtime.md) | Automation lanes: storage, targeting, compiled runtime | Proposed |
 
 ## Decision status (the five research forks)
 
