@@ -54,38 +54,44 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP4 EqNode implementation REMOTE-GREEN; closeout CI pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP5 CompressorNode implementation LOCAL-GREEN; implementation CI pending.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
 closed remote-green: implementation `53f43d3` passed run `28713175842`, closeout `e0d758f` passed
 run `28713655210`, and final baton `704448a` passed run `28714154579`, all across Linux, Windows,
-macOS, RTSan, and TSan.
+macOS, RTSan, and TSan. H14 CP4 is closed remote-green: implementation `47e5e59` passed run
+`28715559037`, and closeout `193b35b` passed run `28716030870`, both across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP3 from current repo + remote CI:
+**Done this checkpoint:** Rolling-baton review first re-verified CP4 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `main` and `origin/main` both pointed
-at `704448a`; CP3 implementation run `28713175842`, closeout run `28713655210`, and final baton run
-`28714154579` were completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP4 adds
-`src/engine/nodes/EqNode.h`: a stereo six-band TPT SVF EQ with Bell/LowShelf/HighShelf/HPF/LPF/Notch,
-ParamIDs at `band*16 + {0,1,2,3}`, finite clamps, 5 ms real-valued parameter ramps, coefficient
-recompute on absolute-frame `eventFrame + 16*k` cadence, and bit-exact neutral Bell/0 dB pass-through.
-`YesDawEqCheck` covers identity anchors, independent response probes, neutral null, hostile params,
-block-size independence, event-offset anchored smoothing, the 20 kHz @ 44.1 kHz stability case, and
-the required CP4 negative controls. Implementation commit `47e5e59` passed GitHub Actions run
-`28715559037` across Linux, Windows, macOS, RTSan, and TSan. No CP5 node work, insert-chain wiring,
-schema, UI, ADR, golden, `YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation, or
-`docs/reality-lane.md` change.
+at `193b35b`; CP4 closeout run `28716030870` was completed/successful across Linux, Windows, macOS,
+RTSan, and TSan. CP5 adds `src/engine/nodes/CompressorNode.h`: a stereo-linked, feed-forward,
+log-domain `CompressorNode` with threshold/ratio/attack/release/knee/makeup ParamSpecs, finite clamps,
+5 ms real-valued parameter ramps anchored to event absolute frames, branching attack/release envelope,
+soft-knee gain computer, float32 in-place processing, and atomic gain-reduction readback for H16.
+`YesDawCompressorCheck` is registered as an exact named CTest gate and covers the static curve
+(-40..0 dB in 5 dB steps across 3 T/R/W combos), attack/release ballistics, ratio-1 unity/null,
+hostile inputs and params, H14 block-size independence, event-offset anchored smoothing, and the
+required CP5 negative controls: 1% gain-term perturbation, swapped attack/release coefficients,
+block-boundary state reset, and apply-event-at-block-start. No CP6 delay work, Reverb/Limiter work,
+insert-chain mixer wiring, FX UI, schema change, ADR edit, golden regeneration,
+`YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
+Bypass/enable crossfade is not implemented inside CP5's node because CP4 established no node-level
+bypass ParamSpec and CP9 explicitly owns disabled-insert dry/wet crossfades.
 
-**Now:** CP4 implementation is remote-green; this closeout commit records the evidence and must get its
-own CI pass before handoff. Local gates:
-`git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawEqCheck`; VS DevShell
-`ctest --preset ci -R "^YesDawEqCheck$" --output-on-failure` passed; VS DevShell
-`ctest --preset ci --output-on-failure` **271/271**; VS DevShell `cmake --build --preset ci`;
-VS DevShell repeat `ctest --preset ci --output-on-failure` **271/271**. Remote implementation gate:
-GitHub Actions run `28715559037` passed Linux, Windows, macOS, RTSan, and TSan.
+**Now:** CP5 implementation is local-green and ready for its implementation commit/push. Local gates:
+`git diff --check`; VS DevShell (BuildTools x64)
+`cmake --build --preset ci --target YesDawCompressorCheck`; VS DevShell
+`ctest --preset ci -R "^YesDawCompressorCheck$" --output-on-failure` passed; VS DevShell
+`ctest --preset ci --output-on-failure` **272/272**; VS DevShell `cmake --build --preset ci`;
+VS DevShell repeat `ctest --preset ci --output-on-failure` **272/272**.
 
-**Next:** commit and push this CP4 closeout STATUS update, wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan, then stop at CP4. Do not start CP5.
+**Next:** commit and push the CP5 implementation, wait for GitHub Actions to pass Linux, Windows,
+macOS, RTSan, and TSan, then record the remote-green evidence in a separate closeout STATUS commit.
+Only after that closeout commit is pushed and remote-green, create exactly one CP6 successor thread.
+Do not start CP6 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

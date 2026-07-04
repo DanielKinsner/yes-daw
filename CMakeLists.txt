@@ -350,6 +350,13 @@ target_link_libraries(YesDawEqCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEqCheck)
 add_test(NAME YesDawEqCheck COMMAND $<TARGET_FILE:YesDawEqCheck>)
 
+# --- CompressorNode check (H14 CP5; feed-forward log-domain built-in compressor) ---
+add_executable(YesDawCompressorCheck tests/compressor_tests.cpp)
+target_include_directories(YesDawCompressorCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawCompressorCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawCompressorCheck)
+add_test(NAME YesDawCompressorCheck COMMAND $<TARGET_FILE:YesDawCompressorCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
