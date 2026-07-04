@@ -12,8 +12,15 @@ equal-power crossfade upgrade. No FX UI (that is H16).
 **Mechanical exit criterion.** All new `YesDaw*Check` gates below green in CI on all five jobs,
 including: per-node null/response/ballistics/tap/RT60/ceiling gates with their named negative
 controls; block-size independence sweeps bit-identical; limiter PDC parallel-path alignment;
-offline Render == RT with a full FX mix; FX state save/reopen through schema v7; the frozen
-FX-era fixture bundle forever-gate; RTSan clean on every new `process()`.
+offline Render == RT with a full FX mix; FX state save/reopen through the new FX schema version;
+the frozen FX-era fixture bundle forever-gate; RTSan clean on every new `process()`.
+
+> **Review amendments (2026-07-03).** Amended per
+> [`docs/reviews/2026-07-03-adversarial-review-h14-h17-packet.md`](../reviews/2026-07-03-adversarial-review-h14-h17-packet.md):
+> clip-gain ownership named in CP2 (finding 3); complete normative EQ equations + identity
+> anchors in A1 (finding 4); one normative limiter algorithm in A5 (finding 5); the
+> absolute-frame anchoring rule in the appendix preamble, shared with H15 (finding 6); schema
+> numbers are "next free version" (H13 still open).
 
 ---
 
@@ -47,21 +54,30 @@ property (1000 random pairs). *Negative control:* a deliberately reversed Log ma
 fails round-trip.
 
 **CP2 — Per-Track strip consolidation.** `ProjectMixerProjection` currently emits one strip per
-clip. Change: group `project.clips` by owning Track; per Track build `SumNode` over that track's
-clip sources (clip gain stays applied at each source; **remove** the `combinedGain = clip.gain ×
-track.strip.linearGain` fold — track gain now lives only on the track's single `FaderNode`), then
-(optional sidechain VCA) → Fader → Pan → Meter, ids from a new `projectMixerNodeIdForTrack(EntityId,
-Role)` (FNV-32 over the Track entity, same recipe as the clip allocator). Gates: all existing
-render/playback/offline gates stay green (parity); new cases in `YesDawMixerProjectionCheck`: a
-two-clip track renders identically to the same content pre-consolidation reference; track fader
-change affects both clips; per-clip gain still independent. *Negative control:* re-introducing the
-double-fold (clip×track at source AND fader) fails the two-clip parity case.
+clip, with `combinedGain = clip.gain × track.strip.linearGain` folded onto the per-clip
+projection fader — which this checkpoint deletes, so clip gain needs a named new owner (review
+finding 3). **Mechanism (normative): `DecodedClipNode` gains a clip-gain factor applied at
+render**, exactly like the clip fade envelope it already applies — the same class of
+non-destructive, render-time Clip metadata; the Asset is never touched. (Today
+`OfflineRenderer`'s source factory hands raw samples to `DecodedClipNode` and clip gain rides
+the projection fader — both call sites change together.) Then: group `project.clips` by owning
+Track; per Track build `SumNode` over that track's clip sources → (optional sidechain VCA) →
+Fader (gain = `track.strip.linearGain` ONLY) → Pan → Meter, ids from a new
+`projectMixerNodeIdForTrack(EntityId, Role)` (FNV-32 over the Track entity, same recipe as the
+clip allocator). This also pays down ADR-0034's requirement that strips derive from Tracks/Buses,
+not Clips. Gates: all existing render/playback/offline gates stay green (parity); new cases in
+`YesDawMixerProjectionCheck`: a two-clip track renders sample-equal to the pre-consolidation
+reference of the same content; track fader change affects both clips; per-clip gain still
+independent; strip/meter identities match the Track/Bus expectations of ADR-0034. *Negative
+controls:* re-introducing the double application (clip gain at source AND on a per-clip fader)
+fails the two-clip parity case; applying track gain at both the source and the Track fader fails
+it too.
 
 **CP3 — FX chain model + schema v7 + undo.** `Project` gains per-Track/Bus
 `std::vector<FxInsert> fxChain` in strip state (`FxInsert { EntityId id; FxKind kind; bool
-enabled; std::vector<std::pair<std::uint32_t, double>> normalizedParams; }`). Schema v7 in
-`ProjectBundle.h` per the append-only recipe (new `kSchemaV7Sql`, bump `kCodeSchemaVersion`,
-extend `kMigrations`): `fx_inserts(id BLOB PK, owner_entity BLOB, position INTEGER, kind INTEGER,
+enabled; std::vector<std::pair<std::uint32_t, double>> normalizedParams; }`). The **next free schema version** (v7 at time of
+writing — H13 is still open; verify `kCodeSchemaVersion` at kickoff) in `ProjectBundle.h` per the
+append-only recipe (new `kSchemaVNSql`, bump `kCodeSchemaVersion`, extend `kMigrations`): `fx_inserts(id BLOB PK, owner_entity BLOB, position INTEGER, kind INTEGER,
 enabled INTEGER, UNIQUE(owner_entity, position))` + `fx_insert_params(insert_id BLOB, param_id
 INTEGER, value REAL CHECK(value>=0 AND value<=1), PK(insert_id, param_id))`. Undo verbs
 `addFxInsert / removeFxInsert / reorderFxInsert / setFxInsertEnabled / setFxInsertParam` through
@@ -95,7 +111,7 @@ node factory, params applied via ParamSpec at build; inserts between chainHead a
 Tracks, before Pan on Buses; disabled inserts still compiled, bypassed via 5 ms crossfade ramp).
 Suite gates: offline == RT over a fixture project using all five FX; block-size independence
 sweep (schedules forcing 1..9-frame blocks + {64,128,333,512}) bit-identical; RTSan lane covers
-every new `process()`; save/reopen the full mix. Commit the **frozen v7 fixture bundle** +
+every new `process()`; save/reopen the full mix. Commit the **frozen FX-schema fixture bundle** +
 forever-gate (risk R3).
 
 **CP10 — Equal-power crossfade + close-out.** Fade law: gains `cos(θ)/sin(θ)`, `θ = (π/2)·t/T`
@@ -123,23 +139,66 @@ Shared rules: all processing float32, per-sample state machines, stereo unless s
 coefficients double where cheap. Allocation only in `prepare(sampleRate, maxBlockSize)`.
 `process()` consumes `ParameterChange` events at their `timeInBlock` offsets (FaderNode pattern);
 each param change starts a linear ramp of the *real-valued* param over `min(5 ms, remaining)`
-samples; recompute filter coefficients every 16 samples during an active ramp, anchored to the
-event offset (block-size independent by construction). Bypass/enable crossfades dry/wet over 5 ms.
+samples; recompute filter coefficients every 16 samples during an active ramp.
+**Anchoring rule (normative, shared with H15 — review finding 6):** the event's absolute timeline
+frame (block start + `timeInBlock`) is the phase origin; recompute instants are
+`eventFrame + 16·k` and all ramp positions are absolute-frame-derived, persisting across block
+boundaries and PDC-shifted streams until the ramp ends. An implementation that resets any cadence
+phase at block boundaries is wrong — the cross-schedule negative control must catch exactly that.
+Bypass/enable crossfades dry/wet over 5 ms.
 
-### A1 `EqNode` — 6-band TPT SVF
+### A1 `EqNode` — 6-band TPT SVF (complete normative equations — review finding 4)
 
-Per band per channel, the Zavalishin/cytomic TPT SVF: `g = tan(π·f/fs)`, `k` per type below,
-`a1 = 1/(1 + g(g+k))`, `a2 = g·a1`, `a3 = g·a2`. Per sample: `v3 = in − ic2; v1 = a1·ic1 + a2·v3;
-v2 = ic2 + a2·ic1 + a3·v3; ic1 = 2v1 − ic1; ic2 = 2v2 − ic2`. With `A = 10^(dB/40)`:
-Bell `k = 1/(Q·A)`, `out = in + k·(A²−1)·v1`; LowShelf `g = tan(π·f/fs)/√A`, `k = 1/Q`,
-`out = in + (A−1)·k·v1 + (A²−1)·v2`… use the cytomic *SVF cookbook* forms exactly (HPF:
-`out = in − k·v1 − v2`; LPF: `out = v2`; Notch: `out = in − k·v1`). Params per band (ParamIDs
-sequential from `band·16`): type (stepped), freq 20–20k log, gain ±24 dB, Q 0.1–18 log. Defaults:
-all bands Bell, 0 dB (= null). **Gates:** all-flat null bit-exact when every gain is 0 dB and
-types are Bell (the `in +` terms vanish); response: 8192-sample impulse → FFT → \|H\| within
-±0.25 dB of the closed-form `H(z)` at 24 log-spaced frequencies in [40, 18k], per band type;
-hostile params finite; block-size sweep. *Negative controls:* per master list + a band at
-Nyquist-adjacent freq (20 kHz @ 44.1k) stays stable (`g` clamp: `f ≤ 0.49·fs`).
+All six band types share one TPT SVF core (Zavalishin/Simper). Per band per channel, state
+`ic1eq, ic2eq`; per sample with input `v0`:
+
+```
+v3 = v0 − ic2eq
+v1 = a1·ic1eq + a2·v3
+v2 = ic2eq + a2·ic1eq + a3·v3
+ic1eq = 2·v1 − ic1eq
+ic2eq = 2·v2 − ic2eq
+out = m0·v0 + m1·v1 + m2·v2
+```
+
+with `a1 = 1/(1 + g·(g + k))`, `a2 = g·a1`, `a3 = g·a2`. Band coefficients (normative;
+`A = 10^(dB/40)`; `f`, `Q` clamped first):
+
+| Type | g | k | m0 | m1 | m2 |
+|---|---|---|---|---|---|
+| Bell | tan(π·f/fs) | 1/(Q·A) | 1 | k·(A²−1) | 0 |
+| LowShelf | tan(π·f/fs)/√A | 1/Q | 1 | k·(A−1) | A²−1 |
+| HighShelf | tan(π·f/fs)·√A | 1/Q | A² | k·(1−A)·A | 1−A² |
+| HPF | tan(π·f/fs) | 1/Q | 1 | −k | −1 |
+| LPF | tan(π·f/fs) | 1/Q | 0 | 0 | 1 |
+| Notch | tan(π·f/fs) | 1/Q | 1 | −k | 0 |
+
+Clamp rule (normative, applied BEFORE computing `g` so `tan()` stays finite at every sample
+rate): `f ∈ [20, min(20000, 0.49·fs)]`, `Q ∈ [0.1, 18]`, gain ∈ [−24, +24] dB.
+
+**Independent gate reference** (never derive it from the difference equations — that was the H7
+copy-the-polynomial sin): the TPT SVF is the exact bilinear transform of the analog SVF
+prototype, so the expected complex response at probe frequency `f_p` is
+
+```
+s      = j·tan(π·f_p/fs)
+D(s)   = s² + k·g·s + g²
+H_ref  = m0 + m1·(g·s)/D + m2·(g²)/D
+```
+
+per band, cascade = product over bands. Gate: 24 log-spaced probes in [40, 18k];
+measured \|H\| (8192-sample impulse → FFT) within ±0.25 dB of \|H_ref\| per band type.
+**Identity anchors** (exact; assert on `H_ref` itself to 1e-9 so a transcription error in the
+formulas is caught before any audio runs): Bell at `s = j·g` → \|H\| = A²; LowShelf at `s = 0` →
+A², at `s → ∞` → 1; HighShelf at `s = 0` → 1, at `s → ∞` → A²; LPF at `s = 0` → 1; HPF at
+`s → ∞` → 1; Notch at `s = j·g` → 0.
+
+Params per band (ParamIDs sequential from `band·16`): type (stepped), freq log, gain dB,
+Q log. Defaults: all bands Bell at 0 dB — then `A = 1`, `m1 = 0`, so `out = v0` **bit-exactly**
+regardless of filter state (assert the null and assert no state-dependent pollution). Hostile
+params finite; block-size sweep per the master list. *Negative controls:* per master list, plus
+a band at 20 kHz @ 44.1 kHz stays stable (proving the clamp), plus one deliberately mistyped
+`m1` sign in a test-local coefficient table must fail the identity anchors.
 
 ### A2 `CompressorNode` — feed-forward, log domain
 
@@ -187,21 +246,41 @@ at settings 1 s and 3 s; stability — 30 s noise then silence → output monoto
 peak < 0.9 on the tail; mono sum non-null. *Negative controls:* per master list + damping-off vs
 on changes the late-tail spectral tilt in the asserted direction.
 
-### A5 `LimiterNode` — lookahead sliding-minimum
+### A5 `LimiterNode` — lookahead limiter (one normative algorithm — review finding 5)
 
-Lookahead D = 5 ms default (param 1–10 ms; **`latencySamples = D`**, `tailSamples = D`). Delay
-line D per channel. Gain target per sample: `t[n] = min(1, ceiling / peak[n])` where
-`peak[n] = max over window [n, n+D) of max(|L|,|R|)` — maintained by a monotonic-deque
-sliding-window maximum over a fixed ring (allocated in `prepare`, O(1) amortized, alloc-free).
-Smoothed gain: attack — since the window looks ahead D samples, ramp `g` linearly toward `t[n]`
-so it arrives no later than the peak does (`g -= max((g − t)/samplesUntilPeak, minStep)`;
-simplest correct form: `g = min(g, t[n])` then release); release — one-pole rise
-`g += αr·(1 − g)` (release 50–1000 ms log). Output `y = delayed(x)·g`. Params: ceiling
-−12..0 dBFS, release, lookahead. **Gates:** ceiling property — 10,000-block randomized program
-(spikes ×10, DC steps, silence) → **no output sample exceeds ceiling** (exact sample-peak
-assertion) and no NaN; transparency — −6 dBFS sine under −1 dBFS ceiling → |out−delayed(in)| ≤
-1e-6; latency honesty — reported latency equals measured impulse delay exactly; PDC alignment
-(CP8); GR readback exposed like A2.
+Lookahead `D` samples (param 1–10 ms log, default 5 ms; **`latencySamples = D`**,
+`tailSamples = D`). Stereo-linked: one gain for both channels. Per-sample pipeline (normative —
+the earlier draft's "sliding-window maximum of peaks" formulation and its alternative ramp law
+are superseded):
+
+1. **Raw target:** `peak[n] = max(|L[n]|, |R[n]|)`;
+   `t_raw[n] = min(1, ceiling / max(peak[n], 1e-10))`.
+2. **Release smoothing** (one-pole rise toward 1, instant fall):
+   `t_rel[n] = min(t_raw[n], t_rel[n−1] + α_r·(1 − t_rel[n−1]))`,
+   `α_r = 1 − exp(−1/(τ_rel·fs))`, release τ 50–1000 ms log.
+3. **Sliding-window MINIMUM of target gains** over the next `D` samples:
+   `g_min[n] = min{ t_rel[n+w] : w ∈ [0, D) }` — monotonic deque over a ring allocated in
+   `prepare()`, O(1) amortized, alloc-free. (This is the ADR's "sliding-window minimum"; there
+   is no sliding maximum anywhere in this design.)
+4. **Attack smoothing:** boxcar moving average of length `D`:
+   `g[n] = (1/D)·Σ_{k=0}^{D−1} g_min[n−k]` — running sum in double precision with an **exact
+   rebuild every 4096 samples anchored to absolute frames** (protects the bit-identical
+   block-size sweep from accumulator drift).
+5. **Output:** `y[n] = x[n−D]·g[n]` per channel (delay line allocated in `prepare()`).
+
+**Ceiling guarantee (provable; the property gate's basis):** for a delayed peak at sample `p`,
+every window behind `g_min[p−k]`, `k ∈ [0, D)`, contains `p`, so every averaged term is
+`≤ t_rel[p] ≤ ceiling/peak[p]` — hence `|y[p]| ≤ ceiling` exactly. Attack duration = `D` by
+construction; the gain trajectory is continuous, so no attack clicks: `|g[n] − g[n−1]| ≤ 1/D`.
+
+Params: ceiling −12..0 dBFS, release, lookahead. GR readback exposed like A2. **Gates:** ceiling
+property — 10,000-block randomized program (spikes ×10, DC steps, silence) → **no output sample
+exceeds ceiling** (exact sample-peak assertion) and no NaN; transparency — −6 dBFS sine under a
+−1 dBFS ceiling → `|out − delayed(in)| ≤ 1e-6`; gain-slope bound — `|g[n] − g[n−1]| ≤ 1/D` over
+the adversarial program; latency honesty — reported latency equals measured impulse delay
+exactly; PDC alignment (CP8); block-size sweep bit-identical. *Negative controls:* shrink the
+stage-3 window by 1 sample → an over is detected; bypass stage 4 (use `g_min` directly) → the
+gain-slope bound fails.
 
 ### A6 Equal-power crossfade (CP10)
 

@@ -6,7 +6,10 @@
 - **Related:** ADR-0037 (re-carve — why FX before hosting), ADR-0008 (Node contract — extended
   additively here), ADR-0007 (PDC), ADR-0009 (event stream — the automation seam these nodes must
   honor), ADR-0014 (mixer policy), ADR-0034 (mixer-state persistence — extended by schema v7),
-  plan: [`2026-07-03-h14-fx-suite-plan.md`](../plans/2026-07-03-h14-fx-suite-plan.md)
+  plan: [`2026-07-03-h14-fx-suite-plan.md`](../plans/2026-07-03-h14-fx-suite-plan.md),
+  amended per the adversarial review
+  [`2026-07-03-adversarial-review-h14-h17-packet.md`](../reviews/2026-07-03-adversarial-review-h14-h17-packet.md)
+  (findings 3, 4, 5, 6)
 
 ## Context
 
@@ -64,9 +67,11 @@ per-Track/Bus strips, and the **ParamSpec** parameter model, per the H14 plan:
   changes. Named to avoid collision with the PDC `DelayNode`/`LatencyNode`.
 - **`ReverbNode`** — 8-line FDN, Householder feedback, input diffusion allpasses, pre-delay,
   RT60-mapped per-line gains + damping.
-- **`LimiterNode`** — lookahead sliding-window-minimum peak limiter; **reports
-  `latencySamples = lookahead`** — the first real nonzero-latency built-in node, making the PDC
-  parallel-path alignment clause (H3 exit) a live test. Sample-peak in alpha; true-peak deferred.
+- **`LimiterNode`** — lookahead limiter: one-pole-released target gain → sliding-window
+  **minimum of target gains** → boxcar smoother (plan A5 is normative — one algorithm, one
+  convention); **reports `latencySamples = lookahead`** — the first real nonzero-latency
+  built-in node, making the PDC parallel-path alignment clause (H3 exit) a live test.
+  Sample-peak in alpha; true-peak deferred.
 
 **ParamSpec:** each node publishes a static table of
 `{ ParamID (u32, append-only forever), name, unit, min/max/default (real), mapping (linear | log | dB), smoothing class }`.
@@ -76,7 +81,8 @@ event offsets, per the FaderNode pattern. Hostile values (NaN/Inf/out-of-range) 
 **Insert chain:** after the per-Track strip consolidation, inserts sit between the strip's
 `chainHead` (source sum / sidechain VCA) and its `FaderNode`; Buses get the same slot before
 their `PanNode`. Enabled/bypass toggles crossfade over ~5 ms (click-free), never allocate.
-Persistence: **schema v7** adds `fx_inserts` (ULID id, owner entity, position, kind, enabled) and
+Persistence: **the next free schema version** (v7 at time of writing — H13 is still open, verify
+at kickoff) adds `fx_inserts` (ULID id, owner entity, position, kind, enabled) and
 `fx_insert_params` (insert id, param id, normalized value), with undo verbs
 (add/remove/reorder/set-param) through the existing command-diff pattern.
 
