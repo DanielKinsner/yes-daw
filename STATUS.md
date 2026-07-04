@@ -47,76 +47,41 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP2 is the only implementation scope for this thread. Do not start CP3 here.
+**Baton note:** H14 CP3 is the only implementation scope for this thread. Do not start CP4 here.
 
 ---
 
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP2 Per-Track strip consolidation CLOSED REMOTE-GREEN.** H13 is closed remote-green. H12 is closed remote-green on current
-`main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
-docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
-implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
-adds the shipped-shell recording UX skeleton only; no irreversible bundle schema or recorded-audio asset
-format change is included. The second implementation checkpoint is remote-green on `main` (`d9f4623`,
-GitHub Actions run `28473663050`) and wires deterministic test-device selection/refresh plus default
-Track/input arm state through `UiAppModel`. The third implementation checkpoint is remote-green on `main`
-(`983b82f`, GitHub Actions run `28474967917`) and wires the first scripted shipped-shell audio record flow
-using existing opaque Asset bytes plus non-destructive Clip placement. The ADR-0036 checkpoint is
-remote-green on `main` (`202c2ec`, GitHub Actions run `28476033753`) and accepts canonical recorded audio
-Assets as RIFF/WAVE 32-bit IEEE float PCM plus normalized Take metadata requirements. The save/reopen/decode
-recording checkpoint is remote-green on `main` (`908c530`, GitHub Actions run `28477123969`) and stores
-deterministic test-device captures as canonical float WAV Assets that reopen/decode byte-for-byte. The
-Take metadata migration checkpoint is remote-green on `main` (`0a13b49`, GitHub Actions run `28478650930`).
-The MIDI recording checkpoint is remote-green on `main` (`5b3d515`, GitHub Actions run `28479924426`) and
-writes deterministic MIDI Project data alongside the deterministic audio Take. The monitoring policy and
-fake-device latency calibration checkpoint is remote-green on `main` (`4d4c712`, GitHub Actions run
-`28481100296`). The final autosave recovery checkpoint is remote-green on `main` (`43280d8`, GitHub Actions
-run `28693226908`) across Linux, Windows, macOS, RTSan, and TSan. It wires a shipped `MainComponent`
-autosave recovery prompt with registry-backed restore/discard actions, validates the prompt only after the
-existing autosave snapshot reader accepts the bundle, restores recorded Takes/Clips/MIDI/Comp state through
-the normal bundle path, and makes discard a biting branch that keeps the abandoned bundle state while
-deleting the autosave. Local review/fix first re-verified checkpoint 9's comp basics: VS DevShell focused
-build for `YesDawProjectCheck`, `YesDawPersistenceCheck`, `YesDawUiActionCheck`, `YesDawRecordingUxCheck`,
-`YesDawAccessibilityCheck`, and `YesDawAppSmokeCheck`; targeted CTest cases `Project undo stack records
-command diffs for recording Comp selection`, `Project recording Takes round-trip through a reopened bundle`,
-`Opening an existing bundle rejects recording Comp segments outside their Take`, `YesDawUiActionCheck`,
-`YesDawAppSmokeCheck`, `YesDawAccessibilityCheck`, and `YesDawRecordingUxCheck` **7/7**. CP10 local gates:
-`git diff --check`; VS DevShell focused build for `YesDawRecordingUxCheck`, `YesDawUiActionCheck`,
-`YesDawAccessibilityCheck`, `YesDawUiInputCheck`, and `YesDawAppSmokeCheck`; focused CTest
-`YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
-`cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
+**Current horizon:** **H14 (Built-in FX suite) — CP3 FX chain model + schema v7 + undo LOCAL-GREEN; remote CI pending.**
+H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
+`28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
+(`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`) across
+Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** H14 CP2 is implemented and remote-green. CP1 was re-verified first from current
-`main`: session start `git pull --ff-only` was already up to date at `1213954`; CP1 implementation
-`0621656` passed GitHub Actions run `28695566078`, and CP1 closeout `1213954` passed run
-`28695963126`; both runs were green across Linux, Windows, macOS, RTSan, and TSan. CP2 moves
-clip-gain ownership into `DecodedClipNode` render-time metadata, keeps Asset samples raw, changes
-`OfflineRenderer` to pass Clip gain into that node, consolidates `ProjectMixerProjection` to one
-Track strip per owning Track (`clip sources -> SumNode -> Fader(track.strip.linearGain only) ->
-Pan -> Meter`), adds Track-derived mixer node IDs via `projectMixerNodeIdForTrack`, and points the
-UI mixer surface at Track-derived strip IDs. `YesDawMixerProjectionCheck` now covers two-Clip
-Track parity to the pre-consolidation reference, Track fader affecting both Clips, independent
-per-Clip gains, Track strip/meter identity, and the required negative controls for double Clip gain
-and double Track gain. No schema bump, ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or
-`docs/reality-lane.md` change. CP2 implementation landed on `main` as `2154ed9` and passed GitHub
-Actions run `28697062994` across Linux, Windows, macOS, RTSan, and TSan.
+**Done this checkpoint:** Rolling-baton review first re-verified CP2 from current repo + remote CI:
+session start `git pull --ff-only` was already up to date; local `main` and `origin/main` both pointed
+at `2a98990`; CP2 implementation run `28697062994` and closeout run `28697491670` were both
+completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP3 adds `FxInsert` chains to
+Track/Bus strip state, adds FX edit/undo verbs (`addFxInsert`, `removeFxInsert`, `reorderFxInsert`,
+`setFxInsertEnabled`, `setFxInsertParam`) through row-diff undo, bumps bundle schema to v7 with
+append-only `fx_inserts` and `fx_insert_params` tables, writes/reads FX chains, migrates v6 bundles to
+empty chains, and adds open-time validators plus failing fixtures for unknown kind, duplicate
+`(owner, position)`, orphaned param rows, and out-of-range normalized values. No CP4 DSP node work,
+ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or `docs/reality-lane.md` change.
 
-**Now:** CP2 is closed for this thread; this docs-only closeout records the remote-green evidence. Local
-gates for the implementation commit: VS DevShell focused build
-for `YesDawRenderCheck`, `YesDawOfflineRenderCheck`, `YesDawPlaybackCheck`,
-`YesDawMixerProjectionCheck`, `YesDawUiActionCheck`, `YesDawBundleRenderCheck`, and
-`YesDawRuntimeAudioDriverCheck`; focused `ctest --preset ci -R "RuntimeAudioDriver publishes Project
-mixer projection" --output-on-failure` **1/1**; focused render/playback/UI lane **3/3** plus direct
-`YesDawRenderCheck`, `YesDawMixerProjectionCheck`, and `YesDawBundleRenderCheck` executables all
-green; `git diff --check`; VS DevShell `cmake --build --preset ci`; and VS DevShell
-`ctest --preset ci --output-on-failure` **261/261**. Remote gate for the implementation commit:
-GitHub Actions run `28697062994` **green** on Linux, Windows, macOS, RTSan, and TSan.
+**Now:** CP3 implementation is local-green and ready to commit/push. Local gates: `git diff --check`;
+VS DevShell `cmake --build --preset ci --target YesDawProjectCheck` plus direct
+`build-ci\YesDawProjectCheck.exe` **29/29** test cases and **5679** assertions; VS DevShell
+`cmake --build --preset ci --target YesDawPersistenceCheck` plus direct
+`build-ci\YesDawPersistenceCheck.exe` **36/36** test cases and **807** assertions; VS DevShell
+`cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` **270/270**.
+Remote gate is pending for the CP3 implementation commit.
 
-**Next:** stop at CP2 after this docs-only closeout commit is pushed and its GitHub Actions run is green.
-The successor baton may open H14 CP3 only after pulling `main` and re-verifying CP2 plus this closeout
-commit. Do not start CP3 in this thread.
+**Next:** commit and push the CP3 implementation, then wait for GitHub Actions on Linux, Windows,
+macOS, RTSan, and TSan. If remote CI is green, record the CP3 remote-green closeout in `STATUS.md`
+as a docs-only commit, push it, verify that closeout CI is green, then stop at CP3. Do not start CP4.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

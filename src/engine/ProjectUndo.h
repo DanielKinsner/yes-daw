@@ -29,7 +29,12 @@ enum class ProjectEditVerb : std::uint8_t
     CutNote,
     QuantizeNote,
     TransposeNote,
-    SetRecordingCompSelection
+    SetRecordingCompSelection,
+    AddFxInsert,
+    RemoveFxInsert,
+    ReorderFxInsert,
+    SetFxInsertEnabled,
+    SetFxInsertParam
 };
 
 struct ProjectEditCommand
@@ -61,6 +66,13 @@ struct ProjectEditCommand
     Tick secondCompTimelineStart = 0;
     Tick secondCompTimelineLength = 0;
     std::uint64_t secondCompSourceOffset = 0;
+    EntityId fxOwnerId;
+    EntityId fxInsertId;
+    FxKind fxKind = FxKind::Eq;
+    bool fxEnabled = true;
+    std::size_t fxPosition = 0;
+    std::uint32_t fxParamId = 0;
+    double fxParamValue = 0.0;
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -219,6 +231,69 @@ struct ProjectEditCommand
         command.secondCompSourceOffset = secondSourceOffset;
         return command;
     }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addFxInsert (EntityId ownerId,
+                                                                    EntityId insertId,
+                                                                    FxKind kind,
+                                                                    bool enabled,
+                                                                    std::size_t position) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddFxInsert;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxKind = kind;
+        command.fxEnabled = enabled;
+        command.fxPosition = position;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeFxInsert (EntityId ownerId, EntityId insertId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveFxInsert;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand reorderFxInsert (EntityId ownerId,
+                                                                       EntityId insertId,
+                                                                       std::size_t newPosition) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::ReorderFxInsert;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxPosition = newPosition;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setFxInsertEnabled (EntityId ownerId,
+                                                                          EntityId insertId,
+                                                                          bool enabled) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetFxInsertEnabled;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxEnabled = enabled;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setFxInsertParam (EntityId ownerId,
+                                                                        EntityId insertId,
+                                                                        std::uint32_t paramId,
+                                                                        double normalizedValue) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetFxInsertParam;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxParamId = paramId;
+        command.fxParamValue = normalizedValue;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -244,12 +319,20 @@ struct ProjectRecordingCompRowsDiff
     std::vector<ProjectRecordingCompSegment> after;
 };
 
+struct ProjectFxChainRowsDiff
+{
+    EntityId ownerId;
+    std::vector<FxInsert> before;
+    std::vector<FxInsert> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
     ProjectClipRowsDiff diff;
     ProjectMidiClipRowsDiff midiDiff;
     ProjectRecordingCompRowsDiff recordingCompDiff;
+    ProjectFxChainRowsDiff fxDiff;
 };
 
 struct ProjectEditApplyResult
@@ -317,6 +400,15 @@ namespace detail {
     return verb == ProjectEditVerb::SetRecordingCompSelection;
 }
 
+[[nodiscard]] constexpr bool isFxEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddFxInsert
+           || verb == ProjectEditVerb::RemoveFxInsert
+           || verb == ProjectEditVerb::ReorderFxInsert
+           || verb == ProjectEditVerb::SetFxInsertEnabled
+           || verb == ProjectEditVerb::SetFxInsertParam;
+}
+
 [[nodiscard]] inline ProjectEditStatus applyProjectEditCommandToProject (Project& project,
                                                                          const ProjectEditCommand& command)
 {
@@ -368,6 +460,25 @@ namespace detail {
                 command.secondCompTimelineStart,
                 command.secondCompTimelineLength,
                 command.secondCompSourceOffset);
+
+        case ProjectEditVerb::AddFxInsert:
+            return addFxInsert (
+                project,
+                command.fxOwnerId,
+                FxInsert { command.fxInsertId, command.fxKind, command.fxEnabled, {} },
+                command.fxPosition);
+
+        case ProjectEditVerb::RemoveFxInsert:
+            return removeFxInsert (project, command.fxOwnerId, command.fxInsertId);
+
+        case ProjectEditVerb::ReorderFxInsert:
+            return reorderFxInsert (project, command.fxOwnerId, command.fxInsertId, command.fxPosition);
+
+        case ProjectEditVerb::SetFxInsertEnabled:
+            return setFxInsertEnabled (project, command.fxOwnerId, command.fxInsertId, command.fxEnabled);
+
+        case ProjectEditVerb::SetFxInsertParam:
+            return setFxInsertParam (project, command.fxOwnerId, command.fxInsertId, command.fxParamId, command.fxParamValue);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -440,6 +551,23 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool buildProjectFxChainRowsDiff (const Project& before,
+                                                       const Project& after,
+                                                       const ProjectEditCommand& command,
+                                                       ProjectFxChainRowsDiff& out)
+{
+    const MixerStripState* const beforeStrip = findMixerStrip (before, command.fxOwnerId);
+    const MixerStripState* const afterStrip = findMixerStrip (after, command.fxOwnerId);
+    if (beforeStrip == nullptr || afterStrip == nullptr || beforeStrip->fxChain == afterStrip->fxChain)
+        return false;
+
+    out = {};
+    out.ownerId = command.fxOwnerId;
+    out.before = beforeStrip->fxChain;
+    out.after = afterStrip->fxChain;
+    return true;
+}
+
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
                                            std::size_t firstClipIndex,
                                            const std::vector<Clip>& expected) noexcept
@@ -472,6 +600,14 @@ namespace detail {
                                                   const std::vector<ProjectRecordingCompSegment>& expected) noexcept
 {
     return project.recordingCompSegments == expected;
+}
+
+[[nodiscard]] inline bool fxChainRowsEqual (const Project& project,
+                                            EntityId ownerId,
+                                            const std::vector<FxInsert>& expected) noexcept
+{
+    const MixerStripState* const strip = findMixerStrip (project, ownerId);
+    return strip != nullptr && strip->fxChain == expected;
 }
 
 [[nodiscard]] inline bool applyClipRowsDiff (Project& project,
@@ -521,6 +657,27 @@ namespace detail {
 
     Project edited = project;
     edited.recordingCompSegments = replacement;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
+}
+
+[[nodiscard]] inline bool applyFxChainRowsDiff (Project& project,
+                                                EntityId ownerId,
+                                                const std::vector<FxInsert>& expected,
+                                                const std::vector<FxInsert>& replacement)
+{
+    if (! fxChainRowsEqual (project, ownerId, expected))
+        return false;
+
+    Project edited = project;
+    MixerStripState* const strip = findMixerStrip (edited, ownerId);
+    if (strip == nullptr)
+        return false;
+
+    strip->fxChain = replacement;
     if (! edited.hasValidAssetClipIndirection())
         return false;
 
@@ -581,6 +738,12 @@ namespace detail {
                     : applyRecordingCompRowsDiff (project, transaction.recordingCompDiff.after, transaction.recordingCompDiff.before);
     }
 
+    if (isFxEditVerb (transaction.command.verb))
+    {
+        return redo ? applyFxChainRowsDiff (project, transaction.fxDiff.ownerId, transaction.fxDiff.before, transaction.fxDiff.after)
+                    : applyFxChainRowsDiff (project, transaction.fxDiff.ownerId, transaction.fxDiff.after, transaction.fxDiff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -604,6 +767,8 @@ namespace detail {
         diffBuilt = detail::buildProjectMidiClipRowsDiff (before, project, command, transaction.midiDiff);
     else if (detail::isRecordingCompEditVerb (command.verb))
         diffBuilt = detail::buildProjectRecordingCompRowsDiff (before, project, transaction.recordingCompDiff);
+    else if (detail::isFxEditVerb (command.verb))
+        diffBuilt = detail::buildProjectFxChainRowsDiff (before, project, command, transaction.fxDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

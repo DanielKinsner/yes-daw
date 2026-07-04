@@ -192,6 +192,57 @@ struct Asset
     friend constexpr bool operator== (const Asset&, const Asset&) noexcept = default;
 };
 
+enum class FxKind : std::uint8_t
+{
+    Eq = 0,
+    Compressor,
+    Delay,
+    Reverb,
+    Limiter
+};
+
+[[nodiscard]] constexpr bool fxKindIsKnown (FxKind kind) noexcept
+{
+    return kind == FxKind::Eq
+           || kind == FxKind::Compressor
+           || kind == FxKind::Delay
+           || kind == FxKind::Reverb
+           || kind == FxKind::Limiter;
+}
+
+[[nodiscard]] inline bool normalizedFxParamValueIsValid (double value) noexcept
+{
+    return std::isfinite (value) && value >= 0.0 && value <= 1.0;
+}
+
+struct FxInsert
+{
+    EntityId id;
+    FxKind kind = FxKind::Eq;
+    bool enabled = true;
+    std::vector<std::pair<std::uint32_t, double>> normalizedParams;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! fxKindIsKnown (kind))
+            return false;
+
+        for (std::size_t i = 0; i < normalizedParams.size(); ++i)
+        {
+            if (! normalizedFxParamValueIsValid (normalizedParams[i].second))
+                return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (normalizedParams[i].first == normalizedParams[j].first)
+                    return false;
+        }
+
+        return true;
+    }
+
+    friend bool operator== (const FxInsert&, const FxInsert&) = default;
+};
+
 struct MixerStripState
 {
     std::string name;
@@ -200,10 +251,18 @@ struct MixerStripState
     bool muted = false;
     bool soloed = false;
     bool soloSafe = false;
+    std::vector<FxInsert> fxChain;
 
     [[nodiscard]] bool isValid() const noexcept
     {
-        return mixerGainIsValid (linearGain) && mixerPanIsValid (pan);
+        if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+            return false;
+
+        for (const FxInsert& insert : fxChain)
+            if (! insert.isValid())
+                return false;
+
+        return true;
     }
 
     friend bool operator== (const MixerStripState&, const MixerStripState&) = default;
@@ -417,7 +476,14 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidRecordingTakeId,
     RecordingTakeNotFound,
     InvalidRecordingCompSegmentId,
-    InvalidRecordingCompWindow
+    InvalidRecordingCompWindow,
+    InvalidFxOwnerId,
+    FxOwnerNotFound,
+    InvalidFxInsertId,
+    FxInsertNotFound,
+    InvalidFxKind,
+    InvalidFxPosition,
+    InvalidFxParamValue
 };
 
 struct Project
@@ -460,6 +526,15 @@ struct Project
         return nullptr;
     }
 
+    [[nodiscard]] const Bus* findBus (EntityId busId) const noexcept
+    {
+        for (const Bus& bus : buses)
+            if (bus.id == busId)
+                return &bus;
+
+        return nullptr;
+    }
+
     [[nodiscard]] const RecordingTake* findRecordingTake (EntityId takeId) const noexcept
     {
         for (const RecordingTake& take : recordingTakes)
@@ -479,11 +554,11 @@ struct Project
                 return false;
 
         for (const Track& track : tracks)
-            if (! track.id.isValid())
+            if (! track.isValid())
                 return false;
 
         for (const Bus& bus : buses)
-            if (! bus.id.isValid())
+            if (! bus.isValid())
                 return false;
 
         for (const Clip& clip : clips)
@@ -694,7 +769,7 @@ struct Project
                     return false;
         }
 
-        const auto isExistingProjectEntity = [this] (EntityId entity) noexcept
+        const auto isNonFxProjectEntity = [this] (EntityId entity) noexcept
         {
             if (entity == id)
                 return true;
@@ -726,6 +801,81 @@ struct Project
             for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
                 if (entity == segment.id)
                     return true;
+
+            return false;
+        };
+
+        const auto fxInsertIdSeenBefore = [this] (bool busOwner, std::size_t ownerIndex, std::size_t insertIndex, EntityId insertId) noexcept
+        {
+            for (std::size_t trackIndex = 0; trackIndex < tracks.size(); ++trackIndex)
+            {
+                const std::vector<FxInsert>& chain = tracks[trackIndex].strip.fxChain;
+                for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+                {
+                    if (! busOwner && trackIndex == ownerIndex && fxIndex >= insertIndex)
+                        return false;
+
+                    if (chain[fxIndex].id == insertId)
+                        return true;
+                }
+            }
+
+            for (std::size_t busIndex = 0; busIndex < buses.size(); ++busIndex)
+            {
+                const std::vector<FxInsert>& chain = buses[busIndex].strip.fxChain;
+                for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+                {
+                    if (busOwner && busIndex == ownerIndex && fxIndex >= insertIndex)
+                        return false;
+
+                    if (chain[fxIndex].id == insertId)
+                        return true;
+                }
+            }
+
+            return false;
+        };
+
+        for (std::size_t trackIndex = 0; trackIndex < tracks.size(); ++trackIndex)
+        {
+            const std::vector<FxInsert>& chain = tracks[trackIndex].strip.fxChain;
+            for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+            {
+                const FxInsert& insert = chain[fxIndex];
+                if (! insert.isValid()
+                    || isNonFxProjectEntity (insert.id)
+                    || fxInsertIdSeenBefore (false, trackIndex, fxIndex, insert.id))
+                    return false;
+            }
+        }
+
+        for (std::size_t busIndex = 0; busIndex < buses.size(); ++busIndex)
+        {
+            const std::vector<FxInsert>& chain = buses[busIndex].strip.fxChain;
+            for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+            {
+                const FxInsert& insert = chain[fxIndex];
+                if (! insert.isValid()
+                    || isNonFxProjectEntity (insert.id)
+                    || fxInsertIdSeenBefore (true, busIndex, fxIndex, insert.id))
+                    return false;
+            }
+        }
+
+        const auto isExistingProjectEntity = [this, isNonFxProjectEntity] (EntityId entity) noexcept
+        {
+            if (isNonFxProjectEntity (entity))
+                return true;
+
+            for (const Track& track : tracks)
+                for (const FxInsert& insert : track.strip.fxChain)
+                    if (entity == insert.id)
+                        return true;
+
+            for (const Bus& bus : buses)
+                for (const FxInsert& insert : bus.strip.fxChain)
+                    if (entity == insert.id)
+                        return true;
 
             return false;
         };
@@ -871,6 +1021,55 @@ namespace detail {
     return nullptr;
 }
 
+[[nodiscard]] inline MixerStripState* findMixerStrip (Project& project, EntityId ownerId) noexcept
+{
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return &track.strip;
+
+    for (Bus& bus : project.buses)
+        if (bus.id == ownerId)
+            return &bus.strip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline const MixerStripState* findMixerStrip (const Project& project, EntityId ownerId) noexcept
+{
+    for (const Track& track : project.tracks)
+        if (track.id == ownerId)
+            return &track.strip;
+
+    for (const Bus& bus : project.buses)
+        if (bus.id == ownerId)
+            return &bus.strip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline FxInsert* findFxInsert (MixerStripState& strip, EntityId insertId) noexcept
+{
+    for (FxInsert& insert : strip.fxChain)
+        if (insert.id == insertId)
+            return &insert;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findFxInsertIndex (const MixerStripState& strip, EntityId insertId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < strip.fxChain.size(); ++i)
+    {
+        if (strip.fxChain[i].id == insertId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline Note* findNote (MidiClip& midiClip, EntityId noteId) noexcept
 {
     for (Note& note : midiClip.notes)
@@ -936,6 +1135,16 @@ namespace detail {
         if (segment.id == id)
             return true;
 
+    for (const Track& track : project.tracks)
+        for (const FxInsert& insert : track.strip.fxChain)
+            if (insert.id == id)
+                return true;
+
+    for (const Bus& bus : project.buses)
+        for (const FxInsert& insert : bus.strip.fxChain)
+            if (insert.id == id)
+                return true;
+
     return false;
 }
 
@@ -991,6 +1200,25 @@ namespace detail {
 [[nodiscard]] inline bool projectCanApplyMidiEdit (const Project& project) noexcept
 {
     return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool projectCanApplyFxEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool findNormalizedFxParamIndex (const FxInsert& insert, std::uint32_t paramId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < insert.normalizedParams.size(); ++i)
+    {
+        if (insert.normalizedParams[i].first == paramId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 [[nodiscard]] inline bool compSegmentWindowFitsTake (const ProjectRecordingCompSegment& segment,
@@ -1428,6 +1656,155 @@ namespace detail {
         return ProjectEditStatus::InvalidProject;
 
     project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addFxInsert (Project& project,
+                                                    EntityId ownerId,
+                                                    FxInsert insert,
+                                                    std::size_t position)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    if (! insert.id.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    if (! fxKindIsKnown (insert.kind))
+        return ProjectEditStatus::InvalidFxKind;
+
+    if (! insert.isValid())
+        return ProjectEditStatus::InvalidFxParamValue;
+
+    if (detail::projectContainsEntityId (project, insert.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (position > strip->fxChain.size())
+        return ProjectEditStatus::InvalidFxPosition;
+
+    strip->fxChain.insert (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (position), std::move (insert));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeFxInsert (Project& project, EntityId ownerId, EntityId insertId)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    std::size_t index = 0;
+    if (! detail::findFxInsertIndex (*strip, insertId, index))
+        return ProjectEditStatus::FxInsertNotFound;
+
+    strip->fxChain.erase (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (index));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus reorderFxInsert (Project& project,
+                                                        EntityId ownerId,
+                                                        EntityId insertId,
+                                                        std::size_t newPosition)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    if (newPosition >= strip->fxChain.size())
+        return ProjectEditStatus::InvalidFxPosition;
+
+    std::size_t oldPosition = 0;
+    if (! detail::findFxInsertIndex (*strip, insertId, oldPosition))
+        return ProjectEditStatus::FxInsertNotFound;
+
+    FxInsert insert = std::move (strip->fxChain[oldPosition]);
+    strip->fxChain.erase (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (oldPosition));
+    strip->fxChain.insert (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (newPosition), std::move (insert));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setFxInsertEnabled (Project& project,
+                                                           EntityId ownerId,
+                                                           EntityId insertId,
+                                                           bool enabled)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    insert->enabled = enabled;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setFxInsertParam (Project& project,
+                                                         EntityId ownerId,
+                                                         EntityId insertId,
+                                                         std::uint32_t paramId,
+                                                         double normalizedValue)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    if (! normalizedFxParamValueIsValid (normalizedValue))
+        return ProjectEditStatus::InvalidFxParamValue;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    std::size_t paramIndex = 0;
+    if (detail::findNormalizedFxParamIndex (*insert, paramId, paramIndex))
+        insert->normalizedParams[paramIndex].second = normalizedValue;
+    else
+        insert->normalizedParams.push_back ({ paramId, normalizedValue });
+
     return ProjectEditStatus::Applied;
 }
 

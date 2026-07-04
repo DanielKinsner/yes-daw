@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 6;
+inline constexpr int          kCodeSchemaVersion = 7;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -889,6 +889,36 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
             return false;
     }
 
+    const auto fxChainFits = [] (const std::vector<engine::FxInsert>& chain) noexcept
+    {
+        for (std::size_t position = 0; position < chain.size(); ++position)
+        {
+            if (position > static_cast<std::size_t> (std::numeric_limits<sqlite3_int64>::max()))
+                return false;
+
+            const engine::FxInsert& insert = chain[position];
+            if (! insert.isValid())
+                return false;
+
+            for (const auto& [paramId, value] : insert.normalizedParams)
+            {
+                (void) paramId;
+                if (! engine::normalizedFxParamValueIsValid (value))
+                    return false;
+            }
+        }
+
+        return true;
+    };
+
+    for (const engine::Track& track : project.tracks)
+        if (! fxChainFits (track.strip.fxChain))
+            return false;
+
+    for (const engine::Bus& bus : project.buses)
+        if (! fxChainFits (bus.strip.fxChain))
+            return false;
+
     return true;
 }
 
@@ -1105,19 +1135,39 @@ CREATE TABLE recording_comp_segments (
 CREATE INDEX recording_comp_segments_take_id_idx ON recording_comp_segments(take_id);
 )SQL";
 
+inline constexpr std::string_view kSchemaV7Sql = R"SQL(
+CREATE TABLE fx_inserts (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16),
+  position INTEGER NOT NULL CHECK (position >= 0),
+  kind INTEGER NOT NULL,
+  enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+  UNIQUE(owner_entity, position)
+);
+CREATE INDEX fx_inserts_owner_entity_idx ON fx_inserts(owner_entity);
+
+CREATE TABLE fx_insert_params (
+  insert_id BLOB NOT NULL CHECK (length(insert_id) = 16),
+  param_id INTEGER NOT NULL CHECK (param_id >= 0),
+  value REAL NOT NULL CHECK(value>=0 AND value<=1),
+  PRIMARY KEY(insert_id, param_id)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 6> kMigrations {
+inline constexpr std::array<SchemaMigration, 7> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
     SchemaMigration { 4, kSchemaV4Sql },
     SchemaMigration { 5, kSchemaV5Sql },
     SchemaMigration { 6, kSchemaV6Sql },
+    SchemaMigration { 7, kSchemaV7Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1711,6 +1761,7 @@ public:
 
         if (auto result = detail::exec (
                 db_,
+                "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
@@ -1818,6 +1869,61 @@ public:
             if (auto result = busStmt.bindInt64 (6, bus.strip.soloed ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = busStmt.bindInt64 (7, bus.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, busStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        {
+            detail::Statement insertStmt (
+                db_,
+                "INSERT INTO fx_inserts(id, owner_entity, position, kind, enabled) "
+                "VALUES (?, ?, ?, ?, ?);");
+            detail::Statement paramStmt (
+                db_,
+                "INSERT INTO fx_insert_params(insert_id, param_id, value) "
+                "VALUES (?, ?, ?);");
+
+            const auto writeFxChain = [&] (engine::EntityId ownerId, const std::vector<engine::FxInsert>& chain) -> BundleResult
+            {
+                for (std::size_t position = 0; position < chain.size(); ++position)
+                {
+                    const engine::FxInsert& insert = chain[position];
+                    insertStmt.reset();
+                    if (auto result = insertStmt.bindBlob (1, insert.id.bytes); ! result.ok()) { return result; }
+                    if (auto result = insertStmt.bindBlob (2, ownerId.bytes); ! result.ok()) { return result; }
+                    if (auto result = insertStmt.bindInt64 (3, static_cast<sqlite3_int64> (position)); ! result.ok()) { return result; }
+                    if (auto result = insertStmt.bindInt64 (4, static_cast<sqlite3_int64> (insert.kind)); ! result.ok()) { return result; }
+                    if (auto result = insertStmt.bindInt64 (5, insert.enabled ? 1 : 0); ! result.ok()) { return result; }
+                    if (auto result = detail::expectDone (db_, insertStmt); ! result.ok()) { return result; }
+
+                    for (const auto& [paramId, value] : insert.normalizedParams)
+                    {
+                        paramStmt.reset();
+                        if (auto result = paramStmt.bindBlob (1, insert.id.bytes); ! result.ok()) { return result; }
+                        if (auto result = paramStmt.bindInt64 (2, static_cast<sqlite3_int64> (paramId)); ! result.ok()) { return result; }
+                        if (auto result = paramStmt.bindDouble (3, value); ! result.ok()) { return result; }
+                        if (auto result = detail::expectDone (db_, paramStmt); ! result.ok()) { return result; }
+                    }
+                }
+
+                return detail::ok();
+            };
+
+            for (const engine::Track& track : project.tracks)
+            {
+                if (auto result = writeFxChain (track.id, track.strip.fxChain); ! result.ok())
+                {
+                    rollback();
+                    return result;
+                }
+            }
+
+            for (const engine::Bus& bus : project.buses)
+            {
+                if (auto result = writeFxChain (bus.id, bus.strip.fxChain); ! result.ok())
+                {
+                    rollback();
+                    return result;
+                }
+            }
         }
 
         detail::Statement clipStmt (
@@ -2145,6 +2251,84 @@ public:
                 bus.strip.soloed = sqlite3_column_int64 (stmt.get(), 5) != 0;
                 bus.strip.soloSafe = sqlite3_column_int64 (stmt.get(), 6) != 0;
                 project.buses.push_back (std::move (bus));
+            }
+        }
+
+        {
+            const auto loadFxChain = [this] (engine::EntityId ownerId, std::vector<engine::FxInsert>& out) -> BundleResult
+            {
+                detail::Statement insertStmt;
+                if (auto result = insertStmt.prepare (
+                        db_,
+                        "SELECT id, kind, enabled FROM fx_inserts WHERE owner_entity = ? ORDER BY position, rowid;");
+                    ! result.ok())
+                    return result;
+                if (auto result = insertStmt.bindBlob (1, ownerId.bytes); ! result.ok())
+                    return result;
+
+                while (true)
+                {
+                    const int step = insertStmt.step();
+                    if (step == SQLITE_DONE)
+                        break;
+                    if (step != SQLITE_ROW)
+                        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                    engine::FxInsert insert;
+                    if (auto result = detail::columnBlob (insertStmt.get(), 0, insert.id.bytes, "fx_inserts.id"); ! result.ok())
+                        return result;
+
+                    const sqlite3_int64 kind = sqlite3_column_int64 (insertStmt.get(), 1);
+                    if (kind < static_cast<sqlite3_int64> (engine::FxKind::Eq)
+                        || kind > static_cast<sqlite3_int64> (engine::FxKind::Limiter))
+                        return detail::semanticInvalid ("fx_inserts.kind is outside the Project value range");
+                    insert.kind = static_cast<engine::FxKind> (kind);
+                    insert.enabled = sqlite3_column_int64 (insertStmt.get(), 2) != 0;
+
+                    detail::Statement paramStmt;
+                    if (auto result = paramStmt.prepare (
+                            db_,
+                            "SELECT param_id, value FROM fx_insert_params WHERE insert_id = ? ORDER BY rowid;");
+                        ! result.ok())
+                        return result;
+                    if (auto result = paramStmt.bindBlob (1, insert.id.bytes); ! result.ok())
+                        return result;
+
+                    while (true)
+                    {
+                        const int paramStep = paramStmt.step();
+                        if (paramStep == SQLITE_DONE)
+                            break;
+                        if (paramStep != SQLITE_ROW)
+                            return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                        const sqlite3_int64 paramId = sqlite3_column_int64 (paramStmt.get(), 0);
+                        if (paramId < 0 || paramId > std::numeric_limits<std::uint32_t>::max())
+                            return detail::semanticInvalid ("fx_insert_params.param_id is outside the Project value range");
+
+                        const double value = sqlite3_column_double (paramStmt.get(), 1);
+                        if (! engine::normalizedFxParamValueIsValid (value))
+                            return detail::semanticInvalid ("fx_insert_params.value is outside the Project value range");
+
+                        insert.normalizedParams.push_back ({ static_cast<std::uint32_t> (paramId), value });
+                    }
+
+                    out.push_back (std::move (insert));
+                }
+
+                return detail::ok();
+            };
+
+            for (engine::Track& track : project.tracks)
+            {
+                if (auto result = loadFxChain (track.id, track.strip.fxChain); ! result.ok())
+                    return result;
+            }
+
+            for (engine::Bus& bus : project.buses)
+            {
+                if (auto result = loadFxChain (bus.id, bus.strip.fxChain); ! result.ok())
+                    return result;
             }
         }
 
@@ -2581,6 +2765,63 @@ public:
         if (compWindowProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "recording Comp segment window exceeds Take frames" };
 
+        bool fxUnknownKindProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM fx_inserts WHERE kind NOT IN (0, 1, 2, 3, 4) LIMIT 1;",
+                fxUnknownKindProblem);
+            ! result.ok())
+            return result;
+        if (fxUnknownKindProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert kind is unknown" };
+
+        bool fxOwnerProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM fx_inserts f "
+                "LEFT JOIN tracks t ON t.id = f.owner_entity "
+                "LEFT JOIN buses b ON b.id = f.owner_entity "
+                "WHERE t.id IS NULL AND b.id IS NULL LIMIT 1;",
+                fxOwnerProblem);
+            ! result.ok())
+            return result;
+        if (fxOwnerProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert owner does not resolve to a Track or Bus" };
+
+        bool fxDuplicatePositionProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM ("
+                "SELECT owner_entity, position, COUNT(*) AS c FROM fx_inserts "
+                "GROUP BY owner_entity, position HAVING c > 1"
+                ") LIMIT 1;",
+                fxDuplicatePositionProblem);
+            ! result.ok())
+            return result;
+        if (fxDuplicatePositionProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert positions must be unique per owner" };
+
+        bool fxOrphanParamProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM fx_insert_params p LEFT JOIN fx_inserts f ON f.id = p.insert_id "
+                "WHERE f.id IS NULL LIMIT 1;",
+                fxOrphanParamProblem);
+            ! result.ok())
+            return result;
+        if (fxOrphanParamProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert param row is orphaned" };
+
+        bool fxParamRangeProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM fx_insert_params WHERE value < 0 OR value > 1 LIMIT 1;",
+                fxParamRangeProblem);
+            ! result.ok())
+            return result;
+        if (fxParamRangeProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert param value is outside normalized range" };
+
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
 
@@ -2988,7 +3229,8 @@ private:
             "UNION ALL SELECT linear_gain FROM buses "
             "UNION ALL SELECT pan FROM buses "
             "UNION ALL SELECT pitch_note FROM midi_notes "
-            "UNION ALL SELECT normalized_velocity FROM midi_notes;");
+            "UNION ALL SELECT normalized_velocity FROM midi_notes "
+            "UNION ALL SELECT value FROM fx_insert_params;");
         while (true)
         {
             const int step = stmt.step();
@@ -3015,6 +3257,8 @@ private:
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "
                 "UNION ALL SELECT 1 FROM recording_comp_segments WHERE id = zeroblob(16) OR take_id = zeroblob(16) OR sort_index < 0 OR timeline_start < 0 OR timeline_length <= 0 OR source_offset < 0 "
+                "UNION ALL SELECT 1 FROM fx_inserts WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR position < 0 OR kind NOT IN (0, 1, 2, 3, 4) OR enabled NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM fx_insert_params WHERE insert_id = zeroblob(16) OR param_id < 0 OR value < 0 OR value > 1 "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
@@ -3043,6 +3287,8 @@ private:
                 "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(frame_count) != 'integer' OR typeof(take_ordinal) != 'integer' OR typeof(input_channel) != 'integer' OR typeof(device_stable_id) != 'integer' OR typeof(monitoring_policy) != 'integer' "
                 "UNION ALL SELECT 1 FROM recording_comp_segments WHERE typeof(id) != 'blob' OR typeof(take_id) != 'blob' OR typeof(sort_index) != 'integer' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(source_offset) != 'integer' "
+                "UNION ALL SELECT 1 FROM fx_inserts WHERE typeof(id) != 'blob' OR typeof(owner_entity) != 'blob' OR typeof(position) != 'integer' OR typeof(kind) != 'integer' OR typeof(enabled) != 'integer' "
+                "UNION ALL SELECT 1 FROM fx_insert_params WHERE typeof(insert_id) != 'blob' OR typeof(param_id) != 'integer' OR typeof(value) NOT IN ('integer', 'real') "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
                 "LIMIT 1;",

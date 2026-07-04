@@ -23,6 +23,8 @@ using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::FxInsert;
+using yesdaw::engine::FxKind;
 using yesdaw::engine::Marker;
 using yesdaw::engine::MeterChange;
 using yesdaw::engine::MidiClip;
@@ -66,6 +68,10 @@ using yesdaw::persistence::kWalAutoCheckpointPages;
 using yesdaw::persistence::detail::kSchemaV1Sql;
 using yesdaw::persistence::detail::kSchemaV2Sql;
 using yesdaw::persistence::detail::kSchemaV3Sql;
+using yesdaw::persistence::detail::kSchemaV4Sql;
+using yesdaw::persistence::detail::kSchemaV5Sql;
+using yesdaw::persistence::detail::kSchemaV6Sql;
+using yesdaw::persistence::detail::kSchemaV7Sql;
 using Catch::Approx;
 
 namespace {
@@ -308,6 +314,19 @@ MidiClip makeMidiClip (EntityId id, EntityId trackId)
     return midiClip;
 }
 
+FxInsert makeFxInsert (EntityId id, FxKind kind = FxKind::Eq, bool enabled = true)
+{
+    FxInsert insert;
+    insert.id = id;
+    insert.kind = kind;
+    insert.enabled = enabled;
+    insert.normalizedParams = {
+        { 10u, 0.125 },
+        { 11u, 0.875 },
+    };
+    return insert;
+}
+
 RecordingTake makeRecordingTake (EntityId id,
                                  EntityId assetId,
                                  EntityId trackId,
@@ -441,6 +460,8 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 6;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 7;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
@@ -458,6 +479,10 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'recording_takes';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'recording_comp_segments';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_inserts';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_insert_params';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -547,6 +572,15 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     Project invalidStrip = project;
     invalidStrip.tracks[0].strip.pan = 1.25f;
     REQUIRE (db.writeProjectSnapshot (invalidStrip).status == BundleStatus::SemanticInvalid);
+
+    Project invalidFxKind = project;
+    invalidFxKind.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (90), static_cast<FxKind> (99)) };
+    REQUIRE (db.writeProjectSnapshot (invalidFxKind).status == BundleStatus::SemanticInvalid);
+
+    Project invalidFxParam = project;
+    invalidFxParam.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+    invalidFxParam.tracks[0].strip.fxChain.front().normalizedParams.front().second = 1.25;
+    REQUIRE (db.writeProjectSnapshot (invalidFxParam).status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Project value surface round-trips through a reopened bundle", "[persistence][project][round-trip]")
@@ -570,10 +604,18 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     project.tracks[0].strip.muted = true;
     project.tracks[0].strip.soloed = true;
     project.tracks[0].strip.soloSafe = false;
+    project.tracks[0].strip.fxChain = {
+        makeFxInsert (idFromLowByte (90), FxKind::Eq),
+        makeFxInsert (idFromLowByte (91), FxKind::Compressor, false),
+    };
+    project.tracks[0].strip.fxChain[0].normalizedParams.push_back ({ 99u, 0.5 });
     project.buses = { makeBus (idFromLowByte (11), "Delay") };
     project.buses[0].strip.linearGain = 0.75f;
     project.buses[0].strip.pan = 0.4f;
     project.buses[0].strip.soloSafe = true;
+    project.buses[0].strip.fxChain = {
+        makeFxInsert (idFromLowByte (92), FxKind::Delay),
+    };
 
     {
         ProjectBundleDb db = openFreshBundle (path);
@@ -593,10 +635,12 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     REQUIRE (readback.tracks[0].strip.muted);
     REQUIRE (readback.tracks[0].strip.soloed);
     REQUIRE_FALSE (readback.tracks[0].strip.soloSafe);
+    REQUIRE (readback.tracks[0].strip.fxChain == project.tracks[0].strip.fxChain);
     REQUIRE (readback.buses[0].strip.name == "Delay");
     REQUIRE (readback.buses[0].strip.linearGain == 0.75f);
     REQUIRE (readback.buses[0].strip.pan == 0.4f);
     REQUIRE (readback.buses[0].strip.soloSafe);
+    REQUIRE (readback.buses[0].strip.fxChain == project.buses[0].strip.fxChain);
 
     Project mutatedStrip = project;
     mutatedStrip.tracks[0].strip.pan = 0.25f;
@@ -949,6 +993,50 @@ TEST_CASE ("Schema v4 migration promotes old Clip and MIDI track ownership", "[p
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+TEST_CASE ("Schema v7 migration adds empty FX chains to a v6 bundle", "[persistence][migration][fx]")
+{
+    const auto path = makeTempBundlePath ("fx-v6-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path, ec);
+    REQUIRE (! ec);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV6 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 6);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV6).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) "
+        "VALUES (1, X'00000000000000000000000000000001', 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) "
+        "VALUES (X'0000000000000000000000000000000A', 'Audio 1', 1.0, 0.0, 0, 0, 0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 7;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_inserts';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_insert_params';", value).ok());
+    REQUIRE (value == 1);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.tracks.size() == 1u);
+    REQUIRE (readback.tracks.front().strip.fxChain.empty());
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")
 {
     const auto path = makeTempBundlePath ("semantic");
@@ -1099,6 +1187,109 @@ TEST_CASE ("Opening an existing bundle rejects invalid Track and Bus strip range
     ProjectBundleDb reopened;
     const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
     REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
+}
+
+TEST_CASE ("Opening an existing bundle rejects unknown FX insert kind", "[persistence][semantic][open][fx]")
+{
+    const auto path = makeTempBundlePath ("semantic-fx-kind-open");
+    Project project = makeProject();
+    project.tracks.front().strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql ("UPDATE fx_inserts SET kind = 99 WHERE id = X'0000000000000000000000000000005A';").ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects duplicate FX owner positions", "[persistence][semantic][open][fx]")
+{
+    const auto path = makeTempBundlePath ("semantic-fx-duplicate-position-open");
+    Project project = makeProject();
+    project.tracks.front().strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "PRAGMA foreign_keys = OFF; "
+                    "DROP TABLE fx_insert_params; "
+                    "DROP TABLE fx_inserts; "
+                    "CREATE TABLE fx_inserts ("
+                    "id BLOB PRIMARY KEY CHECK (length(id) = 16), "
+                    "owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16), "
+                    "position INTEGER NOT NULL CHECK (position >= 0), "
+                    "kind INTEGER NOT NULL, "
+                    "enabled INTEGER NOT NULL CHECK (enabled IN (0, 1))); "
+                    "CREATE TABLE fx_insert_params ("
+                    "insert_id BLOB NOT NULL CHECK (length(insert_id) = 16), "
+                    "param_id INTEGER NOT NULL CHECK (param_id >= 0), "
+                    "value REAL NOT NULL CHECK(value>=0 AND value<=1), "
+                    "PRIMARY KEY(insert_id, param_id)); "
+                    "INSERT INTO fx_inserts(id, owner_entity, position, kind, enabled) VALUES "
+                    "(X'0000000000000000000000000000005A', X'0000000000000000000000000000000A', 0, 0, 1), "
+                    "(X'0000000000000000000000000000005B', X'0000000000000000000000000000000A', 0, 1, 1); "
+                    "PRAGMA foreign_keys = ON;")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects orphaned FX param rows", "[persistence][semantic][open][fx]")
+{
+    const auto path = makeTempBundlePath ("semantic-fx-orphan-param-open");
+    Project project = makeProject();
+    project.tracks.front().strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "INSERT INTO fx_insert_params(insert_id, param_id, value) "
+                    "VALUES (X'000000000000000000000000000000EE', 1, 0.5);")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects out-of-range FX normalized params", "[persistence][semantic][open][fx]")
+{
+    const auto path = makeTempBundlePath ("semantic-fx-param-range-open");
+    Project project = makeProject();
+    project.tracks.front().strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+                    "DROP TABLE fx_insert_params; "
+                    "CREATE TABLE fx_insert_params ("
+                    "insert_id BLOB NOT NULL CHECK (length(insert_id) = 16), "
+                    "param_id INTEGER NOT NULL CHECK (param_id >= 0), "
+                    "value REAL NOT NULL, "
+                    "PRIMARY KEY(insert_id, param_id)); "
+                    "INSERT INTO fx_insert_params(insert_id, param_id, value) "
+                    "VALUES (X'0000000000000000000000000000005A', 10, 1.25);")
+                     .ok());
+    }
+
+    ProjectBundleDb reopened;
+    const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+    REQUIRE (validation.status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Opening an existing bundle rejects non-canonical Project value storage types", "[persistence][semantic][open]")

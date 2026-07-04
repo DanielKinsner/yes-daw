@@ -21,11 +21,15 @@
 using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
+using yesdaw::engine::addFxInsert;
+using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
 using yesdaw::engine::cutNote;
 using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
+using yesdaw::engine::FxInsert;
+using yesdaw::engine::FxKind;
 using yesdaw::engine::kMaxUlidTimestampMs;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::MidiClip;
@@ -44,6 +48,8 @@ using yesdaw::engine::RecordingTake;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
+using yesdaw::engine::setFxInsertEnabled;
+using yesdaw::engine::setFxInsertParam;
 using yesdaw::engine::setNoteLength;
 using yesdaw::engine::SnapGrid;
 using yesdaw::engine::splitClip;
@@ -54,6 +60,8 @@ using yesdaw::engine::Track;
 using yesdaw::engine::trimClip;
 using yesdaw::engine::transposeNote;
 using yesdaw::engine::quantizeNote;
+using yesdaw::engine::reorderFxInsert;
+using yesdaw::engine::removeFxInsert;
 using yesdaw::engine::UlidEntropy;
 
 static_assert (sizeof (EntityId) == 16);
@@ -132,6 +140,19 @@ MidiClip makeMidiClip (EntityId id, EntityId trackId)
         makeNote (idFromLowByte (43), 4096, 0),
     };
     return midiClip;
+}
+
+FxInsert makeFxInsert (EntityId id, FxKind kind = FxKind::Eq, bool enabled = true)
+{
+    FxInsert insert;
+    insert.id = id;
+    insert.kind = kind;
+    insert.enabled = enabled;
+    insert.normalizedParams = {
+        { 10u, 0.25 },
+        { 11u, 0.75 },
+    };
+    return insert;
 }
 
 Project makeEditableProject()
@@ -547,6 +568,60 @@ TEST_CASE ("Project validates MIDI Clips and Note identity", "[project][midi]")
     missingTrackOwner.midiClips.front().trackId = {};
     REQUIRE_FALSE (missingTrackOwner.midiClips.front().isValid());
     REQUIRE_FALSE (missingTrackOwner.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project validates Track and Bus FX chain identity and normalized params", "[project][fx]")
+{
+    Project project = makeEditableProject();
+
+    Bus bus;
+    bus.id = idFromLowByte (45);
+    bus.strip.name = "Delay";
+    project.buses = { bus };
+
+    project.tracks.front().strip.fxChain = {
+        makeFxInsert (idFromLowByte (46), FxKind::Eq),
+        makeFxInsert (idFromLowByte (47), FxKind::Compressor, false),
+    };
+    project.buses.front().strip.fxChain = {
+        makeFxInsert (idFromLowByte (48), FxKind::Delay),
+    };
+
+    REQUIRE (project.tracks.front().strip.fxChain.front().isValid());
+    REQUIRE (project.buses.front().strip.fxChain.front().isValid());
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    Project duplicateFxInsertId = project;
+    duplicateFxInsertId.buses.front().strip.fxChain.front().id = duplicateFxInsertId.tracks.front().strip.fxChain.front().id;
+    REQUIRE_FALSE (duplicateFxInsertId.hasUniqueEntityIds());
+    REQUIRE_FALSE (duplicateFxInsertId.hasValidAssetClipIndirection());
+
+    Project fxInsertMatchesClipId = project;
+    fxInsertMatchesClipId.tracks.front().strip.fxChain.front().id = fxInsertMatchesClipId.clips.front().id;
+    REQUIRE_FALSE (fxInsertMatchesClipId.hasUniqueEntityIds());
+    REQUIRE_FALSE (fxInsertMatchesClipId.hasValidAssetClipIndirection());
+
+    Project unknownKind = project;
+    unknownKind.tracks.front().strip.fxChain.front().kind = static_cast<FxKind> (99);
+    REQUIRE_FALSE (unknownKind.tracks.front().strip.fxChain.front().isValid());
+    REQUIRE_FALSE (unknownKind.hasValidAssetClipIndirection());
+
+    Project duplicateParam = project;
+    duplicateParam.tracks.front().strip.fxChain.front().normalizedParams[1].first =
+        duplicateParam.tracks.front().strip.fxChain.front().normalizedParams[0].first;
+    REQUIRE_FALSE (duplicateParam.tracks.front().strip.fxChain.front().isValid());
+    REQUIRE_FALSE (duplicateParam.hasValidAssetClipIndirection());
+
+    Project outOfRangeParam = project;
+    outOfRangeParam.tracks.front().strip.fxChain.front().normalizedParams[0].second = 1.25;
+    REQUIRE_FALSE (outOfRangeParam.tracks.front().strip.fxChain.front().isValid());
+    REQUIRE_FALSE (outOfRangeParam.hasValidAssetClipIndirection());
+
+    Project nonFiniteParam = project;
+    nonFiniteParam.buses.front().strip.fxChain.front().normalizedParams[0].second =
+        std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_FALSE (nonFiniteParam.buses.front().strip.fxChain.front().isValid());
+    REQUIRE_FALSE (nonFiniteParam.hasValidAssetClipIndirection());
 }
 
 TEST_CASE ("Project Note edit operations mutate only targeted MIDI Note fields", "[project][midi][note-edit]")
@@ -968,6 +1043,134 @@ TEST_CASE ("Project undo stack records command diffs for MIDI Note edits", "[pro
     requireProjectValueUnchanged (project, edited);
     REQUIRE (undo.canUndo());
     REQUIRE_FALSE (undo.canRedo());
+}
+
+TEST_CASE ("Project undo stack records command diffs for FX chain edits", "[project][fx][undo]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId ownerId = project.tracks.front().id;
+    const EntityId eqId = idFromLowByte (46);
+    const EntityId delayId = idFromLowByte (47);
+
+    ProjectUndoStack undo;
+
+    auto result = undo.apply (project, ProjectEditCommand::addFxInsert (ownerId, eqId, FxKind::Eq, true, 0));
+    REQUIRE (result.applied());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::AddFxInsert);
+    REQUIRE (undo.nextUndo()->fxDiff.ownerId == ownerId);
+    REQUIRE (undo.nextUndo()->fxDiff.before.empty());
+    REQUIRE (undo.nextUndo()->fxDiff.after.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain.front().id == eqId);
+
+    result = undo.apply (project, ProjectEditCommand::setFxInsertParam (ownerId, eqId, 100u, 0.375));
+    REQUIRE (result.applied());
+    REQUIRE (project.tracks.front().strip.fxChain.front().normalizedParams == std::vector<std::pair<std::uint32_t, double>> { { 100u, 0.375 } });
+
+    result = undo.apply (project, ProjectEditCommand::addFxInsert (ownerId, delayId, FxKind::Delay, false, 1));
+    REQUIRE (result.applied());
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+
+    result = undo.apply (project, ProjectEditCommand::reorderFxInsert (ownerId, delayId, 0));
+    REQUIRE (result.applied());
+    REQUIRE (project.tracks.front().strip.fxChain[0].id == delayId);
+    REQUIRE (project.tracks.front().strip.fxChain[1].id == eqId);
+
+    result = undo.apply (project, ProjectEditCommand::setFxInsertEnabled (ownerId, delayId, true));
+    REQUIRE (result.applied());
+    REQUIRE (project.tracks.front().strip.fxChain[0].enabled);
+
+    result = undo.apply (project, ProjectEditCommand::removeFxInsert (ownerId, eqId));
+    REQUIRE (result.applied());
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain.front().id == delayId);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (undo.undoDepth() == 6u);
+
+    const Project edited = project;
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redoDepth() == 6u);
+
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+}
+
+TEST_CASE ("Project FX edit operations reject invalid input without mutating Project", "[project][fx][invalid]")
+{
+    Project project = makeEditableProject();
+    const EntityId ownerId = project.tracks.front().id;
+    const EntityId insertId = idFromLowByte (46);
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, {}, makeFxInsert (insertId), 0) == ProjectEditStatus::InvalidFxOwnerId);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, idFromLowByte (99), makeFxInsert (insertId), 0) == ProjectEditStatus::FxOwnerNotFound);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, ownerId, makeFxInsert (project.clips.front().id), 0) == ProjectEditStatus::DuplicateEntityId);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        FxInsert invalid = makeFxInsert (insertId);
+        invalid.kind = static_cast<FxKind> (99);
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, ownerId, invalid, 0) == ProjectEditStatus::InvalidFxKind);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        FxInsert invalid = makeFxInsert (insertId);
+        invalid.normalizedParams.front().second = -0.01;
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, ownerId, invalid, 0) == ProjectEditStatus::InvalidFxParamValue);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        const Project before = edited;
+        REQUIRE (addFxInsert (edited, ownerId, makeFxInsert (insertId), 1) == ProjectEditStatus::InvalidFxPosition);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        REQUIRE (addFxInsert (edited, ownerId, makeFxInsert (insertId), 0) == ProjectEditStatus::Applied);
+        const Project before = edited;
+        REQUIRE (setFxInsertParam (edited, ownerId, insertId, 1u, std::numeric_limits<double>::infinity())
+                 == ProjectEditStatus::InvalidFxParamValue);
+        requireProjectValueUnchanged (edited, before);
+    }
+
+    {
+        Project edited = project;
+        REQUIRE (addFxInsert (edited, ownerId, makeFxInsert (insertId), 0) == ProjectEditStatus::Applied);
+        const Project before = edited;
+        REQUIRE (removeFxInsert (edited, ownerId, idFromLowByte (77)) == ProjectEditStatus::FxInsertNotFound);
+        REQUIRE (reorderFxInsert (edited, ownerId, insertId, 3) == ProjectEditStatus::InvalidFxPosition);
+        REQUIRE (setFxInsertEnabled (edited, ownerId, idFromLowByte (77), false) == ProjectEditStatus::FxInsertNotFound);
+        requireProjectValueUnchanged (edited, before);
+    }
 }
 
 TEST_CASE ("Project undo stack groups compatible headless clip edit transactions", "[project][clip-edit][undo][group]")
@@ -1630,5 +1833,84 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
         while (undo.canRedo())
             REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
         requireProjectValueUnchanged (project, edited);     // full redo -> bit-identical edited
+    }
+}
+
+TEST_CASE ("Randomized FX edit sequences fully undo to a bit-identical Project and redo back", "[project][fx][undo][property]")
+{
+    Project project = makeEditableProject();
+    const EntityId ownerId = project.tracks.front().id;
+    project.tracks.front().strip.fxChain = {
+        makeFxInsert (idFromLowByte (60), FxKind::Eq),
+        makeFxInsert (idFromLowByte (61), FxKind::Compressor, false),
+    };
+
+    std::mt19937 rng (0x00D15C0u);
+    const auto pick = [&rng] (int n) { return static_cast<int> (rng() % static_cast<std::uint32_t> (n)); };
+    std::uint64_t freshFxOrdinal = 1000;
+
+    for (int rep = 0; rep < 12; ++rep)
+    {
+        const Project original = project;
+
+        ProjectUndoStack undo;
+        for (int step = 0; step < 80; ++step)
+        {
+            const std::vector<FxInsert>& chain = project.tracks.front().strip.fxChain;
+            ProjectEditCommand command = ProjectEditCommand::setFxInsertEnabled (ownerId, idFromLowByte (60), true);
+
+            if (chain.empty() || pick (6) == 0)
+            {
+                const auto position = static_cast<std::size_t> (chain.empty() ? 0 : pick (static_cast<int> (chain.size() + 1u)));
+                command = ProjectEditCommand::addFxInsert (
+                    ownerId,
+                    EntityId::fromBigEndianParts (0x4658'4348'4149'4E00ull, freshFxOrdinal++),
+                    static_cast<FxKind> (pick (5)),
+                    pick (2) == 0,
+                    position);
+            }
+            else
+            {
+                const EntityId insertId = chain[static_cast<std::size_t> (pick (static_cast<int> (chain.size())))].id;
+                switch (pick (4))
+                {
+                    case 0:
+                        command = ProjectEditCommand::removeFxInsert (ownerId, insertId);
+                        break;
+                    case 1:
+                        command = ProjectEditCommand::reorderFxInsert (
+                            ownerId,
+                            insertId,
+                            static_cast<std::size_t> (pick (static_cast<int> (chain.size()))));
+                        break;
+                    case 2:
+                        command = ProjectEditCommand::setFxInsertEnabled (ownerId, insertId, pick (2) == 0);
+                        break;
+                    case 3:
+                        command = ProjectEditCommand::setFxInsertParam (
+                            ownerId,
+                            insertId,
+                            static_cast<std::uint32_t> (pick (16)),
+                            static_cast<double> (pick (101)) / 100.0);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            (void) undo.apply (project, command);
+            REQUIRE (project.hasValidAssetClipIndirection());
+        }
+
+        const Project edited = project;
+        REQUIRE (undo.undoDepth() > 10u);
+
+        while (undo.canUndo())
+            REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, original);
+
+        while (undo.canRedo())
+            REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, edited);
     }
 }
