@@ -343,6 +343,13 @@ target_link_libraries(YesDawParamCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawParamCheck)
 add_test(NAME YesDawParamCheck COMMAND $<TARGET_FILE:YesDawParamCheck>)
 
+# --- EqNode check (H14 CP4; six-band TPT SVF built-in EQ) ---
+add_executable(YesDawEqCheck tests/eq_tests.cpp)
+target_include_directories(YesDawEqCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawEqCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawEqCheck)
+add_test(NAME YesDawEqCheck COMMAND $<TARGET_FILE:YesDawEqCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -620,6 +627,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawTimeCheck
   YesDawEventCheck
   YesDawParamCheck
+  YesDawEqCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck

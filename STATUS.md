@@ -54,40 +54,35 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP3 FX chain model + schema v7 + undo CLOSED REMOTE-GREEN.**
+**Current horizon:** **H14 (Built-in FX suite) — CP4 EqNode implementation LOCAL-GREEN; remote CI pending.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
-(`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`) across
-Linux, Windows, macOS, RTSan, and TSan.
+(`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
+closed remote-green: implementation `53f43d3` passed run `28713175842`, closeout `e0d758f` passed
+run `28713655210`, and final baton `704448a` passed run `28714154579`, all across Linux, Windows,
+macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP2 from current repo + remote CI:
+**Done this checkpoint:** Rolling-baton review first re-verified CP3 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `main` and `origin/main` both pointed
-at `2a98990`; CP2 implementation run `28697062994` and closeout run `28697491670` were both
-completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP3 adds `FxInsert` chains to
-Track/Bus strip state, adds FX edit/undo verbs (`addFxInsert`, `removeFxInsert`, `reorderFxInsert`,
-`setFxInsertEnabled`, `setFxInsertParam`) through row-diff undo, bumps bundle schema to v7 with
-append-only `fx_inserts` and `fx_insert_params` tables, writes/reads FX chains, migrates v6 bundles to
-empty chains, and adds open-time validators plus failing fixtures for unknown kind, duplicate
-`(owner, position)`, orphaned param rows, and out-of-range normalized values. Implementation commit
-`53f43d3` passed GitHub Actions run `28713175842` across Linux, Windows, macOS, RTSan, and TSan.
-Closeout commit `e0d758f` passed GitHub Actions run `28713655210` across Linux, Windows, macOS,
-RTSan, and TSan.
-No CP4 DSP node work, ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or
-`docs/reality-lane.md` change.
+at `704448a`; CP3 implementation run `28713175842`, closeout run `28713655210`, and final baton run
+`28714154579` were completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP4 adds
+`src/engine/nodes/EqNode.h`: a stereo six-band TPT SVF EQ with Bell/LowShelf/HighShelf/HPF/LPF/Notch,
+ParamIDs at `band*16 + {0,1,2,3}`, finite clamps, 5 ms real-valued parameter ramps, coefficient
+recompute on absolute-frame `eventFrame + 16*k` cadence, and bit-exact neutral Bell/0 dB pass-through.
+`YesDawEqCheck` covers identity anchors, independent response probes, neutral null, hostile params,
+block-size independence, event-offset anchored smoothing, the 20 kHz @ 44.1 kHz stability case, and
+the required CP4 negative controls. No CP5 node work, insert-chain wiring, schema, UI, ADR, golden,
+`YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation, or `docs/reality-lane.md` change.
 
-**Now:** CP3 is closed remote-green; stop at this checkpoint. Local gates:
-`git diff --check`;
-VS DevShell `cmake --build --preset ci --target YesDawProjectCheck` plus direct
-`build-ci\YesDawProjectCheck.exe` **29/29** test cases and **5679** assertions; VS DevShell
-`cmake --build --preset ci --target YesDawPersistenceCheck` plus direct
-`build-ci\YesDawPersistenceCheck.exe` **36/36** test cases and **807** assertions; VS DevShell
-`cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` **270/270**.
-Remote implementation gate: GitHub Actions run `28713175842` passed Linux, Windows, macOS, RTSan,
-and TSan. Remote closeout gate: GitHub Actions run `28713655210` passed Linux, Windows, macOS, RTSan,
-and TSan.
+**Now:** CP4 implementation is local-green and ready to push. Local gates:
+`git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawEqCheck`; VS DevShell
+`ctest --preset ci -R "^YesDawEqCheck$" --output-on-failure` passed; VS DevShell
+`ctest --preset ci --output-on-failure` **271/271**; VS DevShell `cmake --build --preset ci`;
+VS DevShell repeat `ctest --preset ci --output-on-failure` **271/271**.
 
-**Next:** a successor baton may open H14 CP4 only after `git pull --ff-only` and re-verifying CP3 from
-current repo + remote CI. Do not start CP4 in this thread.
+**Next:** commit and push the CP4 implementation, then wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan. After remote green, do the CP4 closeout STATUS commit and stop;
+do not start CP5.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
