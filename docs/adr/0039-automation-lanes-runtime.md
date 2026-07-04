@@ -6,7 +6,10 @@
 - **Related:** ADR-0009 (event stream + automation curves — implemented here, not changed),
   ADR-0038 (ParamSpec — the mapping these lanes drive), ADR-0010 (ticks/tempo), ADR-0006
   (snapshot concurrency), ADR-0037 (re-carve), plan:
-  [`2026-07-03-h15-automation-plan.md`](../plans/2026-07-03-h15-automation-plan.md)
+  [`2026-07-03-h15-automation-plan.md`](../plans/2026-07-03-h15-automation-plan.md),
+  amended per the adversarial review
+  [`2026-07-03-adversarial-review-h14-h17-packet.md`](../reviews/2026-07-03-adversarial-review-h14-h17-packet.md)
+  (findings 1, 2, 6)
 
 ## Context
 
@@ -37,8 +40,9 @@ forever.
    stalls, and contradicts "the audio thread owns live transport state." *Chosen: lanes compile
    into the Snapshot: at build time, breakpoints convert tick→frame through `CompiledTempoMap`
    into flat, sorted, frame-domain arrays; the audio thread walks a preallocated cursor per lane
-   and emits normalized `ParameterChange` events into the root event slot — no allocation, no
-   locks, locate/loop = binary-search cursor reset.*
+   and emits normalized `ParameterChange` events into a dedicated automation side-band (see
+   Decision — NOT the root event slot) — no allocation, no locks, locate/loop = binary-search
+   cursor reset.*
 3. **Curve fidelity — dense per-sample events vs fixed control-interval emission vs extending the
    event payload with ramp targets.** Extending `ParameterChangePayload` changes a frozen
    contract (ADR-0009); per-sample events blow the per-block event budget. *Chosen: emit along
@@ -52,15 +56,26 @@ forever.
 
 ## Decision
 
-- **Storage (schema v8, after H14's v7):** `automation_lanes(id, owner_entity, target_role,
-  param_id)` unique per target, + `automation_breakpoints(lane_id, tick, value CHECK 0..1,
-  curve_type CHECK IN (0,1))`, values normalized per ParamSpec. `Project` gains
-  `automationLanes`; full undo verbs through the command-diff pattern; open-time validators
-  reject orphan targets, unsorted/duplicate ticks, out-of-range values.
+- **Storage (the next free schema version after H14's — verify at kickoff; H13 is still open):**
+  `automation_lanes(id, owner_entity, target_role, param_id)` unique per target, +
+  `automation_breakpoints(lane_id, tick, value CHECK 0..1, curve_type CHECK IN (0,1))`, values
+  normalized per ParamSpec. `Project` gains `automationLanes`; full undo verbs through the
+  command-diff pattern; open-time validators reject orphan targets, unsorted/duplicate ticks,
+  out-of-range values.
 - **Runtime:** compiled frame-domain lanes in the Snapshot; RT cursor walk; control-interval
-  event emission (64 samples) + exact breakpoint events; a compile-time event-budget check
+  event emission (64 samples) + exact breakpoint events. **Delivery is a dedicated automation
+  side-band**: an additive `automationEvents` `EventStream` view on `ProcessArgs`, carrying the
+  block's evaluated automation events to **every** node, each filtering by its
+  `NodeId`+`ParamID` (the existing FaderNode pattern). Root-slot injection is rejected:
+  `GraphBuilder::eventInputSlotFor` hands a node its upstream producer's event slot whenever one
+  exists, so root injection would silently miss any consumer downstream of an event-producing
+  node — automation would work on plain audio tracks and fail on instrument tracks (review
+  finding 1). **Compiled lanes force the published graph `blockParallelSafe` bit to false**,
+  independent of node properties and `totalLatency`, so a zero-latency fader-only automated
+  graph can never be parallel-rendered (review finding 2). A compile-time event-budget check
   rejects projects whose worst-case per-block event count exceeds the existing
-  `kMaxEventsPerBlock` budget (explicit error, never silent drop).
+  `kMaxEventsPerBlock` budget (explicit error, never silent drop). All emission and consumer
+  smoothing cadences anchor to absolute timeline frames (shared rule with H14; review finding 6).
 - **Precedence:** where a lane exists for a target, automation events win over manual scalar
   posts (`postSetGain`/`postSetPan`) — read-mode semantics; touch/latch/write recording is
   deferred past alpha (ADR-0037).

@@ -11,8 +11,15 @@ only — the lane editor UI is H16. Read-mode only — no touch/latch/write reco
 
 **Mechanical exit criterion.** An automated parameter renders to its closed-form expected curve
 within the stated tolerance, bit-robust across block-size schedules and across a mid-curve tempo
-change; lanes round-trip save/reopen through schema v8; the randomized edit property test extended
-with automation verbs stays green; offline Render == RT with automation; RTSan clean.
+change; lanes round-trip save/reopen through the new schema version; the randomized edit property
+test extended with automation verbs stays green; offline Render == RT with automation; RTSan
+clean; the side-band delivery and scheduler-refusal gates (below) green.
+
+> **Review amendments (2026-07-03).** This plan was amended per
+> [`docs/reviews/2026-07-03-adversarial-review-h14-h17-packet.md`](../reviews/2026-07-03-adversarial-review-h14-h17-packet.md):
+> automation delivery is a `ProcessArgs` side-band, never the root event slot (finding 1);
+> compiled lanes force `blockParallelSafe = false` (finding 2); all cadences anchor to absolute
+> frames (finding 6); schema numbers are "next free version" (H13 still open).
 
 ---
 
@@ -37,6 +44,8 @@ with automation verbs stays green; offline Render == RT with automation; RTSan c
 |---|---|---|
 | Evaluator characterization | Linear/Hold segment math, half-open block slicing, cursor reuse | Shift emission by one frame at a block boundary → cross-block compare fails |
 | Curve-accuracy render | End-to-end lane → node → audio matches closed form within max(slope×6 ms, 1e-4) | Drop the control-interval emission (breakpoints only) → a long fade exceeds tolerance |
+| Side-band delivery | Automation reaches a consumer whose upstream produces events (MidiSource → Instrument → Fader) in the same block as the upstream events | Deliver automation via the root event slot instead → the downstream-consumer case fails (`eventInputSlotFor` hands the node the upstream slot) |
+| Scheduler refusal | A zero-latency, fader-only automated graph (no FX) refuses the parallel path because compiled lanes force the unsafe bit | Remove the automation force (compute safety from node properties + latency only) → the fader-only graph parallel-renders and this gate fails |
 | Block-size independence | Bit-identical across schedules incl. 1..9-frame forcing | Anchor emission to block starts instead of absolute frames → fails |
 | Tempo correctness | Tick-domain breakpoints land on correct frames across a mid-curve tempo change | Evaluate ticks against the pre-change tempo only → fails |
 | Locate/loop correctness | Cursor reset lands the parameter at the curve value for the new position | Skip cursor reset on locate → stale-value assertion fails |
@@ -61,7 +70,9 @@ controls before proceeding — report findings in `STATUS.md` either way.
 **CP1 — Project model + schema v8 + undo.** `Project.automationLanes`
 (`AutomationLaneData { EntityId id; EntityId ownerEntity; AutomationTargetRole role; std::uint32_t
 paramId; std::vector<AutomationBreakpoint> points; }`, `AutomationTargetRole { TrackFader,
-TrackPan, SendLevel, BusFader, BusPan, FxInsertParam }`). Schema v8 per the append-only recipe:
+TrackPan, SendLevel, BusFader, BusPan, FxInsertParam }`). The **next free schema version** (v8 at
+time of writing — H13 is still open; verify `kCodeSchemaVersion` at kickoff) per the append-only
+recipe:
 `automation_lanes(id BLOB PK, owner_entity BLOB, target_role INTEGER, param_id INTEGER,
 UNIQUE(owner_entity, target_role, param_id))`,
 `automation_breakpoints(lane_id BLOB, tick INTEGER, value REAL CHECK(value>=0 AND value<=1),
@@ -70,12 +81,13 @@ curve_type INTEGER CHECK(curve_type IN (0,1)), PK(lane_id, tick))`. Undo verbs `
 / removeBreakpoint` via the row-diff pattern; extend the randomized edit property test with these
 verbs. Open-time validators + one failing fixture each (orphan owner entity, unknown role,
 param id not in the target's ParamSpec, duplicate tick, out-of-range value, quarantined curve
-type). v8 fixture bundle joins the forever-gate.
+type). The new-version fixture bundle joins the forever-gate.
 
 **CP2 — Consumers.** (a) `FaderNode` ParamSpec migration: gain spec (dB domain, −60..+6, `Db`
-mapping; normalized 0 = −60 dB treated as −inf/mute), event values interpreted normalized;
-update `YesDawFaderCheck` expectations in the same commit (flagged behavior change; no saved
-data exists). (b) `PanNode` event consumption: same piecewise-ramp pattern
+mapping; normalized 0 = −60 dB treated as −inf/mute), event values interpreted normalized, and
+parameter events consumed from BOTH `args.events` and the new `automationEvents` side-band
+(one shared filtering/ramp helper — see CP3); update `YesDawFaderCheck` expectations in the same
+commit (flagged behavior change; no saved data exists). (b) `PanNode` event consumption: same piecewise-ramp pattern
 (`kPanParameterId = 1`, linear mapping −1..+1). (c) Send levels: per-send `FaderNode` spliced on
 the send tap in the mixer projection (id from the Track entity + send ordinal role), giving
 `SendLevel` lanes a real target; parity gate — send with level 1.0 renders identically to
@@ -90,17 +102,32 @@ allocators, error on unresolvable targets. Compile-time event-budget check: wors
 block = Σ over lanes of (blockSize/64 + 2) ≤ `kMaxEventsPerBlock` else reject with a new
 `GraphBuildError` code. Audio thread, per block, before node processing: advance each cursor,
 emit normalized `ParameterChange` events at absolute-frame-anchored 64-sample intervals along
-active Linear segments plus exactly at breakpoints (Hold = breakpoint events only) into the root
-event slot; locate/loop resets cursors by binary search (transport integration follows the H8
-loop/locate parity pattern). RT path is allocation-free (`YESDAW_RT_HOT` on the walk), covered by
-the RTSan lane. Gates: curve-accuracy, block-size sweep, tempo-change, locate/loop, budget —
-per the master list.
+active Linear segments plus exactly at breakpoints (Hold = breakpoint events only) into the
+**automation side-band** — a preallocated per-block buffer owned by `CompiledGraph`, exposed to
+every node as a new additive `ProcessArgs::automationEvents` `EventStream` view (empty span when
+no lanes exist; existing nodes that ignore it are unaffected). **Root-slot injection is
+forbidden:** `GraphBuilder::eventInputSlotFor` hands a node its upstream producer's event slot
+whenever one exists (`src/engine/GraphBuilder.h:680-690`), so root injection silently misses any
+consumer downstream of an event-producing node (review finding 1) — the side-band delivery gate
+proves the MidiSource → Instrument → Fader case. Every node receives the same side-band span and
+filters by its `NodeId` + `ParamId` through one shared helper also used for `args.events`
+compatibility. **Compiled lanes force the graph's published `blockParallelSafe` bit to false in
+the `GraphBuilder` payload — independent of node properties and `totalLatency`** (review finding
+2). Anchoring rule (shared with H14, normative): every emitted event carries an absolute timeline
+frame; all consumer smoothing and recompute cadences anchor to that absolute frame across block
+boundaries and PDC-shifted streams. Locate/loop resets cursors by binary search (transport
+integration follows the H8 loop/locate parity pattern). RT path is allocation-free
+(`YESDAW_RT_HOT` on the walk), covered by the RTSan lane. Gates: curve-accuracy, side-band
+delivery, scheduler refusal, block-size sweep, tempo-change, locate/loop, budget — per the master
+list.
 
 **CP4 — Integration + close-out.** Offline == RT with an automated full mix (fader fade, pan
 sweep, send ride, one FX param per node kind); precedence gate; `YesDawSchedulerCheck`
-note-check (automated graphs refuse the parallel path — already implied by `totalLatency > 0`
-or `blockParallelSafe = false`, assert explicitly); STATUS/roadmap close-out + adversarial
-review pass scheduled.
+extension: a **zero-latency, fader-only automated graph with no FX** must refuse the parallel
+path purely because compiled lanes force the unsafe bit (negative control per the bite table —
+removing the automation force must make this gate fail). A second case with FX present documents
+that FX-induced refusal is NOT evidence of automation safety (review finding 2: the guard must
+never pass for the wrong reason). STATUS/roadmap close-out + adversarial review pass scheduled.
 
 ## Not yet (guardrails)
 
