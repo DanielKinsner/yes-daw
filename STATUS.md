@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP7 ReverbNode IMPLEMENTATION LOCAL-GREEN; remote CI pending after push.**
+**Current horizon:** **H14 (Built-in FX suite) — CP7 ReverbNode IMPLEMENTATION REMOTE-GREEN; closeout CI pending after push.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -87,17 +87,21 @@ reported `tailSamples = 0` making the compiled-graph post-clip tail assertion fa
 work, CP9 insert-chain mixer wiring, CP10 fade/golden work, FX UI, schema change, ADR edit, golden
 regeneration, `[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
-**Now:** CP7 implementation is local-green; commit and push the implementation, then wait for remote
-CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64)
+Implementation commit `6ed5d94` passed GitHub Actions run `28723224456` across Linux, Windows, macOS,
+RTSan, and TSan.
+
+**Now:** CP7 implementation is remote-green; commit and push this STATUS closeout, then wait for
+remote CI on the closeout commit. Local gates: `git diff --check`; VS DevShell (BuildTools x64)
 `cmake --build --preset ci --target YesDawReverbCheck`; PowerShell
 `ctest --preset ci -R "^YesDawReverbCheck$" --output-on-failure` passed; PowerShell
 `ctest --preset ci --output-on-failure` **274/274**; VS DevShell (BuildTools x64)
 `cmake --build --preset ci`; PowerShell repeat `ctest --preset ci --output-on-failure` **274/274**.
 Remote prior-checkpoint gate: GitHub Actions run `28722537692` passed Linux, Windows, macOS, RTSan,
-and TSan for CP6 final baton.
+and TSan for CP6 final baton. Remote CP7 implementation gate: GitHub Actions run `28723224456`
+passed Linux, Windows, macOS, RTSan, and TSan for implementation commit `6ed5d94`.
 
-**Next:** commit and push CP7 implementation; wait for GitHub Actions to pass Linux, Windows, macOS,
-RTSan, and TSan. Then make the small STATUS closeout commit, push it, wait for that CI run to pass, and
+**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this closeout
+commit. Then make the final baton STATUS commit if needed, push it, wait for that CI run to pass, and
 only then create exactly one CP8 successor thread. Do not start CP8 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
