@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP3 FX chain model + schema v7 + undo IMPLEMENTATION REMOTE-GREEN; closeout pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP3 FX chain model + schema v7 + undo CLOSED REMOTE-GREEN.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`) across
@@ -70,10 +70,12 @@ append-only `fx_inserts` and `fx_insert_params` tables, writes/reads FX chains, 
 empty chains, and adds open-time validators plus failing fixtures for unknown kind, duplicate
 `(owner, position)`, orphaned param rows, and out-of-range normalized values. Implementation commit
 `53f43d3` passed GitHub Actions run `28713175842` across Linux, Windows, macOS, RTSan, and TSan.
+Closeout commit `e0d758f` passed GitHub Actions run `28713655210` across Linux, Windows, macOS,
+RTSan, and TSan.
 No CP4 DSP node work, ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or
 `docs/reality-lane.md` change.
 
-**Now:** CP3 implementation is local-green and remote-green; record the docs-only closeout. Local gates:
+**Now:** CP3 is closed remote-green; stop at this checkpoint. Local gates:
 `git diff --check`;
 VS DevShell `cmake --build --preset ci --target YesDawProjectCheck` plus direct
 `build-ci\YesDawProjectCheck.exe` **29/29** test cases and **5679** assertions; VS DevShell
@@ -81,10 +83,11 @@ VS DevShell `cmake --build --preset ci --target YesDawProjectCheck` plus direct
 `build-ci\YesDawPersistenceCheck.exe` **36/36** test cases and **807** assertions; VS DevShell
 `cmake --build --preset ci`; VS DevShell `ctest --preset ci --output-on-failure` **270/270**.
 Remote implementation gate: GitHub Actions run `28713175842` passed Linux, Windows, macOS, RTSan,
+and TSan. Remote closeout gate: GitHub Actions run `28713655210` passed Linux, Windows, macOS, RTSan,
 and TSan.
 
-**Next:** commit and push this CP3 docs-only closeout, then wait for GitHub Actions on Linux, Windows,
-macOS, RTSan, and TSan. If closeout CI is green, stop at CP3. Do not start CP4.
+**Next:** a successor baton may open H14 CP4 only after `git pull --ff-only` and re-verifying CP3 from
+current repo + remote CI. Do not start CP4 in this thread.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
