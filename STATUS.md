@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP4 EqNode implementation LOCAL-GREEN; remote CI pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP4 EqNode implementation REMOTE-GREEN; closeout CI pending.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -71,18 +71,21 @@ ParamIDs at `band*16 + {0,1,2,3}`, finite clamps, 5 ms real-valued parameter ram
 recompute on absolute-frame `eventFrame + 16*k` cadence, and bit-exact neutral Bell/0 dB pass-through.
 `YesDawEqCheck` covers identity anchors, independent response probes, neutral null, hostile params,
 block-size independence, event-offset anchored smoothing, the 20 kHz @ 44.1 kHz stability case, and
-the required CP4 negative controls. No CP5 node work, insert-chain wiring, schema, UI, ADR, golden,
-`YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation, or `docs/reality-lane.md` change.
+the required CP4 negative controls. Implementation commit `47e5e59` passed GitHub Actions run
+`28715559037` across Linux, Windows, macOS, RTSan, and TSan. No CP5 node work, insert-chain wiring,
+schema, UI, ADR, golden, `YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation, or
+`docs/reality-lane.md` change.
 
-**Now:** CP4 implementation is local-green and ready to push. Local gates:
+**Now:** CP4 implementation is remote-green; this closeout commit records the evidence and must get its
+own CI pass before handoff. Local gates:
 `git diff --check`; VS DevShell `cmake --build --preset ci --target YesDawEqCheck`; VS DevShell
 `ctest --preset ci -R "^YesDawEqCheck$" --output-on-failure` passed; VS DevShell
 `ctest --preset ci --output-on-failure` **271/271**; VS DevShell `cmake --build --preset ci`;
-VS DevShell repeat `ctest --preset ci --output-on-failure` **271/271**.
+VS DevShell repeat `ctest --preset ci --output-on-failure` **271/271**. Remote implementation gate:
+GitHub Actions run `28715559037` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** commit and push the CP4 implementation, then wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan. After remote green, do the CP4 closeout STATUS commit and stop;
-do not start CP5.
+**Next:** commit and push this CP4 closeout STATUS update, wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan, then stop at CP4. Do not start CP5.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
