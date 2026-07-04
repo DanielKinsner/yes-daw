@@ -12,7 +12,7 @@ worklog.
 
 **What landed (docs only, no implementation code):** ADR-0037 (alpha target + H14–H19 re-carve),
 ADR-0038 (built-in FX suite: five Nodes, ParamSpec, insert chains, tails), ADR-0039 (automation
-lanes: storage, targeting, compiled runtime) — all **Proposed**; implementation-grade plans
+lanes: storage, targeting, compiled runtime) — all **Accepted**; implementation-grade plans
 `2026-07-03-h14-fx-suite-plan.md`, `-h15-automation-plan.md`, `-h16-real-ui-plan.md`,
 `-h17-distribution-alpha-plan.md`; re-carved `docs/goals/roadmap.md` (H14 FX → H15 automation →
 H16 real UI → H17 distribution+alpha → H18 hosting → H19+ YES family); new `CONTEXT.md` terms
@@ -41,20 +41,20 @@ control; (3) clip-gain ownership named (moves into `DecodedClipNode`, like the f
 purely mechanical — the human feel session is the sanctioned non-gating exception. Schema
 numbers changed to "next free version" (H13 still open).
 
-**ADRs 0037–0039: ACCEPTED by Dan 2026-07-03.** The H14–H17 plans are law. Remaining
-precondition per implementer-brief §11: **H14 opens only after H13 is closed remote-green** —
-the implementing baton finishes H13 checkpoint 10 + closeout first, then starts H14 CP1
-(ParamSpec infrastructure) per `docs/plans/2026-07-03-h14-fx-suite-plan.md`.
+**ADRs 0037–0039: ACCEPTED by Dan 2026-07-03.** The H14–H17 plans are law. H13 is now closed
+remote-green: CP10 implementation `43280d8` passed GitHub Actions run `28693226908`, and H13 closeout
+docs `253e639` passed run `28693785996`; both runs were green across Linux, Windows, macOS, RTSan,
+and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
+`kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** the H13 packet below is unchanged and its checkpoint 10 proceeds as written; this
-planning packet is docs-only and opens no horizon.
+**Baton note:** H14 CP1 is the only implementation scope for this thread. Do not start CP2 here.
 
 ---
 
-## Live packet — H13 implementation
+## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H13 (Recording and device UX) — CLOSED REMOTE-GREEN.** H12 is closed remote-green on current
+**Current horizon:** **H14 (Built-in FX suite) — CP1 ParamSpec infrastructure in progress.** H13 is closed remote-green. H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
@@ -88,14 +88,14 @@ command diffs for recording Comp selection`, `Project recording Takes round-trip
 `YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
 `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
 
-**Now:** H13 closeout docs are local-green and ready to commit/push as a docs-only checkpoint: this live
-handoff, `loop/horizon.md`, and `docs/goals/roadmap.md` record H13 closed remote-green from the CP10 run
-above. Closeout local gates: `git diff --check`; Windows VS DevShell `cmake --build --preset ci`; and
-`ctest --preset ci --output-on-failure` **259/259**. No H14 implementation code has started.
+**Now:** H14 CP1 is implementing `src/engine/ParamSpec.h` plus `YesDawParamCheck`: Linear, Log, and
+Db mappings; exact endpoints; 1e-12 round-trips; hostile-value clamping to finite values; deterministic
+1000-pair monotonicity; and the named reversed-Log negative control.
 
-**Next (Codex - H13 closeout):** commit/push this closeout docs checkpoint and wait for remote CI across
-Linux, Windows, macOS, RTSan, and TSan. Only after that closeout commit is remote-green may H14 CP1 open per
-`docs/plans/2026-07-03-h14-fx-suite-plan.md`.
+**Next (Codex - H14 CP1):** run local gates (`git diff --check`; Windows VS DevShell
+`cmake --build --preset ci`; `ctest --preset ci --output-on-failure`), update this evidence, commit/push
+the CP1 checkpoint, then wait for remote CI across Linux, Windows, macOS, RTSan, and TSan. Do not start
+H14 CP2 in this thread.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
