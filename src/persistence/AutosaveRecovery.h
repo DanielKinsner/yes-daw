@@ -308,4 +308,9 @@ namespace autosave_detail {
     return autosave_detail::ok();
 }
 
+[[nodiscard]] inline AutosaveResult discardAutosaveSnapshot (const std::filesystem::path& bundlePath)
+{
+    return autosave_detail::removeTreeIfExists (autosaveDirectory (bundlePath));
+}
+
 } // namespace yesdaw::persistence

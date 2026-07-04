@@ -3,6 +3,7 @@
 #include "engine/Recording.h"
 #include "io/WavFile.h"
 #include "ui/MainComponent.h"
+#include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -118,6 +119,81 @@ float compMaskSampleAt (const yesdaw::engine::Project& project, yesdaw::engine::
     }
 
     return 0.0f;
+}
+
+void writeProjectSnapshotToBundle (const std::filesystem::path& bundlePath,
+                                   const yesdaw::engine::Project& project)
+{
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+}
+
+void writeAutosaveSnapshotToBundle (const std::filesystem::path& bundlePath,
+                                    const yesdaw::engine::Project& project)
+{
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+    REQUIRE (yesdaw::persistence::writeAutosaveSnapshot (db, project).ok());
+}
+
+void requireRecordedRecoverySurface (const yesdaw::engine::Project& actual,
+                                     const yesdaw::engine::Project& expected)
+{
+    REQUIRE (actual.assets == expected.assets);
+    REQUIRE (actual.clips == expected.clips);
+    REQUIRE (actual.tracks == expected.tracks);
+    REQUIRE (actual.recordingTakes == expected.recordingTakes);
+    REQUIRE (actual.midiClips == expected.midiClips);
+    REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
+}
+
+struct AutosaveRecoveryFixture
+{
+    std::filesystem::path bundlePath;
+    yesdaw::engine::Project autosaved;
+    yesdaw::engine::Project abandoned;
+};
+
+AutosaveRecoveryFixture makeAutosaveRecoveryFixture (std::string label)
+{
+    AutosaveRecoveryFixture fixture;
+    fixture.bundlePath = makeTempBundlePath (std::move (label));
+
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [path = fixture.bundlePath] { return path; };
+
+        auto shell = makeShell (std::move (choices));
+        juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
+        juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
+        juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
+        juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
+        juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
+        juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
+
+        clickButton (newProject);
+        clickButton (testDevice);
+        clickButton (armTrack);
+        clickButton (monitor);
+        clickButton (record);
+        clickButton (record);
+        clickButton (record);
+        clickButton (comp);
+    }
+
+    fixture.autosaved = readProjectSnapshot (fixture.bundlePath);
+    REQUIRE (fixture.autosaved.recordingTakes.size() == 2u);
+    REQUIRE (fixture.autosaved.midiClips.size() == 2u);
+    REQUIRE (fixture.autosaved.recordingCompSegments.size() == 2u);
+    writeAutosaveSnapshotToBundle (fixture.bundlePath, fixture.autosaved);
+
+    fixture.abandoned = fixture.autosaved;
+    REQUIRE_FALSE (fixture.abandoned.clips.empty());
+    fixture.abandoned.clips.front().gain = 0.25f;
+    fixture.abandoned.recordingCompSegments.clear();
+    writeProjectSnapshotToBundle (fixture.bundlePath, fixture.abandoned);
+    return fixture;
 }
 
 } // namespace
@@ -538,4 +614,101 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
     REQUIRE (redone.recordingCompSegments == comped.recordingCompSegments);
     REQUIRE (redone.clips == recorded.clips);
+}
+
+TEST_CASE ("H13 autosave recovery restore prompt restores recorded data through shipped MainComponent",
+           "[recording][ux][shell][autosave]")
+{
+    const AutosaveRecoveryFixture fixture = makeAutosaveRecoveryFixture ("autosave-restore");
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [path = fixture.bundlePath] { return path; };
+    auto shell = makeShell (std::move (choices));
+
+    juce::Button& open = requireButtonForAction (*shell, UiActionId::ProjectOpen);
+    clickButton (open);
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.autosaveRecoveryPending);
+    REQUIRE (snapshot.context.autosaveRecoveryPromptCount == 1);
+    REQUIRE (snapshot.autosaveRecovery.pending);
+    REQUIRE (snapshot.autosaveRecovery.bundlePath == fixture.bundlePath);
+    REQUIRE (snapshot.autosaveRecovery.recordingTakeCount == fixture.autosaved.recordingTakes.size());
+    REQUIRE (snapshot.autosaveRecovery.recordingCompSegmentCount
+             == fixture.autosaved.recordingCompSegments.size());
+    requireRecordedRecoverySurface (readProjectSnapshot (fixture.bundlePath), fixture.abandoned);
+
+    juce::Button& restore = requireButtonForAction (*shell, UiActionId::AutosaveRecoveryRestore);
+    juce::Button& discard = requireButtonForAction (*shell, UiActionId::AutosaveRecoveryDiscard);
+    REQUIRE (restore.isEnabled());
+    REQUIRE (discard.isEnabled());
+
+    clickButton (restore);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.autosaveRecoveryPending);
+    REQUIRE_FALSE (snapshot.autosaveRecovery.pending);
+    REQUIRE (snapshot.context.autosaveRecoveryRestoreCount == 1);
+    REQUIRE (snapshot.context.autosaveRecoveryDiscardCount == 0);
+    REQUIRE_FALSE (restore.isVisible());
+    REQUIRE_FALSE (discard.isVisible());
+
+    const yesdaw::engine::Project restored = readProjectSnapshot (fixture.bundlePath);
+    requireRecordedRecoverySurface (restored, fixture.autosaved);
+
+    yesdaw::engine::Project noAutosave;
+    const auto readAfterRestore = yesdaw::persistence::readAutosaveSnapshot (fixture.bundlePath, noAutosave);
+    REQUIRE (readAfterRestore.status == yesdaw::persistence::AutosaveStatus::NoAutosave);
+
+    UiAppModel reopened;
+    REQUIRE (reopened.openProjectBundle (fixture.bundlePath).ok());
+    REQUIRE_FALSE (reopened.context().autosaveRecoveryPending);
+    requireRecordedRecoverySurface (reopened.project(), fixture.autosaved);
+}
+
+TEST_CASE ("H13 autosave recovery discard prompt keeps abandoned bundle state through shipped MainComponent",
+           "[recording][ux][shell][autosave][negative]")
+{
+    const AutosaveRecoveryFixture fixture = makeAutosaveRecoveryFixture ("autosave-discard");
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [path = fixture.bundlePath] { return path; };
+    auto shell = makeShell (std::move (choices));
+
+    juce::Button& open = requireButtonForAction (*shell, UiActionId::ProjectOpen);
+    clickButton (open);
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.autosaveRecoveryPending);
+    REQUIRE (snapshot.autosaveRecovery.pending);
+
+    juce::Button& restore = requireButtonForAction (*shell, UiActionId::AutosaveRecoveryRestore);
+    juce::Button& discard = requireButtonForAction (*shell, UiActionId::AutosaveRecoveryDiscard);
+    REQUIRE (restore.isEnabled());
+    REQUIRE (discard.isEnabled());
+
+    clickButton (discard);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.autosaveRecoveryPending);
+    REQUIRE_FALSE (snapshot.autosaveRecovery.pending);
+    REQUIRE (snapshot.context.autosaveRecoveryRestoreCount == 0);
+    REQUIRE (snapshot.context.autosaveRecoveryDiscardCount == 1);
+    REQUIRE_FALSE (restore.isVisible());
+    REQUIRE_FALSE (discard.isVisible());
+
+    const yesdaw::engine::Project discarded = readProjectSnapshot (fixture.bundlePath);
+    requireRecordedRecoverySurface (discarded, fixture.abandoned);
+    REQUIRE (discarded.recordingCompSegments.empty());
+    REQUIRE (discarded.clips.front().gain == 0.25f);
+
+    yesdaw::engine::Project noAutosave;
+    const auto readAfterDiscard = yesdaw::persistence::readAutosaveSnapshot (fixture.bundlePath, noAutosave);
+    REQUIRE (readAfterDiscard.status == yesdaw::persistence::AutosaveStatus::NoAutosave);
+
+    UiAppModel reopened;
+    REQUIRE (reopened.openProjectBundle (fixture.bundlePath).ok());
+    REQUIRE_FALSE (reopened.context().autosaveRecoveryPending);
+    requireRecordedRecoverySurface (reopened.project(), fixture.abandoned);
 }

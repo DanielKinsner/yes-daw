@@ -40,6 +40,7 @@ UiActionContext fullyReachableContext()
     context.recordingInputSelected = true;
     context.recordingMonitoringSelected = true;
     context.recordingCompTakesAvailable = true;
+    context.autosaveRecoveryPending = true;
     return context;
 }
 

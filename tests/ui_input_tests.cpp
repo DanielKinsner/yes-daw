@@ -557,7 +557,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 10u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 12u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);

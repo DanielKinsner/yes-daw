@@ -189,6 +189,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("piano_roll.note.select")->id == UiActionId::PianoRollNoteSelect);
     REQUIRE (descriptorForStableId ("piano_roll.note.quantize")->id == UiActionId::PianoRollNoteQuantize);
     REQUIRE (descriptorForStableId ("piano_roll.expression.read")->id == UiActionId::PianoRollReadExpressionLanes);
+    REQUIRE (descriptorForStableId ("autosave.recovery.restore")->id == UiActionId::AutosaveRecoveryRestore);
+    REQUIRE (descriptorForStableId ("autosave.recovery.discard")->id == UiActionId::AutosaveRecoveryDiscard);
     REQUIRE (descriptorForStableId ("help.show_keymap")->id == UiActionId::HelpShowKeymap);
 
     std::set<std::string_view> stableIds;
@@ -350,6 +352,18 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
 
     context.recordingCompTakesAvailable = true;
     REQUIRE (registry.stateFor (UiActionId::RecordingAssembleComp, context).enabled);
+
+    const auto restoreWithoutAutosave = registry.stateFor (UiActionId::AutosaveRecoveryRestore, context);
+    REQUIRE_FALSE (restoreWithoutAutosave.enabled);
+    REQUIRE (restoreWithoutAutosave.disabledReason == std::string_view ("no autosave recovery snapshot"));
+
+    const auto discardWithoutAutosave = registry.stateFor (UiActionId::AutosaveRecoveryDiscard, context);
+    REQUIRE_FALSE (discardWithoutAutosave.enabled);
+    REQUIRE (discardWithoutAutosave.disabledReason == std::string_view ("no autosave recovery snapshot"));
+
+    context.autosaveRecoveryPending = true;
+    REQUIRE (registry.stateFor (UiActionId::AutosaveRecoveryRestore, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::AutosaveRecoveryDiscard, context).enabled);
 }
 
 TEST_CASE ("H11 action dispatch mutates only the headless app model behind action ids",
@@ -464,6 +478,16 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.midiEditCount == 4);
     REQUIRE (registry.dispatch (UiActionId::PianoRollReadExpressionLanes, context).dispatched);
     REQUIRE (context.midiReadCount == 1);
+
+    context.autosaveRecoveryPending = true;
+    REQUIRE (registry.dispatch (UiActionId::AutosaveRecoveryRestore, context).dispatched);
+    REQUIRE_FALSE (context.autosaveRecoveryPending);
+    REQUIRE (context.autosaveRecoveryRestoreCount == 1);
+
+    context.autosaveRecoveryPending = true;
+    REQUIRE (registry.dispatch (UiActionId::AutosaveRecoveryDiscard, context).dispatched);
+    REQUIRE_FALSE (context.autosaveRecoveryPending);
+    REQUIRE (context.autosaveRecoveryDiscardCount == 1);
 
     REQUIRE (registry.dispatch (UiActionId::HelpShowKeymap, context).dispatched);
     REQUIRE (context.keymapVisible);

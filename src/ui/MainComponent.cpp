@@ -232,6 +232,8 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: return "Monitor";
         case yesdaw::ui::UiActionId::TransportRecord: return "Record";
         case yesdaw::ui::UiActionId::RecordingAssembleComp: return "Comp";
+        case yesdaw::ui::UiActionId::AutosaveRecoveryRestore: return "Restore Autosave";
+        case yesdaw::ui::UiActionId::AutosaveRecoveryDiscard: return "Discard Autosave";
         case yesdaw::ui::UiActionId::ViewMixer: return "Mixer";
         case yesdaw::ui::UiActionId::ViewPianoRoll: return "Piano";
         default: break;
@@ -833,6 +835,9 @@ public:
             addAndMakeVisible (button);
         }
 
+        configureAutosaveRecoveryButton (autosaveRestoreButton, yesdaw::ui::UiActionId::AutosaveRecoveryRestore);
+        configureAutosaveRecoveryButton (autosaveDiscardButton, yesdaw::ui::UiActionId::AutosaveRecoveryDiscard);
+
         timelineInput.setComponentID (kTimelineComponentId);
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
@@ -937,6 +942,10 @@ public:
     {
         return appModel.recordingCompSelection();
     }
+    [[nodiscard]] const yesdaw::ui::UiAutosaveRecoveryPrompt& harnessAutosaveRecovery() const noexcept
+    {
+        return appModel.autosaveRecoveryPrompt();
+    }
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
@@ -998,6 +1007,8 @@ public:
             }
         }
 
+        autosaveRestoreButton.setBounds (1180, 50, 132, 26);
+        autosaveDiscardButton.setBounds (1316, 50, 132, 26);
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
         layoutInspectorControls();
@@ -1020,6 +1031,27 @@ private:
         }
 
         component.setName (fallbackName);
+    }
+
+    void configureAutosaveRecoveryButton (juce::TextButton& button, yesdaw::ui::UiActionId action)
+    {
+        const auto* descriptor = appModel.registry().descriptor (action);
+        if (descriptor == nullptr)
+            return;
+
+        button.setButtonText (actionButtonText (action));
+        button.setComponentID (descriptor->stableId);
+        button.setName (descriptor->accessibleName);
+        button.setTooltip (juce::String (descriptor->stableId) + "  " + descriptor->defaultKey);
+        button.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff201b13));
+        button.setColour (juce::TextButton::textColourOffId, kText);
+        button.onClick = [this, action] {
+            (void) appModel.dispatch (action);
+            refreshActionState();
+            repaint();
+        };
+        button.setVisible (false);
+        addAndMakeVisible (button);
     }
 
     void configureInspectorControls()
@@ -1269,10 +1301,25 @@ private:
                                        juce::dontSendNotification);
         }
 
+        refreshAutosaveRecoveryControls();
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
         refreshInspectorControls();
         refreshMixerControls();
+    }
+
+    void refreshAutosaveRecoveryControls()
+    {
+        const bool visible = appModel.context().autosaveRecoveryPending;
+        const auto restoreState = appModel.registry().stateFor (yesdaw::ui::UiActionId::AutosaveRecoveryRestore,
+                                                                appModel.context());
+        const auto discardState = appModel.registry().stateFor (yesdaw::ui::UiActionId::AutosaveRecoveryDiscard,
+                                                                appModel.context());
+
+        autosaveRestoreButton.setVisible (visible);
+        autosaveDiscardButton.setVisible (visible);
+        autosaveRestoreButton.setEnabled (visible && restoreState.enabled);
+        autosaveDiscardButton.setEnabled (visible && discardState.enabled);
     }
 
     void refreshInspectorControls()
@@ -1978,6 +2025,8 @@ private:
     juce::Slider mixerPan;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
+    juce::TextButton autosaveRestoreButton;
+    juce::TextButton autosaveDiscardButton;
     juce::Slider inspectorGain;
     juce::Slider inspectorFadeIn;
     juce::Slider inspectorFadeOut;
@@ -2048,6 +2097,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.lastRecordedAudioTake = mainComponent->harnessLastRecordedAudioTake();
         snapshot.lastRecordedMidiTake = mainComponent->harnessLastRecordedMidiTake();
         snapshot.recordingComp = mainComponent->harnessRecordingComp();
+        snapshot.autosaveRecovery = mainComponent->harnessAutosaveRecovery();
     }
 
     return snapshot;

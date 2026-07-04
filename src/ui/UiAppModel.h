@@ -10,6 +10,7 @@
 #include "engine/ProjectUndo.h"
 #include "engine/Recording.h"
 #include "io/WavFile.h"
+#include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 
@@ -151,6 +152,18 @@ struct UiRecordingCompSelection
     engine::Tick secondTimelineLength = 0;
 };
 
+struct UiAutosaveRecoveryPrompt
+{
+    bool pending = false;
+    std::filesystem::path bundlePath;
+    std::size_t trackCount = 0;
+    std::size_t assetCount = 0;
+    std::size_t clipCount = 0;
+    std::size_t recordingTakeCount = 0;
+    std::size_t midiClipCount = 0;
+    std::size_t recordingCompSegmentCount = 0;
+};
+
 class UiAppModel
 {
 public:
@@ -167,6 +180,7 @@ public:
     [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
     [[nodiscard]] const UiRecordedMidiTake& lastRecordedMidiTake() const noexcept { return lastRecordedMidiTake_; }
     [[nodiscard]] const UiRecordingCompSelection& recordingCompSelection() const noexcept { return recordingCompSelection_; }
+    [[nodiscard]] const UiAutosaveRecoveryPrompt& autosaveRecoveryPrompt() const noexcept { return autosaveRecovery_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -216,6 +230,7 @@ public:
 
         attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
         ++context_.commandDispatchCount;
+        detectAutosaveRecoveryPrompt();
         return result;
     }
 
@@ -982,6 +997,7 @@ public:
         playback_ = std::move (built.engine);
 
         syncContextFromPlayback();
+        detectAutosaveRecoveryPrompt();
 
         result.status = UiAppLoadStatus::Ok;
         return result;
@@ -1060,6 +1076,12 @@ public:
 
             case UiActionId::RecordingAssembleComp:
                 return assembleBasicRecordingCompSelection();
+
+            case UiActionId::AutosaveRecoveryRestore:
+                return restorePendingAutosaveSnapshot();
+
+            case UiActionId::AutosaveRecoveryDiscard:
+                return discardPendingAutosaveSnapshot();
 
             case UiActionId::EditUndo:
                 return dispatchUndo (id, state);
@@ -1295,6 +1317,97 @@ private:
                 recordingCompSelection_.gapLength = second.timelineStart - firstEnd;
             }
         }
+    }
+
+    void clearAutosaveRecoveryPrompt() noexcept
+    {
+        autosaveRecovery_ = {};
+        context_.autosaveRecoveryPending = false;
+    }
+
+    void setAutosaveRecoveryPrompt (const engine::Project& autosaved)
+    {
+        autosaveRecovery_ = {
+            true,
+            bundlePath_,
+            autosaved.tracks.size(),
+            autosaved.assets.size(),
+            autosaved.clips.size(),
+            autosaved.recordingTakes.size(),
+            autosaved.midiClips.size(),
+            autosaved.recordingCompSegments.size()
+        };
+        context_.autosaveRecoveryPending = true;
+        ++context_.autosaveRecoveryPromptCount;
+    }
+
+    void detectAutosaveRecoveryPrompt()
+    {
+        clearAutosaveRecoveryPrompt();
+        if (bundlePath_.empty())
+            return;
+
+        engine::Project autosaved;
+        const persistence::AutosaveResult result = persistence::readAutosaveSnapshot (bundlePath_, autosaved);
+        if (! result.ok())
+            return;
+
+        setAutosaveRecoveryPrompt (autosaved);
+    }
+
+    [[nodiscard]] UiActionDispatchResult restorePendingAutosaveSnapshot()
+    {
+        const UiActionId id = UiActionId::AutosaveRecoveryRestore;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! bundleDb_.isOpen() || bundlePath_.empty())
+            return { id, { false, "no Project bundle is open" }, false };
+
+        const std::filesystem::path bundlePath = bundlePath_;
+        const int previousCommandCount = context_.commandDispatchCount;
+        const int previousPromptCount = context_.autosaveRecoveryPromptCount;
+        const int previousRestoreCount = context_.autosaveRecoveryRestoreCount;
+        const int previousDiscardCount = context_.autosaveRecoveryDiscardCount;
+
+        engine::Project restored;
+        const persistence::AutosaveResult restoredResult = persistence::restoreAutosaveSnapshot (bundleDb_, restored);
+        if (! restoredResult.ok())
+            return { id, { false, "autosave restore failed" }, false };
+
+        const persistence::AutosaveResult discardedResult = persistence::discardAutosaveSnapshot (bundlePath);
+        if (! discardedResult.ok())
+            return { id, { false, "autosave cleanup failed" }, false };
+
+        persistence::ProjectBundleDb opened = std::move (bundleDb_);
+        attachProjectBundle (std::move (opened), bundlePath, std::move (restored));
+        context_.commandDispatchCount = previousCommandCount + 1;
+        context_.autosaveRecoveryPromptCount = previousPromptCount;
+        context_.autosaveRecoveryRestoreCount = previousRestoreCount + 1;
+        context_.autosaveRecoveryDiscardCount = previousDiscardCount;
+        clearAutosaveRecoveryPrompt();
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult discardPendingAutosaveSnapshot()
+    {
+        const UiActionId id = UiActionId::AutosaveRecoveryDiscard;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (bundlePath_.empty())
+            return { id, { false, "no Project bundle is open" }, false };
+
+        const persistence::AutosaveResult result = persistence::discardAutosaveSnapshot (bundlePath_);
+        if (! result.ok())
+            return { id, { false, "autosave discard failed" }, false };
+
+        clearAutosaveRecoveryPrompt();
+        ++context_.commandDispatchCount;
+        ++context_.autosaveRecoveryDiscardCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] UiActionDispatchResult refreshAudioDevices()
@@ -1926,6 +2039,7 @@ private:
         pendingAudioPlacement_ = {};
         pendingMidiPlacement_ = {};
         recordingCompSelection_ = {};
+        autosaveRecovery_ = {};
         syncProjectEditContext();
     }
 
@@ -1968,6 +2082,7 @@ private:
     UiRecordedMidiTake lastRecordedMidiTake_;
     UiRecordedMidiTake pendingMidiPlacement_;
     UiRecordingCompSelection recordingCompSelection_;
+    UiAutosaveRecoveryPrompt autosaveRecovery_;
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;

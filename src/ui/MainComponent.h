@@ -39,6 +39,7 @@ struct MainComponentSnapshot
     UiRecordedAudioTake lastRecordedAudioTake;
     UiRecordedMidiTake lastRecordedMidiTake;
     UiRecordingCompSelection recordingComp;
+    UiAutosaveRecoveryPrompt autosaveRecovery;
 };
 
 [[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices = {});

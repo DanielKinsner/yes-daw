@@ -54,6 +54,8 @@ enum class UiActionId : std::uint8_t
     PianoRollNoteTranspose,
     PianoRollNoteQuantize,
     PianoRollReadExpressionLanes,
+    AutosaveRecoveryRestore,
+    AutosaveRecoveryDiscard,
     HelpShowKeymap,
     Count
 };
@@ -111,6 +113,7 @@ struct UiActionDescriptor
     bool requiresRecordingMonitoring = false;
     bool requiresRecordingTrackAvailable = false;
     bool requiresRecordingCompTakes = false;
+    bool requiresAutosaveRecovery = false;
 };
 
 struct UiActionContext
@@ -152,6 +155,10 @@ struct UiActionContext
     bool recordingCompSelected = false;
     int recordingCompSegmentCount = 0;
     int recordingCompCommandCount = 0;
+    bool autosaveRecoveryPending = false;
+    int autosaveRecoveryPromptCount = 0;
+    int autosaveRecoveryRestoreCount = 0;
+    int autosaveRecoveryDiscardCount = 0;
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
@@ -266,6 +273,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::PianoRollReadExpressionLanes, "piano_roll.expression.read", "Expression", "Alt+Shift+E", "Read MIDI expression lanes",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false, true, false },
+    { UiActionId::AutosaveRecoveryRestore, "autosave.recovery.restore", "Restore Autosave", "Ctrl+Alt+R", "Restore autosave recovery snapshot",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
+    { UiActionId::AutosaveRecoveryDiscard, "autosave.recovery.discard", "Discard Autosave", "Ctrl+Alt+X", "Discard autosave recovery snapshot",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
@@ -445,6 +456,8 @@ public:
             return { false, "no recording monitoring policy" };
         if (descriptor->requiresRecordingCompTakes && ! context.recordingCompTakesAvailable)
             return { false, "not enough recording Takes" };
+        if (descriptor->requiresAutosaveRecovery && ! context.autosaveRecoveryPending)
+            return { false, "no autosave recovery snapshot" };
 
         return { true, "" };
     }
@@ -612,6 +625,16 @@ public:
             case UiActionId::PianoRollReadExpressionLanes:
                 context.activePanel = UiPanel::PianoRoll;
                 ++context.midiReadCount;
+                break;
+
+            case UiActionId::AutosaveRecoveryRestore:
+                context.autosaveRecoveryPending = false;
+                ++context.autosaveRecoveryRestoreCount;
+                break;
+
+            case UiActionId::AutosaveRecoveryDiscard:
+                context.autosaveRecoveryPending = false;
+                ++context.autosaveRecoveryDiscardCount;
                 break;
 
             case UiActionId::HelpShowKeymap:
