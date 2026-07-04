@@ -47,14 +47,14 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP3 is the only implementation scope for this thread. Do not start CP4 here.
+**Baton note:** H14 CP6 is the only implementation scope for this thread. Do not start CP7 here.
 
 ---
 
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP5 CompressorNode CLOSED REMOTE-GREEN; CP6 successor pending creation.**
+**Current horizon:** **H14 (Built-in FX suite) — CP6 FxDelayNode implemented local-green; implementation push/CI pending.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -62,39 +62,40 @@ closed remote-green: implementation `53f43d3` passed run `28713175842`, closeout
 run `28713655210`, and final baton `704448a` passed run `28714154579`, all across Linux, Windows,
 macOS, RTSan, and TSan. H14 CP4 is closed remote-green: implementation `47e5e59` passed run
 `28715559037`, and closeout `193b35b` passed run `28716030870`, both across Linux, Windows, macOS,
-RTSan, and TSan.
+RTSan, and TSan. H14 CP5 is closed remote-green: implementation `6e64753` passed run `28720068235`,
+closeout `a4cd154` passed run `28720500367`, and final baton `aac85ec` passed run `28720932073`, all
+across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP4 from current repo + remote CI:
-session start `git pull --ff-only` was already up to date; local `main` and `origin/main` both pointed
-at `193b35b`; CP4 closeout run `28716030870` was completed/successful across Linux, Windows, macOS,
-RTSan, and TSan. CP5 adds `src/engine/nodes/CompressorNode.h`: a stereo-linked, feed-forward,
-log-domain `CompressorNode` with threshold/ratio/attack/release/knee/makeup ParamSpecs, finite clamps,
-5 ms real-valued parameter ramps anchored to event absolute frames, branching attack/release envelope,
-soft-knee gain computer, float32 in-place processing, and atomic gain-reduction readback for H16.
-`YesDawCompressorCheck` is registered as an exact named CTest gate and covers the static curve
-(-40..0 dB in 5 dB steps across 3 T/R/W combos), attack/release ballistics, ratio-1 unity/null,
-hostile inputs and params, H14 block-size independence, event-offset anchored smoothing, and the
-required CP5 negative controls: 1% gain-term perturbation, swapped attack/release coefficients,
-block-boundary state reset, and apply-event-at-block-start. No CP6 delay work, Reverb/Limiter work,
-insert-chain mixer wiring, FX UI, schema change, ADR edit, golden regeneration,
-`YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
-Bypass/enable crossfade is not implemented inside CP5's node because CP4 established no node-level
-bypass ParamSpec and CP9 explicitly owns disabled-insert dry/wet crossfades. Implementation commit
-`6e64753` passed GitHub Actions run `28720068235` across Linux, Windows, macOS, RTSan, and TSan.
-Closeout commit `a4cd154` passed GitHub Actions run `28720500367` across Linux, Windows, macOS,
-RTSan, and TSan. CP5 is closed remote-green.
+**Done this checkpoint:** Rolling-baton review first re-verified CP5 from current repo + remote CI:
+session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
+all pointed at `aac85ec`; CP5 final-baton run `28720932073` was completed/successful across Linux,
+Windows, macOS, RTSan, and TSan. CP6 adds `src/engine/nodes/FxDelayNode.h`: a stereo, float32,
+in-place `FxDelayNode` with per-channel rings allocated only in `prepare(sampleRate, maxBlockSize)`,
+timeMs L/R ParamSpecs (1..2000 ms log), finite feedback clamp, feedback-path one-pole damping,
+ping-pong routing, mix, integer static delay taps, delay-time changes that hold the old tap through
+the 5 ms real-valued time-param ramp and then switch old-D to new-D by a 20 ms dual-tap equal-power
+crossfade, and a local delay `tailSamples()` formula assertion without opening CP7's
+`NodeProperties::tailSamples` contract early. `YesDawFxDelayCheck` is registered as an exact named
+CTest gate and covers dry/null, tap alignment, feedback decay, damping magnitude, ping-pong first tap,
+time-change click bounds, hostile inputs/params, H14 block-size independence, event-offset anchored
+smoothing, and the required CP6 negative controls: dry-term perturbation, off-by-one tap expectation,
+block-boundary state reset, and apply-event-at-block-start. No CP7 reverb work, CP8 limiter work,
+CP9 insert-chain mixer wiring, FX UI, schema change, ADR edit, golden regeneration,
+`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
-**Now:** CP5 is closed remote-green; create exactly one CP6 successor thread, then stop. Local gates:
-`git diff --check`; VS DevShell (BuildTools x64)
-`cmake --build --preset ci --target YesDawCompressorCheck`; VS DevShell
-`ctest --preset ci -R "^YesDawCompressorCheck$" --output-on-failure` passed; VS DevShell
-`ctest --preset ci --output-on-failure` **272/272**; VS DevShell `cmake --build --preset ci`;
-VS DevShell repeat `ctest --preset ci --output-on-failure` **272/272**. Remote implementation gate:
-GitHub Actions run `28720068235` passed Linux, Windows, macOS, RTSan, and TSan. Remote closeout gate:
-GitHub Actions run `28720500367` passed Linux, Windows, macOS, RTSan, and TSan.
+**Now:** CP6 implementation is local-green; commit and push the implementation, then wait for remote
+CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64)
+`cmake --preset ci`; VS DevShell `cmake --build --preset ci --target YesDawFxDelayCheck`; VS
+DevShell `ctest --preset ci -R "^YesDawFxDelayCheck$" --output-on-failure` passed; VS DevShell
+`ctest --preset ci --output-on-failure` **273/273**; VS DevShell `cmake --build --preset ci`;
+VS DevShell repeat `ctest --preset ci --output-on-failure` **273/273**. Remote prior-checkpoint gate:
+GitHub Actions run `28720932073` passed Linux, Windows, macOS, RTSan, and TSan for CP5 final baton.
+Remote CP6 implementation gate: pending until this implementation commit is pushed.
 
-**Next:** create exactly one CP6 successor thread with the recursive CP6→CP10 baton rule, then stop.
-Do not start CP6 here.
+**Next:** after the CP6 implementation commit is pushed and remote-green across Linux, Windows, macOS,
+RTSan, and TSan, update this file with the remote run evidence, commit/push the CP6 closeout, wait for
+that closeout run to go remote-green across all five jobs, then create exactly one CP7 successor thread
+with the recursive CP7->CP10 baton rule. Do not start CP7 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

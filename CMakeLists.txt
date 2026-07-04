@@ -357,6 +357,13 @@ target_link_libraries(YesDawCompressorCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawCompressorCheck)
 add_test(NAME YesDawCompressorCheck COMMAND $<TARGET_FILE:YesDawCompressorCheck>)
 
+# --- FxDelayNode check (H14 CP6; stereo delay with feedback, damping, and ping-pong) ---
+add_executable(YesDawFxDelayCheck tests/fx_delay_tests.cpp)
+target_include_directories(YesDawFxDelayCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawFxDelayCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawFxDelayCheck)
+add_test(NAME YesDawFxDelayCheck COMMAND $<TARGET_FILE:YesDawFxDelayCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -635,6 +642,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawEventCheck
   YesDawParamCheck
   YesDawEqCheck
+  YesDawFxDelayCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck
