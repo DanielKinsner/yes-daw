@@ -41,9 +41,10 @@ control; (3) clip-gain ownership named (moves into `DecodedClipNode`, like the f
 purely mechanical — the human feel session is the sanctioned non-gating exception. Schema
 numbers changed to "next free version" (H13 still open).
 
-**Next (planning):** Dan decides flipping ADRs 0037–0039 to Accepted. Per implementer-brief §11,
-**H14 implementation must not open** until H13 is closed remote-green AND the packet ADRs are
-Accepted.
+**ADRs 0037–0039: ACCEPTED by Dan 2026-07-03.** The H14–H17 plans are law. Remaining
+precondition per implementer-brief §11: **H14 opens only after H13 is closed remote-green** —
+the implementing baton finishes H13 checkpoint 10 + closeout first, then starts H14 CP1
+(ParamSpec infrastructure) per `docs/plans/2026-07-03-h14-fx-suite-plan.md`.
 
 **Baton note:** the H13 packet below is unchanged and its checkpoint 10 proceeds as written; this
 planning packet is docs-only and opens no horizon.

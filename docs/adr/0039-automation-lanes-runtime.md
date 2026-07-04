@@ -1,6 +1,6 @@
 # 0039. Automation lanes: storage, targeting, and the compiled runtime path
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-07-03, after the Codex adversarial review was applied)
 - **Date:** 2026-07-03
 - **Deciders:** Dan + Fable 5 (2026-07-03 planning session)
 - **Related:** ADR-0009 (event stream + automation curves — implemented here, not changed),

@@ -1,6 +1,6 @@
 # 0037. Alpha target and the H14–H19 re-carve
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-07-03, after the Codex adversarial review was applied)
 - **Date:** 2026-07-03
 - **Deciders:** Dan + Fable 5 (live grill session, 2026-07-03), informed by the
   [`docs/fable5/`](../fable5/yes-daw.md) plan-elicitation pack

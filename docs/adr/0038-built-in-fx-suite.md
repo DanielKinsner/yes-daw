@@ -1,6 +1,6 @@
 # 0038. Built-in FX suite: five Nodes, the ParamSpec model, insert chains, and tails
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-07-03, after the Codex adversarial review was applied)
 - **Date:** 2026-07-03
 - **Deciders:** Dan + Fable 5 (2026-07-03 planning session)
 - **Related:** ADR-0037 (re-carve — why FX before hosting), ADR-0008 (Node contract — extended
