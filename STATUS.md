@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP5 CompressorNode implementation LOCAL-GREEN; implementation CI pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP5 CompressorNode implementation REMOTE-GREEN; closeout CI pending.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -79,19 +79,20 @@ block-boundary state reset, and apply-event-at-block-start. No CP6 delay work, R
 insert-chain mixer wiring, FX UI, schema change, ADR edit, golden regeneration,
 `YESDAW_RT_HOT`/`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 Bypass/enable crossfade is not implemented inside CP5's node because CP4 established no node-level
-bypass ParamSpec and CP9 explicitly owns disabled-insert dry/wet crossfades.
+bypass ParamSpec and CP9 explicitly owns disabled-insert dry/wet crossfades. Implementation commit
+`6e64753` passed GitHub Actions run `28720068235` across Linux, Windows, macOS, RTSan, and TSan.
 
-**Now:** CP5 implementation is local-green and ready for its implementation commit/push. Local gates:
+**Now:** CP5 implementation is remote-green; this closeout commit records the evidence and must get its
+own CI pass before the CP6 successor thread is created. Local gates:
 `git diff --check`; VS DevShell (BuildTools x64)
 `cmake --build --preset ci --target YesDawCompressorCheck`; VS DevShell
 `ctest --preset ci -R "^YesDawCompressorCheck$" --output-on-failure` passed; VS DevShell
 `ctest --preset ci --output-on-failure` **272/272**; VS DevShell `cmake --build --preset ci`;
-VS DevShell repeat `ctest --preset ci --output-on-failure` **272/272**.
+VS DevShell repeat `ctest --preset ci --output-on-failure` **272/272**. Remote implementation gate:
+GitHub Actions run `28720068235` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** commit and push the CP5 implementation, wait for GitHub Actions to pass Linux, Windows,
-macOS, RTSan, and TSan, then record the remote-green evidence in a separate closeout STATUS commit.
-Only after that closeout commit is pushed and remote-green, create exactly one CP6 successor thread.
-Do not start CP6 here.
+**Next:** commit and push this CP5 closeout STATUS update, wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan, then create exactly one CP6 successor thread. Do not start CP6 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
