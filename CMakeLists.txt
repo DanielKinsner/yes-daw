@@ -364,6 +364,13 @@ target_link_libraries(YesDawFxDelayCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawFxDelayCheck)
 add_test(NAME YesDawFxDelayCheck COMMAND $<TARGET_FILE:YesDawFxDelayCheck>)
 
+# --- ReverbNode check (H14 CP7; stereo Householder FDN reverb + tails) ---
+add_executable(YesDawReverbCheck tests/reverb_tests.cpp)
+target_include_directories(YesDawReverbCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawReverbCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawReverbCheck)
+add_test(NAME YesDawReverbCheck COMMAND $<TARGET_FILE:YesDawReverbCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -643,6 +650,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawParamCheck
   YesDawEqCheck
   YesDawFxDelayCheck
+  YesDawReverbCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck

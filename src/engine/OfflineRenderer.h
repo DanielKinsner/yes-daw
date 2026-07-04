@@ -452,6 +452,14 @@ struct ResolvedClipWindow
         }
     }
 
+    std::uint64_t nodeTail = 0;
+    if (! graph->totalTailSamples (nodeTail)
+        || ! detail::checkedAddFrames (timelineEndFrames, nodeTail, timelineEndFrames))
+    {
+        result.status = OfflineRenderStatus::OutputTooLarge;
+        return result;
+    }
+
     const int masterChannels = graph->debugMasterChannels();
     if (masterChannels <= 0 || masterChannels > std::numeric_limits<std::uint16_t>::max())
     {

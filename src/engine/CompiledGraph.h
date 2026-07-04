@@ -404,6 +404,30 @@ public:
     float   identityDc() const noexcept { return identityDc_; }
     bool    isDegenerate() const noexcept { return isDegenerate_; }
     std::int64_t totalLatency() const noexcept { return totalLatency_; }
+    [[nodiscard]] bool totalTailSamples (std::uint64_t& out) const noexcept
+    {
+        out = 0;
+        if (isDegenerate_)
+            return true;
+
+        for (const CompiledNode& cn : compiledNodes_)
+        {
+            if (cn.node == nullptr)
+                continue;
+
+            const std::int64_t tail = cn.node->properties().tailSamples;
+            if (tail < 0)
+                return false;
+
+            const std::uint64_t uTail = static_cast<std::uint64_t> (tail);
+            if (uTail > std::numeric_limits<std::uint64_t>::max() - out)
+                return false;
+
+            out += uTail;
+        }
+
+        return true;
+    }
     // ADR-0027: true iff EVERY node is order-independent across Blocks, so the parallel scheduler may
     // dispatch this graph's Blocks out of order without changing a sample. False if any node is stateful.
     bool    isBlockParallelSafe() const noexcept { return blockParallelSafe_; }
