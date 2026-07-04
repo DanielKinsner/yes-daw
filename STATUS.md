@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP1 ParamSpec infrastructure local-green.** H13 is closed remote-green. H12 is closed remote-green on current
+**Current horizon:** **H14 (Built-in FX suite) — CP1 ParamSpec infrastructure CLOSED REMOTE-GREEN.** H13 is closed remote-green. H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
@@ -88,7 +88,8 @@ command diffs for recording Comp selection`, `Project recording Takes round-trip
 `YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
 `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
 
-**Now:** H14 CP1 is local-green and ready to commit/push. It adds `src/engine/ParamSpec.h` plus
+**Now:** H14 CP1 is closed remote-green on `main` (`0621656`, GitHub Actions run `28695566078`) across
+Linux, Windows, macOS, RTSan, and TSan. It added `src/engine/ParamSpec.h` plus
 `YesDawParamCheck`: Linear, Log, and Db mappings; exact endpoints; 1e-12 round-trips; hostile-value
 clamping to finite values; deterministic 1000-pair monotonicity; and the named reversed-Log negative
 control in the same commit as the gate. Local gates: VS DevShell
@@ -96,8 +97,9 @@ control in the same commit as the gate. Local gates: VS DevShell
 `ctest --preset ci -R YesDawParamCheck --output-on-failure` **1/1**; `git diff --check`; VS DevShell
 `cmake --build --preset ci`; and VS DevShell `ctest --preset ci --output-on-failure` **260/260**.
 
-**Next (Codex - H14 CP1):** commit/push the CP1 checkpoint, then wait for remote CI across Linux,
-Windows, macOS, RTSan, and TSan. Do not start H14 CP2 in this thread.
+**Next (successor baton - H14 CP2):** start CP2 per
+`docs/plans/2026-07-03-h14-fx-suite-plan.md` only after re-verifying this CP1 state from current
+`main` and remote CI. This thread must stop here; do not start H14 CP2 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
