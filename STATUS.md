@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP2 Per-Track strip consolidation LOCAL-GREEN, REMOTE CI PENDING.** H13 is closed remote-green. H12 is closed remote-green on current
+**Current horizon:** **H14 (Built-in FX suite) — CP2 Per-Track strip consolidation CLOSED REMOTE-GREEN.** H13 is closed remote-green. H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
@@ -88,7 +88,7 @@ command diffs for recording Comp selection`, `Project recording Takes round-trip
 `YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
 `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
 
-**Done this checkpoint:** H14 CP2 is implemented locally. CP1 was re-verified first from current
+**Done this checkpoint:** H14 CP2 is implemented and remote-green. CP1 was re-verified first from current
 `main`: session start `git pull --ff-only` was already up to date at `1213954`; CP1 implementation
 `0621656` passed GitHub Actions run `28695566078`, and CP1 closeout `1213954` passed run
 `28695963126`; both runs were green across Linux, Windows, macOS, RTSan, and TSan. CP2 moves
@@ -100,19 +100,23 @@ UI mixer surface at Track-derived strip IDs. `YesDawMixerProjectionCheck` now co
 Track parity to the pre-consolidation reference, Track fader affecting both Clips, independent
 per-Clip gains, Track strip/meter identity, and the required negative controls for double Clip gain
 and double Track gain. No schema bump, ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or
-`docs/reality-lane.md` change.
+`docs/reality-lane.md` change. CP2 implementation landed on `main` as `2154ed9` and passed GitHub
+Actions run `28697062994` across Linux, Windows, macOS, RTSan, and TSan.
 
-**Now:** CP2 implementation is local-green and ready to push. Local gates: VS DevShell focused build
+**Now:** CP2 is closed for this thread; this docs-only closeout records the remote-green evidence. Local
+gates for the implementation commit: VS DevShell focused build
 for `YesDawRenderCheck`, `YesDawOfflineRenderCheck`, `YesDawPlaybackCheck`,
 `YesDawMixerProjectionCheck`, `YesDawUiActionCheck`, `YesDawBundleRenderCheck`, and
 `YesDawRuntimeAudioDriverCheck`; focused `ctest --preset ci -R "RuntimeAudioDriver publishes Project
 mixer projection" --output-on-failure` **1/1**; focused render/playback/UI lane **3/3** plus direct
 `YesDawRenderCheck`, `YesDawMixerProjectionCheck`, and `YesDawBundleRenderCheck` executables all
 green; `git diff --check`; VS DevShell `cmake --build --preset ci`; and VS DevShell
-`ctest --preset ci --output-on-failure` **261/261**.
+`ctest --preset ci --output-on-failure` **261/261**. Remote gate for the implementation commit:
+GitHub Actions run `28697062994` **green** on Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** commit and push CP2, wait for the CP2 GitHub Actions run to go green on Linux, Windows,
-macOS, RTSan, and TSan, then make the docs-only remote-green closeout commit. Do not start CP3.
+**Next:** stop at CP2 after this docs-only closeout commit is pushed and its GitHub Actions run is green.
+The successor baton may open H14 CP3 only after pulling `main` and re-verifying CP2 plus this closeout
+commit. Do not start CP3 in this thread.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
