@@ -54,7 +54,7 @@ planning packet is docs-only and opens no horizon.
 ## Live packet — H13 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H13 (Recording and device UX) — OPEN.** H12 is closed remote-green on current
+**Current horizon:** **H13 (Recording and device UX) — CLOSED REMOTE-GREEN.** H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
@@ -72,25 +72,30 @@ Take metadata migration checkpoint is remote-green on `main` (`0a13b49`, GitHub 
 The MIDI recording checkpoint is remote-green on `main` (`5b3d515`, GitHub Actions run `28479924426`) and
 writes deterministic MIDI Project data alongside the deterministic audio Take. The monitoring policy and
 fake-device latency calibration checkpoint is remote-green on `main` (`4d4c712`, GitHub Actions run
-`28481100296`).
-
-**Now:** H13 implementation checkpoint 10 is local-green and ready to commit/push. It wires a shipped
-`MainComponent` autosave recovery prompt with registry-backed restore/discard actions, validates the prompt
-only after the existing autosave snapshot reader accepts the bundle, restores recorded Takes/Clips/MIDI/Comp
-state through the normal bundle path, and makes discard a biting branch that keeps the abandoned bundle state
-while deleting the autosave. Local review/fix first re-verified checkpoint 9's comp basics: VS DevShell
-focused build for `YesDawProjectCheck`, `YesDawPersistenceCheck`, `YesDawUiActionCheck`,
-`YesDawRecordingUxCheck`, `YesDawAccessibilityCheck`, and `YesDawAppSmokeCheck`; targeted CTest cases
-`Project undo stack records command diffs for recording Comp selection`, `Project recording Takes round-trip
-through a reopened bundle`, `Opening an existing bundle rejects recording Comp segments outside their Take`,
-`YesDawUiActionCheck`, `YesDawAppSmokeCheck`, `YesDawAccessibilityCheck`, and `YesDawRecordingUxCheck`
-**7/7**. CP10 local gates: `git diff --check`; VS DevShell focused build for `YesDawRecordingUxCheck`,
-`YesDawUiActionCheck`, `YesDawAccessibilityCheck`, `YesDawUiInputCheck`, and `YesDawAppSmokeCheck`; focused
-CTest `YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
+`28481100296`). The final autosave recovery checkpoint is remote-green on `main` (`43280d8`, GitHub Actions
+run `28693226908`) across Linux, Windows, macOS, RTSan, and TSan. It wires a shipped `MainComponent`
+autosave recovery prompt with registry-backed restore/discard actions, validates the prompt only after the
+existing autosave snapshot reader accepts the bundle, restores recorded Takes/Clips/MIDI/Comp state through
+the normal bundle path, and makes discard a biting branch that keeps the abandoned bundle state while
+deleting the autosave. Local review/fix first re-verified checkpoint 9's comp basics: VS DevShell focused
+build for `YesDawProjectCheck`, `YesDawPersistenceCheck`, `YesDawUiActionCheck`, `YesDawRecordingUxCheck`,
+`YesDawAccessibilityCheck`, and `YesDawAppSmokeCheck`; targeted CTest cases `Project undo stack records
+command diffs for recording Comp selection`, `Project recording Takes round-trip through a reopened bundle`,
+`Opening an existing bundle rejects recording Comp segments outside their Take`, `YesDawUiActionCheck`,
+`YesDawAppSmokeCheck`, `YesDawAccessibilityCheck`, and `YesDawRecordingUxCheck` **7/7**. CP10 local gates:
+`git diff --check`; VS DevShell focused build for `YesDawRecordingUxCheck`, `YesDawUiActionCheck`,
+`YesDawAccessibilityCheck`, `YesDawUiInputCheck`, and `YesDawAppSmokeCheck`; focused CTest
+`YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
 `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
 
-**Next (Codex - H13 closeout):** commit/push checkpoint 10, wait for remote CI across Linux, Windows, macOS,
-RTSan, and TSan. If green, close H13 with the roadmap/status note and only then open H14 CP1.
+**Now:** H13 closeout docs are local-green and ready to commit/push as a docs-only checkpoint: this live
+handoff, `loop/horizon.md`, and `docs/goals/roadmap.md` record H13 closed remote-green from the CP10 run
+above. Closeout local gates: `git diff --check`; Windows VS DevShell `cmake --build --preset ci`; and
+`ctest --preset ci --output-on-failure` **259/259**. No H14 implementation code has started.
+
+**Next (Codex - H13 closeout):** commit/push this closeout docs checkpoint and wait for remote CI across
+Linux, Windows, macOS, RTSan, and TSan. Only after that closeout commit is remote-green may H14 CP1 open per
+`docs/plans/2026-07-03-h14-fx-suite-plan.md`.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

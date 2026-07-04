@@ -233,8 +233,13 @@ policy, record audio/MIDI into bundle Assets/Takes, take lanes/comp basics, late
 smoke, and autosave recovery prompts.
 **Exit:** a scripted record flow produces bundle-persistent Take/Clip data, survives save/reopen/recovery,
 and keeps the recording alignment and device survival gates green.
-**Status (2026-06-30):** opened docs-first after H12 closeout was remote-green. ADR-0035 is accepted and
-the focused plan is
+**Status (2026-07-04):** closed remote-green on `main` (`43280d8`, GitHub Actions run `28693226908`).
+ADR-0035 is accepted, and the focused implementation checkpoints wire the shipped-shell recording harness,
+deterministic device selection/refresh, Track arming, canonical recorded-WAV Assets, schema-v5 Take metadata,
+MIDI recording, monitoring policy, fake-device latency calibration, schema-v6 take-lane/Comp basics, and
+autosave recovery restore/discard prompt. Local final gates were green: CP9 review/fix **7/7**, CP10 focused
+recording/action/accessibility/input/smoke **5/5**, and full `ctest --preset ci --output-on-failure`
+**259/259**. The focused plan is
 [`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`](../plans/2026-06-30-h13-recording-device-ux-plan.md).
 
 > **Horizons H14–H19 (ADR-0037, 2026-07-03).** Product goal locked: a **dogfood alpha** (Dan
