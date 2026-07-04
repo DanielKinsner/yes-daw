@@ -8,6 +8,38 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
+
+**What landed (docs only, no implementation code):** ADR-0037 (alpha target + H14–H19 re-carve),
+ADR-0038 (built-in FX suite: five Nodes, ParamSpec, insert chains, tails), ADR-0039 (automation
+lanes: storage, targeting, compiled runtime) — all **Proposed**; implementation-grade plans
+`2026-07-03-h14-fx-suite-plan.md`, `-h15-automation-plan.md`, `-h16-real-ui-plan.md`,
+`-h17-distribution-alpha-plan.md`; re-carved `docs/goals/roadmap.md` (H14 FX → H15 automation →
+H16 real UI → H17 distribution+alpha → H18 hosting → H19+ YES family); new `CONTEXT.md` terms
+(Insert, FX chain, ParamSpec, Automation lane, Breakpoint, Design token, Alpha, Reality lane);
+`docs/reality-lane.md` (three owner-machine smokes + committed result log — no PASS ever recorded
+yet); `docs/goals/risk-register.md`; `docs/fable5/implementer-brief.md` (packet hard-stops).
+
+**Decisions locked with Dan (2026-07-03 session):** product goal = dogfood alpha on the way to a
+distributable product; YES family (Master/Voice/Stems) integrate as plugins later (H19+); the
+product mockup is the structural UI spec; **first-party FX before real plugin hosting** (hosting
+= H18, de-risked now by a one-real-VST3 worker smoke — a conscious divergence from the
+`docs/fable5/yes-daw.md` draft "shippable"); portable unsigned zip for alpha (signing/installer =
+beta); hardening folds into horizons + the reality lane; every H14–H17 plan carries a "Gates that
+must BITE" section.
+
+**Next (planning):** Codex adversarial review of this packet (ADRs 0037–0039 + four plans +
+brief + roadmap). Treat findings per house rules — verify against the project, apply what's
+correct — then Dan decides flipping the ADRs to Accepted. Per implementer-brief §11, **H14
+implementation must not open** until H13 is closed remote-green AND the packet ADRs are Accepted.
+
+**Baton note:** the H13 packet below is unchanged and its checkpoint 10 proceeds as written; this
+planning packet is docs-only and opens no horizon.
+
+---
+
+## Live packet — H13 implementation
+
 **Last updated:** 2026-06-30
 **Current horizon:** **H13 (Recording and device UX) — OPEN.** H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
