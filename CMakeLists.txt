@@ -336,6 +336,13 @@ target_link_libraries(YesDawEventCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEventCheck)
 catch_discover_tests(YesDawEventCheck)
 
+# --- ParamSpec check (H14 CP1; normalized-to-real mapping for built-in FX params) ---
+add_executable(YesDawParamCheck tests/param_tests.cpp)
+target_include_directories(YesDawParamCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawParamCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawParamCheck)
+add_test(NAME YesDawParamCheck COMMAND $<TARGET_FILE:YesDawParamCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -612,6 +619,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck
+  YesDawParamCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck
