@@ -6,7 +6,9 @@
 
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
+#include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/IdentityDcNode.h"
+#include "engine/nodes/SumNode.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -26,6 +28,7 @@ using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::Asset;
 using yesdaw::engine::Clip;
+using yesdaw::engine::DecodedClipNode;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
@@ -45,9 +48,11 @@ using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::ProjectMixerProjectionConfig;
 using yesdaw::engine::ProjectMixerProjectionError;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::SumNode;
 using yesdaw::engine::Track;
 using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::projectMixerNodeIdForClip;
+using yesdaw::engine::projectMixerNodeIdForTrack;
 using yesdaw::engine::projectToMixerProjectionInputs;
 
 namespace {
@@ -55,6 +60,7 @@ namespace {
 constexpr NodeId kMasterSumId = 61000;
 constexpr NodeId kMasterId    = 61001;
 constexpr int    kMaxBlock    = 512;
+constexpr int    kProjectRenderFrames = 64;
 constexpr float  kCenterGain  = 0.70710677f;
 
 class LatentImpulseSource final : public Node
@@ -230,6 +236,92 @@ float sourceDcForAsset (const Asset& asset) noexcept
     return asset.frames == 100u ? 0.5f : 0.25f;
 }
 
+enum class SourceGainMutation
+{
+    None,
+    DoubleClipGainAtSource,
+    DoubleTrackGainAtSource
+};
+
+std::unique_ptr<Node> makeDecodedProjectSource (const Project& project,
+                                                const Clip& clip,
+                                                const Asset& asset,
+                                                NodeId expectedSourceId,
+                                                SourceGainMutation mutation)
+{
+    const Track* const track = project.findTrack (clip.trackId);
+    REQUIRE (track != nullptr);
+
+    float source = sourceDcForAsset (asset);
+    if (mutation == SourceGainMutation::DoubleClipGainAtSource)
+        source *= clip.gain;
+    else if (mutation == SourceGainMutation::DoubleTrackGainAtSource)
+        source *= track->strip.linearGain;
+
+    std::vector<float> samples (static_cast<std::size_t> (clip.srcLen), source);
+    return std::make_unique<DecodedClipNode> (expectedSourceId,
+                                              std::move (samples),
+                                              1,
+                                              0,
+                                              0,
+                                              0,
+                                              clip.gain);
+}
+
+MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
+                                                    SourceGainMutation mutation = SourceGainMutation::None)
+{
+    ProjectMixerProjectionConfig config;
+    config.id = 70;
+    config.masterSumNodeId = kMasterSumId;
+    config.masterNodeId = kMasterId;
+    config.maxBlockSize = kMaxBlock;
+
+    MixerProjectionInputs projection;
+    ProjectMixerProjectionError projectError;
+    const bool projected = projectToMixerProjectionInputs (
+        project,
+        config,
+        [mutation] (const Project& sourceProject, const Clip& clip, const Asset& asset, NodeId expectedSourceId)
+            -> std::unique_ptr<Node>
+        {
+            return makeDecodedProjectSource (sourceProject, clip, asset, expectedSourceId, mutation);
+        },
+        projection,
+        &projectError);
+
+    REQUIRE (projected);
+    REQUIRE (projectError.code == ProjectMixerProjectionError::Code::None);
+    return projection;
+}
+
+float preConsolidationReference (const Project& project)
+{
+    float sum = 0.0f;
+    for (const Clip& clip : project.clips)
+    {
+        const Asset* const asset = project.findAsset (clip.assetId);
+        const Track* const track = project.findTrack (clip.trackId);
+        REQUIRE (asset != nullptr);
+        REQUIRE (track != nullptr);
+        sum += sourceDcForAsset (*asset) * clip.gain * track->strip.linearGain;
+    }
+
+    return sum * kCenterGain;
+}
+
+StereoCapture renderProjectProjectionForTest (const Project& project,
+                                              SourceGainMutation mutation = SourceGainMutation::None)
+{
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project, mutation);
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    return render (*graph, kProjectRenderFrames);
+}
+
 } // namespace
 
 TEST_CASE ("Mixer projection renders an empty master bus as silence", "[mixer][projection][silence]")
@@ -282,7 +374,7 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
 
     // Both tracks are centre-panned, so the master must carry the same summed value in L and R.
     const float expectedCenter = (0.25f * 0.5f + 0.50f * 0.25f) * kCenterGain;
-    const StereoCapture out = render (*graph, kMaxBlock);
+    const StereoCapture out = render (*graph, kProjectRenderFrames);
     for (float v : out.left)
         REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
     for (float v : out.right)
@@ -294,58 +386,76 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     Project project = makeMixerProjectionProject();
     project.tracks[0].strip.linearGain = 0.75f;
 
-    ProjectMixerProjectionConfig config;
-    config.id = 70;
-    config.masterSumNodeId = kMasterSumId;
-    config.masterNodeId = kMasterId;
-    config.maxBlockSize = kMaxBlock;
-
-    MixerProjectionInputs projection;
-    ProjectMixerProjectionError projectError;
-    const bool projected = projectToMixerProjectionInputs (
-        project,
-        config,
-        [] (const Project&, const Clip&, const Asset& asset, NodeId expectedSourceId)
-            -> std::unique_ptr<Node>
-        {
-            return std::make_unique<IdentityDcNode> (expectedSourceId, sourceDcForAsset (asset), 1);
-        },
-        projection,
-        &projectError);
-
-    REQUIRE (projected);
-    REQUIRE (projectError.code == ProjectMixerProjectionError::Code::None);
-    REQUIRE (projection.id == config.id);
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+    REQUIRE (projection.id == 70);
     REQUIRE (projection.sampleRate == project.sampleRate.hz);
     REQUIRE (projection.maxBlockSize == kMaxBlock);
-    REQUIRE (projection.tracks.size() == project.clips.size());
+    REQUIRE (projection.tracks.size() == 1u);
 
-    const NodeId firstSource = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source);
-    const NodeId firstFader = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Fader);
-    const NodeId firstPan = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Pan);
-    const NodeId firstMeter = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Meter);
-    REQUIRE (projection.tracks[0].source->properties().id == firstSource);
-    REQUIRE (projection.tracks[0].faderNodeId == firstFader);
-    REQUIRE (projection.tracks[0].panNodeId == firstPan);
-    REQUIRE (projection.tracks[0].meterNodeId == firstMeter);
-    REQUIRE (projection.tracks[0].linearGain == project.clips[0].gain * project.tracks[0].strip.linearGain);
+    const NodeId trackSource = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Source);
+    const NodeId trackFader = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Fader);
+    const NodeId trackPan = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Pan);
+    const NodeId trackMeter = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Meter);
+    REQUIRE (projection.tracks[0].source->properties().id == trackSource);
+    REQUIRE (dynamic_cast<SumNode*> (projection.tracks[0].source.get()) != nullptr);
+    REQUIRE (projection.tracks[0].supportNodes.size() == project.clips.size());
+    REQUIRE (projection.tracks[0].supportNodes[0]->properties().id
+             == projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source));
+    REQUIRE (projection.tracks[0].supportNodes[1]->properties().id
+             == projectMixerNodeIdForClip (project.clips[1].id, ProjectMixerNodeRole::Source));
+    REQUIRE (projection.tracks[0].faderNodeId == trackFader);
+    REQUIRE (projection.tracks[0].panNodeId == trackPan);
+    REQUIRE (projection.tracks[0].meterNodeId == trackMeter);
+    REQUIRE (projection.tracks[0].linearGain == project.tracks[0].strip.linearGain);
     REQUIRE (projection.tracks[0].pan == 0.0f);
 
     MixerProjectionError graphError;
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
     REQUIRE (graph != nullptr);
     REQUIRE (graphError.code == MixerProjectionError::Code::None);
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == project.clips.size());
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == project.clips.size());
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == project.clips.size());
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 1u);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == 1u);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == 1u);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sum) == 2u);
 
-    const float expected =
-        (sourceDcForAsset (project.assets[0]) * project.clips[0].gain * project.tracks[0].strip.linearGain
-         + sourceDcForAsset (project.assets[1]) * project.clips[1].gain * project.tracks[0].strip.linearGain)
-        * kCenterGain;
-    const StereoCapture out = render (*graph, kMaxBlock);
+    const float expected = preConsolidationReference (project);
+    const StereoCapture out = render (*graph, kProjectRenderFrames);
     REQUIRE (out.left.back() == Approx (expected).margin (1.0e-4f));
     REQUIRE (out.right.back() == Approx (expected).margin (1.0e-4f));
+
+    const StereoCapture doubleClipGain =
+        renderProjectProjectionForTest (project, SourceGainMutation::DoubleClipGainAtSource);
+    REQUIRE (doubleClipGain.left.back() != Approx (expected).margin (1.0e-4f));
+
+    const StereoCapture doubleTrackGain =
+        renderProjectProjectionForTest (project, SourceGainMutation::DoubleTrackGainAtSource);
+    REQUIRE (doubleTrackGain.left.back() != Approx (expected).margin (1.0e-4f));
+}
+
+TEST_CASE ("Project projector applies Track fader after independent Clip gains",
+           "[mixer][projection][project][gain]")
+{
+    Project project = makeMixerProjectionProject();
+    project.tracks[0].strip.linearGain = 0.75f;
+
+    const float reference = preConsolidationReference (project);
+    StereoCapture out = renderProjectProjectionForTest (project);
+    REQUIRE (out.left.back() == Approx (reference).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (reference).margin (1.0e-4f));
+
+    Project trackMutated = project;
+    trackMutated.tracks[0].strip.linearGain = 0.25f;
+    out = renderProjectProjectionForTest (trackMutated);
+    REQUIRE (out.left.back() == Approx (preConsolidationReference (trackMutated)).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (preConsolidationReference (trackMutated)).margin (1.0e-4f));
+    REQUIRE (out.left.back() == Approx (reference * (0.25f / 0.75f)).margin (1.0e-4f));
+
+    Project clipMutated = project;
+    clipMutated.clips[0].gain = 1.0f;
+    out = renderProjectProjectionForTest (clipMutated);
+    REQUIRE (out.left.back() == Approx (preConsolidationReference (clipMutated)).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (preConsolidationReference (clipMutated)).margin (1.0e-4f));
+    REQUIRE (out.left.back() != Approx (reference).margin (1.0e-4f));
 }
 
 TEST_CASE ("Project projector rejects invalid Project and invalid clip gain before source creation",
@@ -411,7 +521,7 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
     {
         ProjectMixerProjectionConfig config;
         config.masterSumNodeId = kMasterSumId;
-        config.masterNodeId = projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source);
+        config.masterNodeId = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Source);
 
         bool factoryCalled = false;
         MixerProjectionInputs projection;

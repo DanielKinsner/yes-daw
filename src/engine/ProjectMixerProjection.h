@@ -8,6 +8,7 @@
 
 #include "engine/MixerGraphProjection.h"
 #include "engine/Project.h"
+#include "engine/nodes/SumNode.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -56,14 +57,14 @@ struct ProjectMixerProjectionError
     ProjectMixerNodeRole role = ProjectMixerNodeRole::Source;
 };
 
-[[nodiscard]] inline NodeId projectMixerNodeIdForClip (EntityId clipId,
-                                                       ProjectMixerNodeRole role) noexcept
+[[nodiscard]] inline NodeId projectMixerNodeIdForEntity (EntityId entityId,
+                                                         ProjectMixerNodeRole role) noexcept
 {
     constexpr std::uint32_t kFnvOffset = 2166136261u;
     constexpr std::uint32_t kFnvPrime = 16777619u;
 
     std::uint32_t h = kFnvOffset;
-    for (const std::uint8_t byte : clipId.bytes)
+    for (const std::uint8_t byte : entityId.bytes)
     {
         h ^= byte;
         h *= kFnvPrime;
@@ -73,6 +74,18 @@ struct ProjectMixerProjectionError
     h *= kFnvPrime;
 
     return h == 0u ? 1u : h;
+}
+
+[[nodiscard]] inline NodeId projectMixerNodeIdForClip (EntityId clipId,
+                                                       ProjectMixerNodeRole role) noexcept
+{
+    return projectMixerNodeIdForEntity (clipId, role);
+}
+
+[[nodiscard]] inline NodeId projectMixerNodeIdForTrack (EntityId trackId,
+                                                        ProjectMixerNodeRole role) noexcept
+{
+    return projectMixerNodeIdForEntity (trackId, role);
 }
 
 namespace detail {
@@ -122,81 +135,107 @@ template <typename SourceFactory>
     projection.sampleRate = project.sampleRate.hz;
     projection.maxBlockSize = config.maxBlockSize;
     projection.previousForCarryOver = config.previousForCarryOver;
-    projection.tracks.reserve (project.clips.size());
+    projection.tracks.reserve (project.tracks.size());
 
     std::vector<NodeId> usedIds;
-    usedIds.reserve (project.clips.size() * 4u + 2u);
+    usedIds.reserve (project.tracks.size() * 4u + project.clips.size() + 2u);
     if (! detail::registerProjectMixerNodeId (usedIds, projection.masterSumNodeId, 0, ProjectMixerNodeRole::Source, error)
         || ! detail::registerProjectMixerNodeId (usedIds, projection.masterNodeId, 0, ProjectMixerNodeRole::Source, error))
         return false;
 
-    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    for (std::size_t trackIndex = 0; trackIndex < project.tracks.size(); ++trackIndex)
     {
-        const Clip& clip = project.clips[i];
-        const Asset* const asset = project.findAsset (clip.assetId);
-        if (asset == nullptr)
+        const Track& owningTrack = project.tracks[trackIndex];
+
+        bool ownsAudioClip = false;
+        for (const Clip& clip : project.clips)
+        {
+            if (clip.trackId == owningTrack.id)
+            {
+                ownsAudioClip = true;
+                break;
+            }
+        }
+
+        if (! ownsAudioClip)
+            continue;
+
+        if (! mixerGainIsValid (owningTrack.strip.linearGain))
         {
             if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::InvalidProject, i, 0, ProjectMixerNodeRole::Source };
+                *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, trackIndex, 0, ProjectMixerNodeRole::Fader };
             return false;
         }
 
-        if (! mixerGainIsValid (clip.gain))
-        {
-            if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::InvalidClipGain, i, 0, ProjectMixerNodeRole::Fader };
+        const NodeId sourceId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::Source);
+        const NodeId faderId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::Fader);
+        const NodeId panId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::Pan);
+        const NodeId meterId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::Meter);
+
+        if (! detail::registerProjectMixerNodeId (usedIds, sourceId, trackIndex, ProjectMixerNodeRole::Source, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, faderId, trackIndex, ProjectMixerNodeRole::Fader, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, panId, trackIndex, ProjectMixerNodeRole::Pan, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, meterId, trackIndex, ProjectMixerNodeRole::Meter, error))
             return false;
+
+        std::vector<std::unique_ptr<Node>> clipSources;
+        std::vector<Node*> sumInputs;
+
+        for (std::size_t i = 0; i < project.clips.size(); ++i)
+        {
+            const Clip& clip = project.clips[i];
+            if (! (clip.trackId == owningTrack.id))
+                continue;
+
+            const Asset* const asset = project.findAsset (clip.assetId);
+            if (asset == nullptr)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, i, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            if (! mixerGainIsValid (clip.gain))
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidClipGain, i, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            const NodeId clipSourceId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Source);
+            if (! detail::registerProjectMixerNodeId (usedIds, clipSourceId, i, ProjectMixerNodeRole::Source, error))
+                return false;
+
+            std::unique_ptr<Node> source = sourceFactory (project, clip, *asset, clipSourceId);
+            if (source == nullptr)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::SourceFactoryFailed, i, clipSourceId, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            if (source->properties().id != clipSourceId)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::SourceNodeIdMismatch, i, clipSourceId, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            sumInputs.push_back (source.get());
+            clipSources.push_back (std::move (source));
         }
 
-        const Track* const owningTrack = project.findTrack (clip.trackId);
-        if (owningTrack == nullptr || ! mixerGainIsValid (owningTrack->strip.linearGain))
-        {
-            if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, i, 0, ProjectMixerNodeRole::Fader };
-            return false;
-        }
-
-        const double combinedGain = static_cast<double> (clip.gain) * static_cast<double> (owningTrack->strip.linearGain);
-        if (combinedGain > static_cast<double> (FaderNode::kMaxLinearGain))
-        {
-            if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, i, 0, ProjectMixerNodeRole::Fader };
-            return false;
-        }
-
-        const NodeId sourceId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Source);
-        const NodeId faderId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Fader);
-        const NodeId panId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Pan);
-        const NodeId meterId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Meter);
-
-        if (! detail::registerProjectMixerNodeId (usedIds, sourceId, i, ProjectMixerNodeRole::Source, error)
-            || ! detail::registerProjectMixerNodeId (usedIds, faderId, i, ProjectMixerNodeRole::Fader, error)
-            || ! detail::registerProjectMixerNodeId (usedIds, panId, i, ProjectMixerNodeRole::Pan, error)
-            || ! detail::registerProjectMixerNodeId (usedIds, meterId, i, ProjectMixerNodeRole::Meter, error))
-            return false;
-
-        std::unique_ptr<Node> source = sourceFactory (project, clip, *asset, sourceId);
-        if (source == nullptr)
-        {
-            if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::SourceFactoryFailed, i, sourceId, ProjectMixerNodeRole::Source };
-            return false;
-        }
-
-        if (source->properties().id != sourceId)
-        {
-            if (error != nullptr)
-                *error = { ProjectMixerProjectionError::Code::SourceNodeIdMismatch, i, sourceId, ProjectMixerNodeRole::Source };
-            return false;
-        }
+        auto sum = std::make_unique<SumNode> (sourceId, 1);
+        sum->setInputNodes (std::move (sumInputs));
 
         MixerTrackProjection track;
-        track.source = std::move (source);
+        track.supportNodes = std::move (clipSources);
+        track.source = std::move (sum);
         track.faderNodeId = faderId;
         track.panNodeId = panId;
         track.meterNodeId = meterId;
-        track.linearGain = static_cast<float> (combinedGain);
-        track.pan = owningTrack->strip.pan;
+        track.linearGain = owningTrack.strip.linearGain;
+        track.pan = owningTrack.strip.pan;
         projection.tracks.push_back (std::move (track));
     }
 

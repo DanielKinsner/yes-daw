@@ -8,6 +8,7 @@
 #include "engine/Node.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -25,13 +26,15 @@ public:
     // resolved frame offset, so its audio-thread path stays a branch-only positioned read.
     DecodedClipNode (NodeId id, std::vector<float> samples, int channels = 1,
                      std::int64_t timelineStartFrames = 0,
-                     std::int64_t fadeInFrames = 0, std::int64_t fadeOutFrames = 0) noexcept
+                     std::int64_t fadeInFrames = 0, std::int64_t fadeOutFrames = 0,
+                     float clipGain = 1.0f) noexcept
         : id_ (id),
           samples_ (std::move (samples)),
           channels_ (channels > 0 ? channels : 1),
           timelineStart_ (timelineStartFrames > 0 ? timelineStartFrames : 0),
           fadeIn_ (fadeInFrames > 0 ? fadeInFrames : 0),
-          fadeOut_ (fadeOutFrames > 0 ? fadeOutFrames : 0)
+          fadeOut_ (fadeOutFrames > 0 ? fadeOutFrames : 0),
+          clipGain_ (std::isfinite (clipGain) && clipGain >= 0.0f ? clipGain : 0.0f)
     {
     }
 
@@ -58,7 +61,7 @@ public:
             const std::int64_t local  = (blockStart + static_cast<std::int64_t> (i)) - timelineStart_;
             float              sample = 0.0f;
             if (local >= 0 && local < total)
-                sample = samples_[static_cast<std::size_t> (local)] * fadeGainAt (local, total);
+                sample = samples_[static_cast<std::size_t> (local)] * fadeGainAt (local, total) * clipGain_;
 
             for (int c = 0; c < channels; ++c)
                 args.audio.channels[c][i] = sample;
@@ -98,6 +101,7 @@ private:
     std::int64_t       timelineStart_ = 0;
     std::int64_t       fadeIn_        = 0;
     std::int64_t       fadeOut_       = 0;
+    float              clipGain_      = 1.0f;
     std::int64_t       playFrame_     = 0;
 };
 

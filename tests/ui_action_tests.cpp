@@ -48,7 +48,7 @@ using yesdaw::ui::UiTimelineEditPayload;
 using yesdaw::ui::descriptorForStableId;
 using yesdaw::ui::kUiActionCount;
 using yesdaw::ui::mainShellToolbarActions;
-using yesdaw::engine::projectMixerNodeIdForClip;
+using yesdaw::engine::projectMixerNodeIdForTrack;
 using yesdaw::ui::roleName;
 using yesdaw::ui::uiActionDescriptors;
 
@@ -602,7 +602,6 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (noProject.dispatch.state.disabledReason == std::string_view ("no project loaded"));
 
     Project project = makeMixerProject();
-    const EntityId firstClipId = project.clips[0].id;
     const EntityId firstTrackId = project.tracks[0].id;
     const EntityId secondTrackId = project.tracks[1].id;
     const float originalFirstGain = project.clips[0].gain;
@@ -657,10 +656,10 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (snapshot.tracks.size() == 2u);
     REQUIRE (snapshot.buses.size() == 1u);
     REQUIRE (snapshot.tracks[0].name == "Vocal Lead");
-    REQUIRE (snapshot.tracks[0].sourceNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Source));
-    REQUIRE (snapshot.tracks[0].faderNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Fader));
-    REQUIRE (snapshot.tracks[0].panNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Pan));
-    REQUIRE (snapshot.tracks[0].meterNodeId == projectMixerNodeIdForClip (firstClipId, ProjectMixerNodeRole::Meter));
+    REQUIRE (snapshot.tracks[0].sourceNodeId == projectMixerNodeIdForTrack (firstTrackId, ProjectMixerNodeRole::Source));
+    REQUIRE (snapshot.tracks[0].faderNodeId == projectMixerNodeIdForTrack (firstTrackId, ProjectMixerNodeRole::Fader));
+    REQUIRE (snapshot.tracks[0].panNodeId == projectMixerNodeIdForTrack (firstTrackId, ProjectMixerNodeRole::Pan));
+    REQUIRE (snapshot.tracks[0].meterNodeId == projectMixerNodeIdForTrack (firstTrackId, ProjectMixerNodeRole::Meter));
     REQUIRE (snapshot.tracks[0].linearGain == 0.9f);
     REQUIRE (snapshot.tracks[0].pan == 0.25f);
     REQUIRE (snapshot.tracks[0].sidechainVisible);

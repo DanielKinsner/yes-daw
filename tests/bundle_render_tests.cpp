@@ -168,18 +168,32 @@ std::vector<float> decodeFullAssetChannelMajorFromBundle (const std::filesystem:
     return std::vector<float> (channel, channel + static_cast<std::ptrdiff_t> (asset.frames));
 }
 
-bool applyClipGainEnvelopeToDecodedWindow (const Clip& clip, std::vector<float>& decoded)
+bool applyDecodedClipNodeEnvelopeToDecodedWindow (const Clip& clip, std::vector<float>& decoded)
 {
+    if (! std::isfinite (clip.gain) || clip.gain < 0.0f || clip.fadeIn < 0 || clip.fadeOut < 0)
+        return false;
+
+    const std::int64_t total = static_cast<std::int64_t> (decoded.size());
     for (std::size_t frame = 0; frame < decoded.size(); ++frame)
     {
-        if (frame > static_cast<std::size_t> (std::numeric_limits<Tick>::max()))
+        if (frame > static_cast<std::size_t> (std::numeric_limits<std::int64_t>::max()))
             return false;
 
-        const auto envelope = evaluateClipGainEnvelope (clip, static_cast<Tick> (frame));
-        if (! envelope.valid)
+        const std::int64_t local = static_cast<std::int64_t> (frame);
+        float gain = clip.gain;
+        if (clip.fadeIn > 0 && local < clip.fadeIn)
+            gain *= static_cast<float> (local) / static_cast<float> (clip.fadeIn);
+        if (clip.fadeOut > 0)
+        {
+            const std::int64_t fadeOutStart = total - clip.fadeOut;
+            if (local >= fadeOutStart)
+                gain *= static_cast<float> (total - local) / static_cast<float> (clip.fadeOut);
+        }
+
+        if (! std::isfinite (gain))
             return false;
 
-        decoded[frame] *= envelope.gain;
+        decoded[frame] *= gain;
     }
 
     return true;
@@ -210,10 +224,17 @@ std::unique_ptr<CompiledGraph> buildBundleClipProjection (const ProjectBundleDb&
             return nullptr;
 
         std::vector<float> decoded = decodeClipWindowFromBundle (db.bundlePath(), *asset, clip);
-        if (! applyClipGainEnvelopeToDecodedWindow (clip, decoded))
+        std::vector<float> envelopeProbe = decoded;
+        if (! applyDecodedClipNodeEnvelopeToDecodedWindow (clip, envelopeProbe))
             return nullptr;
 
-        auto source = std::make_unique<DecodedClipNode> (static_cast<NodeId> (3000u + i), std::move (decoded), 1);
+        auto source = std::make_unique<DecodedClipNode> (static_cast<NodeId> (3000u + i),
+                                                        std::move (decoded),
+                                                        1,
+                                                        0,
+                                                        clip.fadeIn,
+                                                        clip.fadeOut,
+                                                        clip.gain);
 
         DecodedClipNode* const sourcePtr = source.get();
 
@@ -302,7 +323,7 @@ std::vector<float> expectedClipSum (const ProjectBundleDb& db, const Project& pr
         REQUIRE (asset != nullptr);
 
         std::vector<float> decoded = decodeClipWindowFromBundle (db.bundlePath(), *asset, clip);
-        REQUIRE (applyClipGainEnvelopeToDecodedWindow (clip, decoded));
+        REQUIRE (applyDecodedClipNodeEnvelopeToDecodedWindow (clip, decoded));
         for (std::size_t i = 0; i < expected.size() && i < decoded.size(); ++i)
             expected[i] += decoded[i];
     }

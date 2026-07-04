@@ -356,12 +356,12 @@ struct ResolvedClipWindow
                 return nullptr;
             }
 
-            // Hand the RAW windowed source to DecodedClipNode and let IT apply the fades. The realtime
+            // Hand the RAW windowed source to DecodedClipNode and let IT apply Clip gain/fades. The realtime
             // engine plays Clips through DecodedClipNode's own (linear) fade, so pre-baking a different
             // (equal-power) curve on the control side here would make the exported file diverge from what
-            // playback produces. Rendering through the same node keeps export == playback by construction;
-            // clip.gain stays a projection fader. (Validate the fade/gain metadata first, as the envelope
-            // evaluator did, so malformed Clips are still rejected.)
+            // playback produces. Rendering through the same node keeps export == playback by construction.
+            // Validate the fade/gain metadata first, as the envelope evaluator did, so malformed Clips are
+            // still rejected.
             if (! detail::clipEditMetadataIsStorageSafe (clip))
             {
                 factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
@@ -387,7 +387,8 @@ struct ResolvedClipWindow
                                                       1,
                                                       static_cast<std::int64_t> (window->startFrame),
                                                       static_cast<std::int64_t> (clip.fadeIn),
-                                                      static_cast<std::int64_t> (clip.fadeOut));
+                                                      static_cast<std::int64_t> (clip.fadeOut),
+                                                      clip.gain);
         },
         projection,
         &result.projectError);

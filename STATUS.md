@@ -47,14 +47,14 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP1 is the only implementation scope for this thread. Do not start CP2 here.
+**Baton note:** H14 CP2 is the only implementation scope for this thread. Do not start CP3 here.
 
 ---
 
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP1 ParamSpec infrastructure CLOSED REMOTE-GREEN.** H13 is closed remote-green. H12 is closed remote-green on current
+**Current horizon:** **H14 (Built-in FX suite) — CP2 Per-Track strip consolidation LOCAL-GREEN, REMOTE CI PENDING.** H13 is closed remote-green. H12 is closed remote-green on current
 `main` (`2dbb257`, GitHub Actions run `28459661398`) across Linux, Windows, macOS, RTSan, and TSan. H13
 docs kickoff is remote-green on `main` (`c71d457`, GitHub Actions run `28470417672`). The first
 implementation checkpoint is remote-green on `main` (`fcf54e5`, GitHub Actions run `28472241868`) and
@@ -88,18 +88,31 @@ command diffs for recording Comp selection`, `Project recording Takes round-trip
 `YesDaw(RecordingUx|UiAction|Accessibility|UiInput|AppSmoke)Check` **5/5**; VS DevShell
 `cmake --build --preset ci`; and `ctest --preset ci --output-on-failure` **259/259**.
 
-**Now:** H14 CP1 is closed remote-green on `main` (`0621656`, GitHub Actions run `28695566078`) across
-Linux, Windows, macOS, RTSan, and TSan. It added `src/engine/ParamSpec.h` plus
-`YesDawParamCheck`: Linear, Log, and Db mappings; exact endpoints; 1e-12 round-trips; hostile-value
-clamping to finite values; deterministic 1000-pair monotonicity; and the named reversed-Log negative
-control in the same commit as the gate. Local gates: VS DevShell
-`cmake --build --preset ci --target YesDawParamCheck`; VS DevShell
-`ctest --preset ci -R YesDawParamCheck --output-on-failure` **1/1**; `git diff --check`; VS DevShell
-`cmake --build --preset ci`; and VS DevShell `ctest --preset ci --output-on-failure` **260/260**.
+**Done this checkpoint:** H14 CP2 is implemented locally. CP1 was re-verified first from current
+`main`: session start `git pull --ff-only` was already up to date at `1213954`; CP1 implementation
+`0621656` passed GitHub Actions run `28695566078`, and CP1 closeout `1213954` passed run
+`28695963126`; both runs were green across Linux, Windows, macOS, RTSan, and TSan. CP2 moves
+clip-gain ownership into `DecodedClipNode` render-time metadata, keeps Asset samples raw, changes
+`OfflineRenderer` to pass Clip gain into that node, consolidates `ProjectMixerProjection` to one
+Track strip per owning Track (`clip sources -> SumNode -> Fader(track.strip.linearGain only) ->
+Pan -> Meter`), adds Track-derived mixer node IDs via `projectMixerNodeIdForTrack`, and points the
+UI mixer surface at Track-derived strip IDs. `YesDawMixerProjectionCheck` now covers two-Clip
+Track parity to the pre-consolidation reference, Track fader affecting both Clips, independent
+per-Clip gains, Track strip/meter identity, and the required negative controls for double Clip gain
+and double Track gain. No schema bump, ADR, golden, `YESDAW_RT_HOT`, `[[clang::nonblocking]]`, or
+`docs/reality-lane.md` change.
 
-**Next (successor baton - H14 CP2):** start CP2 per
-`docs/plans/2026-07-03-h14-fx-suite-plan.md` only after re-verifying this CP1 state from current
-`main` and remote CI. This thread must stop here; do not start H14 CP2 here.
+**Now:** CP2 implementation is local-green and ready to push. Local gates: VS DevShell focused build
+for `YesDawRenderCheck`, `YesDawOfflineRenderCheck`, `YesDawPlaybackCheck`,
+`YesDawMixerProjectionCheck`, `YesDawUiActionCheck`, `YesDawBundleRenderCheck`, and
+`YesDawRuntimeAudioDriverCheck`; focused `ctest --preset ci -R "RuntimeAudioDriver publishes Project
+mixer projection" --output-on-failure` **1/1**; focused render/playback/UI lane **3/3** plus direct
+`YesDawRenderCheck`, `YesDawMixerProjectionCheck`, and `YesDawBundleRenderCheck` executables all
+green; `git diff --check`; VS DevShell `cmake --build --preset ci`; and VS DevShell
+`ctest --preset ci --output-on-failure` **261/261**.
+
+**Next:** commit and push CP2, wait for the CP2 GitHub Actions run to go green on Linux, Windows,
+macOS, RTSan, and TSan, then make the docs-only remote-green closeout commit. Do not start CP3.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

@@ -223,7 +223,6 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
     {
         const engine::Track& trackRow = project.tracks[i];
         const engine::Clip* const firstClip = detail::findFirstClipForTrack (project, trackRow.id);
-        const engine::EntityId nodeSeed = firstClip != nullptr ? firstClip->id : trackRow.id;
         const UiMixerTargetControl* const control = detail::findControlForTarget (trackControls, trackRow.id);
 
         UiMixerStrip strip;
@@ -234,10 +233,10 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.name = control != nullptr && ! control->name.empty()
             ? control->name
             : (! trackRow.strip.name.empty() ? trackRow.strip.name : detail::fallbackTrackName (i));
-        strip.sourceNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Source);
-        strip.faderNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Fader);
-        strip.panNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Pan);
-        strip.meterNodeId = engine::projectMixerNodeIdForClip (nodeSeed, engine::ProjectMixerNodeRole::Meter);
+        strip.sourceNodeId = engine::projectMixerNodeIdForTrack (trackRow.id, engine::ProjectMixerNodeRole::Source);
+        strip.faderNodeId = engine::projectMixerNodeIdForTrack (trackRow.id, engine::ProjectMixerNodeRole::Fader);
+        strip.panNodeId = engine::projectMixerNodeIdForTrack (trackRow.id, engine::ProjectMixerNodeRole::Pan);
+        strip.meterNodeId = engine::projectMixerNodeIdForTrack (trackRow.id, engine::ProjectMixerNodeRole::Meter);
         strip.muteNodeId = strip.sourceNodeId;
         strip.linearGain = control != nullptr ? control->linearGain : trackRow.strip.linearGain;
         strip.pan = control != nullptr ? control->pan : trackRow.strip.pan;
