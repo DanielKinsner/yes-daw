@@ -54,6 +54,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0034](0034-mixer-state-schema-and-persistence.md) | Mixer-state schema and persistence (Track/Bus/strip state) | Accepted |
 | [0035](0035-h13-recording-and-device-ux.md) | H13 recording and device UX | Accepted |
 | [0036](0036-recorded-audio-assets-and-takes.md) | Recorded audio assets and Take metadata | Accepted |
+| [0037](0037-alpha-target-and-h14-h19-recarve.md) | Alpha target and the H14–H19 re-carve | Proposed |
 
 ## Decision status (the five research forks)
 
