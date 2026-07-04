@@ -71,7 +71,7 @@ with its own focused plan, per house rules):
 | **H14 — Built-in FX suite** | Parametric EQ, compressor, delay, reverb, lookahead limiter as built-in Nodes; insert chains on Track/Bus strips; parameter model + persistence; equal-power crossfade (the deferred H2 item — it is DSP and belongs here) | Every FX gate green incl. null/response/ballistics/RT60/ceiling checks with negative controls; limiter PDC parallel-path alignment green; offline == RT with FX |
 | **H15 — Automation** | Audit-first verification of the ADR-0009 runtime, then lanes: data model, persistence, undo verbs, block-ramp runtime, tempo interaction | An automated mix parameter renders to the closed-form expected curve, block-size- and tempo-robust, save/reopen and undo-property green |
 | **H16 — Real UI** | Structural parity with the mockup (ruler markers, waveform clips, inspector, sends view, automation lanes, FX slots), async waveform cache, LookAndFeel/design tokens, batched polish pass ending in **one** human eyeball session | Mockup-inventory checklist mechanically covered by the UI input harness; async-cache and real-GPU frame gates green |
-| **H17 — Distribution + Alpha** | Optimized Release preset, portable-zip packaging (unsigned), packaged-build smoke, demo-project fixtures | **The alpha gate:** Dan records/edits/mixes/exports one real song on the packaged build; mechanical sub-asserts (export exists, reopens, loudness sane) plus the sanctioned human feel check |
+| **H17 — Distribution + Alpha** | Optimized Release preset, portable-zip packaging (unsigned), packaged-build smoke, demo-project fixtures | **The alpha gate:** Dan records/edits/mixes/exports one real song on the packaged build; close = mechanical sub-asserts (export exists, reopens, loudness sane) + reality-lane PASSes; the human feel session is recorded, non-gating |
 | **H18 — Plugin hosting deepening** | The real VST3/CLAP road: scanner, identity, validation, blacklist UX, editor hosting | Defined by its kickoff ADR; preconditioned by the reality-lane worker smoke below |
 | **H19+ — YES family integration** | YES Master / Voice / Stems as plugins inside YES DAW | Defined later; each app ships solo first |
 
@@ -98,7 +98,9 @@ discovery.
 > **Explicitly out of alpha:** third-party plugin hosting (H18); code signing, installers,
 > auto-update, crash telemetry, licensing (beta, post-H17 — when signing/packaging arrives, adapt
 > the yes-master playbook rather than copying it; that app is Tauri/Rust, this one is C++/JUCE).
-> Visual/audible feel is one batched human session at H16/H17 close, not intermittent review.
+> Visual/audible feel is one batched human session at H16/H17 close (the sanctioned GUI-feel
+> exception) — it informs the product and its findings become tracked tasks, but it never gates a
+> mechanical close (adversarial review finding 7).
 
 ## Consequences
 

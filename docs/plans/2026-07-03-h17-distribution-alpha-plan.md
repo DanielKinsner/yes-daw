@@ -11,8 +11,9 @@ alpha gate itself: one real song recorded, edited, mixed, and exported on that p
 **Mechanical exit criterion.** The packaging job produces a versioned zip whose contained exe
 passes a headless self-check on a clean machine profile (no repo, no build tree); the demo
 fixture round-trips on the packaged build; the alpha checklist's mechanical sub-asserts all pass;
-reality-lane PASSes recorded for playback and recording on the packaged build; the one human feel
-session is signed off in the alpha log.
+reality-lane PASSes recorded for playback and recording on the packaged build. **That list is the
+complete close condition — nothing subjective gates the horizon** (review finding 7). The
+sanctioned human feel session (CP5) is recorded alongside, never required for close.
 
 **Build facts (verified 2026-07-03):** the sole CMake preset `ci` already builds **Release**
 (Ninja, `build-ci`, GUI app included); `tools/launch-h11.ps1` starts
@@ -53,10 +54,14 @@ asserted through the existing UI input harness patterns.
 **CP5 — The alpha gate.** `docs/alpha-gate.md`: the scripted checklist Dan runs on the packaged
 build — record (audio + MIDI), edit, mix (FX + automation), export. A companion
 `tools/alpha-verify.ps1` runs the mechanical sub-asserts against the produced bundle + WAV
-(export exists/re-imports, loudness range, reopen validators, autosave present). The **one
-sanctioned human feel session** happens here, against a written checklist; its outcome and the
-sub-assert results are logged in `docs/alpha-gate.md` and the reality-lane table. Alpha closes
-only on: sub-asserts green + smokes PASS + Dan's sign-off line committed.
+(export exists/re-imports, loudness range, reopen validators, autosave present).
+**Mechanical close (the gate):** `alpha-verify` sub-asserts green + packaged playback/recording
+reality-lane PASS rows — per CLAUDE.md, a checkpoint is done when its mechanical check is green,
+and nothing subjective gates CI or the horizon (review finding 7). **The feel session
+(non-gating):** the one sanctioned human check (the GUI visual/audible-feel exception) runs
+against a written checklist; every finding becomes a tracked task (token/layout fix or an
+explicit deferral); Dan's product-level "alpha declared" line is recorded in `docs/alpha-gate.md`
+as a product milestone layered on top of — never gating — the mechanical close.
 
 ## Beta parking lot (explicitly NOT H17)
 

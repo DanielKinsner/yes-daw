@@ -282,7 +282,8 @@ Optimized Release preset, portable-zip packaging (unsigned — signing/installer
 beta), packaged-build smoke, demo-project fixtures, and the alpha gate itself.
 **Exit:** on the packaged Release build, one real song goes record/edit/mix/export by Dan, with
 mechanical sub-asserts (export exists, reopens, loudness sane) and recorded reality-lane PASSes for
-hardware playback and recording; the one sanctioned human feel session signs off. Plan:
+hardware playback and recording — that is the complete close; the sanctioned human feel session is
+recorded as a non-gating product note. Plan:
 `docs/plans/2026-07-03-h17-distribution-alpha-plan.md`.
 
 ## H18 — Plugin hosting deepening
