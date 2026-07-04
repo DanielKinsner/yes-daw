@@ -28,10 +28,22 @@ product mockup is the structural UI spec; **first-party FX before real plugin ho
 beta); hardening folds into horizons + the reality lane; every H14–H17 plan carries a "Gates that
 must BITE" section.
 
-**Next (planning):** Codex adversarial review of this packet (ADRs 0037–0039 + four plans +
-brief + roadmap). Treat findings per house rules — verify against the project, apply what's
-correct — then Dan decides flipping the ADRs to Accepted. Per implementer-brief §11, **H14
-implementation must not open** until H13 is closed remote-green AND the packet ADRs are Accepted.
+**Review status (2026-07-03):** Codex adversarial review completed
+(`docs/reviews/2026-07-03-adversarial-review-h14-h17-packet.md`) — 7 findings (2 BLOCKER,
+5 MAJOR), all verified against the project and **all applied** the same day: (1) automation
+delivery redesigned as an additive `ProcessArgs::automationEvents` side-band — root-slot
+injection would silently miss consumers downstream of event producers; (2) compiled automation
+lanes now force the graph `blockParallelSafe = false`, with a fader-only zero-latency negative
+control; (3) clip-gain ownership named (moves into `DecodedClipNode`, like the fade envelope);
+(4) complete normative EQ band equations + independent bilinear reference + identity anchors;
+(5) one normative limiter algorithm (released target → sliding minimum → boxcar smoother);
+(6) shared absolute-frame anchoring rule for all smoothing/recompute cadences; (7) alpha close is
+purely mechanical — the human feel session is the sanctioned non-gating exception. Schema
+numbers changed to "next free version" (H13 still open).
+
+**Next (planning):** Dan decides flipping ADRs 0037–0039 to Accepted. Per implementer-brief §11,
+**H14 implementation must not open** until H13 is closed remote-green AND the packet ADRs are
+Accepted.
 
 **Baton note:** the H13 packet below is unchanged and its checkpoint 10 proceeds as written; this
 planning packet is docs-only and opens no horizon.
