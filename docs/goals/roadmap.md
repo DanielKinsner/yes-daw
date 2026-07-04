@@ -237,13 +237,59 @@ and keeps the recording alignment and device survival gates green.
 the focused plan is
 [`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`](../plans/2026-06-30-h13-recording-device-ux-plan.md).
 
-## H14 — Session production polish
-Fill the remaining workflow depth needed before alpha: automation lanes, marker/tempo UI, waveform cache
-background behavior, export dialogs/presets, equal-power crossfade if still deferred, demo-project
-fixtures, keyboard/keymap completion, and packaging of the launch/test flow.
-**Exit:** one demo song can go import/record/edit/mix/export with mechanical assertions.
+> **Horizons H14–H19 (ADR-0037, 2026-07-03).** Product goal locked: a **dogfood alpha** (Dan
+> records, edits, mixes, and exports one real song on a packaged Release build) on the way to a
+> **distributable product**, with the YES family (Master / Voice / Stems) integrating as plugins
+> later (H19+). The old H14 "session polish" bucket is re-carved feature-first below; its items are
+> redistributed (equal-power crossfade → H14; marker/tempo UI, keymap completion, export dialogs,
+> waveform-cache behavior → H16; demo fixtures + packaging → H17). A standing **reality lane**
+> ([`docs/reality-lane.md`](../reality-lane.md)) runs owner-machine hardware smokes outside the
+> horizon sequence; risks live in [`docs/goals/risk-register.md`](risk-register.md). Every H14–H17
+> plan carries a "Gates that must bite" section naming its negative controls up front.
 
-## H15+ — Plugin hosting deepening
-Deepen real plugin scanner, identity, validation, blacklist UX, and plugin insert/editor flows after the
-session surface is operable.
-**Exit:** defined by later ADRs once H12-H14 expose the required product surface.
+## H14 — Built-in FX suite
+Parametric EQ, compressor, delay, reverb, and lookahead limiter as built-in Nodes on Track/Bus
+insert chains; the ParamSpec parameter model + persistence; equal-power crossfade (the deferred H2
+item — it is DSP and belongs here). The limiter's lookahead is the first real nonzero-latency
+built-in node, turning PDC parallel-path alignment (the H3 exit clause) and H7's inert tail/PDC
+paths into live, biting tests.
+**Exit:** every FX gate green with named negative controls (null/flat-response, static-curve +
+ballistics, tap alignment, RT60, ceiling), block-size independence sweeps, RTSan on the audio path,
+FX state save/reopen, limiter PDC alignment across parallel paths, and offline Render == RT with FX
+— all in CI. Plan: `docs/plans/2026-07-03-h14-fx-suite-plan.md`.
+
+## H15 — Automation
+Audit-first: a gate that proves what the ADR-0009 runtime actually delivers today, then automation
+lanes as data (Breakpoints per parameter target), persistence + undo verbs, block-ramp flattening
+to sample-accurate Events, tempo-map interaction. Lane *UI* waits for H16; alpha automation is
+draw/edit (read mode) — touch/latch/write recording is deferred past alpha.
+**Exit:** an automated fader/pan/send/FX parameter renders to the closed-form expected curve within
+the plan's tolerance, robust across block-size schedules and across a tempo change; lanes
+round-trip save/reopen; the randomized edit property test extended with automation verbs stays
+green. Plan: `docs/plans/2026-07-03-h15-automation-plan.md`.
+
+## H16 — Real UI
+Structural parity with the product mockup (ruler section markers, waveform clips, clip/track
+inspector, mixer sends view, FX slots, automation lanes), async waveform peak cache,
+LookAndFeel/design-token system, then a batched polish pass (screenshot-iterate agents) ending in
+**one** human eyeball session — not intermittent review.
+**Exit:** the mockup-inventory checklist is mechanically covered by the UI input harness; the
+async-cache gate proves the UI thread never decodes; the real-GPU windowed frame gate on the owner
+machine plus the headless frame gate stay green. Plan: `docs/plans/2026-07-03-h16-real-ui-plan.md`.
+
+## H17 — Distribution + Alpha
+Optimized Release preset, portable-zip packaging (unsigned — signing/installer/auto-update are
+beta), packaged-build smoke, demo-project fixtures, and the alpha gate itself.
+**Exit:** on the packaged Release build, one real song goes record/edit/mix/export by Dan, with
+mechanical sub-asserts (export exists, reopens, loudness sane) and recorded reality-lane PASSes for
+hardware playback and recording; the one sanctioned human feel session signs off. Plan:
+`docs/plans/2026-07-03-h17-distribution-alpha-plan.md`.
+
+## H18 — Plugin hosting deepening
+The real VST3/CLAP road: scanner, identity, validation, blacklist UX, plugin insert/editor flows.
+Preconditioned on a recorded reality-lane PASS for the one-real-VST3 worker smoke.
+**Exit:** defined by its kickoff ADR.
+
+## H19+ — YES family integration
+YES Master / YES Voice / YES Stems as plugins inside YES DAW, after each ships solo.
+**Exit:** defined by later ADRs.

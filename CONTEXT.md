@@ -113,6 +113,15 @@ _Avoid_: main, output bus, master channel
 **Send / Return**:
 A tap that routes a copy of a signal to a separate Return node for parallel processing.
 
+**Insert**:
+A Node placed in a Track or Bus FX chain, processing that strip's signal in series (pre-Fader).
+_Avoid_: effect slot (UI word), plugin (unless it is specifically a hosted Plugin)
+
+**FX chain**:
+The ordered list of Insert nodes on a Track or Bus strip. Saved as strip state; order is audible
+and preserved.
+_Avoid_: rack (a deferred UI concept), chain (when the routing branches)
+
 **Mute**:
 A mixer state that silences a track or bus path without deleting routing. Explicit mute wins over Solo
 and Solo-safe.
@@ -272,6 +281,21 @@ A live repeating shape or envelope moving a control in real time, not pinned to 
 deferred concept — not built early.
 _Avoid_: automation
 
+**ParamSpec**:
+The stable registry row describing one automatable parameter: ParamID, name, unit, range, mapping
+(how normalized 0–1 maps to real units), and default. ParamIDs are append-only forever — they are
+saved in Project bundles.
+_Avoid_: reusing or renumbering a ParamID, raw index as parameter identity
+
+**Automation lane**:
+The saved series of Breakpoints for one parameter target (a ParamID on a specific Track, Bus, or
+Node). It is data first; its editor UI is an H16 surface.
+_Avoid_: curve (when you mean the stored lane), envelope
+
+**Breakpoint**:
+One saved automation point: tick position, value, and the curve shape to the next Breakpoint.
+_Avoid_: node (overloaded), keyframe (a video word)
+
 **Piano roll**:
 The editor for MIDI Clip Notes: move, length, split/cut, quantize, transpose, and expression lanes.
 _Avoid_: MIDI editor (too broad when you mean Note editing)
@@ -381,6 +405,11 @@ The dense arrangement drawing surface inside the YES DAW app. It uses the Projec
 may use a GPU-backed renderer, but it is driven by measured frame-time gates rather than visual judgment.
 _Avoid_: WebView timeline, CPU-only proof of smoothness
 
+**Design token**:
+A named visual constant (color, spacing, type size) the app's LookAndFeel consumes. Components use
+tokens, never hard-coded values, so taste changes are central and mechanical.
+_Avoid_: magic hex values in components
+
 **Accessibility tree**:
 The semantic roles, names, keyboard reachability, and actions exposed by the YES DAW app for assistive
 technology and headless verification.
@@ -420,6 +449,17 @@ _Avoid_: auto-master (implies the user has no control)
 **Local-first**:
 Models and data run on the user's machine — private, offline, no per-use cloud cost. (Applies to the
 separate stem/mastering apps; YES DAW itself also runs fully local.)
+
+**Alpha**:
+The ADR-0037 dogfood milestone: one real song recorded, edited, mixed, and exported by the owner on
+a packaged portable Release build, with mechanical sub-asserts. Not public, not signed, no
+third-party plugins.
+_Avoid_: beta (that adds signing/installer/hosting), release
+
+**Reality lane**:
+The standing set of one-command, self-asserting owner-machine hardware smokes whose dated PASS/FAIL
+results are committed to `docs/reality-lane.md`. CI cannot run them; they are still mechanical.
+_Avoid_: manual testing (they self-assert), CI gate (they are owner-machine, outside CI)
 
 ## Open questions (resolve as we decide the wedge)
 
