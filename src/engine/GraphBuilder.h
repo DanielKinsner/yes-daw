@@ -51,8 +51,9 @@ struct GraphBuildError
     struct GraphTooLarge     { NodeId nodeId = 0; };
     struct PluginBlockSizeMismatch { NodeId nodeId = 0; };
     struct InvalidAutomationLane { NodeId nodeId = 0; };
+    struct AutomationEventBudgetExceeded { NodeId nodeId = 0; };
 
-    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge, PluginBlockSizeMismatch, InvalidAutomationLane>;
+    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge, PluginBlockSizeMismatch, InvalidAutomationLane, AutomationEventBudgetExceeded>;
 
     enum class Code
     {
@@ -63,7 +64,8 @@ struct GraphBuildError
         CyclicGraph,
         GraphTooLarge,
         PluginBlockSizeMismatch,
-        InvalidAutomationLane
+        InvalidAutomationLane,
+        AutomationEventBudgetExceeded
     };
 
     Detail detail;
@@ -76,6 +78,7 @@ struct GraphBuildError
     GraphBuildError (GraphTooLarge e)     : detail (e) {}
     GraphBuildError (PluginBlockSizeMismatch e) : detail (e) {}
     GraphBuildError (InvalidAutomationLane e) : detail (e) {}
+    GraphBuildError (AutomationEventBudgetExceeded e) : detail (e) {}
 
     Code code() const noexcept
     {
@@ -88,6 +91,7 @@ struct GraphBuildError
             case 5: return Code::GraphTooLarge;
             case 6: return Code::PluginBlockSizeMismatch;
             case 7: return Code::InvalidAutomationLane;
+            case 8: return Code::AutomationEventBudgetExceeded;
             default: return Code::None;
         }
     }
@@ -104,6 +108,7 @@ struct GraphBuildError
             NodeId operator() (GraphTooLarge e) const noexcept { return e.nodeId; }
             NodeId operator() (PluginBlockSizeMismatch e) const noexcept { return e.nodeId; }
             NodeId operator() (InvalidAutomationLane e) const noexcept { return e.nodeId; }
+            NodeId operator() (AutomationEventBudgetExceeded e) const noexcept { return e.nodeId; }
         };
 
         return std::visit (Visitor{}, detail);
@@ -217,10 +222,12 @@ public:
         payload.totalLatency = compileItems[masterItemIdx].pathLatency;
         payload.nodeStorage = std::move (inputs.nodes);
         payload.automationLanes = std::move (inputs.automationLanes);
+        const int maxBlockSize = inputs.maxBlockSize > 0 ? inputs.maxBlockSize : 1;
         if (! validateCompiledAutomationLanes (payload.automationLanes, idToIndex, error))
             return nullptr;
+        if (! validateAutomationEventBudget (payload.automationLanes, maxBlockSize, error))
+            return nullptr;
 
-        const int maxBlockSize = inputs.maxBlockSize > 0 ? inputs.maxBlockSize : 1;
         if (! buildCompiledMetadata (compileItems, maxBlockSize, payload, error))
             return nullptr;
         bindBusNodes (payload);
@@ -319,6 +326,28 @@ private:
                 previousFrame = frame;
                 havePrevious = true;
             }
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] static constexpr std::size_t automationEventsPerLaneForBlock (int maxBlockSize) noexcept
+    {
+        const std::size_t block = static_cast<std::size_t> (maxBlockSize > 0 ? maxBlockSize : 1);
+        return block / 64u + 2u;
+    }
+
+    static bool validateAutomationEventBudget (
+        const std::vector<CompiledAutomationLane>& lanes,
+        int maxBlockSize,
+        GraphBuildError* error)
+    {
+        const std::size_t perLane = automationEventsPerLaneForBlock (maxBlockSize);
+        const std::size_t capacity = CompiledGraph::kMaxEventsPerBlock;
+        if (perLane != 0u && lanes.size() > capacity / perLane)
+        {
+            const NodeId target = lanes.empty() ? 0u : lanes.front().targetNode;
+            return failBool (error, GraphBuildError::AutomationEventBudgetExceeded { target });
         }
 
         return true;

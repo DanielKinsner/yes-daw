@@ -550,6 +550,48 @@ TEST_CASE ("GraphBuilder rejects unresolved compiled automation lane targets", "
     REQUIRE (error.nodeId() == kMissingAutomationTarget);
 }
 
+TEST_CASE ("GraphBuilder rejects compiled automation lanes that exceed the per-block event budget",
+           "[builder][automation][budget][h15][cp3]")
+{
+    constexpr NodeId kFaderId = 2;
+    constexpr int kMaxBlockSize = 512;
+    constexpr std::size_t kEventsPerLane = static_cast<std::size_t> (kMaxBlockSize) / 64u + 2u;
+    constexpr std::size_t kMaxBudgetedLanes = CompiledGraph::kMaxEventsPerBlock / kEventsPerLane;
+
+    auto buildWithLaneCount = [] (std::size_t laneCount)
+    {
+        GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+        inputs.maxBlockSize = kMaxBlockSize;
+
+        for (std::size_t i = 0; i < laneCount; ++i)
+        {
+            CompiledAutomationLane lane;
+            lane.targetNode = kFaderId;
+            lane.parameterId = FaderNode::kGainParameterId;
+            lane.frames = { 0 };
+            lane.values = { 0.5 };
+            lane.curveTypes = { AutomationCurveType::Hold };
+            inputs.automationLanes.push_back (std::move (lane));
+        }
+
+        return inputs;
+    };
+
+    GraphBuildError boundaryError;
+    std::unique_ptr<CompiledGraph> boundary =
+        GraphBuilder::build (buildWithLaneCount (kMaxBudgetedLanes), &boundaryError);
+    REQUIRE (boundary != nullptr);
+    REQUIRE (boundaryError.code() == GraphBuildError::Code::None);
+    REQUIRE (boundary->debugAutomationLanes().size() == kMaxBudgetedLanes);
+
+    GraphBuildError overBudgetError;
+    std::unique_ptr<CompiledGraph> overBudget =
+        GraphBuilder::build (buildWithLaneCount (kMaxBudgetedLanes + 1u), &overBudgetError);
+    REQUIRE (overBudget == nullptr);
+    REQUIRE (overBudgetError.code() == GraphBuildError::Code::AutomationEventBudgetExceeded);
+    REQUIRE (overBudgetError.nodeId() == kFaderId);
+}
+
 TEST_CASE ("GraphBuilder carries matching DelayNode state across rebuilds", "[builder][carry-over]")
 {
     constexpr NodeId kDelayId = 22;
