@@ -161,6 +161,7 @@ public:
         std::unique_ptr<double[]>                       doubleStorage;
         std::unique_ptr<Event[]>                        eventStorage;
         std::unique_ptr<std::uint32_t[]>                eventSlotCounts;
+        std::unique_ptr<Event[]>                        automationEventStorage;
         std::vector<float*>                             floatSlotPtrs;
         std::vector<double*>                            doubleSlotPtrs;
         std::vector<Event*>                             eventSlotPtrs;
@@ -191,6 +192,7 @@ public:
           doubleStorage_ (std::move (payload.doubleStorage)),
           eventStorage_ (std::move (payload.eventStorage)),
           eventSlotCounts_ (std::move (payload.eventSlotCounts)),
+          automationEventStorage_ (std::move (payload.automationEventStorage)),
           floatSlotPtrs_ (std::move (payload.floatSlotPtrs)),
           doubleSlotPtrs_ (std::move (payload.doubleSlotPtrs)),
           eventSlotPtrs_ (std::move (payload.eventSlotPtrs)),
@@ -313,10 +315,26 @@ public:
         std::uint32_t* const      eventCounts = eventSlotCounts_.get();
         const std::uint16_t       maxCh   = poolLayout_.maxChannelsPerSlot;
         const std::atomic<std::uint64_t>* const muteWords = muteWords_.data();   // ceil(nNodes/64) words; loads only
+        EventStream automationEvents;
+        const EventStream* automationEventsForBlock = nullptr;
 
         if (eventCounts != nullptr)
             for (EventSlotIndex slot = 1; slot < numEventSlots_; ++slot)
                 eventCounts[slot] = 0;
+
+        if (! automationLanes_.empty() && transport.hasTimelineFrame)
+        {
+            YESDAW_RT_FATAL (automationEventStorage_ != nullptr);
+            const std::size_t automationCount =
+                emitAutomationEventsForBlock (automationLanes_,
+                                              transport.timelineFrame,
+                                              static_cast<std::uint32_t> (numFrames),
+                                              std::span<Event> (automationEventStorage_.get(), maxEventsPerBlock_));
+            automationEvents = EventStream {
+                std::span<const Event> (automationEventStorage_.get(), automationCount)
+            };
+            automationEventsForBlock = &automationEvents;
+        }
 
 #if ! defined (NDEBUG) || defined (YESDAW_TEST_DEBUG_POOL_PAINT)
         debugPaintPooledSlots (slots, poolLayout_.numFloatSlots, maxCh, numFrames);
@@ -377,7 +395,7 @@ public:
                 YESDAW_RT_FATAL (nodeEvents.replaceEvents (inputEvents));
 
                 const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
-                                         nodeEvents, transport, numFrames };
+                                         nodeEvents, transport, numFrames, automationEventsForBlock };
                 cn.node->process (args);
                 eventCounts[cn.eventOutputSlot] = static_cast<std::uint32_t> (nodeEvents.size());
             }
@@ -385,7 +403,7 @@ public:
             {
                 EventStream nodeEvents { inputEvents, events.sysexBytes() };
                 const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
-                                         nodeEvents, transport, numFrames };
+                                         nodeEvents, transport, numFrames, automationEventsForBlock };
                 cn.node->process (args);
             }
         }
@@ -655,6 +673,122 @@ private:
         }
     }
 
+    [[nodiscard]] static std::int64_t saturatedBlockEnd (std::int64_t blockStart,
+                                                         std::uint32_t numFrames) noexcept YESDAW_RT_HOT
+    {
+        const std::int64_t n = static_cast<std::int64_t> (numFrames);
+        if (blockStart > std::numeric_limits<std::int64_t>::max() - n)
+            return std::numeric_limits<std::int64_t>::max();
+        return blockStart + n;
+    }
+
+    [[nodiscard]] static double interpolateCompiledAutomationValue (const CompiledAutomationLane& lane,
+                                                                    std::size_t segment,
+                                                                    std::int64_t frame) noexcept YESDAW_RT_HOT
+    {
+        const std::int64_t startFrame = lane.frames[segment];
+        const std::int64_t endFrame = lane.frames[segment + 1u];
+        if (endFrame <= startFrame)
+            return lane.values[segment + 1u];
+
+        const double t = static_cast<double> (frame - startFrame) / static_cast<double> (endFrame - startFrame);
+        const double u = automationCurveProgress (lane.curveTypes[segment], t);
+        return lane.values[segment] + (lane.values[segment + 1u] - lane.values[segment]) * u;
+    }
+
+    static void insertAutomationEventSorted (std::span<Event> out,
+                                             std::size_t& count,
+                                             Event event) noexcept YESDAW_RT_HOT
+    {
+        YESDAW_RT_FATAL (count < out.size());
+
+        std::size_t insertAt = count;
+        while (insertAt > 0 && event.timeInBlock < out[insertAt - 1u].timeInBlock)
+        {
+            out[insertAt] = out[insertAt - 1u];
+            --insertAt;
+        }
+
+        out[insertAt] = event;
+        ++count;
+    }
+
+    static void emitAutomationEvent (const CompiledAutomationLane& lane,
+                                     std::int64_t blockStart,
+                                     std::int64_t frame,
+                                     double value,
+                                     std::span<Event> out,
+                                     std::size_t& count) noexcept YESDAW_RT_HOT
+    {
+        YESDAW_RT_FATAL (frame >= blockStart);
+        const std::int64_t offset = frame - blockStart;
+        YESDAW_RT_FATAL (offset >= 0);
+        YESDAW_RT_FATAL (offset <= static_cast<std::int64_t> (std::numeric_limits<std::uint32_t>::max()));
+        insertAutomationEventSorted (
+            out,
+            count,
+            makeParameterChangeEvent (static_cast<std::uint32_t> (offset),
+                                      lane.targetNode,
+                                      lane.parameterId,
+                                      value));
+    }
+
+    static void emitCompiledLaneAutomationEvents (const CompiledAutomationLane& lane,
+                                                  std::int64_t blockStart,
+                                                  std::int64_t blockEnd,
+                                                  std::span<Event> out,
+                                                  std::size_t& count) noexcept YESDAW_RT_HOT
+    {
+        for (std::size_t i = 0; i < lane.frames.size(); ++i)
+        {
+            const std::int64_t frame = lane.frames[i];
+            if (frame >= blockStart && frame < blockEnd)
+                emitAutomationEvent (lane, blockStart, frame, lane.values[i], out, count);
+        }
+
+        if (lane.frames.size() < 2u)
+            return;
+
+        for (std::size_t i = 0; i + 1u < lane.frames.size(); ++i)
+        {
+            if (lane.curveTypes[i] != AutomationCurveType::Linear)
+                continue;
+
+            const std::int64_t segmentStart = lane.frames[i];
+            const std::int64_t segmentEnd = lane.frames[i + 1u];
+            if (segmentEnd <= blockStart || segmentStart >= blockEnd)
+                continue;
+
+            const std::int64_t firstFrame = segmentStart > blockStart ? segmentStart : blockStart;
+            std::int64_t controlFrame = ((firstFrame + 63) / 64) * 64;
+            if (controlFrame < firstFrame)
+                controlFrame = firstFrame;
+
+            for (; controlFrame < segmentEnd && controlFrame < blockEnd; controlFrame += 64)
+            {
+                const double value = interpolateCompiledAutomationValue (lane, i, controlFrame);
+                emitAutomationEvent (lane, blockStart, controlFrame, value, out, count);
+            }
+        }
+    }
+
+    [[nodiscard]] static std::size_t emitAutomationEventsForBlock (
+        std::span<const CompiledAutomationLane> lanes,
+        std::int64_t blockStart,
+        std::uint32_t numFrames,
+        std::span<Event> out) noexcept YESDAW_RT_HOT
+    {
+        std::size_t count = 0;
+        if (numFrames == 0)
+            return count;
+
+        const std::int64_t blockEnd = saturatedBlockEnd (blockStart, numFrames);
+        for (const CompiledAutomationLane& lane : lanes)
+            emitCompiledLaneAutomationEvents (lane, blockStart, blockEnd, out, count);
+
+        return count;
+    }
+
     static void debugPaintPooledSlots (float* const* slots,
                                        std::uint16_t numSlots,
                                        std::uint16_t maxChannels,
@@ -697,6 +831,7 @@ private:
     std::unique_ptr<double[]>                     doubleStorage_;
     std::unique_ptr<Event[]>                      eventStorage_;
     std::unique_ptr<std::uint32_t[]>              eventSlotCounts_;
+    std::unique_ptr<Event[]>                      automationEventStorage_;
     std::vector<float*>                           floatSlotPtrs_;
     std::vector<double*>                          doubleSlotPtrs_;
     std::vector<Event*>                           eventSlotPtrs_;

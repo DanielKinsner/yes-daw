@@ -35,6 +35,7 @@ using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::DelayCacheEntry;
 using yesdaw::engine::DelayCacheKey;
 using yesdaw::engine::DelayNode;
+using yesdaw::engine::Event;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphBuildError;
 using yesdaw::engine::GraphBuilder;
@@ -52,6 +53,7 @@ using yesdaw::engine::PanNode;
 using yesdaw::engine::PlaceholderNode;
 using yesdaw::engine::ProcessArgs;
 using yesdaw::engine::SumNode;
+using yesdaw::engine::Transport;
 using Catch::Approx;
 
 namespace {
@@ -215,6 +217,53 @@ private:
     NodeId id_;
     Node* input_ = nullptr;
     std::int64_t latencySamples_ = 0;
+};
+
+struct AutomationProbeState
+{
+    std::size_t count = 0;
+    Event events[8] {};
+};
+
+class AutomationProbeNode final : public Node
+{
+public:
+    AutomationProbeNode (NodeId id, AutomationProbeState& state) noexcept : id_ (id), state_ (&state) {}
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { true, false, 1, 0, id_ };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (state_ == nullptr)
+            return;
+
+        const std::span<const Event> events =
+            args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
+        state_->count = events.size();
+        const std::size_t n = events.size() < 8u ? events.size() : 8u;
+        for (std::size_t i = 0; i < n; ++i)
+            state_->events[i] = events[i];
+    }
+
+    void reset() noexcept override {}
+    void release() override {}
+
+    void setInput (Node* input) noexcept { input_ = input; }
+
+private:
+    NodeId id_;
+    AutomationProbeState* state_ = nullptr;
+    Node* input_ = nullptr;
 };
 
 class ImpulseNode final : public Node
@@ -527,6 +576,64 @@ TEST_CASE ("GraphBuilder carries compiled automation lane metadata", "[builder][
     const std::vector<float> out = render (*graph, 64);
     for (float v : out)
         REQUIRE (v == 1.0f);
+}
+
+TEST_CASE ("CompiledGraph emits compiled automation lanes into the ProcessArgs side-band",
+           "[builder][automation][runtime][h15][cp3]")
+{
+    constexpr NodeId kProbeId = 44;
+    constexpr yesdaw::engine::ParameterId kParameterId = 7;
+    AutomationProbeState state;
+
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto probe = std::make_unique<AutomationProbeNode> (kProbeId, state);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    AutomationProbeNode* const probePtr = probe.get();
+    probePtr->setInput (sourcePtr);
+    master->setInputNodes ({ probePtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 128;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (probe));
+    inputs.nodes.push_back (std::move (master));
+
+    CompiledAutomationLane lane;
+    lane.targetNode = kProbeId;
+    lane.parameterId = kParameterId;
+    lane.frames = { 32, 160 };
+    lane.values = { 0.25, 0.75 };
+    lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    std::vector<float> out (128, -999.0f);
+    float* outChannels[1] = { out.data() };
+    yesdaw::engine::EventStream events;
+    Transport transport;
+    transport.timelineFrame = 0;
+    transport.hasTimelineFrame = true;
+    graph->process (outChannels, 1, static_cast<int> (out.size()), events, transport);
+
+    REQUIRE (state.count == 2u);
+    REQUIRE (state.events[0].timeInBlock == 32u);
+    REQUIRE (state.events[0].payload.parameter.targetNode == kProbeId);
+    REQUIRE (state.events[0].payload.parameter.parameterId == kParameterId);
+    REQUIRE (state.events[0].payload.parameter.normalizedValue == Approx (0.25));
+    REQUIRE (state.events[1].timeInBlock == 64u);
+    REQUIRE (state.events[1].payload.parameter.targetNode == kProbeId);
+    REQUIRE (state.events[1].payload.parameter.parameterId == kParameterId);
+    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.375));
+
+    for (float v : out)
+        REQUIRE (v == 0.25f);
 }
 
 TEST_CASE ("GraphBuilder rejects unresolved compiled automation lane targets", "[builder][automation][h15][cp3]")

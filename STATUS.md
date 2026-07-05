@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 compile-time automation event-budget rejection sub-slice is
-closed remote-green; successor baton is next.**
+**Current horizon:** **H15 (Automation) — CP3 runtime side-band emission helper is implemented locally;
+push + remote CI are next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -144,18 +144,28 @@ golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
 Implementation commit `5b420c3` passed GitHub Actions run `28744219573` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest CP3 compile-time guard: `GraphBuilder` now rejects
+H15 CP3 compile-time automation event-budget rejection sub-slice is closed remote-green on `46cc897`:
+`GraphBuilder` now rejects
 compiled automation lane sets whose worst-case per-block generated side-band event count exceeds
 `CompiledGraph::kMaxEventsPerBlock`, using the plan's `blockSize / 64 + 2` per-lane budget formula. The
 new explicit `GraphBuildError::Code::AutomationEventBudgetExceeded` fails before graph publication, and
 the focused gate proves the exact boundary at a 512-frame max Block: 102 lanes compile, 103 lanes reject.
-This does not emit side-band automation events on the audio thread, implement runtime lane cursors, add
-Send or Bus fader lane resolution, touch FX UI, automation lane UI, plugin hosting, ADRs,
-`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
 Implementation commit `46cc897` passed GitHub Actions run `28745432552` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-**Now:** Spawn exactly one successor baton for the next H15 chunk.
+**Done this checkpoint:** Landed the next smallest CP3 runtime helper: `CompiledGraph` now owns a
+preallocated automation side-band event buffer, emits normalized `ParameterChange` events from compiled
+frame-domain automation lanes for the current absolute `Transport::timelineFrame`, includes exact
+breakpoint events plus absolute-frame-anchored 64-frame control-interval events on Linear segments, and
+passes the resulting `ProcessArgs::automationEvents` stream to every node. The focused gate proves a
+compiled lane produces the expected side-band events at block offsets 32 and 64 without using the root
+event slot. This does not implement persistent runtime lane cursors, locate/loop reset, tempo/block-size
+runtime sweeps, precedence over scalar posts, Send or Bus fader lane resolution, CP4 integration closeout,
+FX UI, automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
+`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+
+**Now:** Push this implementation commit and wait for GitHub Actions to pass Linux, Windows, macOS, RTSan,
+and TSan.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -163,17 +173,15 @@ Local gates for this checkpoint:
   lacked MSVC standard-library include paths (`cstdint`); reran the same target through BuildTools
   `vcvars64.bat`.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
-- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **3/3** test cases
-  and **82** assertions.
-- Direct `build-ci\YesDawBuilderCheck.exe` passed **35/35** test cases and **1553** assertions.
+- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **4/4** test cases
+  and **221** assertions.
+- Direct `build-ci\YesDawBuilderCheck.exe` passed **36/36** test cases and **1692** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **299/299** tests.
-- Remote GitHub Actions run `28745432552` for `46cc897` passed Linux, Windows, macOS, RTSan, and TSan.
+- Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
 
-**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the first narrow
-runtime side-band emission helper, not the full CP3 evaluator/runtime delivery. The successor must first
-re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must
-preserve the one-chunk/remote-green/single-successor chain rule.
+**Next:** after this commit is remote-green, record the GitHub Actions run in `STATUS.md`, push that
+closeout docs commit, wait for its remote CI, then spawn exactly one successor baton for the next smallest
+H15 CP3 runtime chunk.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

@@ -230,6 +230,8 @@ public:
 
         if (! buildCompiledMetadata (compileItems, maxBlockSize, payload, error))
             return nullptr;
+        if (! payload.automationLanes.empty())
+            payload.automationEventStorage = std::make_unique<Event[]> (payload.maxEventsPerBlock);
         bindBusNodes (payload);
         assert (allMultiInputNodesBound (payload));
 
