@@ -17,6 +17,7 @@
 #include <limits>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 using yesdaw::engine::Asset;
@@ -25,6 +26,7 @@ using yesdaw::engine::AutomationBreakpoint;
 using yesdaw::engine::AutomationCurveType;
 using yesdaw::engine::AutomationLaneData;
 using yesdaw::engine::AutomationTargetRole;
+using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::DecodedAssetAudio;
@@ -34,6 +36,7 @@ using yesdaw::engine::OfflineRenderOptions;
 using yesdaw::engine::PanNode;
 using yesdaw::engine::PlaybackEngine;
 using yesdaw::engine::Project;
+using yesdaw::engine::ProjectMixerSendRoute;
 using yesdaw::engine::RecordingChunkFifo;
 using yesdaw::engine::RecordingConfig;
 using yesdaw::engine::RecordingTakeFileStatus;
@@ -47,6 +50,7 @@ using yesdaw::engine::TempoCurve;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Track;
+using yesdaw::engine::MixerSendTap;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::readAutosaveSnapshot;
 using yesdaw::persistence::writeAutosaveFromControlTick;
@@ -215,6 +219,84 @@ PlaybackFixture makeAutomatedFaderPanFixture()
     return fixture;
 }
 
+PlaybackFixture makeAutomatedSendRideFixture()
+{
+    PlaybackFixture fixture;
+    fixture.samples = { {} };
+    fixture.samples[0].reserve (128u);
+    for (int i = 0; i < 128; ++i)
+        fixture.samples[0].push_back (i % 3 == 0 ? 0.40f : -0.20f);
+
+    Asset asset;
+    asset.id = idFromLowByte (50);
+    asset.contentHash = hashWithSeed (50);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    Track track;
+    track.id = idFromLowByte (51);
+    track.strip.name = "Send ride source";
+    track.strip.linearGain = 0.0f; // Direct path silent; the return proves the SendLevel lane.
+    track.strip.pan = 0.0f;
+
+    Bus bus;
+    bus.id = idFromLowByte (52);
+    bus.strip.name = "Automation return";
+    bus.strip.linearGain = 1.0f;
+    bus.strip.pan = 0.0f;
+
+    Clip clip;
+    clip.id = idFromLowByte (53);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = 128;
+    clip.srcOffset = 0;
+    clip.srcLen = 128;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    AutomationLaneData send;
+    send.id = idFromLowByte (54);
+    send.ownerEntity = track.id;
+    send.role = AutomationTargetRole::SendLevel;
+    send.paramId = 0; // Send ordinal; projection rewrites this to FaderNode::kGainParameterId.
+    send.points = {
+        AutomationBreakpoint { 0, 0.0, AutomationCurveType::Linear },
+        AutomationBreakpoint { 64, 1.0, AutomationCurveType::Linear },
+        AutomationBreakpoint { 128, 0.5, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (55);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.buses = { bus };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { send };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
+OfflineRenderOptions sendRideOptions (const PlaybackFixture& fixture)
+{
+    OfflineRenderOptions options;
+    REQUIRE (fixture.project.tracks.size() == 1u);
+    REQUIRE (fixture.project.buses.size() == 1u);
+    options.sendRoutes = {
+        ProjectMixerSendRoute { fixture.project.tracks[0].id, fixture.project.buses[0].id, MixerSendTap::PreFader, 0.0f },
+    };
+    return options;
+}
+
 const std::vector<float>& samplesForAsset (const PlaybackFixture& fixture, EntityId assetId)
 {
     for (std::size_t i = 0; i < fixture.project.assets.size(); ++i)
@@ -377,12 +459,12 @@ std::vector<float> drainPlayback (PlaybackEngine& engine, std::uint64_t frames, 
 
 // Pump a fresh PlaybackEngine block by block through the realtime device-callback seam, collecting the
 // interleaved Master output for the whole timeline.
-std::vector<float> playToBuffer (const PlaybackFixture& fixture, int blockSize)
+std::vector<float> playToBuffer (const PlaybackFixture& fixture, int blockSize, OfflineRenderOptions options = {})
 {
     PlaybackEngine::Result created = PlaybackEngine::create (
         fixture.project,
         std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
-        OfflineRenderOptions {});
+        std::move (options));
     REQUIRE (created.ok());
     PlaybackEngine& engine = *created.engine;
 
@@ -477,6 +559,36 @@ TEST_CASE ("PlaybackEngine automated fader and pan output matches offline render
 
     const std::vector<float> played = playToBuffer (fixture, 7);
     REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+}
+
+TEST_CASE ("PlaybackEngine automated send ride output matches offline render",
+           "[h15][automation][cp4][offline-parity][send]")
+{
+    const PlaybackFixture fixture = makeAutomatedSendRideFixture();
+    const OfflineRenderOptions options = sendRideOptions (fixture);
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()),
+        options);
+    REQUIRE (staticOffline.ok());
+    for (const float sample : staticOffline.interleavedSamples)
+        REQUIRE (sample == 0.0f);
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        options);
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize, options);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
 }
 
 TEST_CASE ("PlaybackEngine locate(N) reproduces the offline render slice bit-for-bit",

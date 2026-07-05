@@ -518,10 +518,15 @@ TEST_CASE ("PlaybackEngine transport command queue is race-free while audio pump
            "[h9][transport][tsan]")
 {
     const SchedulerFixture fixture = makeSchedulerFixture();
+    OfflineRenderOptions options;
+    options.graphId = 7100;
+    options.masterSumNodeId = 7101;
+    options.masterNodeId = 7102;
+    options.maxBlockSize = kBlockSize;
     PlaybackEngine::Result created = PlaybackEngine::create (
         fixture.project,
         std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
-        OfflineRenderOptions { 7100, 7101, 7102, kBlockSize });
+        options);
     REQUIRE (created.ok());
     PlaybackEngine& engine = *created.engine;
 

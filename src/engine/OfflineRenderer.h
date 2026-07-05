@@ -41,6 +41,7 @@ struct OfflineRenderOptions
     NodeId  masterSumNodeId = GraphBuilder::kDefaultMasterNodeId - 101u;
     NodeId  masterNodeId = GraphBuilder::kDefaultMasterNodeId - 100u;
     int     maxBlockSize = 128;
+    std::vector<ProjectMixerSendRoute> sendRoutes;
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -311,6 +312,7 @@ struct ResolvedClipWindow
     config.masterSumNodeId = options.masterSumNodeId;
     config.masterNodeId = options.masterNodeId;
     config.maxBlockSize = options.maxBlockSize;
+    config.sendRoutes = options.sendRoutes;
 
     MixerProjectionInputs projection;
     OfflineRenderStatus factoryStatus = OfflineRenderStatus::Ok;

@@ -55,7 +55,7 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP4 fader/pan RT/offline parity sub-slice is
+**Current horizon:** **H15 (Automation) — CP4 send-ride RT/offline parity sub-slice is
 locally green; commit/push/CI is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
@@ -270,21 +270,52 @@ GitHub Actions run `28757314775` across Linux, Windows, macOS, RTSan, and TSan.
 Closeout docs commit `ab788c0` recorded the scheduler-refusal green CI result and passed GitHub Actions
 run `28757776455` across Linux, Windows, macOS, RTSan, and TSan.
 
-H15 CP4 fader/pan RT/offline parity sub-slice is locally green and ready to commit: `renderOfflineProject`
+H15 CP4 fader/pan RT/offline parity sub-slice is closed remote-green on `0555d16`: `renderOfflineProject`
 now renders Project graphs with absolute `Transport::timelineFrame` values, so compiled automation lanes
-emit on the offline path just like the realtime playback path. `YesDawPlaybackCheck` now has an automated
+emit on the offline path just like the realtime playback path. `YesDawPlaybackCheck` has an automated
 Project parity gate with Track-fader fade and Track-pan sweep lanes; its negative control clears the lanes
 and proves the offline render changes, then the gate requires realtime playback to match the automated
-offline render bit-for-bit across different Block schedules. This does not implement the remaining CP4
-full automated mix send ride, one FX param per node kind, H15 final roadmap/STATUS closeout, adversarial
-review, H16 UI, FX UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
-`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+offline render bit-for-bit across different Block schedules. GitHub Actions run `28758535435` was
+re-checked in this send-ride session as completed/successful across Linux, Windows, macOS, RTSan, and
+TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `0555d16` after `git pull --ff-only`.
 
-**Now:** Commit and push the fader/pan RT/offline parity sub-slice, wait for GitHub Actions to pass Linux,
+H15 CP4 send-ride RT/offline parity sub-slice is locally green and ready to commit: `OfflineRenderOptions`
+can now pass projection send routes into the shared Project graph builder, so realtime playback and
+offline render can build the same Project send topology. `YesDawPlaybackCheck` now has an automated
+SendLevel lane riding a pre-fader send into a Bus Return; its negative control keeps the direct path and
+static send silent, proves the automation changes the offline output, then requires realtime playback to
+match the automated offline render bit-for-bit at device Block sizes 1, 7, and 64. This does not implement
+one FX param per node kind, H15 final roadmap/STATUS closeout, adversarial review, H16 UI, FX UI, plugin
+hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
+`YESDAW_RT_HOT` annotation changes.
+
+**Now:** Commit and push the send-ride RT/offline parity sub-slice, wait for GitHub Actions to pass Linux,
 Windows, macOS, RTSan, and TSan, then spawn exactly one successor baton for the next smallest H15 chunk.
 
 Local gates for this checkpoint:
+- Baseline `ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure` passed.
+- Plain PowerShell `cmake --build --preset ci --target YesDawPlaybackCheck` failed only because the shell
+  lacked MSVC standard-library include paths (`algorithm`); reran the same target through BuildTools
+  `vcvars64.bat`.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawPlaybackCheck` passed.
+- `ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure` passed **1/1** test.
+- Direct `build-ci\YesDawPlaybackCheck.exe "[h15][automation][cp4][offline-parity]"` passed **2/2** test
+  cases and **280** assertions.
+- BuildTools `vcvars64.bat` `cmake --preset ci && cmake --build --preset ci && ctest --preset ci
+  --output-on-failure` passed **309/309** tests.
+- First remote run `28759181275` for the pre-amend push failed macOS build on an AppleClang
+  `-Wmissing-field-initializers` error from an existing positional `OfflineRenderOptions` initializer in
+  `tests/scheduler_tests.cpp`; the initializer was changed to explicit field assignment before the amended
+  push.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawSchedulerCheck YesDawPlaybackCheck`
+  passed.
+- `ctest --test-dir build-ci -R YesDawSchedulerCheck --output-on-failure` passed **1/1** test.
+- `ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure` passed **1/1** test.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci && ctest --preset ci --output-on-failure` passed
+  **309/309** tests after the macOS initializer fix.
 - `git diff --check` passed.
+
+Previous checkpoint local gates:
 - Plain PowerShell `cmake --build --preset ci --target YesDawPlaybackCheck` failed only because the shell
   lacked MSVC standard-library include paths (`algorithm`); reran the same target through BuildTools
   `vcvars64.bat`.
@@ -365,10 +396,10 @@ Earlier runtime-helper checkpoint local gates:
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
 **Next:** the successor continues the remaining CP4 automated full-mix closeout, preferably the next
-smallest send-ride or FX-param RT/offline parity slice, while still deferring H15 final closeout,
-adversarial review, H16 UI, FX UI, plugin hosting, and unrelated cleanup. The successor must first
-re-verify this fader/pan parity implementation commit/run from live repo truth, must not start H16 UI, and
-must preserve the one-chunk/remote-green/single-successor chain rule.
+smallest one-FX-param RT/offline parity slice, while still deferring H15 final closeout, adversarial
+review, H16 UI, FX UI, plugin hosting, and unrelated cleanup. The successor must first re-verify this
+send-ride parity implementation commit/run from live repo truth, must not start H16 UI, and must preserve
+the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
