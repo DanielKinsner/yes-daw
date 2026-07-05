@@ -56,7 +56,7 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 **Last updated:** 2026-07-05
 **Current horizon:** **H15 (Automation) — CP3 compile-time automation event-budget rejection sub-slice is
-local-green; implementation commit/push and remote CI are next.**
+closed remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -152,10 +152,10 @@ the focused gate proves the exact boundary at a 512-frame max Block: 102 lanes c
 This does not emit side-band automation events on the audio thread, implement runtime lane cursors, add
 Send or Bus fader lane resolution, touch FX UI, automation lane UI, plugin hosting, ADRs,
 `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
-Implementation commit is pending.
+Implementation commit `46cc897` passed GitHub Actions run `28745432552` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Commit and push the CP3 event-budget implementation, then wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan before recording closeout and spawning exactly one successor baton.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -168,13 +168,12 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawBuilderCheck.exe` passed **35/35** test cases and **1553** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **299/299** tests.
-- Remote GitHub Actions run is pending until this commit is pushed.
+- Remote GitHub Actions run `28745432552` for `46cc897` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this event-budget commit is remote-green and recorded, successor baton continues
-plan-labeled **CP3 — Compile + RT evaluation** with the first narrow runtime side-band emission helper, not
-the full CP3 evaluator/runtime delivery. The successor must first re-verify this commit/run from live repo
-truth, must not start CP4 integration closeout or H16 UI, and must preserve the
-one-chunk/remote-green/single-successor chain rule.
+**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the first narrow
+runtime side-band emission helper, not the full CP3 evaluator/runtime delivery. The successor must first
+re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must
+preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
