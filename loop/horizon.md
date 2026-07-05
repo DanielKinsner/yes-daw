@@ -36,6 +36,7 @@ cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFxAutomationCheck --output-on-failure
+build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"
 ctest --test-dir build-ci -R YesDawFaderCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawPanCheck --output-on-failure
 ```
@@ -44,12 +45,13 @@ As new H15 gates land, update this command list in the same checkpoint.
 
 ## Status: OPEN
 
-H15 CP0 and CP1 are closed. CP2 is open: FaderNode has the first consumer sub-slice, with
-ParamSpec-normalized gain events and the additive `ProcessArgs::automationEvents` side-band view. PanNode
-now consumes regular and side-band parameter events with normalized `-1..+1` mapping. Send levels now get
-a real FaderNode target, and the next CP2 slice is wiring the H14 FX nodes to consume the same side-band.
-Continue CP2 with the next smallest independently green consumer slice; do not start CP3 runtime lane
-compilation.
+H15 CP0 and CP1 are closed. CP2 consumers are closed: FaderNode has ParamSpec-normalized gain events and
+the additive `ProcessArgs::automationEvents` side-band view, PanNode consumes regular and side-band
+parameter events, Send levels get real FaderNode targets, and the five H14 FX nodes consume the same
+side-band. CP3 is open with the first local-green prerequisite: compiled automation lane metadata is stored
+on `CompiledGraph`, validated by `GraphBuilder`, and forces `blockParallelSafe = false` when present.
+Continue CP3 with the next smallest independently green prerequisite; do not attempt the full runtime lane
+evaluator or CP4 integration closeout in one slice.
 
 ## The plan
 

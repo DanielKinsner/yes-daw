@@ -22,6 +22,7 @@
 #pragma once
 
 #include "dsp/ScopedNoDenormals.h"
+#include "engine/Automation.h"
 #include "engine/Node.h"
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/FaderNode.h"
@@ -134,6 +135,15 @@ struct DelayCacheEntry
     std::vector<float> ring;
 };
 
+struct CompiledAutomationLane
+{
+    NodeId      targetNode  = 0;
+    ParameterId parameterId = 0;
+    std::vector<std::int64_t> frames;
+    std::vector<double> values;
+    std::vector<AutomationCurveType> curveTypes;
+};
+
 class CompiledGraph
 {
 public:
@@ -162,6 +172,7 @@ public:
         SlotIndex                                       masterOutputSlot = kSilenceSlot;
         std::uint16_t                                   masterChannels   = 1;
         std::vector<std::pair<NodeId, std::uint32_t>>   idIndex;
+        std::vector<CompiledAutomationLane>             automationLanes;
     };
 
     CompiledGraph (GraphId id, float identityDc) noexcept
@@ -191,6 +202,7 @@ public:
           masterOutputSlot_ (payload.masterOutputSlot),
           masterChannels_ (payload.masterChannels),
           idIndex_ (std::move (payload.idIndex)),
+          automationLanes_ (std::move (payload.automationLanes)),
           isDegenerate_ (false),
           blockParallelSafe_ (payload.blockParallelSafe)
     {
@@ -556,6 +568,7 @@ public:
     const BufferPoolLayout& debugPoolLayout() const noexcept { return poolLayout_; }
     std::span<const CompiledNode> debugCompiledNodes() const noexcept { return compiledNodes_; }
     std::span<const InputSlot> debugInputSlots() const noexcept { return inputSlotIndices_; }
+    std::span<const CompiledAutomationLane> debugAutomationLanes() const noexcept { return automationLanes_; }
     std::span<const DelayCacheEntry> debugDelayCache() const noexcept { return delayCache_; }
     std::uint64_t debugMuteMask() const noexcept { return muteWords_.empty() ? 0ull : muteWords_[0].load (std::memory_order_relaxed); }
 
@@ -695,6 +708,7 @@ private:
     SlotIndex                                     masterOutputSlot_ = kSilenceSlot;
     std::uint16_t                                 masterChannels_   = 1;
     std::vector<std::pair<NodeId, std::uint32_t>> idIndex_;
+    std::vector<CompiledAutomationLane>           automationLanes_;
     mutable std::vector<DelayCacheEntry>          delayCache_;
     bool                                          isDegenerate_     = true;
     bool                                          blockParallelSafe_ = false;   // ADR-0027

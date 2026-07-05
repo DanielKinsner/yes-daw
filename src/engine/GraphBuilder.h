@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -49,8 +50,9 @@ struct GraphBuildError
     struct CyclicGraph       { NodeId nodeId = 0; };
     struct GraphTooLarge     { NodeId nodeId = 0; };
     struct PluginBlockSizeMismatch { NodeId nodeId = 0; };
+    struct InvalidAutomationLane { NodeId nodeId = 0; };
 
-    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge, PluginBlockSizeMismatch>;
+    using Detail = std::variant<std::monostate, DuplicateNodeId, MissingNode, LatencyOutOfRange, CyclicGraph, GraphTooLarge, PluginBlockSizeMismatch, InvalidAutomationLane>;
 
     enum class Code
     {
@@ -60,7 +62,8 @@ struct GraphBuildError
         LatencyOutOfRange,
         CyclicGraph,
         GraphTooLarge,
-        PluginBlockSizeMismatch
+        PluginBlockSizeMismatch,
+        InvalidAutomationLane
     };
 
     Detail detail;
@@ -72,6 +75,7 @@ struct GraphBuildError
     GraphBuildError (CyclicGraph e)       : detail (e) {}
     GraphBuildError (GraphTooLarge e)     : detail (e) {}
     GraphBuildError (PluginBlockSizeMismatch e) : detail (e) {}
+    GraphBuildError (InvalidAutomationLane e) : detail (e) {}
 
     Code code() const noexcept
     {
@@ -83,6 +87,7 @@ struct GraphBuildError
             case 4: return Code::CyclicGraph;
             case 5: return Code::GraphTooLarge;
             case 6: return Code::PluginBlockSizeMismatch;
+            case 7: return Code::InvalidAutomationLane;
             default: return Code::None;
         }
     }
@@ -98,6 +103,7 @@ struct GraphBuildError
             NodeId operator() (CyclicGraph e) const noexcept { return e.nodeId; }
             NodeId operator() (GraphTooLarge e) const noexcept { return e.nodeId; }
             NodeId operator() (PluginBlockSizeMismatch e) const noexcept { return e.nodeId; }
+            NodeId operator() (InvalidAutomationLane e) const noexcept { return e.nodeId; }
         };
 
         return std::visit (Visitor{}, detail);
@@ -120,6 +126,7 @@ public:
         double  sampleRate   = 48000.0;
         int     maxBlockSize = 512;
         const CompiledGraph* previousForCarryOver = nullptr;
+        std::vector<CompiledAutomationLane> automationLanes;
         std::vector<std::unique_ptr<Node>> nodes;
     };
 
@@ -209,6 +216,9 @@ public:
         payload.identityDc   = 0.0f;
         payload.totalLatency = compileItems[masterItemIdx].pathLatency;
         payload.nodeStorage = std::move (inputs.nodes);
+        payload.automationLanes = std::move (inputs.automationLanes);
+        if (! validateCompiledAutomationLanes (payload.automationLanes, idToIndex, error))
+            return nullptr;
 
         const int maxBlockSize = inputs.maxBlockSize > 0 ? inputs.maxBlockSize : 1;
         if (! buildCompiledMetadata (compileItems, maxBlockSize, payload, error))
@@ -239,6 +249,8 @@ public:
         for (const CompiledNode& cn : payload.compiledNodes)
             if (cn.node != nullptr && ! cn.node->properties().blockParallelSafe)
                 blockParallelSafe = false;
+        if (! payload.automationLanes.empty())
+            blockParallelSafe = false;
         payload.blockParallelSafe = blockParallelSafe;
 
         return std::make_unique<CompiledGraph> (std::move (payload));
@@ -277,6 +289,39 @@ private:
         if (error != nullptr)
             *error = value;
         return nullptr;
+    }
+
+    static bool validateCompiledAutomationLanes (
+        const std::vector<CompiledAutomationLane>& lanes,
+        const std::unordered_map<NodeId, std::size_t>& idToIndex,
+        GraphBuildError* error)
+    {
+        for (const CompiledAutomationLane& lane : lanes)
+        {
+            if (idToIndex.find (lane.targetNode) == idToIndex.end()
+                || lane.parameterId == 0u
+                || lane.frames.size() != lane.values.size()
+                || lane.frames.size() != lane.curveTypes.size())
+                return failBool (error, GraphBuildError::InvalidAutomationLane { lane.targetNode });
+
+            std::int64_t previousFrame = 0;
+            bool havePrevious = false;
+            for (std::size_t i = 0; i < lane.frames.size(); ++i)
+            {
+                const std::int64_t frame = lane.frames[i];
+                const double value = lane.values[i];
+                if (frame < 0 || (havePrevious && frame <= previousFrame)
+                    || ! std::isfinite (value) || value < 0.0 || value > 1.0
+                    || (lane.curveTypes[i] != AutomationCurveType::Linear
+                        && lane.curveTypes[i] != AutomationCurveType::Hold))
+                    return failBool (error, GraphBuildError::InvalidAutomationLane { lane.targetNode });
+
+                previousFrame = frame;
+                havePrevious = true;
+            }
+        }
+
+        return true;
     }
 
     static int clampChannels (int channels) noexcept

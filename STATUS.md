@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP2 H14 FX side-band consumer sub-slice is closed
-remote-green; successor baton is next.**
+**Current horizon:** **H15 (Automation) — CP3 compiled automation metadata sub-slice is local-green;
+push + remote CI are next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -122,35 +122,33 @@ H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` pass
 `8c06905` passed run `28734167730`; each named run was re-checked in this validator session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest CP2 consumer sub-slice: the five H14 built-in FX nodes
-(`EqNode`, `CompressorNode`, `FxDelayNode`, `ReverbNode`, `LimiterNode`) now merge regular
-`args.events` with the H15 `ProcessArgs::automationEvents` side-band and consume targeted parameter
-events in sample-offset order. New `YesDawFxAutomationCheck` proves each FX kind responds to a correct
-side-band event while a wrong-target regular event is ignored. This does not compile/evaluate Project
-automation lanes, alter GraphBuilder/runtime lane storage, start CP3 side-band emission, touch FX UI,
-automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
-`YESDAW_RT_HOT` annotations. Implementation commit `0e886bc` passed GitHub Actions run `28741294506`
-across Linux, Windows, macOS, RTSan, and TSan.
+**Done this checkpoint:** Landed the next smallest CP3 prerequisite/data-shape sub-slice:
+`CompiledGraph::Payload` now carries validated `CompiledAutomationLane` metadata (`targetNode`,
+`parameterId`, sorted absolute frame breakpoints, normalized values, Linear/Hold curve types), and
+`GraphBuilder::Inputs` can pass those already-compiled lanes into the immutable graph. The builder rejects
+unresolved automation targets and invalid lane arrays before publication, exposes the lane metadata through
+a debug view, and forces `CompiledGraph::blockParallelSafe = false` whenever compiled lanes are present.
+This does not convert Project lanes to frame-domain lanes, emit side-band automation events on the audio
+thread, implement event-budget checks, touch FX UI, automation lane UI, plugin hosting, ADRs,
+`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
 
-**Now:** Spawn exactly one successor baton for the next H15 chunk.
+**Now:** Push this CP3 metadata sub-slice, wait for remote GitHub Actions to pass Linux, Windows, macOS,
+RTSan, and TSan, then record the green run and spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
-- BuildTools `vcvars64.bat` `cmake --preset ci` passed.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawFxAutomationCheck` passed.
-- Direct `build-ci\YesDawFxAutomationCheck.exe` passed **5/5** test cases and **10** assertions.
-- BuildTools `vcvars64.bat` focused FX rebuild passed: `YesDawEqCheck`, `YesDawCompressorCheck`,
-  `YesDawFxDelayCheck`, `YesDawReverbCheck`, `YesDawLimiterCheck`, and `YesDawFxAutomationCheck`.
-- Focused CTest passed **6/6** for `YesDaw(FxAutomation|Eq|Compressor|FxDelay|Reverb|Limiter)Check`.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
+- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **2/2** test cases
+  and **76** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **293/293** tests.
-- Remote GitHub Actions run `28741294506` for `0e886bc` passed Linux, Windows, macOS, RTSan, and TSan.
+- Full `ctest --preset ci --output-on-failure` passed **295/295** tests.
+- Remote GitHub Actions is pending until this commit is pushed.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
-H15 chunk only: if review finds a missing CP2 consumer proof, fix that first; otherwise begin plan-labeled
-**CP3 — Compile + RT evaluation** with the smallest independently green prerequisite, not the full CP3
-surface. The successor must first re-verify this commit/run from live repo truth, must not start CP4
-integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
+H15 chunk only: continue plan-labeled **CP3 — Compile + RT evaluation** with the smallest independently
+green prerequisite after compiled-lane metadata, not the full CP3 surface. The successor must first
+re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must
+preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

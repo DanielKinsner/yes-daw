@@ -27,6 +27,8 @@
 #include <vector>
 
 using yesdaw::engine::AudioBlock;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::CompiledAutomationLane;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
@@ -486,6 +488,66 @@ TEST_CASE ("CompiledGraph applySetPan only mutates Pan nodes", "[builder][scalar
     REQUIRE_FALSE (graph->applySetPan (123456u, -1.0f));
     out = render (*graph, 512);
     REQUIRE (out.back() == Approx (0.0f).margin (1.0e-4f));
+}
+
+TEST_CASE ("GraphBuilder carries compiled automation lane metadata", "[builder][automation][h15][cp3]")
+{
+    constexpr NodeId kFaderId = 2;
+
+    GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+    CompiledAutomationLane lane;
+    lane.targetNode = kFaderId;
+    lane.parameterId = FaderNode::kGainParameterId;
+    lane.frames = { 0, 64, 128 };
+    lane.values = { 0.0, 0.5, 1.0 };
+    lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Linear, AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const std::span<const CompiledAutomationLane> lanes = graph->debugAutomationLanes();
+    REQUIRE (lanes.size() == 1u);
+    REQUIRE (lanes[0].targetNode == kFaderId);
+    REQUIRE (lanes[0].parameterId == FaderNode::kGainParameterId);
+    REQUIRE (lanes[0].frames == std::vector<std::int64_t> { 0, 64, 128 });
+    REQUIRE (lanes[0].values == std::vector<double> { 0.0, 0.5, 1.0 });
+    REQUIRE (lanes[0].curveTypes == std::vector<AutomationCurveType> {
+        AutomationCurveType::Linear,
+        AutomationCurveType::Linear,
+        AutomationCurveType::Hold });
+
+    // CP3 scheduler prerequisite: the presence of compiled lanes alone makes an otherwise fader-only
+    // zero-latency graph unsafe for parallel block dispatch.
+    REQUIRE_FALSE (graph->isBlockParallelSafe());
+
+    const std::vector<float> out = render (*graph, 64);
+    for (float v : out)
+        REQUIRE (v == 1.0f);
+}
+
+TEST_CASE ("GraphBuilder rejects unresolved compiled automation lane targets", "[builder][automation][h15][cp3]")
+{
+    constexpr NodeId kMissingAutomationTarget = 123456u;
+
+    GraphBuilder::Inputs inputs = faderInputs (1.0f, 2);
+    CompiledAutomationLane lane;
+    lane.targetNode = kMissingAutomationTarget;
+    lane.parameterId = FaderNode::kGainParameterId;
+    lane.frames = { 0 };
+    lane.values = { 0.5 };
+    lane.curveTypes = { AutomationCurveType::Linear };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::InvalidAutomationLane);
+    REQUIRE (error.nodeId() == kMissingAutomationTarget);
 }
 
 TEST_CASE ("GraphBuilder carries matching DelayNode state across rebuilds", "[builder][carry-over]")
