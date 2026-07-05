@@ -189,18 +189,18 @@ plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::no
 Implementation commit `5729013` passed GitHub Actions run `28749315695` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-H15 CP3 side-band delivery negative-control sub-slice is locally green and awaiting remote CI on this
-checkpoint: the builder gate now puts a real `FaderNode` downstream of an event-producing upstream node,
-asserts the fader's regular event input is not the root slot, and proves compiled automation still reaches
-the fader through `ProcessArgs::automationEvents`. A regression that delivers compiled automation through
-the root event slot instead would leave the downstream fader at unity and fail this gate. This does not
-implement block-size runtime sweeps, tempo-change runtime sweeps, precedence over scalar posts, Send or
-Bus fader lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hosting, ADR edits,
+H15 CP3 side-band delivery negative-control sub-slice is closed remote-green on `2bfff4c`: the builder
+gate now puts a real `FaderNode` downstream of an event-producing upstream node, asserts the fader's
+regular event input is not the root slot, and proves compiled automation still reaches the fader through
+`ProcessArgs::automationEvents`. A regression that delivers compiled automation through the root event
+slot instead would leave the downstream fader at unity and fail this gate. This does not implement
+block-size runtime sweeps, tempo-change runtime sweeps, precedence over scalar posts, Send or Bus fader
+lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hosting, ADR edits,
 `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
-Implementation commit pending.
+Implementation commit `2bfff4c` passed GitHub Actions run `28750516241` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Push the H15 CP3 side-band delivery negative-control checkpoint, wait for GitHub Actions, then
-record the exact remote result before spawning the single successor baton.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -213,7 +213,7 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawBuilderCheck.exe` passed **39/39** test cases and **1902** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **303/303** tests.
-- Remote GitHub Actions pending for this checkpoint.
+- Remote GitHub Actions run `28750516241` for `2bfff4c` passed Linux, Windows, macOS, RTSan, and TSan.
 
 Previous checkpoint local gates:
 - `git diff --check` passed.
@@ -238,12 +238,12 @@ Earlier checkpoint local gates:
 - Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this checkpoint is remote-green and recorded, successor baton continues plan-labeled
-**CP3 — Compile + RT evaluation** with the next smallest runtime automation chunk. Recommended next
-candidate: block-size runtime sweep for compiled automation emission, while still deferring tempo-change
-runtime sweeps, precedence over scalar posts, Send/Bus fader lane resolution, CP4 closeout, and UI work.
-The successor must first re-verify this implementation commit/run from live repo truth, must not start CP4
-integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
+**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the next smallest
+runtime automation chunk. Recommended next candidate: block-size runtime sweep for compiled automation
+emission, while still deferring tempo-change runtime sweeps, precedence over scalar posts, Send/Bus fader
+lane resolution, CP4 closeout, and UI work. The successor must first re-verify this implementation
+commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must preserve the
+one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
