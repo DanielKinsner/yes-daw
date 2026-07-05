@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP8 LimiterNode implementation remote-green; closeout STATUS pending.**
+**Current horizon:** **H14 (Built-in FX suite) — CP8 LimiterNode CLOSEOUT REMOTE-GREEN; final baton CI pending after push.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -95,8 +95,11 @@ Implementation commit `248881a` passed Windows, RTSan, and TSan in GitHub Action
 but failed Linux and macOS in the build step because `tests/limiter_tests.cpp` left an unused
 test-local helper (`maxAbsDiff`) under `-Werror`. The follow-up fix `9d6e266` removes that unused
 helper only and passed GitHub Actions run `28725060611` across Linux, Windows, macOS, RTSan, and TSan.
+Closeout commit `4b166e7` passed GitHub Actions run `28725495347` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** commit and push this CP8 closeout STATUS update, then wait for remote CI on the closeout commit. Local gates
+**Now:** CP8 closeout is remote-green; commit and push this final baton STATUS update, then wait for
+remote CI on the final baton commit before creating the CP9 successor. Local gates
 for the original implementation: `git diff --check`; VS DevShell (BuildTools x64 via `vcvars64.bat`)
 `cmake --build --preset ci --target YesDawLimiterCheck`; PowerShell
 `ctest --preset ci -R "^YesDawLimiterCheck$" --output-on-failure` passed; PowerShell
@@ -109,10 +112,11 @@ Local gates for the portability fix: VS DevShell (BuildTools x64 via `vcvars64.b
 `cmake --build --preset ci`. Remote prior-checkpoint gate: GitHub Actions run `28724036864` passed
 Linux, Windows, macOS, RTSan, and TSan for CP7 final baton. Remote CP8 implementation gate: GitHub
 Actions run `28725060611` passed Linux, Windows, macOS, RTSan, and TSan for fix commit `9d6e266`.
+Remote CP8 closeout gate: GitHub Actions run `28725495347` passed Linux, Windows, macOS, RTSan, and
+TSan for closeout commit `4b166e7`.
 
-**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this closeout
-commit. Then record that closeout run in a final baton STATUS commit, push it, wait for final baton CI
-to pass, create exactly one CP9 successor thread, and stop. Do not start CP9 here.
+**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this final baton
+commit. Then create exactly one CP9 successor thread and stop. Do not start CP9 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
