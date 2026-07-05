@@ -204,9 +204,6 @@ template <typename TickToFrame>
         cursor.nextPointIndex = seekAutomationPointIndexForFrame (points, sourceBlockStart, tickToFrame);
     }
 
-    const double firstFrame = tickToFrame (points.front().tick);
-    const double lastFrame  = tickToFrame (points.back().tick);
-
     std::size_t segment = cursor.nextPointIndex > 0 ? cursor.nextPointIndex - 1u : 0u;
     if (segment >= points.size())
         segment = points.size() - 1u;
@@ -214,9 +211,6 @@ template <typename TickToFrame>
     for (std::uint32_t frameOffset = 0; frameOffset < block.numFrames; ++frameOffset)
     {
         const double sourceFrame = block.startFrame + static_cast<double> (frameOffset) - block.pdcShiftFrames;
-        if (sourceFrame < firstFrame || sourceFrame > lastFrame)
-            continue;
-
         while (segment + 1u < points.size()
                && tickToFrame (points[segment + 1u].tick) <= sourceFrame)
         {

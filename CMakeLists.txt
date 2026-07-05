@@ -336,6 +336,13 @@ target_link_libraries(YesDawEventCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawEventCheck)
 catch_discover_tests(YesDawEventCheck)
 
+# --- Automation evaluator characterization check (H15 CP0; audit-first evaluator lock) ---
+add_executable(YesDawAutomationCheck tests/automation_tests.cpp)
+target_include_directories(YesDawAutomationCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawAutomationCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawAutomationCheck)
+add_test(NAME YesDawAutomationCheck COMMAND $<TARGET_FILE:YesDawAutomationCheck>)
+
 # --- ParamSpec check (H14 CP1; normalized-to-real mapping for built-in FX params) ---
 add_executable(YesDawParamCheck tests/param_tests.cpp)
 target_include_directories(YesDawParamCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -664,6 +671,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck
+  YesDawAutomationCheck
   YesDawParamCheck
   YesDawEqCheck
   YesDawCompressorCheck

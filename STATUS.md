@@ -47,12 +47,70 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP10 is the only implementation scope for this thread. Do not start CP11 or any H15
-work here.
+**Baton note:** H15 is open. The first implementation checkpoint is the plan-labeled **CP0 evaluator
+characterization gate**; do not skip to the schema/model/undo checkpoint labeled CP1 in the plan.
 
 ---
 
-## Live packet — H14 implementation
+## Live packet — H15 implementation
+
+**Last updated:** 2026-07-05
+**Current horizon:** **H15 (Automation) — CP0 evaluator characterization gate is local-green; remote CI
+for this checkpoint is pending until the commit is pushed.**
+
+H14 is closed remote-green on `8c06905`: CP10 implementation `5cf3574` passed GitHub Actions run
+`28729589346`, CP10 closeout docs `a886711` passed run `28729985374`, and H14 closeout bridge
+`8c06905` passed run `28734167730`; each named run was re-checked in this H15 CP0 session as
+completed/successful across Linux, Windows, macOS, RTSan, and TSan. At session start, `git pull
+--ff-only` was already up to date and local `HEAD`, `main`, and `origin/main` all pointed at
+`8c06905`.
+
+**Done this checkpoint:** Added the focused `YesDawAutomationCheck` gate for H15 CP0 and registered it
+in CMake. The gate locks the existing `src/engine/Automation.h` evaluator behavior for Linear and Hold
+segment math, half-open block slicing, cursor reuse, locate/re-seek, hostile input handling, and
+Bezier/Log evaluator characterization while storage remains quarantined to Linear/Hold later in H15.
+The named negative control is present: a one-frame boundary shift makes the split-block compare fail.
+
+The CP0 characterization proved one narrow evaluator defect before later H15 work could build on it:
+`evaluateAutomationLaneForBlock` emitted no events before the first breakpoint or after the last
+breakpoint, while the H15 plan requires before-first = first value and after-last = last value. Fixed only
+that defect by clamping the lane evaluator at the edge breakpoints. No Project model, schema v8, undo,
+runtime side-band, consumer, FX UI, automation lane UI, plugin hosting, ADR, `docs/reality-lane.md`,
+golden file, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
+
+`evaluateAutomationPointsForBlock` is documented by the new gate as an older point-emitter helper: it
+reports unsorted input after the first emitted point, while the lane evaluator rejects unsorted lanes
+before writing. Do not treat that helper behavior as the H15 compiled-lane runtime contract.
+
+**Now:** Commit and push H15 CP0, then wait for the GitHub Actions run for that commit to pass Linux,
+Windows, macOS, RTSan, and TSan before spawning the successor thread.
+
+Local gates for this checkpoint:
+- Plain PowerShell focused build first failed only because the shell lacked MSVC standard-library include
+  paths (`algorithm`); reran through VS DevShell.
+- VS DevShell `cmake --build --preset ci --target YesDawAutomationCheck YesDawEventCheck` passed.
+- `ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure` passed **1/1**.
+- Direct `build-ci\YesDawEventCheck.exe` passed **11/11**.
+- VS DevShell `cmake --build --preset ci` passed.
+- `ctest --preset ci --output-on-failure` passed **278/278**.
+
+**Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the
+next H15 checkpoint only: plan-labeled **CP1 — Project model + schema v8 + undo**. The successor must
+first re-verify this CP0 commit/run from live repo truth, then implement only the next smallest
+independently green chunk.
+
+> **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
+> monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
+>
+> **Rolling baton loop.** Each baton thread first REVIEW/FIXES the previous checkpoint, then, only if that
+> review is clean/green, WORKS the next small checkpoint in the same thread. The baton may create exactly
+> one successor baton only after its own `STATUS.md` update, commit, push, and CI result are complete and
+> green. Do not create separate reviewer/worker threads in parallel, and never spawn ahead while CI is
+> pending, stuck, red, or being rerun.
+
+---
+
+## Historical packet — H14 implementation
 
 **Last updated:** 2026-07-05
 **Current horizon:** **H14 (Built-in FX suite) — CLOSED REMOTE-GREEN; H15 automation opens next.**

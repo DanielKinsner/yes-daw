@@ -185,7 +185,7 @@ TEST_CASE ("Automation lane interpolates curves and applies PDC shift", "[automa
             std::span<Event> (out));
 
         REQUIRE (result.status == AutomationEvalStatus::Ok);
-        REQUIRE (result.eventsWritten == 5u);
+        REQUIRE (result.eventsWritten == 8u);
         REQUIRE (result.nextPointIndex == lane.points.size());
         REQUIRE (cursor.initialized);
 
@@ -233,7 +233,7 @@ TEST_CASE ("Automation lane cursor re-seeks on loop or seek and rejects non-fini
         linearTickToFrame (0, 1.0),
         std::span<Event> (out));
     REQUIRE (later.status == AutomationEvalStatus::Ok);
-    REQUIRE (later.eventsWritten == 1u);
+    REQUIRE (later.eventsWritten == 4u);
 
     const auto looped = evaluateAutomationLaneForBlock (
         lane,
