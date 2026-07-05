@@ -724,6 +724,46 @@ TEST_CASE ("Project automation lanes round-trip through schema v8", "[persistenc
     REQUIRE_FALSE (readback.automationLanes == mutatedLane.automationLanes);
 }
 
+TEST_CASE ("frozen H15 automation schema-v8 fixture bundle opens on HEAD forever",
+           "[persistence][project][fixture][automation][h15]")
+{
+    const std::filesystem::path fixturePath { YESDAW_AUTOMATION_SCHEMA_FIXTURE_PATH };
+    REQUIRE (std::filesystem::exists (fixturePath / "project.db"));
+
+    const std::vector<std::uint8_t> fixtureDbBefore = readBytes (fixturePath / "project.db");
+    const std::filesystem::path workingPath = makeTempBundlePath ("automation-fixture-copy");
+
+    std::error_code ec;
+    std::filesystem::copy (fixturePath, workingPath, std::filesystem::copy_options::recursive, ec);
+    REQUIRE (! ec);
+
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (workingPath, db).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (db.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_lanes;", value).ok());
+    REQUIRE (value == 2);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", value).ok());
+    REQUIRE (value == 4);
+
+    Project project;
+    REQUIRE (db.readProjectSnapshot (project).ok());
+    REQUIRE (project.automationLanes.size() == 2u);
+    REQUIRE (project.automationLanes[0].ownerEntity == project.tracks[0].id);
+    REQUIRE (project.automationLanes[0].role == AutomationTargetRole::TrackFader);
+    REQUIRE (project.automationLanes[0].paramId == 1u);
+    REQUIRE (project.automationLanes[0].points.size() == 2u);
+    REQUIRE (project.automationLanes[1].ownerEntity == project.tracks[0].strip.fxChain[0].id);
+    REQUIRE (project.automationLanes[1].role == AutomationTargetRole::FxInsertParam);
+    REQUIRE (project.automationLanes[1].paramId == 2u);
+    REQUIRE (project.automationLanes[1].points.size() == 2u);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    REQUIRE (readBytes (fixturePath / "project.db") == fixtureDbBefore);
+}
+
 TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
            "[persistence][project][round-trip][time]")
 {

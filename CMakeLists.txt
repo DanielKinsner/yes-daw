@@ -412,6 +412,8 @@ catch_discover_tests(YesDawProjectCheck)
 # --- Persistence check (H1; SQLite .yesdaw bundle schema/migrations/intent log — ADR-0012) ---
 add_executable(YesDawPersistenceCheck tests/persistence_tests.cpp)
 target_include_directories(YesDawPersistenceCheck PRIVATE ${YESDAW_SRC_DIR})
+target_compile_definitions(YesDawPersistenceCheck PRIVATE
+  YESDAW_AUTOMATION_SCHEMA_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw")
 target_link_libraries(YesDawPersistenceCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
 yesdaw_harden(YesDawPersistenceCheck)
 catch_discover_tests(YesDawPersistenceCheck)
