@@ -518,7 +518,13 @@ struct ResolvedClipWindow
     {
         const std::uint64_t remaining = timelineEndFrames - offset;
         const int blockFrames = static_cast<int> (std::min<std::uint64_t> (remaining, static_cast<std::uint64_t> (options.maxBlockSize)));
-        graph.process (outputs.data(), channels, blockFrames);
+        Transport transport;
+        transport.projectSampleRate = project.sampleRate;
+        transport.timelineFrame = static_cast<std::int64_t> (offset);
+        transport.hasTimelineFrame = true;
+        transport.isPlaying = true;
+        EventStream events;
+        graph.process (outputs.data(), channels, blockFrames, events, transport);
 
         for (int frame = 0; frame < blockFrames; ++frame)
         {
