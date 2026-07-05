@@ -614,12 +614,12 @@ TEST_CASE ("Project validates H15 automation lane model targets and storage-safe
     const EntityId trackId = project.tracks.front().id;
     const EntityId busId = project.buses.front().id;
     project.automationLanes = {
-        makeAutomationLane (idFromLowByte (70), trackId, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (70), trackId, AutomationTargetRole::TrackFader, 1),
         makeAutomationLane (idFromLowByte (71), trackId, AutomationTargetRole::TrackPan, 1),
         makeAutomationLane (idFromLowByte (72), trackId, AutomationTargetRole::SendLevel, 0),
-        makeAutomationLane (idFromLowByte (73), busId, AutomationTargetRole::BusFader, 0),
+        makeAutomationLane (idFromLowByte (73), busId, AutomationTargetRole::BusFader, 1),
         makeAutomationLane (idFromLowByte (74), busId, AutomationTargetRole::BusPan, 1),
-        makeAutomationLane (idFromLowByte (75), eqId, AutomationTargetRole::FxInsertParam, 100),
+        makeAutomationLane (idFromLowByte (75), eqId, AutomationTargetRole::FxInsertParam, 2),
     };
 
     REQUIRE (project.automationLanes.front().isValid());
@@ -653,9 +653,24 @@ TEST_CASE ("Project validates H15 automation lane model targets and storage-safe
 
     Project duplicateTarget = project;
     duplicateTarget.automationLanes[1].role = AutomationTargetRole::TrackFader;
-    duplicateTarget.automationLanes[1].paramId = 0;
+    duplicateTarget.automationLanes[1].paramId = 1;
     REQUIRE_FALSE (duplicateTarget.automationTargetsReferenceProjectRows());
     REQUIRE_FALSE (duplicateTarget.hasValidAssetClipIndirection());
+
+    Project invalidFaderParam = project;
+    invalidFaderParam.automationLanes.front().paramId = 0;
+    REQUIRE_FALSE (invalidFaderParam.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (invalidFaderParam.hasValidAssetClipIndirection());
+
+    Project invalidPanParam = project;
+    invalidPanParam.automationLanes[1].paramId = 2;
+    REQUIRE_FALSE (invalidPanParam.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (invalidPanParam.hasValidAssetClipIndirection());
+
+    Project invalidFxParam = project;
+    invalidFxParam.automationLanes.back().paramId = 100;
+    REQUIRE_FALSE (invalidFxParam.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (invalidFxParam.hasValidAssetClipIndirection());
 
     Project duplicateTick = project;
     duplicateTick.automationLanes.front().points[1].tick = duplicateTick.automationLanes.front().points[0].tick;
@@ -1227,7 +1242,7 @@ TEST_CASE ("Project undo stack records command diffs for automation lane and bre
 
     auto result = undo.apply (
         project,
-        ProjectEditCommand::addAutomationLane (laneId, ownerId, AutomationTargetRole::TrackFader, 0));
+        ProjectEditCommand::addAutomationLane (laneId, ownerId, AutomationTargetRole::TrackFader, 1));
     REQUIRE (result.applied());
     REQUIRE (undo.nextUndo() != nullptr);
     REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::AddAutomationLane);
@@ -1299,7 +1314,7 @@ TEST_CASE ("Project undo stack records command diffs for automation lane and bre
     const Project beforeInvalid = project;
     REQUIRE (undo.apply (
                  project,
-                 ProjectEditCommand::addAutomationLane (idFromLowByte (72), ownerId, AutomationTargetRole::TrackFader, 0))
+                 ProjectEditCommand::addAutomationLane (idFromLowByte (72), ownerId, AutomationTargetRole::TrackFader, 1))
              .editStatus == ProjectEditStatus::InvalidAutomationTarget);
     REQUIRE (undo.apply (
                  project,
@@ -2138,7 +2153,7 @@ TEST_CASE ("Randomized automation edit sequences fully undo to a bit-identical P
     Project project = makeEditableProject();
     const EntityId ownerId = project.tracks.front().id;
     project.automationLanes = {
-        makeAutomationLane (idFromLowByte (70), ownerId, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (70), ownerId, AutomationTargetRole::TrackFader, 1),
         makeAutomationLane (idFromLowByte (71), ownerId, AutomationTargetRole::TrackPan, 1),
         makeAutomationLane (idFromLowByte (72), ownerId, AutomationTargetRole::SendLevel, 2),
     };

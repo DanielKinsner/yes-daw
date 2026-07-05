@@ -2963,6 +2963,36 @@ public:
         if (automationOwnerProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation lane owner does not resolve for its target role" };
 
+        bool automationStripParamProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM automation_lanes "
+                "WHERE (target_role IN (0, 3) AND param_id != 1) "
+                "OR (target_role IN (1, 4) AND param_id != 1) "
+                "LIMIT 1;",
+                automationStripParamProblem);
+            ! result.ok())
+            return result;
+        if (automationStripParamProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation lane param_id is invalid for its strip target" };
+
+        bool automationFxParamProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM automation_lanes l JOIN fx_inserts f ON f.id = l.owner_entity "
+                "WHERE l.target_role = 5 AND NOT ("
+                "(f.kind = 0 AND l.param_id >= 0 AND l.param_id < 96 AND (l.param_id % 16) IN (0, 1, 2, 3)) "
+                "OR (f.kind = 1 AND l.param_id BETWEEN 0 AND 5) "
+                "OR (f.kind = 2 AND l.param_id BETWEEN 0 AND 5) "
+                "OR (f.kind = 3 AND l.param_id BETWEEN 0 AND 4) "
+                "OR (f.kind = 4 AND l.param_id BETWEEN 0 AND 2)) "
+                "LIMIT 1;",
+                automationFxParamProblem);
+            ! result.ok())
+            return result;
+        if (automationFxParamProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation lane param_id is not in the target FX ParamSpec" };
+
         bool automationDuplicateTargetProblem = false;
         if (auto result = detail::hasAnyRow (
                 db_,

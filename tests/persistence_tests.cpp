@@ -613,7 +613,7 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
 
     Project invalidAutomation = project;
     invalidAutomation.automationLanes = {
-        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 1),
     };
     invalidAutomation.automationLanes.front().points.front().curveType = AutomationCurveType::Bezier;
     REQUIRE (db.writeProjectSnapshot (invalidAutomation).status == BundleStatus::SemanticInvalid);
@@ -691,10 +691,10 @@ TEST_CASE ("Project automation lanes round-trip through schema v8", "[persistenc
     project.buses = { makeBus (idFromLowByte (11), "Return") };
     project.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
     project.automationLanes = {
-        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 1),
         makeAutomationLane (idFromLowByte (71), project.tracks[0].id, AutomationTargetRole::TrackPan, 1),
-        makeAutomationLane (idFromLowByte (72), project.buses[0].id, AutomationTargetRole::BusFader, 0),
-        makeAutomationLane (idFromLowByte (73), project.tracks[0].strip.fxChain[0].id, AutomationTargetRole::FxInsertParam, 10),
+        makeAutomationLane (idFromLowByte (72), project.buses[0].id, AutomationTargetRole::BusFader, 1),
+        makeAutomationLane (idFromLowByte (73), project.tracks[0].strip.fxChain[0].id, AutomationTargetRole::FxInsertParam, 2),
     };
     project.automationLanes[0].points.push_back (AutomationBreakpoint { 30720, 0.5, AutomationCurveType::Linear });
     REQUIRE (project.hasValidAssetClipIndirection());
@@ -1418,6 +1418,7 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
     const EntityId busId = idFromLowByte (11);
     const EntityId fxId = idFromLowByte (90);
     const EntityId laneId = idFromLowByte (70);
+    const EntityId fxLaneId = idFromLowByte (72);
 
     const auto makeAutomationProject = [&]
     {
@@ -1425,9 +1426,9 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
         project.buses = { makeBus (busId, "Return") };
         project.tracks[0].strip.fxChain = { makeFxInsert (fxId, FxKind::Eq) };
         project.automationLanes = {
-            makeAutomationLane (laneId, trackId, AutomationTargetRole::TrackFader, 0),
+            makeAutomationLane (laneId, trackId, AutomationTargetRole::TrackFader, 1),
             makeAutomationLane (idFromLowByte (71), busId, AutomationTargetRole::BusPan, 1),
-            makeAutomationLane (idFromLowByte (72), fxId, AutomationTargetRole::FxInsertParam, 10),
+            makeAutomationLane (fxLaneId, fxId, AutomationTargetRole::FxInsertParam, 2),
         };
         REQUIRE (project.hasValidAssetClipIndirection());
         return project;
@@ -1435,6 +1436,7 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
 
     const auto requireRejectedAfter = [&] (std::string_view label, const std::string& mutationSql)
     {
+        INFO (label);
         const auto path = makeTempBundlePath (label);
         const Project project = makeAutomationProject();
 
@@ -1473,6 +1475,14 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
         "PRAGMA ignore_check_constraints = OFF;");
 
     requireRejectedAfter (
+        "automation-invalid-strip-param-open",
+        "UPDATE automation_lanes SET param_id = 0 WHERE id = " + blobLiteral (laneId) + ";");
+
+    requireRejectedAfter (
+        "automation-invalid-fx-param-open",
+        "UPDATE automation_lanes SET param_id = 100 WHERE id = " + blobLiteral (fxLaneId) + ";");
+
+    requireRejectedAfter (
         "automation-duplicate-target-open",
         "PRAGMA foreign_keys = OFF; "
         "DROP TABLE automation_breakpoints; "
@@ -1488,8 +1498,8 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
         "value REAL NOT NULL CHECK(value>=0 AND value<=1), "
         "curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1))); "
         "INSERT INTO automation_lanes(id, owner_entity, target_role, param_id) VALUES "
-        "(X'00000000000000000000000000000070', " + blobLiteral (trackId) + ", 0, 0), "
-        "(X'00000000000000000000000000000071', " + blobLiteral (trackId) + ", 0, 0); "
+        "(X'00000000000000000000000000000070', " + blobLiteral (trackId) + ", 0, 1), "
+        "(X'00000000000000000000000000000071', " + blobLiteral (trackId) + ", 0, 1); "
         "PRAGMA foreign_keys = ON;");
 
     requireRejectedAfter (

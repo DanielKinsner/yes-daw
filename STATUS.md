@@ -55,12 +55,17 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP1 automation undo/property sub-slice is local-green; remote CI
-for this checkpoint is pending until the commit is pushed.**
+**Current horizon:** **H15 (Automation) — CP1 ParamSpec-aware automation target validator sub-slice is
+local-green; remote CI for this checkpoint is pending until the commit is pushed.**
+
+H15 CP1 automation undo/property sub-slice is closed remote-green on `a985bd3`: Project edit commands
+and undo/redo now cover automation lanes and breakpoints, and GitHub Actions run `28737127178` was
+re-checked in this validator session as completed/successful across Linux, Windows, macOS, RTSan, and
+TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `a985bd3` after `git pull --ff-only`.
 
 H15 CP1 schema v8 persistence sub-slice is closed remote-green on `db555ca`: schema version 8 persists
 `Project.automationLanes`, migrates v7 bundles to empty automation tables, and GitHub Actions run
-`28736458309` was re-checked in this CP1 undo session as completed/successful across Linux, Windows,
+`28736458309` was re-checked in this validator session as completed/successful across Linux, Windows,
 macOS, RTSan, and TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `db555ca` after
 `git pull --ff-only`.
 
@@ -75,36 +80,34 @@ as completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
 H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` passed GitHub Actions run
 `28729589346`, CP10 closeout docs `a886711` passed run `28729985374`, and H14 closeout bridge
-`8c06905` passed run `28734167730`; each named run was re-checked in this CP1 schema session as
+`8c06905` passed run `28734167730`; each named run was re-checked in this validator session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest coherent CP1 sub-slice after schema v8: Project
-automation lanes are now undoable with row-diff commands for `addAutomationLane`,
-`removeAutomationLane`, `addAutomationBreakpoint`, `moveAutomationBreakpoint`,
-`setAutomationBreakpointValue`, `setAutomationBreakpointCurve`, and `removeAutomationBreakpoint`.
-The Project edit helpers keep lane targets storage-safe, keep Breakpoints sorted by tick, reject duplicate
-ticks, out-of-range/non-finite values, and quarantined Bezier/Log storage curves, and reject failed
-automation edits without mutating the Project or recording undo entries. `YesDawProjectCheck` now has a
-deterministic automation undo test plus a seeded randomized automation edit property test proving full
-undo returns to bit-identical Project values and full redo returns to the edited values. No schema,
-runtime side-band, consumer, FX UI, automation lane UI, plugin hosting, ADR, `docs/reality-lane.md`,
-golden file, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
+**Done this checkpoint:** Landed the next smallest coherent CP1 validator sub-slice after undo/property:
+automation target validation now rejects impossible Track/Bus fader and pan ParamIDs, rejects
+`FxInsertParam` lanes whose `paramId` is not in the target insert's H14 ParamSpec table, and keeps
+SendLevel `paramId` as the send ordinal until a send row model exists. The same target checks run through
+Project value validation, undo command rejection, bundle write validation, and open-time schema v8
+semantic validation. `PanNode` now exposes the stable pan ParamID constant needed by the storage validator.
+No runtime side-band, consumer event handling, FX UI, automation lane UI, plugin hosting, ADR,
+`docs/reality-lane.md`, golden file, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
 
-**Now:** Commit and push this CP1 automation undo/property sub-slice, then wait for the GitHub Actions run
+**Now:** Commit and push this CP1 ParamSpec-aware automation target validator sub-slice, then wait for the GitHub Actions run
 for that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawProjectCheck` passed.
-- Direct `build-ci\YesDawProjectCheck.exe` passed **32/32** test cases and **9176** assertions.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawProjectCheck YesDawPersistenceCheck` passed.
+- Direct `build-ci\YesDawProjectCheck.exe` passed **32/32** test cases and **9182** assertions.
+- Direct `build-ci\YesDawPersistenceCheck.exe` passed **39/39** test cases and **986** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - `ctest --preset ci --output-on-failure` passed **284/284**.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
 H15 chunk only: continue plan-labeled **CP1 — Project model + schema v8 + undo** with the next smallest
-independently green sub-slice, likely remaining CP1 validator/fixture work such as ParamSpec-aware
-automation target validation unless the successor finds a narrower required step first. The successor must
-first re-verify this commit/run from live repo truth.
+independently green sub-slice, likely the v8 automation fixture forever-gate unless the successor finds a
+narrower required CP1 validator/fixture prerequisite first. The successor must first re-verify this
+commit/run from live repo truth.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

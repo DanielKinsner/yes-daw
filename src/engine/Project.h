@@ -8,7 +8,15 @@
 
 #include "engine/Automation.h"
 #include "engine/MixerValue.h"
+#include "engine/ParamSpec.h"
 #include "engine/Time.h"
+#include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/EqNode.h"
+#include "engine/nodes/FaderNode.h"
+#include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
+#include "engine/nodes/PanNode.h"
+#include "engine/nodes/ReverbNode.h"
 
 #include <array>
 #include <cmath>
@@ -209,6 +217,37 @@ enum class FxKind : std::uint8_t
            || kind == FxKind::Delay
            || kind == FxKind::Reverb
            || kind == FxKind::Limiter;
+}
+
+[[nodiscard]] inline ParamSpec fxParamSpecForKind (FxKind kind, std::uint32_t paramId) noexcept
+{
+    switch (kind)
+    {
+        case FxKind::Eq:
+            return EqNode::parameterSpec (paramId);
+        case FxKind::Compressor:
+            return CompressorNode::parameterSpec (paramId);
+        case FxKind::Delay:
+            return FxDelayNode::parameterSpec (paramId);
+        case FxKind::Reverb:
+            return ReverbNode::parameterSpec (paramId);
+        case FxKind::Limiter:
+            return LimiterNode::parameterSpec (paramId);
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline bool fxKindAcceptsParameterId (FxKind kind, std::uint32_t paramId) noexcept
+{
+    if (! fxKindIsKnown (kind))
+        return false;
+
+    const ParamSpec spec = fxParamSpecForKind (kind, paramId);
+    return spec.id == paramId
+           && spec.name != nullptr
+           && spec.name[0] != '\0'
+           && paramSpecHasUsableRange (spec);
 }
 
 [[nodiscard]] inline bool normalizedFxParamValueIsValid (double value) noexcept
@@ -477,6 +516,26 @@ enum class AutomationTargetRole : std::uint8_t
            || role == AutomationTargetRole::FxInsertParam;
 }
 
+[[nodiscard]] constexpr bool automationStripParameterIdIsValid (AutomationTargetRole role, std::uint32_t paramId) noexcept
+{
+    switch (role)
+    {
+        case AutomationTargetRole::TrackFader:
+        case AutomationTargetRole::BusFader:
+            return paramId == FaderNode::kGainParameterId;
+        case AutomationTargetRole::TrackPan:
+        case AutomationTargetRole::BusPan:
+            return paramId == PanNode::kPanParameterId;
+        case AutomationTargetRole::SendLevel:
+            // Send rows do not exist yet in CP1. For now paramId remains the target send ordinal.
+            return true;
+        case AutomationTargetRole::FxInsertParam:
+            return true;
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline bool automationBreakpointValueIsValid (double value) noexcept
 {
     return std::isfinite (value) && value >= 0.0 && value <= 1.0;
@@ -613,6 +672,21 @@ struct Project
         for (const Bus& bus : buses)
             if (bus.id == busId)
                 return &bus;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const FxInsert* findFxInsert (EntityId insertId) const noexcept
+    {
+        for (const Track& track : tracks)
+            for (const FxInsert& insert : track.strip.fxChain)
+                if (insert.id == insertId)
+                    return &insert;
+
+        for (const Bus& bus : buses)
+            for (const FxInsert& insert : bus.strip.fxChain)
+                if (insert.id == insertId)
+                    return &insert;
 
         return nullptr;
     }
@@ -1117,28 +1191,22 @@ struct Project
                 case AutomationTargetRole::SendLevel:
                     if (findTrack (lane.ownerEntity) == nullptr)
                         return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
                     break;
 
                 case AutomationTargetRole::BusFader:
                 case AutomationTargetRole::BusPan:
                     if (findBus (lane.ownerEntity) == nullptr)
                         return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
                     break;
 
                 case AutomationTargetRole::FxInsertParam:
                 {
-                    bool found = false;
-                    for (const Track& track : tracks)
-                        for (const FxInsert& insert : track.strip.fxChain)
-                            if (insert.id == lane.ownerEntity)
-                                found = true;
-
-                    for (const Bus& bus : buses)
-                        for (const FxInsert& insert : bus.strip.fxChain)
-                            if (insert.id == lane.ownerEntity)
-                                found = true;
-
-                    if (! found)
+                    const FxInsert* const insert = findFxInsert (lane.ownerEntity);
+                    if (insert == nullptr || ! fxKindAcceptsParameterId (insert->kind, lane.paramId))
                         return false;
                     break;
                 }

@@ -25,6 +25,8 @@ namespace yesdaw::engine {
 class PanNode final : public Node
 {
 public:
+    static constexpr ParameterId kPanParameterId = 1;
+
     explicit PanNode (NodeId id = 0) noexcept : id_ (id) {}
 
     NodeProperties properties() const noexcept override
