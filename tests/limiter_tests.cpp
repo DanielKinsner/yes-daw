@@ -183,17 +183,6 @@ struct StereoBuffer
     return out;
 }
 
-[[nodiscard]] double maxAbsDiff (const StereoBuffer& a, const StereoBuffer& b)
-{
-    double maxDiff = 0.0;
-    for (std::size_t i = 0; i < a.left.size(); ++i)
-    {
-        maxDiff = std::max (maxDiff, std::fabs (static_cast<double> (a.left[i]) - static_cast<double> (b.left[i])));
-        maxDiff = std::max (maxDiff, std::fabs (static_cast<double> (a.right[i]) - static_cast<double> (b.right[i])));
-    }
-    return maxDiff;
-}
-
 [[nodiscard]] bool allFinite (const StereoBuffer& buffer)
 {
     for (std::size_t i = 0; i < buffer.left.size(); ++i)
