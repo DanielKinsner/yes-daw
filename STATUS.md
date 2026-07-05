@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 locate/loop cursor reset sub-slice is local-green;
-implementation commit/push and CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 locate/loop cursor reset sub-slice is closed
+remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -178,7 +178,7 @@ plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::no
 Implementation commit `2d1c318` passed GitHub Actions run `28748073373` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-H15 CP3 locate/loop cursor reset sub-slice is local-green and ready to push: `CompiledGraph` now treats a
+H15 CP3 locate/loop cursor reset sub-slice is closed remote-green on `5729013`: `CompiledGraph` now treats a
 non-adjacent compiled-lane Block as a discontinuous transport reset, re-seeks the cursor, and emits the
 lane value at block offset 0 before continuing exact breakpoint plus 64-frame Linear control events. The
 focused gate proves a cursor advanced through `0..192` resets correctly for a forward locate to frame 96
@@ -186,10 +186,10 @@ and a backward loop-style jump to frame 32, without taking on tempo/block-size r
 over scalar posts, Send or Bus fader lane resolution, CP4 integration closeout, FX UI, automation lane UI,
 plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
 `YESDAW_RT_HOT` annotation changes.
+Implementation commit `5729013` passed GitHub Actions run `28749315695` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Commit/push the locate/loop cursor reset implementation, then wait for GitHub Actions to pass
-Linux, Windows, macOS, RTSan, and TSan before recording the closeout and spawning exactly one successor
-baton.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -202,7 +202,7 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawBuilderCheck.exe` passed **38/38** test cases and **1896** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **302/302** tests.
-- Remote GitHub Actions is pending for this implementation commit.
+- Remote GitHub Actions run `28749315695` for `5729013` passed Linux, Windows, macOS, RTSan, and TSan.
 
 Previous checkpoint local gates:
 - `git diff --check` passed.
@@ -227,12 +227,12 @@ Earlier checkpoint local gates:
 - Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this implementation commit and its closeout/status commit are remote-green, successor baton
-continues plan-labeled **CP3 — Compile + RT evaluation** with the next smallest runtime automation chunk.
-Likely next candidates are side-band delivery negative control, block-size runtime sweep, tempo-change
-runtime sweep, precedence over scalar posts, or Send/Bus fader lane resolution; do not start CP4 closeout
-or H16 UI. The successor must first re-verify this implementation commit/run from live repo truth, must not
-start CP4 integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-successor
+**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the next smallest
+runtime automation chunk. Recommended next candidate: side-band delivery negative control for a downstream
+consumer behind an event-producing upstream node, while still deferring block-size runtime sweeps,
+tempo-change runtime sweeps, precedence over scalar posts, Send/Bus fader lane resolution, CP4 closeout,
+and UI work. The successor must first re-verify this implementation commit/run from live repo truth, must
+not start CP4 integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-successor
 chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
