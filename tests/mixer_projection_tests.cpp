@@ -627,6 +627,39 @@ TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "
         REQUIRE (v == Approx (expectedCenter).margin (1.0e-4f));
 }
 
+TEST_CASE ("Mixer projection gives Send levels real FaderNode targets", "[mixer][projection][send][automation]")
+{
+    constexpr NodeId kSendFaderId = 52000;
+
+    MixerProjectionInputs inputs = baseProjection (44);
+    inputs.buses.push_back (MixerBusProjection { 62050, 62051, 62052, 0.0f, {} });
+
+    MixerTrackProjection track = makeTrack (1440, 1.0f, 2440, 3440, 4440, 0.0f, 0.0f);
+    track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader, kSendFaderId, 1.0f });
+    inputs.tracks.push_back (std::move (track));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 2u);
+
+    const CompiledNode* const sendFader = compiledNodeById (*graph, kSendFaderId);
+    REQUIRE (sendFader != nullptr);
+    REQUIRE (sendFader->kind == CompiledNodeKind::Fader);
+
+    StereoCapture out = render (*graph, kMaxBlock);
+    REQUIRE (out.left.back() == Approx (kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (kCenterGain).margin (1.0e-4f));
+
+    REQUIRE_FALSE (graph->applySetGain (3440, 0.25f)); // PanNode is not the Send level target.
+    REQUIRE (graph->applySetGain (kSendFaderId, 0.25f));
+
+    out = render (*graph, kMaxBlock);
+    REQUIRE (out.left.back() == Approx (0.25f * kCenterGain).margin (1.0e-4f));
+    REQUIRE (out.right.back() == Approx (0.25f * kCenterGain).margin (1.0e-4f));
+}
+
 TEST_CASE ("Mixer projection deduplicates identical Sends to the same bus tap", "[mixer][projection][send][dedup]")
 {
     MixerProjectionInputs inputs = baseProjection (43);
@@ -863,6 +896,22 @@ TEST_CASE ("Mixer projection rejects invalid scalar values before graph build", 
         REQUIRE (graph == nullptr);
         REQUIRE (error.code == MixerProjectionError::Code::InvalidTrackPan);
         REQUIRE (error.trackIndex == 0u);
+    }
+
+    {
+        MixerProjectionInputs inputs = baseProjection (45);
+        inputs.buses.push_back (MixerBusProjection { 62060, 62061, 62062, 0.0f, {} });
+
+        MixerTrackProjection track = makeTrack (1450, 0.5f, 2450, 3450, 4450, 1.0f, 0.0f);
+        track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader, 52010, -0.01f });
+        inputs.tracks.push_back (std::move (track));
+
+        MixerProjectionError error;
+        std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+        REQUIRE (graph == nullptr);
+        REQUIRE (error.code == MixerProjectionError::Code::InvalidSendGain);
+        REQUIRE (error.trackIndex == 0u);
+        REQUIRE (error.sendIndex == 0u);
     }
 }
 

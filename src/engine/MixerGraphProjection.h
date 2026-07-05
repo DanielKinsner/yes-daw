@@ -24,6 +24,7 @@
 #include "engine/nodes/SumNode.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -44,6 +45,7 @@ struct MixerProjectionError
         InvalidTrackGain,
         InvalidTrackPan,
         InvalidSendDestination,
+        InvalidSendGain,
         InvalidBusPan,
         GraphBuildFailed
     };
@@ -65,6 +67,8 @@ struct MixerSendProjection
 {
     std::size_t  busIndex = 0;
     MixerSendTap tap      = MixerSendTap::PostFader;
+    NodeId       faderNodeId = 0;
+    float        linearGain  = 1.0f;
 };
 
 struct MixerTrackProjection
@@ -111,6 +115,25 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 {
     if (std::find (inputs.begin(), inputs.end(), node) == inputs.end())
         inputs.push_back (node);
+}
+
+[[nodiscard]] inline NodeId mixerSendLevelNodeId (NodeId trackFaderNodeId,
+                                                  std::size_t busIndex,
+                                                  MixerSendTap tap) noexcept
+{
+    std::uint32_t h = 2166136261u;
+    const auto mix = [&h] (std::uint32_t value) noexcept
+    {
+        h ^= value;
+        h *= 16777619u;
+    };
+
+    mix (trackFaderNodeId);
+    mix (static_cast<std::uint32_t> (busIndex & 0xFFFF'FFFFu));
+    mix (static_cast<std::uint32_t> (tap == MixerSendTap::PreFader ? 0x53505245u : 0x53504F53u));
+    mix (0xA15C0DEu);
+
+    return h == 0u ? 1u : h;
 }
 
 [[nodiscard]] inline bool setMixerInsertInput (Node& node, Node* input) noexcept
@@ -165,7 +188,10 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         insertNodeCount += track.insertNodes.size();
     for (const MixerBusProjection& bus : projection.buses)
         insertNodeCount += bus.insertNodes.size();
-    inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + projection.buses.size() * 4u + 2u);
+    std::size_t sendNodeCount = 0;
+    for (const MixerTrackProjection& track : projection.tracks)
+        sendNodeCount += track.sends.size();
+    inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + sendNodeCount + projection.buses.size() * 4u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -289,6 +315,20 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         faderPtr->setInput (chainHead);
         faderPtr->setTargetGain (track.linearGain);
 
+        struct ActiveSendFader
+        {
+            std::size_t busIndex = 0;
+            MixerSendTap tap = MixerSendTap::PostFader;
+            float gain = 1.0f;
+            Node* tapNode = nullptr;
+            FaderNode* fader = nullptr;
+            NodeId nodeId = 0;
+        };
+        std::vector<ActiveSendFader> activeSendFaders;
+        activeSendFaders.reserve (track.sends.size());
+        std::vector<std::unique_ptr<FaderNode>> sendFaders;
+        sendFaders.reserve (track.sends.size());
+
         for (std::size_t sendIndex = 0; sendIndex < track.sends.size(); ++sendIndex)
         {
             const MixerSendProjection& send = track.sends[sendIndex];
@@ -303,9 +343,49 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
                 return nullptr;
             }
 
+            if (! mixerGainIsValid (send.linearGain))
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::InvalidSendGain;
+                    error->trackIndex = i;
+                    error->sendIndex = sendIndex;
+                }
+                return nullptr;
+            }
+
             // Pre-fader sends tap the chain head (post-sidechain VCA, pre-fader); post-fader taps the fader.
             Node* const tap = send.tap == MixerSendTap::PreFader ? chainHead : static_cast<Node*> (faderPtr);
-            pushUniqueMixerInput (busInputs[send.busIndex], tap);
+            const NodeId sendFaderId = send.faderNodeId != 0u
+                                     ? send.faderNodeId
+                                     : mixerSendLevelNodeId (track.faderNodeId, send.busIndex, send.tap);
+
+            FaderNode* sendFaderPtr = nullptr;
+            for (const ActiveSendFader& active : activeSendFaders)
+            {
+                if (active.busIndex == send.busIndex
+                    && active.tap == send.tap
+                    && active.gain == send.linearGain
+                    && active.tapNode == tap
+                    && active.nodeId == sendFaderId)
+                {
+                    sendFaderPtr = active.fader;
+                    break;
+                }
+            }
+
+            if (sendFaderPtr == nullptr)
+            {
+                const int sendChannels = tap->properties().channels > 0 ? tap->properties().channels : 1;
+                auto sendFader = std::make_unique<FaderNode> (sendFaderId, sendChannels);
+                sendFaderPtr = sendFader.get();
+                sendFaderPtr->setInput (tap);
+                sendFaderPtr->setTargetGain (send.linearGain);
+                activeSendFaders.push_back (ActiveSendFader { send.busIndex, send.tap, send.linearGain, tap, sendFaderPtr, sendFaderId });
+                sendFaders.push_back (std::move (sendFader));
+            }
+
+            pushUniqueMixerInput (busInputs[send.busIndex], sendFaderPtr);
         }
 
         if (pan == nullptr)
@@ -344,6 +424,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         for (std::unique_ptr<Node>& insertNode : track.insertNodes)
             inputs.nodes.push_back (std::move (insertNode));
         inputs.nodes.push_back (std::move (fader));
+        for (std::unique_ptr<FaderNode>& sendFader : sendFaders)
+            inputs.nodes.push_back (std::move (sendFader));
         if (track.insertNodes.empty())
             inputs.nodes.push_back (std::move (pan));
         inputs.nodes.push_back (std::move (meter));
