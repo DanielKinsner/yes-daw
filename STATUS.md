@@ -55,47 +55,54 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP1 Project model sub-slice is local-green; remote CI for this
-checkpoint is pending until the commit is pushed.**
+**Current horizon:** **H15 (Automation) — CP1 schema v8 persistence sub-slice is local-green; remote CI for
+this checkpoint is pending until the commit is pushed.**
+
+H15 CP1 Project-model sub-slice is closed remote-green on `d42c9bb`: `Project` now carries
+`automationLanes`, and GitHub Actions run `28735671105` was re-checked in this CP1 schema session as
+completed/successful across Linux, Windows, macOS, RTSan, and TSan. Local `HEAD`, `main`, and
+`origin/main` all pointed at `d42c9bb` after `git pull --ff-only`.
 
 H15 CP0 is closed remote-green on `d6b734f`: `YesDawAutomationCheck` characterizes
-`src/engine/Automation.h`, and GitHub Actions run `28734748402` was re-checked in this CP1 session as
-completed/successful across Linux, Windows, macOS, RTSan, and TSan. Local `HEAD`, `main`, and
-`origin/main` all pointed at `d6b734f` after `git pull --ff-only`.
+`src/engine/Automation.h`, and GitHub Actions run `28734748402` was re-checked in this CP1 schema session
+as completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
 H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` passed GitHub Actions run
 `28729589346`, CP10 closeout docs `a886711` passed run `28729985374`, and H14 closeout bridge
-`8c06905` passed run `28734167730`; each named run was re-checked in this CP1 session as
+`8c06905` passed run `28734167730`; each named run was re-checked in this CP1 schema session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the smallest coherent CP1 sub-slice: the in-memory Project automation
-lane model. `Project` now carries `automationLanes` with stable lane IDs, stable owner entity + target
-role + `paramId` targeting, normalized storage-safe Breakpoints, Linear/Hold-only storage curves, and
-Project validation for lane identity, duplicate targets, orphan Track/Bus/FX owners, unsorted/duplicate
-ticks, out-of-range values, non-finite values, and quarantined Bezier/Log storage curves. `YesDawProjectCheck`
-has the focused H15 model gate. No schema v8 migration, bundle fixture, undo verb, runtime side-band,
+**Done this checkpoint:** Landed the next smallest coherent CP1 sub-slice: schema v8 persistence for the
+already-landed Project automation lane model. `ProjectBundle` now publishes `kCodeSchemaVersion = 8`,
+adds append-only `automation_lanes` and `automation_breakpoints` tables, writes and reads
+`Project.automationLanes`, and rejects corrupted stored automation rows for orphan target owners,
+unknown roles, duplicate lane targets, orphan breakpoint rows, duplicate ticks, out-of-range/non-finite
+values, quarantined Bezier/Log storage curves, and non-canonical storage classes. Focused persistence
+coverage proves v7 -> v8 migration, save/reopen round-trip, and the named negative controls. The frozen
+H14 CP9 fixture test now copies the committed fixture to a temp bundle before opening it, so migration
+checks do not mutate the golden fixture. No undo verb, bundle fixture update, runtime side-band,
 consumer, FX UI, automation lane UI, plugin hosting, ADR, `docs/reality-lane.md`, golden file, or
 `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
 
-**Now:** Commit and push this CP1 Project model sub-slice, then wait for the GitHub Actions run for that
-commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
+**Now:** Commit and push this CP1 schema v8 persistence sub-slice, then wait for the GitHub Actions run for
+that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
-- Initial VS DevShell build still lacked MSVC standard-library include paths (`algorithm`); reran through
-  BuildTools `vcvars64.bat`.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawProjectCheck` passed.
-- Direct `build-ci\YesDawProjectCheck.exe "[project][automation][h15]"` passed **1/1**.
-- `ctest --test-dir build-ci -R "Project validates H15 automation lane model" --output-on-failure`
-  passed **1/1**.
-- Direct `build-ci\YesDawProjectCheck.exe` passed **30/30**.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawPersistenceCheck` passed.
+- Direct `build-ci\YesDawPersistenceCheck.exe "[automation][h15]"` passed **3/3**.
+- Direct `build-ci\YesDawPersistenceCheck.exe` passed **39/39**.
+- `ctest --test-dir build-ci -R "automation|Schema v8" --output-on-failure` passed **6/6**.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawFxSuiteCheck` passed.
+- Direct `build-ci\YesDawFxSuiteCheck.exe "[fixture]"` passed **1/1**.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- `ctest --preset ci --output-on-failure` passed **279/279**.
+- `ctest --preset ci --output-on-failure` passed **282/282**.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
 H15 chunk only: continue plan-labeled **CP1 — Project model + schema v8 + undo** with the next smallest
-independently green sub-slice, likely schema v8 persistence/validators unless the successor finds a narrower
-required step first. The successor must first re-verify this commit/run from live repo truth.
+independently green sub-slice, likely remaining CP1 validator work or automation undo/property expansion
+unless the successor finds a narrower required step first. The successor must first re-verify this commit/run
+from live repo truth.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

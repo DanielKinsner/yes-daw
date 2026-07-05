@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 7;
+inline constexpr int          kCodeSchemaVersion = 8;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -51,6 +51,12 @@ static_assert (static_cast<std::uint8_t> (engine::AutomationCurveType::Linear) =
 static_assert (static_cast<std::uint8_t> (engine::AutomationCurveType::Hold) == 1u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationCurveType::Bezier) == 2u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationCurveType::Log) == 3u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::TrackFader) == 0u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::TrackPan) == 1u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::SendLevel) == 2u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusFader) == 3u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusPan) == 4u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::FxInsertParam) == 5u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::Off) == 0u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::DirectInput) == 1u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::LatencyCompensated) == 2u);
@@ -1154,13 +1160,33 @@ CREATE TABLE fx_insert_params (
 );
 )SQL";
 
+inline constexpr std::string_view kSchemaV8Sql = R"SQL(
+CREATE TABLE automation_lanes (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16),
+  target_role INTEGER NOT NULL CHECK (target_role IN (0, 1, 2, 3, 4, 5)),
+  param_id INTEGER NOT NULL CHECK (param_id >= 0),
+  UNIQUE(owner_entity, target_role, param_id)
+);
+CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity);
+
+CREATE TABLE automation_breakpoints (
+  lane_id BLOB NOT NULL CHECK (length(lane_id) = 16),
+  tick INTEGER NOT NULL CHECK (tick >= 0),
+  value REAL NOT NULL CHECK(value>=0 AND value<=1),
+  curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1)),
+  PRIMARY KEY(lane_id, tick),
+  FOREIGN KEY(lane_id) REFERENCES automation_lanes(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 7> kMigrations {
+inline constexpr std::array<SchemaMigration, 8> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1168,6 +1194,7 @@ inline constexpr std::array<SchemaMigration, 7> kMigrations {
     SchemaMigration { 5, kSchemaV5Sql },
     SchemaMigration { 6, kSchemaV6Sql },
     SchemaMigration { 7, kSchemaV7Sql },
+    SchemaMigration { 8, kSchemaV8Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1761,6 +1788,7 @@ public:
 
         if (auto result = detail::exec (
                 db_,
+                "DELETE FROM automation_breakpoints; DELETE FROM automation_lanes; "
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM buses; DELETE FROM tracks; "
@@ -1922,6 +1950,37 @@ public:
                 {
                     rollback();
                     return result;
+                }
+            }
+        }
+
+        {
+            detail::Statement laneStmt (
+                db_,
+                "INSERT INTO automation_lanes(id, owner_entity, target_role, param_id) "
+                "VALUES (?, ?, ?, ?);");
+            detail::Statement pointStmt (
+                db_,
+                "INSERT INTO automation_breakpoints(lane_id, tick, value, curve_type) "
+                "VALUES (?, ?, ?, ?);");
+
+            for (const engine::AutomationLaneData& lane : project.automationLanes)
+            {
+                laneStmt.reset();
+                if (auto result = laneStmt.bindBlob (1, lane.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = laneStmt.bindBlob (2, lane.ownerEntity.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = laneStmt.bindInt64 (3, static_cast<sqlite3_int64> (lane.role)); ! result.ok()) { rollback(); return result; }
+                if (auto result = laneStmt.bindInt64 (4, static_cast<sqlite3_int64> (lane.paramId)); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, laneStmt); ! result.ok()) { rollback(); return result; }
+
+                for (const engine::AutomationBreakpoint& point : lane.points)
+                {
+                    pointStmt.reset();
+                    if (auto result = pointStmt.bindBlob (1, lane.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = pointStmt.bindInt64 (2, point.tick); ! result.ok()) { rollback(); return result; }
+                    if (auto result = pointStmt.bindDouble (3, point.value); ! result.ok()) { rollback(); return result; }
+                    if (auto result = pointStmt.bindInt64 (4, static_cast<sqlite3_int64> (point.curveType)); ! result.ok()) { rollback(); return result; }
+                    if (auto result = detail::expectDone (db_, pointStmt); ! result.ok()) { rollback(); return result; }
                 }
             }
         }
@@ -2329,6 +2388,72 @@ public:
             {
                 if (auto result = loadFxChain (bus.id, bus.strip.fxChain); ! result.ok())
                     return result;
+            }
+        }
+
+        {
+            detail::Statement laneStmt;
+            if (auto result = laneStmt.prepare (
+                    db_,
+                    "SELECT id, owner_entity, target_role, param_id FROM automation_lanes ORDER BY rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = laneStmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::AutomationLaneData lane;
+                if (auto result = detail::columnBlob (laneStmt.get(), 0, lane.id.bytes, "automation_lanes.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (laneStmt.get(), 1, lane.ownerEntity.bytes, "automation_lanes.owner_entity"); ! result.ok())
+                    return result;
+
+                const sqlite3_int64 role = sqlite3_column_int64 (laneStmt.get(), 2);
+                if (role < static_cast<sqlite3_int64> (engine::AutomationTargetRole::TrackFader)
+                    || role > static_cast<sqlite3_int64> (engine::AutomationTargetRole::FxInsertParam))
+                    return detail::semanticInvalid ("automation_lanes.target_role is outside the Project value range");
+                lane.role = static_cast<engine::AutomationTargetRole> (role);
+
+                const sqlite3_int64 paramId = sqlite3_column_int64 (laneStmt.get(), 3);
+                if (paramId < 0 || paramId > std::numeric_limits<std::uint32_t>::max())
+                    return detail::semanticInvalid ("automation_lanes.param_id is outside the Project value range");
+                lane.paramId = static_cast<std::uint32_t> (paramId);
+
+                detail::Statement pointStmt;
+                if (auto result = pointStmt.prepare (
+                        db_,
+                        "SELECT tick, value, curve_type FROM automation_breakpoints WHERE lane_id = ? ORDER BY tick, rowid;");
+                    ! result.ok())
+                    return result;
+                if (auto result = pointStmt.bindBlob (1, lane.id.bytes); ! result.ok())
+                    return result;
+
+                while (true)
+                {
+                    const int pointStep = pointStmt.step();
+                    if (pointStep == SQLITE_DONE)
+                        break;
+                    if (pointStep != SQLITE_ROW)
+                        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                    engine::AutomationBreakpoint point;
+                    point.tick = sqlite3_column_int64 (pointStmt.get(), 0);
+                    point.value = sqlite3_column_double (pointStmt.get(), 1);
+
+                    const sqlite3_int64 curve = sqlite3_column_int64 (pointStmt.get(), 2);
+                    if (curve != static_cast<sqlite3_int64> (engine::AutomationCurveType::Linear)
+                        && curve != static_cast<sqlite3_int64> (engine::AutomationCurveType::Hold))
+                        return detail::semanticInvalid ("automation_breakpoints.curve_type is outside the Project value range");
+                    point.curveType = static_cast<engine::AutomationCurveType> (curve);
+                    lane.points.push_back (point);
+                }
+
+                project.automationLanes.push_back (std::move (lane));
             }
         }
 
@@ -2822,6 +2947,59 @@ public:
         if (fxParamRangeProblem)
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert param value is outside normalized range" };
 
+        bool automationOwnerProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM automation_lanes l LEFT JOIN tracks t ON t.id = l.owner_entity "
+                "WHERE l.target_role IN (0, 1, 2) AND t.id IS NULL "
+                "UNION ALL SELECT 1 FROM automation_lanes l LEFT JOIN buses b ON b.id = l.owner_entity "
+                "WHERE l.target_role IN (3, 4) AND b.id IS NULL "
+                "UNION ALL SELECT 1 FROM automation_lanes l LEFT JOIN fx_inserts f ON f.id = l.owner_entity "
+                "WHERE l.target_role = 5 AND f.id IS NULL "
+                "LIMIT 1;",
+                automationOwnerProblem);
+            ! result.ok())
+            return result;
+        if (automationOwnerProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation lane owner does not resolve for its target role" };
+
+        bool automationDuplicateTargetProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM ("
+                "SELECT owner_entity, target_role, param_id, COUNT(*) AS c FROM automation_lanes "
+                "GROUP BY owner_entity, target_role, param_id HAVING c > 1"
+                ") LIMIT 1;",
+                automationDuplicateTargetProblem);
+            ! result.ok())
+            return result;
+        if (automationDuplicateTargetProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation lanes must be unique per target" };
+
+        bool automationOrphanPointProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM automation_breakpoints p LEFT JOIN automation_lanes l ON l.id = p.lane_id "
+                "WHERE l.id IS NULL LIMIT 1;",
+                automationOrphanPointProblem);
+            ! result.ok())
+            return result;
+        if (automationOrphanPointProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation breakpoint row is orphaned" };
+
+        bool automationDuplicateTickProblem = false;
+        if (auto result = detail::hasAnyRow (
+                db_,
+                "SELECT 1 FROM ("
+                "SELECT lane_id, tick, COUNT(*) AS c FROM automation_breakpoints "
+                "GROUP BY lane_id, tick HAVING c > 1"
+                ") LIMIT 1;",
+                automationDuplicateTickProblem);
+            ! result.ok())
+            return result;
+        if (automationDuplicateTickProblem)
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "automation breakpoint ticks must be unique per lane" };
+
         if (auto result = validateFiniteReals(); ! result.ok())
             return result;
 
@@ -3223,6 +3401,7 @@ private:
             "UNION ALL SELECT sample_rate_hz FROM assets "
             "UNION ALL SELECT bpm FROM tempo_changes "
             "UNION ALL SELECT value FROM automation_points "
+            "UNION ALL SELECT value FROM automation_breakpoints "
             "UNION ALL SELECT gain FROM clips "
             "UNION ALL SELECT linear_gain FROM tracks "
             "UNION ALL SELECT pan FROM tracks "
@@ -3259,6 +3438,8 @@ private:
                 "UNION ALL SELECT 1 FROM recording_comp_segments WHERE id = zeroblob(16) OR take_id = zeroblob(16) OR sort_index < 0 OR timeline_start < 0 OR timeline_length <= 0 OR source_offset < 0 "
                 "UNION ALL SELECT 1 FROM fx_inserts WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR position < 0 OR kind NOT IN (0, 1, 2, 3, 4) OR enabled NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM fx_insert_params WHERE insert_id = zeroblob(16) OR param_id < 0 OR value < 0 OR value > 1 "
+                "UNION ALL SELECT 1 FROM automation_lanes WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR target_role NOT IN (0, 1, 2, 3, 4, 5) OR param_id < 0 "
+                "UNION ALL SELECT 1 FROM automation_breakpoints WHERE lane_id = zeroblob(16) OR tick < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
@@ -3289,6 +3470,8 @@ private:
                 "UNION ALL SELECT 1 FROM recording_comp_segments WHERE typeof(id) != 'blob' OR typeof(take_id) != 'blob' OR typeof(sort_index) != 'integer' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(source_offset) != 'integer' "
                 "UNION ALL SELECT 1 FROM fx_inserts WHERE typeof(id) != 'blob' OR typeof(owner_entity) != 'blob' OR typeof(position) != 'integer' OR typeof(kind) != 'integer' OR typeof(enabled) != 'integer' "
                 "UNION ALL SELECT 1 FROM fx_insert_params WHERE typeof(insert_id) != 'blob' OR typeof(param_id) != 'integer' OR typeof(value) NOT IN ('integer', 'real') "
+                "UNION ALL SELECT 1 FROM automation_lanes WHERE typeof(id) != 'blob' OR typeof(owner_entity) != 'blob' OR typeof(target_role) != 'integer' OR typeof(param_id) != 'integer' "
+                "UNION ALL SELECT 1 FROM automation_breakpoints WHERE typeof(lane_id) != 'blob' OR typeof(tick) != 'integer' OR typeof(value) NOT IN ('integer', 'real') OR typeof(curve_type) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
                 "LIMIT 1;",

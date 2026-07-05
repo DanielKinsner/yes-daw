@@ -21,6 +21,10 @@
 
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
+using yesdaw::engine::AutomationBreakpoint;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::AutomationLaneData;
+using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::Clip;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::FxInsert;
@@ -72,6 +76,7 @@ using yesdaw::persistence::detail::kSchemaV4Sql;
 using yesdaw::persistence::detail::kSchemaV5Sql;
 using yesdaw::persistence::detail::kSchemaV6Sql;
 using yesdaw::persistence::detail::kSchemaV7Sql;
+using yesdaw::persistence::detail::kSchemaV8Sql;
 using Catch::Approx;
 
 namespace {
@@ -327,6 +332,23 @@ FxInsert makeFxInsert (EntityId id, FxKind kind = FxKind::Eq, bool enabled = tru
     return insert;
 }
 
+AutomationLaneData makeAutomationLane (EntityId id,
+                                       EntityId ownerEntity,
+                                       AutomationTargetRole role,
+                                       std::uint32_t paramId)
+{
+    AutomationLaneData lane;
+    lane.id = id;
+    lane.ownerEntity = ownerEntity;
+    lane.role = role;
+    lane.paramId = paramId;
+    lane.points = {
+        AutomationBreakpoint { 0,     0.25, AutomationCurveType::Linear },
+        AutomationBreakpoint { 15360, 0.75, AutomationCurveType::Hold },
+    };
+    return lane;
+}
+
 RecordingTake makeRecordingTake (EntityId id,
                                  EntityId assetId,
                                  EntityId trackId,
@@ -412,6 +434,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
+    REQUIRE (actual.automationLanes == expected.automationLanes);
     REQUIRE (actual.hasValidAssetClipIndirection());
 }
 
@@ -462,6 +485,8 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 7;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 8;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
@@ -483,6 +508,10 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_inserts';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'fx_insert_params';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'automation_lanes';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'automation_breakpoints';", value).ok());
     REQUIRE (value == 1);
 }
 
@@ -581,6 +610,13 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     invalidFxParam.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
     invalidFxParam.tracks[0].strip.fxChain.front().normalizedParams.front().second = 1.25;
     REQUIRE (db.writeProjectSnapshot (invalidFxParam).status == BundleStatus::SemanticInvalid);
+
+    Project invalidAutomation = project;
+    invalidAutomation.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 0),
+    };
+    invalidAutomation.automationLanes.front().points.front().curveType = AutomationCurveType::Bezier;
+    REQUIRE (db.writeProjectSnapshot (invalidAutomation).status == BundleStatus::SemanticInvalid);
 }
 
 TEST_CASE ("Project value surface round-trips through a reopened bundle", "[persistence][project][round-trip]")
@@ -645,6 +681,47 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     Project mutatedStrip = project;
     mutatedStrip.tracks[0].strip.pan = 0.25f;
     REQUIRE_FALSE (readback.tracks == mutatedStrip.tracks);
+}
+
+TEST_CASE ("Project automation lanes round-trip through schema v8", "[persistence][project][round-trip][automation][h15]")
+{
+    const auto path = makeTempBundlePath ("automation-round-trip");
+
+    Project project = makeProject();
+    project.buses = { makeBus (idFromLowByte (11), "Return") };
+    project.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (90), FxKind::Eq) };
+    project.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (71), project.tracks[0].id, AutomationTargetRole::TrackPan, 1),
+        makeAutomationLane (idFromLowByte (72), project.buses[0].id, AutomationTargetRole::BusFader, 0),
+        makeAutomationLane (idFromLowByte (73), project.tracks[0].strip.fxChain[0].id, AutomationTargetRole::FxInsertParam, 10),
+    };
+    project.automationLanes[0].points.push_back (AutomationBreakpoint { 30720, 0.5, AutomationCurveType::Linear });
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+
+        sqlite3_int64 count = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_lanes;", count).ok());
+        REQUIRE (count == 4);
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", count).ok());
+        REQUIRE (count == 9);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.automationLanes == project.automationLanes);
+
+    Project mutatedLane = project;
+    mutatedLane.automationLanes[0].points[1].value = 0.625;
+    REQUIRE_FALSE (readback.automationLanes == mutatedLane.automationLanes);
 }
 
 TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
@@ -1037,6 +1114,49 @@ TEST_CASE ("Schema v7 migration adds empty FX chains to a v6 bundle", "[persiste
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+TEST_CASE ("Schema v8 migration adds empty automation lane tables to a v7 bundle", "[persistence][migration][automation][h15]")
+{
+    const auto path = makeTempBundlePath ("automation-v7-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path, ec);
+    REQUIRE (! ec);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV7 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 7);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV7).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) "
+        "VALUES (1, X'00000000000000000000000000000001', 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) "
+        "VALUES (X'0000000000000000000000000000000A', 'Audio 1', 1.0, 0.0, 0, 0, 0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 8;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'automation_lanes';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'automation_breakpoints';", value).ok());
+    REQUIRE (value == 1);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationLanes.empty());
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")
 {
     const auto path = makeTempBundlePath ("semantic");
@@ -1290,6 +1410,114 @@ TEST_CASE ("Opening an existing bundle rejects out-of-range FX normalized params
     ProjectBundleDb reopened;
     const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
     REQUIRE (validation.status == BundleStatus::SemanticInvalid);
+}
+
+TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes", "[persistence][semantic][open][automation][h15]")
+{
+    const EntityId trackId = idFromLowByte (10);
+    const EntityId busId = idFromLowByte (11);
+    const EntityId fxId = idFromLowByte (90);
+    const EntityId laneId = idFromLowByte (70);
+
+    const auto makeAutomationProject = [&]
+    {
+        Project project = makeProject();
+        project.buses = { makeBus (busId, "Return") };
+        project.tracks[0].strip.fxChain = { makeFxInsert (fxId, FxKind::Eq) };
+        project.automationLanes = {
+            makeAutomationLane (laneId, trackId, AutomationTargetRole::TrackFader, 0),
+            makeAutomationLane (idFromLowByte (71), busId, AutomationTargetRole::BusPan, 1),
+            makeAutomationLane (idFromLowByte (72), fxId, AutomationTargetRole::FxInsertParam, 10),
+        };
+        REQUIRE (project.hasValidAssetClipIndirection());
+        return project;
+    };
+
+    const auto requireRejectedAfter = [&] (std::string_view label, const std::string& mutationSql)
+    {
+        const auto path = makeTempBundlePath (label);
+        const Project project = makeAutomationProject();
+
+        {
+            ProjectBundleDb db = openFreshBundle (path);
+            REQUIRE (db.writeProjectSnapshot (project).ok());
+            writeProjectAssetFiles (path, project);
+            REQUIRE (db.executeSql (mutationSql).ok());
+        }
+
+        ProjectBundleDb reopened;
+        const auto validation = ProjectBundleDb::openExistingBundle (path, reopened);
+        REQUIRE ((validation.status == BundleStatus::SemanticInvalid || validation.status == BundleStatus::IntegrityFailed));
+    };
+
+    requireRejectedAfter (
+        "automation-orphan-owner-open",
+        "UPDATE automation_lanes SET owner_entity = X'000000000000000000000000000000EE' WHERE id = " + blobLiteral (laneId) + ";");
+
+    requireRejectedAfter (
+        "automation-unknown-role-open",
+        "PRAGMA ignore_check_constraints = ON; "
+        "UPDATE automation_lanes SET target_role = 99 WHERE id = " + blobLiteral (laneId) + "; "
+        "PRAGMA ignore_check_constraints = OFF;");
+
+    requireRejectedAfter (
+        "automation-value-range-open",
+        "PRAGMA ignore_check_constraints = ON; "
+        "UPDATE automation_breakpoints SET value = 1.25 WHERE lane_id = " + blobLiteral (laneId) + " AND tick = 0; "
+        "PRAGMA ignore_check_constraints = OFF;");
+
+    requireRejectedAfter (
+        "automation-quarantined-curve-open",
+        "PRAGMA ignore_check_constraints = ON; "
+        "UPDATE automation_breakpoints SET curve_type = 2 WHERE lane_id = " + blobLiteral (laneId) + " AND tick = 0; "
+        "PRAGMA ignore_check_constraints = OFF;");
+
+    requireRejectedAfter (
+        "automation-duplicate-target-open",
+        "PRAGMA foreign_keys = OFF; "
+        "DROP TABLE automation_breakpoints; "
+        "DROP TABLE automation_lanes; "
+        "CREATE TABLE automation_lanes ("
+        "id BLOB PRIMARY KEY CHECK (length(id) = 16), "
+        "owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16), "
+        "target_role INTEGER NOT NULL CHECK (target_role IN (0, 1, 2, 3, 4, 5)), "
+        "param_id INTEGER NOT NULL CHECK (param_id >= 0)); "
+        "CREATE TABLE automation_breakpoints ("
+        "lane_id BLOB NOT NULL CHECK (length(lane_id) = 16), "
+        "tick INTEGER NOT NULL CHECK (tick >= 0), "
+        "value REAL NOT NULL CHECK(value>=0 AND value<=1), "
+        "curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1))); "
+        "INSERT INTO automation_lanes(id, owner_entity, target_role, param_id) VALUES "
+        "(X'00000000000000000000000000000070', " + blobLiteral (trackId) + ", 0, 0), "
+        "(X'00000000000000000000000000000071', " + blobLiteral (trackId) + ", 0, 0); "
+        "PRAGMA foreign_keys = ON;");
+
+    requireRejectedAfter (
+        "automation-orphan-breakpoint-open",
+        "PRAGMA foreign_keys = OFF; "
+        "DROP TABLE automation_breakpoints; "
+        "CREATE TABLE automation_breakpoints ("
+        "lane_id BLOB NOT NULL CHECK (length(lane_id) = 16), "
+        "tick INTEGER NOT NULL CHECK (tick >= 0), "
+        "value REAL NOT NULL CHECK(value>=0 AND value<=1), "
+        "curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1))); "
+        "INSERT INTO automation_breakpoints(lane_id, tick, value, curve_type) VALUES "
+        "(X'000000000000000000000000000000EE', 0, 0.25, 0); "
+        "PRAGMA foreign_keys = ON;");
+
+    requireRejectedAfter (
+        "automation-duplicate-tick-open",
+        "PRAGMA foreign_keys = OFF; "
+        "DROP TABLE automation_breakpoints; "
+        "CREATE TABLE automation_breakpoints ("
+        "lane_id BLOB NOT NULL CHECK (length(lane_id) = 16), "
+        "tick INTEGER NOT NULL CHECK (tick >= 0), "
+        "value REAL NOT NULL CHECK(value>=0 AND value<=1), "
+        "curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1))); "
+        "INSERT INTO automation_breakpoints(lane_id, tick, value, curve_type) VALUES "
+        "(" + blobLiteral (laneId) + ", 0, 0.25, 0), "
+        "(" + blobLiteral (laneId) + ", 0, 0.75, 1); "
+        "PRAGMA foreign_keys = ON;");
 }
 
 TEST_CASE ("Opening an existing bundle rejects non-canonical Project value storage types", "[persistence][semantic][open]")

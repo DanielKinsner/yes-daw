@@ -412,8 +412,13 @@ TEST_CASE ("frozen CP9 FX-schema fixture bundle opens and re-renders on HEAD for
     const std::filesystem::path fixturePath { YESDAW_FX_SCHEMA_FIXTURE_PATH };
     REQUIRE (std::filesystem::exists (fixturePath / "project.db"));
 
+    const std::filesystem::path workingPath = tempPath ("fixture-copy.yesdaw");
+    std::error_code ec;
+    std::filesystem::copy (fixturePath, workingPath, std::filesystem::copy_options::recursive, ec);
+    REQUIRE (! ec);
+
     ProjectBundleDb db;
-    REQUIRE (ProjectBundleDb::openExistingBundle (fixturePath, db).ok());
+    REQUIRE (ProjectBundleDb::openExistingBundle (workingPath, db).ok());
 
     Project project;
     REQUIRE (db.readProjectSnapshot (project).ok());
