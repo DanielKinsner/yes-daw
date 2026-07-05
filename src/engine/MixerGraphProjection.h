@@ -46,6 +46,7 @@ struct MixerProjectionError
         InvalidTrackPan,
         InvalidSendDestination,
         InvalidSendGain,
+        InvalidBusGain,
         InvalidBusPan,
         GraphBuildFailed
     };
@@ -97,6 +98,8 @@ struct MixerBusProjection
     NodeId meterNodeId = 0;
     float  pan         = 0.0f;   // centre by default; equal-power, like a Track Return (ADR-0014)
     std::vector<std::unique_ptr<Node>> insertNodes;
+    NodeId faderNodeId = 0;
+    float  linearGain  = 1.0f;
 };
 
 struct MixerProjectionInputs
@@ -133,6 +136,21 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     mix (static_cast<std::uint32_t> (busIndex & 0xFFFF'FFFFu));
     mix (static_cast<std::uint32_t> (tap == MixerSendTap::PreFader ? 0x53505245u : 0x53504F53u));
     mix (0xA15C0DEu);
+
+    return h == 0u ? 1u : h;
+}
+
+[[nodiscard]] inline NodeId mixerBusFaderNodeId (NodeId busSumNodeId) noexcept
+{
+    std::uint32_t h = 2166136261u;
+    const auto mix = [&h] (std::uint32_t value) noexcept
+    {
+        h ^= value;
+        h *= 16777619u;
+    };
+
+    mix (busSumNodeId);
+    mix (0xB05FAD3u);
 
     return h == 0u ? 1u : h;
 }
@@ -193,7 +211,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     std::size_t sendNodeCount = 0;
     for (const MixerTrackProjection& track : projection.tracks)
         sendNodeCount += track.sends.size();
-    inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + sendNodeCount + projection.buses.size() * 4u + 2u);
+    inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + sendNodeCount + projection.buses.size() * 5u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -448,6 +466,16 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             return nullptr;
         }
 
+        if (! mixerGainIsValid (bus.linearGain))
+        {
+            if (error != nullptr)
+            {
+                error->code = MixerProjectionError::Code::InvalidBusGain;
+                error->busIndex = i;
+            }
+            return nullptr;
+        }
+
         // The Bus sums its (mono) Send taps in mono; the Return then widens to centred stereo through its
         // own Pan -> Meter, mirroring the Track chain (ADR-0014). A mono Return summed straight into the
         // stereo master is audible in the left channel only — a mono signal into a stereo master must be
@@ -483,9 +511,16 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             busChainHead = insertNode.get();
         }
 
+        const NodeId busFaderId = bus.faderNodeId != 0u ? bus.faderNodeId : mixerBusFaderNodeId (bus.sumNodeId);
+        const int busFaderChannels = busChainHead->properties().channels > 0 ? busChainHead->properties().channels : 1;
+        auto busFader = std::make_unique<FaderNode> (busFaderId, busFaderChannels);
+        FaderNode* const busFaderPtr = busFader.get();
+        busFaderPtr->setInput (busChainHead);
+        busFaderPtr->setTargetGain (bus.linearGain);
+
         auto busPan = std::make_unique<PanNode> (bus.panNodeId);
         PanNode* const busPanPtr = busPan.get();
-        busPanPtr->setInput (busChainHead);
+        busPanPtr->setInput (busFaderPtr);
         busPanPtr->setPan (bus.pan);
 
         auto busMeter = std::make_unique<MeterNode> (bus.meterNodeId, 2);
@@ -495,6 +530,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         inputs.nodes.push_back (std::move (busSum));
         for (std::unique_ptr<Node>& insertNode : bus.insertNodes)
             inputs.nodes.push_back (std::move (insertNode));
+        inputs.nodes.push_back (std::move (busFader));
         inputs.nodes.push_back (std::move (busPan));
         inputs.nodes.push_back (std::move (busMeter));
         masterBusInputs.push_back (busMeterPtr);

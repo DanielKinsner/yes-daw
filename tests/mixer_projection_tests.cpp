@@ -683,6 +683,63 @@ TEST_CASE ("Project projector resolves SendLevel automation to the projected sen
     REQUIRE (automatedRender.back() > 1.0e-3f);
 }
 
+TEST_CASE ("Project projector resolves BusFader automation to the projected bus return FaderNode",
+           "[mixer][projection][project][automation][bus][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    project.tracks[0].strip.linearGain = 0.0f;
+
+    Bus returnBus;
+    returnBus.id = entityIdFromLowByte (84);
+    returnBus.strip.name = "Return 1";
+    returnBus.strip.linearGain = 0.0f;
+    project.buses.push_back (returnBus);
+
+    const std::vector<ProjectMixerSendRoute> sendRoutes = {
+        ProjectMixerSendRoute { project.tracks[0].id, project.buses[0].id, MixerSendTap::PreFader, 1.0f },
+    };
+
+    AutomationLaneData lane = makeAutomationLane (85,
+                                                  project.buses[0].id,
+                                                  AutomationTargetRole::BusFader,
+                                                  FaderNode::kGainParameterId);
+    lane.points[0].value = 1.0;
+    lane.points[1].value = 1.0;
+    project.automationLanes = { lane };
+
+    MixerProjectionInputs projection =
+        makeProjectProjectionForTest (project, SourceGainMutation::None, sendRoutes);
+    REQUIRE (projection.buses.size() == 1u);
+    const NodeId busFaderId = projectMixerNodeIdForEntity (project.buses[0].id, ProjectMixerNodeRole::Fader);
+    REQUIRE (projection.buses[0].faderNodeId == busFaderId);
+    REQUIRE (projection.buses[0].linearGain == Approx (0.0f));
+    REQUIRE (projection.automationLanes.size() == 1u);
+    REQUIRE (projection.automationLanes[0].targetNode == busFaderId);
+    REQUIRE (projection.automationLanes[0].parameterId == FaderNode::kGainParameterId);
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    REQUIRE_FALSE (graph->isBlockParallelSafe());
+
+    const CompiledNode* const busFader = compiledNodeById (*graph, busFaderId);
+    REQUIRE (busFader != nullptr);
+    REQUIRE (busFader->kind == CompiledNodeKind::Fader);
+
+    Project staticBus = project;
+    staticBus.automationLanes.clear();
+    const std::vector<float> staticRender =
+        renderProjectProjectionSchedule (staticBus, { kProjectRenderFrames }, kProjectRenderFrames, sendRoutes);
+    const std::vector<float> automatedRender =
+        renderProjectProjectionSchedule (project, { kProjectRenderFrames }, kProjectRenderFrames, sendRoutes);
+
+    REQUIRE (staticRender.size() == automatedRender.size());
+    for (float v : staticRender)
+        REQUIRE (v == Approx (0.0f).margin (1.0e-6f));
+    REQUIRE (automatedRender.back() > 1.0e-3f);
+}
+
 TEST_CASE ("Project projector rejects automation lanes whose target is not projected",
            "[mixer][projection][project][automation][invalid][h15][cp3]")
 {
@@ -926,7 +983,7 @@ TEST_CASE ("Mixer projection gives Send levels real FaderNode targets", "[mixer]
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
     REQUIRE (graph != nullptr);
     REQUIRE (error.code == MixerProjectionError::Code::None);
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 2u);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 3u);
 
     const CompiledNode* const sendFader = compiledNodeById (*graph, kSendFaderId);
     REQUIRE (sendFader != nullptr);

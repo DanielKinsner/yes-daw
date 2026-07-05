@@ -63,6 +63,7 @@ struct ProjectMixerProjectionError
         InvalidProject,
         InvalidClipGain,
         InvalidTrackGain,
+        InvalidBusGain,
         DuplicateNodeId,
         SourceFactoryFailed,
         SourceNodeIdMismatch,
@@ -360,8 +361,8 @@ template <typename SourceFactory>
             projectedBusIndices[busIndex] = projectedBusCount++;
     }
 
-    automationTargets.reserve (project.tracks.size() * 2u + config.sendRoutes.size() + projectedBusCount + fxInsertCount);
-    usedIds.reserve (project.tracks.size() * 4u + config.sendRoutes.size() + projectedBusCount * 3u + project.clips.size() + fxInsertCount + 2u);
+    automationTargets.reserve (project.tracks.size() * 2u + config.sendRoutes.size() + projectedBusCount * 2u + fxInsertCount);
+    usedIds.reserve (project.tracks.size() * 4u + config.sendRoutes.size() + projectedBusCount * 4u + project.clips.size() + fxInsertCount + 2u);
     if (! detail::registerProjectMixerNodeId (usedIds, projection.masterSumNodeId, 0, ProjectMixerNodeRole::Source, error)
         || ! detail::registerProjectMixerNodeId (usedIds, projection.masterNodeId, 0, ProjectMixerNodeRole::Source, error))
         return false;
@@ -517,17 +518,28 @@ template <typename SourceFactory>
             continue;
 
         const NodeId sumId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source);
+        const NodeId faderId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Fader);
         const NodeId panId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Pan);
         const NodeId meterId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Meter);
         if (! detail::registerProjectMixerNodeId (usedIds, sumId, busIndex, ProjectMixerNodeRole::Source, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, faderId, busIndex, ProjectMixerNodeRole::Fader, error)
             || ! detail::registerProjectMixerNodeId (usedIds, panId, busIndex, ProjectMixerNodeRole::Pan, error)
             || ! detail::registerProjectMixerNodeId (usedIds, meterId, busIndex, ProjectMixerNodeRole::Meter, error))
             return false;
 
+        if (! mixerGainIsValid (bus.strip.linearGain))
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::InvalidBusGain, busIndex, faderId, ProjectMixerNodeRole::Fader };
+            return false;
+        }
+
         MixerBusProjection projectedBus;
         projectedBus.sumNodeId = sumId;
+        projectedBus.faderNodeId = faderId;
         projectedBus.panNodeId = panId;
         projectedBus.meterNodeId = meterId;
+        projectedBus.linearGain = bus.strip.linearGain;
         projectedBus.pan = bus.strip.pan;
         if (! detail::appendProjectFxChainNodes (bus.strip.fxChain,
                                                  usedIds,
@@ -535,6 +547,7 @@ template <typename SourceFactory>
                                                  busIndex,
                                                  error))
             return false;
+        automationTargets.push_back ({ bus.id, AutomationTargetRole::BusFader, faderId });
         automationTargets.push_back ({ bus.id, AutomationTargetRole::BusPan, panId });
         for (const FxInsert& insert : bus.strip.fxChain)
             automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,

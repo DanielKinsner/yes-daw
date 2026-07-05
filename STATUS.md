@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 SendLevel Project/Mixer projection sub-slice is
-implementation-remote-green; closeout commit/push and remote CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 BusFader Project/Mixer projection sub-slice is locally
+green; commit/push and remote CI are next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -222,7 +222,7 @@ files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
 Implementation commit `6481540` passed GitHub Actions run `28752737140` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-H15 CP3 SendLevel Project/Mixer projection sub-slice is implementation-remote-green on `66d2eed`:
+H15 CP3 SendLevel Project/Mixer projection sub-slice is closed remote-green on `66d2eed`:
 `ProjectMixerProjection` can now take projection-only Project send routes, materialize deterministic
 per-Track send `FaderNode` targets by send ordinal, resolve `SendLevel` automation lanes to those send
 targets, and translate the stored send ordinal `paramId` into the actual `FaderNode::kGainParameterId`
@@ -232,21 +232,31 @@ without the lane. This does not implement Bus fader lane resolution, precedence 
 integration closeout, FX UI, automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden
 files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
 Implementation commit `66d2eed` passed GitHub Actions run `28754353773` across Linux, Windows, macOS,
-RTSan, and TSan.
+RTSan, and TSan. Closeout commit `96b2905` passed GitHub Actions run `28754947434` across Linux,
+Windows, macOS, RTSan, and TSan.
 
-**Now:** Commit/push this SendLevel Project/Mixer projection closeout and wait for GitHub Actions.
+H15 CP3 BusFader Project/Mixer projection sub-slice is locally green: mixer Bus Returns now include a
+real `FaderNode` target between the bus sum/FX chain and bus pan/meter path, `ProjectMixerProjection`
+projects each Bus strip's `linearGain` onto that target, and `BusFader` automation lanes resolve to the
+projected bus-return `FaderNode`. The focused gate proves a `BusFader` lane for a projected Bus Return
+resolves to the projected fader target and renders through the Bus output; the same Bus path is silent
+without the lane. This does not implement precedence over scalar posts, CP4 integration closeout, FX UI,
+automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
+`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+
+**Now:** Commit/push this BusFader Project/Mixer projection sub-slice and wait for GitHub Actions.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
 - BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawMixerProjectionCheck`
   passed.
-- Direct `build-ci\YesDawMixerProjectionCheck.exe "[mixer][projection][project][automation][send][h15][cp3]"`
+- Direct `build-ci\YesDawMixerProjectionCheck.exe "[mixer][projection][project][automation][bus][h15][cp3]"`
   passed **1/1** test case and **97** assertions.
 - Direct `build-ci\YesDawMixerProjectionCheck.exe "[mixer][projection][project][automation][h15][cp3]"`
-  passed **5/5** test cases and **658** assertions.
-- Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **26/26** test cases and **5484** assertions.
+  passed **6/6** test cases and **755** assertions.
+- Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **27/27** test cases and **5581** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **306/306** tests.
+- Full `ctest --preset ci --output-on-failure` passed **307/307** tests.
 
 Previous checkpoint local gates:
 - `git diff --check` passed.
