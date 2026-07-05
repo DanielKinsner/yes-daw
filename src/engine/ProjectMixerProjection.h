@@ -37,6 +37,14 @@ enum class ProjectMixerNodeRole : std::uint8_t
     Fx
 };
 
+struct ProjectMixerSendRoute
+{
+    EntityId trackId;
+    EntityId busId;
+    MixerSendTap tap = MixerSendTap::PostFader;
+    float linearGain = 1.0f;
+};
+
 struct ProjectMixerProjectionConfig
 {
     GraphId id = 0;
@@ -44,6 +52,7 @@ struct ProjectMixerProjectionConfig
     NodeId masterNodeId = GraphBuilder::kDefaultMasterNodeId;
     int maxBlockSize = 512;
     const CompiledGraph* previousForCarryOver = nullptr;
+    std::vector<ProjectMixerSendRoute> sendRoutes;
 };
 
 struct ProjectMixerProjectionError
@@ -99,6 +108,27 @@ struct ProjectMixerProjectionError
     return projectMixerNodeIdForEntity (trackId, role);
 }
 
+[[nodiscard]] inline NodeId projectMixerSendLevelNodeIdForTrack (EntityId trackId,
+                                                                 std::uint32_t sendOrdinal) noexcept
+{
+    constexpr std::uint32_t kFnvOffset = 2166136261u;
+    constexpr std::uint32_t kFnvPrime = 16777619u;
+
+    std::uint32_t h = kFnvOffset;
+    for (const std::uint8_t byte : trackId.bytes)
+    {
+        h ^= byte;
+        h *= kFnvPrime;
+    }
+
+    h ^= static_cast<std::uint32_t> (AutomationTargetRole::SendLevel) + 0x85EBCA6Bu;
+    h *= kFnvPrime;
+    h ^= sendOrdinal;
+    h *= kFnvPrime;
+
+    return h == 0u ? 1u : h;
+}
+
 namespace detail {
 
 struct ProjectedAutomationTarget
@@ -106,6 +136,10 @@ struct ProjectedAutomationTarget
     EntityId ownerEntity;
     AutomationTargetRole role = AutomationTargetRole::TrackFader;
     NodeId targetNode = 0;
+    std::uint32_t parameterId = 0;
+    bool parameterIdMustMatch = false;
+    ParameterId compiledParameterId = 0;
+    bool compiledParameterIdMustOverride = false;
 };
 
 [[nodiscard]] inline bool registerProjectMixerNodeId (std::vector<NodeId>& used,
@@ -202,23 +236,50 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
 [[nodiscard]] inline const ProjectedAutomationTarget* findProjectedAutomationTarget (
     const std::vector<ProjectedAutomationTarget>& targets,
     EntityId ownerEntity,
-    AutomationTargetRole role) noexcept
+    AutomationTargetRole role,
+    std::uint32_t parameterId) noexcept
 {
     for (const ProjectedAutomationTarget& target : targets)
-        if (target.ownerEntity == ownerEntity && target.role == role)
+        if (target.ownerEntity == ownerEntity
+            && target.role == role
+            && (! target.parameterIdMustMatch || target.parameterId == parameterId))
             return &target;
 
     return nullptr;
 }
 
+[[nodiscard]] inline bool busHasSendRoute (const ProjectMixerProjectionConfig& config,
+                                           EntityId busId) noexcept
+{
+    for (const ProjectMixerSendRoute& route : config.sendRoutes)
+        if (route.busId == busId)
+            return true;
+
+    return false;
+}
+
+[[nodiscard]] inline std::size_t projectedBusIndexForRoute (
+    const Project& project,
+    const std::vector<std::size_t>& projectedBusIndices,
+    EntityId busId) noexcept
+{
+    constexpr std::size_t kMissing = std::numeric_limits<std::size_t>::max();
+    for (std::size_t i = 0; i < project.buses.size(); ++i)
+        if (project.buses[i].id == busId)
+            return projectedBusIndices[i];
+
+    return kMissing;
+}
+
 [[nodiscard]] inline bool appendCompiledAutomationLane (const AutomationLaneData& lane,
                                                         NodeId targetNode,
+                                                        ParameterId parameterId,
                                                         const CompiledTempoMap& tempoMap,
                                                         std::vector<CompiledAutomationLane>& out)
 {
     CompiledAutomationLane compiled;
     compiled.targetNode = targetNode;
-    compiled.parameterId = static_cast<ParameterId> (lane.paramId);
+    compiled.parameterId = parameterId;
     compiled.frames.reserve (lane.points.size());
     compiled.values.reserve (lane.points.size());
     compiled.curveTypes.reserve (lane.points.size());
@@ -284,14 +345,23 @@ template <typename SourceFactory>
 
     std::vector<NodeId> usedIds;
     std::vector<detail::ProjectedAutomationTarget> automationTargets;
+    constexpr std::size_t kMissingProjectedBus = std::numeric_limits<std::size_t>::max();
+    std::vector<std::size_t> projectedBusIndices (project.buses.size(), kMissingProjectedBus);
     std::size_t fxInsertCount = 0;
     for (const Track& track : project.tracks)
         fxInsertCount += track.strip.fxChain.size();
     for (const Bus& bus : project.buses)
         fxInsertCount += bus.strip.fxChain.size();
+    std::size_t projectedBusCount = 0;
+    for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+    {
+        const Bus& bus = project.buses[busIndex];
+        if (! bus.strip.fxChain.empty() || detail::busHasSendRoute (config, bus.id))
+            projectedBusIndices[busIndex] = projectedBusCount++;
+    }
 
-    automationTargets.reserve (project.tracks.size() * 2u + project.buses.size() + fxInsertCount);
-    usedIds.reserve (project.tracks.size() * 4u + project.buses.size() * 3u + project.clips.size() + fxInsertCount + 2u);
+    automationTargets.reserve (project.tracks.size() * 2u + config.sendRoutes.size() + projectedBusCount + fxInsertCount);
+    usedIds.reserve (project.tracks.size() * 4u + config.sendRoutes.size() + projectedBusCount * 3u + project.clips.size() + fxInsertCount + 2u);
     if (! detail::registerProjectMixerNodeId (usedIds, projection.masterSumNodeId, 0, ProjectMixerNodeRole::Source, error)
         || ! detail::registerProjectMixerNodeId (usedIds, projection.masterNodeId, 0, ProjectMixerNodeRole::Source, error))
         return false;
@@ -395,6 +465,43 @@ template <typename SourceFactory>
                                                  trackIndex,
                                                  error))
             return false;
+        std::uint32_t sendOrdinal = 0;
+        for (const ProjectMixerSendRoute& route : config.sendRoutes)
+        {
+            if (! (route.trackId == owningTrack.id))
+                continue;
+
+            if (! mixerGainIsValid (route.linearGain))
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidTrackGain, trackIndex, 0, ProjectMixerNodeRole::Fader };
+                return false;
+            }
+
+            const std::size_t projectedBusIndex =
+                detail::projectedBusIndexForRoute (project, projectedBusIndices, route.busId);
+            if (projectedBusIndex == kMissingProjectedBus)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, trackIndex, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            const NodeId sendFaderId = projectMixerSendLevelNodeIdForTrack (owningTrack.id, sendOrdinal);
+            if (! detail::registerProjectMixerNodeId (usedIds, sendFaderId, trackIndex, ProjectMixerNodeRole::Fader, error))
+                return false;
+
+            track.sends.push_back (MixerSendProjection { projectedBusIndex, route.tap, sendFaderId, route.linearGain });
+            automationTargets.push_back ({ owningTrack.id,
+                                           AutomationTargetRole::SendLevel,
+                                           sendFaderId,
+                                           sendOrdinal,
+                                           true,
+                                           FaderNode::kGainParameterId,
+                                           true });
+            ++sendOrdinal;
+        }
+
         automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::TrackFader, faderId });
         automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::TrackPan, panId });
         for (const FxInsert& insert : owningTrack.strip.fxChain)
@@ -406,7 +513,7 @@ template <typename SourceFactory>
     for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
     {
         const Bus& bus = project.buses[busIndex];
-        if (bus.strip.fxChain.empty())
+        if (projectedBusIndices[busIndex] == kMissingProjectedBus)
             continue;
 
         const NodeId sumId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source);
@@ -453,7 +560,7 @@ template <typename SourceFactory>
         {
             const AutomationLaneData& lane = project.automationLanes[laneIndex];
             const detail::ProjectedAutomationTarget* const target =
-                detail::findProjectedAutomationTarget (automationTargets, lane.ownerEntity, lane.role);
+                detail::findProjectedAutomationTarget (automationTargets, lane.ownerEntity, lane.role, lane.paramId);
             if (target == nullptr)
             {
                 if (error != nullptr)
@@ -464,7 +571,14 @@ template <typename SourceFactory>
                 return false;
             }
 
-            if (! detail::appendCompiledAutomationLane (lane, target->targetNode, tempoMap, projection.automationLanes))
+            const ParameterId compiledParameterId = target->compiledParameterIdMustOverride
+                ? target->compiledParameterId
+                : static_cast<ParameterId> (lane.paramId);
+            if (! detail::appendCompiledAutomationLane (lane,
+                                                        target->targetNode,
+                                                        compiledParameterId,
+                                                        tempoMap,
+                                                        projection.automationLanes))
             {
                 if (error != nullptr)
                     *error = { ProjectMixerProjectionError::Code::InvalidAutomationLane,

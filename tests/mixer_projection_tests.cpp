@@ -31,6 +31,7 @@ using yesdaw::engine::AutomationBreakpoint;
 using yesdaw::engine::AutomationCurveType;
 using yesdaw::engine::AutomationLaneData;
 using yesdaw::engine::AutomationTargetRole;
+using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledAutomationLane;
 using yesdaw::engine::DecodedClipNode;
@@ -53,6 +54,7 @@ using yesdaw::engine::Project;
 using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::ProjectMixerProjectionConfig;
 using yesdaw::engine::ProjectMixerProjectionError;
+using yesdaw::engine::ProjectMixerSendRoute;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::SumNode;
 using yesdaw::engine::TempoChange;
@@ -63,6 +65,7 @@ using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerNodeIdForClip;
+using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
 using yesdaw::engine::projectMixerNodeIdForTrack;
 using yesdaw::engine::projectToMixerProjectionInputs;
 
@@ -298,13 +301,15 @@ std::unique_ptr<Node> makeDecodedProjectSource (const Project& project,
 }
 
 MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
-                                                    SourceGainMutation mutation = SourceGainMutation::None)
+                                                    SourceGainMutation mutation = SourceGainMutation::None,
+                                                    std::vector<ProjectMixerSendRoute> sendRoutes = {})
 {
     ProjectMixerProjectionConfig config;
     config.id = 70;
     config.masterSumNodeId = kMasterSumId;
     config.masterNodeId = kMasterId;
     config.maxBlockSize = kMaxBlock;
+    config.sendRoutes = std::move (sendRoutes);
 
     MixerProjectionInputs projection;
     ProjectMixerProjectionError projectError;
@@ -353,11 +358,13 @@ StereoCapture renderProjectProjectionForTest (const Project& project,
 
 std::vector<float> renderProjectProjectionSchedule (const Project& project,
                                                     const std::vector<int>& blockSizes,
-                                                    int totalFrames)
+                                                    int totalFrames,
+                                                    std::vector<ProjectMixerSendRoute> sendRoutes = {})
 {
     REQUIRE_FALSE (blockSizes.empty());
 
-    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+    MixerProjectionInputs projection =
+        makeProjectProjectionForTest (project, SourceGainMutation::None, std::move (sendRoutes));
 
     MixerProjectionError graphError;
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
@@ -618,6 +625,62 @@ TEST_CASE ("Project projector compiles FX insert automation to the projected FX 
     REQUIRE (projection.automationLanes[0].targetNode
              == projectMixerNodeIdForEntity (project.tracks[0].strip.fxChain[0].id, ProjectMixerNodeRole::Fx));
     REQUIRE (projection.automationLanes[0].parameterId == 1u);
+}
+
+TEST_CASE ("Project projector resolves SendLevel automation to the projected send FaderNode",
+           "[mixer][projection][project][automation][send][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    project.tracks[0].strip.linearGain = 0.0f;
+
+    Bus returnBus;
+    returnBus.id = entityIdFromLowByte (82);
+    returnBus.strip.name = "Return 1";
+    project.buses.push_back (returnBus);
+
+    const std::vector<ProjectMixerSendRoute> sendRoutes = {
+        ProjectMixerSendRoute { project.tracks[0].id, project.buses[0].id, MixerSendTap::PreFader, 0.0f },
+    };
+
+    AutomationLaneData lane = makeAutomationLane (83,
+                                                  project.tracks[0].id,
+                                                  AutomationTargetRole::SendLevel,
+                                                  0);
+    lane.points[0].value = 1.0;
+    lane.points[1].value = 1.0;
+    project.automationLanes = { lane };
+
+    MixerProjectionInputs projection =
+        makeProjectProjectionForTest (project, SourceGainMutation::None, sendRoutes);
+    REQUIRE (projection.tracks.size() == 1u);
+    REQUIRE (projection.tracks[0].sends.size() == 1u);
+    const NodeId sendFaderId = projectMixerSendLevelNodeIdForTrack (project.tracks[0].id, 0);
+    REQUIRE (projection.tracks[0].sends[0].faderNodeId == sendFaderId);
+    REQUIRE (projection.automationLanes.size() == 1u);
+    REQUIRE (projection.automationLanes[0].targetNode == sendFaderId);
+    REQUIRE (projection.automationLanes[0].parameterId == FaderNode::kGainParameterId);
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    REQUIRE_FALSE (graph->isBlockParallelSafe());
+
+    const CompiledNode* const sendFader = compiledNodeById (*graph, sendFaderId);
+    REQUIRE (sendFader != nullptr);
+    REQUIRE (sendFader->kind == CompiledNodeKind::Fader);
+
+    Project staticSend = project;
+    staticSend.automationLanes.clear();
+    const std::vector<float> staticRender =
+        renderProjectProjectionSchedule (staticSend, { kProjectRenderFrames }, kProjectRenderFrames, sendRoutes);
+    const std::vector<float> automatedRender =
+        renderProjectProjectionSchedule (project, { kProjectRenderFrames }, kProjectRenderFrames, sendRoutes);
+
+    REQUIRE (staticRender.size() == automatedRender.size());
+    for (float v : staticRender)
+        REQUIRE (v == Approx (0.0f).margin (1.0e-6f));
+    REQUIRE (automatedRender.back() > 1.0e-3f);
 }
 
 TEST_CASE ("Project projector rejects automation lanes whose target is not projected",
