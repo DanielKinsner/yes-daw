@@ -558,7 +558,11 @@ enum class ProjectEditStatus : std::uint8_t
     FxInsertNotFound,
     InvalidFxKind,
     InvalidFxPosition,
-    InvalidFxParamValue
+    InvalidFxParamValue,
+    InvalidAutomationLaneId,
+    AutomationLaneNotFound,
+    InvalidAutomationTarget,
+    InvalidAutomationBreakpoint
 };
 
 struct Project
@@ -1250,6 +1254,43 @@ namespace detail {
     return false;
 }
 
+[[nodiscard]] inline AutomationLaneData* findAutomationLane (Project& project, EntityId laneId) noexcept
+{
+    for (AutomationLaneData& lane : project.automationLanes)
+        if (lane.id == laneId)
+            return &lane;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findAutomationLaneIndex (const Project& project, EntityId laneId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < project.automationLanes.size(); ++i)
+    {
+        if (project.automationLanes[i].id == laneId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline bool findAutomationBreakpointIndex (const AutomationLaneData& lane, Tick tick, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < lane.points.size(); ++i)
+    {
+        if (lane.points[i].tick == tick)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline Note* findNote (MidiClip& midiClip, EntityId noteId) noexcept
 {
     for (Note& note : midiClip.notes)
@@ -1387,6 +1428,11 @@ namespace detail {
 }
 
 [[nodiscard]] inline bool projectCanApplyFxEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool projectCanApplyAutomationEdit (const Project& project) noexcept
 {
     return project.hasValidAssetClipIndirection();
 }
@@ -1989,6 +2035,204 @@ namespace detail {
     else
         insert->normalizedParams.push_back ({ paramId, normalizedValue });
 
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addAutomationLane (Project& project, AutomationLaneData lane)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! lane.id.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! lane.ownerEntity.isValid() || ! automationTargetRoleIsKnown (lane.role))
+        return ProjectEditStatus::InvalidAutomationTarget;
+
+    if (! lane.isValid())
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    if (detail::projectContainsEntityId (project, lane.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    Project edited = project;
+    edited.automationLanes.push_back (std::move (lane));
+    if (! edited.automationTargetsReferenceProjectRows())
+        return ProjectEditStatus::InvalidAutomationTarget;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeAutomationLane (Project& project, EntityId laneId)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    std::size_t index = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, index))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    project.automationLanes.erase (project.automationLanes.begin() + static_cast<std::ptrdiff_t> (index));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addAutomationBreakpoint (Project& project,
+                                                                EntityId laneId,
+                                                                AutomationBreakpoint point)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! point.isValid())
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t laneIndex = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, laneIndex))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    const AutomationLaneData& lane = project.automationLanes[laneIndex];
+    std::size_t existing = 0;
+    if (detail::findAutomationBreakpointIndex (lane, point.tick, existing))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    Project edited = project;
+    std::vector<AutomationBreakpoint>& points = edited.automationLanes[laneIndex].points;
+    std::size_t insertAt = 0;
+    while (insertAt < points.size() && points[insertAt].tick < point.tick)
+        ++insertAt;
+
+    points.insert (points.begin() + static_cast<std::ptrdiff_t> (insertAt), point);
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveAutomationBreakpoint (Project& project,
+                                                                 EntityId laneId,
+                                                                 Tick oldTick,
+                                                                 Tick newTick)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (oldTick < 0 || newTick < 0)
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t laneIndex = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, laneIndex))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    const AutomationLaneData& lane = project.automationLanes[laneIndex];
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (lane, oldTick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t duplicateIndex = 0;
+    if (oldTick != newTick && detail::findAutomationBreakpointIndex (lane, newTick, duplicateIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationBreakpoint moved = lane.points[pointIndex];
+    moved.tick = newTick;
+
+    Project edited = project;
+    std::vector<AutomationBreakpoint>& points = edited.automationLanes[laneIndex].points;
+    points.erase (points.begin() + static_cast<std::ptrdiff_t> (pointIndex));
+
+    std::size_t insertAt = 0;
+    while (insertAt < points.size() && points[insertAt].tick < moved.tick)
+        ++insertAt;
+
+    points.insert (points.begin() + static_cast<std::ptrdiff_t> (insertAt), moved);
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setAutomationBreakpointValue (Project& project,
+                                                                     EntityId laneId,
+                                                                     Tick tick,
+                                                                     double value)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! automationBreakpointValueIsValid (value))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points[pointIndex].value = value;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setAutomationBreakpointCurve (Project& project,
+                                                                     EntityId laneId,
+                                                                     Tick tick,
+                                                                     AutomationCurveType curve)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! automationCurveIsStorageSafe (curve))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points[pointIndex].curveType = curve;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeAutomationBreakpoint (Project& project,
+                                                                   EntityId laneId,
+                                                                   Tick tick)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points.erase (lane->points.begin() + static_cast<std::ptrdiff_t> (pointIndex));
     return ProjectEditStatus::Applied;
 }
 

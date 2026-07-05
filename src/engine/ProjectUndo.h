@@ -34,7 +34,14 @@ enum class ProjectEditVerb : std::uint8_t
     RemoveFxInsert,
     ReorderFxInsert,
     SetFxInsertEnabled,
-    SetFxInsertParam
+    SetFxInsertParam,
+    AddAutomationLane,
+    RemoveAutomationLane,
+    AddAutomationBreakpoint,
+    MoveAutomationBreakpoint,
+    SetAutomationBreakpointValue,
+    SetAutomationBreakpointCurve,
+    RemoveAutomationBreakpoint
 };
 
 struct ProjectEditCommand
@@ -73,6 +80,14 @@ struct ProjectEditCommand
     std::size_t fxPosition = 0;
     std::uint32_t fxParamId = 0;
     double fxParamValue = 0.0;
+    EntityId automationLaneId;
+    EntityId automationOwnerId;
+    AutomationTargetRole automationRole = AutomationTargetRole::TrackFader;
+    std::uint32_t automationParamId = 0;
+    Tick automationTick = 0;
+    Tick automationNewTick = 0;
+    double automationValue = 0.0;
+    AutomationCurveType automationCurveType = AutomationCurveType::Linear;
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -294,6 +309,87 @@ struct ProjectEditCommand
         command.fxParamValue = normalizedValue;
         return command;
     }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addAutomationLane (EntityId laneId,
+                                                                         EntityId ownerId,
+                                                                         AutomationTargetRole role,
+                                                                         std::uint32_t paramId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddAutomationLane;
+        command.automationLaneId = laneId;
+        command.automationOwnerId = ownerId;
+        command.automationRole = role;
+        command.automationParamId = paramId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeAutomationLane (EntityId laneId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveAutomationLane;
+        command.automationLaneId = laneId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addAutomationBreakpoint (EntityId laneId,
+                                                                              Tick tick,
+                                                                              double value,
+                                                                              AutomationCurveType curve) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddAutomationBreakpoint;
+        command.automationLaneId = laneId;
+        command.automationTick = tick;
+        command.automationValue = value;
+        command.automationCurveType = curve;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand moveAutomationBreakpoint (EntityId laneId,
+                                                                               Tick oldTick,
+                                                                               Tick newTick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveAutomationBreakpoint;
+        command.automationLaneId = laneId;
+        command.automationTick = oldTick;
+        command.automationNewTick = newTick;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setAutomationBreakpointValue (EntityId laneId,
+                                                                                   Tick tick,
+                                                                                   double value) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetAutomationBreakpointValue;
+        command.automationLaneId = laneId;
+        command.automationTick = tick;
+        command.automationValue = value;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setAutomationBreakpointCurve (EntityId laneId,
+                                                                                   Tick tick,
+                                                                                   AutomationCurveType curve) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetAutomationBreakpointCurve;
+        command.automationLaneId = laneId;
+        command.automationTick = tick;
+        command.automationCurveType = curve;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeAutomationBreakpoint (EntityId laneId, Tick tick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveAutomationBreakpoint;
+        command.automationLaneId = laneId;
+        command.automationTick = tick;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -326,6 +422,13 @@ struct ProjectFxChainRowsDiff
     std::vector<FxInsert> after;
 };
 
+struct ProjectAutomationLaneRowsDiff
+{
+    std::size_t firstAutomationLaneIndex = 0;
+    std::vector<AutomationLaneData> before;
+    std::vector<AutomationLaneData> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -333,6 +436,7 @@ struct ProjectEditTransaction
     ProjectMidiClipRowsDiff midiDiff;
     ProjectRecordingCompRowsDiff recordingCompDiff;
     ProjectFxChainRowsDiff fxDiff;
+    ProjectAutomationLaneRowsDiff automationDiff;
 };
 
 struct ProjectEditApplyResult
@@ -409,6 +513,17 @@ namespace detail {
            || verb == ProjectEditVerb::SetFxInsertParam;
 }
 
+[[nodiscard]] constexpr bool isAutomationEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddAutomationLane
+           || verb == ProjectEditVerb::RemoveAutomationLane
+           || verb == ProjectEditVerb::AddAutomationBreakpoint
+           || verb == ProjectEditVerb::MoveAutomationBreakpoint
+           || verb == ProjectEditVerb::SetAutomationBreakpointValue
+           || verb == ProjectEditVerb::SetAutomationBreakpointCurve
+           || verb == ProjectEditVerb::RemoveAutomationBreakpoint;
+}
+
 [[nodiscard]] inline ProjectEditStatus applyProjectEditCommandToProject (Project& project,
                                                                          const ProjectEditCommand& command)
 {
@@ -479,6 +594,32 @@ namespace detail {
 
         case ProjectEditVerb::SetFxInsertParam:
             return setFxInsertParam (project, command.fxOwnerId, command.fxInsertId, command.fxParamId, command.fxParamValue);
+
+        case ProjectEditVerb::AddAutomationLane:
+            return addAutomationLane (
+                project,
+                AutomationLaneData { command.automationLaneId, command.automationOwnerId, command.automationRole, command.automationParamId, {} });
+
+        case ProjectEditVerb::RemoveAutomationLane:
+            return removeAutomationLane (project, command.automationLaneId);
+
+        case ProjectEditVerb::AddAutomationBreakpoint:
+            return addAutomationBreakpoint (
+                project,
+                command.automationLaneId,
+                AutomationBreakpoint { command.automationTick, command.automationValue, command.automationCurveType });
+
+        case ProjectEditVerb::MoveAutomationBreakpoint:
+            return moveAutomationBreakpoint (project, command.automationLaneId, command.automationTick, command.automationNewTick);
+
+        case ProjectEditVerb::SetAutomationBreakpointValue:
+            return setAutomationBreakpointValue (project, command.automationLaneId, command.automationTick, command.automationValue);
+
+        case ProjectEditVerb::SetAutomationBreakpointCurve:
+            return setAutomationBreakpointCurve (project, command.automationLaneId, command.automationTick, command.automationCurveType);
+
+        case ProjectEditVerb::RemoveAutomationBreakpoint:
+            return removeAutomationBreakpoint (project, command.automationLaneId, command.automationTick);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -568,6 +709,42 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool buildProjectAutomationLaneRowsDiff (const Project& before,
+                                                              const Project& after,
+                                                              const ProjectEditCommand& command,
+                                                              ProjectAutomationLaneRowsDiff& out)
+{
+    out = {};
+
+    if (command.verb == ProjectEditVerb::AddAutomationLane)
+    {
+        std::size_t afterIndex = 0;
+        if (! findAutomationLaneIndex (after, command.automationLaneId, afterIndex))
+            return false;
+
+        out.firstAutomationLaneIndex = afterIndex;
+        out.after = { after.automationLanes[afterIndex] };
+        return true;
+    }
+
+    std::size_t beforeIndex = 0;
+    if (! findAutomationLaneIndex (before, command.automationLaneId, beforeIndex))
+        return false;
+
+    out.firstAutomationLaneIndex = beforeIndex;
+    out.before = { before.automationLanes[beforeIndex] };
+
+    if (command.verb == ProjectEditVerb::RemoveAutomationLane)
+        return true;
+
+    std::size_t afterIndex = 0;
+    if (! findAutomationLaneIndex (after, command.automationLaneId, afterIndex) || afterIndex != beforeIndex)
+        return false;
+
+    out.after = { after.automationLanes[afterIndex] };
+    return out.before != out.after;
+}
+
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
                                            std::size_t firstClipIndex,
                                            const std::vector<Clip>& expected) noexcept
@@ -608,6 +785,21 @@ namespace detail {
 {
     const MixerStripState* const strip = findMixerStrip (project, ownerId);
     return strip != nullptr && strip->fxChain == expected;
+}
+
+[[nodiscard]] inline bool automationLaneRowsEqualAt (const Project& project,
+                                                     std::size_t firstAutomationLaneIndex,
+                                                     const std::vector<AutomationLaneData>& expected) noexcept
+{
+    if (firstAutomationLaneIndex > project.automationLanes.size()
+        || expected.size() > project.automationLanes.size() - firstAutomationLaneIndex)
+        return false;
+
+    for (std::size_t i = 0; i < expected.size(); ++i)
+        if (! (project.automationLanes[firstAutomationLaneIndex + i] == expected[i]))
+            return false;
+
+    return true;
 }
 
 [[nodiscard]] inline bool applyClipRowsDiff (Project& project,
@@ -685,6 +877,27 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool applyAutomationLaneRowsDiff (Project& project,
+                                                       const ProjectAutomationLaneRowsDiff& diff,
+                                                       const std::vector<AutomationLaneData>& expected,
+                                                       const std::vector<AutomationLaneData>& replacement)
+{
+    if (! automationLaneRowsEqualAt (project, diff.firstAutomationLaneIndex, expected))
+        return false;
+
+    Project edited = project;
+    const auto first = edited.automationLanes.begin() + static_cast<std::ptrdiff_t> (diff.firstAutomationLaneIndex);
+    edited.automationLanes.erase (first, first + static_cast<std::ptrdiff_t> (expected.size()));
+    edited.automationLanes.insert (edited.automationLanes.begin() + static_cast<std::ptrdiff_t> (diff.firstAutomationLaneIndex),
+                                   replacement.begin(),
+                                   replacement.end());
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
+}
+
 [[nodiscard]] inline bool canCoalesceProjectEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::MoveClip
@@ -744,6 +957,12 @@ namespace detail {
                     : applyFxChainRowsDiff (project, transaction.fxDiff.ownerId, transaction.fxDiff.after, transaction.fxDiff.before);
     }
 
+    if (isAutomationEditVerb (transaction.command.verb))
+    {
+        return redo ? applyAutomationLaneRowsDiff (project, transaction.automationDiff, transaction.automationDiff.before, transaction.automationDiff.after)
+                    : applyAutomationLaneRowsDiff (project, transaction.automationDiff, transaction.automationDiff.after, transaction.automationDiff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -769,6 +988,8 @@ namespace detail {
         diffBuilt = detail::buildProjectRecordingCompRowsDiff (before, project, transaction.recordingCompDiff);
     else if (detail::isFxEditVerb (command.verb))
         diffBuilt = detail::buildProjectFxChainRowsDiff (before, project, command, transaction.fxDiff);
+    else if (detail::isAutomationEditVerb (command.verb))
+        diffBuilt = detail::buildProjectAutomationLaneRowsDiff (before, project, command, transaction.automationDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

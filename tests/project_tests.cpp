@@ -25,6 +25,8 @@ using yesdaw::engine::AutomationLaneData;
 using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
+using yesdaw::engine::addAutomationBreakpoint;
+using yesdaw::engine::addAutomationLane;
 using yesdaw::engine::addFxInsert;
 using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
@@ -49,7 +51,11 @@ using yesdaw::engine::ProjectUndoStatus;
 using yesdaw::engine::ProjectRecordingCompSegment;
 using yesdaw::engine::RecordingMonitoringPolicy;
 using yesdaw::engine::RecordingTake;
+using yesdaw::engine::removeAutomationBreakpoint;
+using yesdaw::engine::removeAutomationLane;
 using yesdaw::engine::SampleRate;
+using yesdaw::engine::setAutomationBreakpointCurve;
+using yesdaw::engine::setAutomationBreakpointValue;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
 using yesdaw::engine::setFxInsertEnabled;
@@ -66,6 +72,7 @@ using yesdaw::engine::transposeNote;
 using yesdaw::engine::quantizeNote;
 using yesdaw::engine::reorderFxInsert;
 using yesdaw::engine::removeFxInsert;
+using yesdaw::engine::moveAutomationBreakpoint;
 using yesdaw::engine::UlidEntropy;
 
 static_assert (sizeof (EntityId) == 16);
@@ -1207,6 +1214,110 @@ TEST_CASE ("Project undo stack records command diffs for FX chain edits", "[proj
     requireProjectValueUnchanged (project, edited);
 }
 
+TEST_CASE ("Project undo stack records command diffs for automation lane and breakpoint edits",
+           "[project][automation][h15][undo]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId ownerId = project.tracks.front().id;
+    const EntityId laneId = idFromLowByte (70);
+    const EntityId transientLaneId = idFromLowByte (71);
+
+    ProjectUndoStack undo;
+
+    auto result = undo.apply (
+        project,
+        ProjectEditCommand::addAutomationLane (laneId, ownerId, AutomationTargetRole::TrackFader, 0));
+    REQUIRE (result.applied());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::AddAutomationLane);
+    REQUIRE (undo.nextUndo()->automationDiff.before.empty());
+    REQUIRE (undo.nextUndo()->automationDiff.after.size() == 1u);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.empty());
+
+    result = undo.apply (
+        project,
+        ProjectEditCommand::addAutomationBreakpoint (laneId, 15'360, 0.75, AutomationCurveType::Hold));
+    REQUIRE (result.applied());
+
+    result = undo.apply (
+        project,
+        ProjectEditCommand::addAutomationBreakpoint (laneId, 0, 0.25, AutomationCurveType::Linear));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.front().points[0].tick == 0);
+    REQUIRE (project.automationLanes.front().points[1].tick == 15'360);
+
+    result = undo.apply (project, ProjectEditCommand::moveAutomationBreakpoint (laneId, 15'360, 7'680));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.front().points[1].tick == 7'680);
+
+    result = undo.apply (project, ProjectEditCommand::setAutomationBreakpointValue (laneId, 7'680, 0.625));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.front().points[1].value == Approx (0.625));
+
+    result = undo.apply (
+        project,
+        ProjectEditCommand::setAutomationBreakpointCurve (laneId, 0, AutomationCurveType::Hold));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.front().points[0].curveType == AutomationCurveType::Hold);
+
+    result = undo.apply (project, ProjectEditCommand::removeAutomationBreakpoint (laneId, 0));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.front().tick == 7'680);
+
+    result = undo.apply (
+        project,
+        ProjectEditCommand::addAutomationLane (transientLaneId, ownerId, AutomationTargetRole::TrackPan, 1));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.size() == 2u);
+
+    result = undo.apply (project, ProjectEditCommand::removeAutomationLane (transientLaneId));
+    REQUIRE (result.applied());
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (undo.undoDepth() == 9u);
+
+    const Project edited = project;
+    REQUIRE (edited.automationLanes.front().id == laneId);
+    REQUIRE (edited.automationLanes.front().points.size() == 1u);
+    REQUIRE (edited.automationLanes.front().points.front().value == Approx (0.625));
+    REQUIRE (edited.automationLanes.front().points.front().curveType == AutomationCurveType::Hold);
+
+    for (int i = 0; i < 9; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redoDepth() == 9u);
+
+    for (int i = 0; i < 9; ++i)
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+
+    requireProjectValueUnchanged (project, edited);
+
+    const Project beforeInvalid = project;
+    REQUIRE (undo.apply (
+                 project,
+                 ProjectEditCommand::addAutomationLane (idFromLowByte (72), ownerId, AutomationTargetRole::TrackFader, 0))
+             .editStatus == ProjectEditStatus::InvalidAutomationTarget);
+    REQUIRE (undo.apply (
+                 project,
+                 ProjectEditCommand::addAutomationBreakpoint (laneId, 7'680, 0.50, AutomationCurveType::Linear))
+             .editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
+    REQUIRE (undo.apply (
+                 project,
+                 ProjectEditCommand::setAutomationBreakpointValue (laneId, 7'680, std::numeric_limits<double>::quiet_NaN()))
+             .editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
+    REQUIRE (undo.apply (
+                 project,
+                 ProjectEditCommand::setAutomationBreakpointCurve (laneId, 7'680, AutomationCurveType::Bezier))
+             .editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeAutomationLane (idFromLowByte (99))).editStatus
+             == ProjectEditStatus::AutomationLaneNotFound);
+    requireProjectValueUnchanged (project, beforeInvalid);
+}
+
 TEST_CASE ("Project FX edit operations reject invalid input without mutating Project", "[project][fx][invalid]")
 {
     Project project = makeEditableProject();
@@ -2010,6 +2121,124 @@ TEST_CASE ("Randomized FX edit sequences fully undo to a bit-identical Project a
 
         const Project edited = project;
         REQUIRE (undo.undoDepth() > 10u);
+
+        while (undo.canUndo())
+            REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, original);
+
+        while (undo.canRedo())
+            REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+        requireProjectValueUnchanged (project, edited);
+    }
+}
+
+TEST_CASE ("Randomized automation edit sequences fully undo to a bit-identical Project and redo back",
+           "[project][automation][h15][undo][property]")
+{
+    Project project = makeEditableProject();
+    const EntityId ownerId = project.tracks.front().id;
+    project.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), ownerId, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (71), ownerId, AutomationTargetRole::TrackPan, 1),
+        makeAutomationLane (idFromLowByte (72), ownerId, AutomationTargetRole::SendLevel, 2),
+    };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    std::mt19937 rng (0xA07A710u);
+    const auto pick = [&rng] (int n) { return static_cast<int> (rng() % static_cast<std::uint32_t> (n)); };
+    const auto tick = [&rng] (Tick lo, Tick hi)
+    {
+        return lo + static_cast<Tick> (rng() % static_cast<std::uint32_t> (hi - lo + 1));
+    };
+    std::uint64_t freshLaneOrdinal = 1000;
+    std::uint32_t freshSendParam = 10;
+
+    for (int rep = 0; rep < 10; ++rep)
+    {
+        const Project original = project;
+
+        ProjectUndoStack undo;
+        for (int step = 0; step < 100; ++step)
+        {
+            ProjectEditCommand command = ProjectEditCommand::addAutomationLane (
+                EntityId::fromBigEndianParts (0x4155'544F'4C41'4E45ull, freshLaneOrdinal++),
+                ownerId,
+                AutomationTargetRole::SendLevel,
+                freshSendParam++);
+
+            const int laneChoice = pick (static_cast<int> (project.automationLanes.size()));
+            const AutomationLaneData& lane = project.automationLanes[static_cast<std::size_t> (laneChoice)];
+            switch (pick (7))
+            {
+                case 0:
+                    command = ProjectEditCommand::addAutomationLane (
+                        EntityId::fromBigEndianParts (0x4155'544F'4C41'4E45ull, freshLaneOrdinal++),
+                        ownerId,
+                        AutomationTargetRole::SendLevel,
+                        freshSendParam++);
+                    break;
+
+                case 1:
+                    if (project.automationLanes.size() > 1u)
+                        command = ProjectEditCommand::removeAutomationLane (lane.id);
+                    break;
+
+                case 2:
+                    command = ProjectEditCommand::addAutomationBreakpoint (
+                        lane.id,
+                        tick (0, 30'720),
+                        static_cast<double> (pick (101)) / 100.0,
+                        pick (2) == 0 ? AutomationCurveType::Linear : AutomationCurveType::Hold);
+                    break;
+
+                case 3:
+                    if (! lane.points.empty())
+                    {
+                        const AutomationBreakpoint& point = lane.points[static_cast<std::size_t> (pick (static_cast<int> (lane.points.size())))];
+                        command = ProjectEditCommand::moveAutomationBreakpoint (lane.id, point.tick, tick (0, 30'720));
+                    }
+                    break;
+
+                case 4:
+                    if (! lane.points.empty())
+                    {
+                        const AutomationBreakpoint& point = lane.points[static_cast<std::size_t> (pick (static_cast<int> (lane.points.size())))];
+                        command = ProjectEditCommand::setAutomationBreakpointValue (
+                            lane.id,
+                            point.tick,
+                            static_cast<double> (pick (101)) / 100.0);
+                    }
+                    break;
+
+                case 5:
+                    if (! lane.points.empty())
+                    {
+                        const AutomationBreakpoint& point = lane.points[static_cast<std::size_t> (pick (static_cast<int> (lane.points.size())))];
+                        command = ProjectEditCommand::setAutomationBreakpointCurve (
+                            lane.id,
+                            point.tick,
+                            pick (2) == 0 ? AutomationCurveType::Linear : AutomationCurveType::Hold);
+                    }
+                    break;
+
+                case 6:
+                    if (! lane.points.empty())
+                    {
+                        const AutomationBreakpoint& point = lane.points[static_cast<std::size_t> (pick (static_cast<int> (lane.points.size())))];
+                        command = ProjectEditCommand::removeAutomationBreakpoint (lane.id, point.tick);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            (void) undo.apply (project, command);
+            REQUIRE (project.hasValidAssetClipIndirection());
+        }
+
+        const Project edited = project;
+        REQUIRE (undo.undoDepth() > 20u);
 
         while (undo.canUndo())
             REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
