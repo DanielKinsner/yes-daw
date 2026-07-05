@@ -21,12 +21,12 @@ struct ClipGainEnvelopeEvaluation
 
 namespace detail {
 
+inline constexpr double kHalfPi = 1.57079632679489661923;
+
 [[nodiscard]] inline float equalPowerFadeGain (double x) noexcept
 {
     const double clamped = std::clamp (x, 0.0, 1.0);
-    const double bend = clamped * (1.0 - clamped);
-    const double shaped = bend * (1.0 + 1.4186 * bend) + clamped;
-    return static_cast<float> (shaped * shaped);
+    return static_cast<float> (std::sin (kHalfPi * clamped));
 }
 
 [[nodiscard]] inline float fadeInGainAt (Tick localTick, Tick fadeLength) noexcept
@@ -52,6 +52,19 @@ namespace detail {
 
 } // namespace detail
 
+[[nodiscard]] inline float evaluateClipFadeEnvelopeGain (Tick localTick,
+                                                         Tick timelineLength,
+                                                         Tick fadeIn,
+                                                         Tick fadeOut) noexcept
+{
+    if (timelineLength <= 0 || localTick < 0 || localTick >= timelineLength)
+        return 0.0f;
+
+    const float fadeInGain = detail::fadeInGainAt (localTick, fadeIn);
+    const float fadeOutGain = detail::fadeOutGainAt (localTick, timelineLength, fadeOut);
+    return std::min (fadeInGain, fadeOutGain);
+}
+
 [[nodiscard]] inline ClipGainEnvelopeEvaluation evaluateClipGainEnvelope (const Clip& clip,
                                                                           Tick localTick) noexcept
 {
@@ -61,9 +74,11 @@ namespace detail {
     if (localTick < 0 || localTick >= clip.timelineLength)
         return {};
 
-    const float fadeIn = detail::fadeInGainAt (localTick, clip.fadeIn);
-    const float fadeOut = detail::fadeOutGainAt (localTick, clip.timelineLength, clip.fadeOut);
-    const float evaluatedGain = clip.gain * std::min (fadeIn, fadeOut);
+    const float evaluatedGain = clip.gain
+                              * evaluateClipFadeEnvelopeGain (localTick,
+                                                              clip.timelineLength,
+                                                              clip.fadeIn,
+                                                              clip.fadeOut);
 
     if (! std::isfinite (evaluatedGain))
         return {};

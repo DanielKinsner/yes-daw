@@ -359,9 +359,8 @@ std::array<GeneratedUndoSequenceStep, 21> generateProjectUndoEditSequence (Entit
 
 double expectedEqualPowerGain (double x)
 {
-    const double bend = x * (1.0 - x);
-    const double shaped = bend * (1.0 + 1.4186 * bend) + x;
-    return shaped * shaped;
+    constexpr double halfPi = 1.57079632679489661923;
+    return std::sin (halfPi * x);
 }
 
 } // namespace

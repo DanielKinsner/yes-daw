@@ -48,6 +48,7 @@ using yesdaw::engine::SampleRate;
 using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Track;
+using yesdaw::engine::evaluateClipFadeEnvelopeGain;
 using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::setClipFades;
 using yesdaw::engine::setClipGain;
@@ -180,15 +181,8 @@ bool applyDecodedClipNodeEnvelopeToDecodedWindow (const Clip& clip, std::vector<
             return false;
 
         const std::int64_t local = static_cast<std::int64_t> (frame);
-        float gain = clip.gain;
-        if (clip.fadeIn > 0 && local < clip.fadeIn)
-            gain *= static_cast<float> (local) / static_cast<float> (clip.fadeIn);
-        if (clip.fadeOut > 0)
-        {
-            const std::int64_t fadeOutStart = total - clip.fadeOut;
-            if (local >= fadeOutStart)
-                gain *= static_cast<float> (total - local) / static_cast<float> (clip.fadeOut);
-        }
+        const float gain = clip.gain
+                         * evaluateClipFadeEnvelopeGain (local, total, clip.fadeIn, clip.fadeOut);
 
         if (! std::isfinite (gain))
             return false;

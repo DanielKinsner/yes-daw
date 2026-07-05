@@ -136,25 +136,34 @@ bool buffersNear (std::span<const float> a, std::span<const float> b, double tol
     return true;
 }
 
-// The reference fade is the canonical LINEAR ramp that DecodedClipNode applies on the realtime path
-// (fade-in * fade-out, anchored to the clip's source-frame count) — derived from the textbook definition,
-// not copied from the engine's equal-power polynomial. The offline renderer plays Clips through that same
-// node, so this is what both the export and playback produce.
-float independentLinearFade (const Clip& clip, Tick localFrame, std::uint64_t totalFrames) noexcept
+float independentEqualPowerGain (double x) noexcept
 {
-    float gain = 1.0f;
-    if (clip.fadeIn > 0 && localFrame < clip.fadeIn)
-        gain *= static_cast<float> (localFrame) / static_cast<float> (clip.fadeIn);
+    constexpr double halfPi = 1.57079632679489661923;
+    return static_cast<float> (std::sin (halfPi * std::clamp (x, 0.0, 1.0)));
+}
 
+// The reference fade is the canonical equal-power ramp that DecodedClipNode applies on the realtime path,
+// anchored to the clip's source-frame count. It is separate test code so the renderer still compares
+// against an independent reference rather than another engine render.
+float independentEqualPowerFade (const Clip& clip, Tick localFrame, std::uint64_t totalFrames) noexcept
+{
+    float fadeIn = 1.0f;
+    if (clip.fadeIn > 0 && localFrame < clip.fadeIn)
+        fadeIn = independentEqualPowerGain (static_cast<double> (localFrame) / static_cast<double> (clip.fadeIn));
+
+    float fadeOut = 1.0f;
     if (clip.fadeOut > 0)
     {
         const Tick fadeStart = static_cast<Tick> (totalFrames) - clip.fadeOut;
         if (localFrame >= fadeStart)
-            gain *= static_cast<float> (static_cast<Tick> (totalFrames) - localFrame)
-                  / static_cast<float> (clip.fadeOut);
+        {
+            const double progress = static_cast<double> (localFrame - fadeStart)
+                                  / static_cast<double> (clip.fadeOut);
+            fadeOut = independentEqualPowerGain (1.0 - progress);
+        }
     }
 
-    return gain;
+    return std::min (fadeIn, fadeOut);
 }
 
 struct OfflineFixture
@@ -266,7 +275,7 @@ std::vector<float> independentProjectReference (const OfflineFixture& fixture, i
         {
             const float source = samples[static_cast<std::size_t> (clip.srcOffset + local)];
             const float value = source
-                              * independentLinearFade (clip, static_cast<Tick> (local), sourceFrames)
+                              * independentEqualPowerFade (clip, static_cast<Tick> (local), sourceFrames)
                               * clip.gain
                               * kCenterGain;
             const std::size_t frame = static_cast<std::size_t> (start + static_cast<Tick> (local));

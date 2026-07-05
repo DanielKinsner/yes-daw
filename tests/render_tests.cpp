@@ -225,6 +225,108 @@ std::vector<float> renderOfflinePath (const Project& project)
         { 17, 113, 29, 71 });
 }
 
+std::unique_ptr<CompiledGraph> buildConstantCrossfadeGraph (GraphId graphId,
+                                                            bool includeFadeOut,
+                                                            bool includeFadeIn)
+{
+    constexpr NodeId       kClipA = 64101, kClipB = 64102, kMaster = 64100;
+    constexpr std::int64_t kFade = 64;
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = graphId;
+    inputs.masterNodeId = kMaster;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = kMaxBlockSize;
+
+    std::vector<Node*> masterInputs;
+
+    if (includeFadeOut)
+    {
+        auto clip = std::make_unique<DecodedClipNode> (kClipA,
+                                                       std::vector<float> (static_cast<std::size_t> (kFade * 2), 1.0f),
+                                                       1,
+                                                       0,
+                                                       /*fadeIn*/ 0,
+                                                       /*fadeOut*/ kFade);
+        masterInputs.push_back (clip.get());
+        inputs.nodes.push_back (std::move (clip));
+    }
+
+    if (includeFadeIn)
+    {
+        auto clip = std::make_unique<DecodedClipNode> (kClipB,
+                                                       std::vector<float> (static_cast<std::size_t> (kFade * 2), 1.0f),
+                                                       1,
+                                                       kFade,
+                                                       /*fadeIn*/ kFade,
+                                                       /*fadeOut*/ 0);
+        masterInputs.push_back (clip.get());
+        inputs.nodes.push_back (std::move (clip));
+    }
+
+    auto master = std::make_unique<MasterNode> (kMaster, 1);
+    master->setInputNodes (std::move (masterInputs));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    if (error.code() != GraphBuildError::Code::None)
+        return nullptr;
+
+    return graph;
+}
+
+std::vector<float> renderConstantCrossfadeOffline (bool includeFadeOut, bool includeFadeIn, GraphId graphId)
+{
+    std::unique_ptr<CompiledGraph> graph = buildConstantCrossfadeGraph (graphId, includeFadeOut, includeFadeIn);
+    REQUIRE (graph != nullptr);
+
+    return renderByBlocks (
+        [&graph] (float* out, int frames)
+        {
+            graph->process (out, frames);
+        },
+        { 1, 2, 3, 5, 8, 13, 64, 128 });
+}
+
+std::vector<float> renderConstantCrossfadeRealtime()
+{
+    Runtime runtime;
+    std::unique_ptr<CompiledGraph> graph = buildConstantCrossfadeGraph (304, true, true);
+    REQUIRE (graph != nullptr);
+    REQUIRE (runtime.publish (std::move (graph)));
+
+    std::vector<float> rendered = renderByBlocks (
+        [&runtime] (float* out, int frames)
+        {
+            runtime.processBlock (out, frames);
+        },
+        { 128, 7, 31, 1, 64 });
+
+    runtime.reclaim();
+    return rendered;
+}
+
+double dbFromUnitEnergy (double energy) noexcept
+{
+    return 10.0 * std::log10 (std::max (energy, 1.0e-30));
+}
+
+double oldLinearCrossfadeEnergyDbDeviation() noexcept
+{
+    constexpr int kFade = 64;
+    double maxDeviationDb = 0.0;
+    for (int i = 0; i < kFade; ++i)
+    {
+        const double t = static_cast<double> (i) / static_cast<double> (kFade);
+        const double fadeOut = 1.0 - t;
+        const double fadeIn = t;
+        const double energy = fadeOut * fadeOut + fadeIn * fadeIn;
+        maxDeviationDb = std::max (maxDeviationDb, std::fabs (dbFromUnitEnergy (energy)));
+    }
+    return maxDeviationDb;
+}
+
 } // namespace
 
 TEST_CASE ("RT path and offline Render path match for the same Project", "[render][runtime][project]")
@@ -310,8 +412,8 @@ TEST_CASE ("Engine renders Clips at their timeline positions and sums overlaps",
 }
 
 // A real crossfade: clip A fades OUT while overlapping clip B fades IN, both applied BY THE ENGINE from
-// clip metadata (not pre-baked into the samples). Checked against an independent linear-fade reference;
-// if the engine ignored the fades the overlap would be the raw 4+8=12 sum, not the faded ramp.
+// clip metadata (not pre-baked into the samples). Checked against an independent equal-power reference;
+// if the engine ignored the fades the overlap would be the raw 4+8=12 sum, not the faded curve.
 TEST_CASE ("Engine renders an overlapping crossfade from clip fade metadata", "[h2][render][crossfade]")
 {
     constexpr int          kBlock = 16;
@@ -343,20 +445,31 @@ TEST_CASE ("Engine renders an overlapping crossfade from clip fade metadata", "[
     std::vector<float> out (kBlock, -123.0f);
     graph->process (out.data(), kBlock);
 
-    // Independent linear-fade reference (same spec as DecodedClipNode::fadeGainAt, separate code).
+    // Independent equal-power reference (same spec as CP10, separate code).
     const auto faded = [] (float value, std::int64_t local, std::int64_t total,
                            std::int64_t fadeIn, std::int64_t fadeOut) -> float
     {
-        float g = 1.0f;
+        const auto equalPowerGain = [] (double x) -> float
+        {
+            constexpr double localHalfPi = 1.57079632679489661923;
+            return static_cast<float> (std::sin (localHalfPi * std::clamp (x, 0.0, 1.0)));
+        };
+
+        float fadeInGain = 1.0f;
         if (fadeIn > 0 && local < fadeIn)
-            g *= static_cast<float> (local) / static_cast<float> (fadeIn);
+            fadeInGain = equalPowerGain (static_cast<double> (local) / static_cast<double> (fadeIn));
+
+        float fadeOutGain = 1.0f;
         if (fadeOut > 0)
         {
             const std::int64_t s = total - fadeOut;
             if (local >= s)
-                g *= static_cast<float> (total - local) / static_cast<float> (fadeOut);
+            {
+                const double progress = static_cast<double> (local - s) / static_cast<double> (fadeOut);
+                fadeOutGain = equalPowerGain (1.0 - progress);
+            }
         }
-        return value * g;
+        return value * std::min (fadeInGain, fadeOutGain);
     };
 
     for (int f = 0; f < kBlock; ++f)
@@ -374,4 +487,41 @@ TEST_CASE ("Engine renders an overlapping crossfade from clip fade metadata", "[
     // The fades are really applied: the overlap is NOT the un-faded 4 + 8 = 12.
     REQUIRE (static_cast<double> (out[4]) < 12.0 - kTolerance);
     REQUIRE (static_cast<double> (out[7]) < 12.0 - kTolerance);
+}
+
+TEST_CASE ("Equal-power clip crossfade keeps constant-signal energy flat and matches RT/offline",
+           "[h14][cp10][render][crossfade]")
+{
+    constexpr int kFadeStart = 64;
+    constexpr int kFadeFrames = 64;
+
+    const std::vector<float> offlineSum = renderConstantCrossfadeOffline (true, true, 301);
+    const std::vector<float> realtimeSum = renderConstantCrossfadeRealtime();
+    REQUIRE (offlineSum.size() == realtimeSum.size());
+
+    double maxRtOfflineDiff = 0.0;
+    for (std::size_t i = 0; i < offlineSum.size(); ++i)
+        maxRtOfflineDiff = std::max (maxRtOfflineDiff,
+                                     std::fabs (static_cast<double> (offlineSum[i] - realtimeSum[i])));
+
+    INFO ("constant crossfade RT/offline diff = " << maxRtOfflineDiff);
+    REQUIRE (maxRtOfflineDiff <= kTolerance);
+
+    const std::vector<float> fadeOutOnly = renderConstantCrossfadeOffline (true, false, 302);
+    const std::vector<float> fadeInOnly = renderConstantCrossfadeOffline (false, true, 303);
+
+    double maxEnergyDeviationDb = 0.0;
+    for (int i = 0; i < kFadeFrames; ++i)
+    {
+        const std::size_t frame = static_cast<std::size_t> (kFadeStart + i);
+        const double fadeOut = fadeOutOnly[frame];
+        const double fadeIn = fadeInOnly[frame];
+        const double energy = fadeOut * fadeOut + fadeIn * fadeIn;
+        maxEnergyDeviationDb = std::max (maxEnergyDeviationDb, std::fabs (dbFromUnitEnergy (energy)));
+    }
+
+    INFO ("equal-power energy max dB deviation = " << maxEnergyDeviationDb);
+    INFO ("old linear energy max dB deviation = " << oldLinearCrossfadeEnergyDbDeviation());
+    REQUIRE (maxEnergyDeviationDb <= 0.1);
+    REQUIRE (oldLinearCrossfadeEnergyDbDeviation() > 0.1);
 }

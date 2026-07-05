@@ -47,15 +47,15 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP9 is the only implementation scope for this thread. Do not start CP10 here until
-CP9 is pushed, remote-green on all five CI jobs, and the single CP10 successor baton is created.
+**Baton note:** H14 CP10 is the only implementation scope for this thread. Do not start CP11 or any H15
+work here.
 
 ---
 
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H14 (Built-in FX suite) — CP9 insert-chain suite integration REMOTE-GREEN; closeout docs pending CI.**
+**Current horizon:** **H14 (Built-in FX suite) — CP10 equal-power crossfade LOCAL-GREEN; implementation pending push/CI.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -74,53 +74,44 @@ macOS, RTSan, and TSan. H14 CP8 is closed remote-green: implementation `248881a`
 RTSan, and TSan in run `28724757070` but failed Linux/macOS on an unused helper under `-Werror`;
 portability fix `9d6e266` passed run `28725060611`; closeout `4b166e7` passed run `28725495347`;
 final baton `19bacf3` passed run `28725857991`; the green runs passed Linux, Windows, macOS, RTSan,
+and TSan. H14 CP9 is closed remote-green: implementation `5780593` was superseded after run
+`28728177718` exposed Linux/macOS aggregate-initializer warnings; portability fix `1610057` was
+superseded after run `28728450107`; final portability fix `8e47ef5` passed run `28728641921`; CP9
+closeout docs `cc576bc` passed run `28729037387`, all green runs across Linux, Windows, macOS, RTSan,
 and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP8 from current repo + remote CI:
+**Done this checkpoint:** Rolling-baton review first re-verified CP9 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
-all pointed at `19bacf3`; CP8 final-baton run `28725857991` was completed/successful across Linux,
-Windows, macOS, RTSan, and TSan. CP9 wires persisted Track/Bus `fxChain` rows into the shared
-Project mixer projection: `FxKind` now creates the five built-in nodes with deterministic insert
-NodeIds, saved normalized params are applied through each node's ParamSpec setter, and GraphBuilder
-classifies Eq/Compressor/FxDelay/Reverb/Limiter as first-party compiled node kinds instead of
-falling through as plugin-like nodes. Track insert chains enter the shared graph path before the
-strip fader; FX tracks use the existing pan node as the mono-to-stereo entry point, then run the
-chain through a stereo fader and meter. Bus insert nodes are owned and wired through the bus Return
-path. `YesDawFxSuiteCheck` is registered as an exact named CTest gate and included in the
-engine-layer target list for sanitizer lanes.
+all pointed at CP9 closeout `cc576bc`; GitHub Actions run `28729037387` for `cc576bc` was
+completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP10 changes the shared Clip
+fade law from the old local linear `DecodedClipNode` ramp to exact equal-power `sin((pi/2)*t/T)`
+fade-in and `cos((pi/2)*t/T)` fade-out via `ClipEnvelope`, so Project envelope evaluation,
+realtime playback, offline render, and bundle render all use the same clip-fade path.
 
-`YesDawFxSuiteCheck` proves a full Project using Eq, Compressor, Delay, Reverb, and Limiter through
-one persisted insert chain renders bit-identically offline and through realtime `PlaybackEngine`;
-the full FX mix is bit-identical across block schedules forcing 1..9-frame blocks plus 64, 128, 333,
-and 512; save/reopen preserves the full v7 FX mix; and the committed
-`tests/fixtures/h14_cp9_fx_schema.yesdaw` bundle opens and re-renders identically on current HEAD.
-The same gate carries negative controls that removing the FX chain or mutating delay mix changes the
-render. No CP10 equal-power fade work, FX UI, ADR edit, golden regeneration,
-`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
+`YesDawRenderCheck` now has the CP10 gate: a constant-signal crossfade renders identically through
+offline and realtime paths, the summed per-frame fade-out/fade-in energy stays within +/-0.1 dB
+across the overlap, and the old linear law is an explicit negative control because it drops beyond
+that tolerance. Independent references in `YesDawOfflineRenderCheck`, `YesDawPlaybackCheck`,
+`YesDawBundleRenderCheck`, and `YesDawProjectCheck` were updated to the exact equal-power law. The
+project blessing workflow was run (`cmake --build --preset ci --target bless-goldens`) and produced
+no file changes; no committed fade-affected golden existed, so no golden was regenerated. No FX UI,
+automation, plugin hosting, ADR, `docs/reality-lane.md`, or `[[clang::nonblocking]]` annotation
+change.
 
-**Now:** CP9 implementation commit `5780593` pushed, but GitHub Actions run `28728177718` failed the
-hosted Linux/macOS build under `-Werror` because legacy test-side `MixerBusProjection` aggregate
-initializers did not explicitly initialize the new bus fields. First portability fix `1610057` still
-failed run `28728450107` on Linux/macOS because the fourth aggregate slot was `pan`, not
-`insertNodes`; RTSan and TSan passed that run. Final portability fix `8e47ef5` explicitly initializes
-both bus `pan` and `insertNodes` at every test-side `MixerBusProjection` aggregate site and passed
-GitHub Actions run `28728641921` across Linux, Windows, macOS, RTSan, and TSan. Local gates:
-`git diff --check`; VS DevShell (BuildTools x64 via
-`vcvars64.bat`) `cmake --build --preset ci --target YesDawFxSuiteCheck`; PowerShell
-`ctest --preset ci -R "^YesDawFxSuiteCheck$" --output-on-failure` passed; direct
-`YesDawMixerProjectionCheck.exe` passed **20/20**; direct `YesDawPersistenceCheck.exe` passed
-**36/36**; VS DevShell `cmake --build --preset ci`; PowerShell
-`ctest --preset ci --output-on-failure` passed **276/276**. Portability-fix gates: `git diff --check`;
-VS DevShell `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawMixerProjectionCheck
-YesDawMixerMutePolicyCheck YesDawFxSuiteCheck`; PowerShell
-`ctest --preset ci -R "^(YesDawHostIsolationCheck|YesDawFxSuiteCheck)$|(Mixer projection|Mixer mute policy)" --output-on-failure` passed
-**27/27**; VS DevShell `cmake --build --preset ci`; PowerShell
-`ctest --preset ci --output-on-failure` passed **276/276**. Remote prior-checkpoint gate: GitHub
-Actions run `28725857991` passed Linux, Windows, macOS, RTSan, and TSan for CP8 final baton.
+**Now:** CP10 is local-green and unpushed. Local gates: initial plain PowerShell build failed only
+because the shell lacked MSVC standard-library include paths (`cmath`/`cstdint`); reran the same build
+through VS DevShell (`vcvars64.bat`). Focused gates passed: VS DevShell `cmake --build --preset ci
+--target YesDawRenderCheck YesDawOfflineRenderCheck YesDawBundleRenderCheck YesDawProjectCheck`;
+direct `YesDawRenderCheck.exe` passed **4/4**; direct `YesDawOfflineRenderCheck.exe` passed **6/6**;
+direct `YesDawProjectCheck.exe` passed **29/29**; direct `YesDawBundleRenderCheck.exe` passed **3/3**;
+VS DevShell `cmake --build --preset ci --target bless-goldens` left no diff; VS DevShell
+`cmake --build --preset ci`; first full `ctest --preset ci --output-on-failure` exposed stale
+old-linear expectations in `YesDawPlaybackCheck`; after updating that independent reference, direct
+`YesDawPlaybackCheck.exe` passed **9/9** and full `ctest --preset ci --output-on-failure` passed
+**277/277**.
 
-**Next:** commit and push this CP9 closeout docs update, wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan on that closeout commit, then create exactly one CP10 successor thread
-and stop. Do not start CP10 here.
+**Next:** commit and push this CP10 implementation, wait for GitHub Actions to pass Linux, Windows,
+macOS, RTSan, and TSan on that commit, then stop. Do not start CP11 or H15 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

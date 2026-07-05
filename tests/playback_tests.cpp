@@ -147,20 +147,32 @@ const std::vector<float>& samplesForAsset (const PlaybackFixture& fixture, Entit
     return empty;
 }
 
-// The canonical LINEAR fade DecodedClipNode applies (fade-in * fade-out, anchored to the source-frame
-// count) -- the textbook ramp, derived independently of the engine.
-float linearFade (const Clip& clip, Tick local, std::uint64_t total) noexcept
+float independentEqualPowerGain (double x) noexcept
 {
-    float gain = 1.0f;
+    constexpr double halfPi = 1.57079632679489661923;
+    return static_cast<float> (std::sin (halfPi * std::clamp (x, 0.0, 1.0)));
+}
+
+// The canonical equal-power fade DecodedClipNode applies, anchored to the source-frame count.
+// This stays independent of the engine helper so playback is still checked against a hand reference.
+float equalPowerFade (const Clip& clip, Tick local, std::uint64_t total) noexcept
+{
+    float fadeIn = 1.0f;
     if (clip.fadeIn > 0 && local < clip.fadeIn)
-        gain *= static_cast<float> (local) / static_cast<float> (clip.fadeIn);
+        fadeIn = independentEqualPowerGain (static_cast<double> (local) / static_cast<double> (clip.fadeIn));
+
+    float fadeOut = 1.0f;
     if (clip.fadeOut > 0)
     {
         const Tick fadeStart = static_cast<Tick> (total) - clip.fadeOut;
         if (local >= fadeStart)
-            gain *= static_cast<float> (static_cast<Tick> (total) - local) / static_cast<float> (clip.fadeOut);
+        {
+            const double progress = static_cast<double> (local - fadeStart)
+                                  / static_cast<double> (clip.fadeOut);
+            fadeOut = independentEqualPowerGain (1.0 - progress);
+        }
     }
-    return gain;
+    return std::min (fadeIn, fadeOut);
 }
 
 std::vector<float> independentReference (const PlaybackFixture& fixture)
@@ -177,7 +189,10 @@ std::vector<float> independentReference (const PlaybackFixture& fixture)
         for (std::uint64_t local = 0; local < sourceFrames; ++local)
         {
             const float source = samples[static_cast<std::size_t> (clip.srcOffset + local)];
-            const float value = source * linearFade (clip, static_cast<Tick> (local), sourceFrames) * clip.gain * kCenterGain;
+            const float value = source
+                              * equalPowerFade (clip, static_cast<Tick> (local), sourceFrames)
+                              * clip.gain
+                              * kCenterGain;
             const std::size_t frame = static_cast<std::size_t> (clip.timelineStart + static_cast<Tick> (local));
             expected[frame * 2u] += value;
             expected[frame * 2u + 1u] += value;

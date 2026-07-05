@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "engine/ClipEnvelope.h"
 #include "engine/Node.h"
 
 #include <algorithm>
@@ -61,7 +62,9 @@ public:
             const std::int64_t local  = (blockStart + static_cast<std::int64_t> (i)) - timelineStart_;
             float              sample = 0.0f;
             if (local >= 0 && local < total)
-                sample = samples_[static_cast<std::size_t> (local)] * fadeGainAt (local, total) * clipGain_;
+                sample = samples_[static_cast<std::size_t> (local)]
+                       * evaluateClipFadeEnvelopeGain (local, total, fadeIn_, fadeOut_)
+                       * clipGain_;
 
             for (int c = 0; c < channels; ++c)
                 args.audio.channels[c][i] = sample;
@@ -75,24 +78,6 @@ public:
     void release() override { samples_.clear(); samples_.shrink_to_fit(); }
 
     [[nodiscard]] std::int64_t timelineStartFrames() const noexcept { return timelineStart_; }
-
-    // Linear fade envelope (non-destructive — applied at render, the underlying samples are untouched).
-    // fade-in ramps 0 -> 1 over the first fadeIn_ frames; fade-out ramps 1 -> 0 over the last fadeOut_.
-    // Overlapping two clips with a matching fade-out / fade-in renders a real crossfade. (Equal-power is a
-    // later refinement; linear is the simple, correct baseline.)
-    [[nodiscard]] float fadeGainAt (std::int64_t local, std::int64_t total) const noexcept
-    {
-        float gain = 1.0f;
-        if (fadeIn_ > 0 && local < fadeIn_)
-            gain *= static_cast<float> (local) / static_cast<float> (fadeIn_);
-        if (fadeOut_ > 0)
-        {
-            const std::int64_t fadeOutStart = total - fadeOut_;
-            if (local >= fadeOutStart)
-                gain *= static_cast<float> (total - local) / static_cast<float> (fadeOut_);
-        }
-        return gain;
-    }
 
 private:
     NodeId             id_ = 0;
