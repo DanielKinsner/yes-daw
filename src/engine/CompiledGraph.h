@@ -144,6 +144,18 @@ struct CompiledAutomationLane
     std::vector<AutomationCurveType> curveTypes;
 };
 
+struct CompiledAutomationLaneCursor
+{
+    std::size_t  nextBreakpointIndex = 0;
+    std::size_t  controlSegmentIndex = 0;
+    std::int64_t nextControlFrame    = 0;
+    std::int64_t lastBlockEnd        = std::numeric_limits<std::int64_t>::min();
+    bool         initialized         = false;
+};
+
+static_assert (std::is_trivially_copyable_v<CompiledAutomationLaneCursor>,
+               "Compiled automation cursors must stay flat for the audio thread");
+
 class CompiledGraph
 {
 public:
@@ -162,6 +174,7 @@ public:
         std::unique_ptr<Event[]>                        eventStorage;
         std::unique_ptr<std::uint32_t[]>                eventSlotCounts;
         std::unique_ptr<Event[]>                        automationEventStorage;
+        std::unique_ptr<CompiledAutomationLaneCursor[]> automationLaneCursors;
         std::vector<float*>                             floatSlotPtrs;
         std::vector<double*>                            doubleSlotPtrs;
         std::vector<Event*>                             eventSlotPtrs;
@@ -193,6 +206,7 @@ public:
           eventStorage_ (std::move (payload.eventStorage)),
           eventSlotCounts_ (std::move (payload.eventSlotCounts)),
           automationEventStorage_ (std::move (payload.automationEventStorage)),
+          automationLaneCursors_ (std::move (payload.automationLaneCursors)),
           floatSlotPtrs_ (std::move (payload.floatSlotPtrs)),
           doubleSlotPtrs_ (std::move (payload.doubleSlotPtrs)),
           eventSlotPtrs_ (std::move (payload.eventSlotPtrs)),
@@ -325,8 +339,11 @@ public:
         if (! automationLanes_.empty() && transport.hasTimelineFrame)
         {
             YESDAW_RT_FATAL (automationEventStorage_ != nullptr);
+            YESDAW_RT_FATAL (automationLaneCursors_ != nullptr);
             const std::size_t automationCount =
                 emitAutomationEventsForBlock (automationLanes_,
+                                              std::span<CompiledAutomationLaneCursor> (automationLaneCursors_.get(),
+                                                                                       automationLanes_.size()),
                                               transport.timelineFrame,
                                               static_cast<std::uint32_t> (numFrames),
                                               std::span<Event> (automationEventStorage_.get(), maxEventsPerBlock_));
@@ -587,6 +604,12 @@ public:
     std::span<const CompiledNode> debugCompiledNodes() const noexcept { return compiledNodes_; }
     std::span<const InputSlot> debugInputSlots() const noexcept { return inputSlotIndices_; }
     std::span<const CompiledAutomationLane> debugAutomationLanes() const noexcept { return automationLanes_; }
+    std::span<const CompiledAutomationLaneCursor> debugAutomationLaneCursors() const noexcept
+    {
+        return automationLaneCursors_ != nullptr
+            ? std::span<const CompiledAutomationLaneCursor> (automationLaneCursors_.get(), automationLanes_.size())
+            : std::span<const CompiledAutomationLaneCursor> {};
+    }
     std::span<const DelayCacheEntry> debugDelayCache() const noexcept { return delayCache_; }
     std::uint64_t debugMuteMask() const noexcept { return muteWords_.empty() ? 0ull : muteWords_[0].load (std::memory_order_relaxed); }
 
@@ -733,47 +756,115 @@ private:
                                       value));
     }
 
+    [[nodiscard]] static std::size_t seekAutomationBreakpointIndex (const CompiledAutomationLane& lane,
+                                                                    std::int64_t blockStart) noexcept YESDAW_RT_HOT
+    {
+        std::size_t index = 0;
+        while (index < lane.frames.size() && lane.frames[index] < blockStart)
+            ++index;
+        return index;
+    }
+
+    [[nodiscard]] static std::int64_t firstAutomationControlFrame (std::int64_t firstFrame) noexcept YESDAW_RT_HOT
+    {
+        std::int64_t controlFrame = ((firstFrame + 63) / 64) * 64;
+        if (controlFrame < firstFrame)
+            controlFrame = firstFrame;
+        return controlFrame;
+    }
+
+    static void primeAutomationControlCursor (const CompiledAutomationLane& lane,
+                                              CompiledAutomationLaneCursor& cursor,
+                                              std::int64_t blockStart) noexcept YESDAW_RT_HOT
+    {
+        while (cursor.controlSegmentIndex + 1u < lane.frames.size())
+        {
+            if (lane.curveTypes[cursor.controlSegmentIndex] != AutomationCurveType::Linear)
+            {
+                ++cursor.controlSegmentIndex;
+                continue;
+            }
+
+            const std::int64_t segmentStart = lane.frames[cursor.controlSegmentIndex];
+            const std::int64_t segmentEnd = lane.frames[cursor.controlSegmentIndex + 1u];
+            if (segmentEnd <= blockStart)
+            {
+                ++cursor.controlSegmentIndex;
+                continue;
+            }
+
+            const std::int64_t firstFrame = segmentStart > blockStart ? segmentStart : blockStart;
+            cursor.nextControlFrame = firstAutomationControlFrame (firstFrame);
+            if (cursor.nextControlFrame >= segmentEnd)
+            {
+                ++cursor.controlSegmentIndex;
+                continue;
+            }
+
+            return;
+        }
+
+        cursor.controlSegmentIndex = lane.frames.size();
+        cursor.nextControlFrame = 0;
+    }
+
+    static void resetAutomationLaneCursorForBlock (const CompiledAutomationLane& lane,
+                                                   CompiledAutomationLaneCursor& cursor,
+                                                   std::int64_t blockStart) noexcept YESDAW_RT_HOT
+    {
+        cursor.nextBreakpointIndex = seekAutomationBreakpointIndex (lane, blockStart);
+        cursor.controlSegmentIndex = 0;
+        primeAutomationControlCursor (lane, cursor, blockStart);
+        cursor.initialized = true;
+    }
+
     static void emitCompiledLaneAutomationEvents (const CompiledAutomationLane& lane,
+                                                  CompiledAutomationLaneCursor& cursor,
                                                   std::int64_t blockStart,
                                                   std::int64_t blockEnd,
                                                   std::span<Event> out,
                                                   std::size_t& count) noexcept YESDAW_RT_HOT
     {
-        for (std::size_t i = 0; i < lane.frames.size(); ++i)
+        if (! cursor.initialized || blockStart != cursor.lastBlockEnd)
+            resetAutomationLaneCursorForBlock (lane, cursor, blockStart);
+
+        while (cursor.nextBreakpointIndex < lane.frames.size())
         {
-            const std::int64_t frame = lane.frames[i];
-            if (frame >= blockStart && frame < blockEnd)
-                emitAutomationEvent (lane, blockStart, frame, lane.values[i], out, count);
+            const std::int64_t frame = lane.frames[cursor.nextBreakpointIndex];
+            if (frame >= blockEnd)
+                break;
+
+            emitAutomationEvent (lane, blockStart, frame, lane.values[cursor.nextBreakpointIndex], out, count);
+            ++cursor.nextBreakpointIndex;
         }
 
-        if (lane.frames.size() < 2u)
-            return;
-
-        for (std::size_t i = 0; i + 1u < lane.frames.size(); ++i)
+        while (cursor.controlSegmentIndex + 1u < lane.frames.size())
         {
-            if (lane.curveTypes[i] != AutomationCurveType::Linear)
-                continue;
+            primeAutomationControlCursor (lane, cursor, blockStart);
+            if (cursor.controlSegmentIndex + 1u >= lane.frames.size())
+                break;
 
-            const std::int64_t segmentStart = lane.frames[i];
-            const std::int64_t segmentEnd = lane.frames[i + 1u];
-            if (segmentEnd <= blockStart || segmentStart >= blockEnd)
-                continue;
-
-            const std::int64_t firstFrame = segmentStart > blockStart ? segmentStart : blockStart;
-            std::int64_t controlFrame = ((firstFrame + 63) / 64) * 64;
-            if (controlFrame < firstFrame)
-                controlFrame = firstFrame;
-
-            for (; controlFrame < segmentEnd && controlFrame < blockEnd; controlFrame += 64)
+            const std::int64_t segmentEnd = lane.frames[cursor.controlSegmentIndex + 1u];
+            while (cursor.nextControlFrame < segmentEnd && cursor.nextControlFrame < blockEnd)
             {
-                const double value = interpolateCompiledAutomationValue (lane, i, controlFrame);
-                emitAutomationEvent (lane, blockStart, controlFrame, value, out, count);
+                const double value =
+                    interpolateCompiledAutomationValue (lane, cursor.controlSegmentIndex, cursor.nextControlFrame);
+                emitAutomationEvent (lane, blockStart, cursor.nextControlFrame, value, out, count);
+                cursor.nextControlFrame += 64;
             }
+
+            if (cursor.nextControlFrame < segmentEnd)
+                break;
+
+            ++cursor.controlSegmentIndex;
         }
+
+        cursor.lastBlockEnd = blockEnd;
     }
 
     [[nodiscard]] static std::size_t emitAutomationEventsForBlock (
         std::span<const CompiledAutomationLane> lanes,
+        std::span<CompiledAutomationLaneCursor> cursors,
         std::int64_t blockStart,
         std::uint32_t numFrames,
         std::span<Event> out) noexcept YESDAW_RT_HOT
@@ -783,8 +874,9 @@ private:
             return count;
 
         const std::int64_t blockEnd = saturatedBlockEnd (blockStart, numFrames);
-        for (const CompiledAutomationLane& lane : lanes)
-            emitCompiledLaneAutomationEvents (lane, blockStart, blockEnd, out, count);
+        YESDAW_RT_FATAL (cursors.size() == lanes.size());
+        for (std::size_t i = 0; i < lanes.size(); ++i)
+            emitCompiledLaneAutomationEvents (lanes[i], cursors[i], blockStart, blockEnd, out, count);
 
         return count;
     }
@@ -832,6 +924,7 @@ private:
     std::unique_ptr<Event[]>                      eventStorage_;
     std::unique_ptr<std::uint32_t[]>              eventSlotCounts_;
     std::unique_ptr<Event[]>                      automationEventStorage_;
+    std::unique_ptr<CompiledAutomationLaneCursor[]> automationLaneCursors_;
     std::vector<float*>                           floatSlotPtrs_;
     std::vector<double*>                          doubleSlotPtrs_;
     std::vector<Event*>                           eventSlotPtrs_;
