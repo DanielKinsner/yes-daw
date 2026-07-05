@@ -17,6 +17,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -878,6 +879,72 @@ TEST_CASE ("CompiledGraph automation lane cursors reset on discontinuous locate 
 
     for (int i = 0; i < 64; ++i)
         REQUIRE (out[static_cast<std::size_t> (i)] == 0.75f);
+}
+
+TEST_CASE ("CompiledGraph automation side-band is block-size independent across runtime schedules",
+           "[builder][automation][runtime][block-size][h15][cp3]")
+{
+    constexpr NodeId kFaderId = 48;
+    constexpr int kTotalFrames = 224;
+
+    auto renderSchedule = [] (const std::vector<int>& blockSizes) {
+        GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+        inputs.sampleRate = 48000.0;
+        inputs.maxBlockSize = kTotalFrames;
+
+        CompiledAutomationLane lane;
+        lane.targetNode = kFaderId;
+        lane.parameterId = FaderNode::kGainParameterId;
+        lane.frames = { 32, 160 };
+        lane.values = { 1.0, 0.0 };
+        lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Hold };
+        inputs.automationLanes.push_back (std::move (lane));
+
+        GraphBuildError error;
+        std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code() == GraphBuildError::Code::None);
+
+        std::vector<float> rendered;
+        rendered.reserve (kTotalFrames);
+
+        std::vector<float> block (static_cast<std::size_t> (kTotalFrames), -999.0f);
+        float* outChannels[1] = { block.data() };
+        yesdaw::engine::EventStream events;
+        Transport transport;
+        transport.hasTimelineFrame = true;
+
+        int timelineFrame = 0;
+        std::size_t blockIndex = 0;
+        while (timelineFrame < kTotalFrames)
+        {
+            const int requested = blockSizes[blockIndex % blockSizes.size()];
+            const int frames = (std::min) (requested, kTotalFrames - timelineFrame);
+            REQUIRE (frames > 0);
+
+            transport.timelineFrame = timelineFrame;
+            graph->process (outChannels, 1, frames, events, transport);
+            rendered.insert (rendered.end(), block.begin(), block.begin() + frames);
+            timelineFrame += frames;
+            ++blockIndex;
+        }
+
+        return rendered;
+    };
+
+    const std::vector<float> reference = renderSchedule ({ kTotalFrames });
+    const std::vector<float> forcedSmallBlocks = renderSchedule ({ 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+    const std::vector<float> mixedBlocks = renderSchedule ({ 31, 64, 5, 96, 28 });
+
+    REQUIRE (reference.size() == static_cast<std::size_t> (kTotalFrames));
+    REQUIRE (forcedSmallBlocks.size() == reference.size());
+    REQUIRE (mixedBlocks.size() == reference.size());
+
+    for (std::size_t i = 0; i < reference.size(); ++i)
+    {
+        REQUIRE (forcedSmallBlocks[i] == reference[i]);
+        REQUIRE (mixedBlocks[i] == reference[i]);
+    }
 }
 
 TEST_CASE ("GraphBuilder rejects unresolved compiled automation lane targets", "[builder][automation][h15][cp3]")

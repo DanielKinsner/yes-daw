@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 locate/loop cursor reset sub-slice is closed
-remote-green; successor baton is next.**
+**Current horizon:** **H15 (Automation) — CP3 block-size runtime sweep sub-slice is local-green;
+remote CI is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -200,9 +200,29 @@ lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hos
 Implementation commit `2bfff4c` passed GitHub Actions run `28750516241` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-**Now:** Spawn exactly one successor baton for the next H15 chunk.
+H15 CP3 block-size runtime sweep sub-slice is local-green and ready for push: the builder gate now renders
+the same compiled Track-fader automation lane through a single-block reference, a forced `1..9` frame
+runtime schedule, and a mixed schedule, then requires bit-identical downstream `FaderNode` output. This
+mechanically proves compiled side-band emission and consumption stay anchored to absolute frames across
+varied Block boundaries. This does not implement tempo-change runtime sweeps, precedence over scalar posts,
+Send or Bus fader lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hosting,
+ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation
+changes.
+
+**Now:** Commit and push the block-size runtime sweep sub-slice, then wait for GitHub Actions to pass
+Linux, Windows, macOS, RTSan, and TSan.
 
 Local gates for this checkpoint:
+- `git diff --check` passed.
+- BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
+- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][runtime][block-size][h15][cp3]"`
+  passed **1/1** test case and **508** assertions.
+- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **8/8** test cases
+  and **939** assertions.
+- Direct `build-ci\YesDawBuilderCheck.exe` passed **40/40** test cases and **2410** assertions.
+- Remote GitHub Actions run: pending until push.
+
+Previous checkpoint local gates:
 - `git diff --check` passed.
 - Plain PowerShell `cmd /c "vcvars64.bat" && cmake --build --preset ci --target YesDawBuilderCheck`
   failed only because the shell lacked MSVC standard-library include paths (`cstdint`); reran the same
@@ -214,16 +234,6 @@ Local gates for this checkpoint:
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **303/303** tests.
 - Remote GitHub Actions run `28750516241` for `2bfff4c` passed Linux, Windows, macOS, RTSan, and TSan.
-
-Previous checkpoint local gates:
-- `git diff --check` passed.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
-- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **5/5** test cases
-  and **339** assertions.
-- Direct `build-ci\YesDawBuilderCheck.exe` passed **37/37** test cases and **1810** assertions.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **301/301** tests.
-- Remote GitHub Actions run `28748073373` for `2d1c318` passed Linux, Windows, macOS, RTSan, and TSan.
 
 Earlier checkpoint local gates:
 - `git diff --check` passed.
@@ -239,9 +249,9 @@ Earlier checkpoint local gates:
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
 **Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the next smallest
-runtime automation chunk. Recommended next candidate: block-size runtime sweep for compiled automation
-emission, while still deferring tempo-change runtime sweeps, precedence over scalar posts, Send/Bus fader
-lane resolution, CP4 closeout, and UI work. The successor must first re-verify this implementation
+runtime automation chunk. Recommended next candidate after this run is green: tempo-change runtime sweep for
+compiled automation emission, while still deferring precedence over scalar posts, Send/Bus fader lane
+resolution, CP4 closeout, and UI work. The successor must first re-verify this implementation
 commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must preserve the
 one-chunk/remote-green/single-successor chain rule.
 
