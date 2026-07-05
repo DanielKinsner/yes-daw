@@ -43,6 +43,7 @@ using yesdaw::engine::IdentityDcNode;
 using yesdaw::engine::InputSlot;
 using yesdaw::engine::kNoSlot;
 using yesdaw::engine::kSilenceSlot;
+using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::MasterNode;
 using yesdaw::engine::MeterNode;
 using yesdaw::engine::Node;
@@ -263,6 +264,40 @@ public:
 private:
     NodeId id_;
     AutomationProbeState* state_ = nullptr;
+    Node* input_ = nullptr;
+};
+
+class EventProducingPassThroughNode final : public Node
+{
+public:
+    explicit EventProducingPassThroughNode (NodeId id) noexcept : id_ (id) {}
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { true, true, 1, 0, id_, true };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double, int) override {}
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        const Event upstreamEvent =
+            makeParameterChangeEvent (0, /*targetNode*/ 9999, FaderNode::kGainParameterId, 1.0);
+        (void) args.events.replaceEvents (std::span<const Event> (&upstreamEvent, 1u));
+    }
+
+    void reset() noexcept override {}
+    void release() override {}
+
+    void setInput (Node* input) noexcept { input_ = input; }
+
+private:
+    NodeId id_;
     Node* input_ = nullptr;
 };
 
@@ -634,6 +669,62 @@ TEST_CASE ("CompiledGraph emits compiled automation lanes into the ProcessArgs s
 
     for (float v : out)
         REQUIRE (v == 0.25f);
+}
+
+TEST_CASE ("CompiledGraph side-band automation reaches downstream event-slot consumers",
+           "[builder][automation][runtime][sideband][h15][cp3]")
+{
+    constexpr NodeId kEventProducerId = 43;
+    constexpr NodeId kFaderId = 47;
+
+    auto source = std::make_unique<IdentityDcNode> (1, 1.0f, 1);
+    auto eventProducer = std::make_unique<EventProducingPassThroughNode> (kEventProducerId);
+    auto fader = std::make_unique<FaderNode> (kFaderId, 1);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    EventProducingPassThroughNode* const eventProducerPtr = eventProducer.get();
+    FaderNode* const faderPtr = fader.get();
+    eventProducerPtr->setInput (sourcePtr);
+    faderPtr->setInput (eventProducerPtr);
+    master->setInputNodes ({ faderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = 48000.0;
+    inputs.maxBlockSize = 128;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (eventProducer));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+
+    CompiledAutomationLane lane;
+    lane.targetNode = kFaderId;
+    lane.parameterId = FaderNode::kGainParameterId;
+    lane.frames = { 0 };
+    lane.values = { 0.0 };
+    lane.curveTypes = { AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    const CompiledNode* const faderNode = compiledNodeById (*graph, kFaderId);
+    REQUIRE (faderNode != nullptr);
+    REQUIRE (faderNode->eventInputSlot != yesdaw::engine::kRootEventSlot);
+
+    std::vector<float> out (128, -999.0f);
+    float* outChannels[1] = { out.data() };
+    yesdaw::engine::EventStream events;
+    Transport transport;
+    transport.timelineFrame = 0;
+    transport.hasTimelineFrame = true;
+    graph->process (outChannels, 1, static_cast<int> (out.size()), events, transport);
+
+    REQUIRE (out[0] == Approx (1.0f - (1.0f / 240.0f)));
+    REQUIRE (out[127] == Approx (1.0f - (128.0f / 240.0f)));
 }
 
 TEST_CASE ("CompiledGraph automation lane cursors continue across sequential Blocks",
