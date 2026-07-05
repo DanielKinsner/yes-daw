@@ -293,7 +293,7 @@ MixerProjectionInputs hostedRuntimeProjectionInputs (GraphId graphId, std::vecto
     inputs.masterSumNodeId = kMixerRuntimeMasterSum;
     inputs.masterNodeId = kMixerRuntimeMaster;
     inputs.maxBlockSize = kMixerRuntimeFrames;
-    inputs.buses.push_back (MixerBusProjection { kMixerRuntimeBusSum, 73101, 73102 });
+    inputs.buses.push_back (MixerBusProjection { kMixerRuntimeBusSum, 73101, 73102, {} });
 
     MixerTrackProjection soloed = makeHostedRuntimeTrack (kMixerRuntimeSourceA, 1.0f, 73002, 73003, 73004);
     soloed.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });

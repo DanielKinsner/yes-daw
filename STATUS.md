@@ -55,7 +55,7 @@ CP9 is pushed, remote-green on all five CI jobs, and the single CP10 successor b
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H14 (Built-in FX suite) — CP9 insert-chain suite integration LOCAL-GREEN; implementation CI pending after push.**
+**Current horizon:** **H14 (Built-in FX suite) — CP9 insert-chain suite integration portability fix LOCAL-GREEN; replacement CI pending after push.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -98,17 +98,25 @@ The same gate carries negative controls that removing the FX chain or mutating d
 render. No CP10 equal-power fade work, FX UI, ADR edit, golden regeneration,
 `[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
-**Now:** CP9 implementation is local-green; commit and push this implementation checkpoint, then wait
-for remote CI on the pushed commit. Local gates: `git diff --check`; VS DevShell (BuildTools x64 via
+**Now:** CP9 implementation commit `5780593` pushed, but GitHub Actions run `28728177718` failed the
+hosted Linux/macOS build under `-Werror` because legacy test-side `MixerBusProjection` aggregate
+initializers did not explicitly initialize the new `insertNodes` field. The portability fix updates
+those test initializers only and is local-green; commit and push the fix, then wait for replacement
+remote CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64 via
 `vcvars64.bat`) `cmake --build --preset ci --target YesDawFxSuiteCheck`; PowerShell
 `ctest --preset ci -R "^YesDawFxSuiteCheck$" --output-on-failure` passed; direct
 `YesDawMixerProjectionCheck.exe` passed **20/20**; direct `YesDawPersistenceCheck.exe` passed
 **36/36**; VS DevShell `cmake --build --preset ci`; PowerShell
+`ctest --preset ci --output-on-failure` passed **276/276**. Portability-fix gates: `git diff --check`;
+VS DevShell `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawMixerProjectionCheck
+YesDawFxSuiteCheck`; PowerShell `ctest --preset ci -R "^(YesDawHostIsolationCheck|YesDawMixerProjectionCheck|YesDawFxSuiteCheck)$" --output-on-failure` passed
+**2/2** registered named tests; PowerShell `ctest --preset ci -R "(Mixer projection|Mixer mute policy)" --output-on-failure` passed **25/25**; VS DevShell `cmake --build --preset ci`; PowerShell
 `ctest --preset ci --output-on-failure` passed **276/276**. Remote prior-checkpoint gate: GitHub
 Actions run `28725857991` passed Linux, Windows, macOS, RTSan, and TSan for CP8 final baton.
 
-**Next:** after this CP9 commit is pushed, wait for GitHub Actions to pass Linux, Windows, macOS,
-RTSan, and TSan. Then create exactly one CP10 successor thread and stop. Do not start CP10 here.
+**Next:** after this CP9 portability-fix commit is pushed, wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan. Then create exactly one CP10 successor thread and stop. Do not start
+CP10 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
