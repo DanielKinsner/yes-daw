@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 precedence-over-scalar-posts sub-slice is closed
-remote-green; successor baton is next.**
+**Current horizon:** **H15 (Automation) — CP4 scheduler-refusal sub-slice is locally green;
+implementation commit/push/CI is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -257,9 +257,28 @@ automated mix closeout, scheduler closeout, UI work, FX UI, plugin hosting, ADR 
 Implementation commit `f8ac203` passed GitHub Actions run `28756240245` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-**Now:** Spawn exactly one successor baton for the next smallest independently green H15 chunk.
+H15 CP4 scheduler-refusal sub-slice is locally green and ready for implementation commit: `YesDawSchedulerCheck`
+now has the plan-required zero-latency, fader-only automated graph gate with no FX. The negative control
+builds the same Track-fader project without automation, proves it has zero latency, remains
+block-parallel-safe, and parallel-renders through the scheduler. Adding only a Track-fader automation lane
+keeps total latency at zero but flips `CompiledGraph::blockParallelSafe = false`, so
+`renderProjectWithScheduler` refuses with `GraphNotBlockParallelSafe`. This does not implement CP4 full
+automated mix closeout, UI work, FX UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
+`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+
+**Now:** Commit and push the scheduler-refusal implementation slice, wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan, then record the remote-green closeout before spawning exactly one successor
+baton for the next smallest independently green H15 chunk.
 
 Local gates for this checkpoint:
+- Plain PowerShell `cmake --build --preset ci --target YesDawSchedulerCheck` failed only because the shell
+  lacked MSVC standard-library include paths (`algorithm`); reran the same target through BuildTools
+  `vcvars64.bat`.
+- BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawSchedulerCheck`
+  passed.
+- `ctest --test-dir build-ci -R YesDawSchedulerCheck --output-on-failure` passed **1/1** test.
+
+Previous checkpoint local gates:
 - `git diff --check` passed.
 - BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawRuntimeCheck`
   passed.

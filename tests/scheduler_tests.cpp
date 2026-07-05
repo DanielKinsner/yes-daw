@@ -5,6 +5,7 @@
 #include "engine/PlaybackEngine.h"
 #include "engine/Reliability.h"
 #include "engine/nodes/DelayNode.h"
+#include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "persistence/PluginFailureBlacklist.h"
@@ -211,6 +212,68 @@ SchedulerFixture makeSchedulerFixture()
     return fixture;
 }
 
+SchedulerFixture makeFaderAutomationSchedulerFixture (bool withAutomation)
+{
+    SchedulerFixture fixture;
+    fixture.samples = {
+        { 0.2f, -0.1f, 0.4f, -0.3f, 0.6f, -0.5f, 0.8f, -0.7f,
+          0.7f, -0.6f, 0.5f, -0.4f, 0.3f, -0.2f, 0.1f, 0.0f },
+    };
+
+    Asset asset;
+    asset.id = idFromLowByte (12);
+    asset.contentHash = hashWithSeed (12);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { kSampleRate };
+    asset.channels = 1;
+
+    Track track;
+    track.id = idFromLowByte (41);
+    track.strip.name = "Fader automation track";
+    REQUIRE (track.strip.fxChain.empty());
+
+    Clip clip;
+    clip.id = idFromLowByte (22);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = 16;
+    clip.srcOffset = 0;
+    clip.srcLen = 16;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    fixture.project.id = idFromLowByte (2);
+    fixture.project.sampleRate = SampleRate { kSampleRate };
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+
+    if (withAutomation)
+    {
+        yesdaw::engine::AutomationLaneData lane;
+        lane.id = idFromLowByte (70);
+        lane.ownerEntity = track.id;
+        lane.role = yesdaw::engine::AutomationTargetRole::TrackFader;
+        lane.paramId = yesdaw::engine::FaderNode::kGainParameterId;
+        lane.points = {
+            yesdaw::engine::AutomationBreakpoint { 0, 0.5, yesdaw::engine::AutomationCurveType::Hold },
+            yesdaw::engine::AutomationBreakpoint { 16, 0.5, yesdaw::engine::AutomationCurveType::Hold },
+        };
+        fixture.project.automationLanes = { std::move (lane) };
+    }
+
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+
+    return fixture;
+}
+
 std::vector<float> drainPlayback (PlaybackEngine& engine, std::uint64_t frames, int blockSize)
 {
     const int channels = static_cast<int> (engine.channels());
@@ -403,6 +466,52 @@ TEST_CASE ("YesDawSchedulerCheck refuses graphs that are not block-parallel-safe
         yesdaw::engine::GraphBuilder::build (std::move (inputs), &error);
     REQUIRE (stateful != nullptr);
     REQUIRE_FALSE (stateful->isBlockParallelSafe());
+}
+
+TEST_CASE ("YesDawSchedulerCheck refuses zero-latency fader-only automated graphs",
+           "[h15][scheduler][automation][negative-control]")
+{
+    OfflineRenderOptions options;
+    options.maxBlockSize = kBlockSize;
+
+    const SchedulerFixture noAutomation = makeFaderAutomationSchedulerFixture (false);
+    auto control = yesdaw::engine::buildProjectGraph (
+        noAutomation.project,
+        std::span<const DecodedAssetAudio> (noAutomation.decodedAssets.data(), noAutomation.decodedAssets.size()),
+        options);
+    REQUIRE (control.ok());
+    REQUIRE (control.graph->totalLatency() == 0);
+    REQUIRE (control.graph->isBlockParallelSafe());
+
+    const ScheduledRenderResult accepted = renderProjectWithScheduler (
+        noAutomation.project,
+        std::span<const DecodedAssetAudio> (noAutomation.decodedAssets.data(), noAutomation.decodedAssets.size()),
+        2u,
+        options);
+    REQUIRE (accepted.ok());
+
+    const SchedulerFixture automated = makeFaderAutomationSchedulerFixture (true);
+    const auto serial = renderOfflineProject (
+        automated.project,
+        std::span<const DecodedAssetAudio> (automated.decodedAssets.data(), automated.decodedAssets.size()),
+        options);
+    REQUIRE (serial.ok());
+
+    auto automatedGraph = yesdaw::engine::buildProjectGraph (
+        automated.project,
+        std::span<const DecodedAssetAudio> (automated.decodedAssets.data(), automated.decodedAssets.size()),
+        options);
+    REQUIRE (automatedGraph.ok());
+    REQUIRE (automatedGraph.graph->totalLatency() == 0);
+    REQUIRE_FALSE (automatedGraph.graph->isBlockParallelSafe());
+
+    const ScheduledRenderResult refused = renderProjectWithScheduler (
+        automated.project,
+        std::span<const DecodedAssetAudio> (automated.decodedAssets.data(), automated.decodedAssets.size()),
+        2u,
+        options);
+    REQUIRE_FALSE (refused.ok());
+    REQUIRE (refused.status == yesdaw::engine::OfflineRenderStatus::GraphNotBlockParallelSafe);
 }
 
 TEST_CASE ("PlaybackEngine transport command queue is race-free while audio pumps Blocks",
