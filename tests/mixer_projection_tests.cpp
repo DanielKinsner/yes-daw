@@ -35,6 +35,7 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledAutomationLane;
 using yesdaw::engine::DecodedClipNode;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::EventStream;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
 using yesdaw::engine::IdentityDcNode;
@@ -57,6 +58,7 @@ using yesdaw::engine::SumNode;
 using yesdaw::engine::TempoChange;
 using yesdaw::engine::TempoCurve;
 using yesdaw::engine::Track;
+using yesdaw::engine::Transport;
 using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::projectMixerNodeIdForEntity;
@@ -70,6 +72,7 @@ constexpr NodeId kMasterSumId = 61000;
 constexpr NodeId kMasterId    = 61001;
 constexpr int    kMaxBlock    = 512;
 constexpr int    kProjectRenderFrames = 64;
+constexpr int    kAutomationTempoRenderFrames = 224;
 constexpr float  kCenterGain  = 0.70710677f;
 
 class LatentImpulseSource final : public Node
@@ -348,6 +351,47 @@ StereoCapture renderProjectProjectionForTest (const Project& project,
     return render (*graph, kProjectRenderFrames);
 }
 
+std::vector<float> renderProjectProjectionSchedule (const Project& project,
+                                                    const std::vector<int>& blockSizes,
+                                                    int totalFrames)
+{
+    REQUIRE_FALSE (blockSizes.empty());
+
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+
+    std::vector<float> rendered;
+    rendered.reserve (static_cast<std::size_t> (totalFrames));
+
+    std::vector<float> block (static_cast<std::size_t> (totalFrames), -999.0f);
+    float* outChannels[1] = { block.data() };
+    EventStream events;
+    Transport transport;
+    transport.hasTimelineFrame = true;
+
+    int timelineFrame = 0;
+    std::size_t blockIndex = 0;
+    while (timelineFrame < totalFrames)
+    {
+        const int requested = blockSizes[blockIndex % blockSizes.size()];
+        const int frames = (std::min) (requested, totalFrames - timelineFrame);
+        REQUIRE (frames > 0);
+
+        transport.timelineFrame = timelineFrame;
+        graph->process (outChannels, 1, frames, events, transport);
+        rendered.insert (rendered.end(), block.begin(), block.begin() + frames);
+
+        timelineFrame += frames;
+        ++blockIndex;
+    }
+
+    return rendered;
+}
+
 } // namespace
 
 TEST_CASE ("Mixer projection renders an empty master bus as silence", "[mixer][projection][silence]")
@@ -496,6 +540,65 @@ TEST_CASE ("Project projector compiles automation lanes into frame-domain graph 
     REQUIRE (compiled[0].targetNode
              == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Fader));
     REQUIRE (compiled[0].frames == std::vector<std::int64_t> { 0, 24000 });
+}
+
+TEST_CASE ("Project automation renders through a mid-curve tempo change across runtime schedules",
+           "[mixer][projection][project][automation][runtime][tempo][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    for (Asset& asset : project.assets)
+        asset.frames = kAutomationTempoRenderFrames;
+    for (Clip& clip : project.clips)
+    {
+        clip.srcLen = kAutomationTempoRenderFrames;
+        clip.timelineLength = kTicksPerQuarter;
+    }
+
+    project.tempoMap = {
+        TempoChange { 0, 120.0, TempoCurve::Jump },
+        TempoChange { 64, 60.0, TempoCurve::Jump },
+    };
+    project.automationLanes = {
+        AutomationLaneData {
+            entityIdFromLowByte (73),
+            project.tracks[0].id,
+            AutomationTargetRole::TrackFader,
+            FaderNode::kGainParameterId,
+            {
+                AutomationBreakpoint { 0, 1.0, AutomationCurveType::Linear },
+                AutomationBreakpoint { 96, 0.0, AutomationCurveType::Hold },
+            },
+        },
+    };
+
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+    REQUIRE (projection.automationLanes.size() == 1u);
+    REQUIRE (projection.automationLanes[0].targetNode
+             == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Fader));
+    REQUIRE (projection.automationLanes[0].frames == std::vector<std::int64_t> { 0, 200 });
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    REQUIRE_FALSE (graph->isBlockParallelSafe());
+
+    const std::vector<float> reference =
+        renderProjectProjectionSchedule (project, { kAutomationTempoRenderFrames }, kAutomationTempoRenderFrames);
+    const std::vector<float> forcedSmallBlocks =
+        renderProjectProjectionSchedule (project, { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, kAutomationTempoRenderFrames);
+    const std::vector<float> mixedBlocks =
+        renderProjectProjectionSchedule (project, { 31, 64, 5, 96, 28 }, kAutomationTempoRenderFrames);
+
+    REQUIRE (reference.size() == static_cast<std::size_t> (kAutomationTempoRenderFrames));
+    REQUIRE (forcedSmallBlocks.size() == reference.size());
+    REQUIRE (mixedBlocks.size() == reference.size());
+
+    for (std::size_t i = 0; i < reference.size(); ++i)
+    {
+        REQUIRE (forcedSmallBlocks[i] == reference[i]);
+        REQUIRE (mixedBlocks[i] == reference[i]);
+    }
 }
 
 TEST_CASE ("Project projector compiles FX insert automation to the projected FX NodeId",

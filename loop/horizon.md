@@ -37,6 +37,7 @@ ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFxAutomationCheck --output-on-failure
 build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"
+ctest --test-dir build-ci -R YesDawMixerProjectionCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFaderCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawPanCheck --output-on-failure
 ```
