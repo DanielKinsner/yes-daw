@@ -54,7 +54,7 @@ and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectB
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP7 ReverbNode IMPLEMENTATION REMOTE-GREEN; closeout CI pending after push.**
+**Current horizon:** **H14 (Built-in FX suite) — CP7 ReverbNode CLOSEOUT REMOTE-GREEN; final baton CI pending after push.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -88,21 +88,24 @@ work, CP9 insert-chain mixer wiring, CP10 fade/golden work, FX UI, schema change
 regeneration, `[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
 Implementation commit `6ed5d94` passed GitHub Actions run `28723224456` across Linux, Windows, macOS,
-RTSan, and TSan.
+RTSan, and TSan. Closeout commit `f0e69e2` passed GitHub Actions run `28723625022` across Linux,
+Windows, macOS, RTSan, and TSan.
 
-**Now:** CP7 implementation is remote-green; commit and push this STATUS closeout, then wait for
-remote CI on the closeout commit. Local gates: `git diff --check`; VS DevShell (BuildTools x64)
+**Now:** CP7 closeout is remote-green; commit and push this final baton STATUS update, then wait for
+remote CI on the final baton commit before creating the CP8 successor. Local gates:
+`git diff --check`; VS DevShell (BuildTools x64)
 `cmake --build --preset ci --target YesDawReverbCheck`; PowerShell
 `ctest --preset ci -R "^YesDawReverbCheck$" --output-on-failure` passed; PowerShell
 `ctest --preset ci --output-on-failure` **274/274**; VS DevShell (BuildTools x64)
 `cmake --build --preset ci`; PowerShell repeat `ctest --preset ci --output-on-failure` **274/274**.
 Remote prior-checkpoint gate: GitHub Actions run `28722537692` passed Linux, Windows, macOS, RTSan,
 and TSan for CP6 final baton. Remote CP7 implementation gate: GitHub Actions run `28723224456`
-passed Linux, Windows, macOS, RTSan, and TSan for implementation commit `6ed5d94`.
+passed Linux, Windows, macOS, RTSan, and TSan for implementation commit `6ed5d94`. Remote CP7
+closeout gate: GitHub Actions run `28723625022` passed Linux, Windows, macOS, RTSan, and TSan for
+closeout commit `f0e69e2`.
 
-**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this closeout
-commit. Then make the final baton STATUS commit if needed, push it, wait for that CI run to pass, and
-only then create exactly one CP8 successor thread. Do not start CP8 here.
+**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this final baton
+commit. Then create exactly one CP8 successor thread. Do not start CP8 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
