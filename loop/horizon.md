@@ -1,30 +1,32 @@
-# Current horizon - H13 (Recording and device UX) - CLOSED REMOTE-GREEN
+# Current horizon - H15 (Automation) - OPEN
 
-> This file is the oracle for "is the horizon done?". H13 opened on 2026-06-30 after H12 closeout was
-> remote-green on `main` (`2dbb257`, GitHub Actions run `28459661398`).
+> This file is the oracle for "is the horizon done?". H15 opens after H14 closed remote-green on
+> `main`: CP10 implementation `5cf3574` passed GitHub Actions run `28729589346`, and H14 closeout
+> docs `a886711` passed run `28729985374`, both across Linux, Windows, macOS, RTSan, and TSan.
 
 ## Exit criterion (the finish line)
 
-A scripted record flow can select a test/fake device, arm a Track, choose a monitoring policy, record audio
-and MIDI through the shipped `MainComponent`, create bundle-persistent Take/Clip data, save, reopen, drive
-autosave recovery restore/discard choices, and prove recording alignment plus device survival mechanically.
+Automation lanes are Project data, persisted and undoable, compiled into the Snapshot, evaluated
+sample-accurately on the audio thread, and delivered to fader, pan, send, and H14 FX parameters without
+violating the real-time contract. The lane editor UI waits for H16; H15 is headless read-mode automation.
 
-The H13 focused gates are:
+The H15 focused gates are:
 
-- **`YesDawRecordingUxCheck`**: the shipped-shell harness for device selection, Track arming, monitoring
-  policy, audio/MIDI recording, Take/Clip persistence, take-lane/Comp basics, save/reopen, and autosave
-  recovery. If implementation folds this into an existing target, update this file in the same checkpoint.
-- **`YesDawRecordingCheck`**: the H5 recording alignment gate stays green, including latency-compensation
-  negative controls.
-- **`YesDawDeviceHotSwapCheck`**: the H10 control-side device survival gate stays green as H13 wires device
-  selection/refresh into the UI.
-- **`YesDawUiInputCheck`**, **`YesDawUiActionCheck`**, **`YesDawAppSmokeCheck`**,
-  **`YesDawTimelineGpuCheck`**, and **`YesDawAccessibilityCheck`**: H12/H11 shipped-shell, action,
-  smoke, frame-time, and accessibility gates remain green as recording controls become real Components.
-
-Plugin scanner, plugin validation, plugin editor embedding, advanced comping, driver crash recovery,
-sample-rate/channel remap on device changes, and visual-only polish are deferred unless an H13 gate proves
-a hard dependency.
+- **`YesDawAutomationCheck`**: first, characterize the existing ADR-0009 evaluator behavior, including
+  Linear/Hold block slicing, cursor reuse, locate/re-seek, hostile inputs, and quarantined Bezier/Log cases.
+- **Persistence v8 gates**: automation lane and breakpoint rows round-trip through save/reopen; validators
+  reject orphan targets, unknown roles, duplicate ticks, out-of-range values, and quarantined curve types.
+- **Undo property gates**: randomized Project edit sequences include automation verbs and fully undo/redo
+  to bit-identical Project values.
+- **Consumer gates**: FaderNode migrates to ParamSpec-normalized dB mapping, PanNode consumes events, send
+  levels get a real FaderNode target, and each H14 FX node proves one lane reaches it.
+- **Runtime gates**: compiled frame-domain lanes emit through the `ProcessArgs::automationEvents` side-band,
+  root-slot injection is rejected by a downstream event-producing negative control, compiled lanes force
+  `blockParallelSafe = false`, event budgets reject impossible projects, and locate/loop/tempo/block-size
+  cases stay mechanically green.
+- **Integration closeout gates**: offline Render == RT for an automated full mix, precedence favors lane
+  events over manual scalar posts, scheduler refusal is proven by a zero-latency fader-only automated graph,
+  RTSan/TSan stay green, and roadmap/STATUS closeout plus adversarial review are recorded.
 
 ## Green command
 
@@ -32,26 +34,18 @@ a hard dependency.
 cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
-ctest --test-dir build-ci -R YesDawRecordingUxCheck --output-on-failure
-ctest --test-dir build-ci -R YesDawRecordingCheck --output-on-failure
-ctest --test-dir build-ci -R YesDawDeviceHotSwapCheck --output-on-failure
-ctest --test-dir build-ci -R "YesDaw(UiInput|UiAction|AppSmoke|TimelineGpu|Accessibility)Check" --output-on-failure
+ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
 ```
 
-`YesDawRecordingUxCheck` is part of the focused lane from the H13 recording UX skeleton checkpoint.
+As new H15 gates land, update this command list in the same checkpoint.
 
-## Status: CLOSED REMOTE-GREEN
+## Status: OPEN
 
-ADR-0035 (H13 recording and device UX) is accepted by the kickoff docs checkpoint. The focused H13 plan is
-`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`. H13 implementation is complete on `main`:
-the shipped-shell recording harness, deterministic test-device selection/refresh, Track arming,
-canonical recorded-WAV Assets, schema-v5 Take metadata, shipped-shell deterministic MIDI recording,
-scripted monitoring policy plus fake-device latency calibration, schema-v6 take-lane/Comp basics, and
-autosave recovery restore/discard choices are implemented as small checkpoints. The final implementation
-checkpoint is remote-green on `main` (`43280d8`, GitHub Actions run `28693226908`) across Linux, Windows,
-macOS, RTSan, and TSan.
+H15 has not implemented automation yet. The first checkpoint is the plan-labeled **CP0 - Evaluator
+characterization gate**. If a baton calls the first H15 chunk "CP1", it still must implement this CP0
+audit-first checkpoint and must not skip to Project model/schema/undo work.
 
 ## The plan
 
 Full build order:
-[`docs/plans/2026-06-30-h13-recording-device-ux-plan.md`](../docs/plans/2026-06-30-h13-recording-device-ux-plan.md).
+[`docs/plans/2026-07-03-h15-automation-plan.md`](../docs/plans/2026-07-03-h15-automation-plan.md).

@@ -55,7 +55,7 @@ work here.
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H14 (Built-in FX suite) — CP10 equal-power crossfade implementation REMOTE-GREEN; closeout docs pending CI.**
+**Current horizon:** **H14 (Built-in FX suite) — CLOSED REMOTE-GREEN; H15 automation opens next.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -79,9 +79,18 @@ and TSan. H14 CP9 is closed remote-green: implementation `5780593` was supersede
 superseded after run `28728450107`; final portability fix `8e47ef5` passed run `28728641921`; CP9
 closeout docs `cc576bc` passed run `28729037387`, all green runs across Linux, Windows, macOS, RTSan,
 and TSan. H14 CP10 implementation `5cf3574` passed GitHub Actions run `28729589346` across Linux,
-Windows, macOS, RTSan, and TSan.
+Windows, macOS, RTSan, and TSan. CP10 closeout docs `a886711` passed run `28729985374`, also across
+Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP9 from current repo + remote CI:
+**Done this checkpoint:** H14 closeout bridge first re-verified CP10 from current repo + remote CI:
+session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
+all pointed at CP10 closeout docs commit `a886711`; GitHub Actions run `28729589346` for CP10
+implementation `5cf3574` and run `28729985374` for closeout docs `a886711` were both completed/successful
+across Linux, Windows, macOS, RTSan, and TSan. The promised closeout adversarial pass is recorded in
+`docs/reviews/2026-07-05-h14-cp10-closeout-adversarial-review.md`; it found no H14 closeout-blocking
+defect and did not change runtime code.
+
+The preceding CP10 implementation review first re-verified CP9 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
 all pointed at CP9 closeout `cc576bc`; GitHub Actions run `28729037387` for `cc576bc` was
 completed/successful across Linux, Windows, macOS, RTSan, and TSan. CP10 changes the shared Clip
@@ -99,8 +108,12 @@ no file changes; no committed fade-affected golden existed, so no golden was reg
 automation, plugin hosting, ADR, `docs/reality-lane.md`, or `[[clang::nonblocking]]` annotation
 change.
 
-**Now:** CP10 implementation `5cf3574` is remote-green: GitHub Actions run `28729589346` passed Linux,
-Windows, macOS, RTSan, and TSan. Local gates: initial plain PowerShell build failed only
+**Now:** H14 is closed remote-green on `a886711`: CP10 implementation `5cf3574` passed GitHub Actions
+run `28729589346`, and closeout docs `a886711` passed run `28729985374`, both across Linux, Windows,
+macOS, RTSan, and TSan. Local gates for this docs-only bridge: `git diff --check` passed; focused CP10
+CTest lane passed **9/9** (`ClipEnvelope`, equal-power crossfade RT/offline, bundle crossfade,
+`YesDawOfflineRenderCheck`, and `YesDawPlaybackCheck`). CP10 implementation local gates from the parent
+thread: initial plain PowerShell build failed only
 because the shell lacked MSVC standard-library include paths (`cmath`/`cstdint`); reran the same build
 through VS DevShell (`vcvars64.bat`). Focused gates passed: VS DevShell `cmake --build --preset ci
 --target YesDawRenderCheck YesDawOfflineRenderCheck YesDawBundleRenderCheck YesDawProjectCheck`;
@@ -113,8 +126,10 @@ old-linear expectations in `YesDawPlaybackCheck`; after updating that independen
 **277/277**. This docs-only closeout update records the remote-green implementation result; it changes
 no code.
 
-**Next:** commit and push this CP10 closeout docs update, wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan on that docs commit, then stop. Do not start CP11 or H15 here.
+**Next:** open H15 with its first checkpoint, the plan-labeled **CP0 evaluator characterization gate**
+(`YesDawAutomationCheck`, no production code unless the characterization proves a defect). If a baton uses
+the label "H15 CP1" to mean "first H15 chunk", it must still implement this audit-first CP0 and not skip
+to the schema/undo checkpoint. Do not start H15 implementation in the H14 closeout bridge.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

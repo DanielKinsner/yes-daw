@@ -262,6 +262,10 @@ paths into live, biting tests.
 ballistics, tap alignment, RT60, ceiling), block-size independence sweeps, RTSan on the audio path,
 FX state save/reopen, limiter PDC alignment across parallel paths, and offline Render == RT with FX
 — all in CI. Plan: `docs/plans/2026-07-03-h14-fx-suite-plan.md`.
+**Status (2026-07-05):** closed remote-green on `main`. CP10 implementation `5cf3574` passed GitHub
+Actions run `28729589346`; closeout docs `a886711` passed run `28729985374`; both runs were green across
+Linux, Windows, macOS, RTSan, and TSan. The H14 closeout adversarial pass
+(`docs/reviews/2026-07-05-h14-cp10-closeout-adversarial-review.md`) found no H14 closeout-blocking defect.
 
 ## H15 — Automation
 Audit-first: a gate that proves what the ADR-0009 runtime actually delivers today, then automation
@@ -272,6 +276,7 @@ draw/edit (read mode) — touch/latch/write recording is deferred past alpha.
 the plan's tolerance, robust across block-size schedules and across a tempo change; lanes
 round-trip save/reopen; the randomized edit property test extended with automation verbs stays
 green. Plan: `docs/plans/2026-07-03-h15-automation-plan.md`.
+**Next:** start with the plan-labeled **CP0 evaluator characterization gate** before schema/undo work.
 
 ## H16 — Real UI
 Structural parity with the product mockup (ruler section markers, waveform clips, clip/track
