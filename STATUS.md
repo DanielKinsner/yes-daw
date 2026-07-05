@@ -56,7 +56,7 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 **Last updated:** 2026-07-05
 **Current horizon:** **H15 (Automation) — CP3 Project/Mixer projection automation metadata sub-slice is
-locally green; push/CI is next.**
+closed remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -141,10 +141,10 @@ FX NodeId, and an automation lane targeting a Track with no projected audio path
 does not emit side-band automation events on the audio thread, implement event-budget checks, add Send or
 Bus fader lane resolution, touch FX UI, automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`,
 golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
+Implementation commit `5b420c3` passed GitHub Actions run `28744219573` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Push this CP3 Project/Mixer projection sub-slice and wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan. After it is remote-green, spawn exactly one successor baton for the next
-H15 chunk.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -154,6 +154,7 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **24/24** test cases and **4854** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **298/298** tests.
+- Remote GitHub Actions run `28744219573` for `5b420c3` passed Linux, Windows, macOS, RTSan, and TSan.
 
 **Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the smallest
 independently green prerequisite after Project/Mixer projection lane compilation, not the full CP3 surface.
