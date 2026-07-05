@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 runtime side-band emission helper is implemented locally;
-push + remote CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 runtime side-band emission helper is closed remote-green;
+successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -163,9 +163,10 @@ event slot. This does not implement persistent runtime lane cursors, locate/loop
 runtime sweeps, precedence over scalar posts, Send or Bus fader lane resolution, CP4 integration closeout,
 FX UI, automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
 `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+Implementation commit `78c4adc` passed GitHub Actions run `28746796705` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Push this implementation commit and wait for GitHub Actions to pass Linux, Windows, macOS, RTSan,
-and TSan.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -178,10 +179,14 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawBuilderCheck.exe` passed **36/36** test cases and **1692** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
+- Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this commit is remote-green, record the GitHub Actions run in `STATUS.md`, push that
-closeout docs commit, wait for its remote CI, then spawn exactly one successor baton for the next smallest
-H15 CP3 runtime chunk.
+**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the next smallest
+runtime automation chunk. Recommended next candidate: add the minimal cursor/continuation state needed for
+compiled lane emission across sequential Blocks, while still deferring locate/loop reset, tempo/block-size
+sweeps, precedence, Send/Bus fader lane resolution, CP4 closeout, and UI work. The successor must first
+re-verify this implementation commit/run from live repo truth, must not start CP4 integration closeout or
+H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
