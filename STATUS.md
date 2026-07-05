@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 block-size runtime sweep sub-slice is local-green;
-remote CI is next.**
+**Current horizon:** **H15 (Automation) — CP3 block-size runtime sweep sub-slice is closed
+remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -200,7 +200,7 @@ lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hos
 Implementation commit `2bfff4c` passed GitHub Actions run `28750516241` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-H15 CP3 block-size runtime sweep sub-slice is local-green and ready for push: the builder gate now renders
+H15 CP3 block-size runtime sweep sub-slice is closed remote-green on `2c46f71`: the builder gate now renders
 the same compiled Track-fader automation lane through a single-block reference, a forced `1..9` frame
 runtime schedule, and a mixed schedule, then requires bit-identical downstream `FaderNode` output. This
 mechanically proves compiled side-band emission and consumption stay anchored to absolute frames across
@@ -208,9 +208,10 @@ varied Block boundaries. This does not implement tempo-change runtime sweeps, pr
 Send or Bus fader lane resolution, CP4 integration closeout, FX UI, automation lane UI, plugin hosting,
 ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation
 changes.
+Implementation commit `2c46f71` passed GitHub Actions run `28751639032` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Commit and push the block-size runtime sweep sub-slice, then wait for GitHub Actions to pass
-Linux, Windows, macOS, RTSan, and TSan.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -220,7 +221,7 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **8/8** test cases
   and **939** assertions.
 - Direct `build-ci\YesDawBuilderCheck.exe` passed **40/40** test cases and **2410** assertions.
-- Remote GitHub Actions run: pending until push.
+- Remote GitHub Actions run `28751639032` for `2c46f71` passed Linux, Windows, macOS, RTSan, and TSan.
 
 Previous checkpoint local gates:
 - `git diff --check` passed.
