@@ -55,7 +55,7 @@ work here.
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H14 (Built-in FX suite) — CP10 equal-power crossfade LOCAL-GREEN; implementation pending push/CI.**
+**Current horizon:** **H14 (Built-in FX suite) — CP10 equal-power crossfade implementation REMOTE-GREEN; closeout docs pending CI.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -78,7 +78,8 @@ and TSan. H14 CP9 is closed remote-green: implementation `5780593` was supersede
 `28728177718` exposed Linux/macOS aggregate-initializer warnings; portability fix `1610057` was
 superseded after run `28728450107`; final portability fix `8e47ef5` passed run `28728641921`; CP9
 closeout docs `cc576bc` passed run `28729037387`, all green runs across Linux, Windows, macOS, RTSan,
-and TSan.
+and TSan. H14 CP10 implementation `5cf3574` passed GitHub Actions run `28729589346` across Linux,
+Windows, macOS, RTSan, and TSan.
 
 **Done this checkpoint:** Rolling-baton review first re-verified CP9 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
@@ -98,7 +99,8 @@ no file changes; no committed fade-affected golden existed, so no golden was reg
 automation, plugin hosting, ADR, `docs/reality-lane.md`, or `[[clang::nonblocking]]` annotation
 change.
 
-**Now:** CP10 is local-green and unpushed. Local gates: initial plain PowerShell build failed only
+**Now:** CP10 implementation `5cf3574` is remote-green: GitHub Actions run `28729589346` passed Linux,
+Windows, macOS, RTSan, and TSan. Local gates: initial plain PowerShell build failed only
 because the shell lacked MSVC standard-library include paths (`cmath`/`cstdint`); reran the same build
 through VS DevShell (`vcvars64.bat`). Focused gates passed: VS DevShell `cmake --build --preset ci
 --target YesDawRenderCheck YesDawOfflineRenderCheck YesDawBundleRenderCheck YesDawProjectCheck`;
@@ -108,10 +110,11 @@ VS DevShell `cmake --build --preset ci --target bless-goldens` left no diff; VS 
 `cmake --build --preset ci`; first full `ctest --preset ci --output-on-failure` exposed stale
 old-linear expectations in `YesDawPlaybackCheck`; after updating that independent reference, direct
 `YesDawPlaybackCheck.exe` passed **9/9** and full `ctest --preset ci --output-on-failure` passed
-**277/277**.
+**277/277**. This docs-only closeout update records the remote-green implementation result; it changes
+no code.
 
-**Next:** commit and push this CP10 implementation, wait for GitHub Actions to pass Linux, Windows,
-macOS, RTSan, and TSan on that commit, then stop. Do not start CP11 or H15 here.
+**Next:** commit and push this CP10 closeout docs update, wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan on that docs commit, then stop. Do not start CP11 or H15 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
