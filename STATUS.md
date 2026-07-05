@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 SendLevel Project/Mixer projection sub-slice is locally
-green; implementation commit/push and remote CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 SendLevel Project/Mixer projection sub-slice is
+implementation-remote-green; closeout commit/push and remote CI are next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -222,7 +222,7 @@ files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
 Implementation commit `6481540` passed GitHub Actions run `28752737140` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-H15 CP3 SendLevel Project/Mixer projection sub-slice is locally green and ready to commit:
+H15 CP3 SendLevel Project/Mixer projection sub-slice is implementation-remote-green on `66d2eed`:
 `ProjectMixerProjection` can now take projection-only Project send routes, materialize deterministic
 per-Track send `FaderNode` targets by send ordinal, resolve `SendLevel` automation lanes to those send
 targets, and translate the stored send ordinal `paramId` into the actual `FaderNode::kGainParameterId`
@@ -231,8 +231,10 @@ the projected send FaderNode and renders through the downstream Bus Return; the 
 without the lane. This does not implement Bus fader lane resolution, precedence over scalar posts, CP4
 integration closeout, FX UI, automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden
 files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+Implementation commit `66d2eed` passed GitHub Actions run `28754353773` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Commit/push this SendLevel Project/Mixer projection implementation and wait for GitHub Actions.
+**Now:** Commit/push this SendLevel Project/Mixer projection closeout and wait for GitHub Actions.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -282,12 +284,13 @@ Earlier runtime-helper checkpoint local gates:
 - Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this implementation run passes, record the remote-green closeout and spawn exactly one
-successor baton. The successor continues plan-labeled **CP3 — Compile + RT evaluation** with the next
-smallest H15 chunk, likely Bus fader lane resolution or another still-deferred CP3/CP4 prerequisite, while
-still deferring precedence over scalar posts unless it chooses that as its single slice, CP4 closeout, and
-UI work. The successor must first re-verify this implementation commit/run from live repo truth, must not
-start H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
+**Next:** after this closeout run passes, spawn exactly one successor baton. The successor continues
+plan-labeled **CP3 — Compile + RT evaluation** with the next smallest H15 chunk, likely Bus fader lane
+resolution in Project/Mixer projection only or another still-deferred CP3 prerequisite, while still
+deferring precedence over scalar posts unless it chooses that as its single slice, CP4 closeout, and UI
+work. The successor must first re-verify this implementation commit/run and this closeout commit/run from
+live repo truth, must not start H16 UI, and must preserve the one-chunk/remote-green/single-successor
+chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
