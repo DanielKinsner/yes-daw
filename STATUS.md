@@ -55,49 +55,47 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP0 evaluator characterization gate is local-green; remote CI
-for this checkpoint is pending until the commit is pushed.**
+**Current horizon:** **H15 (Automation) — CP1 Project model sub-slice is local-green; remote CI for this
+checkpoint is pending until the commit is pushed.**
 
-H14 is closed remote-green on `8c06905`: CP10 implementation `5cf3574` passed GitHub Actions run
+H15 CP0 is closed remote-green on `d6b734f`: `YesDawAutomationCheck` characterizes
+`src/engine/Automation.h`, and GitHub Actions run `28734748402` was re-checked in this CP1 session as
+completed/successful across Linux, Windows, macOS, RTSan, and TSan. Local `HEAD`, `main`, and
+`origin/main` all pointed at `d6b734f` after `git pull --ff-only`.
+
+H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` passed GitHub Actions run
 `28729589346`, CP10 closeout docs `a886711` passed run `28729985374`, and H14 closeout bridge
-`8c06905` passed run `28734167730`; each named run was re-checked in this H15 CP0 session as
-completed/successful across Linux, Windows, macOS, RTSan, and TSan. At session start, `git pull
---ff-only` was already up to date and local `HEAD`, `main`, and `origin/main` all pointed at
-`8c06905`.
+`8c06905` passed run `28734167730`; each named run was re-checked in this CP1 session as
+completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Added the focused `YesDawAutomationCheck` gate for H15 CP0 and registered it
-in CMake. The gate locks the existing `src/engine/Automation.h` evaluator behavior for Linear and Hold
-segment math, half-open block slicing, cursor reuse, locate/re-seek, hostile input handling, and
-Bezier/Log evaluator characterization while storage remains quarantined to Linear/Hold later in H15.
-The named negative control is present: a one-frame boundary shift makes the split-block compare fail.
+**Done this checkpoint:** Landed the smallest coherent CP1 sub-slice: the in-memory Project automation
+lane model. `Project` now carries `automationLanes` with stable lane IDs, stable owner entity + target
+role + `paramId` targeting, normalized storage-safe Breakpoints, Linear/Hold-only storage curves, and
+Project validation for lane identity, duplicate targets, orphan Track/Bus/FX owners, unsorted/duplicate
+ticks, out-of-range values, non-finite values, and quarantined Bezier/Log storage curves. `YesDawProjectCheck`
+has the focused H15 model gate. No schema v8 migration, bundle fixture, undo verb, runtime side-band,
+consumer, FX UI, automation lane UI, plugin hosting, ADR, `docs/reality-lane.md`, golden file, or
+`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
 
-The CP0 characterization proved one narrow evaluator defect before later H15 work could build on it:
-`evaluateAutomationLaneForBlock` emitted no events before the first breakpoint or after the last
-breakpoint, while the H15 plan requires before-first = first value and after-last = last value. Fixed only
-that defect by clamping the lane evaluator at the edge breakpoints. No Project model, schema v8, undo,
-runtime side-band, consumer, FX UI, automation lane UI, plugin hosting, ADR, `docs/reality-lane.md`,
-golden file, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changed.
-
-`evaluateAutomationPointsForBlock` is documented by the new gate as an older point-emitter helper: it
-reports unsorted input after the first emitted point, while the lane evaluator rejects unsorted lanes
-before writing. Do not treat that helper behavior as the H15 compiled-lane runtime contract.
-
-**Now:** Commit and push H15 CP0, then wait for the GitHub Actions run for that commit to pass Linux,
-Windows, macOS, RTSan, and TSan before spawning the successor thread.
+**Now:** Commit and push this CP1 Project model sub-slice, then wait for the GitHub Actions run for that
+commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
 
 Local gates for this checkpoint:
-- Plain PowerShell focused build first failed only because the shell lacked MSVC standard-library include
-  paths (`algorithm`); reran through VS DevShell.
-- VS DevShell `cmake --build --preset ci --target YesDawAutomationCheck YesDawEventCheck` passed.
-- `ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure` passed **1/1**.
-- Direct `build-ci\YesDawEventCheck.exe` passed **11/11**.
-- VS DevShell `cmake --build --preset ci` passed.
-- `ctest --preset ci --output-on-failure` passed **278/278**.
+- `git diff --check` passed.
+- Initial VS DevShell build still lacked MSVC standard-library include paths (`algorithm`); reran through
+  BuildTools `vcvars64.bat`.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawProjectCheck` passed.
+- Direct `build-ci\YesDawProjectCheck.exe "[project][automation][h15]"` passed **1/1**.
+- `ctest --test-dir build-ci -R "Project validates H15 automation lane model" --output-on-failure`
+  passed **1/1**.
+- Direct `build-ci\YesDawProjectCheck.exe` passed **30/30**.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
+- `ctest --preset ci --output-on-failure` passed **279/279**.
 
-**Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the
-next H15 checkpoint only: plan-labeled **CP1 — Project model + schema v8 + undo**. The successor must
-first re-verify this CP0 commit/run from live repo truth, then implement only the next smallest
-independently green chunk.
+**Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
+H15 chunk only: continue plan-labeled **CP1 — Project model + schema v8 + undo** with the next smallest
+independently green sub-slice, likely schema v8 persistence/validators unless the successor finds a narrower
+required step first. The successor must first re-verify this commit/run from live repo truth.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

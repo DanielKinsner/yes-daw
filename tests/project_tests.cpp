@@ -19,6 +19,10 @@
 #include <utility>
 
 using Catch::Approx;
+using yesdaw::engine::AutomationBreakpoint;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::AutomationLaneData;
+using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::addFxInsert;
@@ -155,6 +159,23 @@ FxInsert makeFxInsert (EntityId id, FxKind kind = FxKind::Eq, bool enabled = tru
     return insert;
 }
 
+AutomationLaneData makeAutomationLane (EntityId id,
+                                       EntityId ownerEntity,
+                                       AutomationTargetRole role,
+                                       std::uint32_t paramId = 0)
+{
+    AutomationLaneData lane;
+    lane.id = id;
+    lane.ownerEntity = ownerEntity;
+    lane.role = role;
+    lane.paramId = paramId;
+    lane.points = {
+        AutomationBreakpoint { 0, 0.25, AutomationCurveType::Linear },
+        AutomationBreakpoint { 15360, 0.75, AutomationCurveType::Hold },
+    };
+    return lane;
+}
+
 Project makeEditableProject()
 {
     const EntityId assetId = idFromLowByte (30);
@@ -246,6 +267,7 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
+    REQUIRE (actual.automationLanes == expected.automationLanes);
 }
 
 enum class GeneratedUndoSequenceStepKind : std::uint8_t
@@ -567,6 +589,91 @@ TEST_CASE ("Project validates MIDI Clips and Note identity", "[project][midi]")
     missingTrackOwner.midiClips.front().trackId = {};
     REQUIRE_FALSE (missingTrackOwner.midiClips.front().isValid());
     REQUIRE_FALSE (missingTrackOwner.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Project validates H15 automation lane model targets and storage-safe breakpoints",
+           "[project][automation][h15]")
+{
+    Project project = makeEditableProject();
+
+    Bus bus;
+    bus.id = idFromLowByte (45);
+    bus.strip.name = "Return";
+    project.buses = { bus };
+
+    const EntityId eqId = idFromLowByte (46);
+    project.tracks.front().strip.fxChain = { makeFxInsert (eqId, FxKind::Eq) };
+
+    const EntityId trackId = project.tracks.front().id;
+    const EntityId busId = project.buses.front().id;
+    project.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), trackId, AutomationTargetRole::TrackFader, 0),
+        makeAutomationLane (idFromLowByte (71), trackId, AutomationTargetRole::TrackPan, 1),
+        makeAutomationLane (idFromLowByte (72), trackId, AutomationTargetRole::SendLevel, 0),
+        makeAutomationLane (idFromLowByte (73), busId, AutomationTargetRole::BusFader, 0),
+        makeAutomationLane (idFromLowByte (74), busId, AutomationTargetRole::BusPan, 1),
+        makeAutomationLane (idFromLowByte (75), eqId, AutomationTargetRole::FxInsertParam, 100),
+    };
+
+    REQUIRE (project.automationLanes.front().isValid());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    Project duplicateLaneId = project;
+    duplicateLaneId.automationLanes[1].id = duplicateLaneId.automationLanes[0].id;
+    REQUIRE_FALSE (duplicateLaneId.hasUniqueEntityIds());
+    REQUIRE_FALSE (duplicateLaneId.hasValidAssetClipIndirection());
+
+    Project laneIdMatchesFxInsert = project;
+    laneIdMatchesFxInsert.automationLanes.front().id = eqId;
+    REQUIRE_FALSE (laneIdMatchesFxInsert.hasUniqueEntityIds());
+    REQUIRE_FALSE (laneIdMatchesFxInsert.hasValidAssetClipIndirection());
+
+    Project orphanTrackTarget = project;
+    orphanTrackTarget.automationLanes.front().ownerEntity = idFromLowByte (99);
+    REQUIRE_FALSE (orphanTrackTarget.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (orphanTrackTarget.hasValidAssetClipIndirection());
+
+    Project roleOwnerMismatch = project;
+    roleOwnerMismatch.automationLanes.front().ownerEntity = busId;
+    REQUIRE_FALSE (roleOwnerMismatch.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (roleOwnerMismatch.hasValidAssetClipIndirection());
+
+    Project orphanFxTarget = project;
+    orphanFxTarget.automationLanes.back().ownerEntity = idFromLowByte (98);
+    REQUIRE_FALSE (orphanFxTarget.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (orphanFxTarget.hasValidAssetClipIndirection());
+
+    Project duplicateTarget = project;
+    duplicateTarget.automationLanes[1].role = AutomationTargetRole::TrackFader;
+    duplicateTarget.automationLanes[1].paramId = 0;
+    REQUIRE_FALSE (duplicateTarget.automationTargetsReferenceProjectRows());
+    REQUIRE_FALSE (duplicateTarget.hasValidAssetClipIndirection());
+
+    Project duplicateTick = project;
+    duplicateTick.automationLanes.front().points[1].tick = duplicateTick.automationLanes.front().points[0].tick;
+    REQUIRE_FALSE (duplicateTick.automationLanes.front().isValid());
+    REQUIRE_FALSE (duplicateTick.hasValidAssetClipIndirection());
+
+    Project outOfRangeValue = project;
+    outOfRangeValue.automationLanes.front().points[0].value = 1.25;
+    REQUIRE_FALSE (outOfRangeValue.automationLanes.front().isValid());
+    REQUIRE_FALSE (outOfRangeValue.hasValidAssetClipIndirection());
+
+    Project nonFiniteValue = project;
+    nonFiniteValue.automationLanes.front().points[0].value = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_FALSE (nonFiniteValue.automationLanes.front().isValid());
+    REQUIRE_FALSE (nonFiniteValue.hasValidAssetClipIndirection());
+
+    Project quarantinedCurve = project;
+    quarantinedCurve.automationLanes.front().points[0].curveType = AutomationCurveType::Bezier;
+    REQUIRE_FALSE (quarantinedCurve.automationLanes.front().isValid());
+    REQUIRE_FALSE (quarantinedCurve.hasValidAssetClipIndirection());
+
+    Project unknownRole = project;
+    unknownRole.automationLanes.front().role = static_cast<AutomationTargetRole> (99);
+    REQUIRE_FALSE (unknownRole.automationLanes.front().isValid());
+    REQUIRE_FALSE (unknownRole.hasValidAssetClipIndirection());
 }
 
 TEST_CASE ("Project validates Track and Bus FX chain identity and normalized params", "[project][fx]")

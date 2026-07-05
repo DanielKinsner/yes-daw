@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "engine/Automation.h"
 #include "engine/MixerValue.h"
 #include "engine/Time.h"
 
@@ -456,6 +457,80 @@ struct ProjectRecordingCompSegment
     friend constexpr bool operator== (const ProjectRecordingCompSegment&, const ProjectRecordingCompSegment&) noexcept = default;
 };
 
+enum class AutomationTargetRole : std::uint8_t
+{
+    TrackFader = 0,
+    TrackPan,
+    SendLevel,
+    BusFader,
+    BusPan,
+    FxInsertParam
+};
+
+[[nodiscard]] constexpr bool automationTargetRoleIsKnown (AutomationTargetRole role) noexcept
+{
+    return role == AutomationTargetRole::TrackFader
+           || role == AutomationTargetRole::TrackPan
+           || role == AutomationTargetRole::SendLevel
+           || role == AutomationTargetRole::BusFader
+           || role == AutomationTargetRole::BusPan
+           || role == AutomationTargetRole::FxInsertParam;
+}
+
+[[nodiscard]] inline bool automationBreakpointValueIsValid (double value) noexcept
+{
+    return std::isfinite (value) && value >= 0.0 && value <= 1.0;
+}
+
+[[nodiscard]] constexpr bool automationCurveIsStorageSafe (AutomationCurveType curve) noexcept
+{
+    return curve == AutomationCurveType::Linear || curve == AutomationCurveType::Hold;
+}
+
+struct AutomationBreakpoint
+{
+    Tick tick = 0;
+    double value = 0.0;
+    AutomationCurveType curveType = AutomationCurveType::Linear;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return tick >= 0
+               && automationBreakpointValueIsValid (value)
+               && automationCurveIsStorageSafe (curveType);
+    }
+
+    friend constexpr bool operator== (const AutomationBreakpoint&, const AutomationBreakpoint&) noexcept = default;
+};
+
+struct AutomationLaneData
+{
+    EntityId id;
+    EntityId ownerEntity;
+    AutomationTargetRole role = AutomationTargetRole::TrackFader;
+    std::uint32_t paramId = 0;
+    std::vector<AutomationBreakpoint> points;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! ownerEntity.isValid() || ! automationTargetRoleIsKnown (role))
+            return false;
+
+        for (std::size_t i = 0; i < points.size(); ++i)
+        {
+            if (! points[i].isValid())
+                return false;
+
+            if (i > 0 && points[i].tick <= points[i - 1u].tick)
+                return false;
+        }
+
+        return true;
+    }
+
+    friend bool operator== (const AutomationLaneData&, const AutomationLaneData&) = default;
+};
+
 enum class ProjectEditStatus : std::uint8_t
 {
     Applied = 0,
@@ -507,6 +582,9 @@ struct Project
     std::vector<RecordingTake> recordingTakes;
     // H13 basic Comp surface (ADR-0036): ordered non-destructive segments choose source windows from Takes.
     std::vector<ProjectRecordingCompSegment> recordingCompSegments;
+    // H15 automation surface (ADR-0039): normalized Breakpoints target stable Project entities by role.
+    // Runtime NodeId resolution, schema v8 persistence, and undo verbs land in later CP1/CP3 slices.
+    std::vector<AutomationLaneData> automationLanes;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -575,6 +653,10 @@ struct Project
 
         for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
             if (! segment.isValid())
+                return false;
+
+        for (const AutomationLaneData& lane : automationLanes)
+            if (! lane.isValid())
                 return false;
 
         return true;
@@ -769,6 +851,46 @@ struct Project
                     return false;
         }
 
+        for (std::size_t i = 0; i < automationLanes.size(); ++i)
+        {
+            const AutomationLaneData& lane = automationLanes[i];
+
+            if (lane.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (lane.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (lane.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (lane.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (lane.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (lane.id == midiClip.id)
+                    return false;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (lane.id == take.id)
+                    return false;
+
+            for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+                if (lane.id == segment.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (lane.id == automationLanes[j].id)
+                    return false;
+        }
+
         const auto isNonFxProjectEntity = [this] (EntityId entity) noexcept
         {
             if (entity == id)
@@ -800,6 +922,10 @@ struct Project
 
             for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
                 if (entity == segment.id)
+                    return true;
+
+            for (const AutomationLaneData& lane : automationLanes)
+                if (entity == lane.id)
                     return true;
 
             return false;
@@ -974,6 +1100,59 @@ struct Project
         return true;
     }
 
+    [[nodiscard]] bool automationTargetsReferenceProjectRows() const noexcept
+    {
+        for (std::size_t i = 0; i < automationLanes.size(); ++i)
+        {
+            const AutomationLaneData& lane = automationLanes[i];
+
+            switch (lane.role)
+            {
+                case AutomationTargetRole::TrackFader:
+                case AutomationTargetRole::TrackPan:
+                case AutomationTargetRole::SendLevel:
+                    if (findTrack (lane.ownerEntity) == nullptr)
+                        return false;
+                    break;
+
+                case AutomationTargetRole::BusFader:
+                case AutomationTargetRole::BusPan:
+                    if (findBus (lane.ownerEntity) == nullptr)
+                        return false;
+                    break;
+
+                case AutomationTargetRole::FxInsertParam:
+                {
+                    bool found = false;
+                    for (const Track& track : tracks)
+                        for (const FxInsert& insert : track.strip.fxChain)
+                            if (insert.id == lane.ownerEntity)
+                                found = true;
+
+                    for (const Bus& bus : buses)
+                        for (const FxInsert& insert : bus.strip.fxChain)
+                            if (insert.id == lane.ownerEntity)
+                                found = true;
+
+                    if (! found)
+                        return false;
+                    break;
+                }
+            }
+
+            for (std::size_t j = 0; j < i; ++j)
+            {
+                const AutomationLaneData& earlier = automationLanes[j];
+                if (lane.ownerEntity == earlier.ownerEntity
+                    && lane.role == earlier.role
+                    && lane.paramId == earlier.paramId)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     [[nodiscard]] bool hasValidAssetClipIndirection() const noexcept
     {
         return sampleRate.isValid()
@@ -985,7 +1164,8 @@ struct Project
                && clipsReferenceAssets()
                && clipsReferenceTracks()
                && recordingTakesReferenceProjectRows()
-               && recordingCompSegmentsReferenceTakes();
+               && recordingCompSegmentsReferenceTakes()
+               && automationTargetsReferenceProjectRows();
     }
 };
 
@@ -1133,6 +1313,10 @@ namespace detail {
 
     for (const ProjectRecordingCompSegment& segment : project.recordingCompSegments)
         if (segment.id == id)
+            return true;
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.id == id)
             return true;
 
     for (const Track& track : project.tracks)
