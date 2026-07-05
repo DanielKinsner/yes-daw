@@ -47,14 +47,14 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H14 CP7 is the only implementation scope for this thread. Do not start CP8 here.
+**Baton note:** H14 CP8 is the only implementation scope for this thread. Do not start CP9 here.
 
 ---
 
 ## Live packet — H14 implementation
 
 **Last updated:** 2026-07-04
-**Current horizon:** **H14 (Built-in FX suite) — CP7 ReverbNode CLOSEOUT REMOTE-GREEN; final baton CI pending after push.**
+**Current horizon:** **H14 (Built-in FX suite) — CP8 LimiterNode implementation local-green; implementation CI pending after push.**
 H13 is closed remote-green. H14 CP1 is closed remote-green (`0621656`, GitHub Actions run
 `28695566078`; closeout `1213954`, run `28695963126`). H14 CP2 is closed remote-green
 (`2154ed9`, GitHub Actions run `28697062994`; closeout `2a98990`, run `28697491670`). H14 CP3 is
@@ -66,46 +66,46 @@ RTSan, and TSan. H14 CP5 is closed remote-green: implementation `6e64753` passed
 closeout `a4cd154` passed run `28720500367`, and final baton `aac85ec` passed run `28720932073`, all
 across Linux, Windows, macOS, RTSan, and TSan. H14 CP6 is closed remote-green: implementation
 `8501f93` passed run `28721683671`, closeout `55ed607` passed run `28722100076`, and final baton
-`9cf8f02` passed run `28722537692`, all across Linux, Windows, macOS, RTSan, and TSan.
+`9cf8f02` passed run `28722537692`, all across Linux, Windows, macOS, RTSan, and TSan. H14 CP7 is
+closed remote-green: implementation `6ed5d94` passed run `28723224456`, closeout `f0e69e2` passed
+run `28723625022`, and final baton `1484e67` passed run `28724036864`, all across Linux, Windows,
+macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Rolling-baton review first re-verified CP6 from current repo + remote CI:
+**Done this checkpoint:** Rolling-baton review first re-verified CP7 from current repo + remote CI:
 session start `git pull --ff-only` was already up to date; local `HEAD`, `main`, and `origin/main`
-all pointed at `9cf8f02`; CP6 final-baton run `28722537692` was completed/successful across Linux,
-Windows, macOS, RTSan, and TSan. CP7 adds the additive `NodeProperties::tailSamples` contract,
-`CompiledGraph::totalTailSamples`, and `OfflineRenderer::buildProjectGraph` checked extension by
-`totalLatency() + sum(tailSamples)` using the existing `OutputTooLarge` path. CP7 also adds
-`src/engine/nodes/ReverbNode.h`: a stereo, float32, in-place 8-line Householder FDN reverb with
-pre-delay, two input allpasses per channel, RT60-derived per-line gains, damping, size, wet/dry mix,
-real-valued 5 ms parameter ramps anchored to absolute event frames, buffers allocated only in
-`prepare(sampleRate, maxBlockSize)`, and conservative `tailSamples = min(ceil(RT60*fs) + preDelay +
-maxLine, 30*fs)`. `YesDawReverbCheck` is registered as an exact named CTest gate and covers
-ParamSpec ranges, dry/null, RT60 via Schroeder integration at 1 s and 3 s, stability after 30 s noise,
-decorrelation/mono-sum, damping spectral tilt, hostile inputs/params, H14 block-size independence,
-event-offset anchored smoothing, and required CP7 negative controls: dry-term perturbation,
-growing-feedback stability failure, block-boundary state reset, apply-event-at-block-start, and
-reported `tailSamples = 0` making the compiled-graph post-clip tail assertion fail. No CP8 limiter
-work, CP9 insert-chain mixer wiring, CP10 fade/golden work, FX UI, schema change, ADR edit, golden
-regeneration, `[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
+all pointed at `1484e67`; CP7 final-baton run `28724036864` was completed/successful across Linux,
+Windows, macOS, RTSan, and TSan. CP8 adds `src/engine/nodes/LimiterNode.h`: a stereo, float32,
+in-place lookahead limiter per Appendix A5 with raw target gain, one-pole release smoothing, a
+prepare-allocated monotonic deque for the sliding-window minimum over the next `D` samples,
+boxcar attack smoothing length `D` with a 4096-frame absolute-frame-anchored sum rebuild, delayed
+output, `latencySamples = D`, `tailSamples = D`, ParamSpec rows for ceiling/release/lookahead, GR
+readback, hostile-value clamping, and allocation only in `prepare(sampleRate, maxBlockSize)`.
+`YesDawLimiterCheck` is registered as an exact named CTest gate and covers ParamSpec ranges,
+transparency as delayed input, the 10,000-block adversarial ceiling property, gain-slope bound,
+latency honesty, hostile inputs/params, H14 block-size independence, event-offset anchored smoothing,
+and the required CP8 parallel-path PDC gate: source split through `LimiterNode` plus dry sibling sums
+to one aligned impulse. Required negative controls are in the same gate: dry/null perturbation,
+stage-3 window shrunk by one sample detects an over, bypassing stage 4 fails the slope bound,
+block-boundary state reset changes the render, apply-event-at-block-start changes the cross-schedule
+render, and reporting limiter latency 0 produces/detects a double impulse. No CP9 insert-chain mixer
+wiring, CP10 fade/golden work, FX UI, schema change, ADR edit, golden regeneration,
+`[[clang::nonblocking]]` annotation change, or `docs/reality-lane.md` change.
 
-Implementation commit `6ed5d94` passed GitHub Actions run `28723224456` across Linux, Windows, macOS,
-RTSan, and TSan. Closeout commit `f0e69e2` passed GitHub Actions run `28723625022` across Linux,
-Windows, macOS, RTSan, and TSan.
+Implementation commit pending. Remote implementation gate pending after push.
 
-**Now:** CP7 closeout is remote-green; commit and push this final baton STATUS update, then wait for
-remote CI on the final baton commit before creating the CP8 successor. Local gates:
-`git diff --check`; VS DevShell (BuildTools x64)
-`cmake --build --preset ci --target YesDawReverbCheck`; PowerShell
-`ctest --preset ci -R "^YesDawReverbCheck$" --output-on-failure` passed; PowerShell
-`ctest --preset ci --output-on-failure` **274/274**; VS DevShell (BuildTools x64)
-`cmake --build --preset ci`; PowerShell repeat `ctest --preset ci --output-on-failure` **274/274**.
-Remote prior-checkpoint gate: GitHub Actions run `28722537692` passed Linux, Windows, macOS, RTSan,
-and TSan for CP6 final baton. Remote CP7 implementation gate: GitHub Actions run `28723224456`
-passed Linux, Windows, macOS, RTSan, and TSan for implementation commit `6ed5d94`. Remote CP7
-closeout gate: GitHub Actions run `28723625022` passed Linux, Windows, macOS, RTSan, and TSan for
-closeout commit `f0e69e2`.
+**Now:** commit and push the CP8 implementation, then wait for remote CI on the implementation commit.
+Local gates: `git diff --check`; VS DevShell (BuildTools x64 via `vcvars64.bat`)
+`cmake --build --preset ci --target YesDawLimiterCheck`; PowerShell
+`ctest --preset ci -R "^YesDawLimiterCheck$" --output-on-failure` passed; PowerShell
+`ctest --preset ci --output-on-failure` **275/275**; VS DevShell (BuildTools x64 via `vcvars64.bat`)
+`cmake --build --preset ci`; PowerShell repeat `ctest --preset ci --output-on-failure` **275/275**.
+Remote prior-checkpoint gate: GitHub Actions run `28724036864` passed Linux, Windows, macOS, RTSan,
+and TSan for CP7 final baton.
 
-**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on this final baton
-commit. Then create exactly one CP8 successor thread. Do not start CP8 here.
+**Next:** wait for GitHub Actions to pass Linux, Windows, macOS, RTSan, and TSan on the CP8
+implementation commit. Then record the remote-green implementation run in `STATUS.md`, commit/push the
+CP8 closeout STATUS update, wait for that closeout CI to pass, create exactly one CP9 successor thread,
+and stop. Do not start CP9 here.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

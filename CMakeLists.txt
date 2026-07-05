@@ -371,6 +371,13 @@ target_link_libraries(YesDawReverbCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawReverbCheck)
 add_test(NAME YesDawReverbCheck COMMAND $<TARGET_FILE:YesDawReverbCheck>)
 
+# --- LimiterNode check (H14 CP8; lookahead limiter + PDC alignment) ---
+add_executable(YesDawLimiterCheck tests/limiter_tests.cpp)
+target_include_directories(YesDawLimiterCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawLimiterCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawLimiterCheck)
+add_test(NAME YesDawLimiterCheck COMMAND $<TARGET_FILE:YesDawLimiterCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
