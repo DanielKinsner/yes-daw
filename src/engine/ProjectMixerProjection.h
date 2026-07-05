@@ -8,6 +8,11 @@
 
 #include "engine/MixerGraphProjection.h"
 #include "engine/Project.h"
+#include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/EqNode.h"
+#include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
+#include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
@@ -26,7 +31,8 @@ enum class ProjectMixerNodeRole : std::uint8_t
     Pan,
     Meter,
     MidiSource,
-    Instrument
+    Instrument,
+    Fx
 };
 
 struct ProjectMixerProjectionConfig
@@ -48,7 +54,8 @@ struct ProjectMixerProjectionError
         InvalidTrackGain,
         DuplicateNodeId,
         SourceFactoryFailed,
-        SourceNodeIdMismatch
+        SourceNodeIdMismatch,
+        FxNodeFactoryFailed
     };
 
     Code code = Code::None;
@@ -107,6 +114,80 @@ namespace detail {
     return true;
 }
 
+inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
+{
+    if (! insert.enabled)
+        return;
+
+    for (const auto& [paramId, normalizedValue] : insert.normalizedParams)
+    {
+        if (auto* eq = dynamic_cast<EqNode*> (&node))
+            eq->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* compressor = dynamic_cast<CompressorNode*> (&node))
+            compressor->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* delay = dynamic_cast<FxDelayNode*> (&node))
+            delay->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* reverb = dynamic_cast<ReverbNode*> (&node))
+            reverb->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* limiter = dynamic_cast<LimiterNode*> (&node))
+            limiter->setNormalizedParameter (paramId, normalizedValue);
+    }
+}
+
+[[nodiscard]] inline std::unique_ptr<Node> makeProjectFxInsertNode (const FxInsert& insert, NodeId nodeId)
+{
+    std::unique_ptr<Node> node;
+    switch (insert.kind)
+    {
+        case FxKind::Eq:
+            node = std::make_unique<EqNode> (nodeId);
+            break;
+        case FxKind::Compressor:
+            node = std::make_unique<CompressorNode> (nodeId);
+            break;
+        case FxKind::Delay:
+            node = std::make_unique<FxDelayNode> (nodeId);
+            break;
+        case FxKind::Reverb:
+            node = std::make_unique<ReverbNode> (nodeId);
+            break;
+        case FxKind::Limiter:
+            node = std::make_unique<LimiterNode> (nodeId);
+            break;
+    }
+
+    if (node != nullptr)
+        applyFxInsertParams (*node, insert);
+    return node;
+}
+
+[[nodiscard]] inline bool appendProjectFxChainNodes (const std::vector<FxInsert>& chain,
+                                                     std::vector<NodeId>& usedIds,
+                                                     std::vector<std::unique_ptr<Node>>& out,
+                                                     std::size_t ownerIndex,
+                                                     ProjectMixerProjectionError* error)
+{
+    out.reserve (out.size() + chain.size());
+    for (const FxInsert& insert : chain)
+    {
+        const NodeId fxNodeId = projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx);
+        if (! registerProjectMixerNodeId (usedIds, fxNodeId, ownerIndex, ProjectMixerNodeRole::Fx, error))
+            return false;
+
+        std::unique_ptr<Node> node = makeProjectFxInsertNode (insert, fxNodeId);
+        if (node == nullptr)
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::FxNodeFactoryFailed, ownerIndex, fxNodeId, ProjectMixerNodeRole::Fx };
+            return false;
+        }
+
+        out.push_back (std::move (node));
+    }
+
+    return true;
+}
+
 } // namespace detail
 
 // SourceFactory signature:
@@ -138,7 +219,13 @@ template <typename SourceFactory>
     projection.tracks.reserve (project.tracks.size());
 
     std::vector<NodeId> usedIds;
-    usedIds.reserve (project.tracks.size() * 4u + project.clips.size() + 2u);
+    std::size_t fxInsertCount = 0;
+    for (const Track& track : project.tracks)
+        fxInsertCount += track.strip.fxChain.size();
+    for (const Bus& bus : project.buses)
+        fxInsertCount += bus.strip.fxChain.size();
+
+    usedIds.reserve (project.tracks.size() * 4u + project.buses.size() * 3u + project.clips.size() + fxInsertCount + 2u);
     if (! detail::registerProjectMixerNodeId (usedIds, projection.masterSumNodeId, 0, ProjectMixerNodeRole::Source, error)
         || ! detail::registerProjectMixerNodeId (usedIds, projection.masterNodeId, 0, ProjectMixerNodeRole::Source, error))
         return false;
@@ -236,7 +323,42 @@ template <typename SourceFactory>
         track.meterNodeId = meterId;
         track.linearGain = owningTrack.strip.linearGain;
         track.pan = owningTrack.strip.pan;
+        if (! detail::appendProjectFxChainNodes (owningTrack.strip.fxChain,
+                                                 usedIds,
+                                                 track.insertNodes,
+                                                 trackIndex,
+                                                 error))
+            return false;
         projection.tracks.push_back (std::move (track));
+    }
+
+    for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+    {
+        const Bus& bus = project.buses[busIndex];
+        if (bus.strip.fxChain.empty())
+            continue;
+
+        const NodeId sumId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source);
+        const NodeId panId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Pan);
+        const NodeId meterId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Meter);
+        if (! detail::registerProjectMixerNodeId (usedIds, sumId, busIndex, ProjectMixerNodeRole::Source, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, panId, busIndex, ProjectMixerNodeRole::Pan, error)
+            || ! detail::registerProjectMixerNodeId (usedIds, meterId, busIndex, ProjectMixerNodeRole::Meter, error))
+            return false;
+
+        MixerBusProjection projectedBus;
+        projectedBus.sumNodeId = sumId;
+        projectedBus.panNodeId = panId;
+        projectedBus.meterNodeId = meterId;
+        projectedBus.pan = bus.strip.pan;
+        if (! detail::appendProjectFxChainNodes (bus.strip.fxChain,
+                                                 usedIds,
+                                                 projectedBus.insertNodes,
+                                                 busIndex,
+                                                 error))
+            return false;
+
+        projection.buses.push_back (std::move (projectedBus));
     }
 
     out = std::move (projection);

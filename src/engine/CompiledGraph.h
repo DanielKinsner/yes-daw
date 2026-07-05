@@ -80,6 +80,11 @@ enum class CompiledNodeKind : std::uint8_t
     Placeholder,
     MidiEffect,
     MidiSource,
+    Eq,
+    Compressor,
+    FxDelay,
+    Reverb,
+    Limiter,
     Plugin
 };
 

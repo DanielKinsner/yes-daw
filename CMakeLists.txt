@@ -378,6 +378,16 @@ target_link_libraries(YesDawLimiterCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawLimiterCheck)
 add_test(NAME YesDawLimiterCheck COMMAND $<TARGET_FILE:YesDawLimiterCheck>)
 
+# --- FX suite integration check (H14 CP9; persisted insert chains + suite offline/RT parity) ---
+add_executable(YesDawFxSuiteCheck tests/fx_suite_tests.cpp)
+target_include_directories(YesDawFxSuiteCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawFxSuiteCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_compile_definitions(YesDawFxSuiteCheck PRIVATE
+  YESDAW_FX_SCHEMA_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h14_cp9_fx_schema.yesdaw")
+target_link_libraries(YesDawFxSuiteCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawFxSuiteCheck)
+add_test(NAME YesDawFxSuiteCheck COMMAND $<TARGET_FILE:YesDawFxSuiteCheck>)
+
 # --- MIDI timing check (H4; MIDI Clip Notes -> Events -> latent Instrument Node under PDC) ---
 add_executable(YesDawMidiTimingCheck tests/midi_timing_tests.cpp)
 target_include_directories(YesDawMidiTimingCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -656,8 +666,11 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawEventCheck
   YesDawParamCheck
   YesDawEqCheck
+  YesDawCompressorCheck
   YesDawFxDelayCheck
   YesDawReverbCheck
+  YesDawLimiterCheck
+  YesDawFxSuiteCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
   YesDawPersistenceCheck

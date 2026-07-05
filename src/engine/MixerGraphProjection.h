@@ -12,9 +12,14 @@
 #include "engine/MixerValue.h"
 #include "engine/Node.h"
 #include "engine/nodes/FaderNode.h"
+#include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/EqNode.h"
+#include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 
@@ -71,6 +76,7 @@ struct MixerTrackProjection
     NodeId meterNodeId = 0;
     float  linearGain  = 1.0f;
     float  pan         = 0.0f;
+    std::vector<std::unique_ptr<Node>> insertNodes;
     std::vector<MixerSendProjection> sends;
     // Optional sidechain key. When set, a SidechainGainNode (id = sidechainNodeId) is inserted as a VCA on
     // the track source, keyed by this signal, ahead of the fader (ADR-0014). null = no sidechain. The key
@@ -86,6 +92,7 @@ struct MixerBusProjection
     NodeId panNodeId   = 0;
     NodeId meterNodeId = 0;
     float  pan         = 0.0f;   // centre by default; equal-power, like a Track Return (ADR-0014)
+    std::vector<std::unique_ptr<Node>> insertNodes;
 };
 
 struct MixerProjectionInputs
@@ -106,6 +113,37 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         inputs.push_back (node);
 }
 
+[[nodiscard]] inline bool setMixerInsertInput (Node& node, Node* input) noexcept
+{
+    if (auto* fx = dynamic_cast<EqNode*> (&node))
+    {
+        fx->setInput (input);
+        return true;
+    }
+    if (auto* fx = dynamic_cast<CompressorNode*> (&node))
+    {
+        fx->setInput (input);
+        return true;
+    }
+    if (auto* fx = dynamic_cast<FxDelayNode*> (&node))
+    {
+        fx->setInput (input);
+        return true;
+    }
+    if (auto* fx = dynamic_cast<ReverbNode*> (&node))
+    {
+        fx->setInput (input);
+        return true;
+    }
+    if (auto* fx = dynamic_cast<LimiterNode*> (&node))
+    {
+        fx->setInput (input);
+        return true;
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline std::unique_ptr<CompiledGraph> buildMixerGraphProjection (MixerProjectionInputs&& projection,
                                                                                MixerProjectionError* error = nullptr)
 {
@@ -122,7 +160,12 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     std::size_t supportNodeCount = 0;
     for (const MixerTrackProjection& track : projection.tracks)
         supportNodeCount += track.supportNodes.size();
-    inputs.nodes.reserve (projection.tracks.size() * 6u + supportNodeCount + projection.buses.size() * 3u + 2u);
+    std::size_t insertNodeCount = 0;
+    for (const MixerTrackProjection& track : projection.tracks)
+        insertNodeCount += track.insertNodes.size();
+    for (const MixerBusProjection& bus : projection.buses)
+        insertNodeCount += bus.insertNodes.size();
+    inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + projection.buses.size() * 4u + 2u);
 
     std::vector<Node*> masterBusInputs;
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
@@ -200,7 +243,48 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             chainHead = sidechain.get();
         }
 
-        auto fader = std::make_unique<FaderNode> (track.faderNodeId, 1);
+        std::unique_ptr<PanNode> pan;
+        PanNode* panPtr = nullptr;
+        int chainChannels = sourceProps.channels;
+
+        if (! track.insertNodes.empty())
+        {
+            pan = std::make_unique<PanNode> (track.panNodeId);
+            panPtr = pan.get();
+            panPtr->setInput (chainHead);
+            panPtr->setPan (track.pan);
+            chainHead = panPtr;
+            chainChannels = 2;
+
+            for (std::unique_ptr<Node>& insertNode : track.insertNodes)
+            {
+                if (insertNode == nullptr || ! setMixerInsertInput (*insertNode, chainHead))
+                {
+                    if (error != nullptr)
+                    {
+                        error->code = MixerProjectionError::Code::UnsupportedTrackSource;
+                        error->trackIndex = i;
+                    }
+                    return nullptr;
+                }
+
+                const NodeProperties insertProps = insertNode->properties();
+                if (! insertProps.producesAudio || insertProps.channels != 2)
+                {
+                    if (error != nullptr)
+                    {
+                        error->code = MixerProjectionError::Code::UnsupportedTrackSource;
+                        error->trackIndex = i;
+                    }
+                    return nullptr;
+                }
+
+                chainHead = insertNode.get();
+                chainChannels = insertProps.channels;
+            }
+        }
+
+        auto fader = std::make_unique<FaderNode> (track.faderNodeId, chainChannels);
         FaderNode* const faderPtr = fader.get();
         faderPtr->setInput (chainHead);
         faderPtr->setTargetGain (track.linearGain);
@@ -224,14 +308,17 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             pushUniqueMixerInput (busInputs[send.busIndex], tap);
         }
 
-        auto pan = std::make_unique<PanNode> (track.panNodeId);
-        PanNode* const panPtr = pan.get();
-        panPtr->setInput (faderPtr);
-        panPtr->setPan (track.pan);
+        if (pan == nullptr)
+        {
+            pan = std::make_unique<PanNode> (track.panNodeId);
+            panPtr = pan.get();
+            panPtr->setInput (faderPtr);
+            panPtr->setPan (track.pan);
+        }
 
         auto meter = std::make_unique<MeterNode> (track.meterNodeId, 2);
         MeterNode* const meterPtr = meter.get();
-        meterPtr->setInput (panPtr);
+        meterPtr->setInput (track.insertNodes.empty() ? static_cast<Node*> (panPtr) : static_cast<Node*> (faderPtr));
 
         for (std::unique_ptr<Node>& supportNode : track.supportNodes)
         {
@@ -252,15 +339,20 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             inputs.nodes.push_back (std::move (track.sidechainSource));
         if (sidechain != nullptr)
             inputs.nodes.push_back (std::move (sidechain));
+        if (! track.insertNodes.empty())
+            inputs.nodes.push_back (std::move (pan));
+        for (std::unique_ptr<Node>& insertNode : track.insertNodes)
+            inputs.nodes.push_back (std::move (insertNode));
         inputs.nodes.push_back (std::move (fader));
-        inputs.nodes.push_back (std::move (pan));
+        if (track.insertNodes.empty())
+            inputs.nodes.push_back (std::move (pan));
         inputs.nodes.push_back (std::move (meter));
         masterBusInputs.push_back (meterPtr);
     }
 
     for (std::size_t i = 0; i < projection.buses.size(); ++i)
     {
-        const MixerBusProjection& bus = projection.buses[i];
+        MixerBusProjection& bus = projection.buses[i];
 
         if (! mixerPanIsValid (bus.pan))
         {
@@ -280,9 +372,36 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         SumNode* const busSumPtr = busSum.get();
         busSum->setInputNodes (std::move (busInputs[i]));
 
+        Node* busChainHead = busSumPtr;
+        for (std::unique_ptr<Node>& insertNode : bus.insertNodes)
+        {
+            if (insertNode == nullptr || ! setMixerInsertInput (*insertNode, busChainHead))
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::GraphBuildFailed;
+                    error->busIndex = i;
+                }
+                return nullptr;
+            }
+
+            const NodeProperties insertProps = insertNode->properties();
+            if (! insertProps.producesAudio || insertProps.channels != 2)
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::GraphBuildFailed;
+                    error->busIndex = i;
+                }
+                return nullptr;
+            }
+
+            busChainHead = insertNode.get();
+        }
+
         auto busPan = std::make_unique<PanNode> (bus.panNodeId);
         PanNode* const busPanPtr = busPan.get();
-        busPanPtr->setInput (busSumPtr);
+        busPanPtr->setInput (busChainHead);
         busPanPtr->setPan (bus.pan);
 
         auto busMeter = std::make_unique<MeterNode> (bus.meterNodeId, 2);
@@ -290,6 +409,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         busMeterPtr->setInput (busPanPtr);
 
         inputs.nodes.push_back (std::move (busSum));
+        for (std::unique_ptr<Node>& insertNode : bus.insertNodes)
+            inputs.nodes.push_back (std::move (insertNode));
         inputs.nodes.push_back (std::move (busPan));
         inputs.nodes.push_back (std::move (busMeter));
         masterBusInputs.push_back (busMeterPtr);

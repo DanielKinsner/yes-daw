@@ -9,15 +9,20 @@
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
+#include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/EqNode.h"
 #include "engine/nodes/FaderNode.h"
+#include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
+#include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "engine/nodes/MidiEffectNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
 #include "engine/nodes/PlaceholderNode.h"
+#include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/plugin/PluginNode.h"
 #include "engine/nodes/SumNode.h"
@@ -314,6 +319,16 @@ private:
             return CompiledNodeKind::MidiEffect;
         if (dynamic_cast<DecodedMidiClipNode*> (&node) != nullptr)
             return CompiledNodeKind::MidiSource;
+        if (dynamic_cast<EqNode*> (&node) != nullptr)
+            return CompiledNodeKind::Eq;
+        if (dynamic_cast<CompressorNode*> (&node) != nullptr)
+            return CompiledNodeKind::Compressor;
+        if (dynamic_cast<FxDelayNode*> (&node) != nullptr)
+            return CompiledNodeKind::FxDelay;
+        if (dynamic_cast<ReverbNode*> (&node) != nullptr)
+            return CompiledNodeKind::Reverb;
+        if (dynamic_cast<LimiterNode*> (&node) != nullptr)
+            return CompiledNodeKind::Limiter;
         return CompiledNodeKind::Plugin;
     }
 
