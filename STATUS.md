@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP2 H14 FX side-band consumer sub-slice is local-green;
-remote CI for this checkpoint is pending until the commit is pushed.**
+**Current horizon:** **H15 (Automation) — CP2 H14 FX side-band consumer sub-slice is closed
+remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -129,10 +129,10 @@ events in sample-offset order. New `YesDawFxAutomationCheck` proves each FX kind
 side-band event while a wrong-target regular event is ignored. This does not compile/evaluate Project
 automation lanes, alter GraphBuilder/runtime lane storage, start CP3 side-band emission, touch FX UI,
 automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
-`YESDAW_RT_HOT` annotations.
+`YESDAW_RT_HOT` annotations. Implementation commit `0e886bc` passed GitHub Actions run `28741294506`
+across Linux, Windows, macOS, RTSan, and TSan.
 
-**Now:** Commit and push this CP2 H14 FX side-band consumer sub-slice, then wait for the GitHub Actions run
-for that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -144,6 +144,7 @@ Local gates for this checkpoint:
 - Focused CTest passed **6/6** for `YesDaw(FxAutomation|Eq|Compressor|FxDelay|Reverb|Limiter)Check`.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **293/293** tests.
+- Remote GitHub Actions run `28741294506` for `0e886bc` passed Linux, Windows, macOS, RTSan, and TSan.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
 H15 chunk only: if review finds a missing CP2 consumer proof, fix that first; otherwise begin plan-labeled
