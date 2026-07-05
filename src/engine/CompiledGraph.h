@@ -765,6 +765,23 @@ private:
         return index;
     }
 
+    [[nodiscard]] static double automationValueAtFrame (const CompiledAutomationLane& lane,
+                                                        std::int64_t frame) noexcept YESDAW_RT_HOT
+    {
+        if (lane.frames.empty())
+            return 0.0;
+
+        const std::size_t next = seekAutomationBreakpointIndex (lane, frame);
+        if (next == 0u)
+            return lane.values.front();
+        if (next < lane.frames.size() && lane.frames[next] == frame)
+            return lane.values[next];
+        if (next >= lane.frames.size())
+            return lane.values.back();
+
+        return interpolateCompiledAutomationValue (lane, next - 1u, frame);
+    }
+
     [[nodiscard]] static std::int64_t firstAutomationControlFrame (std::int64_t firstFrame) noexcept YESDAW_RT_HOT
     {
         std::int64_t controlFrame = ((firstFrame + 63) / 64) * 64;
@@ -818,6 +835,18 @@ private:
         cursor.initialized = true;
     }
 
+    static void consumeAutomationEventsAtBlockStart (const CompiledAutomationLane& lane,
+                                                     CompiledAutomationLaneCursor& cursor,
+                                                     std::int64_t blockStart) noexcept YESDAW_RT_HOT
+    {
+        while (cursor.nextBreakpointIndex < lane.frames.size()
+               && lane.frames[cursor.nextBreakpointIndex] == blockStart)
+            ++cursor.nextBreakpointIndex;
+
+        if (cursor.nextControlFrame == blockStart)
+            cursor.nextControlFrame += 64;
+    }
+
     static void emitCompiledLaneAutomationEvents (const CompiledAutomationLane& lane,
                                                   CompiledAutomationLaneCursor& cursor,
                                                   std::int64_t blockStart,
@@ -825,8 +854,14 @@ private:
                                                   std::span<Event> out,
                                                   std::size_t& count) noexcept YESDAW_RT_HOT
     {
+        const bool discontinuousReset = cursor.initialized && blockStart != cursor.lastBlockEnd;
         if (! cursor.initialized || blockStart != cursor.lastBlockEnd)
             resetAutomationLaneCursorForBlock (lane, cursor, blockStart);
+        if (discontinuousReset && ! lane.frames.empty())
+        {
+            emitAutomationEvent (lane, blockStart, blockStart, automationValueAtFrame (lane, blockStart), out, count);
+            consumeAutomationEventsAtBlockStart (lane, cursor, blockStart);
+        }
 
         while (cursor.nextBreakpointIndex < lane.frames.size())
         {

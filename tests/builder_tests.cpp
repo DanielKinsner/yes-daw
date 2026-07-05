@@ -711,6 +711,84 @@ TEST_CASE ("CompiledGraph automation lane cursors continue across sequential Blo
         REQUIRE (out[static_cast<std::size_t> (i)] == 0.5f);
 }
 
+TEST_CASE ("CompiledGraph automation lane cursors reset on discontinuous locate and loop Blocks",
+           "[builder][automation][runtime][cursor][locate][h15][cp3]")
+{
+    constexpr NodeId kProbeId = 46;
+    constexpr yesdaw::engine::ParameterId kParameterId = 9;
+    AutomationProbeState state;
+
+    auto source = std::make_unique<IdentityDcNode> (1, 0.75f, 1);
+    auto probe = std::make_unique<AutomationProbeNode> (kProbeId, state);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    AutomationProbeNode* const probePtr = probe.get();
+    probePtr->setInput (sourcePtr);
+    master->setInputNodes ({ probePtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 192;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (probe));
+    inputs.nodes.push_back (std::move (master));
+
+    CompiledAutomationLane lane;
+    lane.targetNode = kProbeId;
+    lane.parameterId = kParameterId;
+    lane.frames = { 32, 160 };
+    lane.values = { 0.25, 0.75 };
+    lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+
+    std::vector<float> out (192, -999.0f);
+    float* outChannels[1] = { out.data() };
+    yesdaw::engine::EventStream events;
+    Transport transport;
+    transport.hasTimelineFrame = true;
+
+    transport.timelineFrame = 0;
+    graph->process (outChannels, 1, 192, events, transport);
+    REQUIRE (state.count == 4u);
+
+    const std::span<const yesdaw::engine::CompiledAutomationLaneCursor> cursors =
+        graph->debugAutomationLaneCursors();
+    REQUIRE (cursors.size() == 1u);
+    REQUIRE (cursors[0].initialized);
+    REQUIRE (cursors[0].lastBlockEnd == 192);
+
+    transport.timelineFrame = 96;
+    graph->process (outChannels, 1, 96, events, transport);
+    REQUIRE (state.count == 3u);
+    REQUIRE (state.events[0].timeInBlock == 0u);
+    REQUIRE (state.events[0].payload.parameter.targetNode == kProbeId);
+    REQUIRE (state.events[0].payload.parameter.parameterId == kParameterId);
+    REQUIRE (state.events[0].payload.parameter.normalizedValue == Approx (0.5));
+    REQUIRE (state.events[1].timeInBlock == 32u);
+    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.625));
+    REQUIRE (state.events[2].timeInBlock == 64u);
+    REQUIRE (state.events[2].payload.parameter.normalizedValue == Approx (0.75));
+    REQUIRE (cursors[0].lastBlockEnd == 192);
+
+    transport.timelineFrame = 32;
+    graph->process (outChannels, 1, 64, events, transport);
+    REQUIRE (state.count == 2u);
+    REQUIRE (state.events[0].timeInBlock == 0u);
+    REQUIRE (state.events[0].payload.parameter.normalizedValue == Approx (0.25));
+    REQUIRE (state.events[1].timeInBlock == 32u);
+    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.375));
+    REQUIRE (cursors[0].lastBlockEnd == 96);
+
+    for (int i = 0; i < 64; ++i)
+        REQUIRE (out[static_cast<std::size_t> (i)] == 0.75f);
+}
+
 TEST_CASE ("GraphBuilder rejects unresolved compiled automation lane targets", "[builder][automation][h15][cp3]")
 {
     constexpr NodeId kMissingAutomationTarget = 123456u;
