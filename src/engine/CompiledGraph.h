@@ -523,6 +523,8 @@ public:
         const CompiledNode* const node = findCompiledNode (id);
         if (node == nullptr || node->kind != CompiledNodeKind::Fader || node->node == nullptr)
             return false;
+        if (hasCompiledAutomationTarget (id, FaderNode::kGainParameterId))
+            return false;
 
         static_cast<FaderNode*> (node->node)->setTargetGain (linearGain);
         return true;
@@ -532,6 +534,8 @@ public:
     {
         const CompiledNode* const node = findCompiledNode (id);
         if (node == nullptr || node->kind != CompiledNodeKind::Pan || node->node == nullptr)
+            return false;
+        if (hasCompiledAutomationTarget (id, PanNode::kPanParameterId))
             return false;
 
         static_cast<PanNode*> (node->node)->setPan (pan);
@@ -945,6 +949,15 @@ private:
             return nullptr;
 
         return &compiledNodes_[compiledIdx];
+    }
+
+    [[nodiscard]] bool hasCompiledAutomationTarget (NodeId id, ParameterId parameterId) const noexcept YESDAW_RT_HOT
+    {
+        for (const CompiledAutomationLane& lane : automationLanes_)
+            if (lane.targetNode == id && lane.parameterId == parameterId)
+                return true;
+
+        return false;
     }
 
     GraphId       id_;

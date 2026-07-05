@@ -24,7 +24,10 @@
 #include <vector>
 
 using Catch::Approx;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::CompiledAutomationLane;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::EventStream;
 using yesdaw::engine::FaderNode;
 using yesdaw::engine::GraphId;
 using yesdaw::engine::GraphBuildError;
@@ -34,6 +37,7 @@ using yesdaw::engine::MasterNode;
 using yesdaw::engine::NodeId;
 using yesdaw::engine::PanNode;
 using yesdaw::engine::Runtime;
+using yesdaw::engine::Transport;
 
 namespace {
 std::unique_ptr<CompiledGraph> graph (GraphId id, float dc) { return std::make_unique<CompiledGraph> (id, dc); }
@@ -67,6 +71,38 @@ std::unique_ptr<CompiledGraph> buildFaderGraph (GraphId id, NodeId faderId, floa
     return GraphBuilder::build (std::move (inputs), &error);   // may be null; the caller decides how to assert
 }
 
+std::unique_ptr<CompiledGraph> buildAutomatedFaderGraph (GraphId id, NodeId faderId, float dc)
+{
+    auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
+    auto fader = std::make_unique<FaderNode> (faderId, 1);
+    auto master = std::make_unique<MasterNode> (kRuntimeMasterId, 1);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    FaderNode* const faderPtr = fader.get();
+    faderPtr->setInput (sourcePtr);
+    master->setInputNodes ({ faderPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = id;
+    inputs.masterNodeId = kRuntimeMasterId;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (fader));
+    inputs.nodes.push_back (std::move (master));
+
+    CompiledAutomationLane lane;
+    lane.targetNode = faderId;
+    lane.parameterId = FaderNode::kGainParameterId;
+    lane.frames = { 0 };
+    lane.values = { 0.0 };
+    lane.curveTypes = { AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    return GraphBuilder::build (std::move (inputs), &error);
+}
+
 std::unique_ptr<CompiledGraph> buildPanGraph (GraphId id, NodeId panId, float dc)
 {
     auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
@@ -91,6 +127,38 @@ std::unique_ptr<CompiledGraph> buildPanGraph (GraphId id, NodeId panId, float dc
     return GraphBuilder::build (std::move (inputs), &error);
 }
 
+std::unique_ptr<CompiledGraph> buildAutomatedPanGraph (GraphId id, NodeId panId, float dc)
+{
+    auto source = std::make_unique<IdentityDcNode> (100, dc, 1);
+    auto pan = std::make_unique<PanNode> (panId);
+    auto master = std::make_unique<MasterNode> (kRuntimeMasterId, 2);
+
+    IdentityDcNode* const sourcePtr = source.get();
+    PanNode* const panPtr = pan.get();
+    panPtr->setInput (sourcePtr);
+    master->setInputNodes ({ panPtr });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id           = id;
+    inputs.masterNodeId = kRuntimeMasterId;
+    inputs.sampleRate   = 48000.0;
+    inputs.maxBlockSize = 512;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (pan));
+    inputs.nodes.push_back (std::move (master));
+
+    CompiledAutomationLane lane;
+    lane.targetNode = panId;
+    lane.parameterId = PanNode::kPanParameterId;
+    lane.frames = { 0 };
+    lane.values = { 0.0 };
+    lane.curveTypes = { AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+
+    GraphBuildError error;
+    return GraphBuilder::build (std::move (inputs), &error);
+}
+
 std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
 {
     std::unique_ptr<CompiledGraph> built = buildFaderGraph (id, faderId, dc);
@@ -101,6 +169,20 @@ std::unique_ptr<CompiledGraph> faderGraph (GraphId id, NodeId faderId, float dc)
 std::unique_ptr<CompiledGraph> panGraph (GraphId id, NodeId panId, float dc)
 {
     std::unique_ptr<CompiledGraph> built = buildPanGraph (id, panId, dc);
+    REQUIRE (built != nullptr);
+    return built;
+}
+
+std::unique_ptr<CompiledGraph> automatedFaderGraph (GraphId id, NodeId faderId, float dc)
+{
+    std::unique_ptr<CompiledGraph> built = buildAutomatedFaderGraph (id, faderId, dc);
+    REQUIRE (built != nullptr);
+    return built;
+}
+
+std::unique_ptr<CompiledGraph> automatedPanGraph (GraphId id, NodeId panId, float dc)
+{
+    std::unique_ptr<CompiledGraph> built = buildAutomatedPanGraph (id, panId, dc);
     REQUIRE (built != nullptr);
     return built;
 }
@@ -210,6 +292,69 @@ TEST_CASE ("Runtime routes SetPan through the current compiled graph", "[runtime
         rt.processBlock (buf.data(), static_cast<int> (buf.size()));
         REQUIRE (rt.scalarsApplied() == 1);
         REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-4f));
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("Runtime keeps fader automation lanes ahead of SetGain scalar posts",
+           "[runtime][automation][precedence][h15][cp3]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kFaderId = 40;
+
+        Runtime rt;
+        std::vector<float> buf (512, 1.0f);
+        float* outChannels[1] = { buf.data() };
+        EventStream events;
+        Transport transport;
+        transport.hasTimelineFrame = true;
+
+        REQUIRE (rt.publish (automatedFaderGraph (1, kFaderId, 1.0f)));
+        transport.timelineFrame = 0;
+        rt.processBlock (outChannels, 1, static_cast<int> (buf.size()), events, transport);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));
+
+        REQUIRE (rt.postSetGain (kFaderId, 1.0f));
+        transport.timelineFrame = 512;
+        rt.processBlock (outChannels, 1, static_cast<int> (buf.size()), events, transport);
+        REQUIRE (rt.scalarsApplied() == 0);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+TEST_CASE ("Runtime keeps pan automation lanes ahead of SetPan scalar posts",
+           "[runtime][automation][precedence][h15][cp3]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kPanId = 41;
+
+        Runtime rt;
+        std::vector<float> left (512, 1.0f);
+        std::vector<float> right (512, 1.0f);
+        float* outChannels[2] = { left.data(), right.data() };
+        EventStream events;
+        Transport transport;
+        transport.hasTimelineFrame = true;
+
+        REQUIRE (rt.publish (automatedPanGraph (1, kPanId, 1.0f)));
+        transport.timelineFrame = 0;
+        rt.processBlock (outChannels, 2, static_cast<int> (left.size()), events, transport);
+        REQUIRE (left.back() == Approx (1.0f).margin (1.0e-4f));
+        REQUIRE (right.back() == Approx (0.0f).margin (1.0e-4f));
+
+        REQUIRE (rt.postSetPan (kPanId, 1.0f));
+        transport.timelineFrame = 512;
+        rt.processBlock (outChannels, 2, static_cast<int> (left.size()), events, transport);
+        REQUIRE (rt.scalarsApplied() == 0);
+        REQUIRE (left.back() == Approx (1.0f).margin (1.0e-4f));
+        REQUIRE (right.back() == Approx (0.0f).margin (1.0e-4f));
 
         rt.reclaim();
     }

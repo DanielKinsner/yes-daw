@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 BusFader Project/Mixer projection sub-slice is locally
-green; commit/push and remote CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 precedence-over-scalar-posts sub-slice is locally green;
+commit/push and remote CI are next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -235,7 +235,7 @@ Implementation commit `66d2eed` passed GitHub Actions run `28754353773` across L
 RTSan, and TSan. Closeout commit `96b2905` passed GitHub Actions run `28754947434` across Linux,
 Windows, macOS, RTSan, and TSan.
 
-H15 CP3 BusFader Project/Mixer projection sub-slice is locally green: mixer Bus Returns now include a
+H15 CP3 BusFader Project/Mixer projection sub-slice is closed remote-green on `a49eabf`: mixer Bus Returns now include a
 real `FaderNode` target between the bus sum/FX chain and bus pan/meter path, `ProjectMixerProjection`
 projects each Bus strip's `linearGain` onto that target, and `BusFader` automation lanes resolve to the
 projected bus-return `FaderNode`. The focused gate proves a `BusFader` lane for a projected Bus Return
@@ -243,10 +243,31 @@ resolves to the projected fader target and renders through the Bus output; the s
 without the lane. This does not implement precedence over scalar posts, CP4 integration closeout, FX UI,
 automation lane UI, plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or
 `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+Implementation commit `a49eabf` passed GitHub Actions run `28755598556` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Commit/push this BusFader Project/Mixer projection sub-slice and wait for GitHub Actions.
+H15 CP3 precedence-over-scalar-posts sub-slice is locally green: `CompiledGraph` now refuses
+`applySetGain` and `applySetPan` for Fader/Pan targets that have matching compiled automation lanes, so
+`Runtime::postSetGain` / `postSetPan` scalar posts cannot pull read-mode automated targets away between
+lane events on adjacent Blocks. The focused gate proves a Hold fader lane and a Hold pan lane remain in
+force on the next sequential Block after a scalar post; reversing the ordering by allowing the scalar post
+would make the second Block mechanically leave the lane value and fail. This does not implement CP4 full
+automated mix closeout, scheduler closeout, UI work, FX UI, plugin hosting, ADR edits,
+`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+
+**Now:** Commit/push this precedence-over-scalar-posts sub-slice and wait for GitHub Actions.
 
 Local gates for this checkpoint:
+- `git diff --check` passed.
+- BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawRuntimeCheck`
+  passed.
+- Direct `build-ci\YesDawRuntimeCheck.exe "[runtime][automation][precedence][h15][cp3]"`
+  passed **2/2** test cases and **16** assertions.
+- Direct `build-ci\YesDawRuntimeCheck.exe` passed **12/12** test cases and **185** assertions.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
+- Full `ctest --preset ci --output-on-failure` passed **309/309** tests.
+
+Previous checkpoint local gates:
 - `git diff --check` passed.
 - BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawMixerProjectionCheck`
   passed.
@@ -257,8 +278,9 @@ Local gates for this checkpoint:
 - Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **27/27** test cases and **5581** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **307/307** tests.
+- Remote GitHub Actions run `28755598556` for `a49eabf` passed Linux, Windows, macOS, RTSan, and TSan.
 
-Previous checkpoint local gates:
+Earlier checkpoint local gates:
 - `git diff --check` passed.
 - BuildTools short-path `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
 - Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][runtime][block-size][h15][cp3]"`
@@ -294,13 +316,11 @@ Earlier runtime-helper checkpoint local gates:
 - Full `ctest --preset ci --output-on-failure` passed **300/300** tests.
 - Remote GitHub Actions run `28746796705` for `78c4adc` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this closeout run passes, spawn exactly one successor baton. The successor continues
-plan-labeled **CP3 — Compile + RT evaluation** with the next smallest H15 chunk, likely Bus fader lane
-resolution in Project/Mixer projection only or another still-deferred CP3 prerequisite, while still
-deferring precedence over scalar posts unless it chooses that as its single slice, CP4 closeout, and UI
-work. The successor must first re-verify this implementation commit/run and this closeout commit/run from
-live repo truth, must not start H16 UI, and must preserve the one-chunk/remote-green/single-successor
-chain rule.
+**Next:** after this implementation run passes, update this status to remote-green and spawn exactly one
+successor baton. The successor continues with the next smallest independently green H15 chunk while still
+deferring CP4 full automated mix closeout, scheduler closeout, H16 UI, FX UI, plugin hosting, and unrelated
+cleanup. The successor must first re-verify this implementation commit/run from live repo truth, must not
+start H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
