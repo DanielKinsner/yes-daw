@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 compiled automation metadata sub-slice is local-green;
-push + remote CI are next.**
+**Current horizon:** **H15 (Automation) — CP3 compiled automation metadata sub-slice is closed
+remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -131,9 +131,10 @@ a debug view, and forces `CompiledGraph::blockParallelSafe = false` whenever com
 This does not convert Project lanes to frame-domain lanes, emit side-band automation events on the audio
 thread, implement event-budget checks, touch FX UI, automation lane UI, plugin hosting, ADRs,
 `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
+Implementation commit `89760c5` passed GitHub Actions run `28742927499` across Linux, Windows, macOS,
+RTSan, and TSan.
 
-**Now:** Push this CP3 metadata sub-slice, wait for remote GitHub Actions to pass Linux, Windows, macOS,
-RTSan, and TSan, then record the green run and spawn exactly one successor baton for the next H15 chunk.
+**Now:** Spawn exactly one successor baton for the next H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
@@ -142,13 +143,12 @@ Local gates for this checkpoint:
   and **76** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
 - Full `ctest --preset ci --output-on-failure` passed **295/295** tests.
-- Remote GitHub Actions is pending until this commit is pushed.
+- Remote GitHub Actions run `28742927499` for `89760c5` passed Linux, Windows, macOS, RTSan, and TSan.
 
-**Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
-H15 chunk only: continue plan-labeled **CP3 — Compile + RT evaluation** with the smallest independently
-green prerequisite after compiled-lane metadata, not the full CP3 surface. The successor must first
-re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI, and must
-preserve the one-chunk/remote-green/single-successor chain rule.
+**Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the smallest
+independently green prerequisite after compiled-lane metadata, not the full CP3 surface. The successor must
+first re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI,
+and must preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

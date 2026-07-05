@@ -48,7 +48,7 @@ As new H15 gates land, update this command list in the same checkpoint.
 H15 CP0 and CP1 are closed. CP2 consumers are closed: FaderNode has ParamSpec-normalized gain events and
 the additive `ProcessArgs::automationEvents` side-band view, PanNode consumes regular and side-band
 parameter events, Send levels get real FaderNode targets, and the five H14 FX nodes consume the same
-side-band. CP3 is open with the first local-green prerequisite: compiled automation lane metadata is stored
+side-band. CP3 is open with the first remote-green prerequisite: compiled automation lane metadata is stored
 on `CompiledGraph`, validated by `GraphBuilder`, and forces `blockParallelSafe = false` when present.
 Continue CP3 with the next smallest independently green prerequisite; do not attempt the full runtime lane
 evaluator or CP4 integration closeout in one slice.
