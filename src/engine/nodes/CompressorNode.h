@@ -89,17 +89,23 @@ public:
         const std::int64_t blockStart = absoluteBlockStart (args);
         std::size_t eventIndex = 0;
         const std::span<const Event> events = args.events.events();
+        std::size_t automationIndex = 0;
+        const std::span<const Event> automationEvents =
+            args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
         double blockMaxGainReductionDb = 0.0;
 
         for (int frame = 0; frame < frames; ++frame)
         {
-            while (eventIndex < events.size() && events[eventIndex].timeInBlock < static_cast<std::uint32_t> (frame))
-                ++eventIndex;
-
-            while (eventIndex < events.size() && events[eventIndex].timeInBlock == static_cast<std::uint32_t> (frame))
+            const std::uint32_t frameOffset = static_cast<std::uint32_t> (frame);
+            while ((eventIndex < events.size() && events[eventIndex].timeInBlock <= frameOffset)
+                   || (automationIndex < automationEvents.size() && automationEvents[automationIndex].timeInBlock <= frameOffset))
             {
-                consumeEvent (events[eventIndex], blockStart + frame);
-                ++eventIndex;
+                const bool useRegular = automationIndex >= automationEvents.size()
+                                     || (eventIndex < events.size()
+                                         && events[eventIndex].timeInBlock <= automationEvents[automationIndex].timeInBlock);
+                const Event& event = useRegular ? events[eventIndex++] : automationEvents[automationIndex++];
+                if (event.timeInBlock == frameOffset)
+                    consumeEvent (event, blockStart + frame);
             }
 
             const std::int64_t absoluteFrame = blockStart + frame;

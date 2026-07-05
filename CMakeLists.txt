@@ -343,6 +343,12 @@ target_link_libraries(YesDawAutomationCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawAutomationCheck)
 add_test(NAME YesDawAutomationCheck COMMAND $<TARGET_FILE:YesDawAutomationCheck>)
 
+add_executable(YesDawFxAutomationCheck tests/fx_automation_tests.cpp)
+target_include_directories(YesDawFxAutomationCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawFxAutomationCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawFxAutomationCheck)
+add_test(NAME YesDawFxAutomationCheck COMMAND $<TARGET_FILE:YesDawFxAutomationCheck>)
+
 # --- ParamSpec check (H14 CP1; normalized-to-real mapping for built-in FX params) ---
 add_executable(YesDawParamCheck tests/param_tests.cpp)
 target_include_directories(YesDawParamCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -674,6 +680,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawTimeCheck
   YesDawEventCheck
   YesDawAutomationCheck
+  YesDawFxAutomationCheck
   YesDawParamCheck
   YesDawEqCheck
   YesDawCompressorCheck

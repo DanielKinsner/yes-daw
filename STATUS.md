@@ -55,8 +55,16 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP2 send-level FaderNode target sub-slice is local-green;
+**Current horizon:** **H15 (Automation) — CP2 H14 FX side-band consumer sub-slice is local-green;
 remote CI for this checkpoint is pending until the commit is pushed.**
+
+H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
+route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
+`linearGain` fields on `MixerSendProjection`, deterministic fallback send-level node IDs for legacy
+callers, invalid-send-gain validation, and existing identical-send deduplication preserved. GitHub Actions
+run `28740540163` was re-checked in this FX side-band session as completed/successful across Linux,
+Windows, macOS, RTSan, and TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `0e9dea3` after
+`git pull --ff-only`.
 
 H15 CP2 PanNode event-consumer sub-slice is closed remote-green on `68902e4`: `PanNode` consumes
 `kPanParameterId = 1` parameter events from both the regular `args.events` stream and the H15
@@ -114,36 +122,34 @@ H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` pass
 `8c06905` passed run `28734167730`; each named run was re-checked in this validator session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest CP2 consumer sub-slice: mixer Send taps now route
-through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
-`linearGain` fields on `MixerSendProjection`, a deterministic fallback send-level node ID for legacy
-callers, validation for invalid send gain, and preservation of existing identical-send deduplication.
-`YesDawMixerProjectionCheck` now proves a unity send level renders identically to the pre-splice reference,
-the send fader is targetable through existing `applySetGain` scalar routing, a PanNode is not accepted as a
-send-level target, and invalid send gain is rejected before graph build. This does not compile/evaluate
-Project automation lanes, alter GraphBuilder/runtime lane storage, start FX-lane consumer work, touch FX UI,
+**Done this checkpoint:** Landed the next smallest CP2 consumer sub-slice: the five H14 built-in FX nodes
+(`EqNode`, `CompressorNode`, `FxDelayNode`, `ReverbNode`, `LimiterNode`) now merge regular
+`args.events` with the H15 `ProcessArgs::automationEvents` side-band and consume targeted parameter
+events in sample-offset order. New `YesDawFxAutomationCheck` proves each FX kind responds to a correct
+side-band event while a wrong-target regular event is ignored. This does not compile/evaluate Project
+automation lanes, alter GraphBuilder/runtime lane storage, start CP3 side-band emission, touch FX UI,
 automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
 `YESDAW_RT_HOT` annotations.
 
-**Now:** Commit and push this CP2 send-level FaderNode target sub-slice, then wait for the GitHub Actions run
+**Now:** Commit and push this CP2 H14 FX side-band consumer sub-slice, then wait for the GitHub Actions run
 for that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
-- Plain PowerShell `cmake --build --preset ci --target YesDawMixerProjectionCheck` failed only because the
-  shell lacked MSVC standard-library include paths (`cstdint`); reran the same target through BuildTools
-  `vcvars64.bat`.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawMixerProjectionCheck` passed.
-- Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **21/21** test cases and **4826** assertions.
+- BuildTools `vcvars64.bat` `cmake --preset ci` passed.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawFxAutomationCheck` passed.
+- Direct `build-ci\YesDawFxAutomationCheck.exe` passed **5/5** test cases and **10** assertions.
+- BuildTools `vcvars64.bat` focused FX rebuild passed: `YesDawEqCheck`, `YesDawCompressorCheck`,
+  `YesDawFxDelayCheck`, `YesDawReverbCheck`, `YesDawLimiterCheck`, and `YesDawFxAutomationCheck`.
+- Focused CTest passed **6/6** for `YesDaw(FxAutomation|Eq|Compressor|FxDelay|Reverb|Limiter)Check`.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **292/292** tests.
+- Full `ctest --preset ci --output-on-failure` passed **293/293** tests.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
-H15 chunk only: continue plan-labeled **CP2 — Consumers** with the next smallest independently green
-sub-slice, likely a mechanically biting H14 FX-parameter consumer integration case if live code keeps it
-narrow. If FX-lane consumer work depends on CP3 compiled-lane delivery, choose the smallest remaining CP2
-consumer prerequisite and document the boundary here. The successor must first re-verify this commit/run
-from live repo truth and must not start CP3 runtime side-band/compiled-lane work.
+H15 chunk only: if review finds a missing CP2 consumer proof, fix that first; otherwise begin plan-labeled
+**CP3 — Compile + RT evaluation** with the smallest independently green prerequisite, not the full CP3
+surface. The successor must first re-verify this commit/run from live repo truth, must not start CP4
+integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
