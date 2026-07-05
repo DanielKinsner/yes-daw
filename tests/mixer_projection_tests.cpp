@@ -591,7 +591,7 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
 TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "[mixer][projection][send]")
 {
     MixerProjectionInputs inputs = baseProjection (7);
-    inputs.buses.push_back (MixerBusProjection { 62000, 62001, 62002, {} });
+    inputs.buses.push_back (MixerBusProjection { 62000, 62001, 62002, 0.0f, {} });
 
     MixerTrackProjection pre = makeTrack (150, 1.0f, 250, 350, 450, 0.0f, 0.0f);
     pre.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -630,7 +630,7 @@ TEST_CASE ("Mixer projection wires pre and post fader Sends into bus Returns", "
 TEST_CASE ("Mixer projection deduplicates identical Sends to the same bus tap", "[mixer][projection][send][dedup]")
 {
     MixerProjectionInputs inputs = baseProjection (43);
-    inputs.buses.push_back (MixerBusProjection { 62040, 62041, 62042, {} });
+    inputs.buses.push_back (MixerBusProjection { 62040, 62041, 62042, 0.0f, {} });
 
     MixerTrackProjection track = makeTrack (1430, 1.0f, 2430, 3430, 4430, 0.0f, 0.0f);
     track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -661,7 +661,7 @@ TEST_CASE ("Mixer projection bus Return is centred and audible in both master ch
     constexpr float kSourceDc = 0.5f;
 
     MixerProjectionInputs inputs = baseProjection (42);
-    inputs.buses.push_back (MixerBusProjection { 62030, 62031, 62032, {} });
+    inputs.buses.push_back (MixerBusProjection { 62030, 62031, 62032, 0.0f, {} });
 
     MixerTrackProjection track = makeTrack (1420, kSourceDc, 2420, 3420, 4420, 0.0f, 0.0f);
     track.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -687,7 +687,7 @@ TEST_CASE ("Mixer projection bus Return summing is deterministic across declarat
     auto build = [] (bool reversed)
     {
         MixerProjectionInputs inputs = baseProjection (8);
-        inputs.buses.push_back (MixerBusProjection { 62010, 62011, 62012, {} });
+        inputs.buses.push_back (MixerBusProjection { 62010, 62011, 62012, 0.0f, {} });
 
         constexpr float kHuge = 1.0e20f;
 
@@ -746,7 +746,7 @@ TEST_CASE ("Mixer projection lets GraphBuilder align Return convergence with PDC
 
     MixerProjectionInputs inputs = baseProjection (9);
     inputs.maxBlockSize = kFrames;
-    inputs.buses.push_back (MixerBusProjection { 62020, 62021, 62022, {} });
+    inputs.buses.push_back (MixerBusProjection { 62020, 62021, 62022, 0.0f, {} });
 
     MixerTrackProjection direct = makeImpulseTrack (170, 0, 270, 370, 470, 0.0f, -1.0f);
     direct.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });

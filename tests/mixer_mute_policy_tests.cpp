@@ -180,7 +180,7 @@ TEST_CASE ("Mixer mute policy: muting a Track removes its Send contribution from
     constexpr NodeId kSrcB = 2110;   // audible
 
     MixerProjectionInputs inputs = baseProjection (2);
-    inputs.buses.push_back (MixerBusProjection { 2200, 2201, 2202, {} });
+    inputs.buses.push_back (MixerBusProjection { 2200, 2201, 2202, 0.0f, {} });
 
     // Direct paths silenced (gain 0) so only the bus Return reaches the master; both send pre-fader.
     MixerTrackProjection a = makeTrack (kSrcA, 1.0f, 2120, 2130, 2140, 0.0f);
@@ -245,7 +245,7 @@ TEST_CASE ("Mixer mute policy: a solo-safe Return stays audible without leaking 
     constexpr NodeId kBusSum = 4200; // the Return root (solo-safe)
 
     MixerProjectionInputs inputs = baseProjection (4);
-    inputs.buses.push_back (MixerBusProjection { kBusSum, 4201, 4202, {} });
+    inputs.buses.push_back (MixerBusProjection { kBusSum, 4201, 4202, 0.0f, {} });
 
     MixerTrackProjection a = makeTrack (kSrcA, 1.0f, 4120, 4130, 4140, 0.0f);   // direct silent, send only
     a.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
@@ -324,7 +324,7 @@ TEST_CASE ("Mixer mute policy scales past the 64-compiled-node ceiling", "[mixer
     {
         const NodeId sum = static_cast<NodeId> (50000 + b * 10);
         busSumIds.push_back (sum);
-        inputs.buses.push_back (MixerBusProjection { sum, sum + 1, sum + 2, {} });
+        inputs.buses.push_back (MixerBusProjection { sum, sum + 1, sum + 2, 0.0f, {} });
     }
 
     MixerProjectionError error;

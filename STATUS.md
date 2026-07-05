@@ -100,17 +100,20 @@ render. No CP10 equal-power fade work, FX UI, ADR edit, golden regeneration,
 
 **Now:** CP9 implementation commit `5780593` pushed, but GitHub Actions run `28728177718` failed the
 hosted Linux/macOS build under `-Werror` because legacy test-side `MixerBusProjection` aggregate
-initializers did not explicitly initialize the new `insertNodes` field. The portability fix updates
-those test initializers only and is local-green; commit and push the fix, then wait for replacement
-remote CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64 via
+initializers did not explicitly initialize the new bus fields. First portability fix `1610057` still
+failed run `28728450107` on Linux/macOS because the fourth aggregate slot was `pan`, not
+`insertNodes`; RTSan and TSan passed that run. The current portability fix explicitly initializes both
+bus `pan` and `insertNodes` at every test-side `MixerBusProjection` aggregate site; commit and push it,
+then wait for replacement remote CI. Local gates: `git diff --check`; VS DevShell (BuildTools x64 via
 `vcvars64.bat`) `cmake --build --preset ci --target YesDawFxSuiteCheck`; PowerShell
 `ctest --preset ci -R "^YesDawFxSuiteCheck$" --output-on-failure` passed; direct
 `YesDawMixerProjectionCheck.exe` passed **20/20**; direct `YesDawPersistenceCheck.exe` passed
 **36/36**; VS DevShell `cmake --build --preset ci`; PowerShell
 `ctest --preset ci --output-on-failure` passed **276/276**. Portability-fix gates: `git diff --check`;
 VS DevShell `cmake --build --preset ci --target YesDawHostIsolationCheck YesDawMixerProjectionCheck
-YesDawFxSuiteCheck`; PowerShell `ctest --preset ci -R "^(YesDawHostIsolationCheck|YesDawMixerProjectionCheck|YesDawFxSuiteCheck)$" --output-on-failure` passed
-**2/2** registered named tests; PowerShell `ctest --preset ci -R "(Mixer projection|Mixer mute policy)" --output-on-failure` passed **25/25**; VS DevShell `cmake --build --preset ci`; PowerShell
+YesDawMixerMutePolicyCheck YesDawFxSuiteCheck`; PowerShell
+`ctest --preset ci -R "^(YesDawHostIsolationCheck|YesDawFxSuiteCheck)$|(Mixer projection|Mixer mute policy)" --output-on-failure` passed
+**27/27**; VS DevShell `cmake --build --preset ci`; PowerShell
 `ctest --preset ci --output-on-failure` passed **276/276**. Remote prior-checkpoint gate: GitHub
 Actions run `28725857991` passed Linux, Windows, macOS, RTSan, and TSan for CP8 final baton.
 
