@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -26,6 +27,9 @@ class PanNode final : public Node
 {
 public:
     static constexpr ParameterId kPanParameterId = 1;
+
+    static_assert (std::atomic<std::uint64_t>::is_always_lock_free,
+                   "PanNode command revision must stay lock-free on the audio thread");
 
     explicit PanNode (NodeId id = 0) noexcept : id_ (id) {}
 
@@ -46,6 +50,7 @@ public:
         const double sr = sampleRate > 0.0 ? sampleRate : 48000.0;
         pan_.setRampLength (static_cast<int> (kRampSeconds * sr));
         pan_.snap (std::clamp (requestedPan_.load (std::memory_order_relaxed), -1.0f, 1.0f));
+        seenRequestedPanVersion_ = requestedPanVersion_.load (std::memory_order_acquire);
 
         // Quarter-cosine table over [0, pi/2]: cosTable_[k] = cos(k/(N-1) * pi/2). gL reads it forward,
         // gR reads it mirrored (sin t == cos(pi/2 - t)). Built on the control thread; read-only after.
@@ -60,14 +65,106 @@ public:
         if (args.audio.numChannels < 2)
             return;                                  // needs a stereo output pair
 
-        pan_.setTarget (std::clamp (requestedPan_.load (std::memory_order_relaxed), -1.0f, 1.0f));
+        syncControlTarget();
+
+        const std::uint32_t frames = args.numFrames > 0 ? static_cast<std::uint32_t> (args.numFrames) : 0u;
+        std::uint32_t cursor = 0;
+        const std::span<const Event> events = args.events.events();
+        const std::span<const Event> automationEvents =
+            args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
+        std::size_t eventIndex = 0;
+        std::size_t automationIndex = 0;
+
+        while (eventIndex < events.size() || automationIndex < automationEvents.size())
+        {
+            const Event* event = nullptr;
+            if (automationIndex >= automationEvents.size())
+            {
+                event = &events[eventIndex++];
+            }
+            else if (eventIndex >= events.size())
+            {
+                event = &automationEvents[automationIndex++];
+            }
+            else if (events[eventIndex].timeInBlock <= automationEvents[automationIndex].timeInBlock)
+            {
+                event = &events[eventIndex++];
+            }
+            else
+            {
+                event = &automationEvents[automationIndex++];
+            }
+
+            if (! isPanParameterEvent (*event) || event->timeInBlock >= frames || event->timeInBlock < cursor)
+                continue;
+
+            processRange (args, static_cast<int> (cursor), static_cast<int> (event->timeInBlock));
+            pan_.setTarget (panForNormalizedEvent (event->payload.parameter.normalizedValue));
+            cursor = event->timeInBlock;
+        }
+
+        processRange (args, static_cast<int> (cursor), args.numFrames);
+    }
+
+    void reset() noexcept override
+    {
+        pan_.snap (std::clamp (requestedPan_.load (std::memory_order_relaxed), -1.0f, 1.0f));
+        seenRequestedPanVersion_ = requestedPanVersion_.load (std::memory_order_acquire);
+    }
+
+    void release() override { cosTable_.clear(); cosTable_.shrink_to_fit(); }
+
+    // Control-thread setters (the SetPan seam, ADR-0006). Builder wires the input.
+    void setPan (float pan) noexcept
+    {
+        requestedPan_.store (std::clamp (pan, -1.0f, 1.0f), std::memory_order_relaxed);
+        requestedPanVersion_.fetch_add (1, std::memory_order_release);
+    }
+    void setInput (Node* in) noexcept { input_ = in; }
+
+    [[nodiscard]] static float panForNormalizedEvent (double normalizedValue) noexcept
+    {
+        if (! std::isfinite (normalizedValue))
+            return 0.0f;
+
+        const double v = std::clamp (normalizedValue, 0.0, 1.0);
+        return static_cast<float> (-1.0 + (2.0 * v));
+    }
+
+private:
+    static constexpr double kRampSeconds = 0.010;
+    static constexpr int    kTableSize   = 2049;   // odd -> centre pan hits an exact LUT entry
+    static constexpr double kPiOver2     = 1.5707963267948966;
+
+    void syncControlTarget() noexcept YESDAW_RT_HOT
+    {
+        const std::uint64_t version = requestedPanVersion_.load (std::memory_order_acquire);
+        if (version == seenRequestedPanVersion_)
+            return;
+
+        seenRequestedPanVersion_ = version;
+        const float requested = requestedPan_.load (std::memory_order_relaxed);
+        pan_.setTarget (requested);
+    }
+
+    bool isPanParameterEvent (const Event& event) const noexcept YESDAW_RT_HOT
+    {
+        return event.type == EventType::ParameterChange
+               && event.payload.parameter.targetNode == id_
+               && event.payload.parameter.parameterId == kPanParameterId;
+    }
+
+    void processRange (const ProcessArgs& args, int beginFrame, int endFrame) noexcept YESDAW_RT_HOT
+    {
+        if (beginFrame >= endFrame)
+            return;
 
         float* const L   = args.audio.channels[0];   // mono input arrives here; becomes the left output
         float* const R   = args.audio.channels[1];
         const float* lut = cosTable_.data();
         const int    last = kTableSize - 1;
 
-        for (int i = 0; i < args.numFrames; ++i)
+        for (int i = beginFrame; i < endFrame; ++i)
         {
             const float p   = pan_.next();                                   // per-frame ramp -> Block-invariant
             const float t   = (p + 1.0f) * 0.5f;                             // [-1,+1] -> [0,1]
@@ -82,25 +179,11 @@ public:
         }
     }
 
-    void reset() noexcept override
-    {
-        pan_.snap (std::clamp (requestedPan_.load (std::memory_order_relaxed), -1.0f, 1.0f));
-    }
-
-    void release() override { cosTable_.clear(); cosTable_.shrink_to_fit(); }
-
-    // Control-thread setters (the SetPan seam, ADR-0006). Builder wires the input.
-    void setPan (float pan) noexcept { requestedPan_.store (std::clamp (pan, -1.0f, 1.0f), std::memory_order_relaxed); }
-    void setInput (Node* in) noexcept { input_ = in; }
-
-private:
-    static constexpr double kRampSeconds = 0.010;
-    static constexpr int    kTableSize   = 2049;   // odd -> centre pan hits an exact LUT entry
-    static constexpr double kPiOver2     = 1.5707963267948966;
-
     NodeId             id_;
     Node*              input_ = nullptr;
     std::atomic<float> requestedPan_ { 0.0f };     // centre by default
+    std::atomic<std::uint64_t> requestedPanVersion_ { 0 };
+    std::uint64_t              seenRequestedPanVersion_ = 0;
     yesdaw::dsp::LinearRamp pan_;
     std::vector<float> cosTable_;
 };

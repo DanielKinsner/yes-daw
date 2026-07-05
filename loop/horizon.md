@@ -36,6 +36,7 @@ cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFaderCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawPanCheck --output-on-failure
 ```
 
 As new H15 gates land, update this command list in the same checkpoint.
@@ -43,8 +44,9 @@ As new H15 gates land, update this command list in the same checkpoint.
 ## Status: OPEN
 
 H15 CP0 and CP1 are closed. CP2 is open: FaderNode has the first consumer sub-slice, with
-ParamSpec-normalized gain events and the additive `ProcessArgs::automationEvents` side-band view. Continue
-CP2 with the next smallest independently green consumer slice; do not start CP3 runtime lane compilation.
+ParamSpec-normalized gain events and the additive `ProcessArgs::automationEvents` side-band view. PanNode
+now consumes regular and side-band parameter events with normalized `-1..+1` mapping. Continue CP2 with the
+next smallest independently green consumer slice; do not start CP3 runtime lane compilation.
 
 ## The plan
 

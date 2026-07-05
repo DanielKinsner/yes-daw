@@ -11,11 +11,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <span>
 #include <vector>
 
 using Catch::Approx;
 using yesdaw::engine::AudioBlock;
+using yesdaw::engine::Event;
 using yesdaw::engine::EventStream;
+using yesdaw::engine::makeParameterChangeEvent;
 using yesdaw::engine::Node;
 using yesdaw::engine::PanNode;
 using yesdaw::engine::ProcessArgs;
@@ -40,6 +44,46 @@ std::pair<std::vector<float>, std::vector<float>> renderSettledPan (float pan, i
     std::vector<float> right (static_cast<std::size_t> (frames), 0.0f);
     float* const channels[2] = { left.data(), right.data() };
     iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, frames });
+    return { left, right };
+}
+
+std::pair<std::vector<float>, std::vector<float>> renderPanWithEvent (double normalizedValue, int frames = 512)
+{
+    PanNode node (1);
+    Node& iface = node;
+    iface.prepare (kSr, frames);
+
+    const Event evs[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 1,
+                                                     PanNode::kPanParameterId, normalizedValue) };
+    EventStream events (std::span<const Event> (evs, 1));
+    Transport   transport;
+
+    std::vector<float> left  (static_cast<std::size_t> (frames), 1.0f);
+    std::vector<float> right (static_cast<std::size_t> (frames), 0.0f);
+    float* const channels[2] = { left.data(), right.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, frames });
+    return { left, right };
+}
+
+std::pair<std::vector<float>, std::vector<float>> renderPanWithAutomationSideBand (double normalizedValue,
+                                                                                   int frames = 512)
+{
+    PanNode node (1);
+    Node& iface = node;
+    iface.prepare (kSr, frames);
+
+    const Event regularEvents[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 99,
+                                                               PanNode::kPanParameterId, 0.0) };
+    const Event automationEvents[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 1,
+                                                                  PanNode::kPanParameterId, normalizedValue) };
+    EventStream regularStream (std::span<const Event> (regularEvents, 1));
+    EventStream automationStream (std::span<const Event> (automationEvents, 1));
+    Transport   transport;
+
+    std::vector<float> left  (static_cast<std::size_t> (frames), 1.0f);
+    std::vector<float> right (static_cast<std::size_t> (frames), 0.0f);
+    float* const channels[2] = { left.data(), right.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, regularStream, transport, frames, &automationStream });
     return { left, right };
 }
 
@@ -120,5 +164,85 @@ TEST_CASE ("PanNode output is identical across Block sizes during a pan sweep", 
         }
         INFO ("block size " << blockSize << " max diff " << maxDiff);
         REQUIRE (maxDiff == 0.0);
+    }
+}
+
+TEST_CASE ("PanNode maps normalized pan events to the -1..+1 pan domain", "[pan][automation][paramspec]")
+{
+    REQUIRE (PanNode::panForNormalizedEvent (0.0) == -1.0f);
+    REQUIRE (PanNode::panForNormalizedEvent (0.5) == 0.0f);
+    REQUIRE (PanNode::panForNormalizedEvent (1.0) == 1.0f);
+
+    auto [L, R] = renderPanWithEvent (1.0);
+
+    REQUIRE (L.front() < std::sqrt (0.5f));
+    REQUIRE (R.front() > std::sqrt (0.5f));
+    REQUIRE (L.back() == Approx (0.0f).margin (1.0e-4));
+    REQUIRE (R.back() == Approx (1.0f).margin (1.0e-4));
+
+    // Negative control for the pre-H15 ignored-event path: this would remain centre-panned.
+    REQUIRE (std::fabs (static_cast<double> (R.back()) - std::sqrt (0.5)) > 0.25);
+}
+
+TEST_CASE ("PanNode automation event target persists until a SetPan command changes it", "[pan][automation][persist]")
+{
+    PanNode node (1);
+    Node& iface = node;
+    iface.prepare (kSr, 512);
+
+    const Event evs[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 1,
+                                                     PanNode::kPanParameterId, 1.0) };
+    EventStream events (std::span<const Event> (evs, 1));
+    EventStream emptyEvents;
+    Transport   transport;
+
+    std::vector<float> firstL (512, 1.0f);
+    std::vector<float> firstR (512, 0.0f);
+    float* const firstChannels[2] = { firstL.data(), firstR.data() };
+    iface.process (ProcessArgs { AudioBlock { firstChannels, 2 }, events, transport, 512 });
+
+    std::vector<float> secondL (64, 1.0f);
+    std::vector<float> secondR (64, 0.0f);
+    float* const secondChannels[2] = { secondL.data(), secondR.data() };
+    iface.process (ProcessArgs { AudioBlock { secondChannels, 2 }, emptyEvents, transport, 64 });
+
+    REQUIRE (secondL.back() == Approx (0.0f).margin (1.0e-4));
+    REQUIRE (secondR.back() == Approx (1.0f).margin (1.0e-4));
+
+    node.setPan (-1.0f);
+    std::vector<float> thirdL (512, 1.0f);
+    std::vector<float> thirdR (512, 0.0f);
+    float* const thirdChannels[2] = { thirdL.data(), thirdR.data() };
+    iface.process (ProcessArgs { AudioBlock { thirdChannels, 2 }, emptyEvents, transport, 512 });
+
+    REQUIRE (thirdL.back() == Approx (1.0f).margin (1.0e-4));
+    REQUIRE (thirdR.back() == Approx (0.0f).margin (1.0e-4));
+}
+
+TEST_CASE ("PanNode consumes H15 automation side-band events", "[pan][automation][sideband]")
+{
+    auto [L, R] = renderPanWithAutomationSideBand (0.0);
+
+    REQUIRE (L.front() > std::sqrt (0.5f));
+    REQUIRE (R.front() < std::sqrt (0.5f));
+    REQUIRE (L.back() == Approx (1.0f).margin (1.0e-4));
+    REQUIRE (R.back() == Approx (0.0f).margin (1.0e-4));
+}
+
+TEST_CASE ("PanNode clamps a pathological automation event and never emits NaN/inf", "[pan][automation][robust]")
+{
+    const double inf = std::numeric_limits<double>::infinity();
+    for (const double bad : { std::nan (""), inf, -inf, 1.0e30, -5.0 })
+    {
+        auto [L, R] = renderPanWithEvent (bad);
+        for (std::size_t i = 0; i < L.size(); ++i)
+        {
+            REQUIRE (std::isfinite (L[i]));
+            REQUIRE (std::isfinite (R[i]));
+            REQUIRE (L[i] >= 0.0f);
+            REQUIRE (R[i] >= 0.0f);
+            REQUIRE (L[i] <= 1.0f);
+            REQUIRE (R[i] <= 1.0f);
+        }
     }
 }
