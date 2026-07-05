@@ -55,8 +55,8 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP3 compiled automation metadata sub-slice is closed
-remote-green; successor baton is next.**
+**Current horizon:** **H15 (Automation) — CP3 Project/Mixer projection automation metadata sub-slice is
+locally green; push/CI is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -122,33 +122,45 @@ H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` pass
 `8c06905` passed run `28734167730`; each named run was re-checked in this validator session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest CP3 prerequisite/data-shape sub-slice:
+H15 CP3 compiled automation metadata sub-slice is closed remote-green on `89760c5`:
 `CompiledGraph::Payload` now carries validated `CompiledAutomationLane` metadata (`targetNode`,
 `parameterId`, sorted absolute frame breakpoints, normalized values, Linear/Hold curve types), and
 `GraphBuilder::Inputs` can pass those already-compiled lanes into the immutable graph. The builder rejects
 unresolved automation targets and invalid lane arrays before publication, exposes the lane metadata through
 a debug view, and forces `CompiledGraph::blockParallelSafe = false` whenever compiled lanes are present.
-This does not convert Project lanes to frame-domain lanes, emit side-band automation events on the audio
-thread, implement event-budget checks, touch FX UI, automation lane UI, plugin hosting, ADRs,
-`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
 Implementation commit `89760c5` passed GitHub Actions run `28742927499` across Linux, Windows, macOS,
 RTSan, and TSan.
 
-**Now:** Spawn exactly one successor baton for the next H15 chunk.
+**Done this checkpoint:** Landed the next smallest CP3 projection prerequisite: `ProjectMixerProjection`
+now resolves Project automation lane targets for projected Track faders, Track pans, and FX inserts,
+converts lane Breakpoint ticks to absolute frame-domain `CompiledAutomationLane` metadata with
+`CompiledTempoMap`, passes those lanes through `MixerProjectionInputs` into `GraphBuilder`, and rejects
+valid-but-unprojected automation targets before graph publication. The focused gate proves Track
+fader/pan lanes compile through a tempo map into graph metadata, FX insert lanes resolve to the projected
+FX NodeId, and an automation lane targeting a Track with no projected audio path fails explicitly. This
+does not emit side-band automation events on the audio thread, implement event-budget checks, add Send or
+Bus fader lane resolution, touch FX UI, automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`,
+golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
+
+**Now:** Push this CP3 Project/Mixer projection sub-slice and wait for GitHub Actions to pass Linux,
+Windows, macOS, RTSan, and TSan. After it is remote-green, spawn exactly one successor baton for the next
+H15 chunk.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawBuilderCheck` passed.
-- Direct `build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"` passed **2/2** test cases
-  and **76** assertions.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawMixerProjectionCheck` passed.
+- Direct `build-ci\YesDawMixerProjectionCheck.exe "[mixer][projection][project][automation][h15][cp3]"`
+  passed **3/3** test cases and **28** assertions.
+- Direct `build-ci\YesDawMixerProjectionCheck.exe` passed **24/24** test cases and **4854** assertions.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
-- Full `ctest --preset ci --output-on-failure` passed **295/295** tests.
-- Remote GitHub Actions run `28742927499` for `89760c5` passed Linux, Windows, macOS, RTSan, and TSan.
+- Full `ctest --preset ci --output-on-failure` passed **298/298** tests.
 
 **Next:** successor baton continues plan-labeled **CP3 — Compile + RT evaluation** with the smallest
-independently green prerequisite after compiled-lane metadata, not the full CP3 surface. The successor must
-first re-verify this commit/run from live repo truth, must not start CP4 integration closeout or H16 UI,
-and must preserve the one-chunk/remote-green/single-successor chain rule.
+independently green prerequisite after Project/Mixer projection lane compilation, not the full CP3 surface.
+Good next candidates are the compile-time automation event-budget rejection helper or the first narrow
+runtime side-band emission helper. The successor must first re-verify this commit/run from live repo truth,
+must not start CP4 integration closeout or H16 UI, and must preserve the one-chunk/remote-green/single-
+successor chain rule.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.

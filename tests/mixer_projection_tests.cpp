@@ -27,7 +27,12 @@ using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::CompiledNode;
 using yesdaw::engine::CompiledNodeKind;
 using yesdaw::engine::Asset;
+using yesdaw::engine::AutomationBreakpoint;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::AutomationLaneData;
+using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::Clip;
+using yesdaw::engine::CompiledAutomationLane;
 using yesdaw::engine::DecodedClipNode;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::FaderNode;
@@ -49,8 +54,12 @@ using yesdaw::engine::ProjectMixerProjectionConfig;
 using yesdaw::engine::ProjectMixerProjectionError;
 using yesdaw::engine::SampleRate;
 using yesdaw::engine::SumNode;
+using yesdaw::engine::TempoChange;
+using yesdaw::engine::TempoCurve;
 using yesdaw::engine::Track;
 using yesdaw::engine::buildMixerGraphProjection;
+using yesdaw::engine::kTicksPerQuarter;
+using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerNodeIdForClip;
 using yesdaw::engine::projectMixerNodeIdForTrack;
 using yesdaw::engine::projectToMixerProjectionInputs;
@@ -229,6 +238,23 @@ Project makeMixerProjectionProject()
         makeProjectClip (5, project.assets[1].id, track.id, 0.25f),
     };
     return project;
+}
+
+AutomationLaneData makeAutomationLane (std::uint8_t id,
+                                       EntityId owner,
+                                       AutomationTargetRole role,
+                                       std::uint32_t paramId)
+{
+    AutomationLaneData lane;
+    lane.id = entityIdFromLowByte (id);
+    lane.ownerEntity = owner;
+    lane.role = role;
+    lane.paramId = paramId;
+    lane.points = {
+        AutomationBreakpoint { 0, 0.25, AutomationCurveType::Linear },
+        AutomationBreakpoint { kTicksPerQuarter, 0.75, AutomationCurveType::Hold },
+    };
+    return lane;
 }
 
 float sourceDcForAsset (const Asset& asset) noexcept
@@ -430,6 +456,98 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     const StereoCapture doubleTrackGain =
         renderProjectProjectionForTest (project, SourceGainMutation::DoubleTrackGainAtSource);
     REQUIRE (doubleTrackGain.left.back() != Approx (expected).margin (1.0e-4f));
+}
+
+TEST_CASE ("Project projector compiles automation lanes into frame-domain graph metadata",
+           "[mixer][projection][project][automation][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    project.tempoMap = {
+        TempoChange { 0, 120.0, TempoCurve::Jump },
+        TempoChange { kTicksPerQuarter, 60.0, TempoCurve::Jump },
+    };
+    project.automationLanes = {
+        makeAutomationLane (70, project.tracks[0].id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId),
+        makeAutomationLane (71, project.tracks[0].id, AutomationTargetRole::TrackPan, 1),
+    };
+
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+    REQUIRE (projection.automationLanes.size() == 2u);
+    REQUIRE (projection.automationLanes[0].targetNode
+             == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Fader));
+    REQUIRE (projection.automationLanes[0].parameterId == FaderNode::kGainParameterId);
+    REQUIRE (projection.automationLanes[0].frames == std::vector<std::int64_t> { 0, 24000 });
+    REQUIRE (projection.automationLanes[0].values == std::vector<double> { 0.25, 0.75 });
+    REQUIRE (projection.automationLanes[0].curveTypes
+             == std::vector<AutomationCurveType> { AutomationCurveType::Linear, AutomationCurveType::Hold });
+
+    REQUIRE (projection.automationLanes[1].targetNode
+             == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Pan));
+    REQUIRE (projection.automationLanes[1].frames == std::vector<std::int64_t> { 0, 24000 });
+
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+    REQUIRE (graphError.code == MixerProjectionError::Code::None);
+    REQUIRE_FALSE (graph->isBlockParallelSafe());
+
+    const std::span<const CompiledAutomationLane> compiled = graph->debugAutomationLanes();
+    REQUIRE (compiled.size() == 2u);
+    REQUIRE (compiled[0].targetNode
+             == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Fader));
+    REQUIRE (compiled[0].frames == std::vector<std::int64_t> { 0, 24000 });
+}
+
+TEST_CASE ("Project projector compiles FX insert automation to the projected FX NodeId",
+           "[mixer][projection][project][automation][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    project.tracks[0].strip.fxChain.push_back ({ entityIdFromLowByte (80), yesdaw::engine::FxKind::Eq, true, {} });
+    project.automationLanes = {
+        makeAutomationLane (72,
+                            project.tracks[0].strip.fxChain[0].id,
+                            AutomationTargetRole::FxInsertParam,
+                            1),
+    };
+
+    MixerProjectionInputs projection = makeProjectProjectionForTest (project);
+    REQUIRE (projection.automationLanes.size() == 1u);
+    REQUIRE (projection.automationLanes[0].targetNode
+             == projectMixerNodeIdForEntity (project.tracks[0].strip.fxChain[0].id, ProjectMixerNodeRole::Fx));
+    REQUIRE (projection.automationLanes[0].parameterId == 1u);
+}
+
+TEST_CASE ("Project projector rejects automation lanes whose target is not projected",
+           "[mixer][projection][project][automation][invalid][h15][cp3]")
+{
+    Project project = makeMixerProjectionProject();
+    Track silentTrack;
+    silentTrack.id = entityIdFromLowByte (90);
+    silentTrack.strip.name = "No clips";
+    project.tracks.push_back (silentTrack);
+    project.automationLanes = {
+        makeAutomationLane (73, silentTrack.id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId),
+    };
+
+    ProjectMixerProjectionConfig config;
+    config.masterSumNodeId = kMasterSumId;
+    config.masterNodeId = kMasterId;
+
+    MixerProjectionInputs projection;
+    ProjectMixerProjectionError error;
+    REQUIRE_FALSE (projectToMixerProjectionInputs (
+        project,
+        config,
+        [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId)
+            -> std::unique_ptr<Node>
+        {
+            return std::make_unique<IdentityDcNode> (expectedSourceId, 1.0f, 1);
+        },
+        projection,
+        &error));
+
+    REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidAutomationTarget);
+    REQUIRE (error.clipIndex == 0u);
 }
 
 TEST_CASE ("Project projector applies Track fader after independent Clip gains",

@@ -16,8 +16,10 @@
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -55,7 +57,9 @@ struct ProjectMixerProjectionError
         DuplicateNodeId,
         SourceFactoryFailed,
         SourceNodeIdMismatch,
-        FxNodeFactoryFailed
+        FxNodeFactoryFailed,
+        InvalidAutomationTarget,
+        InvalidAutomationLane
     };
 
     Code code = Code::None;
@@ -96,6 +100,13 @@ struct ProjectMixerProjectionError
 }
 
 namespace detail {
+
+struct ProjectedAutomationTarget
+{
+    EntityId ownerEntity;
+    AutomationTargetRole role = AutomationTargetRole::TrackFader;
+    NodeId targetNode = 0;
+};
 
 [[nodiscard]] inline bool registerProjectMixerNodeId (std::vector<NodeId>& used,
                                                       NodeId id,
@@ -188,6 +199,59 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
     return true;
 }
 
+[[nodiscard]] inline const ProjectedAutomationTarget* findProjectedAutomationTarget (
+    const std::vector<ProjectedAutomationTarget>& targets,
+    EntityId ownerEntity,
+    AutomationTargetRole role) noexcept
+{
+    for (const ProjectedAutomationTarget& target : targets)
+        if (target.ownerEntity == ownerEntity && target.role == role)
+            return &target;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool appendCompiledAutomationLane (const AutomationLaneData& lane,
+                                                        NodeId targetNode,
+                                                        const CompiledTempoMap& tempoMap,
+                                                        std::vector<CompiledAutomationLane>& out)
+{
+    CompiledAutomationLane compiled;
+    compiled.targetNode = targetNode;
+    compiled.parameterId = static_cast<ParameterId> (lane.paramId);
+    compiled.frames.reserve (lane.points.size());
+    compiled.values.reserve (lane.points.size());
+    compiled.curveTypes.reserve (lane.points.size());
+
+    std::int64_t previousFrame = 0;
+    bool havePrevious = false;
+    for (const AutomationBreakpoint& point : lane.points)
+    {
+        double frame = 0.0;
+        if (! tempoMap.frameForTick (point.tick, frame) || ! std::isfinite (frame) || frame < 0.0)
+            return false;
+
+        constexpr double kMaxFrame =
+            static_cast<double> (std::numeric_limits<std::int64_t>::max()) - 1.0;
+        if (frame > kMaxFrame)
+            return false;
+
+        const std::int64_t roundedFrame = static_cast<std::int64_t> (std::llround (frame));
+        if (havePrevious && roundedFrame <= previousFrame)
+            return false;
+
+        compiled.frames.push_back (roundedFrame);
+        compiled.values.push_back (point.value);
+        compiled.curveTypes.push_back (point.curveType);
+
+        previousFrame = roundedFrame;
+        havePrevious = true;
+    }
+
+    out.push_back (std::move (compiled));
+    return true;
+}
+
 } // namespace detail
 
 // SourceFactory signature:
@@ -219,12 +283,14 @@ template <typename SourceFactory>
     projection.tracks.reserve (project.tracks.size());
 
     std::vector<NodeId> usedIds;
+    std::vector<detail::ProjectedAutomationTarget> automationTargets;
     std::size_t fxInsertCount = 0;
     for (const Track& track : project.tracks)
         fxInsertCount += track.strip.fxChain.size();
     for (const Bus& bus : project.buses)
         fxInsertCount += bus.strip.fxChain.size();
 
+    automationTargets.reserve (project.tracks.size() * 2u + project.buses.size() + fxInsertCount);
     usedIds.reserve (project.tracks.size() * 4u + project.buses.size() * 3u + project.clips.size() + fxInsertCount + 2u);
     if (! detail::registerProjectMixerNodeId (usedIds, projection.masterSumNodeId, 0, ProjectMixerNodeRole::Source, error)
         || ! detail::registerProjectMixerNodeId (usedIds, projection.masterNodeId, 0, ProjectMixerNodeRole::Source, error))
@@ -329,6 +395,11 @@ template <typename SourceFactory>
                                                  trackIndex,
                                                  error))
             return false;
+        automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::TrackFader, faderId });
+        automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::TrackPan, panId });
+        for (const FxInsert& insert : owningTrack.strip.fxChain)
+            automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
+                                           projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
         projection.tracks.push_back (std::move (track));
     }
 
@@ -357,8 +428,52 @@ template <typename SourceFactory>
                                                  busIndex,
                                                  error))
             return false;
+        automationTargets.push_back ({ bus.id, AutomationTargetRole::BusPan, panId });
+        for (const FxInsert& insert : bus.strip.fxChain)
+            automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
+                                           projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
 
         projection.buses.push_back (std::move (projectedBus));
+    }
+
+    if (! project.automationLanes.empty())
+    {
+        CompiledTempoMap tempoMap;
+        if (! CompiledTempoMap::build (TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                       project.sampleRate,
+                                       tempoMap))
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::InvalidAutomationLane, 0, 0, ProjectMixerNodeRole::Source };
+            return false;
+        }
+
+        projection.automationLanes.reserve (project.automationLanes.size());
+        for (std::size_t laneIndex = 0; laneIndex < project.automationLanes.size(); ++laneIndex)
+        {
+            const AutomationLaneData& lane = project.automationLanes[laneIndex];
+            const detail::ProjectedAutomationTarget* const target =
+                detail::findProjectedAutomationTarget (automationTargets, lane.ownerEntity, lane.role);
+            if (target == nullptr)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidAutomationTarget,
+                               laneIndex,
+                               0,
+                               ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            if (! detail::appendCompiledAutomationLane (lane, target->targetNode, tempoMap, projection.automationLanes))
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidAutomationLane,
+                               laneIndex,
+                               target->targetNode,
+                               ProjectMixerNodeRole::Source };
+                return false;
+            }
+        }
     }
 
     out = std::move (projection);

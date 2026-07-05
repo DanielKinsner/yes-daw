@@ -109,6 +109,7 @@ struct MixerProjectionInputs
     const CompiledGraph* previousForCarryOver = nullptr;
     std::vector<MixerTrackProjection> tracks;
     std::vector<MixerBusProjection> buses;
+    std::vector<CompiledAutomationLane> automationLanes;
 };
 
 inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
@@ -179,6 +180,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     inputs.sampleRate = projection.sampleRate;
     inputs.maxBlockSize = projection.maxBlockSize;
     inputs.previousForCarryOver = projection.previousForCarryOver;
+    inputs.automationLanes = std::move (projection.automationLanes);
 
     std::size_t supportNodeCount = 0;
     for (const MixerTrackProjection& track : projection.tracks)
