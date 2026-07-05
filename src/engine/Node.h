@@ -254,6 +254,7 @@ struct ProcessArgs
     EventStream&     events;
     const Transport& transport;
     int              numFrames = 0;   // <= the maxBlockSize passed to prepare()
+    const EventStream* automationEvents = nullptr; // H15 side-band; null until compiled lanes exist.
 };
 
 // The trait every processing unit implements.

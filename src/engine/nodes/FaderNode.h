@@ -1,9 +1,9 @@
 // YES DAW — FaderNode: a track/bus output gain behind the Node contract (ADR-0008).
 //
 // A linear-gain multiply with a per-frame ramp so a gain change never zippers and never depends on the
-// Block size. The target gain is a linear value (dB->linear conversion lives in the command layer, never
-// on the audio thread); it is set from the control thread via an atomic and read relaxed at the top of
-// each Block, which is the SetGain seam (ADR-0006) the Runtime will route in a later chunk.
+// Block size. Control-thread SetGain uses linear gain; parameter events use the stable H15 ParamSpec
+// normalized -> dB -> linear mapping. The control-thread target is set via an atomic and read relaxed at
+// the top of each Block, which is the SetGain seam (ADR-0006) the Runtime will route in a later chunk.
 //
 // Pure C++ — no JUCE — so RTSan/TSan cover process(). The only multiply loop runs frame-outer / channel-
 // inner so every channel sees the SAME ramped gain at each frame (a channel-outer loop would advance the
@@ -13,6 +13,7 @@
 #pragma once
 
 #include "engine/Node.h"
+#include "engine/ParamSpec.h"
 #include "dsp/LinearRamp.h"
 
 #include <algorithm>
@@ -26,6 +27,9 @@ class FaderNode final : public Node
 {
 public:
     static constexpr ParameterId kGainParameterId = 1;
+    static constexpr double kMinGainDb = -60.0;
+    static constexpr double kMaxGainDb = 6.0;
+    static constexpr double kDefaultGainDb = 0.0;
 
     // Generous-but-bounded linear-gain ceiling (1000x == +60 dB). No musical fader, trim, or clip gain
     // ever approaches this, yet it is small enough that the per-frame multiply can never overflow a
@@ -66,19 +70,38 @@ public:
         const int channels = args.audio.numChannels < channels_ ? args.audio.numChannels : channels_;
         const std::uint32_t frames = args.numFrames > 0 ? static_cast<std::uint32_t> (args.numFrames) : 0u;
         std::uint32_t cursor = 0;
+        const std::span<const Event> events = args.events.events();
+        const std::span<const Event> automationEvents =
+            args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
+        std::size_t eventIndex = 0;
+        std::size_t automationIndex = 0;
 
-        for (const Event& event : args.events.events())
+        while (eventIndex < events.size() || automationIndex < automationEvents.size())
         {
-            if (! isGainParameterEvent (event) || event.timeInBlock >= frames || event.timeInBlock < cursor)
+            const Event* event = nullptr;
+            if (automationIndex >= automationEvents.size())
+            {
+                event = &events[eventIndex++];
+            }
+            else if (eventIndex >= events.size())
+            {
+                event = &automationEvents[automationIndex++];
+            }
+            else if (events[eventIndex].timeInBlock <= automationEvents[automationIndex].timeInBlock)
+            {
+                event = &events[eventIndex++];
+            }
+            else
+            {
+                event = &automationEvents[automationIndex++];
+            }
+
+            if (! isGainParameterEvent (*event) || event->timeInBlock >= frames || event->timeInBlock < cursor)
                 continue;
 
-            processRange (args, channels, static_cast<int> (cursor), static_cast<int> (event.timeInBlock));
-            // Clamp the automation value on the audio-thread event seam exactly as setTargetGain clamps the
-            // control-thread seam: events are NOT validated on the live path (EventStream::isValidForBlock is
-            // control/test-side only), so a non-finite or out-of-range normalizedValue would otherwise reach
-            // the ramp and inject inf/NaN into the mix. Both gain seams now uphold clampGain's invariant.
-            gain_.setTarget (clampGain (static_cast<float> (event.payload.parameter.normalizedValue)));
-            cursor = event.timeInBlock;
+            processRange (args, channels, static_cast<int> (cursor), static_cast<int> (event->timeInBlock));
+            gain_.setTarget (linearGainForNormalizedEvent (event->payload.parameter.normalizedValue));
+            cursor = event->timeInBlock;
         }
 
         processRange (args, channels, static_cast<int> (cursor), args.numFrames);
@@ -99,6 +122,24 @@ public:
         requestedGainVersion_.fetch_add (1, std::memory_order_release);
     }
     void setInput (Node* in) noexcept { input_ = in; }
+
+    [[nodiscard]] static ParamSpec parameterSpec (ParameterId parameterId) noexcept
+    {
+        if (parameterId != kGainParameterId)
+            return {};
+
+        return ParamSpec { kGainParameterId, "fader.gain", "dB", kMinGainDb, kMaxGainDb, kDefaultGainDb,
+                           ParamMapping::Db, ParamSmoothing::Linear5Ms };
+    }
+
+    [[nodiscard]] static float linearGainForNormalizedEvent (double normalizedValue) noexcept
+    {
+        const double gainDb = mapNormalized (parameterSpec (kGainParameterId), normalizedValue);
+        if (gainDb <= kMinGainDb)
+            return 0.0f;
+
+        return clampGain (static_cast<float> (std::pow (10.0, gainDb / 20.0)));
+    }
 
 private:
     static constexpr double kRampSeconds = 0.005;

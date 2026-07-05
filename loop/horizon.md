@@ -35,15 +35,16 @@ cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawFaderCheck --output-on-failure
 ```
 
 As new H15 gates land, update this command list in the same checkpoint.
 
 ## Status: OPEN
 
-H15 has not implemented automation yet. The first checkpoint is the plan-labeled **CP0 - Evaluator
-characterization gate**. If a baton calls the first H15 chunk "CP1", it still must implement this CP0
-audit-first checkpoint and must not skip to Project model/schema/undo work.
+H15 CP0 and CP1 are closed. CP2 is open: FaderNode has the first consumer sub-slice, with
+ParamSpec-normalized gain events and the additive `ProcessArgs::automationEvents` side-band view. Continue
+CP2 with the next smallest independently green consumer slice; do not start CP3 runtime lane compilation.
 
 ## The plan
 

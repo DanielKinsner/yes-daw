@@ -55,8 +55,16 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP1 automation schema-v8 fixture forever-gate sub-slice is
-local-green; remote CI for this checkpoint is pending until the commit is pushed.**
+**Current horizon:** **H15 (Automation) — CP2 FaderNode ParamSpec consumer sub-slice is local-green;
+remote CI for this checkpoint is pending until the commit is pushed.**
+
+H15 CP1 automation schema-v8 fixture forever-gate sub-slice is closed remote-green on `9206944`:
+`tests/fixtures/h15_cp1_automation_schema_v8.yesdaw` is the frozen schema-v8 automation bundle fixture,
+and `YesDawPersistenceCheck` has a forever-gate that copies the fixture to temp before opening it, asserts
+schema v8, reads back two automation lanes, and proves the committed fixture DB bytes were not mutated.
+GitHub Actions run `28738466617` was re-checked in this CP2 session as completed/successful across Linux,
+Windows, macOS, RTSan, and TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `9206944` after
+`git pull --ff-only`.
 
 H15 CP1 ParamSpec-aware automation target validator sub-slice is closed remote-green on `e58f962`:
 Project and persistence validators reject impossible Track/Bus fader and pan ParamIDs, reject
@@ -90,36 +98,36 @@ H14 remains closed remote-green on `8c06905`: CP10 implementation `5cf3574` pass
 `8c06905` passed run `28734167730`; each named run was re-checked in this validator session as
 completed/successful across Linux, Windows, macOS, RTSan, and TSan.
 
-**Done this checkpoint:** Landed the next smallest coherent CP1 fixture sub-slice after validator closeout:
-`tests/fixtures/h15_cp1_automation_schema_v8.yesdaw` is the frozen schema-v8 automation bundle fixture.
-It derives from the frozen H14 FX-schema bundle and adds two valid automation lanes (Track fader and the
-first EQ insert param) with four Linear/Hold storage-safe breakpoints. `YesDawPersistenceCheck` now has a
-forever-gate that copies the fixture to temp before opening it, asserts schema v8, counts the automation
-rows, reads the Project automation surface back, and proves the committed fixture DB bytes were not
-mutated. No production code, runtime side-band, consumer event handling, FX UI, automation lane UI,
-plugin hosting, ADR, `docs/reality-lane.md`, golden file, or `[[clang::nonblocking]]` /
-`YESDAW_RT_HOT` annotation changed.
+**Done this checkpoint:** Landed the next smallest CP2 consumer sub-slice: `FaderNode` now exposes the
+stable H15 gain `ParamSpec` (`fader.gain`, dB domain `-60..+6`, `Db` mapping, default `0 dB`), maps
+parameter-event normalized values through that spec to linear gain, treats normalized `0` as a mute target,
+and consumes both the existing `args.events` stream and the new additive `ProcessArgs::automationEvents`
+side-band. The fader gate now includes the required negative control that normalized `0.5` no longer means
+raw linear gain `0.5`, plus a side-band consumption case. This does not compile/evaluate Project automation
+lanes, alter GraphBuilder/runtime lane storage, start PanNode/send/FX consumer work, touch FX UI,
+automation lane UI, plugin hosting, ADRs, `docs/reality-lane.md`, golden files, or
+`[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotations.
 
-**Now:** Commit and push this CP1 automation schema-v8 fixture forever-gate sub-slice, then wait for the
-GitHub Actions run for that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the
-successor thread.
+**Now:** Commit and push this CP2 FaderNode ParamSpec consumer sub-slice, then wait for the GitHub Actions
+run for that commit to pass Linux, Windows, macOS, RTSan, and TSan before spawning the successor thread.
 
 Local gates for this checkpoint:
 - `git diff --check` passed.
 - Plain PowerShell `cmake --preset ci` passed.
-- Plain PowerShell `cmake --build --preset ci --target YesDawPersistenceCheck` failed only because the
-  shell lacked MSVC standard-library include paths (`algorithm`); reran the same target through
+- Plain PowerShell `cmake --build --preset ci --target YesDawFaderCheck YesDawEventCheck` failed only
+  because the shell lacked MSVC standard-library include paths (`algorithm`); reran the same target through
   BuildTools `vcvars64.bat`.
-- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawPersistenceCheck` passed.
-- Direct focused `build-ci\YesDawPersistenceCheck.exe "[persistence][project][fixture][automation][h15]"`
-  passed **1/1** test case and **25** assertions.
-- Direct full `build-ci\YesDawPersistenceCheck.exe` passed **40/40** test cases and **1011** assertions.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci --target YesDawFaderCheck YesDawEventCheck` passed.
+- Direct `build-ci\YesDawFaderCheck.exe` passed **7/7** test cases and **7447** assertions.
+- Direct `build-ci\YesDawEventCheck.exe` passed **11/11** test cases and **122** assertions.
+- BuildTools `vcvars64.bat` `cmake --build --preset ci` passed.
+- Full `ctest --preset ci --output-on-failure` passed **287/287** tests.
 
 **Next:** after this checkpoint is pushed and remote-green, spawn exactly one successor baton for the next
-H15 chunk only: start plan-labeled **CP2 — Consumers** with the next smallest independently green
-sub-slice, likely the FaderNode ParamSpec migration if the successor can keep it narrow and mechanically
-biting. The successor must first re-verify this commit/run from live repo truth and must not start CP3
-runtime side-band/compiled-lane work.
+H15 chunk only: continue plan-labeled **CP2 — Consumers** with the next smallest independently green
+sub-slice, likely PanNode event consumption if live code keeps it narrow and mechanically biting. The
+successor must first re-verify this commit/run from live repo truth and must not start CP3 runtime
+side-band/compiled-lane work.
 
 > **Verification = CI.** A change is done when CI is green, not when Dan listens or watches. Recording,
 > monitoring, latency calibration, device survival, and recovery prompts need self-asserting checks.
