@@ -262,7 +262,7 @@ void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::Rectangl
                      juce::Justification justification = juce::Justification::centredLeft)
 {
     g.setColour (kMutedText);
-    g.setFont (juce::Font (juce::FontOptions (11.0f)));
+    g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::small)));
     g.drawText (text, area, justification, false);
 }
 
@@ -1422,7 +1422,7 @@ private:
         g.fillRect (getLocalBounds().withHeight (kHeaderHeight));
 
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (12.0f)));
+        g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::body)));
         int menuX = 22;
         for (const auto* menu : { "FILE", "EDIT", "VIEW", "OPTIONS", "HELP" })
         {
@@ -1441,7 +1441,7 @@ private:
         auto time = juce::Rectangle<int> (570, 16, 190, 56);
         fillPanel (g, time, 5.0f);
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (25.0f)));
+        g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::transportClock)));
         g.drawText ("01:02:45:18", time.reduced (8, 4).removeFromTop (30), juce::Justification::centred, false);
         drawSmallLabel (g, "BAR | BEAT", time.reduced (8, 34), juce::Justification::centred);
 
@@ -1457,7 +1457,7 @@ private:
             auto cell = box.removeFromLeft (82);
             fillPanel (g, cell, 0.0f);
             g.setColour (kText);
-            g.setFont (juce::Font (juce::FontOptions (16.0f)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::readout)));
             g.drawText (readout.first, cell.reduced (4, 8).removeFromTop (24), juce::Justification::centred, false);
             drawSmallLabel (g, readout.second, cell.reduced (4, 34), juce::Justification::centred);
         }
@@ -1479,7 +1479,7 @@ private:
         drawSmallLabel (g, lufs, juce::Rectangle<int> (1370, 33, 76, 16), juce::Justification::centred);
 
         g.setColour (kMutedText);
-        g.setFont (juce::Font (juce::FontOptions (19.0f)));
+        g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::statusIcon)));
         g.drawText ("*", getWidth() - 54, 34, 24, 24, juce::Justification::centred, false);
     }
 
@@ -1504,11 +1504,11 @@ private:
             g.fillRect (row.removeFromBottom (1));
 
             g.setColour (kText);
-            g.setFont (juce::Font (juce::FontOptions (13.0f, juce::Font::bold)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title, juce::Font::bold)));
             g.drawText (track.name, row.withTrimmedLeft (88).withHeight (24).translated (0, 9),
                         juce::Justification::centredLeft, false);
 
-            g.setFont (juce::Font (juce::FontOptions (16.0f)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::readout)));
             g.drawText (juce::String (static_cast<int> (i + 1)), row.withWidth (40), juce::Justification::centred, false);
 
             auto buttonsArea = row.withTrimmedLeft (88).withTrimmedTop (34).withHeight (18);
@@ -1518,7 +1518,7 @@ private:
                 g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
                 g.fillRoundedRectangle (cell.toFloat(), 3.0f);
                 g.setColour (label == std::string ("O") ? kRed : kMutedText);
-                g.setFont (juce::Font (juce::FontOptions (10.0f)));
+                g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
@@ -1776,7 +1776,7 @@ private:
             if (key % 12 == 0)
             {
                 g.setColour (kMutedText);
-                g.setFont (juce::Font (juce::FontOptions (10.0f)));
+                g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
                 g.drawText ("C" + juce::String (key / 12 - 1), keyRow.reduced (8, 0),
                             juce::Justification::centredLeft, false);
             }
@@ -1858,7 +1858,7 @@ private:
                                 12.0f,
                                 3.0f);
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (13.0f, juce::Font::bold)));
+        g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title, juce::Font::bold)));
         g.drawText ("Vocal Lead_03", area.withTrimmedLeft (20).withHeight (24), juce::Justification::centredLeft, false);
 
         auto stats = area.withTrimmedTop (42).withHeight (46);
@@ -1868,14 +1868,14 @@ private:
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (cell.toFloat(), 4.0f);
             g.setColour (kMutedText);
-            g.setFont (juce::Font (juce::FontOptions (10.0f)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
             g.drawFittedText (label, cell.reduced (4), juce::Justification::centred, 2);
         }
 
         auto gain = area.withTrimmedTop (118).withHeight (84);
         drawSmallLabel (g, "GAIN", gain.removeFromTop (20));
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (13.0f)));
+        g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title)));
         const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
         const float gainValue = selectedClip != nullptr ? selectedClip->gain : 1.0f;
         g.drawText (juce::String (gainValue, 2) + "x",
@@ -1906,7 +1906,7 @@ private:
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (row.toFloat(), 4.0f);
             g.setColour (kText);
-            g.setFont (juce::Font (juce::FontOptions (12.0f)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::body)));
             g.drawText (label, row.reduced (10, 0), juce::Justification::centredLeft, false);
         }
     }
@@ -1943,7 +1943,7 @@ private:
             g.setColour (demoStrip.colour.withAlpha (0.30f));
             g.fillRect (lane.withHeight (28));
             g.setColour (kText);
-            g.setFont (juce::Font (juce::FontOptions (11.0f)));
+            g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::small)));
             g.drawFittedText (state.name, lane.reduced (8, 4).withHeight (20), juce::Justification::centred, 1);
 
             auto knob = lane.withTrimmedTop (36).withHeight (38);
@@ -1970,7 +1970,7 @@ private:
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                 g.fillRoundedRectangle (badge.toFloat(), 3.0f);
                 g.setColour (kMutedText);
-                g.setFont (juce::Font (juce::FontOptions (8.0f)));
+                g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::tiny)));
                 g.drawText ("SC", badge, juce::Justification::centred, false);
             }
 

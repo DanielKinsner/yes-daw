@@ -35,6 +35,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
     const std::regex juceNamedColour { R"(\bjuce::Colours::[A-Za-z_][A-Za-z0-9_]*)" };
+    const std::regex rawFontSize { R"(\bFontOptions\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\b)" };
     std::vector<ThemeAuditFinding> findings;
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
@@ -50,8 +51,12 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         while (std::getline (in, line))
         {
             ++lineNumber;
-            if (std::regex_search (line, rawHexColour) || std::regex_search (line, juceNamedColour))
+            if (std::regex_search (line, rawHexColour)
+                || std::regex_search (line, juceNamedColour)
+                || std::regex_search (line, rawFontSize))
+            {
                 findings.push_back ({ entry.path(), lineNumber, line });
+            }
         }
     }
 
@@ -60,7 +65,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
 } // namespace
 
-TEST_CASE ("H16 theme audit rejects raw UI colors outside UiTheme", "[ui][theme]")
+TEST_CASE ("H16 theme audit rejects raw UI tokens outside UiTheme", "[ui][theme]")
 {
     const auto findings = auditThemeTokens (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui");
     if (! findings.empty())
@@ -69,7 +74,7 @@ TEST_CASE ("H16 theme audit rejects raw UI colors outside UiTheme", "[ui][theme]
     REQUIRE (findings.empty());
 }
 
-TEST_CASE ("H16 theme audit negative control catches inline raw colors", "[ui][theme]")
+TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][theme]")
 {
     const auto scratch = std::filesystem::temp_directory_path()
                        / "yesdaw-theme-audit-negative-control";
@@ -80,11 +85,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw colors", "[ui][t
         std::ofstream out (scratch / "ScratchUi.cpp");
         REQUIRE (out.is_open());
         out << "void paint() { const auto raw = juce::Colour (0xff112233); }\n";
+        out << "void label() { const auto raw = juce::FontOptions (13.0f); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 1u);
+    REQUIRE (findings.size() == 2u);
     REQUIRE (findings.front().line == 1);
+    REQUIRE (findings.back().line == 2);
 }

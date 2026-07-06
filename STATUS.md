@@ -71,20 +71,23 @@ instruction and does not implement CP1 production code.
 **Done so far:** H16 CP1 first design-token slice added `src/ui/UiTheme.h` with the narrow
 color/spacing/type/radius token surface, moved the existing `TimelineCanvas.h` and `MainComponent.cpp`
 raw UI color literals behind named tokens, and added `YesDawThemeAuditCheck` as a CTest source scan with
-a scratch negative control that proves an inline raw color fails the audit. This checkpoint continued CP1
-by moving the Timeline canvas' local type sizes, rounded radii, and common spacing/padding values behind
-`UiTheme` tokens. Local gates passed: `git diff --check`; `cmake --build --preset ci` under
-`vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`,
-`YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; full `ctest --preset ci --output-on-failure` passed
-**310/310**.
+a scratch negative control that proves an inline raw color fails the audit. The next CP1 slice moved the
+Timeline canvas' local type sizes, rounded radii, and common spacing/padding values behind `UiTheme`
+tokens. This checkpoint moved MainComponent's remaining raw `FontOptions` type sizes behind
+`UiTheme::Type` and tightened `YesDawThemeAuditCheck` so a scratch inline raw font size fails the same
+theme-token audit. Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck`
+under `vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`,
+`YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`;
+full `ctest --preset ci --output-on-failure` passed **310/310**.
 
-**Now:** H16 CP1 is partially underway. The first token surface, raw-color audit, and Timeline canvas
-type/radius/spacing token migration exist; broad UI migration is not complete.
+**Now:** H16 CP1 is partially underway. The first token surface, raw-color/raw-font audit, Timeline
+canvas type/radius/spacing token migration, and MainComponent typography token migration exist; broad UI
+migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
-slice, commit/push straight to `main`, wait for remote CI green, and create exactly one successor only if
-H16 still has another slice.
+slice (likely MainComponent layout/radius/spacing or meter-gradient tokens), commit/push straight to
+`main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
 
 ---
 

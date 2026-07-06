@@ -46,12 +46,15 @@ that exist for the touched files plus `git diff --check` and the full `ci` prese
 
 ## Status: OPEN
 
-H16 kickoff is the first docs-only checkpoint. It opens the horizon after verifying H15 closeout commit
-`f1b093abe2f0e4f70b1266c88b61c168f98b1a10` and GitHub Actions run `28769456779`. No production H16 code
-has landed yet.
+H16 CP1 is partially underway. The first design-token checkpoint opened `src/ui/UiTheme.h`, moved
+Timeline/MainComponent raw UI colors behind named tokens, and added `YesDawThemeAuditCheck` with a raw
+color negative control. Follow-up CP1 slices moved Timeline canvas type/radius/spacing values and
+MainComponent typography values behind `UiTheme` tokens; the theme audit now also rejects raw
+`FontOptions` sizes outside `UiTheme.h` with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration.
+to `UiTheme.h` before broad UI migration, likely MainComponent layout/radius/spacing or meter-gradient
+tokens.
 
 ## The plan
 

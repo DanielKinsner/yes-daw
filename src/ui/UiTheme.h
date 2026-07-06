@@ -81,6 +81,9 @@ struct UiTheme
         static constexpr float small = 11.0f;
         static constexpr float body = 12.0f;
         static constexpr float title = 13.0f;
+        static constexpr float readout = 16.0f;
+        static constexpr float statusIcon = 19.0f;
+        static constexpr float transportClock = 25.0f;
     };
 };
 
