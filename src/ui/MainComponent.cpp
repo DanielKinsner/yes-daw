@@ -1217,17 +1217,30 @@ private:
     void layoutInspectorControls()
     {
         auto area = inspectorBounds();
-        area.removeFromTop (40);
-        area.reduce (16, 14);
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
+        area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
+                     yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
 
-        auto gain = area.withTrimmedTop (118).withHeight (84);
-        gain.removeFromTop (28);
-        inspectorGain.setBounds (gain.removeFromTop (24).withTrimmedLeft (72));
+        auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
+        gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
+        inspectorGain.setBounds (
+            gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset));
 
-        auto fades = area.withTrimmedTop (214).withHeight (94);
-        fades.removeFromTop (22);
-        inspectorFadeIn.setBounds (fades.removeFromTop (32).withTrimmedLeft (78).reduced (0, 6));
-        inspectorFadeOut.setBounds (fades.removeFromTop (32).withTrimmedLeft (78).reduced (0, 6));
+        auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
+                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadesControlTopInset);
+        inspectorFadeIn.setBounds (
+            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
+                .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
+                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset));
+        inspectorFadeOut.setBounds (
+            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
+                .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
+                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset));
     }
 
     void layoutMixerControls()

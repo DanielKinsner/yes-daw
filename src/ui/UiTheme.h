@@ -107,6 +107,22 @@ struct UiTheme
         static constexpr int shellPanelVerticalInset = 10;
         static constexpr int mixerPanelHorizontalInset = 6;
         static constexpr int mixerPanelVerticalInset = 8;
+
+        static constexpr int inspectorTabHeight = 40;
+        static constexpr int inspectorContentInsetX = 16;
+        static constexpr int inspectorContentInsetY = 14;
+        static constexpr int inspectorGainSectionTop = 118;
+        static constexpr int inspectorGainSectionHeight = 84;
+        static constexpr int inspectorGainControlTopInset = 28;
+        static constexpr int inspectorGainControlHeight = 24;
+        static constexpr int inspectorGainControlLeftInset = 72;
+        static constexpr int inspectorFadesSectionTop = 214;
+        static constexpr int inspectorFadesSectionHeight = 94;
+        static constexpr int inspectorFadesControlTopInset = 22;
+        static constexpr int inspectorFadeControlHeight = 32;
+        static constexpr int inspectorFadeControlLeftInset = 78;
+        static constexpr int inspectorFadeControlHorizontalInset = 0;
+        static constexpr int inspectorFadeControlVerticalInset = 6;
     };
 };
 
