@@ -56,16 +56,17 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 **Last updated:** 2026-07-06
 **Current horizon:** **H15 (Automation) — CP4 Reverb FX-param RT/offline parity sub-slice is
-implemented locally; remote CI is next.**
+closed remote-green; CP4 Limiter FX-param parity is next.**
 
-H15 CP4 Reverb FX-param RT/offline parity sub-slice is implemented locally in this checkpoint:
+H15 CP4 Reverb FX-param RT/offline parity sub-slice is closed remote-green on `250c4ff`:
 `YesDawPlaybackCheck` now adds a narrow Reverb FX integration parity case that automates
 `ReverbNode::kMixParamId` through the Project playback/offline paths, proves automation changes offline
 output versus a static negative control, and requires realtime playback to match automated offline render
 bit-for-bit at device Block sizes 1, 7, and 64. This does not implement the remaining Limiter FX-param
 parity case, final H15 roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting, ADR edits,
 `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
-Focused local `YesDawPlaybackCheck` passed; remote CI is pending for this checkpoint.
+Focused local `YesDawPlaybackCheck` passed, and GitHub Actions run `28764015924` passed across Linux,
+Windows, macOS, RTSan, and TSan.
 
 H15 CP4 Delay FX-param RT/offline parity sub-slice is closed remote-green on `4c7585e`:
 `YesDawPlaybackCheck` now adds a narrow Delay FX integration parity case that automates
