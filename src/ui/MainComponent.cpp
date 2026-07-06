@@ -402,7 +402,7 @@ public:
         const std::optional<double> eventSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition());
         if (drag.mode == TimelineDragMode::TrimRight)
         {
-            if (std::abs (deltaX) < 2)
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
                 return;
 
             if (eventSeconds)
@@ -413,7 +413,7 @@ public:
 
         if (drag.mode == TimelineDragMode::Gain)
         {
-            if (std::abs (deltaY) < 2)
+            if (std::abs (deltaY) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
                 return;
 
             if (onClipGainAdjusted)
@@ -423,7 +423,7 @@ public:
 
         if (drag.mode == TimelineDragMode::FadeIn || drag.mode == TimelineDragMode::FadeOut)
         {
-            if (std::abs (deltaX) < 2 || ! eventSeconds)
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels || ! eventSeconds)
                 return;
 
             const double fadeSeconds = drag.mode == TimelineDragMode::FadeIn
@@ -438,7 +438,7 @@ public:
             return;
         }
 
-        if (std::abs (deltaX) < 2)
+        if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
             return;
 
         const yesdaw::ui::TimelineCanvasGeometry geometry =
@@ -694,7 +694,7 @@ public:
             return;
 
         const int deltaX = event.getPosition().x - drag.downPosition.x;
-        if (std::abs (deltaX) < 2)
+        if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
             return;
 
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();

@@ -78,6 +78,8 @@ a scratch negative control. This checkpoint moved MainComponent timeline clip an
 geometry behind `UiTheme::Layout`; the theme audit now rejects raw `*EdgePixels` local constants with a
 scratch negative control. This checkpoint moved MainComponent timeline viewport pixel-width/gutter geometry
 behind `UiTheme::Layout`; the theme audit now rejects raw `makeTimelineState()` viewport geometry with a
+scratch negative control. This checkpoint moved MainComponent timeline and piano-roll input drag dead-zone
+geometry behind `UiTheme::Layout`; the theme audit now rejects raw input drag threshold geometry with a
 scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
