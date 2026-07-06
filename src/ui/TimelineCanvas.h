@@ -87,16 +87,16 @@ inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::R
                             juce::Justification justification = juce::Justification::centredLeft)
 {
     g.setColour (kMutedText);
-    g.setFont (juce::Font (juce::FontOptions (11.0f)));
+    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
     g.drawText (text, area, justification, false);
 }
 
 inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
 {
     g.setColour (kPanel);
-    g.fillRoundedRectangle (area.toFloat(), 6.0f);
+    g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::lg);
     g.setColour (kPanelStroke);
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), 6.0f, 1.0f);
+    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::lg, 1.0f);
 }
 
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
@@ -118,7 +118,7 @@ inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, i
 inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
                               float amplitude, int clipId)
 {
-    area.reduce (7, 5);
+    area.reduce (UiTheme::Space::sm + 1, UiTheme::Space::xs + 1);
     if (area.isEmpty())
         return;
 
@@ -153,9 +153,9 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     }
 
     g.setColour (style.colour.withAlpha (0.42f));
-    g.fillRoundedRectangle (area.toFloat(), 4.0f);
+    g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::md);
     g.setColour (style.colour.brighter (0.35f));
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), 4.0f, 1.0f);
+    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::md, 1.0f);
     drawClipWaveform (g, area, style.colour, style.amplitude, clipId);
 }
 
@@ -164,22 +164,23 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     g.setColour (kToolbarBack);
     g.fillRect (toolbar);
 
-    auto tools = toolbar.withTrimmedLeft (16).withWidth (190).reduced (0, 6);
+    auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl).withWidth (190).reduced (0, UiTheme::Space::sm);
     for (const auto* label : { "A", "P", "E", "S", "L" })
     {
-        auto cell = tools.removeFromLeft (34).reduced (3, 0);
+        auto cell = tools.removeFromLeft (34).reduced (UiTheme::Space::xxs + UiTheme::Space::hairline, 0);
         g.setColour (UiTheme::Color::toolButton());
-        g.fillRoundedRectangle (cell.toFloat(), 3.0f);
+        g.fillRoundedRectangle (cell.toFloat(), UiTheme::Radius::sm);
         g.setColour (kMutedText);
-        g.setFont (juce::Font (juce::FontOptions (11.0f)));
+        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
         g.drawText (label, cell, juce::Justification::centred, false);
     }
 
     drawSmallLabel (g, "SNAP", toolbar.withTrimmedLeft (234).withWidth (42), juce::Justification::centred);
     g.setColour (UiTheme::Color::snapField());
-    g.fillRoundedRectangle (toolbar.withTrimmedLeft (276).withWidth (80).reduced (0, 7).toFloat(), 3.0f);
+    g.fillRoundedRectangle (toolbar.withTrimmedLeft (276).withWidth (80).reduced (0, UiTheme::Space::sm + 1).toFloat(),
+                            UiTheme::Radius::sm);
     g.setColour (kText);
-    g.setFont (juce::Font (juce::FontOptions (12.0f)));
+    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::body)));
     g.drawText ("Bar", toolbar.withTrimmedLeft (284).withWidth (54), juce::Justification::centredLeft, false);
 }
 
@@ -203,7 +204,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
 
         const int barNumber = std::max (1, juce::roundToInt (seconds) + 1);
         g.setColour (kMutedText);
-        g.setFont (juce::Font (juce::FontOptions (11.0f)));
+        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
         g.drawText (juce::String (barNumber), x - 18, ruler.getY() + 7, 36, 16,
                     juce::Justification::centred, false);
         g.setColour (kMutedText.withAlpha (0.65f));
@@ -221,7 +222,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
             continue;
 
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (11.0f)));
+        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
         g.drawText (marker.label, x + 4, ruler.getY() + 24, 76, 16,
                     juce::Justification::centredLeft, false);
     }
@@ -270,10 +271,10 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     if (area.getWidth() <= 0 || area.getHeight() <= 0)
         return geometry;
 
-    auto content = area.reduced (1);
+    auto content = area.reduced (UiTheme::Space::hairline);
     geometry.toolbarArea = content.removeFromTop (36);
     geometry.rulerArea = content.removeFromTop (48);
-    geometry.clipArea = content.reduced (12, 0);
+    geometry.clipArea = content.reduced (UiTheme::Space::lg, 0);
 
     const int laneCount = std::max (1, state.trackCount);
     geometry.laneHeight = std::max (8, geometry.clipArea.getHeight() / laneCount);
@@ -338,7 +339,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                                              clipArea.getY() + juce::roundToInt (rect.y),
                                              juce::roundToInt (rect.w),
                                              juce::roundToInt (rect.h))
-                            .reduced (4, 5);
+                            .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline);
         clipRect = clipRect.getIntersection (clipArea);
         drawClip (g, clipRect, style, rect.id);
     }
@@ -351,9 +352,9 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         g.fillRect (playheadX, ruler.getY(), 2, clipArea.getBottom() - ruler.getY());
         g.setColour (kPurple);
         g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4),
-                                30.0f, 16.0f, 7.0f);
+                                30.0f, 16.0f, UiTheme::Radius::pill);
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (11.0f)));
+        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
         g.drawText (juce::String (std::max (1, juce::roundToInt (state.playheadSeconds) + 1)),
                     playheadX - 12, ruler.getY() + 4, 24, 16, juce::Justification::centred, false);
     }

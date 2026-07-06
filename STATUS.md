@@ -68,18 +68,18 @@ FX slots, automation lanes, async waveform peak cache, LookAndFeel/design-token 
 polish pass. The first checkpoint is intentionally docs-only: it opens H16 from Dan's explicit boundary
 instruction and does not implement CP1 production code.
 
-**Done this checkpoint:** H16 CP1 first design-token slice: added `src/ui/UiTheme.h` with the narrow
+**Done so far:** H16 CP1 first design-token slice added `src/ui/UiTheme.h` with the narrow
 color/spacing/type/radius token surface, moved the existing `TimelineCanvas.h` and `MainComponent.cpp`
 raw UI color literals behind named tokens, and added `YesDawThemeAuditCheck` as a CTest source scan with
-a scratch negative control that proves an inline raw color fails the audit. The H16 green-command list now
-includes `YesDawThemeAuditCheck`. Local gates passed: raw-color source scan outside `UiTheme.h` found no
-hits; `git diff --check`; `cmake --preset ci`; `cmake --build --preset ci` under `vcvars64.bat` after
-plain PowerShell proved the known missing-MSVC-headers shell issue; focused H16/UI gates
-`YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`;
-full `ctest --preset ci --output-on-failure` passed **310/310**.
+a scratch negative control that proves an inline raw color fails the audit. This checkpoint continued CP1
+by moving the Timeline canvas' local type sizes, rounded radii, and common spacing/padding values behind
+`UiTheme` tokens. Local gates passed: `git diff --check`; `cmake --build --preset ci` under
+`vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`,
+`YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; full `ctest --preset ci --output-on-failure` passed
+**310/310**.
 
-**Now:** H16 CP1 is partially underway. The first token surface and raw-color audit exist; broad UI
-migration is not complete.
+**Now:** H16 CP1 is partially underway. The first token surface, raw-color audit, and Timeline canvas
+type/radius/spacing token migration exist; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

@@ -56,6 +56,7 @@ struct UiTheme
 
     struct Space
     {
+        static constexpr int hairline = 1;
         static constexpr int xxs = 2;
         static constexpr int xs = 4;
         static constexpr int sm = 6;
