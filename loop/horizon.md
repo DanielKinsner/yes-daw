@@ -36,23 +36,23 @@ cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawAutomationCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFxAutomationCheck --output-on-failure
-build-ci\YesDawBuilderCheck.exe "[builder][automation][h15][cp3]"
+ctest --test-dir build-ci -R YesDawBuilderCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawMixerProjectionCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawFaderCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawPanCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawSchedulerCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure
 ```
 
 As new H15 gates land, update this command list in the same checkpoint.
 
 ## Status: OPEN
 
-H15 CP0 and CP1 are closed. CP2 consumers are closed: FaderNode has ParamSpec-normalized gain events and
-the additive `ProcessArgs::automationEvents` side-band view, PanNode consumes regular and side-band
-parameter events, Send levels get real FaderNode targets, and the five H14 FX nodes consume the same
-side-band. CP3 is open with the first remote-green prerequisite: compiled automation lane metadata is stored
-on `CompiledGraph`, validated by `GraphBuilder`, and forces `blockParallelSafe = false` when present.
-Continue CP3 with the next smallest independently green prerequisite; do not attempt the full runtime lane
-evaluator or CP4 integration closeout in one slice.
+H15 CP0, CP1, CP2, CP3, and CP4 implementation gates are closed remote-green on `main` through the
+Limiter FX-param RT/offline parity slice. The verified CP4 closeout surface includes scheduler refusal,
+fader/pan RT/offline parity, send-ride RT/offline parity, and one FX-param RT/offline parity case for
+EQ, compressor, delay, reverb, and limiter. H15 remains open only for final roadmap/STATUS closeout and
+the recorded adversarial review pass. Do not start H16 UI work from this horizon.
 
 ## The plan
 

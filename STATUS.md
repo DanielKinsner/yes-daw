@@ -68,6 +68,17 @@ roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting, ADR ed
 Focused local `YesDawPlaybackCheck` passed, and GitHub Actions run `28767238266` passed across Linux,
 Windows, macOS, RTSan, and TSan.
 
+Closeout docs commit `ba7f84c` recorded the Limiter FX green CI result and passed GitHub Actions run
+`28767896282` across Linux, Windows, macOS, RTSan, and TSan. H15 implementation gates are now closed
+remote-green through CP4 Limiter FX-param RT/offline parity; the next smallest H15 chunk is the final
+adversarial closeout review. H16 UI work is not open.
+
+**Now:** record the final H15 adversarial closeout review against current source/tests/CI.
+
+**Next:** if the adversarial closeout review finds no blocking defects, close H15 in STATUS/roadmap and
+then wait for the H16 boundary; if it finds proven defects, fix only the smallest verified H15 defect
+before closing.
+
 H15 CP4 Reverb FX-param RT/offline parity sub-slice is closed remote-green on `250c4ff`:
 `YesDawPlaybackCheck` now adds a narrow Reverb FX integration parity case that automates
 `ReverbNode::kMixParamId` through the Project playback/offline paths, proves automation changes offline

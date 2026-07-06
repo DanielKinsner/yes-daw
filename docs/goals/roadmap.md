@@ -276,7 +276,11 @@ draw/edit (read mode) — touch/latch/write recording is deferred past alpha.
 the plan's tolerance, robust across block-size schedules and across a tempo change; lanes
 round-trip save/reopen; the randomized edit property test extended with automation verbs stays
 green. Plan: `docs/plans/2026-07-03-h15-automation-plan.md`.
-**Next:** start with the plan-labeled **CP0 evaluator characterization gate** before schema/undo work.
+**Status (2026-07-06):** implementation gates are closed remote-green through CP4 Limiter FX-param
+RT/offline parity. The latest implementation commit `00d4171` passed GitHub Actions run
+`28767238266`, and closeout docs commit `ba7f84c` passed run `28767896282`; both runs were green across
+Linux, Windows, macOS, RTSan, and TSan. **Next:** record the final H15 adversarial closeout review before
+opening H16 UI work.
 
 ## H16 — Real UI
 Structural parity with the product mockup (ruler section markers, waveform clips, clip/track
