@@ -167,6 +167,14 @@ bool pianoRollLayoutUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawPianoRollGeometry);
 }
 
+bool resizedLayoutUsesRawButtonGeometry (std::string_view line)
+{
+    static const std::regex rawResizedButtonGeometry {
+        R"(\bsetBounds\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*k[A-Za-z0-9_]+\s*\+\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawResizedButtonGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -205,6 +213,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int inspectorPanelLayoutDepth = 0;
         bool insideMixerPanelLayout = false;
         int mixerPanelLayoutDepth = 0;
+        bool insideResizedLayout = false;
+        int resizedLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -284,6 +294,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insidePianoRollLayout && pianoRollLayoutUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("void resized") != std::string::npos)
+            {
+                insideResizedLayout = true;
+                resizedLayoutDepth = 0;
+            }
+
+            if (insideResizedLayout && resizedLayoutUsesRawButtonGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("void drawInspector") != std::string::npos)
@@ -407,6 +426,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideInspectorPanelLayout = false;
             }
 
+            if (insideResizedLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++resizedLayoutDepth;
+                    else if (c == '}')
+                        --resizedLayoutDepth;
+                }
+
+                if (resizedLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideResizedLayout = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -471,12 +504,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawHeader() { auto time = juce::Rectangle<int> (570, 16, 190, 56); }\n";
         out << "void drawPianoRoll(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
+        out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 14u);
+    REQUIRE (findings.size() == 15u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -490,5 +524,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[10].line == 11);
     REQUIRE (findings[11].line == 12);
     REQUIRE (findings[12].line == 13);
-    REQUIRE (findings.back().line == 14);
+    REQUIRE (findings[13].line == 14);
+    REQUIRE (findings.back().line == 15);
 }

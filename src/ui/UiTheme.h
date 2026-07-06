@@ -144,6 +144,32 @@ struct UiTheme
         static constexpr int shellPanelVerticalInset = 10;
         static constexpr int mixerPanelHorizontalInset = 6;
         static constexpr int mixerPanelVerticalInset = 8;
+        static juce::Rectangle<int> projectNewButtonBounds() noexcept { return { 16, 50, 44, 26 }; }
+        static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 64, 50, 50, 26 }; }
+        static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 118, 50, 48, 26 }; }
+        static juce::Rectangle<int> projectImportAudioButtonBounds() noexcept { return { 170, 50, 64, 26 }; }
+        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 104, 78, 26 }; }
+        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 104, 104, 26 }; }
+        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 104, 68, 26 }; }
+        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 22, 134, 96, 26 }; }
+        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 122, 134, 76, 26 }; }
+        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 202, 134, 72, 26 }; }
+        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 244, 50, 42, 26 }; }
+        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 290, 50, 42, 26 }; }
+        static juce::Rectangle<int> transportLocateStartButtonBounds() noexcept { return { 336, 16, 56, 56 }; }
+        static juce::Rectangle<int> transportPlayButtonBounds() noexcept { return { 392, 16, 56, 56 }; }
+        static juce::Rectangle<int> transportStopButtonBounds() noexcept { return { 448, 16, 56, 56 }; }
+        static juce::Rectangle<int> transportToggleLoopButtonBounds() noexcept { return { 1008, 16, 64, 56 }; }
+        static juce::Rectangle<int> viewMixerButtonBounds (int componentHeight) noexcept
+        {
+            return { 16, componentHeight - mixerHeight + 18, 76, 28 };
+        }
+        static juce::Rectangle<int> viewPianoRollButtonBounds (int componentHeight) noexcept
+        {
+            return { 96, componentHeight - mixerHeight + 18, 78, 28 };
+        }
+        static juce::Rectangle<int> autosaveRestoreButtonBounds() noexcept { return { 1180, 50, 132, 26 }; }
+        static juce::Rectangle<int> autosaveDiscardButtonBounds() noexcept { return { 1316, 50, 132, 26 }; }
 
         static constexpr int inspectorTabHeight = 40;
         static constexpr int inspectorTabCount = 2;

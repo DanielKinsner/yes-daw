@@ -1003,30 +1003,66 @@ public:
             const auto action = toolbarActions[i];
             switch (action)
             {
-                case yesdaw::ui::UiActionId::ProjectNew: buttons[i].setBounds (16, 50, 44, 26); break;
-                case yesdaw::ui::UiActionId::ProjectOpen: buttons[i].setBounds (64, 50, 50, 26); break;
-                case yesdaw::ui::UiActionId::ProjectSave: buttons[i].setBounds (118, 50, 48, 26); break;
-                case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (170, 50, 64, 26); break;
-                case yesdaw::ui::UiActionId::DeviceRefreshAudio: buttons[i].setBounds (22, 104, 78, 26); break;
-                case yesdaw::ui::UiActionId::DeviceSelectTestAudio: buttons[i].setBounds (104, 104, 104, 26); break;
-                case yesdaw::ui::UiActionId::RecordingArmTrack: buttons[i].setBounds (212, 104, 68, 26); break;
-                case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: buttons[i].setBounds (22, 134, 96, 26); break;
-                case yesdaw::ui::UiActionId::TransportRecord: buttons[i].setBounds (122, 134, 76, 26); break;
-                case yesdaw::ui::UiActionId::RecordingAssembleComp: buttons[i].setBounds (202, 134, 72, 26); break;
-                case yesdaw::ui::UiActionId::EditUndo: buttons[i].setBounds (244, 50, 42, 26); break;
-                case yesdaw::ui::UiActionId::EditRedo: buttons[i].setBounds (290, 50, 42, 26); break;
-                case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (336, 16, 56, 56); break;
-                case yesdaw::ui::UiActionId::TransportPlay: buttons[i].setBounds (392, 16, 56, 56); break;
-                case yesdaw::ui::UiActionId::TransportStop: buttons[i].setBounds (448, 16, 56, 56); break;
-                case yesdaw::ui::UiActionId::TransportToggleLoop: buttons[i].setBounds (1008, 16, 64, 56); break;
-                case yesdaw::ui::UiActionId::ViewMixer: buttons[i].setBounds (16, getHeight() - kMixerHeight + 18, 76, 28); break;
-                case yesdaw::ui::UiActionId::ViewPianoRoll: buttons[i].setBounds (96, getHeight() - kMixerHeight + 18, 78, 28); break;
+                case yesdaw::ui::UiActionId::ProjectNew:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectNewButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::ProjectOpen:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectOpenButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::ProjectSave:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectSaveButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::ProjectImportAudio:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectImportAudioButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::DeviceRefreshAudio:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::deviceRefreshAudioButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::DeviceSelectTestAudio:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::deviceSelectTestAudioButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::RecordingArmTrack:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingArmTrackButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingSetMonitoringPolicyButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::TransportRecord:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportRecordButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::RecordingAssembleComp:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingAssembleCompButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::EditUndo:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::editUndoButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::EditRedo:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::editRedoButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::TransportLocateStart:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportLocateStartButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::TransportPlay:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportPlayButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::TransportStop:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportStopButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::TransportToggleLoop:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportToggleLoopButtonBounds());
+                    break;
+                case yesdaw::ui::UiActionId::ViewMixer:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewMixerButtonBounds (getHeight()));
+                    break;
+                case yesdaw::ui::UiActionId::ViewPianoRoll:
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewPianoRollButtonBounds (getHeight()));
+                    break;
                 default: buttons[i].setBounds ({});
             }
         }
 
-        autosaveRestoreButton.setBounds (1180, 50, 132, 26);
-        autosaveDiscardButton.setBounds (1316, 50, 132, 26);
+        autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
+        autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
         layoutInspectorControls();
