@@ -183,6 +183,14 @@ bool timelineStateUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawTimelineStateGeometry);
 }
 
+bool componentWindowUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawWindowGeometry {
+        R"(\bsetSize\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawWindowGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -237,7 +245,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawEdgeHitGeometry)
                 || std::regex_search (line, rawMeterBand)
                 || std::regex_search (line, rawShellSpacing)
-                || std::regex_search (line, rawInputDragThreshold))
+                || std::regex_search (line, rawInputDragThreshold)
+                || componentWindowUsesRawGeometry (line))
             {
                 findings.push_back ({ entry.path(), lineNumber, line });
             }
@@ -547,12 +556,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void makeTimelineState() { auto width = juce::jmax (1, timelineInput.getWidth() - 26); }\n";
         out << "constexpr int kTrimEdgePixels = 8;\n";
         out << "void mouseUp() { if (std::abs (deltaX) < 2) return; }\n";
+        out << "void window() { setSize (1536, 960); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 20u);
+    REQUIRE (findings.size() == 21u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -572,5 +582,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[16].line == 17);
     REQUIRE (findings[17].line == 18);
     REQUIRE (findings[18].line == 19);
-    REQUIRE (findings.back().line == 20);
+    REQUIRE (findings[19].line == 20);
+    REQUIRE (findings.back().line == 21);
 }

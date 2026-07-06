@@ -100,6 +100,8 @@ struct UiTheme
     struct Layout
     {
         static constexpr int headerHeight = 88;
+        static constexpr int defaultWindowWidth = 1536;
+        static constexpr int defaultWindowHeight = 960;
         static constexpr int leftRailWidth = 318;
         static constexpr int inspectorWidth = 248;
         static constexpr int mixerHeight = 260;

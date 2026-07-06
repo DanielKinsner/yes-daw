@@ -820,7 +820,8 @@ public:
     explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices)
         : fileChoices (std::move (choices))
     {
-        setSize (1536, 960);
+        setSize (yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
+                 yesdaw::ui::UiTheme::Layout::defaultWindowHeight);
 
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
         for (std::size_t i = 0; i < buttons.size(); ++i)
