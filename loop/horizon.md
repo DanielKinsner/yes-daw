@@ -1,4 +1,4 @@
-# Current horizon - H15 (Automation) - OPEN
+# Current horizon - H15 (Automation) - CLOSED
 
 > This file is the oracle for "is the horizon done?". H15 opens after H14 closed remote-green on
 > `main`: CP10 implementation `5cf3574` passed GitHub Actions run `28729589346`, and H14 closeout
@@ -46,13 +46,14 @@ ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure
 
 As new H15 gates land, update this command list in the same checkpoint.
 
-## Status: OPEN
+## Status: CLOSED
 
 H15 CP0, CP1, CP2, CP3, and CP4 implementation gates are closed remote-green on `main` through the
 Limiter FX-param RT/offline parity slice. The verified CP4 closeout surface includes scheduler refusal,
 fader/pan RT/offline parity, send-ride RT/offline parity, and one FX-param RT/offline parity case for
-EQ, compressor, delay, reverb, and limiter. H15 remains open only for final roadmap/STATUS closeout and
-the recorded adversarial review pass. Do not start H16 UI work from this horizon.
+EQ, compressor, delay, reverb, and limiter. Final adversarial closeout review is recorded in
+`docs/reviews/2026-07-06-h15-closeout-adversarial-review.md` and found no H15 closeout-blocking defect.
+Do not start H16 UI work from this horizon.
 
 ## The plan
 

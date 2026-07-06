@@ -47,16 +47,25 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H15 is open. The first implementation checkpoint is the plan-labeled **CP0 evaluator
-characterization gate**; do not skip to the schema/model/undo checkpoint labeled CP1 in the plan.
+**Baton note:** H15 is closed remote-green. H16 UI work is not opened by this closeout; Dan chooses the
+next horizon boundary.
 
 ---
 
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-06
-**Current horizon:** **H15 (Automation) — CP4 Limiter FX-param RT/offline parity sub-slice is
-closed remote-green; H15 final closeout/adversarial review is next.**
+**Current horizon:** **H15 (Automation) — CLOSED REMOTE-GREEN.**
+
+Final H15 adversarial closeout review is recorded in
+`docs/reviews/2026-07-06-h15-closeout-adversarial-review.md`. The review re-verified the predecessor
+baton (`84b8353`, GitHub Actions run `28768633340`) against live repo truth, checked the stale H14-H17
+packet findings against current H15 source/tests/CI, and found no H15 closeout-blocking defect. H15 is
+therefore closed. Local closeout verification passed: `git diff --check`; CTest-selected focused H15
+gates `YesDawAutomationCheck`, `YesDawFxAutomationCheck`, `YesDawPlaybackCheck`, and
+`YesDawSchedulerCheck`; plus direct Catch2 automation filters for `YesDawBuilderCheck`,
+`YesDawMixerProjectionCheck`, `YesDawFaderCheck`, `YesDawPanCheck`, `YesDawProjectCheck`,
+`YesDawPersistenceCheck`, and `YesDawRuntimeCheck`. H16 UI work is not open.
 
 H15 CP4 Limiter FX-param RT/offline parity sub-slice is closed remote-green on `00d4171`:
 `YesDawPlaybackCheck` now adds a narrow Limiter FX integration parity case that automates
@@ -68,16 +77,16 @@ roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting, ADR ed
 Focused local `YesDawPlaybackCheck` passed, and GitHub Actions run `28767238266` passed across Linux,
 Windows, macOS, RTSan, and TSan.
 
-Closeout docs commit `ba7f84c` recorded the Limiter FX green CI result and passed GitHub Actions run
+Pre-review closeout docs commit `84b8353` marked the H15 implementation gates complete and passed GitHub
+Actions run `28768633340` across Linux, Windows, macOS, RTSan, and TSan. Earlier closeout docs commit
+`ba7f84c` recorded the Limiter FX green CI result and passed GitHub Actions run
 `28767896282` across Linux, Windows, macOS, RTSan, and TSan. H15 implementation gates are now closed
-remote-green through CP4 Limiter FX-param RT/offline parity; the next smallest H15 chunk is the final
-adversarial closeout review. H16 UI work is not open.
+remote-green through CP4 Limiter FX-param RT/offline parity, and the final adversarial closeout review
+found no blocking defect. H16 UI work is not open.
 
-**Now:** record the final H15 adversarial closeout review against current source/tests/CI.
+**Now:** H15 is closed. Stop at the H15/H16 boundary.
 
-**Next:** if the adversarial closeout review finds no blocking defects, close H15 in STATUS/roadmap and
-then wait for the H16 boundary; if it finds proven defects, fix only the smallest verified H15 defect
-before closing.
+**Next:** Dan chooses whether to open H16. Do not start H16 UI work from this H15 closeout.
 
 H15 CP4 Reverb FX-param RT/offline parity sub-slice is closed remote-green on `250c4ff`:
 `YesDawPlaybackCheck` now adds a narrow Reverb FX integration parity case that automates
