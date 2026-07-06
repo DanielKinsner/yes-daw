@@ -306,6 +306,8 @@ struct UiTheme
 
         static constexpr int meterFillInset = 2;
 
+        static constexpr int timelineClipEdgeHitWidth = 8;
+
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;
         static constexpr int pianoRollPanelInsetY = 8;
@@ -320,6 +322,7 @@ struct UiTheme
         static constexpr int pianoRollNoteHeightTrim = 4;
         static constexpr int pianoRollNoteInsetX = 1;
         static constexpr int pianoRollNoteInsetY = 0;
+        static constexpr int pianoRollNoteEdgeHitWidth = 8;
         static constexpr int pianoRollHeaderLabelInsetX = 14;
         static constexpr int pianoRollHeaderLabelInsetY = 0;
         static constexpr int pianoRollKeyRowMinHeight = 1;

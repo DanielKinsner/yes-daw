@@ -104,7 +104,9 @@ moved MainComponent painted mixer-panel tool, strip, pan-knob, button, sidechain
 thumb geometry behind `UiTheme::Layout` tokens and tightened `YesDawThemeAuditCheck` so a scratch raw
 `drawMixer` geometry value fails the audit. This checkpoint moved MainComponent `resized()` toolbar and
 autosave button geometry behind `UiTheme::Layout` tokens and tightened `YesDawThemeAuditCheck` so a
-scratch raw `setBounds` button geometry value in `resized()` fails the audit.
+scratch raw `setBounds` button geometry value in `resized()` fails the audit. This checkpoint moved
+MainComponent timeline clip and piano-roll note edge-hit geometry behind `UiTheme::Layout` tokens and
+tightened `YesDawThemeAuditCheck` so a scratch raw `*EdgePixels` local constant fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -117,7 +119,8 @@ MainComponent meter-fill, shell panel-inset, inspector-control spacing, and mixe
 migrations exist; MainComponent painted track-list spacing and shared meter fill inset spacing are also
 tokenized; MainComponent painted header/transport/master-meter geometry, painted piano-roll geometry,
 painted inspector-panel geometry, painted mixer-panel geometry, and `resized()` toolbar/autosave button
-geometry are also tokenized; broad UI migration is not complete.
+geometry are also tokenized; MainComponent timeline clip and piano-roll note edge-hit geometry is also
+tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

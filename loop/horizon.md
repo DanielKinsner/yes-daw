@@ -74,7 +74,9 @@ painted mixer-panel tool, strip, pan-knob, button, sidechain, meter, rail, and f
 `UiTheme::Layout`; the theme audit now rejects raw `drawMixer` geometry values with a scratch negative
 control. This checkpoint moved MainComponent `resized()` toolbar and autosave button geometry behind
 `UiTheme::Layout`; the theme audit now rejects raw `setBounds` button geometry values in `resized()` with
-a scratch negative control.
+a scratch negative control. This checkpoint moved MainComponent timeline clip and piano-roll note edge-hit
+geometry behind `UiTheme::Layout`; the theme audit now rejects raw `*EdgePixels` local constants with a
+scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing/geometry surface not

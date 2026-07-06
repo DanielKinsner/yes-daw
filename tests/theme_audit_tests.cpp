@@ -181,6 +181,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
     const std::regex juceNamedColour { R"(\bjuce::Colours::[A-Za-z_][A-Za-z0-9_]*)" };
     const std::regex rawFontSize { R"(\bFontOptions\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\b)" };
     const std::regex rawLayoutSize { R"(\bconstexpr\s+int\s+k[A-Za-z0-9_]*(?:Width|Height)\s*=\s*[0-9]+\b)" };
+    const std::regex rawEdgeHitGeometry { R"(\bconstexpr\s+int\s+k[A-Za-z0-9_]*EdgePixels\s*=\s*[0-9]+\b)" };
     const std::regex rawMeterBand { R"(\bremoveFrom(?:Top|Right)\s*\([^;\n]*\*\s*0(?:\.[0-9]+)?f?\s*\))" };
     const std::regex rawShellSpacing { R"(\b(?:work(?:\.[A-Za-z0-9_]+\s*\([^;\n]*\))*|mixer)\.reduced\s*\(\s*[0-9]+\s*,\s*[0-9]+\s*\))" };
     std::vector<ThemeAuditFinding> findings;
@@ -222,6 +223,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, juceNamedColour)
                 || std::regex_search (line, rawFontSize)
                 || std::regex_search (line, rawLayoutSize)
+                || std::regex_search (line, rawEdgeHitGeometry)
                 || std::regex_search (line, rawMeterBand)
                 || std::regex_search (line, rawShellSpacing))
             {
@@ -505,12 +507,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawPianoRoll(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
         out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
+        out << "constexpr int kTrimEdgePixels = 8;\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 15u);
+    REQUIRE (findings.size() == 16u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -525,5 +528,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[11].line == 12);
     REQUIRE (findings[12].line == 13);
     REQUIRE (findings[13].line == 14);
-    REQUIRE (findings.back().line == 15);
+    REQUIRE (findings[14].line == 15);
+    REQUIRE (findings.back().line == 16);
 }

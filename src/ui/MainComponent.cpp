@@ -524,7 +524,6 @@ private:
                                                               juce::Point<int> position,
                                                               juce::ModifierKeys modifiers) noexcept
     {
-        constexpr int kTrimEdgePixels = 8;
         const yesdaw::ui::Clip* const clip = findClipByLayoutId (state, layoutClipId);
         if (clip == nullptr)
             return TimelineDragMode::Move;
@@ -539,14 +538,17 @@ private:
 
         if (modifiers.isAltDown())
         {
-            if (std::fabs (static_cast<double> (position.x) - clipLeftX) <= static_cast<double> (kTrimEdgePixels))
+            if (std::fabs (static_cast<double> (position.x) - clipLeftX)
+                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
                 return TimelineDragMode::FadeIn;
 
-            if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
+            if (std::fabs (static_cast<double> (position.x) - clipRightX)
+                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
                 return TimelineDragMode::FadeOut;
         }
 
-        if (std::fabs (static_cast<double> (position.x) - clipRightX) <= static_cast<double> (kTrimEdgePixels))
+        if (std::fabs (static_cast<double> (position.x) - clipRightX)
+            <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
             return TimelineDragMode::TrimRight;
 
         if (modifiers.isShiftDown())
@@ -797,13 +799,13 @@ private:
         juce::Point<int> position,
         juce::ModifierKeys modifiers) const noexcept
     {
-        constexpr int kLengthEdgePixels = 8;
         if (modifiers.isShiftDown())
             return PianoDragMode::SetLength;
 
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
         const int rightEdge = pianoRollNoteBounds (geometry, surface, note).getRight();
-        if (std::abs (position.x - rightEdge) <= kLengthEdgePixels)
+        if (std::abs (position.x - rightEdge)
+            <= yesdaw::ui::UiTheme::Layout::pianoRollNoteEdgeHitWidth)
             return PianoDragMode::SetLength;
 
         return PianoDragMode::Move;
