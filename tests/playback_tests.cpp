@@ -6,6 +6,7 @@
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/ReverbNode.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 
@@ -49,6 +50,7 @@ using yesdaw::engine::RecordingChunkFifo;
 using yesdaw::engine::RecordingConfig;
 using yesdaw::engine::RecordingTakeFileStatus;
 using yesdaw::engine::RecordingTakeFileWriter;
+using yesdaw::engine::ReverbNode;
 using yesdaw::engine::findRecordedSample;
 using yesdaw::engine::readRecordingTakeFile;
 using yesdaw::engine::renderOfflineProject;
@@ -515,6 +517,81 @@ PlaybackFixture makeAutomatedDelayFxFixture()
     return fixture;
 }
 
+PlaybackFixture makeAutomatedReverbFxFixture()
+{
+    PlaybackFixture fixture;
+    constexpr int kFrames = 2048;
+    fixture.samples = { std::vector<float> (static_cast<std::size_t> (kFrames), 0.0f) };
+    fixture.samples[0][0] = 0.75f;
+
+    Asset asset;
+    asset.id = idFromLowByte (78);
+    asset.contentHash = hashWithSeed (78);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    FxInsert reverb;
+    reverb.id = idFromLowByte (79);
+    reverb.kind = FxKind::Reverb;
+    reverb.enabled = true;
+    reverb.normalizedParams = {
+        { ReverbNode::kPreDelayParamId,
+          unmapToNormalized (ReverbNode::parameterSpec (ReverbNode::kPreDelayParamId), 0.0) },
+        { ReverbNode::kRt60ParamId,
+          unmapToNormalized (ReverbNode::parameterSpec (ReverbNode::kRt60ParamId), 0.25) },
+        { ReverbNode::kSizeParamId,
+          unmapToNormalized (ReverbNode::parameterSpec (ReverbNode::kSizeParamId), 0.5) },
+        { ReverbNode::kDampingParamId,
+          unmapToNormalized (ReverbNode::parameterSpec (ReverbNode::kDampingParamId), ReverbNode::kMaxDampingHz) },
+    };
+
+    Track track;
+    track.id = idFromLowByte (80);
+    track.strip.name = "Automated reverb FX";
+    track.strip.linearGain = 1.0f;
+    track.strip.pan = 0.0f;
+    track.strip.fxChain = { reverb };
+
+    Clip clip;
+    clip.id = idFromLowByte (81);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = kFrames;
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    const double wetMix = unmapToNormalized (ReverbNode::parameterSpec (ReverbNode::kMixParamId), 1.0);
+    AutomationLaneData mix;
+    mix.id = idFromLowByte (82);
+    mix.ownerEntity = reverb.id;
+    mix.role = AutomationTargetRole::FxInsertParam;
+    mix.paramId = ReverbNode::kMixParamId;
+    mix.points = {
+        AutomationBreakpoint { 0, wetMix, AutomationCurveType::Hold },
+        AutomationBreakpoint { kFrames, wetMix, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (83);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { mix };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
 OfflineRenderOptions sendRideOptions (const PlaybackFixture& fixture)
 {
     OfflineRenderOptions options;
@@ -874,6 +951,31 @@ TEST_CASE ("PlaybackEngine automated Delay FX parameter output matches offline r
            "[h15][automation][cp4][offline-parity][fx][delay]")
 {
     const PlaybackFixture fixture = makeAutomatedDelayFxFixture();
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()));
+    REQUIRE (staticOffline.ok());
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
+}
+
+TEST_CASE ("PlaybackEngine automated Reverb FX parameter output matches offline render",
+           "[h15][automation][cp4][offline-parity][fx][reverb]")
+{
+    const PlaybackFixture fixture = makeAutomatedReverbFxFixture();
 
     PlaybackFixture withoutAutomation = fixture;
     withoutAutomation.project.automationLanes.clear();

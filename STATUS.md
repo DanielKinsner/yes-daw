@@ -55,17 +55,27 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 ## Live packet — H15 implementation
 
 **Last updated:** 2026-07-06
-**Current horizon:** **H15 (Automation) — CP4 Delay FX-param RT/offline parity sub-slice is
+**Current horizon:** **H15 (Automation) — CP4 Reverb FX-param RT/offline parity sub-slice is
 implemented locally; remote CI is next.**
 
-H15 CP4 Delay FX-param RT/offline parity sub-slice is implemented locally in this checkpoint:
+H15 CP4 Reverb FX-param RT/offline parity sub-slice is implemented locally in this checkpoint:
+`YesDawPlaybackCheck` now adds a narrow Reverb FX integration parity case that automates
+`ReverbNode::kMixParamId` through the Project playback/offline paths, proves automation changes offline
+output versus a static negative control, and requires realtime playback to match automated offline render
+bit-for-bit at device Block sizes 1, 7, and 64. This does not implement the remaining Limiter FX-param
+parity case, final H15 roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting, ADR edits,
+`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
+Focused local `YesDawPlaybackCheck` passed; remote CI is pending for this checkpoint.
+
+H15 CP4 Delay FX-param RT/offline parity sub-slice is closed remote-green on `4c7585e`:
 `YesDawPlaybackCheck` now adds a narrow Delay FX integration parity case that automates
 `FxDelayNode::kMixParamId` through the Project playback/offline paths, proves automation changes offline
 output versus a static negative control, and requires realtime playback to match automated offline render
 bit-for-bit at device Block sizes 1, 7, and 64. This does not implement the remaining Reverb/Limiter
 FX-param parity cases, final H15 roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting,
 ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation
-changes. Focused local `YesDawPlaybackCheck` passed; remote CI is pending for this checkpoint.
+changes. Focused local `YesDawPlaybackCheck` passed, and GitHub Actions run `28763348318` passed across
+Linux, Windows, macOS, RTSan, and TSan.
 
 H15 CP4 Compressor FX-param RT/offline parity sub-slice is closed remote-green on `a5443bb`:
 `GraphBuilder` now allows compiled automation lane `paramId = 0`, which is required for the stable H14
