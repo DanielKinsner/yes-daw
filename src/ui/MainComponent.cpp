@@ -1524,10 +1524,13 @@ private:
     void drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const
     {
         fillPanel (g, area);
-        auto header = area.removeFromTop (38);
-        drawSmallLabel (g, "TRACKS", header.reduced (16, 0));
+        auto header = area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        drawSmallLabel (g, "TRACKS",
+                        header.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,
+                                        yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY));
 
-        const int rowHeight = juce::jmax (56, area.getHeight() / static_cast<int> (kTracks.size()));
+        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          area.getHeight() / static_cast<int> (kTracks.size()));
         for (std::size_t i = 0; i < kTracks.size(); ++i)
         {
             auto row = area.removeFromTop (rowHeight);
@@ -1535,24 +1538,38 @@ private:
 
             g.setColour (i == 3 ? yesdaw::ui::UiTheme::Color::selectedLane()
                                  : yesdaw::ui::UiTheme::Color::darkControl());
-            g.fillRect (row.reduced (1, 0));
+            g.fillRect (row.reduced (yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
+                                     yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset));
             g.setColour (track.colour);
-            g.fillRect (row.withWidth (3).reduced (0, 1));
+            g.fillRect (row.withWidth (yesdaw::ui::UiTheme::Layout::trackListAccentWidth)
+                             .reduced (yesdaw::ui::UiTheme::Layout::trackListAccentHorizontalInset,
+                                       yesdaw::ui::UiTheme::Layout::trackListAccentVerticalInset));
             g.setColour (kPanelStroke);
-            g.fillRect (row.removeFromBottom (1));
+            g.fillRect (row.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight));
 
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title, juce::Font::bold)));
-            g.drawText (track.name, row.withTrimmedLeft (88).withHeight (24).translated (0, 9),
+            g.drawText (track.name,
+                        row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::trackListNameHeight)
+                            .translated (yesdaw::ui::UiTheme::Layout::trackListNameOffsetX,
+                                         yesdaw::ui::UiTheme::Layout::trackListNameOffsetY),
                         juce::Justification::centredLeft, false);
 
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::readout)));
-            g.drawText (juce::String (static_cast<int> (i + 1)), row.withWidth (40), juce::Justification::centred, false);
+            g.drawText (juce::String (static_cast<int> (i + 1)),
+                        row.withWidth (yesdaw::ui::UiTheme::Layout::trackListNumberWidth),
+                        juce::Justification::centred,
+                        false);
 
-            auto buttonsArea = row.withTrimmedLeft (88).withTrimmedTop (34).withHeight (18);
+            auto buttonsArea = row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
+                                   .withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListButtonsTop)
+                                   .withHeight (yesdaw::ui::UiTheme::Layout::trackListButtonsHeight);
             for (const auto* label : { "M", "S", "O" })
             {
-                auto cell = buttonsArea.removeFromLeft (24).reduced (2, 0);
+                auto cell = buttonsArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::trackListButtonWidth)
+                                .reduced (yesdaw::ui::UiTheme::Layout::trackListButtonInsetX,
+                                          yesdaw::ui::UiTheme::Layout::trackListButtonInsetY);
                 g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
                 g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
                 g.setColour (label == std::string ("O") ? kRed : kMutedText);
@@ -1560,7 +1577,10 @@ private:
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
-            auto meter = row.withRight (row.getRight() - 12).removeFromRight (14).reduced (0, 10);
+            auto meter = row.withRight (row.getRight() - yesdaw::ui::UiTheme::Layout::trackListMeterRightInset)
+                             .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
+                             .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
+                                       yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
             drawMeter (g, meter, track.meter);
         }
     }

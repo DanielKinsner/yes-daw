@@ -59,7 +59,9 @@ rejects raw shell `.reduced(x, y)` spacing values with a scratch negative contro
 MainComponent inspector control internal spacing behind `UiTheme::Layout`; the theme audit now rejects raw
 `layoutInspectorControls` spacing values with a scratch negative control. This checkpoint moved MainComponent
 mixer control internal spacing behind `UiTheme::Layout`; the theme audit now rejects raw `layoutMixerControls`
-spacing values with a scratch negative control.
+spacing values with a scratch negative control. This checkpoint moved MainComponent painted track-list spacing
+behind `UiTheme::Layout`; the theme audit now rejects raw `drawTrackList` spacing values with a scratch
+negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing surface not yet covered

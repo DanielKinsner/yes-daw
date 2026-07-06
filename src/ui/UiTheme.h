@@ -143,6 +143,31 @@ struct UiTheme
         static constexpr int mixerFaderMinHeight = 72;
         static constexpr int mixerFaderBottomReserve = 18;
         static constexpr int mixerFaderWidth = 42;
+
+        static constexpr int trackListHeaderHeight = 38;
+        static constexpr int trackListHeaderInsetX = 16;
+        static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int trackListRowMinHeight = 56;
+        static constexpr int trackListRowHorizontalInset = 1;
+        static constexpr int trackListRowVerticalInset = 0;
+        static constexpr int trackListAccentWidth = 3;
+        static constexpr int trackListAccentHorizontalInset = 0;
+        static constexpr int trackListAccentVerticalInset = 1;
+        static constexpr int trackListSeparatorHeight = 1;
+        static constexpr int trackListNameLeftInset = 88;
+        static constexpr int trackListNameHeight = 24;
+        static constexpr int trackListNameOffsetX = 0;
+        static constexpr int trackListNameOffsetY = 9;
+        static constexpr int trackListNumberWidth = 40;
+        static constexpr int trackListButtonsTop = 34;
+        static constexpr int trackListButtonsHeight = 18;
+        static constexpr int trackListButtonWidth = 24;
+        static constexpr int trackListButtonInsetX = 2;
+        static constexpr int trackListButtonInsetY = 0;
+        static constexpr int trackListMeterRightInset = 12;
+        static constexpr int trackListMeterWidth = 14;
+        static constexpr int trackListMeterHorizontalInset = 0;
+        static constexpr int trackListMeterVerticalInset = 10;
     };
 };
 

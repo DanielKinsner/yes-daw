@@ -119,6 +119,14 @@ bool mixerControlLayoutUsesRawSpacing (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawMixerSpacing);
 }
 
+bool trackListLayoutUsesRawSpacing (std::string_view line)
+{
+    static const std::regex rawTrackListSpacing {
+        R"(\b(?:jmax|removeFromTop|removeFromBottom|removeFromLeft|removeFromRight|withTrimmedLeft|withTrimmedTop|withWidth|withRight|withHeight|reduced|translated)\s*\([^;\n]*\b[0-9]+)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawTrackListSpacing);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -145,6 +153,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int inspectorControlLayoutDepth = 0;
         bool insideMixerControlLayout = false;
         int mixerControlLayoutDepth = 0;
+        bool insideTrackListLayout = false;
+        int trackListLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -176,6 +186,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMixerControlLayout && mixerControlLayoutUsesRawSpacing (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
+            if (line.find ("drawTrackList") != std::string::npos)
+            {
+                insideTrackListLayout = true;
+                trackListLayoutDepth = 0;
+            }
+
+            if (insideTrackListLayout && trackListLayoutUsesRawSpacing (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
             if (insideInspectorControlLayout)
             {
                 for (const char c : line)
@@ -202,6 +221,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (mixerControlLayoutDepth <= 0 && line.find ('}') != std::string::npos)
                     insideMixerControlLayout = false;
+            }
+
+            if (insideTrackListLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++trackListLayoutDepth;
+                    else if (c == '}')
+                        --trackListLayoutDepth;
+                }
+
+                if (trackListLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTrackListLayout = false;
             }
 
             if (roundedStatement.empty())
@@ -262,12 +295,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void shell(juce::Rectangle<int> work) { auto left = work.removeFromLeft (42).reduced (6, 10); }\n";
         out << "void layoutInspectorControls() { auto area = inspectorBounds(); area.removeFromTop (40); }\n";
         out << "void layoutMixerControls() { auto lane = mixerFirstStripBounds().reduced (8, 6); }\n";
+        out << "void drawTrackList(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 8u);
+    REQUIRE (findings.size() == 9u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -275,5 +309,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[4].line == 5);
     REQUIRE (findings[5].line == 6);
     REQUIRE (findings[6].line == 7);
-    REQUIRE (findings.back().line == 8);
+    REQUIRE (findings[7].line == 8);
+    REQUIRE (findings.back().line == 9);
 }
