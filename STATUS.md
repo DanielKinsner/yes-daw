@@ -78,18 +78,21 @@ tokens. The next checkpoint moved MainComponent's remaining raw `FontOptions` ty
 theme-token audit. This checkpoint moved MainComponent's remaining raw rounded-rectangle radii behind
 `UiTheme::Radius` (including square, meter, panel, note, inspector, mixer, fader, and badge shapes) and
 tightened `YesDawThemeAuditCheck` so a scratch inline raw rounded radius fails without flagging stroke
-widths. Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under
-`vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`,
-`YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`;
-full `ctest --preset ci --output-on-failure` passed **310/310**.
+widths. This checkpoint moved MainComponent's top-level shell layout dimensions (header, left rail,
+inspector, mixer) behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw
+`constexpr` UI width fails the same theme-token audit. Local gates passed: `git diff --check`; focused
+build target `YesDawThemeAuditCheck` under `vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`,
+`YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; `cmake --build --preset ci`
+under `vcvars64.bat`; full `ctest --preset ci --output-on-failure` passed **310/310**.
 
-**Now:** H16 CP1 is partially underway. The first token surface, raw-color/raw-font audit, Timeline
-canvas type/radius/spacing token migration, MainComponent typography token migration, and MainComponent
-rounded-radius token migration exist; broad UI migration is not complete.
+**Now:** H16 CP1 is partially underway. The first token surface, raw-color/raw-font/raw-layout audit,
+Timeline canvas type/radius/spacing token migration, MainComponent typography token migration,
+MainComponent rounded-radius token migration, and MainComponent shell layout token migration exist;
+broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
-slice (likely MainComponent layout/spacing constants or meter-gradient tokens), commit/push straight to
+slice (likely meter-gradient tokens or the next narrow MainComponent spacing surface), commit/push straight to
 `main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
 
 ---

@@ -87,6 +87,14 @@ struct UiTheme
         static constexpr float statusIcon = 19.0f;
         static constexpr float transportClock = 25.0f;
     };
+
+    struct Layout
+    {
+        static constexpr int headerHeight = 88;
+        static constexpr int leftRailWidth = 318;
+        static constexpr int inspectorWidth = 248;
+        static constexpr int mixerHeight = 260;
+    };
 };
 
 } // namespace yesdaw::ui

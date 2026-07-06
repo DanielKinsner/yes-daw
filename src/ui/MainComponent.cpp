@@ -30,10 +30,10 @@
 
 namespace {
 
-constexpr int kHeaderHeight = 88;
-constexpr int kLeftRailWidth = 318;
-constexpr int kInspectorWidth = 248;
-constexpr int kMixerHeight = 260;
+constexpr int kHeaderHeight = yesdaw::ui::UiTheme::Layout::headerHeight;
+constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
+constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
+constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks = 512;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
