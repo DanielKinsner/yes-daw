@@ -3,6 +3,7 @@
 
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "engine/nodes/EqNode.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 
@@ -31,7 +32,10 @@ using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
 using yesdaw::engine::DecodedAssetAudio;
 using yesdaw::engine::EntityId;
+using yesdaw::engine::EqNode;
 using yesdaw::engine::FaderNode;
+using yesdaw::engine::FxInsert;
+using yesdaw::engine::FxKind;
 using yesdaw::engine::OfflineRenderOptions;
 using yesdaw::engine::PanNode;
 using yesdaw::engine::PlaybackEngine;
@@ -51,6 +55,7 @@ using yesdaw::engine::Tick;
 using yesdaw::engine::TimeBase;
 using yesdaw::engine::Track;
 using yesdaw::engine::MixerSendTap;
+using yesdaw::engine::unmapToNormalized;
 using yesdaw::persistence::ProjectBundleDb;
 using yesdaw::persistence::readAutosaveSnapshot;
 using yesdaw::persistence::writeAutosaveFromControlTick;
@@ -276,6 +281,78 @@ PlaybackFixture makeAutomatedSendRideFixture()
     fixture.project.clips = { clip };
     fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
     fixture.project.automationLanes = { send };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
+PlaybackFixture makeAutomatedEqFxFixture()
+{
+    PlaybackFixture fixture;
+    constexpr int kFrames = 2048;
+    fixture.samples = { {} };
+    fixture.samples[0].reserve (static_cast<std::size_t> (kFrames));
+    for (int i = 0; i < kFrames; ++i)
+    {
+        const double phase = 2.0 * 3.14159265358979323846 * 1000.0
+                           * (static_cast<double> (i) / 30720.0);
+        fixture.samples[0].push_back (static_cast<float> (0.20 * std::sin (phase)));
+    }
+
+    Asset asset;
+    asset.id = idFromLowByte (60);
+    asset.contentHash = hashWithSeed (60);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    FxInsert eq;
+    eq.id = idFromLowByte (61);
+    eq.kind = FxKind::Eq;
+    eq.enabled = true;
+
+    Track track;
+    track.id = idFromLowByte (62);
+    track.strip.name = "Automated EQ FX";
+    track.strip.linearGain = 1.0f;
+    track.strip.pan = 0.0f;
+    track.strip.fxChain = { eq };
+
+    Clip clip;
+    clip.id = idFromLowByte (63);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = kFrames;
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    const auto gainParam = EqNode::parameterIdFor (0, EqNode::kGainParamOffset);
+    const double boostedGain = unmapToNormalized (EqNode::parameterSpec (gainParam), 12.0);
+    AutomationLaneData eqGain;
+    eqGain.id = idFromLowByte (64);
+    eqGain.ownerEntity = eq.id;
+    eqGain.role = AutomationTargetRole::FxInsertParam;
+    eqGain.paramId = gainParam;
+    eqGain.points = {
+        AutomationBreakpoint { 0, boostedGain, AutomationCurveType::Hold },
+        AutomationBreakpoint { kFrames, boostedGain, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (65);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { eqGain };
     REQUIRE (fixture.project.hasValidAssetClipIndirection());
     REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
 
@@ -587,6 +664,31 @@ TEST_CASE ("PlaybackEngine automated send ride output matches offline render",
     for (const int blockSize : { 1, 7, 64 })
     {
         const std::vector<float> played = playToBuffer (fixture, blockSize, options);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
+}
+
+TEST_CASE ("PlaybackEngine automated EQ FX parameter output matches offline render",
+           "[h15][automation][cp4][offline-parity][fx][eq]")
+{
+    const PlaybackFixture fixture = makeAutomatedEqFxFixture();
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()));
+    REQUIRE (staticOffline.ok());
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize);
         REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
     }
 }
