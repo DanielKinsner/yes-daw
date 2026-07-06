@@ -56,17 +56,18 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 **Last updated:** 2026-07-05
 **Current horizon:** **H15 (Automation) — CP4 EQ FX-param RT/offline parity sub-slice is
-local-green; remote CI is next.**
+closed remote-green; successor baton is next.**
 
-H15 CP4 EQ FX-param RT/offline parity sub-slice is in progress: `YesDawPlaybackCheck` adds the
+H15 CP4 EQ FX-param RT/offline parity sub-slice is closed remote-green on `69f11e7`:
+`YesDawPlaybackCheck` adds the
 first narrow FX-param integration parity case, automating an `EqNode` band-gain lane through the
 Project playback/offline paths and requiring realtime playback to match automated offline render
 bit-for-bit at device Block sizes 1, 7, and 64. The negative control clears the lane and proves
 automation changes offline output. This does not implement the remaining Compressor/Delay/Reverb/
 Limiter FX-param parity cases, final H15 roadmap/STATUS closeout, adversarial review, H16 UI work,
 plugin hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
-`YESDAW_RT_HOT` annotation changes. Focused local `YesDawPlaybackCheck` is green; remote CI is
-still pending.
+`YESDAW_RT_HOT` annotation changes. Focused local `YesDawPlaybackCheck` passed, and GitHub Actions
+run `28760793934` passed across Linux, Windows, macOS, RTSan, and TSan.
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
