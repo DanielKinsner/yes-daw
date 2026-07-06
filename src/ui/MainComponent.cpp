@@ -250,7 +250,9 @@ constexpr bool toolbarActionRequiresPlayback (yesdaw::ui::UiActionId id) noexcep
         || id == yesdaw::ui::UiActionId::TransportToggleLoop;
 }
 
-void fillPanel (juce::Graphics& g, juce::Rectangle<int> area, float radius = 6.0f)
+void fillPanel (juce::Graphics& g,
+                juce::Rectangle<int> area,
+                float radius = yesdaw::ui::UiTheme::Radius::lg)
 {
     g.setColour (kPanel);
     g.fillRoundedRectangle (area.toFloat(), radius);
@@ -269,7 +271,7 @@ void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::Rectangl
 void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
 {
     g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
-    g.fillRoundedRectangle (area.toFloat(), 2.0f);
+    g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
 
     auto fill = area.reduced (2);
     const int height = juce::roundToInt (static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, value));
@@ -285,7 +287,7 @@ void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
 void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
 {
     g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
-    g.fillRoundedRectangle (area.toFloat(), 2.0f);
+    g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
     auto fill = area.reduced (2);
     const int width = juce::roundToInt (static_cast<float> (fill.getWidth()) * juce::jlimit (0.0f, 1.0f, value));
     auto live = fill.withWidth (width);
@@ -1439,7 +1441,7 @@ private:
     void drawTransportReadouts (juce::Graphics& g) const
     {
         auto time = juce::Rectangle<int> (570, 16, 190, 56);
-        fillPanel (g, time, 5.0f);
+        fillPanel (g, time, yesdaw::ui::UiTheme::Radius::panel);
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::transportClock)));
         g.drawText ("01:02:45:18", time.reduced (8, 4).removeFromTop (30), juce::Justification::centred, false);
@@ -1455,7 +1457,7 @@ private:
         for (const auto& readout : readouts)
         {
             auto cell = box.removeFromLeft (82);
-            fillPanel (g, cell, 0.0f);
+            fillPanel (g, cell, yesdaw::ui::UiTheme::Radius::none);
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::readout)));
             g.drawText (readout.first, cell.reduced (4, 8).removeFromTop (24), juce::Justification::centred, false);
@@ -1516,7 +1518,7 @@ private:
             {
                 auto cell = buttonsArea.removeFromLeft (24).reduced (2, 0);
                 g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
-                g.fillRoundedRectangle (cell.toFloat(), 3.0f);
+                g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
                 g.setColour (label == std::string ("O") ? kRed : kMutedText);
                 g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
                 g.drawText (label, cell, juce::Justification::centred, false);
@@ -1798,9 +1800,9 @@ private:
             const auto noteRect = pianoRollNoteBounds (geometry, surface, note);
 
             g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
-            g.fillRoundedRectangle (noteRect.expanded (1).toFloat(), 4.0f);
+            g.fillRoundedRectangle (noteRect.expanded (1).toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (note.selected ? kPurple.brighter (0.35f) : kCyan);
-            g.fillRoundedRectangle (noteRect.toFloat(), 3.0f);
+            g.fillRoundedRectangle (noteRect.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }
 
         auto expression = geometry.expression;
@@ -1856,7 +1858,7 @@ private:
                                 static_cast<float> (area.getY() + 4),
                                 12.0f,
                                 12.0f,
-                                3.0f);
+                                yesdaw::ui::UiTheme::Radius::sm);
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title, juce::Font::bold)));
         g.drawText ("Vocal Lead_03", area.withTrimmedLeft (20).withHeight (24), juce::Justification::centredLeft, false);
@@ -1866,7 +1868,7 @@ private:
         {
             auto cell = stats.removeFromLeft (stats.getWidth() / 3).reduced (4, 0);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (cell.toFloat(), 4.0f);
+            g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kMutedText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
             g.drawFittedText (label, cell.reduced (4), juce::Justification::centred, 2);
@@ -1893,7 +1895,7 @@ private:
         {
             auto row = fades.removeFromTop (32).reduced (0, 3);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (row.toFloat(), 4.0f);
+            g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kText);
             g.drawText (label, row.reduced (8, 0), juce::Justification::centredLeft, false);
         }
@@ -1904,7 +1906,7 @@ private:
         {
             auto row = fx.removeFromTop (28).reduced (0, 2);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (row.toFloat(), 4.0f);
+            g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::body)));
             g.drawText (label, row.reduced (10, 0), juce::Justification::centredLeft, false);
@@ -1920,7 +1922,7 @@ private:
         g.fillRect (area);
 
         auto leftTools = area.removeFromLeft (120).reduced (8, 0);
-        fillPanel (g, leftTools, 4.0f);
+        fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
         drawSmallLabel (g, "SENDS", leftTools.withTrimmedTop (52).withHeight (24).reduced (12, 0));
         drawSmallLabel (g, "VIEW", leftTools.withTrimmedTop (96).withHeight (24).reduced (12, 0));
         drawSmallLabel (g, "Short", leftTools.withTrimmedTop (120).withHeight (28).reduced (12, 0));
@@ -1936,9 +1938,11 @@ private:
 
             auto lane = area.removeFromLeft (stripWidth).reduced (3, 0);
             g.setColour (selected ? yesdaw::ui::UiTheme::Color::selectedStrip() : kPanelRaised);
-            g.fillRoundedRectangle (lane.toFloat(), 5.0f);
+            g.fillRoundedRectangle (lane.toFloat(), yesdaw::ui::UiTheme::Radius::panel);
             g.setColour (selected ? kPurple : kPanelStroke);
-            g.drawRoundedRectangle (lane.toFloat().reduced (0.5f), 5.0f, selected ? 2.0f : 1.0f);
+            g.drawRoundedRectangle (lane.toFloat().reduced (0.5f),
+                                    yesdaw::ui::UiTheme::Radius::panel,
+                                    selected ? 2.0f : 1.0f);
 
             g.setColour (demoStrip.colour.withAlpha (0.30f));
             g.fillRect (lane.withHeight (28));
@@ -1957,7 +1961,7 @@ private:
             {
                 auto cell = buttonsRow.removeFromLeft (30).reduced (3, 2);
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-                g.fillRoundedRectangle (cell.toFloat(), 4.0f);
+                g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
                 const bool on = (label == std::string ("S") && state.soloed)
                              || (label == std::string ("M") && state.muted);
                 g.setColour (on ? demoStrip.colour.brighter (0.55f) : kText);
@@ -1968,7 +1972,7 @@ private:
             {
                 auto badge = lane.withTrimmedTop (106).withHeight (14).withTrimmedLeft (8).withWidth (28);
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-                g.fillRoundedRectangle (badge.toFloat(), 3.0f);
+                g.fillRoundedRectangle (badge.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
                 g.setColour (kMutedText);
                 g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::tiny)));
                 g.drawText ("SC", badge, juce::Justification::centred, false);
@@ -1980,11 +1984,11 @@ private:
 
             auto rail = faderArea.withWidth (18).withCentre ({ lane.getCentreX() - 8, faderArea.getCentreY() });
             g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
-            g.fillRoundedRectangle (rail.toFloat(), 3.0f);
+            g.fillRoundedRectangle (rail.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
             const int thumbY = rail.getBottom() - juce::roundToInt (state.linearGain * static_cast<float> (rail.getHeight())) - 8;
             auto thumb = juce::Rectangle<int> (rail.getX() - 5, thumbY, rail.getWidth() + 10, 18);
             g.setColour (yesdaw::ui::UiTheme::Color::faderThumb());
-            g.fillRoundedRectangle (thumb.toFloat(), 3.0f);
+            g.fillRoundedRectangle (thumb.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }
     }
 

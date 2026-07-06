@@ -48,12 +48,13 @@ that exist for the touched files plus `git diff --check` and the full `ci` prese
 
 H16 CP1 is partially underway. The first design-token checkpoint opened `src/ui/UiTheme.h`, moved
 Timeline/MainComponent raw UI colors behind named tokens, and added `YesDawThemeAuditCheck` with a raw
-color negative control. Follow-up CP1 slices moved Timeline canvas type/radius/spacing values and
-MainComponent typography values behind `UiTheme` tokens; the theme audit now also rejects raw
-`FontOptions` sizes outside `UiTheme.h` with a scratch negative control.
+color negative control. Follow-up CP1 slices moved Timeline canvas type/radius/spacing values,
+MainComponent typography values, and MainComponent rounded radii behind `UiTheme` tokens; the theme audit
+now also rejects raw `FontOptions` sizes and raw rounded radii outside `UiTheme.h` with scratch negative
+controls.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely MainComponent layout/radius/spacing or meter-gradient
+to `UiTheme.h` before broad UI migration, likely MainComponent layout/spacing constants or meter-gradient
 tokens.
 
 ## The plan

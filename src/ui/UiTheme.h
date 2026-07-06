@@ -67,9 +67,11 @@ struct UiTheme
 
     struct Radius
     {
+        static constexpr float none = 0.0f;
         static constexpr float xs = 2.0f;
         static constexpr float sm = 3.0f;
         static constexpr float md = 4.0f;
+        static constexpr float panel = 5.0f;
         static constexpr float lg = 6.0f;
         static constexpr float pill = 7.0f;
     };
