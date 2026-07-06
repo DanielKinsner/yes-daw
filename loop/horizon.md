@@ -63,11 +63,13 @@ spacing values with a scratch negative control. This checkpoint moved MainCompon
 behind `UiTheme::Layout`; the theme audit now rejects raw `drawTrackList` spacing values with a scratch
 negative control. This checkpoint moved MainComponent shared meter fill inset spacing behind
 `UiTheme::Layout`; the theme audit now rejects raw `drawMeter` inset spacing values with a scratch negative
-control.
+control. This checkpoint moved MainComponent painted header, transport-readout, and master-meter geometry
+behind `UiTheme::Layout`; the theme audit now rejects raw `drawHeader` geometry values with a scratch
+negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing surface not yet covered
-by the theme audit, such as the painted header/transport/master-meter geometry.
+to `UiTheme.h` before broad UI migration, likely another raw MainComponent painted spacing surface not yet
+covered by the theme audit, such as the painted piano-roll geometry.
 
 ## The plan
 

@@ -135,6 +135,14 @@ bool meterLayoutUsesRawSpacing (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawMeterSpacing);
 }
 
+bool headerLayoutUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawHeaderGeometry {
+        R"(\b(?:Rectangle<int>|fillRect|fillEllipse|reduced|removeFromTop|removeFromLeft|withWidth)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bdrawText\s*\([^;\n]*,\s*[0-9]+(?:\.[0-9]+)?f?\b|\bint\s+menuX\s*=\s*[0-9]+\b|\bmenuX\s*\+=\s*[0-9]+\b|\bgetWidth\s*\(\)\s*-\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawHeaderGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -165,6 +173,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int trackListLayoutDepth = 0;
         bool insideMeterLayout = false;
         int meterLayoutDepth = 0;
+        bool insideHeaderLayout = false;
+        int headerLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -213,6 +223,17 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideMeterLayout && meterLayoutUsesRawSpacing (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("void drawHeader") != std::string::npos
+                || line.find ("void drawTransportReadouts") != std::string::npos
+                || line.find ("void drawMasterMeter") != std::string::npos)
+            {
+                insideHeaderLayout = true;
+                headerLayoutDepth = 0;
+            }
+
+            if (insideHeaderLayout && headerLayoutUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (insideInspectorControlLayout)
@@ -269,6 +290,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (meterLayoutDepth <= 0 && line.find ('}') != std::string::npos)
                     insideMeterLayout = false;
+            }
+
+            if (insideHeaderLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++headerLayoutDepth;
+                    else if (c == '}')
+                        --headerLayoutDepth;
+                }
+
+                if (headerLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideHeaderLayout = false;
             }
 
             if (roundedStatement.empty())
@@ -331,12 +366,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void layoutMixerControls() { auto lane = mixerFirstStripBounds().reduced (8, 6); }\n";
         out << "void drawTrackList(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawMeter(juce::Rectangle<int> area) { auto fill = area.reduced (2); }\n";
+        out << "void drawHeader() { auto time = juce::Rectangle<int> (570, 16, 190, 56); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 10u);
+    REQUIRE (findings.size() == 11u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -346,5 +382,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[6].line == 7);
     REQUIRE (findings[7].line == 8);
     REQUIRE (findings[8].line == 9);
-    REQUIRE (findings.back().line == 10);
+    REQUIRE (findings[9].line == 10);
+    REQUIRE (findings.back().line == 11);
 }

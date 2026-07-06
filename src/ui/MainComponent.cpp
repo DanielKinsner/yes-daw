@@ -1461,27 +1461,50 @@ private:
 
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::body)));
-        int menuX = 22;
+        int menuX = yesdaw::ui::UiTheme::Layout::headerMenuStartX;
         for (const auto* menu : { "FILE", "EDIT", "VIEW", "OPTIONS", "HELP" })
         {
-            g.drawText (menu, menuX, 17, 70, 18, juce::Justification::centredLeft, false);
-            menuX += menu == std::string ("OPTIONS") ? 72 : 48;
+            g.drawText (menu,
+                        menuX,
+                        yesdaw::ui::UiTheme::Layout::headerMenuY,
+                        yesdaw::ui::UiTheme::Layout::headerMenuWidth,
+                        yesdaw::ui::UiTheme::Layout::headerMenuHeight,
+                        juce::Justification::centredLeft,
+                        false);
+            menuX += menu == std::string ("OPTIONS")
+                         ? yesdaw::ui::UiTheme::Layout::headerOptionsMenuStep
+                         : yesdaw::ui::UiTheme::Layout::headerMenuStep;
         }
 
         drawTransportReadouts (g);
         drawMasterMeter (g);
         g.setColour (kPanelStroke);
-        g.fillRect (0, kHeaderHeight - 1, getWidth(), 1);
+        g.fillRect (getLocalBounds()
+                        .withHeight (kHeaderHeight)
+                        .removeFromBottom (yesdaw::ui::UiTheme::Space::hairline));
     }
 
     void drawTransportReadouts (juce::Graphics& g) const
     {
-        auto time = juce::Rectangle<int> (570, 16, 190, 56);
+        auto time = juce::Rectangle<int> (
+            yesdaw::ui::UiTheme::Layout::headerTransportTimeX,
+            yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
+            yesdaw::ui::UiTheme::Layout::headerTransportTimeWidth,
+            yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
         fillPanel (g, time, yesdaw::ui::UiTheme::Radius::panel);
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::transportClock)));
-        g.drawText ("01:02:45:18", time.reduced (8, 4).removeFromTop (30), juce::Justification::centred, false);
-        drawSmallLabel (g, "BAR | BEAT", time.reduced (8, 34), juce::Justification::centred);
+        g.drawText ("01:02:45:18",
+                    time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
+                                  yesdaw::ui::UiTheme::Layout::headerTransportClockInsetY)
+                        .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportClockHeight),
+                    juce::Justification::centred,
+                    false);
+        drawSmallLabel (g,
+                        "BAR | BEAT",
+                        time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
+                                      yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
+                        juce::Justification::centred);
 
         const std::array<std::pair<const char*, const char*>, 3> readouts {{
             { "120.00", "TEMPO" },
@@ -1489,36 +1512,68 @@ private:
             { "Cmaj", "KEY" }
         }};
 
-        auto box = juce::Rectangle<int> (760, 16, 248, 56);
+        auto box = juce::Rectangle<int> (
+            yesdaw::ui::UiTheme::Layout::headerTransportBoxX,
+            yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
+            yesdaw::ui::UiTheme::Layout::headerTransportBoxWidth,
+            yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
         for (const auto& readout : readouts)
         {
-            auto cell = box.removeFromLeft (82);
+            auto cell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
             fillPanel (g, cell, yesdaw::ui::UiTheme::Radius::none);
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::readout)));
-            g.drawText (readout.first, cell.reduced (4, 8).removeFromTop (24), juce::Justification::centred, false);
-            drawSmallLabel (g, readout.second, cell.reduced (4, 34), juce::Justification::centred);
+            g.drawText (readout.first,
+                        cell.reduced (yesdaw::ui::UiTheme::Layout::headerTransportCellInsetX,
+                                      yesdaw::ui::UiTheme::Layout::headerTransportValueInsetY)
+                            .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportValueHeight),
+                        juce::Justification::centred,
+                        false);
+            drawSmallLabel (g,
+                            readout.second,
+                            cell.reduced (yesdaw::ui::UiTheme::Layout::headerTransportCellInsetX,
+                                          yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
+                            juce::Justification::centred);
         }
 
         g.setColour (kRed);
-        g.fillEllipse (520.0f, 36.0f, 18.0f, 18.0f);
+        g.fillEllipse (static_cast<float> (yesdaw::ui::UiTheme::Layout::headerTransportRecordX),
+                       static_cast<float> (yesdaw::ui::UiTheme::Layout::headerTransportRecordY),
+                       static_cast<float> (yesdaw::ui::UiTheme::Layout::headerTransportRecordSize),
+                       static_cast<float> (yesdaw::ui::UiTheme::Layout::headerTransportRecordSize));
     }
 
     void drawMasterMeter (juce::Graphics& g) const
     {
-        auto master = juce::Rectangle<int> (1110, 18, 300, 44);
-        drawSmallLabel (g, "MASTER", master.removeFromTop (14));
-        auto meter = master.removeFromTop (16).withWidth (236);
+        auto master = juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterX,
+                                            yesdaw::ui::UiTheme::Layout::headerMasterY,
+                                            yesdaw::ui::UiTheme::Layout::headerMasterWidth,
+                                            yesdaw::ui::UiTheme::Layout::headerMasterHeight);
+        drawSmallLabel (g, "MASTER", master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterLabelHeight));
+        auto meter = master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterMeterHeight)
+                         .withWidth (yesdaw::ui::UiTheme::Layout::headerMasterMeterWidth);
         drawHorizontalMeter (g, meter, 0.76f);
         const auto surface = currentMixerSurface();
         const juce::String lufs = surface.loudness.valid
             ? juce::String (surface.loudness.integratedLufs, 1) + " LUFS"
             : "-- LUFS";
-        drawSmallLabel (g, lufs, juce::Rectangle<int> (1370, 33, 76, 16), juce::Justification::centred);
+        drawSmallLabel (g,
+                        lufs,
+                        juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
+                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
+                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
+                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsHeight),
+                        juce::Justification::centred);
 
         g.setColour (kMutedText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::statusIcon)));
-        g.drawText ("*", getWidth() - 54, 34, 24, 24, juce::Justification::centred, false);
+        g.drawText ("*",
+                    getWidth() - yesdaw::ui::UiTheme::Layout::headerStatusIconRightInset,
+                    yesdaw::ui::UiTheme::Layout::headerStatusIconY,
+                    yesdaw::ui::UiTheme::Layout::headerStatusIconSize,
+                    yesdaw::ui::UiTheme::Layout::headerStatusIconSize,
+                    juce::Justification::centred,
+                    false);
     }
 
     void drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const
