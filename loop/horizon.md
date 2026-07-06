@@ -51,11 +51,12 @@ Timeline/MainComponent raw UI colors behind named tokens, and added `YesDawTheme
 color negative control. Follow-up CP1 slices moved Timeline canvas type/radius/spacing values,
 MainComponent typography values, MainComponent rounded radii, and MainComponent shell layout dimensions
 behind `UiTheme` tokens; the theme audit now also rejects raw `FontOptions` sizes, raw rounded radii, and
-raw `constexpr` UI width/height tokens outside `UiTheme.h` with scratch negative controls.
+raw `constexpr` UI width/height tokens outside `UiTheme.h` with scratch negative controls. This
+checkpoint moved MainComponent meter fill colors and hot-band split fractions behind `UiTheme::Meter`;
+the theme audit now rejects raw meter split fractions with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely meter-gradient tokens or the next narrow MainComponent
-spacing surface.
+to `UiTheme.h` before broad UI migration, likely the next narrow MainComponent spacing surface.
 
 ## The plan
 

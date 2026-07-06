@@ -109,6 +109,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
     const std::regex juceNamedColour { R"(\bjuce::Colours::[A-Za-z_][A-Za-z0-9_]*)" };
     const std::regex rawFontSize { R"(\bFontOptions\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\b)" };
     const std::regex rawLayoutSize { R"(\bconstexpr\s+int\s+k[A-Za-z0-9_]*(?:Width|Height)\s*=\s*[0-9]+\b)" };
+    const std::regex rawMeterBand { R"(\bremoveFrom(?:Top|Right)\s*\([^;\n]*\*\s*0(?:\.[0-9]+)?f?\s*\))" };
     std::vector<ThemeAuditFinding> findings;
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
@@ -129,7 +130,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (std::regex_search (line, rawHexColour)
                 || std::regex_search (line, juceNamedColour)
                 || std::regex_search (line, rawFontSize)
-                || std::regex_search (line, rawLayoutSize))
+                || std::regex_search (line, rawLayoutSize)
+                || std::regex_search (line, rawMeterBand))
             {
                 findings.push_back ({ entry.path(), lineNumber, line });
             }
@@ -188,14 +190,16 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void label() { const auto raw = juce::FontOptions (13.0f); }\n";
         out << "void panel(juce::Graphics& g, juce::Rectangle<int> r) { g.fillRoundedRectangle (r.toFloat(), 4.0f); }\n";
         out << "constexpr int kPanelWidth = 42;\n";
+        out << "void meter(juce::Rectangle<int> live) { auto hot = live.removeFromTop (juce::roundToInt (live.getHeight() * 0.25f)); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 4u);
+    REQUIRE (findings.size() == 5u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
-    REQUIRE (findings.back().line == 4);
+    REQUIRE (findings[3].line == 4);
+    REQUIRE (findings.back().line == 5);
 }

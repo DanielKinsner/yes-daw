@@ -56,8 +56,6 @@ const juce::Colour kTeal = yesdaw::ui::UiTheme::Color::accentTeal();
 const juce::Colour kAmber = yesdaw::ui::UiTheme::Color::accentAmber();
 const juce::Colour kPurple = yesdaw::ui::UiTheme::Color::accentPurple();
 const juce::Colour kCyan = yesdaw::ui::UiTheme::Color::accentCyan();
-const juce::Colour kGreen = yesdaw::ui::UiTheme::Color::meterGreen();
-const juce::Colour kYellow = yesdaw::ui::UiTheme::Color::meterYellow();
 const juce::Colour kRed = yesdaw::ui::UiTheme::Color::dangerRed();
 
 using TrackRow = yesdaw::ui::TimelineCanvasTrack;
@@ -276,11 +274,12 @@ void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
     auto fill = area.reduced (2);
     const int height = juce::roundToInt (static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, value));
     auto live = fill.removeFromBottom (height);
-    auto hot = live.removeFromTop (juce::roundToInt (static_cast<float> (live.getHeight()) * 0.22f));
+    auto hot = live.removeFromTop (juce::roundToInt (static_cast<float> (live.getHeight())
+                                                    * yesdaw::ui::UiTheme::Meter::verticalHotBand));
 
-    g.setColour (kGreen);
+    g.setColour (yesdaw::ui::UiTheme::Meter::nominalFill());
     g.fillRect (live);
-    g.setColour (kYellow);
+    g.setColour (yesdaw::ui::UiTheme::Meter::hotFill());
     g.fillRect (hot);
 }
 
@@ -291,10 +290,11 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
     auto fill = area.reduced (2);
     const int width = juce::roundToInt (static_cast<float> (fill.getWidth()) * juce::jlimit (0.0f, 1.0f, value));
     auto live = fill.withWidth (width);
-    auto hot = live.removeFromRight (juce::roundToInt (static_cast<float> (live.getWidth()) * 0.18f));
-    g.setColour (kGreen);
+    auto hot = live.removeFromRight (juce::roundToInt (static_cast<float> (live.getWidth())
+                                                      * yesdaw::ui::UiTheme::Meter::horizontalHotBand));
+    g.setColour (yesdaw::ui::UiTheme::Meter::nominalFill());
     g.fillRect (live);
-    g.setColour (kYellow);
+    g.setColour (yesdaw::ui::UiTheme::Meter::hotFill());
     g.fillRect (hot);
 }
 
@@ -1832,11 +1832,15 @@ private:
                 else
                     path.lineTo (x, y);
 
-                g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? kGreen : kPurple);
+                g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
+                                  ? yesdaw::ui::UiTheme::Meter::nominalFill()
+                                  : kPurple);
                 g.fillEllipse (x - 2.5f, y - 2.5f, 5.0f, 5.0f);
             }
 
-            g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? kGreen : kPurple);
+            g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
+                              ? yesdaw::ui::UiTheme::Meter::nominalFill()
+                              : kPurple);
             g.strokePath (path, juce::PathStrokeType (1.5f));
         }
     }

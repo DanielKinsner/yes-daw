@@ -54,6 +54,15 @@ struct UiTheme
         static juce::Colour faderThumb() noexcept { return juce::Colour (0xffc4c9cf); }
     };
 
+    struct Meter
+    {
+        static juce::Colour nominalFill() noexcept { return Color::meterGreen(); }
+        static juce::Colour hotFill() noexcept { return Color::meterYellow(); }
+
+        static constexpr float verticalHotBand = 0.22f;
+        static constexpr float horizontalHotBand = 0.18f;
+    };
+
     struct Space
     {
         static constexpr int hairline = 1;
