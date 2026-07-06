@@ -175,6 +175,14 @@ bool resizedLayoutUsesRawButtonGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawResizedButtonGeometry);
 }
 
+bool timelineStateUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawTimelineStateGeometry {
+        R"(\bjuce::jmax\s*\(\s*[0-9]+\b|\bgetWidth\s*\(\)\s*-\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawTimelineStateGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -216,6 +224,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int mixerPanelLayoutDepth = 0;
         bool insideResizedLayout = false;
         int resizedLayoutDepth = 0;
+        bool insideTimelineStateLayout = false;
+        int timelineStateLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -305,6 +315,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideResizedLayout && resizedLayoutUsesRawButtonGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("makeTimelineState") != std::string::npos)
+            {
+                insideTimelineStateLayout = true;
+                timelineStateLayoutDepth = 0;
+            }
+
+            if (insideTimelineStateLayout && timelineStateUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("void drawInspector") != std::string::npos)
@@ -442,6 +461,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideResizedLayout = false;
             }
 
+            if (insideTimelineStateLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineStateLayoutDepth;
+                    else if (c == '}')
+                        --timelineStateLayoutDepth;
+                }
+
+                if (timelineStateLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineStateLayout = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -507,13 +540,14 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawPianoRoll(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
         out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
+        out << "void makeTimelineState() { auto width = juce::jmax (1, timelineInput.getWidth() - 26); }\n";
         out << "constexpr int kTrimEdgePixels = 8;\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 16u);
+    REQUIRE (findings.size() == 17u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -529,5 +563,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[12].line == 13);
     REQUIRE (findings[13].line == 14);
     REQUIRE (findings[14].line == 15);
-    REQUIRE (findings.back().line == 16);
+    REQUIRE (findings[15].line == 16);
+    REQUIRE (findings.back().line == 17);
 }

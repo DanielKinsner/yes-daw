@@ -1716,7 +1716,10 @@ private:
         state.markers = kTimelineMarkers.data();
         state.markerCount = static_cast<int> (kTimelineMarkers.size());
         state.viewport.scrollSeconds = 0.0;
-        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (1, timelineInput.getWidth() - 26))
+        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
+                                          yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                          timelineInput.getWidth()
+                                              - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
                                       / std::max (1.0, state.totalSeconds);
         return state;
     }

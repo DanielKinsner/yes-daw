@@ -306,6 +306,8 @@ struct UiTheme
 
         static constexpr int meterFillInset = 2;
 
+        static constexpr int timelineViewportMinPixelWidth = 1;
+        static constexpr int timelineViewportRightGutter = 26;
         static constexpr int timelineClipEdgeHitWidth = 8;
 
         static constexpr int pianoRollHeaderHeight = 38;

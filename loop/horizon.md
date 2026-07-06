@@ -76,6 +76,8 @@ control. This checkpoint moved MainComponent `resized()` toolbar and autosave bu
 `UiTheme::Layout`; the theme audit now rejects raw `setBounds` button geometry values in `resized()` with
 a scratch negative control. This checkpoint moved MainComponent timeline clip and piano-roll note edge-hit
 geometry behind `UiTheme::Layout`; the theme audit now rejects raw `*EdgePixels` local constants with a
+scratch negative control. This checkpoint moved MainComponent timeline viewport pixel-width/gutter geometry
+behind `UiTheme::Layout`; the theme audit now rejects raw `makeTimelineState()` viewport geometry with a
 scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
