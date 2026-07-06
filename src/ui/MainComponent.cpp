@@ -2103,13 +2103,34 @@ private:
         g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
         g.fillRect (area);
 
-        auto leftTools = area.removeFromLeft (120).reduced (8, 0);
+        auto leftTools = area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth)
+                             .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsInsetX,
+                                       yesdaw::ui::UiTheme::Layout::mixerToolsInsetY);
         fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
-        drawSmallLabel (g, "SENDS", leftTools.withTrimmedTop (52).withHeight (24).reduced (12, 0));
-        drawSmallLabel (g, "VIEW", leftTools.withTrimmedTop (96).withHeight (24).reduced (12, 0));
-        drawSmallLabel (g, "Short", leftTools.withTrimmedTop (120).withHeight (28).reduced (12, 0));
+        drawSmallLabel (g,
+                        "SENDS",
+                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsSendsLabelTop)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsLabelHeight)
+                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
+                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
+        drawSmallLabel (g,
+                        "VIEW",
+                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsViewLabelTop)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsLabelHeight)
+                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
+                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
+        drawSmallLabel (g,
+                        "Short",
+                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsModeLabelTop)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsModeLabelHeight)
+                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
+                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
 
-        const int stripWidth = juce::jmax (84, area.getWidth() / (juce::jmax (1, static_cast<int> (stripCount)) + 1));
+        const int stripWidth = juce::jmax (
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
+                                           static_cast<int> (stripCount))
+                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount));
         for (std::size_t stripIndex = 0; stripIndex < stripCount; ++stripIndex)
         {
             const bool isBus = stripIndex >= surface.tracks.size();
@@ -2118,30 +2139,55 @@ private:
             const auto& demoStrip = kMixer[std::min (stripIndex, kMixer.size() - 1u)];
             const bool selected = appModel.context().mixerTargetSelected && stripIndex == 0;
 
-            auto lane = area.removeFromLeft (stripWidth).reduced (3, 0);
+            auto lane = area.removeFromLeft (stripWidth)
+                            .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
+                                      yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
             g.setColour (selected ? yesdaw::ui::UiTheme::Color::selectedStrip() : kPanelRaised);
             g.fillRoundedRectangle (lane.toFloat(), yesdaw::ui::UiTheme::Radius::panel);
             g.setColour (selected ? kPurple : kPanelStroke);
-            g.drawRoundedRectangle (lane.toFloat().reduced (0.5f),
+            g.drawRoundedRectangle (lane.toFloat().reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
                                     yesdaw::ui::UiTheme::Radius::panel,
-                                    selected ? 2.0f : 1.0f);
+                                    selected
+                                        ? yesdaw::ui::UiTheme::Layout::mixerPaintedStripSelectedStrokeWidth
+                                        : yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
 
             g.setColour (demoStrip.colour.withAlpha (0.30f));
-            g.fillRect (lane.withHeight (28));
+            g.fillRect (lane.withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight));
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::small)));
-            g.drawFittedText (state.name, lane.reduced (8, 4).withHeight (20), juce::Justification::centred, 1);
+            g.drawFittedText (state.name,
+                              lane.reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedNameInsetX,
+                                            yesdaw::ui::UiTheme::Layout::mixerPaintedNameInsetY)
+                                  .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedNameHeight),
+                              juce::Justification::centred,
+                              1);
 
-            auto knob = lane.withTrimmedTop (36).withHeight (38);
+            auto knob = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedPanTop)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedPanHeight);
+            const int panDiameter = yesdaw::ui::UiTheme::Layout::mixerPaintedPanRadius * 2;
+            const int panX = knob.getCentreX() - yesdaw::ui::UiTheme::Layout::mixerPaintedPanRadius;
+            const int panY = knob.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedPanTopInset;
             g.setColour (yesdaw::ui::UiTheme::Color::controlInsetBlack());
-            g.fillEllipse (static_cast<float> (knob.getCentreX() - 13), static_cast<float> (knob.getY() + 4), 26.0f, 26.0f);
+            g.fillEllipse (static_cast<float> (panX),
+                           static_cast<float> (panY),
+                           static_cast<float> (panDiameter),
+                           static_cast<float> (panDiameter));
             g.setColour (demoStrip.colour.brighter (0.45f));
-            g.drawEllipse (static_cast<float> (knob.getCentreX() - 13), static_cast<float> (knob.getY() + 4), 26.0f, 26.0f, 1.2f);
+            g.drawEllipse (static_cast<float> (panX),
+                           static_cast<float> (panY),
+                           static_cast<float> (panDiameter),
+                           static_cast<float> (panDiameter),
+                           yesdaw::ui::UiTheme::Layout::mixerPaintedPanStrokeWidth);
 
-            auto buttonsRow = lane.withTrimmedTop (78).withHeight (28).reduced (14, 0);
+            auto buttonsRow = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsTop)
+                                  .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsHeight)
+                                  .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsInsetX,
+                                            yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsInsetY);
             for (const auto* label : { "S", "M" })
             {
-                auto cell = buttonsRow.removeFromLeft (30).reduced (3, 2);
+                auto cell = buttonsRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonWidth)
+                                .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonInsetX,
+                                          yesdaw::ui::UiTheme::Layout::mixerPaintedButtonInsetY);
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                 g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
                 const bool on = (label == std::string ("S") && state.soloed)
@@ -2152,7 +2198,10 @@ private:
 
             if (state.sidechainVisible)
             {
-                auto badge = lane.withTrimmedTop (106).withHeight (14).withTrimmedLeft (8).withWidth (28);
+                auto badge = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedSidechainTop)
+                                 .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedSidechainHeight)
+                                 .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedSidechainLeftInset)
+                                 .withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedSidechainWidth);
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                 g.fillRoundedRectangle (badge.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
                 g.setColour (kMutedText);
@@ -2160,15 +2209,28 @@ private:
                 g.drawText ("SC", badge, juce::Justification::centred, false);
             }
 
-            auto faderArea = lane.withTrimmedTop (112).withTrimmedBottom (28);
-            auto meter = faderArea.removeFromRight (16).reduced (2, 0);
+            auto faderArea =
+                lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
+                    .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
+            auto meter = faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
+                             .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetX,
+                                       yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetY);
             drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
 
-            auto rail = faderArea.withWidth (18).withCentre ({ lane.getCentreX() - 8, faderArea.getCentreY() });
+            auto rail = faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
+                            .withCentre ({ lane.getCentreX()
+                                               - yesdaw::ui::UiTheme::Layout::mixerPaintedRailCenterOffsetX,
+                                           faderArea.getCentreY() });
             g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
             g.fillRoundedRectangle (rail.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
-            const int thumbY = rail.getBottom() - juce::roundToInt (state.linearGain * static_cast<float> (rail.getHeight())) - 8;
-            auto thumb = juce::Rectangle<int> (rail.getX() - 5, thumbY, rail.getWidth() + 10, 18);
+            const int thumbY =
+                rail.getBottom() - juce::roundToInt (state.linearGain * static_cast<float> (rail.getHeight()))
+                - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbCenterInset;
+            auto thumb = juce::Rectangle<int> (
+                rail.getX() - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbWidthOverhang / 2,
+                thumbY,
+                rail.getWidth() + yesdaw::ui::UiTheme::Layout::mixerPaintedThumbWidthOverhang,
+                yesdaw::ui::UiTheme::Layout::mixerPaintedThumbHeight);
             g.setColour (yesdaw::ui::UiTheme::Color::faderThumb());
             g.fillRoundedRectangle (thumb.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }

@@ -127,6 +127,14 @@ bool mixerControlLayoutUsesRawSpacing (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawMixerSpacing);
 }
 
+bool mixerPanelLayoutUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawMixerGeometry {
+        R"(\b(?:removeFromLeft|withTrimmedTop|withTrimmedBottom|withHeight|withWidth|reduced|jmax|fillRect|fillEllipse|drawEllipse|Rectangle<int>)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetCentreX\s*\(\)\s*-\s*[0-9]+\b|\bgetY\s*\(\)\s*\+\s*[0-9]+\b|\bgetWidth\s*\(\)\s*/\s*\([^;\n]*\+\s*[0-9]+\s*\)|\bgetBottom\s*\(\)[^;\n]*-\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawMixerGeometry);
+}
+
 bool trackListLayoutUsesRawSpacing (std::string_view line)
 {
     static const std::regex rawTrackListSpacing {
@@ -195,6 +203,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int pianoRollLayoutDepth = 0;
         bool insideInspectorPanelLayout = false;
         int inspectorPanelLayoutDepth = 0;
+        bool insideMixerPanelLayout = false;
+        int mixerPanelLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -224,6 +234,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideMixerControlLayout && mixerControlLayoutUsesRawSpacing (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("void drawMixer") != std::string::npos)
+            {
+                insideMixerPanelLayout = true;
+                mixerPanelLayoutDepth = 0;
+            }
+
+            if (insideMixerPanelLayout && mixerPanelLayoutUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("drawTrackList") != std::string::npos)
@@ -316,6 +335,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (trackListLayoutDepth <= 0 && line.find ('}') != std::string::npos)
                     insideTrackListLayout = false;
+            }
+
+            if (insideMixerPanelLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++mixerPanelLayoutDepth;
+                    else if (c == '}')
+                        --mixerPanelLayoutDepth;
+                }
+
+                if (mixerPanelLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideMixerPanelLayout = false;
             }
 
             if (insideMeterLayout)
@@ -432,6 +465,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void shell(juce::Rectangle<int> work) { auto left = work.removeFromLeft (42).reduced (6, 10); }\n";
         out << "void layoutInspectorControls() { auto area = inspectorBounds(); area.removeFromTop (40); }\n";
         out << "void layoutMixerControls() { auto lane = mixerFirstStripBounds().reduced (8, 6); }\n";
+        out << "void drawMixer(juce::Rectangle<int> area) { auto strip = area.removeFromLeft (84).reduced (3, 0); }\n";
         out << "void drawTrackList(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawMeter(juce::Rectangle<int> area) { auto fill = area.reduced (2); }\n";
         out << "void drawHeader() { auto time = juce::Rectangle<int> (570, 16, 190, 56); }\n";
@@ -442,7 +476,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 13u);
+    REQUIRE (findings.size() == 14u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -455,5 +489,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[9].line == 10);
     REQUIRE (findings[10].line == 11);
     REQUIRE (findings[11].line == 12);
-    REQUIRE (findings.back().line == 13);
+    REQUIRE (findings[12].line == 13);
+    REQUIRE (findings.back().line == 14);
 }
