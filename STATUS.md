@@ -54,9 +54,22 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 ## Live packet — H15 implementation
 
-**Last updated:** 2026-07-05
-**Current horizon:** **H15 (Automation) — CP4 EQ FX-param RT/offline parity sub-slice is
-closed remote-green; successor baton is next.**
+**Last updated:** 2026-07-06
+**Current horizon:** **H15 (Automation) — CP4 Compressor FX-param RT/offline parity sub-slice is
+local-green; implementation commit is next, then remote CI closeout.**
+
+H15 CP4 Compressor FX-param RT/offline parity sub-slice is local-green pending remote CI: `GraphBuilder`
+now allows compiled automation lane `paramId = 0`, which is required for the stable H14
+`CompressorNode::kThresholdParamId`; Project/persistence validation already constrains FX ParamIDs to the
+target insert's ParamSpec. `YesDawPlaybackCheck` adds a narrow Compressor FX integration parity case that
+automates the threshold lane through the Project playback/offline paths, proves automation changes offline
+output versus a static negative control, and requires realtime playback to match automated offline render
+bit-for-bit at device Block sizes 1, 7, and 64. This does not implement the remaining Delay/Reverb/Limiter
+FX-param parity cases, final H15 roadmap/STATUS closeout, adversarial review, H16 UI work, plugin hosting,
+ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation
+changes. Focused local `YesDawPlaybackCheck` passed; full local `cmake --preset ci`, `cmake --build
+--preset ci`, `ctest --preset ci --output-on-failure` passed 309/309; `git diff --check` passed. Remote CI
+is not checked yet.
 
 H15 CP4 EQ FX-param RT/offline parity sub-slice is closed remote-green on `69f11e7`:
 `YesDawPlaybackCheck` adds the

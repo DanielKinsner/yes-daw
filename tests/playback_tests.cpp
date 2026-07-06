@@ -3,6 +3,7 @@
 
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
@@ -30,6 +31,7 @@ using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
 using yesdaw::engine::CompiledGraph;
+using yesdaw::engine::CompressorNode;
 using yesdaw::engine::DecodedAssetAudio;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EqNode;
@@ -363,6 +365,79 @@ PlaybackFixture makeAutomatedEqFxFixture()
     return fixture;
 }
 
+PlaybackFixture makeAutomatedCompressorFxFixture()
+{
+    PlaybackFixture fixture;
+    constexpr int kFrames = 2048;
+    fixture.samples = { std::vector<float> (static_cast<std::size_t> (kFrames), 0.50f) };
+
+    Asset asset;
+    asset.id = idFromLowByte (66);
+    asset.contentHash = hashWithSeed (66);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    FxInsert compressor;
+    compressor.id = idFromLowByte (67);
+    compressor.kind = FxKind::Compressor;
+    compressor.enabled = true;
+    compressor.normalizedParams = {
+        { CompressorNode::kRatioParamId,
+          unmapToNormalized (CompressorNode::parameterSpec (CompressorNode::kRatioParamId), 4.0) },
+        { CompressorNode::kAttackParamId,
+          unmapToNormalized (CompressorNode::parameterSpec (CompressorNode::kAttackParamId), 0.1) },
+        { CompressorNode::kReleaseParamId,
+          unmapToNormalized (CompressorNode::parameterSpec (CompressorNode::kReleaseParamId), 10.0) },
+    };
+
+    Track track;
+    track.id = idFromLowByte (68);
+    track.strip.name = "Automated compressor FX";
+    track.strip.linearGain = 1.0f;
+    track.strip.pan = 0.0f;
+    track.strip.fxChain = { compressor };
+
+    Clip clip;
+    clip.id = idFromLowByte (69);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = kFrames;
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    const double compressedThreshold =
+        unmapToNormalized (CompressorNode::parameterSpec (CompressorNode::kThresholdParamId), -60.0);
+    AutomationLaneData threshold;
+    threshold.id = idFromLowByte (70);
+    threshold.ownerEntity = compressor.id;
+    threshold.role = AutomationTargetRole::FxInsertParam;
+    threshold.paramId = CompressorNode::kThresholdParamId;
+    threshold.points = {
+        AutomationBreakpoint { 0, compressedThreshold, AutomationCurveType::Hold },
+        AutomationBreakpoint { kFrames, compressedThreshold, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (71);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { threshold };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
 OfflineRenderOptions sendRideOptions (const PlaybackFixture& fixture)
 {
     OfflineRenderOptions options;
@@ -672,6 +747,31 @@ TEST_CASE ("PlaybackEngine automated EQ FX parameter output matches offline rend
            "[h15][automation][cp4][offline-parity][fx][eq]")
 {
     const PlaybackFixture fixture = makeAutomatedEqFxFixture();
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()));
+    REQUIRE (staticOffline.ok());
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
+}
+
+TEST_CASE ("PlaybackEngine automated Compressor FX parameter output matches offline render",
+           "[h15][automation][cp4][offline-parity][fx][compressor]")
+{
+    const PlaybackFixture fixture = makeAutomatedCompressorFxFixture();
 
     PlaybackFixture withoutAutomation = fixture;
     withoutAutomation.project.automationLanes.clear();

@@ -312,7 +312,6 @@ private:
         for (const CompiledAutomationLane& lane : lanes)
         {
             if (idToIndex.find (lane.targetNode) == idToIndex.end()
-                || lane.parameterId == 0u
                 || lane.frames.size() != lane.values.size()
                 || lane.frames.size() != lane.curveTypes.size())
                 return failBool (error, GraphBuildError::InvalidAutomationLane { lane.targetNode });
