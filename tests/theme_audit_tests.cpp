@@ -111,6 +111,14 @@ bool inspectorControlLayoutUsesRawSpacing (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawInspectorSpacing);
 }
 
+bool mixerControlLayoutUsesRawSpacing (std::string_view line)
+{
+    static const std::regex rawMixerSpacing {
+        R"(\b(?:removeFromTop|removeFromLeft|withWidth|jmax|reduced)\s*\([^;\n]*\b[0-9]+)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawMixerSpacing);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -135,6 +143,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int roundedStatementLine = 0;
         bool insideInspectorControlLayout = false;
         int inspectorControlLayoutDepth = 0;
+        bool insideMixerControlLayout = false;
+        int mixerControlLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -157,6 +167,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideInspectorControlLayout && inspectorControlLayoutUsesRawSpacing (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
+            if (line.find ("layoutMixerControls") != std::string::npos)
+            {
+                insideMixerControlLayout = true;
+                mixerControlLayoutDepth = 0;
+            }
+
+            if (insideMixerControlLayout && mixerControlLayoutUsesRawSpacing (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
             if (insideInspectorControlLayout)
             {
                 for (const char c : line)
@@ -169,6 +188,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (inspectorControlLayoutDepth <= 0 && line.find ('}') != std::string::npos)
                     insideInspectorControlLayout = false;
+            }
+
+            if (insideMixerControlLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++mixerControlLayoutDepth;
+                    else if (c == '}')
+                        --mixerControlLayoutDepth;
+                }
+
+                if (mixerControlLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideMixerControlLayout = false;
             }
 
             if (roundedStatement.empty())
@@ -228,17 +261,19 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void meter(juce::Rectangle<int> live) { auto hot = live.removeFromTop (juce::roundToInt (live.getHeight() * 0.25f)); }\n";
         out << "void shell(juce::Rectangle<int> work) { auto left = work.removeFromLeft (42).reduced (6, 10); }\n";
         out << "void layoutInspectorControls() { auto area = inspectorBounds(); area.removeFromTop (40); }\n";
+        out << "void layoutMixerControls() { auto lane = mixerFirstStripBounds().reduced (8, 6); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 7u);
+    REQUIRE (findings.size() == 8u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
     REQUIRE (findings[3].line == 4);
     REQUIRE (findings[4].line == 5);
     REQUIRE (findings[5].line == 6);
-    REQUIRE (findings.back().line == 7);
+    REQUIRE (findings[6].line == 7);
+    REQUIRE (findings.back().line == 8);
 }

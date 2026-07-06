@@ -57,11 +57,13 @@ the theme audit now rejects raw meter split fractions with a scratch negative co
 moved MainComponent top-level shell panel inset spacing behind `UiTheme::Layout`; the theme audit now
 rejects raw shell `.reduced(x, y)` spacing values with a scratch negative control. This checkpoint moved
 MainComponent inspector control internal spacing behind `UiTheme::Layout`; the theme audit now rejects raw
-`layoutInspectorControls` spacing values with a scratch negative control.
+`layoutInspectorControls` spacing values with a scratch negative control. This checkpoint moved MainComponent
+mixer control internal spacing behind `UiTheme::Layout`; the theme audit now rejects raw `layoutMixerControls`
+spacing values with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely the next narrow MainComponent mixer control spacing surface
-or another raw spacing surface not yet covered by the theme audit.
+to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing surface not yet covered
+by the theme audit.
 
 ## The plan
 

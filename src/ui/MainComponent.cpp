@@ -1197,12 +1197,15 @@ private:
         auto mixer = work.removeFromBottom (kMixerHeight)
                          .reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
                                    yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
-        mixer.removeFromLeft (120);
+        mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
 
         const auto surface = currentMixerSurface();
         const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
-        const int stripWidth = juce::jmax (84, mixer.getWidth() / (stripCount + 1));
-        return mixer.withWidth (stripWidth).reduced (3, 0);
+        const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                           mixer.getWidth() / (stripCount + 1));
+        return mixer.withWidth (stripWidth)
+            .reduced (yesdaw::ui::UiTheme::Layout::mixerStripHorizontalInset,
+                      yesdaw::ui::UiTheme::Layout::mixerStripVerticalInset);
     }
 
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
@@ -1245,16 +1248,25 @@ private:
 
     void layoutMixerControls()
     {
-        auto lane = mixerFirstStripBounds().reduced (8, 6);
-        mixerTrackSelect.setBounds (lane.removeFromTop (26));
-        lane.removeFromTop (7);
-        mixerPan.setBounds (lane.removeFromTop (34).reduced (2, 6));
-        auto buttonRow = lane.removeFromTop (30).reduced (5, 4);
-        mixerSolo.setBounds (buttonRow.removeFromLeft (30));
-        mixerMute.setBounds (buttonRow.removeFromLeft (30));
-        lane.removeFromTop (4);
-        auto faderArea = lane.removeFromTop (juce::jmax (72, lane.getHeight() - 18));
-        mixerFader.setBounds (faderArea.withWidth (42).withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
+        auto lane = mixerFirstStripBounds()
+                        .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
+                                  yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
+        mixerTrackSelect.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
+        mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
+                                .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
+                                          yesdaw::ui::UiTheme::Layout::mixerPanInsetY));
+        auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
+                             .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
+                                       yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
+        mixerSolo.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
+        mixerMute.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
+        auto faderArea = lane.removeFromTop (
+            juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
+                        lane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
+        mixerFader.setBounds (faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
+                                  .withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
     }
 
     void handleAction (yesdaw::ui::UiActionId action)

@@ -123,6 +123,26 @@ struct UiTheme
         static constexpr int inspectorFadeControlLeftInset = 78;
         static constexpr int inspectorFadeControlHorizontalInset = 0;
         static constexpr int inspectorFadeControlVerticalInset = 6;
+
+        static constexpr int mixerToolsWidth = 120;
+        static constexpr int mixerStripMinWidth = 84;
+        static constexpr int mixerStripHorizontalInset = 3;
+        static constexpr int mixerStripVerticalInset = 0;
+        static constexpr int mixerControlLaneInsetX = 8;
+        static constexpr int mixerControlLaneInsetY = 6;
+        static constexpr int mixerTrackSelectHeight = 26;
+        static constexpr int mixerTrackSelectBottomGap = 7;
+        static constexpr int mixerPanHeight = 34;
+        static constexpr int mixerPanInsetX = 2;
+        static constexpr int mixerPanInsetY = 6;
+        static constexpr int mixerButtonRowHeight = 30;
+        static constexpr int mixerButtonRowInsetX = 5;
+        static constexpr int mixerButtonRowInsetY = 4;
+        static constexpr int mixerButtonWidth = 30;
+        static constexpr int mixerButtonBottomGap = 4;
+        static constexpr int mixerFaderMinHeight = 72;
+        static constexpr int mixerFaderBottomReserve = 18;
+        static constexpr int mixerFaderWidth = 42;
     };
 };
 
