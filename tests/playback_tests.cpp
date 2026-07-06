@@ -6,6 +6,7 @@
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
@@ -41,6 +42,7 @@ using yesdaw::engine::FaderNode;
 using yesdaw::engine::FxDelayNode;
 using yesdaw::engine::FxInsert;
 using yesdaw::engine::FxKind;
+using yesdaw::engine::LimiterNode;
 using yesdaw::engine::OfflineRenderOptions;
 using yesdaw::engine::PanNode;
 using yesdaw::engine::PlaybackEngine;
@@ -592,6 +594,76 @@ PlaybackFixture makeAutomatedReverbFxFixture()
     return fixture;
 }
 
+PlaybackFixture makeAutomatedLimiterFxFixture()
+{
+    PlaybackFixture fixture;
+    constexpr int kFrames = 2048;
+    fixture.samples = { std::vector<float> (static_cast<std::size_t> (kFrames), 1.0f) };
+
+    Asset asset;
+    asset.id = idFromLowByte (84);
+    asset.contentHash = hashWithSeed (84);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    FxInsert limiter;
+    limiter.id = idFromLowByte (85);
+    limiter.kind = FxKind::Limiter;
+    limiter.enabled = true;
+    limiter.normalizedParams = {
+        { LimiterNode::kReleaseParamId,
+          unmapToNormalized (LimiterNode::parameterSpec (LimiterNode::kReleaseParamId), 50.0) },
+        { LimiterNode::kLookaheadParamId,
+          unmapToNormalized (LimiterNode::parameterSpec (LimiterNode::kLookaheadParamId), 1.0) },
+    };
+
+    Track track;
+    track.id = idFromLowByte (86);
+    track.strip.name = "Automated limiter FX";
+    track.strip.linearGain = 1.0f;
+    track.strip.pan = 0.0f;
+    track.strip.fxChain = { limiter };
+
+    Clip clip;
+    clip.id = idFromLowByte (87);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = kFrames;
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    const double ceiling = unmapToNormalized (LimiterNode::parameterSpec (LimiterNode::kCeilingParamId), -12.0);
+    AutomationLaneData limiterCeiling;
+    limiterCeiling.id = idFromLowByte (88);
+    limiterCeiling.ownerEntity = limiter.id;
+    limiterCeiling.role = AutomationTargetRole::FxInsertParam;
+    limiterCeiling.paramId = LimiterNode::kCeilingParamId;
+    limiterCeiling.points = {
+        AutomationBreakpoint { 0, ceiling, AutomationCurveType::Hold },
+        AutomationBreakpoint { kFrames, ceiling, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (89);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { limiterCeiling };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
 OfflineRenderOptions sendRideOptions (const PlaybackFixture& fixture)
 {
     OfflineRenderOptions options;
@@ -976,6 +1048,31 @@ TEST_CASE ("PlaybackEngine automated Reverb FX parameter output matches offline 
            "[h15][automation][cp4][offline-parity][fx][reverb]")
 {
     const PlaybackFixture fixture = makeAutomatedReverbFxFixture();
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()));
+    REQUIRE (staticOffline.ok());
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
+}
+
+TEST_CASE ("PlaybackEngine automated Limiter FX parameter output matches offline render",
+           "[h15][automation][cp4][offline-parity][fx][limiter]")
+{
+    const PlaybackFixture fixture = makeAutomatedLimiterFxFixture();
 
     PlaybackFixture withoutAutomation = fixture;
     withoutAutomation.project.automationLanes.clear();
