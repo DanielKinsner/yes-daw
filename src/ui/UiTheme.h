@@ -146,13 +146,27 @@ struct UiTheme
         static constexpr int mixerPanelVerticalInset = 8;
 
         static constexpr int inspectorTabHeight = 40;
+        static constexpr int inspectorTabCount = 2;
         static constexpr int inspectorContentInsetX = 16;
         static constexpr int inspectorContentInsetY = 14;
+        static constexpr int inspectorTitleAccentTopInset = 4;
+        static constexpr int inspectorTitleAccentSize = 12;
+        static constexpr int inspectorTitleTextLeftInset = 20;
+        static constexpr int inspectorTitleTextHeight = 24;
+        static constexpr int inspectorStatsSectionTop = 42;
+        static constexpr int inspectorStatsSectionHeight = 46;
+        static constexpr int inspectorStatsColumnCount = 3;
+        static constexpr int inspectorStatsCellInsetX = 4;
+        static constexpr int inspectorStatsCellInsetY = 0;
+        static constexpr int inspectorStatsTextInset = 4;
+        static constexpr int inspectorSectionLabelHeight = 20;
         static constexpr int inspectorGainSectionTop = 118;
         static constexpr int inspectorGainSectionHeight = 84;
         static constexpr int inspectorGainControlTopInset = 28;
         static constexpr int inspectorGainControlHeight = 24;
         static constexpr int inspectorGainControlLeftInset = 72;
+        static constexpr int inspectorGainReadoutLeftInset = 72;
+        static constexpr int inspectorGainReadoutHeight = 22;
         static constexpr int inspectorFadesSectionTop = 214;
         static constexpr int inspectorFadesSectionHeight = 94;
         static constexpr int inspectorFadesControlTopInset = 22;
@@ -160,6 +174,17 @@ struct UiTheme
         static constexpr int inspectorFadeControlLeftInset = 78;
         static constexpr int inspectorFadeControlHorizontalInset = 0;
         static constexpr int inspectorFadeControlVerticalInset = 6;
+        static constexpr int inspectorFadeRowHeight = 32;
+        static constexpr int inspectorFadeRowInsetX = 0;
+        static constexpr int inspectorFadeRowInsetY = 3;
+        static constexpr int inspectorFadeTextInsetX = 8;
+        static constexpr int inspectorFadeTextInsetY = 0;
+        static constexpr int inspectorFxSectionTop = 330;
+        static constexpr int inspectorFxRowHeight = 28;
+        static constexpr int inspectorFxRowInsetX = 0;
+        static constexpr int inspectorFxRowInsetY = 2;
+        static constexpr int inspectorFxTextInsetX = 10;
+        static constexpr int inspectorFxTextInsetY = 0;
 
         static constexpr int mixerToolsWidth = 120;
         static constexpr int mixerStripMinWidth = 84;

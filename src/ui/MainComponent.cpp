@@ -1991,72 +1991,107 @@ private:
     void drawInspector (juce::Graphics& g, juce::Rectangle<int> area) const
     {
         fillPanel (g, area);
-        auto tabs = area.removeFromTop (40);
+        auto tabs = area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
         g.setColour (yesdaw::ui::UiTheme::Color::inspectorTab());
-        g.fillRect (tabs.removeFromLeft (area.getWidth() / 2));
-        drawSmallLabel (g, "CLIP", area.withY (tabs.getY()).withHeight (40).withWidth (area.getWidth() / 2),
+        g.fillRect (tabs.removeFromLeft (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount));
+        drawSmallLabel (g,
+                        "CLIP",
+                        area.withY (tabs.getY())
+                            .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTabHeight)
+                            .withWidth (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount),
                         juce::Justification::centred);
-        drawSmallLabel (g, "TRACK", area.withY (tabs.getY()).withHeight (40).withTrimmedLeft (area.getWidth() / 2),
+        drawSmallLabel (g,
+                        "TRACK",
+                        area.withY (tabs.getY())
+                            .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTabHeight)
+                            .withTrimmedLeft (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount),
                         juce::Justification::centred);
 
-        area.reduce (16, 14);
+        area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
+                     yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
         g.setColour (kPurple);
         g.fillRoundedRectangle (static_cast<float> (area.getX()),
-                                static_cast<float> (area.getY() + 4),
-                                12.0f,
-                                12.0f,
+                                static_cast<float> (area.getY()
+                                                    + yesdaw::ui::UiTheme::Layout::inspectorTitleAccentTopInset),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
                                 yesdaw::ui::UiTheme::Radius::sm);
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title, juce::Font::bold)));
-        g.drawText ("Vocal Lead_03", area.withTrimmedLeft (20).withHeight (24), juce::Justification::centredLeft, false);
+        g.drawText ("Vocal Lead_03",
+                    area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
+                    juce::Justification::centredLeft,
+                    false);
 
-        auto stats = area.withTrimmedTop (42).withHeight (46);
+        auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
+                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
         for (const auto* label : { "Start\n33.1.1.00", "End\n41.1.1.00", "Length\n8.0.0.00" })
         {
-            auto cell = stats.removeFromLeft (stats.getWidth() / 3).reduced (4, 0);
+            auto cell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
+                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetX,
+                                      yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetY);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kMutedText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
-            g.drawFittedText (label, cell.reduced (4), juce::Justification::centred, 2);
+            g.drawFittedText (label,
+                              cell.reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsTextInset),
+                              juce::Justification::centred,
+                              2);
         }
 
-        auto gain = area.withTrimmedTop (118).withHeight (84);
-        drawSmallLabel (g, "GAIN", gain.removeFromTop (20));
+        auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
+        drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title)));
         const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
         const float gainValue = selectedClip != nullptr ? selectedClip->gain : 1.0f;
         g.drawText (juce::String (gainValue, 2) + "x",
-                    gain.withTrimmedLeft (72).withHeight (22),
+                    gain.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutLeftInset)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutHeight),
                     juce::Justification::centredLeft,
                     false);
 
-        auto fades = area.withTrimmedTop (214).withHeight (94);
-        drawSmallLabel (g, "FADES", fades.removeFromTop (20));
+        auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
+                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
         const double fadeInSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeIn) / sampleRate : 0.0;
         const double fadeOutSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeOut) / sampleRate : 0.0;
         for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
                                    juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
         {
-            auto row = fades.removeFromTop (32).reduced (0, 3);
+            auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
+                           .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kText);
-            g.drawText (label, row.reduced (8, 0), juce::Justification::centredLeft, false);
+            g.drawText (label,
+                        row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetY),
+                        juce::Justification::centredLeft,
+                        false);
         }
 
-        auto fx = area.withTrimmedTop (330);
-        drawSmallLabel (g, "CLIP FX", fx.removeFromTop (20));
+        auto fx = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop);
+        drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         for (const auto* label : { "De-Esser", "Compressor", "EQ" })
         {
-            auto row = fx.removeFromTop (28).reduced (0, 2);
+            auto row = fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFxRowHeight)
+                           .reduced (yesdaw::ui::UiTheme::Layout::inspectorFxRowInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFxRowInsetY);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::body)));
-            g.drawText (label, row.reduced (10, 0), juce::Justification::centredLeft, false);
+            g.drawText (label,
+                        row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY),
+                        juce::Justification::centredLeft,
+                        false);
         }
     }
 
