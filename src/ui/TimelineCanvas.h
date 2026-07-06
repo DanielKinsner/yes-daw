@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ui/TimelineLayout.h"
+#include "ui/UiTheme.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -72,15 +73,15 @@ namespace timeline_canvas_detail {
 
 constexpr int kVisibleClipCapacity = 4096;
 
-const juce::Colour kPanel (0xff11161c);
-const juce::Colour kPanelStroke (0xff2a323b);
-const juce::Colour kText (0xfff0f3f6);
-const juce::Colour kMutedText (0xff9aa3ad);
-const juce::Colour kGrid (0xff24303a);
-const juce::Colour kCanvasBack (0xff0c1217);
-const juce::Colour kToolbarBack (0xff101720);
-const juce::Colour kRulerBack (0xff0b1117);
-const juce::Colour kPurple (0xffa762f0);
+const juce::Colour kPanel = UiTheme::Color::panel();
+const juce::Colour kPanelStroke = UiTheme::Color::panelStroke();
+const juce::Colour kText = UiTheme::Color::text();
+const juce::Colour kMutedText = UiTheme::Color::mutedText();
+const juce::Colour kGrid = UiTheme::Color::timelineGrid();
+const juce::Colour kCanvasBack = UiTheme::Color::timelineCanvas();
+const juce::Colour kToolbarBack = UiTheme::Color::timelineToolbar();
+const juce::Colour kRulerBack = UiTheme::Color::timelineRuler();
+const juce::Colour kPurple = UiTheme::Color::accentPurple();
 
 inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::Rectangle<int> area,
                             juce::Justification justification = juce::Justification::centredLeft)
@@ -100,7 +101,7 @@ inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
 
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
 {
-    const TimelineCanvasClipStyle fallback { juce::Colour (0xff3b8cff), 0.7f };
+    const TimelineCanvasClipStyle fallback { UiTheme::Color::accentBlue(), 0.7f };
     if (state.clipStyles == nullptr || state.clips == nullptr || state.clipCount <= 0)
         return fallback;
 
@@ -167,7 +168,7 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     for (const auto* label : { "A", "P", "E", "S", "L" })
     {
         auto cell = tools.removeFromLeft (34).reduced (3, 0);
-        g.setColour (juce::Colour (0xff080d12));
+        g.setColour (UiTheme::Color::toolButton());
         g.fillRoundedRectangle (cell.toFloat(), 3.0f);
         g.setColour (kMutedText);
         g.setFont (juce::Font (juce::FontOptions (11.0f)));
@@ -175,7 +176,7 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     }
 
     drawSmallLabel (g, "SNAP", toolbar.withTrimmedLeft (234).withWidth (42), juce::Justification::centred);
-    g.setColour (juce::Colour (0xff070b0f));
+    g.setColour (UiTheme::Color::snapField());
     g.fillRoundedRectangle (toolbar.withTrimmedLeft (276).withWidth (80).reduced (0, 7).toFloat(), 3.0f);
     g.setColour (kText);
     g.setFont (juce::Font (juce::FontOptions (12.0f)));
@@ -346,7 +347,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                                                              * vp.pixelsPerSecond);
     if (playheadX >= clipArea.getX() && playheadX <= clipArea.getRight())
     {
-        g.setColour (juce::Colours::white);
+        g.setColour (UiTheme::Color::white());
         g.fillRect (playheadX, ruler.getY(), 2, clipArea.getBottom() - ruler.getY());
         g.setColour (kPurple);
         g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4),

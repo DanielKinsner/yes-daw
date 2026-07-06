@@ -68,11 +68,21 @@ FX slots, automation lanes, async waveform peak cache, LookAndFeel/design-token 
 polish pass. The first checkpoint is intentionally docs-only: it opens H16 from Dan's explicit boundary
 instruction and does not implement CP1 production code.
 
-**Now:** H16 is open. The next tiny implementation slice is CP1 design tokens: add the narrow
-`UiTheme.h` token surface and the first biting `YesDawThemeAuditCheck` scan before broad UI migration.
+**Done this checkpoint:** H16 CP1 first design-token slice: added `src/ui/UiTheme.h` with the narrow
+color/spacing/type/radius token surface, moved the existing `TimelineCanvas.h` and `MainComponent.cpp`
+raw UI color literals behind named tokens, and added `YesDawThemeAuditCheck` as a CTest source scan with
+a scratch negative control that proves an inline raw color fails the audit. The H16 green-command list now
+includes `YesDawThemeAuditCheck`. Local gates passed: raw-color source scan outside `UiTheme.h` found no
+hits; `git diff --check`; `cmake --preset ci`; `cmake --build --preset ci` under `vcvars64.bat` after
+plain PowerShell proved the known missing-MSVC-headers shell issue; focused H16/UI gates
+`YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`;
+full `ctest --preset ci --output-on-failure` passed **310/310**.
 
-**Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this kickoff
-commit/run from live repo truth, implement only the next smallest independently green CP1 design-token
+**Now:** H16 CP1 is partially underway. The first token surface and raw-color audit exist; broad UI
+migration is not complete.
+
+**Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
+commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
 slice, commit/push straight to `main`, wait for remote CI green, and create exactly one successor only if
 H16 still has another slice.
 

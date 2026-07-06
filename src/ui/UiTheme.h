@@ -1,0 +1,86 @@
+// YES DAW - H16 UI design-token surface.
+//
+// Raw visual constants live here so UI code can be audited mechanically.
+
+#pragma once
+
+#include <juce_graphics/juce_graphics.h>
+
+namespace yesdaw::ui {
+
+struct UiTheme
+{
+    struct Color
+    {
+        static juce::Colour appBackground() noexcept { return juce::Colour (0xff080c11); }
+        static juce::Colour panel() noexcept { return juce::Colour (0xff11161c); }
+        static juce::Colour panelRaised() noexcept { return juce::Colour (0xff151b22); }
+        static juce::Colour panelStroke() noexcept { return juce::Colour (0xff2a323b); }
+        static juce::Colour text() noexcept { return juce::Colour (0xfff0f3f6); }
+        static juce::Colour mutedText() noexcept { return juce::Colour (0xff9aa3ad); }
+        static juce::Colour white() noexcept { return juce::Colour (0xffffffff); }
+
+        static juce::Colour accentBlue() noexcept { return juce::Colour (0xff3b8cff); }
+        static juce::Colour accentTeal() noexcept { return juce::Colour (0xff1bb5a6); }
+        static juce::Colour accentAmber() noexcept { return juce::Colour (0xffd29118); }
+        static juce::Colour accentPurple() noexcept { return juce::Colour (0xffa762f0); }
+        static juce::Colour accentCyan() noexcept { return juce::Colour (0xff20c8d8); }
+        static juce::Colour meterGreen() noexcept { return juce::Colour (0xff74df35); }
+        static juce::Colour meterYellow() noexcept { return juce::Colour (0xffe2c832); }
+        static juce::Colour dangerRed() noexcept { return juce::Colour (0xffff5757); }
+
+        static juce::Colour timelineGrid() noexcept { return juce::Colour (0xff24303a); }
+        static juce::Colour timelineCanvas() noexcept { return juce::Colour (0xff0c1217); }
+        static juce::Colour timelineToolbar() noexcept { return juce::Colour (0xff101720); }
+        static juce::Colour timelineRuler() noexcept { return juce::Colour (0xff0b1117); }
+
+        static juce::Colour controlInset() noexcept { return juce::Colour (0xff0b1016); }
+        static juce::Colour controlInsetDeep() noexcept { return juce::Colour (0xff05080b); }
+        static juce::Colour controlInsetBlack() noexcept { return juce::Colour (0xff070b10); }
+        static juce::Colour toolButton() noexcept { return juce::Colour (0xff080d12); }
+        static juce::Colour snapField() noexcept { return juce::Colour (0xff070b0f); }
+        static juce::Colour buttonSurface() noexcept { return juce::Colour (0xff111820); }
+        static juce::Colour darkControl() noexcept { return juce::Colour (0xff121820); }
+        static juce::Colour warningButton() noexcept { return juce::Colour (0xff201b13); }
+        static juce::Colour separator() noexcept { return juce::Colour (0xff18202a); }
+        static juce::Colour canvasLayer() noexcept { return juce::Colour (0xff0d1218); }
+        static juce::Colour selectedLane() noexcept { return juce::Colour (0xff17131f); }
+        static juce::Colour mixerBack() noexcept { return juce::Colour (0xff0a0f14); }
+        static juce::Colour pianoBlackKey() noexcept { return juce::Colour (0xff0a0e13); }
+        static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
+        static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
+        static juce::Colour inspectorTab() noexcept { return juce::Colour (0xff151a22); }
+        static juce::Colour selectedStrip() noexcept { return juce::Colour (0xff1c1428); }
+        static juce::Colour faderThumb() noexcept { return juce::Colour (0xffc4c9cf); }
+    };
+
+    struct Space
+    {
+        static constexpr int xxs = 2;
+        static constexpr int xs = 4;
+        static constexpr int sm = 6;
+        static constexpr int md = 8;
+        static constexpr int lg = 12;
+        static constexpr int xl = 16;
+    };
+
+    struct Radius
+    {
+        static constexpr float xs = 2.0f;
+        static constexpr float sm = 3.0f;
+        static constexpr float md = 4.0f;
+        static constexpr float lg = 6.0f;
+        static constexpr float pill = 7.0f;
+    };
+
+    struct Type
+    {
+        static constexpr float tiny = 8.0f;
+        static constexpr float caption = 10.0f;
+        static constexpr float small = 11.0f;
+        static constexpr float body = 12.0f;
+        static constexpr float title = 13.0f;
+    };
+};
+
+} // namespace yesdaw::ui

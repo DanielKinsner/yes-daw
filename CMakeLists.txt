@@ -243,6 +243,14 @@ target_link_libraries(YesDawUiActionCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawUiActionCheck)
 add_test(NAME YesDawUiActionCheck COMMAND $<TARGET_FILE:YesDawUiActionCheck>)
 
+# --- UI theme token audit (H16 CP1; raw color source scan with negative control) ---
+add_executable(YesDawThemeAuditCheck tests/theme_audit_tests.cpp)
+target_compile_definitions(YesDawThemeAuditCheck PRIVATE
+  YESDAW_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(YesDawThemeAuditCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawThemeAuditCheck)
+add_test(NAME YesDawThemeAuditCheck COMMAND $<TARGET_FILE:YesDawThemeAuditCheck>)
+
 # --- App smoke check (H11; Project bundle load -> action IDs -> playback transport) ---
 add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp)
 target_include_directories(YesDawAppSmokeCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -676,6 +684,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawCheck
   YesDawUiCheck
   YesDawUiActionCheck
+  YesDawThemeAuditCheck
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck

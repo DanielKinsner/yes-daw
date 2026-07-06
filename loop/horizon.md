@@ -35,12 +35,13 @@ cmake --preset ci
 cmake --build --preset ci
 ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawThemeAuditCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawUiInputCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawTimelineGpuCheck --output-on-failure
 ```
 
-As new H16 gates land, update this command list in the same checkpoint. The first pending additions are
-`YesDawThemeAuditCheck` and `YesDawWaveformCacheCheck`. Until a new gate exists, run the focused gates
+As new H16 gates land, update this command list in the same checkpoint. The first pending addition is
+`YesDawWaveformCacheCheck`. Until a new gate exists, run the focused gates
 that exist for the touched files plus `git diff --check` and the full `ci` preset.
 
 ## Status: OPEN
@@ -49,8 +50,8 @@ H16 kickoff is the first docs-only checkpoint. It opens the horizon after verify
 `f1b093abe2f0e4f70b1266c88b61c168f98b1a10` and GitHub Actions run `28769456779`. No production H16 code
 has landed yet.
 
-Next checkpoint: CP1 design tokens. Add the smallest independently green `UiTheme.h` token surface and
-biting `YesDawThemeAuditCheck` scan before broad UI migration.
+Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
+to `UiTheme.h` before broad UI migration.
 
 ## The plan
 
