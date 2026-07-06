@@ -168,6 +168,8 @@ struct UiTheme
         static constexpr int trackListMeterWidth = 14;
         static constexpr int trackListMeterHorizontalInset = 0;
         static constexpr int trackListMeterVerticalInset = 10;
+
+        static constexpr int meterFillInset = 2;
     };
 };
 

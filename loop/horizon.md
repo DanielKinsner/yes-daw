@@ -61,11 +61,13 @@ MainComponent inspector control internal spacing behind `UiTheme::Layout`; the t
 mixer control internal spacing behind `UiTheme::Layout`; the theme audit now rejects raw `layoutMixerControls`
 spacing values with a scratch negative control. This checkpoint moved MainComponent painted track-list spacing
 behind `UiTheme::Layout`; the theme audit now rejects raw `drawTrackList` spacing values with a scratch
-negative control.
+negative control. This checkpoint moved MainComponent shared meter fill inset spacing behind
+`UiTheme::Layout`; the theme audit now rejects raw `drawMeter` inset spacing values with a scratch negative
+control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing surface not yet covered
-by the theme audit.
+by the theme audit, such as the painted header/transport/master-meter geometry.
 
 ## The plan
 

@@ -271,7 +271,7 @@ void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
     g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
     g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
 
-    auto fill = area.reduced (2);
+    auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
     const int height = juce::roundToInt (static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, value));
     auto live = fill.removeFromBottom (height);
     auto hot = live.removeFromTop (juce::roundToInt (static_cast<float> (live.getHeight())
@@ -287,7 +287,7 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
 {
     g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
     g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
-    auto fill = area.reduced (2);
+    auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
     const int width = juce::roundToInt (static_cast<float> (fill.getWidth()) * juce::jlimit (0.0f, 1.0f, value));
     auto live = fill.withWidth (width);
     auto hot = live.removeFromRight (juce::roundToInt (static_cast<float> (live.getWidth())
