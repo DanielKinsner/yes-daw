@@ -5,6 +5,7 @@
 #include "engine/PlaybackEngine.h"
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
+#include "engine/nodes/FxDelayNode.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 
@@ -36,6 +37,7 @@ using yesdaw::engine::DecodedAssetAudio;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EqNode;
 using yesdaw::engine::FaderNode;
+using yesdaw::engine::FxDelayNode;
 using yesdaw::engine::FxInsert;
 using yesdaw::engine::FxKind;
 using yesdaw::engine::OfflineRenderOptions;
@@ -438,6 +440,81 @@ PlaybackFixture makeAutomatedCompressorFxFixture()
     return fixture;
 }
 
+PlaybackFixture makeAutomatedDelayFxFixture()
+{
+    PlaybackFixture fixture;
+    constexpr int kFrames = 2048;
+    fixture.samples = { std::vector<float> (static_cast<std::size_t> (kFrames), 0.0f) };
+    fixture.samples[0][0] = 0.75f;
+
+    Asset asset;
+    asset.id = idFromLowByte (72);
+    asset.contentHash = hashWithSeed (72);
+    asset.frames = static_cast<std::uint64_t> (fixture.samples[0].size());
+    asset.sampleRate = SampleRate { 30720.0 }; // 120 BPM makes one tick equal one frame.
+    asset.channels = 1;
+
+    FxInsert delay;
+    delay.id = idFromLowByte (73);
+    delay.kind = FxKind::Delay;
+    delay.enabled = true;
+    delay.normalizedParams = {
+        { FxDelayNode::kTimeLeftParamId,
+          unmapToNormalized (FxDelayNode::parameterSpec (FxDelayNode::kTimeLeftParamId), 1.0) },
+        { FxDelayNode::kTimeRightParamId,
+          unmapToNormalized (FxDelayNode::parameterSpec (FxDelayNode::kTimeRightParamId), 1.0) },
+        { FxDelayNode::kFeedbackParamId,
+          unmapToNormalized (FxDelayNode::parameterSpec (FxDelayNode::kFeedbackParamId), 0.0) },
+        { FxDelayNode::kDampingParamId,
+          unmapToNormalized (FxDelayNode::parameterSpec (FxDelayNode::kDampingParamId), FxDelayNode::kMaxDampingHz) },
+    };
+
+    Track track;
+    track.id = idFromLowByte (74);
+    track.strip.name = "Automated delay FX";
+    track.strip.linearGain = 1.0f;
+    track.strip.pan = 0.0f;
+    track.strip.fxChain = { delay };
+
+    Clip clip;
+    clip.id = idFromLowByte (75);
+    clip.assetId = asset.id;
+    clip.trackId = track.id;
+    clip.timelineStart = 0;
+    clip.timelineLength = kFrames;
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    const double wetMix = unmapToNormalized (FxDelayNode::parameterSpec (FxDelayNode::kMixParamId), 1.0);
+    AutomationLaneData mix;
+    mix.id = idFromLowByte (76);
+    mix.ownerEntity = delay.id;
+    mix.role = AutomationTargetRole::FxInsertParam;
+    mix.paramId = FxDelayNode::kMixParamId;
+    mix.points = {
+        AutomationBreakpoint { 0, wetMix, AutomationCurveType::Hold },
+        AutomationBreakpoint { kFrames, wetMix, AutomationCurveType::Hold },
+    };
+
+    fixture.project.id = idFromLowByte (77);
+    fixture.project.sampleRate = asset.sampleRate;
+    fixture.project.assets = { asset };
+    fixture.project.tracks = { track };
+    fixture.project.clips = { clip };
+    fixture.project.tempoMap = { TempoChange { 0, 120.0, TempoCurve::Jump } };
+    fixture.project.automationLanes = { mix };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+    REQUIRE (fixture.project.automationTargetsReferenceProjectRows());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { asset.id, asset.sampleRate, asset.frames, asset.channels,
+                            std::span<const float> (fixture.samples[0].data(), fixture.samples[0].size()) },
+    };
+    return fixture;
+}
+
 OfflineRenderOptions sendRideOptions (const PlaybackFixture& fixture)
 {
     OfflineRenderOptions options;
@@ -772,6 +849,31 @@ TEST_CASE ("PlaybackEngine automated Compressor FX parameter output matches offl
            "[h15][automation][cp4][offline-parity][fx][compressor]")
 {
     const PlaybackFixture fixture = makeAutomatedCompressorFxFixture();
+
+    PlaybackFixture withoutAutomation = fixture;
+    withoutAutomation.project.automationLanes.clear();
+    const auto staticOffline = renderOfflineProject (
+        withoutAutomation.project,
+        std::span<const DecodedAssetAudio> (withoutAutomation.decodedAssets.data(), withoutAutomation.decodedAssets.size()));
+    REQUIRE (staticOffline.ok());
+
+    const auto automatedOffline = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+    REQUIRE (automatedOffline.ok());
+    REQUIRE_FALSE (bitIdentical (automatedOffline.interleavedSamples, staticOffline.interleavedSamples));
+
+    for (const int blockSize : { 1, 7, 64 })
+    {
+        const std::vector<float> played = playToBuffer (fixture, blockSize);
+        REQUIRE (bitIdentical (played, automatedOffline.interleavedSamples));
+    }
+}
+
+TEST_CASE ("PlaybackEngine automated Delay FX parameter output matches offline render",
+           "[h15][automation][cp4][offline-parity][fx][delay]")
+{
+    const PlaybackFixture fixture = makeAutomatedDelayFxFixture();
 
     PlaybackFixture withoutAutomation = fixture;
     withoutAutomation.project.automationLanes.clear();
