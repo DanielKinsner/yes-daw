@@ -47,12 +47,38 @@ docs `253e639` passed run `28693785996`; both runs were green across Linux, Wind
 and TSan. H14 may open on `main`. H14 kickoff verified `src/persistence/ProjectBundle.h` still has
 `kCodeSchemaVersion = 6`, so the next free schema version for H14 CP3 is 7.
 
-**Baton note:** H15 is closed remote-green. H16 UI work is not opened by this closeout; Dan chooses the
-next horizon boundary.
+**Baton note:** H15 is closed remote-green. Dan explicitly opened H16 on 2026-07-06 with the chained
+Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
-## Live packet — H15 implementation
+## Live packet — H16 implementation
+
+**Last updated:** 2026-07-06
+**Current horizon:** **H16 (Real UI) — OPEN.**
+
+H16 opened from live repo truth. The H15 final closeout commit
+`f1b093abe2f0e4f70b1266c88b61c168f98b1a10` (`docs(h15): close automation horizon review`) is present,
+and GitHub Actions run `28769456779` for that SHA is completed/successful across Linux, Windows, macOS,
+RTSan, and TSan. At H16 kickoff, local `HEAD`, `main`, and `origin/main` all pointed at that commit.
+
+H16 follows `docs/plans/2026-07-03-h16-real-ui-plan.md`: Real UI structural parity with the product
+mockup, including ruler section markers, real waveform clips, clip/track inspector, mixer sends view,
+FX slots, automation lanes, async waveform peak cache, LookAndFeel/design-token system, and one batched
+polish pass. The first checkpoint is intentionally docs-only: it opens H16 from Dan's explicit boundary
+instruction and does not implement CP1 production code.
+
+**Now:** H16 is open. The next tiny implementation slice is CP1 design tokens: add the narrow
+`UiTheme.h` token surface and the first biting `YesDawThemeAuditCheck` scan before broad UI migration.
+
+**Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this kickoff
+commit/run from live repo truth, implement only the next smallest independently green CP1 design-token
+slice, commit/push straight to `main`, wait for remote CI green, and create exactly one successor only if
+H16 still has another slice.
+
+---
+
+## Prior packet — H15 implementation
 
 **Last updated:** 2026-07-06
 **Current horizon:** **H15 (Automation) — CLOSED REMOTE-GREEN.**
