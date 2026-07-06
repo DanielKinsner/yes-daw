@@ -143,6 +143,14 @@ bool headerLayoutUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawHeaderGeometry);
 }
 
+bool pianoRollLayoutUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawPianoRollGeometry {
+        R"(\b(?:removeFromTop|removeFromBottom|removeFromLeft|reduce|reduced|jmax|Rectangle<int>|fillRect|expanded)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*[0-9]+\b|\bgetBottom\s*\(\)\s*-\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawPianoRollGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -175,6 +183,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int meterLayoutDepth = 0;
         bool insideHeaderLayout = false;
         int headerLayoutDepth = 0;
+        bool insidePianoRollLayout = false;
+        int pianoRollLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -234,6 +244,17 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideHeaderLayout && headerLayoutUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("pianoRollCanvasGeometry") != std::string::npos
+                || line.find ("pianoRollNoteBounds") != std::string::npos
+                || line.find ("void drawPianoRoll") != std::string::npos)
+            {
+                insidePianoRollLayout = true;
+                pianoRollLayoutDepth = 0;
+            }
+
+            if (insidePianoRollLayout && pianoRollLayoutUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (insideInspectorControlLayout)
@@ -306,6 +327,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideHeaderLayout = false;
             }
 
+            if (insidePianoRollLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++pianoRollLayoutDepth;
+                    else if (c == '}')
+                        --pianoRollLayoutDepth;
+                }
+
+                if (pianoRollLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insidePianoRollLayout = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -367,12 +402,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawTrackList(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
         out << "void drawMeter(juce::Rectangle<int> area) { auto fill = area.reduced (2); }\n";
         out << "void drawHeader() { auto time = juce::Rectangle<int> (570, 16, 190, 56); }\n";
+        out << "void drawPianoRoll(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 11u);
+    REQUIRE (findings.size() == 12u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -383,5 +419,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[7].line == 8);
     REQUIRE (findings[8].line == 9);
     REQUIRE (findings[9].line == 10);
-    REQUIRE (findings.back().line == 11);
+    REQUIRE (findings[10].line == 11);
+    REQUIRE (findings.back().line == 12);
 }

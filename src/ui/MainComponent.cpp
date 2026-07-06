@@ -571,13 +571,16 @@ struct PianoRollCanvasGeometry
 
 [[nodiscard]] PianoRollCanvasGeometry pianoRollCanvasGeometry (juce::Rectangle<int> area) noexcept
 {
-    area.removeFromTop (38);
-    area.reduce (12, 8);
+    area.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollHeaderHeight);
+    area.reduce (yesdaw::ui::UiTheme::Layout::pianoRollPanelInsetX,
+                 yesdaw::ui::UiTheme::Layout::pianoRollPanelInsetY);
     PianoRollCanvasGeometry geometry;
-    geometry.expression = area.removeFromBottom (84);
-    geometry.keyboard = area.removeFromLeft (70);
-    geometry.grid = area.reduced (0, 2);
-    geometry.rowHeight = static_cast<float> (juce::jmax (1, geometry.grid.getHeight()))
+    geometry.expression = area.removeFromBottom (yesdaw::ui::UiTheme::Layout::pianoRollExpressionHeight);
+    geometry.keyboard = area.removeFromLeft (yesdaw::ui::UiTheme::Layout::pianoRollKeyboardWidth);
+    geometry.grid = area.reduced (yesdaw::ui::UiTheme::Layout::pianoRollGridInsetX,
+                                  yesdaw::ui::UiTheme::Layout::pianoRollGridInsetY);
+    geometry.rowHeight = static_cast<float> (juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollGridMinHeight,
+                                                         geometry.grid.getHeight()))
                        / static_cast<float> (kPianoRollKeyCount);
     return geometry;
 }
@@ -622,10 +625,16 @@ struct PianoRollCanvasGeometry
     const yesdaw::ui::UiPianoRollNoteView& note) noexcept
 {
     const int x = pianoRollTickX (geometry, surface, note.startTick);
-    const int width = juce::jmax (10, pianoRollTickX (geometry, surface, note.startTick + note.lengthTicks) - x);
-    const int y = pianoRollKeyY (geometry, note.key) + 2;
-    const int height = juce::jmax (8, juce::roundToInt (geometry.rowHeight) - 4);
-    return juce::Rectangle<int> (x, y, width, height).reduced (1, 0);
+    const int width = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollNoteMinWidth,
+                                  pianoRollTickX (geometry, surface, note.startTick + note.lengthTicks) - x);
+    const int y = pianoRollKeyY (geometry, note.key)
+                + yesdaw::ui::UiTheme::Layout::pianoRollNoteTopInset;
+    const int height = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollNoteMinHeight,
+                                   juce::roundToInt (geometry.rowHeight)
+                                       - yesdaw::ui::UiTheme::Layout::pianoRollNoteHeightTrim);
+    return juce::Rectangle<int> (x, y, width, height)
+        .reduced (yesdaw::ui::UiTheme::Layout::pianoRollNoteInsetX,
+                  yesdaw::ui::UiTheme::Layout::pianoRollNoteInsetY);
 }
 
 class PianoRollInputComponent final : public juce::Component
@@ -1861,12 +1870,17 @@ private:
         const auto panelArea = area;
 
         fillPanel (g, area);
-        auto header = area.removeFromTop (38);
-        drawSmallLabel (g, "PIANO ROLL", header.reduced (14, 0));
+        auto header = area.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollHeaderHeight);
+        drawSmallLabel (g,
+                        "PIANO ROLL",
+                        header.reduced (yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetX,
+                                        yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetY));
         drawSmallLabel (g, surface.midiClipSelected
                             ? "MIDI Clip  |  Note edits: select move length transpose quantize"
                             : "No MIDI Clip selected",
-                        header.reduced (14, 0), juce::Justification::centredRight);
+                        header.reduced (yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetX,
+                                        yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetY),
+                        juce::Justification::centredRight);
 
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (panelArea);
 
@@ -1879,18 +1893,25 @@ private:
             auto keyRow = juce::Rectangle<int> (geometry.keyboard.getX(),
                                                 y,
                                                 geometry.keyboard.getWidth(),
-                                                juce::jmax (1, juce::roundToInt (geometry.rowHeight)));
+                                                juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
+                                                            juce::roundToInt (geometry.rowHeight)));
             g.setColour (isBlackMidiKey (key) ? yesdaw::ui::UiTheme::Color::pianoBlackKey()
                                                : yesdaw::ui::UiTheme::Color::panelRaised());
-            g.fillRect (keyRow.reduced (0, 1));
+            g.fillRect (keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetX,
+                                        yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetY));
             g.setColour (kPanelStroke.withAlpha (0.72f));
-            g.fillRect (juce::Rectangle<int> (geometry.grid.getX(), y, geometry.grid.getWidth(), 1));
+            g.fillRect (juce::Rectangle<int> (geometry.grid.getX(),
+                                             y,
+                                             geometry.grid.getWidth(),
+                                             yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth));
 
             if (key % 12 == 0)
             {
                 g.setColour (kMutedText);
                 g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
-                g.drawText ("C" + juce::String (key / 12 - 1), keyRow.reduced (8, 0),
+                g.drawText ("C" + juce::String (key / 12 - 1),
+                            keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX,
+                                            yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetY),
                             juce::Justification::centredLeft, false);
             }
         }
@@ -1900,7 +1921,10 @@ private:
             const int x = pianoRollTickX (geometry, surface, tick);
             g.setColour ((tick % 2048) == 0 ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
                                              : yesdaw::ui::UiTheme::Color::pianoGridWeak());
-            g.fillRect (x, geometry.grid.getY(), 1, geometry.grid.getHeight());
+            g.fillRect (x,
+                        geometry.grid.getY(),
+                        yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth,
+                        geometry.grid.getHeight());
         }
 
         for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
@@ -1911,21 +1935,26 @@ private:
             const auto noteRect = pianoRollNoteBounds (geometry, surface, note);
 
             g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
-            g.fillRoundedRectangle (noteRect.expanded (1).toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            g.fillRoundedRectangle (noteRect.expanded (yesdaw::ui::UiTheme::Layout::pianoRollSelectedNoteHalo).toFloat(),
+                                    yesdaw::ui::UiTheme::Radius::md);
             g.setColour (note.selected ? kPurple.brighter (0.35f) : kCyan);
             g.fillRoundedRectangle (noteRect.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }
 
         auto expression = geometry.expression;
-        expression.reduce (0, 6);
+        expression.reduce (yesdaw::ui::UiTheme::Layout::pianoRollExpressionInsetX,
+                           yesdaw::ui::UiTheme::Layout::pianoRollExpressionInsetY);
         for (const yesdaw::ui::UiPianoRollExpressionLaneReadout& lane : surface.expressionLanes)
         {
-            auto laneArea = expression.removeFromTop (36).reduced (0, 2);
+            auto laneArea = expression.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneHeight)
+                                .reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetX,
+                                          yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetY);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRect (laneArea);
             drawSmallLabel (g,
                             lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? "Velocity" : "Pitch",
-                            laneArea.reduced (8, 0));
+                            laneArea.reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetX,
+                                              yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetY));
 
             const double minValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 0.0 : 48.0;
             const double maxValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 1.0 : 76.0;
@@ -1936,8 +1965,11 @@ private:
                 const auto& point = lane.points[i];
                 const double normalized = juce::jlimit (0.0, 1.0, (point.value - minValue) / (maxValue - minValue));
                 const float x = static_cast<float> (pianoRollTickX (geometry, surface, point.tick));
-                const float y = static_cast<float> (laneArea.getBottom() - 5)
-                    - static_cast<float> (normalized) * static_cast<float> (laneArea.getHeight() - 10);
+                const float y = static_cast<float> (laneArea.getBottom()
+                                                    - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathBottomInset)
+                    - static_cast<float> (normalized)
+                        * static_cast<float> (laneArea.getHeight()
+                                              - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathVerticalInset);
                 if (i == 0)
                     path.startNewSubPath (x, y);
                 else

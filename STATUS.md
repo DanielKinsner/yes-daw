@@ -95,6 +95,9 @@ moved MainComponent shared vertical/horizontal meter fill inset spacing behind `
 tightened `YesDawThemeAuditCheck` so a scratch raw `drawMeter` inset value fails the audit. This checkpoint
 moved MainComponent painted header, transport-readout, and master-meter geometry behind `UiTheme::Layout`
 tokens and tightened `YesDawThemeAuditCheck` so a scratch raw `drawHeader` geometry value fails the audit.
+This checkpoint moved MainComponent painted piano-roll canvas, note, key-row, grid-line, and expression-lane
+geometry behind `UiTheme::Layout` tokens and tightened `YesDawThemeAuditCheck` so a scratch raw
+`drawPianoRoll` geometry value fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -105,16 +108,15 @@ Timeline canvas type/radius/spacing token migration, MainComponent typography to
 MainComponent rounded-radius token migration, MainComponent shell layout token migration, and
 MainComponent meter-fill, shell panel-inset, inspector-control spacing, and mixer-control spacing token
 migrations exist; MainComponent painted track-list spacing and shared meter fill inset spacing are also
-tokenized; MainComponent painted header/transport/master-meter geometry is also tokenized; broad UI
-migration is not complete.
+tokenized; MainComponent painted header/transport/master-meter geometry and painted piano-roll geometry
+are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
 slice (likely the next narrow MainComponent spacing surface), commit/push straight to
 `main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
-The likely next slice is another narrow MainComponent spacing surface that is not yet covered by the theme
-audit, such as the painted piano-roll geometry or another raw painted panel surface, before broad UI
-migration.
+The likely next slice is another narrow MainComponent spacing/geometry surface that is not yet covered by
+the theme audit, such as painted inspector-panel or mixer-panel geometry, before broad UI migration.
 
 ---
 

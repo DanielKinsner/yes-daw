@@ -207,6 +207,39 @@ struct UiTheme
         static constexpr int trackListMeterVerticalInset = 10;
 
         static constexpr int meterFillInset = 2;
+
+        static constexpr int pianoRollHeaderHeight = 38;
+        static constexpr int pianoRollPanelInsetX = 12;
+        static constexpr int pianoRollPanelInsetY = 8;
+        static constexpr int pianoRollExpressionHeight = 84;
+        static constexpr int pianoRollKeyboardWidth = 70;
+        static constexpr int pianoRollGridInsetX = 0;
+        static constexpr int pianoRollGridInsetY = 2;
+        static constexpr int pianoRollGridMinHeight = 1;
+        static constexpr int pianoRollNoteMinWidth = 10;
+        static constexpr int pianoRollNoteTopInset = 2;
+        static constexpr int pianoRollNoteMinHeight = 8;
+        static constexpr int pianoRollNoteHeightTrim = 4;
+        static constexpr int pianoRollNoteInsetX = 1;
+        static constexpr int pianoRollNoteInsetY = 0;
+        static constexpr int pianoRollHeaderLabelInsetX = 14;
+        static constexpr int pianoRollHeaderLabelInsetY = 0;
+        static constexpr int pianoRollKeyRowMinHeight = 1;
+        static constexpr int pianoRollKeyRowInsetX = 0;
+        static constexpr int pianoRollKeyRowInsetY = 1;
+        static constexpr int pianoRollGridLineWidth = 1;
+        static constexpr int pianoRollKeyLabelInsetX = 8;
+        static constexpr int pianoRollKeyLabelInsetY = 0;
+        static constexpr int pianoRollSelectedNoteHalo = 1;
+        static constexpr int pianoRollExpressionInsetX = 0;
+        static constexpr int pianoRollExpressionInsetY = 6;
+        static constexpr int pianoRollExpressionLaneHeight = 36;
+        static constexpr int pianoRollExpressionLaneInsetX = 0;
+        static constexpr int pianoRollExpressionLaneInsetY = 2;
+        static constexpr int pianoRollExpressionLabelInsetX = 8;
+        static constexpr int pianoRollExpressionLabelInsetY = 0;
+        static constexpr int pianoRollExpressionPathBottomInset = 5;
+        static constexpr int pianoRollExpressionPathVerticalInset = 10;
     };
 };
 
