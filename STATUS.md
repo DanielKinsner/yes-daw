@@ -56,7 +56,7 @@ characterization gate**; do not skip to the schema/model/undo checkpoint labeled
 
 **Last updated:** 2026-07-05
 **Current horizon:** **H15 (Automation) — CP4 send-ride RT/offline parity sub-slice is
-locally green; commit/push/CI is next.**
+closed remote-green; successor baton is next.**
 
 H15 CP2 send-level FaderNode target sub-slice is closed remote-green on `0e9dea3`: mixer Send taps
 route through a real `FaderNode` target before entering the Bus Return, with per-send `faderNodeId` and
@@ -279,18 +279,19 @@ offline render bit-for-bit across different Block schedules. GitHub Actions run 
 re-checked in this send-ride session as completed/successful across Linux, Windows, macOS, RTSan, and
 TSan. Local `HEAD`, `main`, and `origin/main` all pointed at `0555d16` after `git pull --ff-only`.
 
-H15 CP4 send-ride RT/offline parity sub-slice is locally green and ready to commit: `OfflineRenderOptions`
-can now pass projection send routes into the shared Project graph builder, so realtime playback and
+H15 CP4 send-ride RT/offline parity sub-slice is closed remote-green on `f287235`: `OfflineRenderOptions`
+can pass projection send routes into the shared Project graph builder, so realtime playback and
 offline render can build the same Project send topology. `YesDawPlaybackCheck` now has an automated
 SendLevel lane riding a pre-fader send into a Bus Return; its negative control keeps the direct path and
 static send silent, proves the automation changes the offline output, then requires realtime playback to
-match the automated offline render bit-for-bit at device Block sizes 1, 7, and 64. This does not implement
-one FX param per node kind, H15 final roadmap/STATUS closeout, adversarial review, H16 UI, FX UI, plugin
-hosting, ADR edits, `docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` /
-`YESDAW_RT_HOT` annotation changes.
+match the automated offline render bit-for-bit at device Block sizes 1, 7, and 64. The same checkpoint
+also fixed the AppleClang initializer warning exposed by the pre-amend macOS run. GitHub Actions run
+`28759409342` passed Linux, Windows, macOS, RTSan, and TSan for amended commit
+`f2872351c207efa345185f6a99429cb0dd79277c`. This does not implement one FX param per node kind, H15 final
+roadmap/STATUS closeout, adversarial review, H16 UI, FX UI, plugin hosting, ADR edits,
+`docs/reality-lane.md`, golden files, or `[[clang::nonblocking]]` / `YESDAW_RT_HOT` annotation changes.
 
-**Now:** Commit and push the send-ride RT/offline parity sub-slice, wait for GitHub Actions to pass Linux,
-Windows, macOS, RTSan, and TSan, then spawn exactly one successor baton for the next smallest H15 chunk.
+**Now:** Spawn exactly one successor baton for the next smallest H15 chunk.
 
 Local gates for this checkpoint:
 - Baseline `ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure` passed.
@@ -313,6 +314,8 @@ Local gates for this checkpoint:
 - `ctest --test-dir build-ci -R YesDawPlaybackCheck --output-on-failure` passed **1/1** test.
 - BuildTools `vcvars64.bat` `cmake --build --preset ci && ctest --preset ci --output-on-failure` passed
   **309/309** tests after the macOS initializer fix.
+- Remote GitHub Actions run `28759409342` passed Linux, Windows, macOS, RTSan, and TSan for amended commit
+  `f2872351c207efa345185f6a99429cb0dd79277c`.
 - `git diff --check` passed.
 
 Previous checkpoint local gates:
