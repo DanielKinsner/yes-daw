@@ -183,6 +183,14 @@ bool timelineStateUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawTimelineStateGeometry);
 }
 
+bool panelChromeUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawPanelChromeGeometry {
+        R"(\breduced\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\s*\)|\bdrawRoundedRectangle\s*\([^;\n]*,\s*[A-Za-z_][A-Za-z0-9_:]*\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*\))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawPanelChromeGeometry);
+}
+
 bool componentWindowUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawWindowGeometry {
@@ -235,6 +243,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int resizedLayoutDepth = 0;
         bool insideTimelineStateLayout = false;
         int timelineStateLayoutDepth = 0;
+        bool insidePanelChromeLayout = false;
+        int panelChromeLayoutDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -335,6 +345,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineStateLayout && timelineStateUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "MainComponent.cpp"
+                && line.find ("void fillPanel") != std::string::npos)
+            {
+                insidePanelChromeLayout = true;
+                panelChromeLayoutDepth = 0;
+            }
+
+            if (insidePanelChromeLayout && panelChromeUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("void drawInspector") != std::string::npos)
@@ -486,6 +506,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineStateLayout = false;
             }
 
+            if (insidePanelChromeLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++panelChromeLayoutDepth;
+                    else if (c == '}')
+                        --panelChromeLayoutDepth;
+                }
+
+                if (panelChromeLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insidePanelChromeLayout = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -534,7 +568,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     std::filesystem::create_directories (scratch);
 
     {
-        std::ofstream out (scratch / "ScratchUi.cpp");
+        std::ofstream out (scratch / "MainComponent.cpp");
         REQUIRE (out.is_open());
         out << "void paint() { const auto raw = juce::Colour (0xff112233); }\n";
         out << "void label() { const auto raw = juce::FontOptions (13.0f); }\n";
@@ -554,6 +588,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
         out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
         out << "void makeTimelineState() { auto width = juce::jmax (1, timelineInput.getWidth() - 26); }\n";
+        out << "void fillPanel(juce::Graphics& g, juce::Rectangle<int> area) { g.drawRoundedRectangle (area.toFloat().reduced (0.5f), radius, 1.0f); }\n";
         out << "constexpr int kTrimEdgePixels = 8;\n";
         out << "void mouseUp() { if (std::abs (deltaX) < 2) return; }\n";
         out << "void window() { setSize (1536, 960); }\n";
@@ -562,7 +597,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 21u);
+    REQUIRE (findings.size() == 22u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -583,5 +618,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[17].line == 18);
     REQUIRE (findings[18].line == 19);
     REQUIRE (findings[19].line == 20);
-    REQUIRE (findings.back().line == 21);
+    REQUIRE (findings[20].line == 21);
+    REQUIRE (findings.back().line == 22);
 }

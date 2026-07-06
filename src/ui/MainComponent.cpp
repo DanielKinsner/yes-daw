@@ -255,7 +255,9 @@ void fillPanel (juce::Graphics& g,
     g.setColour (kPanel);
     g.fillRoundedRectangle (area.toFloat(), radius);
     g.setColour (kPanelStroke);
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), radius, 1.0f);
+    g.drawRoundedRectangle (area.toFloat().reduced (yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                            radius,
+                            yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
 }
 
 void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::Rectangle<int> area,

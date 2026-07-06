@@ -146,6 +146,8 @@ struct UiTheme
         static constexpr int shellPanelVerticalInset = 10;
         static constexpr int mixerPanelHorizontalInset = 6;
         static constexpr int mixerPanelVerticalInset = 8;
+        static constexpr float panelOutlineInset = 0.5f;
+        static constexpr float panelOutlineStrokeWidth = 1.0f;
         static juce::Rectangle<int> projectNewButtonBounds() noexcept { return { 16, 50, 44, 26 }; }
         static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 64, 50, 50, 26 }; }
         static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 118, 50, 48, 26 }; }
