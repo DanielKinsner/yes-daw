@@ -2019,13 +2019,18 @@ private:
                 g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
                                   ? yesdaw::ui::UiTheme::Meter::nominalFill()
                                   : kPurple);
-                g.fillEllipse (x - 2.5f, y - 2.5f, 5.0f, 5.0f);
+                g.fillEllipse (x - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPointRadius,
+                               y - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPointRadius,
+                               yesdaw::ui::UiTheme::Layout::pianoRollExpressionPointDiameter,
+                               yesdaw::ui::UiTheme::Layout::pianoRollExpressionPointDiameter);
             }
 
             g.setColour (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
                               ? yesdaw::ui::UiTheme::Meter::nominalFill()
                               : kPurple);
-            g.strokePath (path, juce::PathStrokeType (1.5f));
+            g.strokePath (path,
+                          juce::PathStrokeType (
+                              yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathStrokeWidth));
         }
     }
 

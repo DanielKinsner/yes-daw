@@ -111,7 +111,9 @@ checkpoint moved MainComponent timeline viewport pixel-width/gutter geometry beh
 tokens and tightened `YesDawThemeAuditCheck` so a scratch raw `makeTimelineState()` viewport geometry
 value fails the audit. This checkpoint moved MainComponent timeline and piano-roll input drag dead-zone
 geometry behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw
-`std::abs(deltaX) < 2` input threshold fails the audit.
+`std::abs(deltaX) < 2` input threshold fails the audit. This checkpoint moved MainComponent piano-roll
+expression point and curve-stroke geometry behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck`
+so scratch raw `fillEllipse` and `PathStrokeType` expression geometry fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -126,7 +128,8 @@ tokenized; MainComponent painted header/transport/master-meter geometry, painted
 painted inspector-panel geometry, painted mixer-panel geometry, and `resized()` toolbar/autosave button
 geometry are also tokenized; MainComponent timeline clip and piano-roll note edge-hit geometry is also
 tokenized; MainComponent timeline viewport pixel-width/gutter geometry is also tokenized; MainComponent
-timeline and piano-roll input drag dead-zone geometry is also tokenized; broad UI migration is not complete.
+timeline and piano-roll input drag dead-zone geometry is also tokenized; MainComponent piano-roll expression
+point and curve-stroke geometry is also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

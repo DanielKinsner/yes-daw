@@ -344,6 +344,9 @@ struct UiTheme
         static constexpr int pianoRollExpressionLabelInsetY = 0;
         static constexpr int pianoRollExpressionPathBottomInset = 5;
         static constexpr int pianoRollExpressionPathVerticalInset = 10;
+        static constexpr float pianoRollExpressionPointRadius = 2.5f;
+        static constexpr float pianoRollExpressionPointDiameter = 5.0f;
+        static constexpr float pianoRollExpressionPathStrokeWidth = 1.5f;
     };
 };
 

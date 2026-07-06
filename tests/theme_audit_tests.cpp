@@ -162,7 +162,7 @@ bool headerLayoutUsesRawGeometry (std::string_view line)
 bool pianoRollLayoutUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawPianoRollGeometry {
-        R"(\b(?:removeFromTop|removeFromBottom|removeFromLeft|reduce|reduced|jmax|Rectangle<int>|fillRect|expanded)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*[0-9]+\b|\bgetBottom\s*\(\)\s*-\s*[0-9]+\b)"
+        R"(\b(?:removeFromTop|removeFromBottom|removeFromLeft|reduce|reduced|jmax|Rectangle<int>|fillRect|fillEllipse|PathStrokeType|expanded)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*[0-9]+\b|\bgetBottom\s*\(\)\s*-\s*[0-9]+\b)"
     };
     return std::regex_search (line.begin(), line.end(), rawPianoRollGeometry);
 }
@@ -540,6 +540,8 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawMeter(juce::Rectangle<int> area) { auto fill = area.reduced (2); }\n";
         out << "void drawHeader() { auto time = juce::Rectangle<int> (570, 16, 190, 56); }\n";
         out << "void drawPianoRoll(juce::Rectangle<int> area) { auto header = area.removeFromTop (38); }\n";
+        out << "void drawPianoRollExpressionPoint() { g.fillEllipse (x - 2.5f, y - 2.5f, 5.0f, 5.0f); }\n";
+        out << "void drawPianoRollExpressionStroke() { g.strokePath (path, juce::PathStrokeType (1.5f)); }\n";
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
         out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
         out << "void makeTimelineState() { auto width = juce::jmax (1, timelineInput.getWidth() - 26); }\n";
@@ -550,7 +552,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 18u);
+    REQUIRE (findings.size() == 20u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -568,5 +570,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[14].line == 15);
     REQUIRE (findings[15].line == 16);
     REQUIRE (findings[16].line == 17);
-    REQUIRE (findings.back().line == 18);
+    REQUIRE (findings[17].line == 18);
+    REQUIRE (findings[18].line == 19);
+    REQUIRE (findings.back().line == 20);
 }
