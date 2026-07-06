@@ -82,20 +82,25 @@ widths. This checkpoint moved MainComponent's top-level shell layout dimensions 
 inspector, mixer) behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw
 `constexpr` UI width fails the same theme-token audit. This checkpoint moved MainComponent meter fill
 colors and hot-band split fractions behind `UiTheme::Meter` and tightened `YesDawThemeAuditCheck` so a
-scratch raw meter split fraction fails the audit. Local gates passed: `git diff --check`; focused build
-target `YesDawThemeAuditCheck` under `vcvars64.bat`; focused H16/UI gates `YesDawUiActionCheck`,
-`YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and `YesDawTimelineGpuCheck`; `cmake --build --preset ci`
-under `vcvars64.bat`; full `ctest --preset ci --output-on-failure` passed **310/310**.
+scratch raw meter split fraction fails the audit. This checkpoint moved MainComponent's top-level shell
+panel inset spacing (left rail, inspector, timeline, mixer) behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so a scratch raw shell `.reduced(x, y)` spacing value fails the audit. Local
+gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
+focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
+`YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
+`ctest --preset ci --output-on-failure` passed **310/310**.
 
 **Now:** H16 CP1 is partially underway. The first token surface, raw-color/raw-font/raw-layout audit,
 Timeline canvas type/radius/spacing token migration, MainComponent typography token migration,
 MainComponent rounded-radius token migration, MainComponent shell layout token migration, and
-MainComponent meter-fill token migration exist; broad UI migration is not complete.
+MainComponent meter-fill and shell panel-inset token migrations exist; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
 slice (likely the next narrow MainComponent spacing surface), commit/push straight to
 `main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
+The likely next slice is another narrow MainComponent spacing surface, such as inspector or mixer control
+internal spacing, before broad UI migration.
 
 ---
 

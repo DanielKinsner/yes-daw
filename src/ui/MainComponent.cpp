@@ -968,15 +968,21 @@ public:
 
         auto work = bounds.withTrimmedTop (kHeaderHeight);
         auto mixer = work.removeFromBottom (kMixerHeight);
-        auto left = work.removeFromLeft (kLeftRailWidth).reduced (6, 10);
-        auto inspector = work.removeFromRight (kInspectorWidth).reduced (6, 10);
-        auto timeline = work.reduced (6, 10);
+        auto left = work.removeFromLeft (kLeftRailWidth)
+                        .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                                  yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
+        auto inspector = work.removeFromRight (kInspectorWidth)
+                             .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                                       yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
+        auto timeline = work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                                      yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
 
         drawTrackList (g, left);
         if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
             drawPianoRoll (g, timeline);
         drawInspector (g, inspector);
-        drawMixer (g, mixer.reduced (6, 8));
+        drawMixer (g, mixer.reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
+                                     yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset));
     }
 
     void resized() override
@@ -1181,13 +1187,16 @@ private:
         work.removeFromBottom (kMixerHeight);
         work.removeFromLeft (kLeftRailWidth);
         work.removeFromRight (kInspectorWidth);
-        return work.reduced (6, 10);
+        return work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                             yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
 
     [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
-        auto mixer = work.removeFromBottom (kMixerHeight).reduced (6, 8);
+        auto mixer = work.removeFromBottom (kMixerHeight)
+                         .reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
+                                   yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
         mixer.removeFromLeft (120);
 
         const auto surface = currentMixerSurface();
@@ -1200,7 +1209,9 @@ private:
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
         work.removeFromBottom (kMixerHeight);
-        return work.removeFromRight (kInspectorWidth).reduced (6, 10);
+        return work.removeFromRight (kInspectorWidth)
+            .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                      yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
 
     void layoutInspectorControls()

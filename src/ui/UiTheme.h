@@ -103,6 +103,10 @@ struct UiTheme
         static constexpr int leftRailWidth = 318;
         static constexpr int inspectorWidth = 248;
         static constexpr int mixerHeight = 260;
+        static constexpr int shellPanelHorizontalInset = 6;
+        static constexpr int shellPanelVerticalInset = 10;
+        static constexpr int mixerPanelHorizontalInset = 6;
+        static constexpr int mixerPanelVerticalInset = 8;
     };
 };
 
