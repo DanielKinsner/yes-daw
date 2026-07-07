@@ -392,8 +392,12 @@ bool mainComponentDemoMixerDefaultsUseRawDefault (std::string_view line)
     static const std::regex rawDemoMixerDerivedDefault {
         R"(\bstrip\.pan\s*=\s*source\.selected\s*\?\s*-?[0-9]+(?:\.[0-9]+)?f?\s*:\s*-?[0-9]+(?:\.[0-9]+)?f?\b|\bsource\.meter\s*\*\s*[0-9]+(?:\.[0-9]+)?f?\b)"
     };
+    static const std::regex rawDemoMixerLoudnessDefault {
+        R"(\bsurface\.loudness\s*=\s*[^;\n]*\{[^;\n]*-?[0-9]+(?:\.[0-9]+)?f?(?:\s*,\s*-?[0-9]+(?:\.[0-9]+)?f?)+\s*,\s*(?:true|false)\s*\})"
+    };
     return std::regex_search (line.begin(), line.end(), rawDemoMixerStripDefault)
-        || std::regex_search (line.begin(), line.end(), rawDemoMixerDerivedDefault);
+        || std::regex_search (line.begin(), line.end(), rawDemoMixerDerivedDefault)
+        || std::regex_search (line.begin(), line.end(), rawDemoMixerLoudnessDefault);
 }
 
 bool timelineLayoutHitTestUsesRawGeometry (std::string_view line)
@@ -1387,6 +1391,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "const std::array<TrackRow, 1> kTracks {{ { \"Drums\", kBlue, 0.86f } }};\n";
         out << "const std::array<MixerStrip, 1> kMixer {{ { \"Drums\", kBlue, 0.64f, 0.86f, false } }};\n";
         out << "void makeDemoMixerSurface() { strip.pan = source.selected ? -0.08f : 0.0f; strip.meter = { source.meter, source.meter * 0.92f, source.meter * 0.58f, source.meter * 0.52f, true }; }\n";
+        out << "void makeDemoMixerSurfaceLoudness() { surface.loudness = yesdaw::ui::UiMixerLoudnessReadout { -7.2, -9.4, -8.8, 5.0, -1.0, true }; }\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1467,7 +1472,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 63u);
+    REQUIRE (findings.size() == 64u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1483,7 +1488,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasPaintTone);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 48u);
+    REQUIRE (mainComponentLines.size() == 49u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1530,4 +1535,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[45] == 54);
     REQUIRE (mainComponentLines[46] == 55);
     REQUIRE (mainComponentLines[47] == 56);
+    REQUIRE (mainComponentLines[48] == 57);
 }

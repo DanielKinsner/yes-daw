@@ -186,6 +186,8 @@ placement default fails the audit. This checkpoint moved MainComponent's demo tr
 behind `UiTheme::Meter` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTracks` meter default
 fails the audit. This checkpoint moved MainComponent's demo mixer strip fader/meter/pan fallback defaults
 behind `UiTheme::Mixer` and tightened `YesDawThemeAuditCheck` so scratch raw `kMixer` demo defaults fail
+the audit. This checkpoint moved MainComponent's demo mixer loudness readout defaults behind
+`UiTheme::Mixer` and tightened `YesDawThemeAuditCheck` so a scratch raw demo loudness initializer fails
 the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
@@ -218,9 +220,9 @@ gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan
 values, timeline snap-grid default, no-selection inspector gain refresh fallback, shell/header separator
 height, painted inspector readout fallback defaults, TimelineCanvas paint tone/default fractions, and
 MainComponent project/demo timeline clip style alpha defaults, demo timeline clip placement defaults, and
-demo timeline marker placement defaults are also tokenized; MainComponent demo track-list meter defaults
-and demo mixer strip fader/meter/pan fallback defaults are also tokenized; broad UI migration is not
-complete.
+demo timeline marker placement defaults are also tokenized; MainComponent demo track-list meter defaults,
+demo mixer strip fader/meter/pan fallback defaults, and demo mixer loudness readout defaults are also
+tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

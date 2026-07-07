@@ -151,7 +151,9 @@ section-marker placement seconds behind `UiTheme::Layout`; the theme audit now r
 demo track-list meter defaults behind `UiTheme::Meter`; the theme audit now rejects a raw `kTracks` meter
 default with a scratch negative control. This checkpoint moved MainComponent's demo mixer strip
 fader/meter/pan fallback defaults behind `UiTheme::Mixer`; the theme audit now rejects raw `kMixer` demo
-defaults with a scratch negative control.
+defaults with a scratch negative control. This checkpoint moved MainComponent's demo mixer loudness readout
+defaults behind `UiTheme::Mixer`; the theme audit now rejects a raw demo loudness initializer with a scratch
+negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent demo/default surface or a

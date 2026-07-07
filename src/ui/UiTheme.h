@@ -83,6 +83,11 @@ struct UiTheme
         static constexpr float mainComponentDemoMeterPeakRightScale = 0.92f;
         static constexpr float mainComponentDemoMeterRmsLeftScale = 0.58f;
         static constexpr float mainComponentDemoMeterRmsRightScale = 0.52f;
+        static constexpr double mainComponentDemoIntegratedLufs = -7.2;
+        static constexpr double mainComponentDemoMomentaryLufs = -9.4;
+        static constexpr double mainComponentDemoShortTermLufs = -8.8;
+        static constexpr double mainComponentDemoLoudnessRangeLu = 5.0;
+        static constexpr double mainComponentDemoTruePeakDbtp = -1.0;
     };
 
     struct Tone

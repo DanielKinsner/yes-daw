@@ -176,7 +176,14 @@ yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
 {
     yesdaw::ui::UiMixerSurfaceSnapshot surface;
     surface.projectLoaded = true;
-    surface.loudness = yesdaw::ui::UiMixerLoudnessReadout { -7.2, -9.4, -8.8, 5.0, -1.0, true };
+    surface.loudness = yesdaw::ui::UiMixerLoudnessReadout {
+        yesdaw::ui::UiTheme::Mixer::mainComponentDemoIntegratedLufs,
+        yesdaw::ui::UiTheme::Mixer::mainComponentDemoMomentaryLufs,
+        yesdaw::ui::UiTheme::Mixer::mainComponentDemoShortTermLufs,
+        yesdaw::ui::UiTheme::Mixer::mainComponentDemoLoudnessRangeLu,
+        yesdaw::ui::UiTheme::Mixer::mainComponentDemoTruePeakDbtp,
+        true
+    };
 
     for (std::size_t i = 0; i < kMixer.size(); ++i)
     {
