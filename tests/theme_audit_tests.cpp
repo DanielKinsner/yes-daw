@@ -247,6 +247,14 @@ bool timelineCanvasClipPaintUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawClipPaintGeometry);
 }
 
+bool timelineCanvasRulerUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawRulerGeometry {
+        R"(\bwithHeight\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\b|\bwithY\s*\([^;\n]*-\s*[0-9]+(?:\.[0-9]+)?f?\b|\bpixelsPerSecond\s*<\s*[0-9]+(?:\.[0-9]+)?f?\b|\?\s*[0-9]+(?:\.[0-9]+)?f?\s*:|\bclipArea\.get(?:X|Right)\s*\(\)\s*[-+]\s*[0-9]+(?:\.[0-9]+)?f?\b|\bg\.drawText\s*\([^;\n]*,\s*x\s*[-+]\s*[0-9]+(?:\.[0-9]+)?f?\b|\bruler\.getY\s*\(\)\s*\+\s*[0-9]+(?:\.[0-9]+)?f?\b|\bg\.fillRect\s*\([^;\n]*,\s*ruler\.getBottom\s*\(\)\s*-\s*[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawRulerGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -304,6 +312,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCanvasGeometryDepth = 0;
         bool insideTimelineCanvasClipPaint = false;
         int timelineCanvasClipPaintDepth = 0;
+        bool insideTimelineCanvasRuler = false;
+        int timelineCanvasRulerDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -458,6 +468,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineCanvasClipPaint && timelineCanvasClipPaintUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "TimelineCanvas.h"
+                && line.find ("void drawRuler") != std::string::npos)
+            {
+                insideTimelineCanvasRuler = true;
+                timelineCanvasRulerDepth = 0;
+            }
+
+            if (insideTimelineCanvasRuler && timelineCanvasRulerUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "MainComponent.cpp"
@@ -703,6 +723,19 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineCanvasClipPaint = false;
             }
 
+            if (insideTimelineCanvasRuler)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasRulerDepth;
+                    else if (c == '}')
+                        --timelineCanvasRulerDepth;
+                }
+                if (timelineCanvasRulerDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasRuler = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -790,6 +823,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         timelineOut << "void drawClip(juce::Graphics& g, juce::Rectangle<int> area) { g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::md, 1.0f); }\n";
         timelineOut << "TimelineCanvasGeometry timelineCanvasGeometry(juce::Rectangle<int> area) { auto content = area.reduced (1); auto toolbar = content.removeFromTop (36); auto ruler = content.removeFromTop (48); geometry.laneHeight = std::max (8, area.getHeight()); }\n";
         timelineOut << "void drawClipWaveform(juce::Rectangle<int> area, float amplitude) { area.reduce (7, 5); const auto half = area.getHeight() * std::clamp (amplitude, 0.1f, 1.0f) * 0.42f; const auto step = std::max (8, area.getWidth() / 9); }\n";
+        timelineOut << "void drawRuler(juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea, Viewport vp) { g.fillRect (ruler.withHeight (1).withY (ruler.getBottom() - 1)); const double labelStep = vp.pixelsPerSecond < 24.0 ? 8.0 : 4.0; if (x < clipArea.getX() - 40) return; g.drawText (label, x - 18, ruler.getY() + 7, 36, 16, just, false); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
@@ -799,6 +833,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     bool foundTimelineCanvasOutline = false;
     bool foundTimelineCanvasGeometry = false;
     bool foundTimelineCanvasClipPaint = false;
+    bool foundTimelineCanvasRuler = false;
     for (const auto& finding : findings)
     {
         if (finding.path.filename() == "MainComponent.cpp")
@@ -809,12 +844,15 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineCanvasGeometry = true;
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 3)
             foundTimelineCanvasClipPaint = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 4)
+            foundTimelineCanvasRuler = true;
     }
 
-    REQUIRE (findings.size() == 31u);
+    REQUIRE (findings.size() == 32u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasClipPaint);
+    REQUIRE (foundTimelineCanvasRuler);
     REQUIRE (mainComponentLines.size() == 28u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);

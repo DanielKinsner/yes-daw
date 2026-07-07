@@ -133,7 +133,9 @@ checkpoint moved TimelineCanvas section layout geometry (outer inset, toolbar he
 clip-area inset, and lane minimum height) behind `UiTheme::Layout` and tightened
 `YesDawThemeAuditCheck` so scratch raw `timelineCanvasGeometry()` section geometry fails the audit.
 This checkpoint moved TimelineCanvas clip and fake-waveform paint geometry behind `UiTheme::Layout` and
-tightened `YesDawThemeAuditCheck` so scratch raw `drawClipWaveform` geometry fails the audit.
+tightened `YesDawThemeAuditCheck` so scratch raw `drawClipWaveform` geometry fails the audit. This
+checkpoint moved TimelineCanvas ruler separator, label cadence, tick, and marker-label geometry behind
+`UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so scratch raw `drawRuler` geometry fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -153,8 +155,8 @@ point and curve-stroke geometry is also tokenized; MainComponent default window-
 panel-outline geometry are also tokenized; MainComponent piano-roll key-range and grid-cadence geometry is
 also tokenized; MainComponent timeline clip gain-drag gesture geometry and hidden slider text-box geometry
 are also tokenized; TimelineCanvas toolbar paint geometry and shared panel/clip outline geometry are also
-tokenized; TimelineCanvas section layout geometry and clip/fake-waveform paint geometry are also tokenized;
-broad UI migration is not complete.
+tokenized; TimelineCanvas section layout geometry, clip/fake-waveform paint geometry, and ruler paint
+geometry are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

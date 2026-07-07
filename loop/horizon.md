@@ -100,6 +100,8 @@ raw TimelineCanvas outline geometry with a scratch negative control. This checkp
 section layout geometry behind `UiTheme::Layout`; the theme audit now rejects raw `timelineCanvasGeometry()`
 section geometry with a scratch negative control. This checkpoint moved TimelineCanvas clip and fake-waveform
 paint geometry behind `UiTheme::Layout`; the theme audit now rejects raw `drawClipWaveform` geometry with a
+scratch negative control. This checkpoint moved TimelineCanvas ruler separator, label cadence, tick, and
+marker-label geometry behind `UiTheme::Layout`; the theme audit now rejects raw `drawRuler` geometry with a
 scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens

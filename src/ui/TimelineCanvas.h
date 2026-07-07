@@ -220,25 +220,36 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     g.setColour (kRulerBack);
     g.fillRect (ruler);
     g.setColour (kGrid);
-    g.fillRect (ruler.withHeight (1).withY (ruler.getBottom() - 1));
+    g.fillRect (ruler.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                      .withY (ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
 
     const double rightSeconds = vp.scrollSeconds + static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
-    const double labelStep = vp.pixelsPerSecond < 24.0 ? 8.0 : 4.0;
+    const double labelStep = vp.pixelsPerSecond < UiTheme::Layout::timelineCanvasRulerDensePixelsPerSecond
+                                 ? UiTheme::Layout::timelineCanvasRulerWideLabelStepSeconds
+                                 : UiTheme::Layout::timelineCanvasRulerNarrowLabelStepSeconds;
     const double firstLabel = std::floor (vp.scrollSeconds / labelStep) * labelStep;
 
     for (double seconds = firstLabel; seconds <= rightSeconds + labelStep; seconds += labelStep)
     {
         const int x = clipArea.getX() + juce::roundToInt ((seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
-        if (x < clipArea.getX() - 40 || x > clipArea.getRight() + 40)
+        if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerLabelCullPadding
+            || x > clipArea.getRight() + UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
             continue;
 
         const int barNumber = std::max (1, juce::roundToInt (seconds) + 1);
         g.setColour (kMutedText);
         g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
-        g.drawText (juce::String (barNumber), x - 18, ruler.getY() + 7, 36, 16,
+        g.drawText (juce::String (barNumber),
+                    x - UiTheme::Layout::timelineCanvasRulerLabelLeftInset,
+                    ruler.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+                    UiTheme::Layout::timelineCanvasRulerLabelWidth,
+                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
                     juce::Justification::centred, false);
         g.setColour (kMutedText.withAlpha (0.65f));
-        g.fillRect (x, ruler.getBottom() - 14, 1, 14);
+        g.fillRect (x,
+                    ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
+                    UiTheme::Layout::timelineCanvasRulerTickWidth,
+                    UiTheme::Layout::timelineCanvasRulerTickHeight);
     }
 
     if (state.markers == nullptr)
@@ -248,12 +259,17 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     {
         const auto& marker = state.markers[i];
         const int x = clipArea.getX() + juce::roundToInt ((marker.seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
-        if (x < clipArea.getX() - 60 || x > clipArea.getRight())
+        if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding
+            || x > clipArea.getRight())
             continue;
 
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
-        g.drawText (marker.label, x + 4, ruler.getY() + 24, 76, 16,
+        g.drawText (marker.label,
+                    x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
+                    ruler.getY() + UiTheme::Layout::timelineCanvasRulerMarkerLabelTopInset,
+                    UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+                    UiTheme::Layout::timelineCanvasRulerMarkerLabelHeight,
                     juce::Justification::centredLeft, false);
     }
 }

@@ -393,6 +393,22 @@ struct UiTheme
         static constexpr int timelineCanvasClipMinPaintHeight = 2;
         static constexpr int timelineCanvasClipCompactHeight = 8;
         static constexpr int timelineCanvasClipCompactHighlightHeight = 1;
+        static constexpr int timelineCanvasRulerSeparatorHeight = 1;
+        static constexpr double timelineCanvasRulerDensePixelsPerSecond = 24.0;
+        static constexpr double timelineCanvasRulerWideLabelStepSeconds = 8.0;
+        static constexpr double timelineCanvasRulerNarrowLabelStepSeconds = 4.0;
+        static constexpr int timelineCanvasRulerLabelCullPadding = 40;
+        static constexpr int timelineCanvasRulerLabelLeftInset = 18;
+        static constexpr int timelineCanvasRulerLabelTopInset = 7;
+        static constexpr int timelineCanvasRulerLabelWidth = 36;
+        static constexpr int timelineCanvasRulerLabelHeight = 16;
+        static constexpr int timelineCanvasRulerTickHeight = 14;
+        static constexpr int timelineCanvasRulerTickWidth = 1;
+        static constexpr int timelineCanvasRulerMarkerCullPadding = 60;
+        static constexpr int timelineCanvasRulerMarkerLabelLeftInset = 4;
+        static constexpr int timelineCanvasRulerMarkerLabelTopInset = 24;
+        static constexpr int timelineCanvasRulerMarkerLabelWidth = 76;
+        static constexpr int timelineCanvasRulerMarkerLabelHeight = 16;
     };
 };
 
