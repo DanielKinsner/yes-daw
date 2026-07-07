@@ -150,7 +150,10 @@ the audit. This checkpoint moved MainComponent timeline-state default span, play
 seconds, and project end-padding geometry behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so
 scratch raw `makeTimelineState()` defaults fail the audit. This checkpoint moved MainComponent timeline
 coordinate-conversion floors for drag move, split-position, and clip-edge hit math behind `UiTheme::Layout`
-and tightened `YesDawThemeAuditCheck` so scratch raw coordinate-conversion floors fail the audit.
+and tightened `YesDawThemeAuditCheck` so scratch raw coordinate-conversion floors fail the audit. This
+checkpoint moved TimelineCanvas toolbar reduced-inset geometry for the tool strip, tool cells, and snap
+field behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so scratch raw TimelineCanvas toolbar
+reduced-inset geometry fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -175,7 +178,8 @@ geometry are also tokenized; TimelineCanvas playhead paint geometry, grid paint 
 paint capacity are also tokenized; TimelineCanvas geometry lane-count and pixels-per-second floors are
 also tokenized; TimelineLayout default viewport and hit-test zero-floor geometry is also tokenized;
 MainComponent timeline-state default span/playhead/scroll geometry and timeline coordinate-conversion floors
-are also tokenized; broad UI migration is not complete.
+are also tokenized; TimelineCanvas toolbar reduced-inset geometry is also tokenized; broad UI migration is
+not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

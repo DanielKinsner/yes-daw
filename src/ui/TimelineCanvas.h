@@ -182,11 +182,13 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
 
     auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl)
                          .withWidth (UiTheme::Layout::timelineCanvasToolbarWidth)
-                         .reduced (0, UiTheme::Space::sm);
+                         .reduced (UiTheme::Layout::timelineCanvasToolbarInsetX,
+                                   UiTheme::Layout::timelineCanvasToolbarInsetY);
     for (const auto* label : { "A", "P", "E", "S", "L" })
     {
         auto cell = tools.removeFromLeft (UiTheme::Layout::timelineCanvasToolCellWidth)
-                         .reduced (UiTheme::Space::xxs + UiTheme::Space::hairline, 0);
+                         .reduced (UiTheme::Layout::timelineCanvasToolCellInsetX,
+                                   UiTheme::Layout::timelineCanvasToolCellInsetY);
         g.setColour (UiTheme::Color::toolButton());
         g.fillRoundedRectangle (cell.toFloat(), UiTheme::Radius::sm);
         g.setColour (kMutedText);
@@ -202,7 +204,8 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     g.setColour (UiTheme::Color::snapField());
     g.fillRoundedRectangle (toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapFieldX)
                                    .withWidth (UiTheme::Layout::timelineCanvasSnapFieldWidth)
-                                   .reduced (0, UiTheme::Space::sm + 1)
+                                   .reduced (UiTheme::Layout::timelineCanvasSnapFieldInsetX,
+                                             UiTheme::Layout::timelineCanvasSnapFieldInsetY)
                                    .toFloat(),
                             UiTheme::Radius::sm);
     g.setColour (kText);

@@ -372,7 +372,11 @@ struct UiTheme
         static constexpr float pianoRollExpressionPathStrokeWidth = 1.5f;
 
         static constexpr int timelineCanvasToolbarWidth = 190;
+        static constexpr int timelineCanvasToolbarInsetX = 0;
+        static constexpr int timelineCanvasToolbarInsetY = Space::sm;
         static constexpr int timelineCanvasToolCellWidth = 34;
+        static constexpr int timelineCanvasToolCellInsetX = Space::xxs + Space::hairline;
+        static constexpr int timelineCanvasToolCellInsetY = 0;
         static constexpr int timelineCanvasOuterInset = 1;
         static constexpr int timelineCanvasToolbarHeight = 36;
         static constexpr int timelineCanvasRulerHeight = 48;
@@ -385,6 +389,8 @@ struct UiTheme
         static constexpr int timelineCanvasSnapLabelWidth = 42;
         static constexpr int timelineCanvasSnapFieldX = 276;
         static constexpr int timelineCanvasSnapFieldWidth = 80;
+        static constexpr int timelineCanvasSnapFieldInsetX = 0;
+        static constexpr int timelineCanvasSnapFieldInsetY = Space::sm + Space::hairline;
         static constexpr int timelineCanvasSnapValueX = 284;
         static constexpr int timelineCanvasSnapValueWidth = 54;
         static constexpr float timelineCanvasOutlineInset = 0.5f;
