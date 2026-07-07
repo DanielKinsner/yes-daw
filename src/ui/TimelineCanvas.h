@@ -164,10 +164,13 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     g.setColour (kToolbarBack);
     g.fillRect (toolbar);
 
-    auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl).withWidth (190).reduced (0, UiTheme::Space::sm);
+    auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl)
+                         .withWidth (UiTheme::Layout::timelineCanvasToolbarWidth)
+                         .reduced (0, UiTheme::Space::sm);
     for (const auto* label : { "A", "P", "E", "S", "L" })
     {
-        auto cell = tools.removeFromLeft (34).reduced (UiTheme::Space::xxs + UiTheme::Space::hairline, 0);
+        auto cell = tools.removeFromLeft (UiTheme::Layout::timelineCanvasToolCellWidth)
+                         .reduced (UiTheme::Space::xxs + UiTheme::Space::hairline, 0);
         g.setColour (UiTheme::Color::toolButton());
         g.fillRoundedRectangle (cell.toFloat(), UiTheme::Radius::sm);
         g.setColour (kMutedText);
@@ -175,13 +178,24 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
         g.drawText (label, cell, juce::Justification::centred, false);
     }
 
-    drawSmallLabel (g, "SNAP", toolbar.withTrimmedLeft (234).withWidth (42), juce::Justification::centred);
+    drawSmallLabel (g,
+                    "SNAP",
+                    toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapLabelX)
+                           .withWidth (UiTheme::Layout::timelineCanvasSnapLabelWidth),
+                    juce::Justification::centred);
     g.setColour (UiTheme::Color::snapField());
-    g.fillRoundedRectangle (toolbar.withTrimmedLeft (276).withWidth (80).reduced (0, UiTheme::Space::sm + 1).toFloat(),
+    g.fillRoundedRectangle (toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapFieldX)
+                                   .withWidth (UiTheme::Layout::timelineCanvasSnapFieldWidth)
+                                   .reduced (0, UiTheme::Space::sm + 1)
+                                   .toFloat(),
                             UiTheme::Radius::sm);
     g.setColour (kText);
     g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::body)));
-    g.drawText ("Bar", toolbar.withTrimmedLeft (284).withWidth (54), juce::Justification::centredLeft, false);
+    g.drawText ("Bar",
+                toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapValueX)
+                       .withWidth (UiTheme::Layout::timelineCanvasSnapValueWidth),
+                juce::Justification::centredLeft,
+                false);
 }
 
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,

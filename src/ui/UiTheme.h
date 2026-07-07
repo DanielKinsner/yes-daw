@@ -360,6 +360,15 @@ struct UiTheme
         static constexpr float pianoRollExpressionPointRadius = 2.5f;
         static constexpr float pianoRollExpressionPointDiameter = 5.0f;
         static constexpr float pianoRollExpressionPathStrokeWidth = 1.5f;
+
+        static constexpr int timelineCanvasToolbarWidth = 190;
+        static constexpr int timelineCanvasToolCellWidth = 34;
+        static constexpr int timelineCanvasSnapLabelX = 234;
+        static constexpr int timelineCanvasSnapLabelWidth = 42;
+        static constexpr int timelineCanvasSnapFieldX = 276;
+        static constexpr int timelineCanvasSnapFieldWidth = 80;
+        static constexpr int timelineCanvasSnapValueX = 284;
+        static constexpr int timelineCanvasSnapValueWidth = 54;
     };
 };
 

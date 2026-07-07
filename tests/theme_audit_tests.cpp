@@ -215,6 +215,14 @@ bool sliderTextBoxUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawSliderTextBoxGeometry);
 }
 
+bool timelineCanvasToolbarUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawToolbarGeometry {
+        R"(\b(?:withTrimmedLeft|withWidth|removeFromLeft)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawToolbarGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -264,6 +272,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int panelChromeLayoutDepth = 0;
         bool insideTimelineClipGainGesture = false;
         int timelineClipGainGestureDepth = 0;
+        bool insideTimelineCanvasToolbar = false;
+        int timelineCanvasToolbarDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -375,6 +385,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineClipGainGesture && timelineClipGainGestureUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("void drawToolbar") != std::string::npos)
+            {
+                insideTimelineCanvasToolbar = true;
+                timelineCanvasToolbarDepth = 0;
+            }
+
+            if (insideTimelineCanvasToolbar && timelineCanvasToolbarUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "MainComponent.cpp"
@@ -564,6 +583,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineClipGainGesture = false;
             }
 
+            if (insideTimelineCanvasToolbar)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasToolbarDepth;
+                    else if (c == '}')
+                        --timelineCanvasToolbarDepth;
+                }
+
+                if (timelineCanvasToolbarDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasToolbar = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -643,12 +676,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "constexpr float kMaxGestureGain = 4.0f;\n";
         out << "}\n";
         out << "void slider(juce::Slider& s) { s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0); }\n";
+        out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 27u);
+    REQUIRE (findings.size() == 28u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -673,5 +707,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[22].line == 23);
     REQUIRE (findings[24].line == 26);
     REQUIRE (findings[25].line == 27);
-    REQUIRE (findings.back().line == 29);
+    REQUIRE (findings[26].line == 29);
+    REQUIRE (findings.back().line == 30);
 }

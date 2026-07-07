@@ -124,7 +124,9 @@ so scratch raw piano-roll key-range and grid-cadence values fail the audit. This
 MainComponent timeline clip gain-drag gesture geometry behind `UiTheme::Layout` and tightened
 `YesDawThemeAuditCheck` so scratch raw gain-drag gesture constants fail the audit. This checkpoint moved
 MainComponent hidden slider text-box geometry behind `UiTheme::Layout` and tightened
-`YesDawThemeAuditCheck` so scratch raw `setTextBoxStyle(..., 0, 0)` geometry fails the audit.
+`YesDawThemeAuditCheck` so scratch raw `setTextBoxStyle(..., 0, 0)` geometry fails the audit. This
+checkpoint moved TimelineCanvas toolbar paint geometry behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so scratch raw `drawToolbar` geometry fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -143,14 +145,15 @@ timeline and piano-roll input drag dead-zone geometry is also tokenized; MainCom
 point and curve-stroke geometry is also tokenized; MainComponent default window-size geometry and shared
 panel-outline geometry are also tokenized; MainComponent piano-roll key-range and grid-cadence geometry is
 also tokenized; MainComponent timeline clip gain-drag gesture geometry and hidden slider text-box geometry
-are also tokenized; broad UI migration is not complete.
+are also tokenized; TimelineCanvas toolbar paint geometry is also tokenized; broad UI migration is not
+complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
-slice (likely the next narrow MainComponent spacing surface), commit/push straight to
+slice (likely the next narrow TimelineCanvas or MainComponent spacing/geometry surface), commit/push straight to
 `main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
-The likely next slice is another narrow MainComponent spacing/geometry surface that is not yet covered by
-the theme audit, before broad UI migration.
+The likely next slice is another narrow spacing/geometry surface that is not yet covered by the theme
+audit, before broad UI migration.
 
 ---
 
