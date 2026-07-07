@@ -280,31 +280,35 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     g.setColour (kCanvasBack);
     g.fillRect (clipArea);
 
-    const int laneCount = std::max (1, state.trackCount);
+    const int laneCount = std::max (UiTheme::Layout::timelineCanvasGridMinLaneCount, state.trackCount);
     for (int lane = 0; lane <= laneCount; ++lane)
     {
         const int y = clipArea.getY() + lane * laneHeight;
         g.setColour (kGrid.withAlpha (0.7f));
-        g.fillRect (clipArea.getX(), y, clipArea.getWidth(), 1);
+        g.fillRect (clipArea.getX(), y, clipArea.getWidth(), UiTheme::Layout::timelineCanvasGridLaneSeparatorHeight);
 
         if (lane < state.trackCount && state.tracks != nullptr)
         {
             g.setColour (state.tracks[lane].colour.withAlpha (0.20f));
-            g.fillRect (clipArea.getX(), y + 1, 3, std::max (0, laneHeight - 1));
+            g.fillRect (clipArea.getX(),
+                        y + UiTheme::Layout::timelineCanvasGridTrackTintTopInset,
+                        UiTheme::Layout::timelineCanvasGridTrackTintWidth,
+                        std::max (0, laneHeight - UiTheme::Layout::timelineCanvasGridTrackTintHeightTrim));
         }
     }
 
     const double rightSeconds = vp.scrollSeconds + static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
-    const double firstGrid = std::floor (vp.scrollSeconds / 4.0) * 4.0;
-    for (double seconds = firstGrid; seconds <= rightSeconds + 4.0; seconds += 4.0)
+    const double gridStepSeconds = UiTheme::Layout::timelineCanvasGridStepSeconds;
+    const double firstGrid = std::floor (vp.scrollSeconds / gridStepSeconds) * gridStepSeconds;
+    for (double seconds = firstGrid; seconds <= rightSeconds + gridStepSeconds; seconds += gridStepSeconds)
     {
         const int x = clipArea.getX() + juce::roundToInt ((seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
         if (x < clipArea.getX() || x > clipArea.getRight())
             continue;
 
-        const bool major = (juce::roundToInt (seconds) % 16) == 0;
+        const bool major = (juce::roundToInt (seconds) % UiTheme::Layout::timelineCanvasGridMajorStepSeconds) == 0;
         g.setColour (major ? kGrid.brighter (0.25f) : kGrid.withAlpha (0.38f));
-        g.fillRect (x, clipArea.getY(), 1, clipArea.getHeight());
+        g.fillRect (x, clipArea.getY(), UiTheme::Layout::timelineCanvasGridLineWidth, clipArea.getHeight());
     }
 }
 

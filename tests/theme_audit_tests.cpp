@@ -255,6 +255,14 @@ bool timelineCanvasRulerUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawRulerGeometry);
 }
 
+bool timelineCanvasGridUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawGridGeometry {
+        R"(\bstd::max\s*\(\s*[0-9]+\s*,\s*state\.trackCount\b|\bg\.fillRect\s*\([^;\n]*,\s*[0-9]+(?:\.[0-9]+)?f?\s*\)|\by\s*\+\s*[0-9]+(?:\.[0-9]+)?f?\b|\blaneHeight\s*-\s*[0-9]+(?:\.[0-9]+)?f?\b|\bstd::floor\s*\([^;\n]*/\s*[0-9]+(?:\.[0-9]+)?f?\b|\brightSeconds\s*\+\s*[0-9]+(?:\.[0-9]+)?f?\b|\bseconds\s*\+=\s*[0-9]+(?:\.[0-9]+)?f?\b|%\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawGridGeometry);
+}
+
 bool timelineCanvasPlayheadUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawPlayheadGeometry {
@@ -322,6 +330,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCanvasClipPaintDepth = 0;
         bool insideTimelineCanvasRuler = false;
         int timelineCanvasRulerDepth = 0;
+        bool insideTimelineCanvasGrid = false;
+        int timelineCanvasGridDepth = 0;
         bool insideTimelineCanvasPlayhead = false;
         int timelineCanvasPlayheadDepth = 0;
         while (std::getline (in, line))
@@ -488,6 +498,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineCanvasRuler && timelineCanvasRulerUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "TimelineCanvas.h"
+                && line.find ("void drawGrid") != std::string::npos)
+            {
+                insideTimelineCanvasGrid = true;
+                timelineCanvasGridDepth = 0;
+            }
+
+            if (insideTimelineCanvasGrid && timelineCanvasGridUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "TimelineCanvas.h"
@@ -756,6 +776,19 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineCanvasRuler = false;
             }
 
+            if (insideTimelineCanvasGrid)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasGridDepth;
+                    else if (c == '}')
+                        --timelineCanvasGridDepth;
+                }
+                if (timelineCanvasGridDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasGrid = false;
+            }
+
             if (insideTimelineCanvasPlayhead)
             {
                 for (const char c : line)
@@ -857,6 +890,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         timelineOut << "TimelineCanvasGeometry timelineCanvasGeometry(juce::Rectangle<int> area) { auto content = area.reduced (1); auto toolbar = content.removeFromTop (36); auto ruler = content.removeFromTop (48); geometry.laneHeight = std::max (8, area.getHeight()); }\n";
         timelineOut << "void drawClipWaveform(juce::Rectangle<int> area, float amplitude) { area.reduce (7, 5); const auto half = area.getHeight() * std::clamp (amplitude, 0.1f, 1.0f) * 0.42f; const auto step = std::max (8, area.getWidth() / 9); }\n";
         timelineOut << "void drawRuler(juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea, Viewport vp) { g.fillRect (ruler.withHeight (1).withY (ruler.getBottom() - 1)); const double labelStep = vp.pixelsPerSecond < 24.0 ? 8.0 : 4.0; if (x < clipArea.getX() - 40) return; g.drawText (label, x - 18, ruler.getY() + 7, 36, 16, just, false); }\n";
+        timelineOut << "void drawGrid(juce::Rectangle<int> clipArea) { const int laneCount = std::max (1, state.trackCount); g.fillRect (clipArea.getX(), y, clipArea.getWidth(), 1); g.fillRect (clipArea.getX(), y + 1, 3, laneHeight - 1); const double firstGrid = std::floor (vp.scrollSeconds / 4.0) * 4.0; for (double seconds = firstGrid; seconds <= rightSeconds + 4.0; seconds += 4.0) { const bool major = (seconds % 16) == 0; g.fillRect (x, clipArea.getY(), 1, clipArea.getHeight()); } }\n";
         timelineOut << "void drawPlayhead(juce::Rectangle<int> ruler) { g.fillRect (playheadX, ruler.getY(), 2, height); g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4), 30.0f, 16.0f, radius); g.drawText (label, playheadX - 12, ruler.getY() + 4, 24, 16, just, false); }\n";
     }
 
@@ -868,6 +902,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     bool foundTimelineCanvasGeometry = false;
     bool foundTimelineCanvasClipPaint = false;
     bool foundTimelineCanvasRuler = false;
+    bool foundTimelineCanvasGrid = false;
     bool foundTimelineCanvasPlayhead = false;
     for (const auto& finding : findings)
     {
@@ -882,14 +917,17 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 4)
             foundTimelineCanvasRuler = true;
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 5)
+            foundTimelineCanvasGrid = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 6)
             foundTimelineCanvasPlayhead = true;
     }
 
-    REQUIRE (findings.size() == 33u);
+    REQUIRE (findings.size() == 34u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasClipPaint);
     REQUIRE (foundTimelineCanvasRuler);
+    REQUIRE (foundTimelineCanvasGrid);
     REQUIRE (foundTimelineCanvasPlayhead);
     REQUIRE (mainComponentLines.size() == 28u);
     REQUIRE (mainComponentLines[0] == 1);
