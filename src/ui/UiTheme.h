@@ -144,6 +144,7 @@ struct UiTheme
         static constexpr int headerStatusIconRightInset = 54;
         static constexpr int headerStatusIconY = 34;
         static constexpr int headerStatusIconSize = 24;
+        static constexpr int shellHeaderSeparatorHeight = 1;
         static constexpr int shellPanelHorizontalInset = 6;
         static constexpr int shellPanelVerticalInset = 10;
         static constexpr int mixerPanelHorizontalInset = 6;

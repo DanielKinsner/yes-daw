@@ -176,6 +176,14 @@ bool resizedLayoutUsesRawButtonGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawResizedButtonGeometry);
 }
 
+bool shellPaintUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawShellPaintGeometry {
+        R"(\bremoveFromBottom\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\s*\))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawShellPaintGeometry);
+}
+
 bool timelineStateUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawTimelineStateGeometry {
@@ -373,6 +381,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int mixerPanelLayoutDepth = 0;
         bool insideResizedLayout = false;
         int resizedLayoutDepth = 0;
+        bool insideShellPaintLayout = false;
+        int shellPaintLayoutDepth = 0;
         bool insideTimelineStateLayout = false;
         int timelineStateLayoutDepth = 0;
         bool insidePanelChromeLayout = false;
@@ -500,6 +510,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideResizedLayout && resizedLayoutUsesRawButtonGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "MainComponent.cpp"
+                && line.find ("void paint") != std::string::npos)
+            {
+                insideShellPaintLayout = true;
+                shellPaintLayoutDepth = 0;
+            }
+
+            if (insideShellPaintLayout && shellPaintUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("makeTimelineState") != std::string::npos
@@ -788,6 +808,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (resizedLayoutDepth <= 0 && line.find ('}') != std::string::npos)
                     insideResizedLayout = false;
+            }
+
+            if (insideShellPaintLayout)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++shellPaintLayoutDepth;
+                    else if (c == '}')
+                        --shellPaintLayoutDepth;
+                }
+
+                if (shellPaintLayoutDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideShellPaintLayout = false;
             }
 
             if (insideTimelineStateLayout)
@@ -1092,6 +1126,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "}\n";
         out << "double timelineTotalSeconds = 98.0;\n";
         out << "void configureMixerControls() { mixerFader.setRange (0.0, 2.0, 0.01); mixerPan.setValue (0.0, juce::dontSendNotification); }\n";
+        out << "void paint() { auto separator = top.removeFromBottom (1); }\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1164,7 +1199,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 52u);
+    REQUIRE (findings.size() == 53u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1178,7 +1213,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 39u);
+    REQUIRE (mainComponentLines.size() == 40u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1216,4 +1251,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[36] == 44);
     REQUIRE (mainComponentLines[37] == 46);
     REQUIRE (mainComponentLines[38] == 47);
+    REQUIRE (mainComponentLines[39] == 48);
 }

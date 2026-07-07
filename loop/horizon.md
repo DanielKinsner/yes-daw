@@ -133,7 +133,9 @@ the theme audit now rejects raw `mixerFader`/`mixerPan` slider defaults with a s
 This checkpoint moved MainComponent's timeline snap-grid default behind `UiTheme::Layout`; the theme audit
 now rejects a raw `kTimelineSnapGridTicks` default with a scratch negative control. This checkpoint moved
 MainComponent's no-selection inspector gain refresh fallback behind `UiTheme::Layout`; the theme audit now
-rejects a raw `refreshInspectorControls` gain fallback with a scratch negative control.
+rejects a raw `refreshInspectorControls` gain fallback with a scratch negative control. This checkpoint moved
+MainComponent's shell/header separator height behind `UiTheme::Layout`; the theme audit now rejects a raw
+`paint()` shell separator geometry value with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

@@ -986,7 +986,8 @@ public:
         const auto bounds = getLocalBounds();
         const auto top = bounds.withHeight (kHeaderHeight);
         g.setColour (yesdaw::ui::UiTheme::Color::separator());
-        g.fillRect (top.withBottom (kHeaderHeight).removeFromBottom (1));
+        g.fillRect (top.withBottom (kHeaderHeight)
+                        .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
 
         auto work = bounds.withTrimmedTop (kHeaderHeight);
         auto mixer = work.removeFromBottom (kMixerHeight);
