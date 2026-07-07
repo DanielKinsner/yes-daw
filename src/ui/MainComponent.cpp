@@ -2414,7 +2414,11 @@ private:
     yesdaw::ui::MainComponentFileChoices fileChoices;
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
     yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
-    std::array<TrackRow, 1> projectTimelineTrack {{{ "Audio 1", kPurple, 0.75f }}};
+    std::array<TrackRow, 1> projectTimelineTrack {{{
+        "Audio 1",
+        kPurple,
+        yesdaw::ui::UiTheme::Meter::mainComponentProjectTimelineTrackLevel
+    }}};
     std::vector<yesdaw::ui::Clip> timelineClips;
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;

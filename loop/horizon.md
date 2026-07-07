@@ -153,7 +153,9 @@ default with a scratch negative control. This checkpoint moved MainComponent's d
 fader/meter/pan fallback defaults behind `UiTheme::Mixer`; the theme audit now rejects raw `kMixer` demo
 defaults with a scratch negative control. This checkpoint moved MainComponent's demo mixer loudness readout
 defaults behind `UiTheme::Mixer`; the theme audit now rejects a raw demo loudness initializer with a scratch
-negative control.
+negative control. This checkpoint moved MainComponent's project-backed timeline fallback track meter default
+behind `UiTheme::Meter`; the theme audit now rejects a raw `projectTimelineTrack` meter initializer with a
+scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent demo/default surface or a
