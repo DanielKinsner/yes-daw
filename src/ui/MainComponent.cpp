@@ -60,6 +60,12 @@ using TrackRow = yesdaw::ui::TimelineCanvasTrack;
 using TimelineClipStyle = yesdaw::ui::TimelineCanvasClipStyle;
 constexpr const auto& kDemoTimelineClipAlphas =
     yesdaw::ui::UiTheme::Tone::mainComponentDemoTimelineClipAlphas;
+constexpr const auto& kDemoTimelineClipLanes =
+    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLanes;
+constexpr const auto& kDemoTimelineClipStartsSeconds =
+    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipStartsSeconds;
+constexpr const auto& kDemoTimelineClipLengthsSeconds =
+    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLengthsSeconds;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -93,15 +99,29 @@ const std::array<TrackRow, 8> kTracks {{
 }};
 
 const std::array<yesdaw::ui::Clip, 23> kClips {{
-    { 0, 0, 0.0, 17.0 }, { 1, 0, 17.0, 10.0 }, { 2, 0, 27.0, 17.0 },
-    { 3, 0, 48.0, 17.0 }, { 4, 0, 65.0, 12.0 }, { 5, 0, 77.0, 14.0 },
-    { 6, 1, 4.0, 18.0 }, { 7, 1, 22.0, 20.0 }, { 8, 1, 47.0, 30.0 },
-    { 9, 2, 3.0, 18.0 }, { 10, 2, 25.0, 18.0 }, { 11, 2, 41.0, 26.0 },
-    { 12, 2, 69.0, 16.0 },
-    { 13, 3, 11.0, 28.0 }, { 14, 3, 39.0, 18.0 }, { 15, 3, 57.0, 30.0 },
-    { 16, 4, 11.0, 24.0 }, { 17, 4, 37.0, 22.0 }, { 18, 4, 59.0, 28.0 },
-    { 19, 5, 7.0, 26.0 }, { 20, 5, 33.0, 22.0 }, { 21, 5, 65.0, 24.0 },
-    { 22, 6, 0.0, 38.0 }
+    { 0, kDemoTimelineClipLanes[0], kDemoTimelineClipStartsSeconds[0], kDemoTimelineClipLengthsSeconds[0] },
+    { 1, kDemoTimelineClipLanes[1], kDemoTimelineClipStartsSeconds[1], kDemoTimelineClipLengthsSeconds[1] },
+    { 2, kDemoTimelineClipLanes[2], kDemoTimelineClipStartsSeconds[2], kDemoTimelineClipLengthsSeconds[2] },
+    { 3, kDemoTimelineClipLanes[3], kDemoTimelineClipStartsSeconds[3], kDemoTimelineClipLengthsSeconds[3] },
+    { 4, kDemoTimelineClipLanes[4], kDemoTimelineClipStartsSeconds[4], kDemoTimelineClipLengthsSeconds[4] },
+    { 5, kDemoTimelineClipLanes[5], kDemoTimelineClipStartsSeconds[5], kDemoTimelineClipLengthsSeconds[5] },
+    { 6, kDemoTimelineClipLanes[6], kDemoTimelineClipStartsSeconds[6], kDemoTimelineClipLengthsSeconds[6] },
+    { 7, kDemoTimelineClipLanes[7], kDemoTimelineClipStartsSeconds[7], kDemoTimelineClipLengthsSeconds[7] },
+    { 8, kDemoTimelineClipLanes[8], kDemoTimelineClipStartsSeconds[8], kDemoTimelineClipLengthsSeconds[8] },
+    { 9, kDemoTimelineClipLanes[9], kDemoTimelineClipStartsSeconds[9], kDemoTimelineClipLengthsSeconds[9] },
+    { 10, kDemoTimelineClipLanes[10], kDemoTimelineClipStartsSeconds[10], kDemoTimelineClipLengthsSeconds[10] },
+    { 11, kDemoTimelineClipLanes[11], kDemoTimelineClipStartsSeconds[11], kDemoTimelineClipLengthsSeconds[11] },
+    { 12, kDemoTimelineClipLanes[12], kDemoTimelineClipStartsSeconds[12], kDemoTimelineClipLengthsSeconds[12] },
+    { 13, kDemoTimelineClipLanes[13], kDemoTimelineClipStartsSeconds[13], kDemoTimelineClipLengthsSeconds[13] },
+    { 14, kDemoTimelineClipLanes[14], kDemoTimelineClipStartsSeconds[14], kDemoTimelineClipLengthsSeconds[14] },
+    { 15, kDemoTimelineClipLanes[15], kDemoTimelineClipStartsSeconds[15], kDemoTimelineClipLengthsSeconds[15] },
+    { 16, kDemoTimelineClipLanes[16], kDemoTimelineClipStartsSeconds[16], kDemoTimelineClipLengthsSeconds[16] },
+    { 17, kDemoTimelineClipLanes[17], kDemoTimelineClipStartsSeconds[17], kDemoTimelineClipLengthsSeconds[17] },
+    { 18, kDemoTimelineClipLanes[18], kDemoTimelineClipStartsSeconds[18], kDemoTimelineClipLengthsSeconds[18] },
+    { 19, kDemoTimelineClipLanes[19], kDemoTimelineClipStartsSeconds[19], kDemoTimelineClipLengthsSeconds[19] },
+    { 20, kDemoTimelineClipLanes[20], kDemoTimelineClipStartsSeconds[20], kDemoTimelineClipLengthsSeconds[20] },
+    { 21, kDemoTimelineClipLanes[21], kDemoTimelineClipStartsSeconds[21], kDemoTimelineClipLengthsSeconds[21] },
+    { 22, kDemoTimelineClipLanes[22], kDemoTimelineClipStartsSeconds[22], kDemoTimelineClipLengthsSeconds[22] }
 }};
 
 const std::array<TimelineClipStyle, 23> kClipStyles {{

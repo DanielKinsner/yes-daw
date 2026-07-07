@@ -376,6 +376,33 @@ struct UiTheme
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;
         static constexpr int inputDragDeadZonePixels = 2;
+        static constexpr std::array<int, 23> mainComponentDemoTimelineClipLanes {{
+            0, 0, 0, 0, 0, 0,
+            1, 1, 1,
+            2, 2, 2, 2,
+            3, 3, 3,
+            4, 4, 4,
+            5, 5, 5,
+            6
+        }};
+        static constexpr std::array<double, 23> mainComponentDemoTimelineClipStartsSeconds {{
+            0.0, 17.0, 27.0, 48.0, 65.0, 77.0,
+            4.0, 22.0, 47.0,
+            3.0, 25.0, 41.0, 69.0,
+            11.0, 39.0, 57.0,
+            11.0, 37.0, 59.0,
+            7.0, 33.0, 65.0,
+            0.0
+        }};
+        static constexpr std::array<double, 23> mainComponentDemoTimelineClipLengthsSeconds {{
+            17.0, 10.0, 17.0, 17.0, 12.0, 14.0,
+            18.0, 20.0, 30.0,
+            18.0, 18.0, 26.0, 16.0,
+            28.0, 18.0, 30.0,
+            24.0, 22.0, 28.0,
+            26.0, 22.0, 24.0,
+            38.0
+        }};
 
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;
