@@ -368,6 +368,8 @@ struct UiTheme
         static constexpr int timelineCanvasRulerHeight = 48;
         static constexpr int timelineCanvasClipAreaInsetX = 12;
         static constexpr int timelineCanvasClipAreaInsetY = 0;
+        static constexpr int timelineCanvasGeometryMinLaneCount = 1;
+        static constexpr double timelineCanvasViewportMinPixelsPerSecond = 1.0;
         static constexpr int timelineCanvasLaneMinHeight = 8;
         static constexpr int timelineCanvasSnapLabelX = 234;
         static constexpr int timelineCanvasSnapLabelWidth = 42;
