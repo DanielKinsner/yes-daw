@@ -58,6 +58,18 @@ Current state verified against HEAD 2026-07-03: `MainComponent.cpp` (~2k lines, 
 ramp, meter gradients) extracted from the mockup; migrate `TimelineCanvas.h`/`MainComponent.cpp`
 inline constants; `YesDawThemeAuditCheck` (source scan as a CTest).
 
+> **CP1 EXIT — DECLARED COMPLETE 2026-07-07 (Dan).** Every real UI-chrome color, font, radius, and
+> layout dimension is behind `UiTheme`, and `YesDawThemeAuditCheck` is green. CP1 is **done**. The
+> token surface is now *maintenance-only*: broaden it when a later CP introduces a **new** raw literal
+> in real chrome — never as a standalone slice.
+>
+> **Explicitly out of CP1 scope (do NOT tokenise further):** demo/fixture data literals (demo clip,
+> marker, track, mixer, piano-roll defaults), the *fake* `drawClipWaveform` hash multipliers (CP3
+> deletes them), and any magic number that does not set the look of shipped chrome. The tokenise
+> grind ran 40+ commits into this territory; it stops here. Rationale: the audit only fails on *new*
+> literals, so it never self-declares done — completeness is a human call, and Dan has made it. Next
+> real work is **CP2** (`2026-07-07-h16-cp2-async-waveform-cache-plan.md`).
+
 **CP2 — Async waveform cache.** A control-thread worker (single background thread owned by
 `UiAppModel`) builds `WaveformPeakCache` per Asset on import/open, persists to
 `peaks/<hash>.ypeaks` (path helper exists), publishes ready tiers atomically; UI polls

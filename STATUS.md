@@ -198,7 +198,9 @@ focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiIn
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
 `ctest --preset ci --output-on-failure` passed **310/310**.
 
-**Now:** H16 CP1 is partially underway. The first token surface, raw-color/raw-font/raw-layout audit,
+**Now:** H16 CP1 (design tokens) is **CLOSED 2026-07-07** — see the CP1-CLOSED / Next block below; the
+token migration history is retained here for the record but is no longer the active worklist. The
+first token surface, raw-color/raw-font/raw-layout audit,
 Timeline canvas type/radius/spacing token migration, MainComponent typography token migration,
 MainComponent rounded-radius token migration, MainComponent shell layout token migration, and
 MainComponent meter-fill, shell panel-inset, inspector-control spacing, and mixer-control spacing token
@@ -229,12 +231,19 @@ demo mixer strip fader/meter/pan fallback defaults, demo mixer loudness readout 
 project-backed timeline fallback track meter default are also tokenized; MainComponent demo piano-roll clip
 timeline and note defaults are also tokenized; broad UI migration is not complete.
 
-**Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
-commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
-slice (likely the remaining narrow MainComponent demo piano-roll expression/default surface, or the next
-TimelineCanvas/TimelineLayout spacing/geometry surface if no smaller MainComponent prerequisite remains),
-commit/push straight to `main`,
-wait for remote CI green, and create exactly one successor only if H16 still has another slice.
+**CP1 CLOSED 2026-07-07 (Dan's call).** Design tokens are declared complete — every real UI-chrome
+color/font/radius/layout dimension is behind `UiTheme` and `YesDawThemeAuditCheck` is green. The
+tokenise grind is **over**: no more standalone token slices, and demo/fixture literals + the fake
+`drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
+note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
+
+**Next:** Open **H16 CP2 — async waveform cache** per
+[`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
+Successor thread: `git pull --ff-only`, read that plan + the parent H16 plan + the implementer-brief,
+then implement **CP2a first** (WaveformPeakService skeleton + `YesDawWaveformCacheCheck` off-thread
+build gate with its named negative control, both in the same commit). Commit/push straight to `main`,
+wait for remote CI green, one successor only after your own CI is green. Token slices are no longer a
+valid "next" — if you find a raw literal, only tokenise it if a CP2 change introduced it in real chrome.
 
 ---
 
