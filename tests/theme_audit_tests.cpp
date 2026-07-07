@@ -231,6 +231,14 @@ bool timelineCanvasOutlineUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawOutlineGeometry);
 }
 
+bool timelineCanvasGeometryUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawCanvasGeometry {
+        R"(\b(?:removeFromTop|reduced)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\blaneHeight\s*=\s*std::max\s*\(\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawCanvasGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -284,6 +292,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCanvasToolbarDepth = 0;
         bool insideTimelineCanvasOutline = false;
         int timelineCanvasOutlineDepth = 0;
+        bool insideTimelineCanvasGeometry = false;
+        int timelineCanvasGeometryDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -416,6 +426,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineCanvasOutline && timelineCanvasOutlineUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "TimelineCanvas.h"
+                && line.find ("timelineCanvasGeometry") != std::string::npos)
+            {
+                insideTimelineCanvasGeometry = true;
+                timelineCanvasGeometryDepth = 0;
+            }
+
+            if (insideTimelineCanvasGeometry && timelineCanvasGeometryUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "MainComponent.cpp"
@@ -633,6 +653,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineCanvasOutline = false;
             }
 
+            if (insideTimelineCanvasGeometry)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasGeometryDepth;
+                    else if (c == '}')
+                        --timelineCanvasGeometryDepth;
+                }
+
+                if (timelineCanvasGeometryDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasGeometry = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -718,6 +752,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
         REQUIRE (timelineOut.is_open());
         timelineOut << "void drawClip(juce::Graphics& g, juce::Rectangle<int> area) { g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::md, 1.0f); }\n";
+        timelineOut << "TimelineCanvasGeometry timelineCanvasGeometry(juce::Rectangle<int> area) { auto content = area.reduced (1); auto toolbar = content.removeFromTop (36); auto ruler = content.removeFromTop (48); geometry.laneHeight = std::max (8, area.getHeight()); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
@@ -725,16 +760,20 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
 
     std::vector<int> mainComponentLines;
     bool foundTimelineCanvasOutline = false;
+    bool foundTimelineCanvasGeometry = false;
     for (const auto& finding : findings)
     {
         if (finding.path.filename() == "MainComponent.cpp")
             mainComponentLines.push_back (finding.line);
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 1)
             foundTimelineCanvasOutline = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 2)
+            foundTimelineCanvasGeometry = true;
     }
 
-    REQUIRE (findings.size() == 29u);
+    REQUIRE (findings.size() == 30u);
     REQUIRE (foundTimelineCanvasOutline);
+    REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (mainComponentLines.size() == 28u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);

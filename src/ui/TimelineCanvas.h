@@ -289,13 +289,15 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     if (area.getWidth() <= 0 || area.getHeight() <= 0)
         return geometry;
 
-    auto content = area.reduced (UiTheme::Space::hairline);
-    geometry.toolbarArea = content.removeFromTop (36);
-    geometry.rulerArea = content.removeFromTop (48);
-    geometry.clipArea = content.reduced (UiTheme::Space::lg, 0);
+    auto content = area.reduced (UiTheme::Layout::timelineCanvasOuterInset);
+    geometry.toolbarArea = content.removeFromTop (UiTheme::Layout::timelineCanvasToolbarHeight);
+    geometry.rulerArea = content.removeFromTop (UiTheme::Layout::timelineCanvasRulerHeight);
+    geometry.clipArea = content.reduced (UiTheme::Layout::timelineCanvasClipAreaInsetX,
+                                         UiTheme::Layout::timelineCanvasClipAreaInsetY);
 
     const int laneCount = std::max (1, state.trackCount);
-    geometry.laneHeight = std::max (8, geometry.clipArea.getHeight() / laneCount);
+    geometry.laneHeight = std::max (UiTheme::Layout::timelineCanvasLaneMinHeight,
+                                    geometry.clipArea.getHeight() / laneCount);
 
     geometry.viewport = state.viewport;
     geometry.viewport.pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);

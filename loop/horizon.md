@@ -96,7 +96,9 @@ hidden slider text-box geometry behind `UiTheme::Layout`; the theme audit now re
 TimelineCanvas toolbar paint geometry behind `UiTheme::Layout`; the theme audit now rejects raw
 `drawToolbar` geometry with a scratch negative control. This checkpoint moved TimelineCanvas shared
 panel/clip outline inset and stroke-width geometry behind `UiTheme::Layout`; the theme audit now rejects
-raw TimelineCanvas outline geometry with a scratch negative control.
+raw TimelineCanvas outline geometry with a scratch negative control. This checkpoint moved TimelineCanvas
+section layout geometry behind `UiTheme::Layout`; the theme audit now rejects raw `timelineCanvasGeometry()`
+section geometry with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

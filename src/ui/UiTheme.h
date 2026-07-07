@@ -363,6 +363,12 @@ struct UiTheme
 
         static constexpr int timelineCanvasToolbarWidth = 190;
         static constexpr int timelineCanvasToolCellWidth = 34;
+        static constexpr int timelineCanvasOuterInset = 1;
+        static constexpr int timelineCanvasToolbarHeight = 36;
+        static constexpr int timelineCanvasRulerHeight = 48;
+        static constexpr int timelineCanvasClipAreaInsetX = 12;
+        static constexpr int timelineCanvasClipAreaInsetY = 0;
+        static constexpr int timelineCanvasLaneMinHeight = 8;
         static constexpr int timelineCanvasSnapLabelX = 234;
         static constexpr int timelineCanvasSnapLabelWidth = 42;
         static constexpr int timelineCanvasSnapFieldX = 276;
