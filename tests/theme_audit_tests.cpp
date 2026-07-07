@@ -223,6 +223,14 @@ bool timelineCanvasToolbarUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawToolbarGeometry);
 }
 
+bool timelineCanvasOutlineUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawOutlineGeometry {
+        R"(\breduced\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\s*\)|\bdrawRoundedRectangle\s*\([^;\n]*,\s*UiTheme::Radius::[A-Za-z0-9_]+,\s*[0-9]+(?:\.[0-9]+)?f?\s*\))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawOutlineGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -274,6 +282,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineClipGainGestureDepth = 0;
         bool insideTimelineCanvasToolbar = false;
         int timelineCanvasToolbarDepth = 0;
+        bool insideTimelineCanvasOutline = false;
+        int timelineCanvasOutlineDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -394,6 +404,18 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineCanvasToolbar && timelineCanvasToolbarUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "TimelineCanvas.h"
+                && (line.find ("void fillPanel") != std::string::npos
+                    || line.find ("void drawClip (") != std::string::npos
+                    || line.find ("void drawClip(") != std::string::npos))
+            {
+                insideTimelineCanvasOutline = true;
+                timelineCanvasOutlineDepth = 0;
+            }
+
+            if (insideTimelineCanvasOutline && timelineCanvasOutlineUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "MainComponent.cpp"
@@ -597,6 +619,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineCanvasToolbar = false;
             }
 
+            if (insideTimelineCanvasOutline)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasOutlineDepth;
+                    else if (c == '}')
+                        --timelineCanvasOutlineDepth;
+                }
+
+                if (timelineCanvasOutlineDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasOutline = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -677,36 +713,53 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "}\n";
         out << "void slider(juce::Slider& s) { s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0); }\n";
         out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
+        out.close();
+
+        std::ofstream timelineOut (scratch / "TimelineCanvas.h");
+        REQUIRE (timelineOut.is_open());
+        timelineOut << "void drawClip(juce::Graphics& g, juce::Rectangle<int> area) { g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::md, 1.0f); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 28u);
-    REQUIRE (findings.front().line == 1);
-    REQUIRE (findings[1].line == 2);
-    REQUIRE (findings[2].line == 3);
-    REQUIRE (findings[3].line == 4);
-    REQUIRE (findings[4].line == 5);
-    REQUIRE (findings[5].line == 6);
-    REQUIRE (findings[6].line == 7);
-    REQUIRE (findings[7].line == 8);
-    REQUIRE (findings[8].line == 9);
-    REQUIRE (findings[9].line == 10);
-    REQUIRE (findings[10].line == 11);
-    REQUIRE (findings[11].line == 12);
-    REQUIRE (findings[12].line == 13);
-    REQUIRE (findings[13].line == 14);
-    REQUIRE (findings[14].line == 15);
-    REQUIRE (findings[15].line == 16);
-    REQUIRE (findings[16].line == 17);
-    REQUIRE (findings[17].line == 18);
-    REQUIRE (findings[18].line == 19);
-    REQUIRE (findings[19].line == 20);
-    REQUIRE (findings[20].line == 21);
-    REQUIRE (findings[22].line == 23);
-    REQUIRE (findings[24].line == 26);
-    REQUIRE (findings[25].line == 27);
-    REQUIRE (findings[26].line == 29);
-    REQUIRE (findings.back().line == 30);
+    std::vector<int> mainComponentLines;
+    bool foundTimelineCanvasOutline = false;
+    for (const auto& finding : findings)
+    {
+        if (finding.path.filename() == "MainComponent.cpp")
+            mainComponentLines.push_back (finding.line);
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 1)
+            foundTimelineCanvasOutline = true;
+    }
+
+    REQUIRE (findings.size() == 29u);
+    REQUIRE (foundTimelineCanvasOutline);
+    REQUIRE (mainComponentLines.size() == 28u);
+    REQUIRE (mainComponentLines[0] == 1);
+    REQUIRE (mainComponentLines[1] == 2);
+    REQUIRE (mainComponentLines[2] == 3);
+    REQUIRE (mainComponentLines[3] == 4);
+    REQUIRE (mainComponentLines[4] == 5);
+    REQUIRE (mainComponentLines[5] == 6);
+    REQUIRE (mainComponentLines[6] == 7);
+    REQUIRE (mainComponentLines[7] == 8);
+    REQUIRE (mainComponentLines[8] == 9);
+    REQUIRE (mainComponentLines[9] == 10);
+    REQUIRE (mainComponentLines[10] == 11);
+    REQUIRE (mainComponentLines[11] == 12);
+    REQUIRE (mainComponentLines[12] == 13);
+    REQUIRE (mainComponentLines[13] == 14);
+    REQUIRE (mainComponentLines[14] == 15);
+    REQUIRE (mainComponentLines[15] == 16);
+    REQUIRE (mainComponentLines[16] == 17);
+    REQUIRE (mainComponentLines[17] == 18);
+    REQUIRE (mainComponentLines[18] == 19);
+    REQUIRE (mainComponentLines[19] == 20);
+    REQUIRE (mainComponentLines[20] == 21);
+    REQUIRE (mainComponentLines[22] == 23);
+    REQUIRE (mainComponentLines[24] == 26);
+    REQUIRE (mainComponentLines[25] == 27);
+    REQUIRE (mainComponentLines[26] == 29);
+    REQUIRE (mainComponentLines[27] == 30);
 }

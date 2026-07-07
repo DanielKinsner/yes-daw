@@ -96,7 +96,9 @@ inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
     g.setColour (kPanel);
     g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::lg);
     g.setColour (kPanelStroke);
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::lg, 1.0f);
+    g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
+                            UiTheme::Radius::lg,
+                            UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
 }
 
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
@@ -155,7 +157,9 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     g.setColour (style.colour.withAlpha (0.42f));
     g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::md);
     g.setColour (style.colour.brighter (0.35f));
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), UiTheme::Radius::md, 1.0f);
+    g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
+                            UiTheme::Radius::md,
+                            UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
     drawClipWaveform (g, area, style.colour, style.amplitude, clipId);
 }
 

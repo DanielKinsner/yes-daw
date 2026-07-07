@@ -94,7 +94,9 @@ rejects raw gain-drag gesture constants with scratch negative controls. This che
 hidden slider text-box geometry behind `UiTheme::Layout`; the theme audit now rejects raw
 `setTextBoxStyle(..., 0, 0)` geometry with a scratch negative control. This checkpoint moved
 TimelineCanvas toolbar paint geometry behind `UiTheme::Layout`; the theme audit now rejects raw
-`drawToolbar` geometry with a scratch negative control.
+`drawToolbar` geometry with a scratch negative control. This checkpoint moved TimelineCanvas shared
+panel/clip outline inset and stroke-width geometry behind `UiTheme::Layout`; the theme audit now rejects
+raw TimelineCanvas outline geometry with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

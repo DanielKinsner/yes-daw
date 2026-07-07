@@ -369,6 +369,8 @@ struct UiTheme
         static constexpr int timelineCanvasSnapFieldWidth = 80;
         static constexpr int timelineCanvasSnapValueX = 284;
         static constexpr int timelineCanvasSnapValueWidth = 54;
+        static constexpr float timelineCanvasOutlineInset = 0.5f;
+        static constexpr float timelineCanvasOutlineStrokeWidth = 1.0f;
     };
 };
 
