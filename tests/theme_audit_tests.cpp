@@ -308,6 +308,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
     const std::regex rawInputDragThreshold { R"(\bstd::abs\s*\(\s*delta[XY]\s*\)\s*<\s*[0-9]+\b)" };
     const std::regex rawPianoRollKeyRange { R"(\bconstexpr\s+int\s+kPianoRoll(?:Low|High)Key\s*=\s*[0-9]+\b)" };
     const std::regex rawTimelineCanvasCapacity { R"(\bconstexpr\s+int\s+kVisibleClipCapacity\s*=\s*[0-9]+\b)" };
+    const std::regex rawTimelineTotalMemberDefault { R"(\bdouble\s+timelineTotalSeconds\s*=\s*[0-9]+(?:\.[0-9]+)?f?\s*;)" };
     std::vector<ThemeAuditFinding> findings;
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
@@ -379,6 +380,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawInputDragThreshold)
                 || std::regex_search (line, rawPianoRollKeyRange)
                 || std::regex_search (line, rawTimelineCanvasCapacity)
+                || std::regex_search (line, rawTimelineTotalMemberDefault)
                 || componentWindowUsesRawGeometry (line)
                 || sliderTextBoxUsesRawGeometry (line))
             {
@@ -993,6 +995,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);\n";
         out << "return std::max (0.0, seconds);\n";
         out << "}\n";
+        out << "double timelineTotalSeconds = 98.0;\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1065,7 +1068,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 44u);
+    REQUIRE (findings.size() == 45u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1079,7 +1082,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 31u);
+    REQUIRE (mainComponentLines.size() == 32u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1109,4 +1112,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[28] == 31);
     REQUIRE (mainComponentLines[29] == 33);
     REQUIRE (mainComponentLines[30] == 34);
+    REQUIRE (mainComponentLines[31] == 36);
 }

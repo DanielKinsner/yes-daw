@@ -2345,7 +2345,7 @@ private:
     std::vector<yesdaw::ui::Clip> timelineClips;
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
-    double timelineTotalSeconds = 98.0;
+    double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     juce::TextButton mixerTrackSelect;
