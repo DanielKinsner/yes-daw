@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "ui/UiThemeLayout.h"
+
 #include <algorithm>
 
 namespace yesdaw::ui {
@@ -27,10 +29,10 @@ struct Clip
 // The visible window onto the timeline.
 struct Viewport
 {
-    double scrollSeconds    = 0.0;   // song time at the left edge
-    double pixelsPerSecond  = 100.0; // horizontal zoom
-    double widthPixels      = 1280.0;
-    double laneHeightPixels = 64.0;  // each lane's row height (lane 0 at y=0)
+    double scrollSeconds    = UiThemeLayout::timelineLayoutZeroFloor;                  // song time at the left edge
+    double pixelsPerSecond  = UiThemeLayout::timelineLayoutDefaultPixelsPerSecond;     // horizontal zoom
+    double widthPixels      = UiThemeLayout::timelineLayoutDefaultWidthPixels;
+    double laneHeightPixels = UiThemeLayout::timelineLayoutDefaultLaneHeightPixels;    // each lane's row height (lane 0 at y=0)
 };
 
 // One on-screen rectangle to draw, in pixels, clipped to the viewport's left/right edges.
@@ -73,9 +75,13 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         // Unclipped pixel span, then clamp to the viewport edges.
         double xPx = (clipStart - leftSec) * pps;
         double wPx = c.lengthSeconds * pps;
-        if (xPx < 0.0)            { wPx += xPx; xPx = 0.0; }              // straddles the left edge
+        if (xPx < UiThemeLayout::timelineLayoutZeroFloor)
+        {
+            wPx += xPx;
+            xPx = UiThemeLayout::timelineLayoutZeroFloor;              // straddles the left edge
+        }
         if (xPx + wPx > vp.widthPixels) wPx = vp.widthPixels - xPx;       // straddles the right edge
-        wPx = std::max (wPx, 0.0);
+        wPx = std::max (wPx, UiThemeLayout::timelineLayoutZeroFloor);
 
         ElementRect& r = out[count++];
         r.id = c.id;
@@ -94,11 +100,11 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
 {
     if (clips == nullptr
         || n <= 0
-        || vp.pixelsPerSecond <= 0.0
-        || vp.widthPixels <= 0.0
-        || vp.laneHeightPixels <= 0.0
-        || xPixels < 0.0
-        || yPixels < 0.0
+        || vp.pixelsPerSecond <= UiThemeLayout::timelineLayoutZeroFloor
+        || vp.widthPixels <= UiThemeLayout::timelineLayoutZeroFloor
+        || vp.laneHeightPixels <= UiThemeLayout::timelineLayoutZeroFloor
+        || xPixels < UiThemeLayout::timelineLayoutZeroFloor
+        || yPixels < UiThemeLayout::timelineLayoutZeroFloor
         || xPixels >= vp.widthPixels)
     {
         return {};
@@ -111,7 +117,7 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
     for (int i = n - 1; i >= 0; --i)
     {
         const Clip& c = clips[i];
-        if (c.lengthSeconds <= 0.0 || c.lane < 0)
+        if (c.lengthSeconds <= UiThemeLayout::timelineLayoutZeroFloor || c.lane < 0)
             continue;
 
         const double clipStart = c.startSeconds;
@@ -121,9 +127,13 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
 
         double xPx = (clipStart - leftSec) * pps;
         double wPx = c.lengthSeconds * pps;
-        if (xPx < 0.0) { wPx += xPx; xPx = 0.0; }
+        if (xPx < UiThemeLayout::timelineLayoutZeroFloor)
+        {
+            wPx += xPx;
+            xPx = UiThemeLayout::timelineLayoutZeroFloor;
+        }
         if (xPx + wPx > vp.widthPixels) wPx = vp.widthPixels - xPx;
-        wPx = std::max (wPx, 0.0);
+        wPx = std::max (wPx, UiThemeLayout::timelineLayoutZeroFloor);
 
         const double yPx = static_cast<double> (c.lane) * vp.laneHeightPixels;
         if (xPixels >= xPx

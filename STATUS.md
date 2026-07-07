@@ -144,6 +144,9 @@ This checkpoint moved TimelineCanvas visible-clip paint capacity behind `UiTheme
 `YesDawThemeAuditCheck` so a scratch raw `kVisibleClipCapacity` value fails the audit. This checkpoint
 moved TimelineCanvas geometry lane-count and pixels-per-second floor values behind `UiTheme::Layout` and
 tightened `YesDawThemeAuditCheck` so scratch raw `timelineCanvasGeometry()` floor values fail the audit.
+This checkpoint moved TimelineLayout default viewport and hit-test zero-floor geometry behind `UiTheme::Layout`
+and tightened `YesDawThemeAuditCheck` so scratch raw `TimelineLayout.h` viewport/hit-test geometry fails
+the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -166,7 +169,8 @@ are also tokenized; TimelineCanvas toolbar paint geometry and shared panel/clip 
 tokenized; TimelineCanvas section layout geometry, clip/fake-waveform paint geometry, and ruler paint
 geometry are also tokenized; TimelineCanvas playhead paint geometry, grid paint geometry, and visible-clip
 paint capacity are also tokenized; TimelineCanvas geometry lane-count and pixels-per-second floors are
-also tokenized; broad UI migration is not complete.
+also tokenized; TimelineLayout default viewport and hit-test zero-floor geometry are also tokenized; broad
+UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

@@ -110,7 +110,9 @@ negative control. This checkpoint moved TimelineCanvas visible-clip paint capaci
 `UiTheme::Layout`; the theme audit now rejects a raw `kVisibleClipCapacity` value with a scratch negative
 control. This checkpoint moved TimelineCanvas geometry lane-count and pixels-per-second floor values behind
 `UiTheme::Layout`; the theme audit now rejects raw `timelineCanvasGeometry()` floor values with a scratch
-negative control.
+negative control. This checkpoint moved TimelineLayout default viewport and hit-test zero-floor geometry
+behind `UiTheme::Layout`; the theme audit now rejects raw `TimelineLayout.h` viewport/hit-test geometry
+with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

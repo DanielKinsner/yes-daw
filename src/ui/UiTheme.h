@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "ui/UiThemeLayout.h"
+
 #include <juce_graphics/juce_graphics.h>
 
 namespace yesdaw::ui {
@@ -428,6 +430,13 @@ struct UiTheme
         static constexpr int timelineCanvasPlayheadTextWidth = 24;
         static constexpr int timelineCanvasPlayheadTextHeight = 16;
         static constexpr int timelineCanvasVisibleClipCapacity = 4096;
+        static constexpr double timelineLayoutDefaultPixelsPerSecond =
+            UiThemeLayout::timelineLayoutDefaultPixelsPerSecond;
+        static constexpr double timelineLayoutDefaultWidthPixels =
+            UiThemeLayout::timelineLayoutDefaultWidthPixels;
+        static constexpr double timelineLayoutDefaultLaneHeightPixels =
+            UiThemeLayout::timelineLayoutDefaultLaneHeightPixels;
+        static constexpr double timelineLayoutZeroFloor = UiThemeLayout::timelineLayoutZeroFloor;
     };
 };
 
