@@ -316,6 +316,12 @@ struct UiTheme
 
         static constexpr int timelineViewportMinPixelWidth = 1;
         static constexpr int timelineViewportRightGutter = 26;
+        static constexpr double timelineDefaultTotalSeconds = 98.0;
+        static constexpr double timelineDemoPlayheadSeconds = 32.0;
+        static constexpr double timelineProjectPlayheadSeconds = 0.0;
+        static constexpr double timelineViewportScrollSeconds = 0.0;
+        static constexpr double timelineMinVisibleSeconds = 1.0;
+        static constexpr double timelineProjectEndPaddingScale = 1.25;
         static constexpr int timelineClipEdgeHitWidth = 8;
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;

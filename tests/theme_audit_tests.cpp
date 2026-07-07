@@ -179,7 +179,7 @@ bool resizedLayoutUsesRawButtonGeometry (std::string_view line)
 bool timelineStateUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawTimelineStateGeometry {
-        R"(\bjuce::jmax\s*\(\s*[0-9]+\b|\bgetWidth\s*\(\)\s*-\s*[0-9]+\b)"
+        R"(\bjuce::jmax\s*\(\s*[0-9]+\b|\bgetWidth\s*\(\)\s*-\s*[0-9]+\b|\b(?:state\.(?:totalSeconds|playheadSeconds)|state\.viewport\.scrollSeconds|timelineTotalSeconds)\s*=\s*[0-9]+(?:\.[0-9]+)?f?\b|\bstd::max\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*state\.totalSeconds\b|\bendSeconds\s*\*\s*[0-9]+(?:\.[0-9]+)?f?\b)"
     };
     return std::regex_search (line.begin(), line.end(), rawTimelineStateGeometry);
 }
@@ -442,7 +442,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideResizedLayout && resizedLayoutUsesRawButtonGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (line.find ("makeTimelineState") != std::string::npos)
+            if (line.find ("makeTimelineState") != std::string::npos
+                || line.find ("rebuildTimelineClipViews") != std::string::npos)
             {
                 insideTimelineStateLayout = true;
                 timelineStateLayoutDepth = 0;
@@ -919,6 +920,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "}\n";
         out << "void slider(juce::Slider& s) { s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0); }\n";
         out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
+        out << "void makeTimelineStateDefaults() { state.totalSeconds = 98.0; state.playheadSeconds = 32.0; state.viewport.scrollSeconds = 0.0; state.viewport.pixelsPerSecond = width / std::max (1.0, state.totalSeconds); }\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -983,7 +985,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 39u);
+    REQUIRE (findings.size() == 40u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -995,7 +997,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasCapacity);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 28u);
+    REQUIRE (mainComponentLines.size() == 29u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1022,4 +1024,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[25] == 27);
     REQUIRE (mainComponentLines[26] == 29);
     REQUIRE (mainComponentLines[27] == 30);
+    REQUIRE (mainComponentLines[28] == 31);
 }

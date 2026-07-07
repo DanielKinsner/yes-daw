@@ -1714,8 +1714,8 @@ private:
             state.clips = kClips.data();
             state.clipStyles = kClipStyles.data();
             state.clipCount = static_cast<int> (kClips.size());
-            state.totalSeconds = 98.0;
-            state.playheadSeconds = 32.0;
+            state.totalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
+            state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineDemoPlayheadSeconds;
         }
         else
         {
@@ -1725,17 +1725,18 @@ private:
             state.clipStyles = timelineClipStyles.data();
             state.clipCount = static_cast<int> (timelineClips.size());
             state.totalSeconds = timelineTotalSeconds;
-            state.playheadSeconds = 0.0;
+            state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineProjectPlayheadSeconds;
         }
 
         state.markers = kTimelineMarkers.data();
         state.markerCount = static_cast<int> (kTimelineMarkers.size());
-        state.viewport.scrollSeconds = 0.0;
+        state.viewport.scrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
         state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
-                                          yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
-                                          timelineInput.getWidth()
-                                              - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
-                                      / std::max (1.0, state.totalSeconds);
+                                           yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                           timelineInput.getWidth()
+                                               - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                      / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                  state.totalSeconds);
         return state;
     }
 
@@ -1748,7 +1749,7 @@ private:
         const yesdaw::engine::Project& project = appModel.project();
         if (! appModel.context().projectLoaded || project.clips.empty() || ! project.sampleRate.isValid())
         {
-            timelineTotalSeconds = 98.0;
+            timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
             return;
         }
 
@@ -1774,7 +1775,9 @@ private:
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
 
-        timelineTotalSeconds = std::max (1.0, endSeconds * 1.25);
+        timelineTotalSeconds =
+            std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                      endSeconds * yesdaw::ui::UiTheme::Layout::timelineProjectEndPaddingScale);
     }
 
     void selectTimelineClipByLayoutId (int layoutClipId)
