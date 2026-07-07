@@ -251,6 +251,13 @@ target_link_libraries(YesDawThemeAuditCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawThemeAuditCheck)
 add_test(NAME YesDawThemeAuditCheck COMMAND $<TARGET_FILE:YesDawThemeAuditCheck>)
 
+# --- Waveform cache service check (H16 CP2a; worker-thread build + negative control) ---
+add_executable(YesDawWaveformCacheCheck tests/waveform_cache_service_tests.cpp)
+target_include_directories(YesDawWaveformCacheCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawWaveformCacheCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawWaveformCacheCheck)
+add_test(NAME YesDawWaveformCacheCheck COMMAND $<TARGET_FILE:YesDawWaveformCacheCheck>)
+
 # --- App smoke check (H11; Project bundle load -> action IDs -> playback transport) ---
 add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp)
 target_include_directories(YesDawAppSmokeCheck PRIVATE ${YESDAW_SRC_DIR})
@@ -685,6 +692,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawUiCheck
   YesDawUiActionCheck
   YesDawThemeAuditCheck
+  YesDawWaveformCacheCheck
   YesDawEngineCheck
   YesDawTimeCheck
   YesDawEventCheck

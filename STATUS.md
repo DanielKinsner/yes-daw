@@ -197,8 +197,17 @@ Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCh
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
 `ctest --preset ci --output-on-failure` passed **310/310**.
+H16 CP2a added header-only `src/ui/WaveformPeakService.h` with one worker thread, a queue,
+`requestBuild()` / `tryGetReady()`, worker/build thread-id observability, and the named
+`forceSynchronousBuildOnCallerThread` negative control. `YesDawWaveformCacheCheck` proves worker-thread
+build/publish and flags caller-thread paint builds. Local gates under `vcvars64.bat`: focused
+`ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; after full
+`cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP1 (design tokens) is **CLOSED 2026-07-07** — see the CP1-CLOSED / Next block below; the
+**Now:** H16 CP2a (service skeleton + off-thread waveform cache gate) is complete locally. Stop at this
+checkpoint after commit/push and remote CI green; do not start CP2b in this thread.
+
+CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
 first token surface, raw-color/raw-font/raw-layout audit,
 Timeline canvas type/radius/spacing token migration, MainComponent typography token migration,
@@ -237,13 +246,13 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Open **H16 CP2 — async waveform cache** per
+**Next:** After this CP2a commit is pushed and remote CI is green, spawn exactly one successor for
+**H16 CP2b — disk reload path** from
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
-Successor thread: `git pull --ff-only`, read that plan + the parent H16 plan + the implementer-brief,
-then implement **CP2a first** (WaveformPeakService skeleton + `YesDawWaveformCacheCheck` off-thread
-build gate with its named negative control, both in the same commit). Commit/push straight to `main`,
-wait for remote CI green, one successor only after your own CI is green. Token slices are no longer a
-valid "next" — if you find a raw literal, only tokenise it if a CP2 change introduced it in real chrome.
+CP2b extends `requestBuild()` to reload an existing `.ypeaks` without rebuilding and extends
+`YesDawWaveformCacheCheck` with build-count-zero reload proof plus the delete-file negative control.
+Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
+literal in real chrome.
 
 ---
 
