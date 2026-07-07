@@ -35,14 +35,12 @@ constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
 constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
 constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;
-constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks = 512;
+constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
+    yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
-constexpr int kPianoRollLowKey = 48;
-constexpr int kPianoRollHighKey = 72;
-constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
 constexpr double kMaxInspectorFadeSeconds = 1.0;
 
 const juce::Colour kBackground = yesdaw::ui::UiTheme::Color::appBackground();
@@ -585,7 +583,7 @@ struct PianoRollCanvasGeometry
                                   yesdaw::ui::UiTheme::Layout::pianoRollGridInsetY);
     geometry.rowHeight = static_cast<float> (juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollGridMinHeight,
                                                          geometry.grid.getHeight()))
-                       / static_cast<float> (kPianoRollKeyCount);
+                       / static_cast<float> (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount);
     return geometry;
 }
 
@@ -598,7 +596,8 @@ struct PianoRollCanvasGeometry
 [[nodiscard]] int pianoRollKeyY (const PianoRollCanvasGeometry& geometry, int key) noexcept
 {
     return geometry.grid.getY()
-         + juce::roundToInt (static_cast<float> (kPianoRollHighKey - key) * geometry.rowHeight);
+         + juce::roundToInt (
+             static_cast<float> (yesdaw::ui::UiTheme::Layout::pianoRollHighKey - key) * geometry.rowHeight);
 }
 
 [[nodiscard]] int pianoRollTickX (const PianoRollCanvasGeometry& geometry,
@@ -785,7 +784,8 @@ private:
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
         for (auto it = surface.notes.rbegin(); it != surface.notes.rend(); ++it)
         {
-            if (it->key < kPianoRollLowKey || it->key > kPianoRollHighKey)
+            if (it->key < yesdaw::ui::UiTheme::Layout::pianoRollLowKey
+                || it->key > yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
                 continue;
 
             if (pianoRollNoteBounds (geometry, surface, *it).contains (position))
@@ -1931,7 +1931,9 @@ private:
         g.setColour (yesdaw::ui::UiTheme::Color::controlInsetBlack());
         g.fillRect (geometry.grid);
 
-        for (int key = kPianoRollHighKey; key >= kPianoRollLowKey; --key)
+        for (int key = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
+             key >= yesdaw::ui::UiTheme::Layout::pianoRollLowKey;
+             --key)
         {
             const int y = pianoRollKeyY (geometry, key);
             auto keyRow = juce::Rectangle<int> (geometry.keyboard.getX(),
@@ -1960,11 +1962,14 @@ private:
             }
         }
 
-        for (yesdaw::engine::Tick tick = 0; tick <= surface.timelineLength; tick += 512)
+        for (yesdaw::engine::Tick tick = 0;
+             tick <= surface.timelineLength;
+             tick += yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep)
         {
             const int x = pianoRollTickX (geometry, surface, tick);
-            g.setColour ((tick % 2048) == 0 ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
-                                             : yesdaw::ui::UiTheme::Color::pianoGridWeak());
+            g.setColour ((tick % yesdaw::ui::UiTheme::Layout::pianoRollGridStrongTickStep) == 0
+                              ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
+                              : yesdaw::ui::UiTheme::Color::pianoGridWeak());
             g.fillRect (x,
                         geometry.grid.getY(),
                         yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth,
@@ -1973,7 +1978,8 @@ private:
 
         for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
         {
-            if (note.key < kPianoRollLowKey || note.key > kPianoRollHighKey)
+            if (note.key < yesdaw::ui::UiTheme::Layout::pianoRollLowKey
+                || note.key > yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
                 continue;
 
             const auto noteRect = pianoRollNoteBounds (geometry, surface, note);

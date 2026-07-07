@@ -162,7 +162,7 @@ bool headerLayoutUsesRawGeometry (std::string_view line)
 bool pianoRollLayoutUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawPianoRollGeometry {
-        R"(\b(?:removeFromTop|removeFromBottom|removeFromLeft|reduce|reduced|jmax|Rectangle<int>|fillRect|fillEllipse|PathStrokeType|expanded)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*[0-9]+\b|\bgetBottom\s*\(\)\s*-\s*[0-9]+\b)"
+        R"(\b(?:removeFromTop|removeFromBottom|removeFromLeft|reduce|reduced|jmax|Rectangle<int>|fillRect|fillEllipse|PathStrokeType|expanded)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b|\bgetHeight\s*\(\)\s*-\s*[0-9]+\b|\bgetBottom\s*\(\)\s*-\s*[0-9]+\b|\btick\s*\+=\s*[0-9]+\b|\btick\s*%\s*[0-9]+\b)"
     };
     return std::regex_search (line.begin(), line.end(), rawPianoRollGeometry);
 }
@@ -209,6 +209,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
     const std::regex rawMeterBand { R"(\bremoveFrom(?:Top|Right)\s*\([^;\n]*\*\s*0(?:\.[0-9]+)?f?\s*\))" };
     const std::regex rawShellSpacing { R"(\b(?:work(?:\.[A-Za-z0-9_]+\s*\([^;\n]*\))*|mixer)\.reduced\s*\(\s*[0-9]+\s*,\s*[0-9]+\s*\))" };
     const std::regex rawInputDragThreshold { R"(\bstd::abs\s*\(\s*delta[XY]\s*\)\s*<\s*[0-9]+\b)" };
+    const std::regex rawPianoRollKeyRange { R"(\bconstexpr\s+int\s+kPianoRoll(?:Low|High)Key\s*=\s*[0-9]+\b)" };
     std::vector<ThemeAuditFinding> findings;
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
@@ -256,6 +257,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawMeterBand)
                 || std::regex_search (line, rawShellSpacing)
                 || std::regex_search (line, rawInputDragThreshold)
+                || std::regex_search (line, rawPianoRollKeyRange)
                 || componentWindowUsesRawGeometry (line))
             {
                 findings.push_back ({ entry.path(), lineNumber, line });
@@ -592,12 +594,14 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "constexpr int kTrimEdgePixels = 8;\n";
         out << "void mouseUp() { if (std::abs (deltaX) < 2) return; }\n";
         out << "void window() { setSize (1536, 960); }\n";
+        out << "constexpr int kPianoRollLowKey = 48;\n";
+        out << "void drawPianoRollGrid() { for (Tick tick = 0; tick <= len; tick += 512) { if ((tick % 2048) == 0) {} } }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 22u);
+    REQUIRE (findings.size() == 24u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -619,5 +623,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[18].line == 19);
     REQUIRE (findings[19].line == 20);
     REQUIRE (findings[20].line == 21);
-    REQUIRE (findings.back().line == 22);
+    REQUIRE (findings[22].line == 23);
+    REQUIRE (findings.back().line == 24);
 }

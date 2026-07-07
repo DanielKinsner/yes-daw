@@ -86,7 +86,9 @@ geometry behind `UiTheme::Layout`; the theme audit now rejects raw expression `f
 window-size geometry behind `UiTheme::Layout`; the theme audit now rejects raw `setSize` window geometry
 with a scratch negative control. This checkpoint moved MainComponent shared panel-outline inset and
 stroke-width geometry behind `UiTheme::Layout`; the theme audit now rejects raw `fillPanel` panel-chrome
-geometry in `MainComponent.cpp` with a scratch negative control.
+geometry in `MainComponent.cpp` with a scratch negative control. This checkpoint moved MainComponent
+piano-roll key-range and grid-cadence geometry behind `UiTheme::Layout`; the theme audit now rejects raw
+piano-roll key-range and grid-cadence geometry with scratch negative controls.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing/geometry surface not

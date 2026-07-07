@@ -320,6 +320,11 @@ struct UiTheme
         static constexpr int pianoRollPanelInsetY = 8;
         static constexpr int pianoRollExpressionHeight = 84;
         static constexpr int pianoRollKeyboardWidth = 70;
+        static constexpr int pianoRollLowKey = 48;
+        static constexpr int pianoRollHighKey = 72;
+        static constexpr int pianoRollKeyCount = pianoRollHighKey - pianoRollLowKey + 1;
+        static constexpr int pianoRollGridTickStep = 512;
+        static constexpr int pianoRollGridStrongTickStep = 2048;
         static constexpr int pianoRollGridInsetX = 0;
         static constexpr int pianoRollGridInsetY = 2;
         static constexpr int pianoRollGridMinHeight = 1;

@@ -2,6 +2,7 @@
 
 #include "ui/MainComponent.h"
 #include "ui/TimelineCanvas.h"
+#include "ui/UiTheme.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -37,9 +38,8 @@ constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
-constexpr int kPianoRollLowKey = 48;
-constexpr int kPianoRollHighKey = 72;
-constexpr int kPianoRollKeyCount = kPianoRollHighKey - kPianoRollLowKey + 1;
+constexpr int kPianoRollHighKey = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
+constexpr int kPianoRollKeyCount = yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;
 
 constexpr yesdaw::engine::EntityId idFromLowByte (std::uint8_t low) noexcept
 {
