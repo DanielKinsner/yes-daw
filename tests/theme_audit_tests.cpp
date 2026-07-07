@@ -232,6 +232,14 @@ bool inspectorFadeSliderDefaultsUseRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawFadeSliderDefault);
 }
 
+bool inspectorGainSliderDefaultsUseRawGeometry (std::string_view line)
+{
+    static const std::regex rawGainSliderDefault {
+        R"(\binspectorGain\.set(?:Range|Value)\s*\([^;\n]*\b[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawGainSliderDefault);
+}
+
 bool timelineCanvasToolbarUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawToolbarGeometry {
@@ -359,6 +367,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCoordinateConversionDepth = 0;
         bool insideInspectorFadeSliderDefaults = false;
         int inspectorFadeSliderDefaultsDepth = 0;
+        bool insideInspectorGainSliderDefaults = false;
+        int inspectorGainSliderDefaultsDepth = 0;
         bool insideTimelineCanvasToolbar = false;
         int timelineCanvasToolbarDepth = 0;
         bool insideTimelineCanvasOutline = false;
@@ -511,6 +521,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideInspectorFadeSliderDefaults && inspectorFadeSliderDefaultsUseRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("configureInspectorControls") != std::string::npos)
+            {
+                insideInspectorGainSliderDefaults = true;
+                inspectorGainSliderDefaultsDepth = 0;
+            }
+
+            if (insideInspectorGainSliderDefaults && inspectorGainSliderDefaultsUseRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("void drawToolbar") != std::string::npos)
@@ -822,6 +841,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideInspectorFadeSliderDefaults = false;
             }
 
+            if (insideInspectorGainSliderDefaults)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++inspectorGainSliderDefaultsDepth;
+                    else if (c == '}')
+                        --inspectorGainSliderDefaultsDepth;
+                }
+
+                if (inspectorGainSliderDefaultsDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideInspectorGainSliderDefaults = false;
+            }
+
             if (insideTimelineCanvasToolbar)
             {
                 for (const char c : line)
@@ -1026,6 +1059,10 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "slider.setRange (0.0, 1.0, 0.001);\n";
         out << "slider.setValue (0.0, juce::dontSendNotification);\n";
         out << "}\n";
+        out << "void configureInspectorControls() {\n";
+        out << "inspectorGain.setRange (0.0, 2.0, 0.01);\n";
+        out << "inspectorGain.setValue (1.0, juce::dontSendNotification);\n";
+        out << "}\n";
         out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
         out << "void makeTimelineStateDefaults() { state.totalSeconds = 98.0; state.playheadSeconds = 32.0; state.viewport.scrollSeconds = 0.0; state.viewport.pixelsPerSecond = width / std::max (1.0, state.totalSeconds); }\n";
         out << "void timelineSecondsAt() {\n";
@@ -1105,7 +1142,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 47u);
+    REQUIRE (findings.size() == 49u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1119,7 +1156,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 34u);
+    REQUIRE (mainComponentLines.size() == 36u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1147,9 +1184,11 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[26] == 29);
     REQUIRE (mainComponentLines[27] == 31);
     REQUIRE (mainComponentLines[28] == 32);
-    REQUIRE (mainComponentLines[29] == 34);
-    REQUIRE (mainComponentLines[30] == 35);
-    REQUIRE (mainComponentLines[31] == 37);
-    REQUIRE (mainComponentLines[32] == 38);
-    REQUIRE (mainComponentLines[33] == 40);
+    REQUIRE (mainComponentLines[29] == 35);
+    REQUIRE (mainComponentLines[30] == 36);
+    REQUIRE (mainComponentLines[31] == 38);
+    REQUIRE (mainComponentLines[32] == 39);
+    REQUIRE (mainComponentLines[33] == 41);
+    REQUIRE (mainComponentLines[34] == 42);
+    REQUIRE (mainComponentLines[35] == 44);
 }

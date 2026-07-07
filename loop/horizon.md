@@ -125,7 +125,9 @@ defaults with a scratch negative control. This checkpoint moved MainComponent's 
 backing-field default behind `UiTheme::Layout`; the theme audit now rejects a raw `timelineTotalSeconds`
 member initializer with a scratch negative control. This checkpoint moved MainComponent inspector
 fade-slider range, step, clamp, and default seconds behind `UiTheme::Layout`; the theme audit now rejects
-raw `configureInspectorFadeSlider` defaults with a scratch negative control.
+raw `configureInspectorFadeSlider` defaults with a scratch negative control. This checkpoint moved
+MainComponent inspector gain-slider range, step, and default behind `UiTheme::Layout`; the theme audit now
+rejects raw `inspectorGain.setRange`/`setValue` defaults with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

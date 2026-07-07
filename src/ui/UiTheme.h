@@ -199,6 +199,10 @@ struct UiTheme
         static constexpr int inspectorGainControlLeftInset = 72;
         static constexpr int inspectorGainReadoutLeftInset = 72;
         static constexpr int inspectorGainReadoutHeight = 22;
+        static constexpr double inspectorGainSliderMin = 0.0;
+        static constexpr double inspectorGainSliderMax = 2.0;
+        static constexpr double inspectorGainSliderInterval = 0.01;
+        static constexpr double inspectorGainSliderDefault = 1.0;
         static constexpr int inspectorFadesSectionTop = 214;
         static constexpr int inspectorFadesSectionHeight = 94;
         static constexpr int inspectorFadesControlTopInset = 22;

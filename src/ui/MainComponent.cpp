@@ -1128,8 +1128,11 @@ private:
                                        false,
                                        yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                        yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        inspectorGain.setRange (0.0, 2.0, 0.01);
-        inspectorGain.setValue (1.0, juce::dontSendNotification);
+        inspectorGain.setRange (yesdaw::ui::UiTheme::Layout::inspectorGainSliderMin,
+                                yesdaw::ui::UiTheme::Layout::inspectorGainSliderMax,
+                                yesdaw::ui::UiTheme::Layout::inspectorGainSliderInterval);
+        inspectorGain.setValue (yesdaw::ui::UiTheme::Layout::inspectorGainSliderDefault,
+                                juce::dontSendNotification);
         inspectorGain.onValueChange = [this] {
             if (refreshingInspectorControls || ! inspectorGain.isEnabled())
                 return;
