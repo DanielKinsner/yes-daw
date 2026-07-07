@@ -119,7 +119,9 @@ MainComponent timeline coordinate-conversion floors for drag move, split-positio
 behind `UiTheme::Layout`; the theme audit now rejects raw coordinate-conversion floors with a scratch
 negative control. This checkpoint moved TimelineCanvas toolbar reduced-inset geometry for the tool strip,
 tool cells, and snap field behind `UiTheme::Layout`; the theme audit now rejects raw TimelineCanvas toolbar
-reduced-inset geometry with a scratch negative control.
+reduced-inset geometry with a scratch negative control. This checkpoint moved TimelineCanvas state default
+total/playhead seconds behind `UiTheme::Layout`; the theme audit now rejects raw TimelineCanvas state
+defaults with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

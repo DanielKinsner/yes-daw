@@ -444,6 +444,8 @@ struct UiTheme
         static constexpr int timelineCanvasPlayheadTextWidth = 24;
         static constexpr int timelineCanvasPlayheadTextHeight = 16;
         static constexpr int timelineCanvasVisibleClipCapacity = 4096;
+        static constexpr double timelineCanvasDefaultTotalSeconds = 96.0;
+        static constexpr double timelineCanvasDefaultPlayheadSeconds = 32.0;
         static constexpr double timelineLayoutDefaultPixelsPerSecond =
             UiThemeLayout::timelineLayoutDefaultPixelsPerSecond;
         static constexpr double timelineLayoutDefaultWidthPixels =

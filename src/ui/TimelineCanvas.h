@@ -49,8 +49,8 @@ struct TimelineCanvasState
     int markerCount = 0;
 
     Viewport viewport {};
-    double totalSeconds = 96.0;
-    double playheadSeconds = 32.0;
+    double totalSeconds = UiTheme::Layout::timelineCanvasDefaultTotalSeconds;
+    double playheadSeconds = UiTheme::Layout::timelineCanvasDefaultPlayheadSeconds;
 };
 
 struct TimelineCanvasPaintStats
