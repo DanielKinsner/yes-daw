@@ -409,6 +409,14 @@ struct UiTheme
         static constexpr int timelineCanvasRulerMarkerLabelTopInset = 24;
         static constexpr int timelineCanvasRulerMarkerLabelWidth = 76;
         static constexpr int timelineCanvasRulerMarkerLabelHeight = 16;
+        static constexpr int timelineCanvasPlayheadLineWidth = 2;
+        static constexpr int timelineCanvasPlayheadBadgeHalfWidth = 15;
+        static constexpr int timelineCanvasPlayheadBadgeTopInset = 4;
+        static constexpr int timelineCanvasPlayheadBadgeWidth = 30;
+        static constexpr int timelineCanvasPlayheadBadgeHeight = 16;
+        static constexpr int timelineCanvasPlayheadTextHalfWidth = 12;
+        static constexpr int timelineCanvasPlayheadTextWidth = 24;
+        static constexpr int timelineCanvasPlayheadTextHeight = 16;
     };
 };
 

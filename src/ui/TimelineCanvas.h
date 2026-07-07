@@ -308,6 +308,37 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     }
 }
 
+inline void drawPlayhead (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
+                          const TimelineCanvasState& state, const Viewport& vp)
+{
+    const int playheadX = clipArea.getX() + juce::roundToInt ((state.playheadSeconds - vp.scrollSeconds)
+                                                             * vp.pixelsPerSecond);
+    if (playheadX < clipArea.getX() || playheadX > clipArea.getRight())
+        return;
+
+    g.setColour (UiTheme::Color::white());
+    g.fillRect (playheadX,
+                ruler.getY(),
+                UiTheme::Layout::timelineCanvasPlayheadLineWidth,
+                clipArea.getBottom() - ruler.getY());
+    g.setColour (kPurple);
+    g.fillRoundedRectangle (
+        static_cast<float> (playheadX - UiTheme::Layout::timelineCanvasPlayheadBadgeHalfWidth),
+        static_cast<float> (ruler.getY() + UiTheme::Layout::timelineCanvasPlayheadBadgeTopInset),
+        static_cast<float> (UiTheme::Layout::timelineCanvasPlayheadBadgeWidth),
+        static_cast<float> (UiTheme::Layout::timelineCanvasPlayheadBadgeHeight),
+        UiTheme::Radius::pill);
+    g.setColour (kText);
+    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
+    g.drawText (juce::String (std::max (1, juce::roundToInt (state.playheadSeconds) + 1)),
+                playheadX - UiTheme::Layout::timelineCanvasPlayheadTextHalfWidth,
+                ruler.getY() + UiTheme::Layout::timelineCanvasPlayheadBadgeTopInset,
+                UiTheme::Layout::timelineCanvasPlayheadTextWidth,
+                UiTheme::Layout::timelineCanvasPlayheadTextHeight,
+                juce::Justification::centred,
+                false);
+}
+
 } // namespace timeline_canvas_detail
 
 inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
@@ -392,20 +423,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         drawClip (g, clipRect, style, rect.id);
     }
 
-    const int playheadX = clipArea.getX() + juce::roundToInt ((state.playheadSeconds - vp.scrollSeconds)
-                                                             * vp.pixelsPerSecond);
-    if (playheadX >= clipArea.getX() && playheadX <= clipArea.getRight())
-    {
-        g.setColour (UiTheme::Color::white());
-        g.fillRect (playheadX, ruler.getY(), 2, clipArea.getBottom() - ruler.getY());
-        g.setColour (kPurple);
-        g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4),
-                                30.0f, 16.0f, UiTheme::Radius::pill);
-        g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
-        g.drawText (juce::String (std::max (1, juce::roundToInt (state.playheadSeconds) + 1)),
-                    playheadX - 12, ruler.getY() + 4, 24, 16, juce::Justification::centred, false);
-    }
+    drawPlayhead (g, ruler, clipArea, state, vp);
 
     return stats;
 }
