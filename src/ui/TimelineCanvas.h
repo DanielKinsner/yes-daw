@@ -120,19 +120,30 @@ inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, i
 inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
                               float amplitude, int clipId)
 {
-    area.reduce (UiTheme::Space::sm + 1, UiTheme::Space::xs + 1);
+    area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
+                 UiTheme::Layout::timelineCanvasWaveformInsetY);
     if (area.isEmpty())
         return;
 
     const float midY = static_cast<float> (area.getCentreY());
-    const float half = static_cast<float> (area.getHeight()) * std::clamp (amplitude, 0.1f, 1.0f) * 0.42f;
-    const int step = std::max (8, area.getWidth() / 9);
+    const float half = static_cast<float> (area.getHeight())
+                     * std::clamp (amplitude,
+                                   UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
+                                   UiTheme::Layout::timelineCanvasWaveformMaxAmplitude)
+                     * UiTheme::Layout::timelineCanvasWaveformHeightScale;
+    const int step = std::max (UiTheme::Layout::timelineCanvasWaveformMinStep,
+                               area.getWidth() / UiTheme::Layout::timelineCanvasWaveformStepDivisor);
 
     g.setColour (colour.brighter (0.42f));
     for (int x = 0; x < area.getWidth(); x += step)
     {
-        const int phase = (clipId * 37 + x * 13) & 31;
-        const float scaled = 0.32f + static_cast<float> (phase) / 31.0f * 0.68f;
+        const int phase = (clipId * UiTheme::Layout::timelineCanvasWaveformClipPhaseMultiplier
+                           + x * UiTheme::Layout::timelineCanvasWaveformXPhaseMultiplier)
+                        & UiTheme::Layout::timelineCanvasWaveformPhaseMask;
+        const float scaled = UiTheme::Layout::timelineCanvasWaveformMinScale
+                           + static_cast<float> (phase)
+                                 / static_cast<float> (UiTheme::Layout::timelineCanvasWaveformPhaseMask)
+                                 * UiTheme::Layout::timelineCanvasWaveformScaleRange;
         const float top = midY - half * scaled;
         const float bottom = midY + half * scaled;
         g.drawVerticalLine (area.getX() + x, top, bottom);
@@ -142,15 +153,16 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
 inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasClipStyle& style,
                       int clipId)
 {
-    if (area.getWidth() <= 2 || area.getHeight() <= 2)
+    if (area.getWidth() <= UiTheme::Layout::timelineCanvasClipMinPaintWidth
+        || area.getHeight() <= UiTheme::Layout::timelineCanvasClipMinPaintHeight)
         return;
 
-    if (area.getHeight() <= 8)
+    if (area.getHeight() <= UiTheme::Layout::timelineCanvasClipCompactHeight)
     {
         g.setColour (style.colour.withAlpha (0.44f));
         g.fillRect (area);
         g.setColour (style.colour.brighter (0.3f));
-        g.fillRect (area.withHeight (1));
+        g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
         return;
     }
 

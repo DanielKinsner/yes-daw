@@ -377,6 +377,22 @@ struct UiTheme
         static constexpr int timelineCanvasSnapValueWidth = 54;
         static constexpr float timelineCanvasOutlineInset = 0.5f;
         static constexpr float timelineCanvasOutlineStrokeWidth = 1.0f;
+        static constexpr int timelineCanvasWaveformInsetX = 7;
+        static constexpr int timelineCanvasWaveformInsetY = 5;
+        static constexpr float timelineCanvasWaveformMinAmplitude = 0.1f;
+        static constexpr float timelineCanvasWaveformMaxAmplitude = 1.0f;
+        static constexpr float timelineCanvasWaveformHeightScale = 0.42f;
+        static constexpr int timelineCanvasWaveformMinStep = 8;
+        static constexpr int timelineCanvasWaveformStepDivisor = 9;
+        static constexpr int timelineCanvasWaveformClipPhaseMultiplier = 37;
+        static constexpr int timelineCanvasWaveformXPhaseMultiplier = 13;
+        static constexpr int timelineCanvasWaveformPhaseMask = 31;
+        static constexpr float timelineCanvasWaveformMinScale = 0.32f;
+        static constexpr float timelineCanvasWaveformScaleRange = 0.68f;
+        static constexpr int timelineCanvasClipMinPaintWidth = 2;
+        static constexpr int timelineCanvasClipMinPaintHeight = 2;
+        static constexpr int timelineCanvasClipCompactHeight = 8;
+        static constexpr int timelineCanvasClipCompactHighlightHeight = 1;
     };
 };
 

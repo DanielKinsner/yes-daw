@@ -98,7 +98,9 @@ TimelineCanvas toolbar paint geometry behind `UiTheme::Layout`; the theme audit 
 panel/clip outline inset and stroke-width geometry behind `UiTheme::Layout`; the theme audit now rejects
 raw TimelineCanvas outline geometry with a scratch negative control. This checkpoint moved TimelineCanvas
 section layout geometry behind `UiTheme::Layout`; the theme audit now rejects raw `timelineCanvasGeometry()`
-section geometry with a scratch negative control.
+section geometry with a scratch negative control. This checkpoint moved TimelineCanvas clip and fake-waveform
+paint geometry behind `UiTheme::Layout`; the theme audit now rejects raw `drawClipWaveform` geometry with a
+scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent
