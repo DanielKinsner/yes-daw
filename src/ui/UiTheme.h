@@ -9,6 +9,7 @@
 #include <juce_graphics/juce_graphics.h>
 
 #include <array>
+#include <cstdint>
 
 namespace yesdaw::ui {
 
@@ -89,6 +90,30 @@ struct UiTheme
         static constexpr double mainComponentDemoShortTermLufs = -8.8;
         static constexpr double mainComponentDemoLoudnessRangeLu = 5.0;
         static constexpr double mainComponentDemoTruePeakDbtp = -1.0;
+    };
+
+    struct PianoRoll
+    {
+        static constexpr std::uint8_t mainComponentDemoMidiClipIdLow = 80;
+        static constexpr std::int64_t mainComponentDemoTimelineStartTicks = 0;
+        static constexpr std::int64_t mainComponentDemoTimelineLengthTicks = 4096;
+        static constexpr std::array<std::uint8_t, 6> mainComponentDemoNoteIdLows {{ 81, 82, 83, 84, 85, 86 }};
+        static constexpr std::array<std::int64_t, 6> mainComponentDemoNoteStartTicks {{
+            0, 512, 1024, 1792, 2560, 3328
+        }};
+        static constexpr std::array<std::int64_t, 6> mainComponentDemoNoteLengthTicks {{
+            512, 384, 512, 768, 512, 512
+        }};
+        static constexpr std::array<std::int16_t, 6> mainComponentDemoNoteKeys {{ 60, 64, 67, 72, 69, 67 }};
+        static constexpr std::array<double, 6> mainComponentDemoNotePitches {{
+            60.25, 64.10, 67.35, 72.00, 69.20, 66.85
+        }};
+        static constexpr std::array<double, 6> mainComponentDemoNoteVelocities {{
+            0.70, 0.58, 0.82, 0.64, 0.90, 0.74
+        }};
+        static constexpr std::array<std::int16_t, 6> mainComponentDemoNotePortIndexes {{ 0, 0, 0, 0, 0, 0 }};
+        static constexpr std::array<std::int16_t, 6> mainComponentDemoNoteChannels {{ 1, 1, 1, 1, 1, 1 }};
+        static constexpr std::array<bool, 6> mainComponentDemoNoteSelected {{ true, false, false, false, false, false }};
     };
 
     struct Tone

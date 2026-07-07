@@ -74,6 +74,24 @@ constexpr const auto& kDemoMixerFaders =
     yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripFaders;
 constexpr const auto& kDemoMixerMeters =
     yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripMeters;
+constexpr const auto& kDemoPianoRollNoteIdLows =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteIdLows;
+constexpr const auto& kDemoPianoRollNoteStartTicks =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteStartTicks;
+constexpr const auto& kDemoPianoRollNoteLengthTicks =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteLengthTicks;
+constexpr const auto& kDemoPianoRollNoteKeys =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteKeys;
+constexpr const auto& kDemoPianoRollNotePitches =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNotePitches;
+constexpr const auto& kDemoPianoRollNoteVelocities =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteVelocities;
+constexpr const auto& kDemoPianoRollNotePortIndexes =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNotePortIndexes;
+constexpr const auto& kDemoPianoRollNoteChannels =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteChannels;
+constexpr const auto& kDemoPianoRollNoteSelected =
+    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteSelected;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -223,16 +241,34 @@ yesdaw::ui::UiPianoRollSurfaceSnapshot makeDemoPianoRollSurface()
     yesdaw::ui::UiPianoRollSurfaceSnapshot surface;
     surface.projectLoaded = true;
     surface.midiClipSelected = true;
-    surface.midiClipId = demoEntityId (80);
-    surface.timelineStart = 0;
-    surface.timelineLength = 4096;
+    surface.midiClipId = demoEntityId (yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoMidiClipIdLow);
+    surface.timelineStart = yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoTimelineStartTicks;
+    surface.timelineLength = yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoTimelineLengthTicks;
     surface.notes = {
-        { demoEntityId (81), 0, 512, 60, 60.25, 0.70, 0, 1, true },
-        { demoEntityId (82), 512, 384, 64, 64.10, 0.58, 0, 1, false },
-        { demoEntityId (83), 1024, 512, 67, 67.35, 0.82, 0, 1, false },
-        { demoEntityId (84), 1792, 768, 72, 72.00, 0.64, 0, 1, false },
-        { demoEntityId (85), 2560, 512, 69, 69.20, 0.90, 0, 1, false },
-        { demoEntityId (86), 3328, 512, 67, 66.85, 0.74, 0, 1, false }
+        { demoEntityId (kDemoPianoRollNoteIdLows[0]), kDemoPianoRollNoteStartTicks[0],
+          kDemoPianoRollNoteLengthTicks[0], kDemoPianoRollNoteKeys[0], kDemoPianoRollNotePitches[0],
+          kDemoPianoRollNoteVelocities[0], kDemoPianoRollNotePortIndexes[0], kDemoPianoRollNoteChannels[0],
+          kDemoPianoRollNoteSelected[0] },
+        { demoEntityId (kDemoPianoRollNoteIdLows[1]), kDemoPianoRollNoteStartTicks[1],
+          kDemoPianoRollNoteLengthTicks[1], kDemoPianoRollNoteKeys[1], kDemoPianoRollNotePitches[1],
+          kDemoPianoRollNoteVelocities[1], kDemoPianoRollNotePortIndexes[1], kDemoPianoRollNoteChannels[1],
+          kDemoPianoRollNoteSelected[1] },
+        { demoEntityId (kDemoPianoRollNoteIdLows[2]), kDemoPianoRollNoteStartTicks[2],
+          kDemoPianoRollNoteLengthTicks[2], kDemoPianoRollNoteKeys[2], kDemoPianoRollNotePitches[2],
+          kDemoPianoRollNoteVelocities[2], kDemoPianoRollNotePortIndexes[2], kDemoPianoRollNoteChannels[2],
+          kDemoPianoRollNoteSelected[2] },
+        { demoEntityId (kDemoPianoRollNoteIdLows[3]), kDemoPianoRollNoteStartTicks[3],
+          kDemoPianoRollNoteLengthTicks[3], kDemoPianoRollNoteKeys[3], kDemoPianoRollNotePitches[3],
+          kDemoPianoRollNoteVelocities[3], kDemoPianoRollNotePortIndexes[3], kDemoPianoRollNoteChannels[3],
+          kDemoPianoRollNoteSelected[3] },
+        { demoEntityId (kDemoPianoRollNoteIdLows[4]), kDemoPianoRollNoteStartTicks[4],
+          kDemoPianoRollNoteLengthTicks[4], kDemoPianoRollNoteKeys[4], kDemoPianoRollNotePitches[4],
+          kDemoPianoRollNoteVelocities[4], kDemoPianoRollNotePortIndexes[4], kDemoPianoRollNoteChannels[4],
+          kDemoPianoRollNoteSelected[4] },
+        { demoEntityId (kDemoPianoRollNoteIdLows[5]), kDemoPianoRollNoteStartTicks[5],
+          kDemoPianoRollNoteLengthTicks[5], kDemoPianoRollNoteKeys[5], kDemoPianoRollNotePitches[5],
+          kDemoPianoRollNoteVelocities[5], kDemoPianoRollNotePortIndexes[5], kDemoPianoRollNoteChannels[5],
+          kDemoPianoRollNoteSelected[5] }
     };
 
     for (const auto kind : { yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity,

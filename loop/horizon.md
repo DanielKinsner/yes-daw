@@ -155,11 +155,13 @@ defaults with a scratch negative control. This checkpoint moved MainComponent's 
 defaults behind `UiTheme::Mixer`; the theme audit now rejects a raw demo loudness initializer with a scratch
 negative control. This checkpoint moved MainComponent's project-backed timeline fallback track meter default
 behind `UiTheme::Meter`; the theme audit now rejects a raw `projectTimelineTrack` meter initializer with a
+scratch negative control. This checkpoint moved MainComponent's demo piano-roll clip timeline and note defaults
+behind `UiTheme::PianoRoll`; the theme audit now rejects raw `makeDemoPianoRollSurface()` note defaults with a
 scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely another raw MainComponent demo/default surface or a
-TimelineCanvas/TimelineLayout spacing/geometry surface not yet covered by the theme audit.
+to `UiTheme.h` before broad UI migration, likely the remaining raw MainComponent demo piano-roll
+expression/default surface or a TimelineCanvas/TimelineLayout spacing/geometry surface not yet covered by the theme audit.
 
 ## The plan
 

@@ -406,6 +406,18 @@ bool mainComponentDemoMixerDefaultsUseRawDefault (std::string_view line)
         || std::regex_search (line.begin(), line.end(), rawDemoMixerLoudnessDefault);
 }
 
+bool mainComponentDemoPianoRollNoteDefaultsUseRawDefault (std::string_view line)
+{
+    static const std::regex rawDemoPianoRollTimelineDefault {
+        R"(\bsurface\.timeline(?:Start|Length)\s*=\s*[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    static const std::regex rawDemoPianoRollNoteDefault {
+        R"(\{\s*demoEntityId\s*\(\s*[0-9]+\s*\)\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*,\s*-?[0-9]+\s*,\s*-?[0-9]+\s*,\s*(?:true|false)\s*\})"
+    };
+    return std::regex_search (line.begin(), line.end(), rawDemoPianoRollTimelineDefault)
+        || std::regex_search (line.begin(), line.end(), rawDemoPianoRollNoteDefault);
+}
+
 bool timelineLayoutHitTestUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawHitTestGeometry {
@@ -503,6 +515,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int mainComponentDemoTrackDefaultsDepth = 0;
         bool insideMainComponentDemoMixerDefaults = false;
         int mainComponentDemoMixerDefaultsDepth = 0;
+        bool insideMainComponentDemoPianoRollNoteDefaults = false;
+        int mainComponentDemoPianoRollNoteDefaultsDepth = 0;
         bool insideTimelineLayoutHitTest = false;
         int timelineLayoutHitTestDepth = 0;
         while (std::getline (in, line))
@@ -823,6 +837,17 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoMixerDefaults && mainComponentDemoMixerDefaultsUseRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
+            if (entry.path().filename() == "MainComponent.cpp"
+                && line.find ("makeDemoPianoRollSurface") != std::string::npos)
+            {
+                insideMainComponentDemoPianoRollNoteDefaults = true;
+                mainComponentDemoPianoRollNoteDefaultsDepth = 0;
+            }
+
+            if (insideMainComponentDemoPianoRollNoteDefaults
+                && mainComponentDemoPianoRollNoteDefaultsUseRawDefault (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
             if (entry.path().filename() == "TimelineLayout.h"
                 && (line.find ("struct Viewport") != std::string::npos
                     || line.find ("hitTestVisibleClip") != std::string::npos))
@@ -1036,6 +1061,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 
                 if (timelineClipGainGestureDepth <= 0 && line.find ('}') != std::string::npos)
                     insideTimelineClipGainGesture = false;
+            }
+
+            if (insideMainComponentDemoPianoRollNoteDefaults)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++mainComponentDemoPianoRollNoteDefaultsDepth;
+                    else if (c == '}')
+                        --mainComponentDemoPianoRollNoteDefaultsDepth;
+                }
+
+                if (mainComponentDemoPianoRollNoteDefaultsDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideMainComponentDemoPianoRollNoteDefaults = false;
             }
 
             if (insideTimelineCoordinateConversion)
@@ -1400,6 +1439,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void makeDemoMixerSurface() { strip.pan = source.selected ? -0.08f : 0.0f; strip.meter = { source.meter, source.meter * 0.92f, source.meter * 0.58f, source.meter * 0.52f, true }; }\n";
         out << "void makeDemoMixerSurfaceLoudness() { surface.loudness = yesdaw::ui::UiMixerLoudnessReadout { -7.2, -9.4, -8.8, 5.0, -1.0, true }; }\n";
         out << "std::array<TrackRow, 1> projectTimelineTrack {{{ \"Audio 1\", kPurple, 0.75f }}};\n";
+        out << "void makeDemoPianoRollSurface() { surface.timelineLength = 4096; surface.notes = { { demoEntityId (81), 0, 512, 60, 60.25, 0.70, 0, 1, true } }; }\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1480,7 +1520,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 65u);
+    REQUIRE (findings.size() == 66u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1496,7 +1536,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasPaintTone);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 50u);
+    REQUIRE (mainComponentLines.size() == 51u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1545,4 +1585,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[47] == 56);
     REQUIRE (mainComponentLines[48] == 57);
     REQUIRE (mainComponentLines[49] == 58);
+    REQUIRE (mainComponentLines[50] == 59);
 }
