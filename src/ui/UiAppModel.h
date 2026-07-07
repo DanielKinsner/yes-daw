@@ -13,6 +13,7 @@
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
+#include "ui/WaveformPeakService.h"
 
 #include <algorithm>
 #include <chrono>
@@ -181,6 +182,7 @@ public:
     [[nodiscard]] const UiRecordedMidiTake& lastRecordedMidiTake() const noexcept { return lastRecordedMidiTake_; }
     [[nodiscard]] const UiRecordingCompSelection& recordingCompSelection() const noexcept { return recordingCompSelection_; }
     [[nodiscard]] const UiAutosaveRecoveryPrompt& autosaveRecoveryPrompt() const noexcept { return autosaveRecovery_; }
+    [[nodiscard]] const WaveformPeakService& waveformService() const noexcept { return waveformService_; }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -545,6 +547,7 @@ private:
             imported.channels
         };
         pendingMidiPlacement_ = placedMidiTake;
+        enqueueWaveformBuildsForDecodedAssets();
 
         result.status = UiAppImportStatus::Ok;
         return result;
@@ -995,6 +998,7 @@ public:
         decodedAssets_ = std::move (ownedDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         playback_ = std::move (built.engine);
+        enqueueWaveformBuildsForDecodedAssets();
 
         syncContextFromPlayback();
         detectAutosaveRecoveryPrompt();
@@ -2012,6 +2016,27 @@ private:
         decodedAssets.push_back (std::move (decoded));
     }
 
+    void enqueueWaveformBuildsForDecodedAssets()
+    {
+        for (const UiDecodedAsset& decoded : decodedAssets_)
+        {
+            if (! decodedAudioIsValid (decoded))
+                continue;
+
+            const engine::Asset* const asset = project_.findAsset (decoded.assetId);
+            if (asset == nullptr)
+                continue;
+
+            waveformService_.requestBuild (
+                *asset,
+                interleavedToChannelMajor (
+                    std::span<const float> (decoded.interleavedSamples.data(),
+                                            decoded.interleavedSamples.size()),
+                    decoded.frames,
+                    decoded.channels));
+        }
+    }
+
     void attachProjectBundle (
         persistence::ProjectBundleDb opened,
         const std::filesystem::path& bundlePath,
@@ -2020,6 +2045,7 @@ private:
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
         project_ = std::move (project);
+        waveformService_.start (bundlePath_);
         selectedTimelineClipId_ = {};
         selectedMidiClipId_ = {};
         selectedMidiNoteId_ = {};
@@ -2086,6 +2112,7 @@ private:
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
+    WaveformPeakService waveformService_;
 };
 
 } // namespace yesdaw::ui

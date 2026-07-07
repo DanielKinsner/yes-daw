@@ -254,7 +254,8 @@ add_test(NAME YesDawThemeAuditCheck COMMAND $<TARGET_FILE:YesDawThemeAuditCheck>
 # --- Waveform cache service check (H16 CP2a; worker-thread build + negative control) ---
 add_executable(YesDawWaveformCacheCheck tests/waveform_cache_service_tests.cpp)
 target_include_directories(YesDawWaveformCacheCheck PRIVATE ${YESDAW_SRC_DIR})
-target_link_libraries(YesDawWaveformCacheCheck PRIVATE Catch2::Catch2WithMain)
+target_include_directories(YesDawWaveformCacheCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawWaveformCacheCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
 yesdaw_harden(YesDawWaveformCacheCheck)
 add_test(NAME YesDawWaveformCacheCheck COMMAND $<TARGET_FILE:YesDawWaveformCacheCheck>)
 

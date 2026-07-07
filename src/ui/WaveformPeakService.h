@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <deque>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <span>
@@ -23,6 +24,36 @@
 #include <vector>
 
 namespace yesdaw::ui {
+
+[[nodiscard]] inline std::vector<float> interleavedToChannelMajor (std::span<const float> interleaved,
+                                                                   std::uint64_t frames,
+                                                                   std::uint16_t channels)
+{
+    if (channels == 0)
+        return {};
+
+    if (frames > std::numeric_limits<std::uint64_t>::max() / static_cast<std::uint64_t> (channels))
+        return {};
+
+    const std::uint64_t sampleCount = frames * static_cast<std::uint64_t> (channels);
+    if (sampleCount > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max())
+        || interleaved.size() != static_cast<std::size_t> (sampleCount))
+        return {};
+
+    std::vector<float> channelMajor (static_cast<std::size_t> (sampleCount), 0.0f);
+    for (std::uint16_t channel = 0; channel < channels; ++channel)
+    {
+        for (std::uint64_t frame = 0; frame < frames; ++frame)
+        {
+            channelMajor[static_cast<std::size_t> (channel) * static_cast<std::size_t> (frames)
+                         + static_cast<std::size_t> (frame)] =
+                interleaved[static_cast<std::size_t> (frame) * static_cast<std::size_t> (channels)
+                            + static_cast<std::size_t> (channel)];
+        }
+    }
+
+    return channelMajor;
+}
 
 class WaveformPeakService final
 {
@@ -43,9 +74,25 @@ public:
 
         {
             std::lock_guard lock { queueMutex_ };
+            jobs_.clear();
             bundlePath_ = std::move (bundlePath);
             stop_ = false;
         }
+
+        {
+            std::lock_guard lock { resultsMutex_ };
+            ready_.clear();
+        }
+
+        {
+            std::lock_guard lock { stateMutex_ };
+            workerThreadId_ = {};
+            lastBuildThreadId_ = {};
+            paintThreadId_ = {};
+            hasPaintThread_ = false;
+            builtOnForbiddenThread_ = false;
+        }
+        buildCount_.store (0u, std::memory_order_release);
 
         worker_ = std::thread ([this] { workerLoop(); });
     }

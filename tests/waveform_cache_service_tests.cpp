@@ -1,8 +1,11 @@
 #include "persistence/WaveformPeakCache.h"
+#include "io/WavFile.h"
+#include "ui/UiAppModel.h"
 #include "ui/WaveformPeakService.h"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <fstream>
@@ -10,6 +13,8 @@
 #include <iterator>
 #include <memory>
 #include <span>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -22,7 +27,10 @@ using yesdaw::engine::SampleRate;
 using yesdaw::persistence::buildWaveformPeakCache;
 using yesdaw::persistence::waveformPeakCachePathForHash;
 using yesdaw::persistence::writeWaveformPeakCache;
+using yesdaw::ui::UiAppModel;
+using yesdaw::ui::UiDecodedAsset;
 using yesdaw::ui::WaveformPeakService;
+using yesdaw::ui::interleavedToChannelMajor;
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
 {
@@ -66,6 +74,50 @@ std::vector<float> makeDifferentChannelMajorSamples()
     };
 }
 
+std::vector<float> channelMajorToInterleaved (std::span<const float> channelMajor,
+                                              std::uint64_t frames,
+                                              std::uint16_t channels)
+{
+    std::vector<float> interleaved (
+        static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels),
+        0.0f);
+
+    for (std::uint64_t frame = 0; frame < frames; ++frame)
+        for (std::uint16_t channel = 0; channel < channels; ++channel)
+            interleaved[static_cast<std::size_t> (frame) * channels + channel] =
+                channelMajor[static_cast<std::size_t> (channel) * static_cast<std::size_t> (frames)
+                             + static_cast<std::size_t> (frame)];
+
+    return interleaved;
+}
+
+std::filesystem::path makeTempPath (std::string_view label, std::string_view extension)
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    return std::filesystem::temp_directory_path()
+         / ("yesdaw-waveform-cache-" + std::string (label) + "-" + std::to_string (ticks)
+            + std::string (extension));
+}
+
+UiDecodedAsset makeDecodedImport()
+{
+    UiDecodedAsset decoded;
+    decoded.sampleRate = SampleRate { 48000.0 };
+    decoded.frames = 8;
+    decoded.channels = 1;
+    decoded.interleavedSamples = {
+        0.10f,
+        0.25f,
+        0.40f,
+        0.55f,
+        0.70f,
+        0.85f,
+        1.00f,
+        0.50f,
+    };
+    return decoded;
+}
+
 std::vector<std::uint8_t> readFileBytes (const std::filesystem::path& path)
 {
     std::ifstream input (path, std::ios::binary);
@@ -92,6 +144,34 @@ std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> waitForReady (
 }
 
 } // namespace
+
+TEST_CASE ("H16 CP2c interleaved audio converts exactly to channel-major storage", "[ui][waveform-cache]")
+{
+    constexpr std::uint64_t frames = 4;
+    constexpr std::uint16_t channels = 3;
+    const std::vector<float> interleaved {
+        10.0f, 20.0f, 30.0f,
+        11.0f, 21.0f, 31.0f,
+        12.0f, 22.0f, 32.0f,
+        13.0f, 23.0f, 33.0f,
+    };
+
+    const std::vector<float> expectedChannelMajor {
+        10.0f, 11.0f, 12.0f, 13.0f,
+        20.0f, 21.0f, 22.0f, 23.0f,
+        30.0f, 31.0f, 32.0f, 33.0f,
+    };
+
+    const std::vector<float> channelMajor = interleavedToChannelMajor (interleaved, frames, channels);
+    REQUIRE (channelMajor == expectedChannelMajor);
+    REQUIRE (channelMajorToInterleaved (channelMajor, frames, channels) == interleaved);
+
+    std::vector<float> swapped = channelMajor;
+    std::swap_ranges (swapped.begin(),
+                      swapped.begin() + static_cast<std::ptrdiff_t> (frames),
+                      swapped.begin() + static_cast<std::ptrdiff_t> (frames));
+    REQUIRE_FALSE (channelMajorToInterleaved (swapped, frames, channels) == interleaved);
+}
 
 TEST_CASE ("H16 CP2a waveform service builds and publishes on its worker thread", "[ui][waveform-cache]")
 {
@@ -122,6 +202,84 @@ TEST_CASE ("H16 CP2a waveform service builds and publishes on its worker thread"
     REQUIRE (service.lastBuildThreadId() != callerThread);
     REQUIRE_FALSE (service.builtOnForbiddenThread());
 
+    std::filesystem::remove_all (bundlePath);
+}
+
+TEST_CASE ("H16 CP2c waveform service restart drops old derived state", "[ui][waveform-cache]")
+{
+    const auto firstBundle = makeTempPath ("restart-first", ".yesdaw");
+    const auto secondBundle = makeTempPath ("restart-second", ".yesdaw");
+    std::filesystem::remove_all (firstBundle);
+    std::filesystem::remove_all (secondBundle);
+
+    const Asset firstAsset = makeAsset();
+    Asset secondAsset = firstAsset;
+    secondAsset.id = idFromLowByte (0x32);
+    secondAsset.contentHash = hashFromSeed (0x80);
+
+    WaveformPeakService service;
+    service.start (firstBundle);
+    service.requestBuild (firstAsset, makeChannelMajorSamples());
+    REQUIRE (waitForReady (service, firstAsset.contentHash) != nullptr);
+    REQUIRE (service.buildCount() == 1u);
+
+    service.start (secondBundle);
+    REQUIRE (service.tryGetReady (firstAsset.contentHash) == nullptr);
+    REQUIRE (service.buildCount() == 0u);
+
+    service.requestBuild (secondAsset, makeDifferentChannelMajorSamples());
+    REQUIRE (waitForReady (service, secondAsset.contentHash) != nullptr);
+    REQUIRE (service.buildCount() == 1u);
+
+    std::filesystem::remove_all (firstBundle);
+    std::filesystem::remove_all (secondBundle);
+}
+
+TEST_CASE ("H16 CP2c app model import enqueues waveform cache build", "[ui][waveform-cache]")
+{
+    const auto bundlePath = makeTempPath ("ui-import-ready", ".yesdaw");
+    const auto sourcePath = makeTempPath ("ui-import-source", ".wav");
+    std::filesystem::remove_all (bundlePath);
+    std::filesystem::remove (sourcePath);
+
+    UiDecodedAsset decoded = makeDecodedImport();
+    const auto writeSource = yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        decoded.sampleRate,
+        decoded.channels,
+        decoded.frames,
+        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()));
+    INFO (writeSource.message);
+    REQUIRE (writeSource.ok());
+
+    {
+        UiAppModel app;
+        REQUIRE (app.createProjectBundle (bundlePath).ok());
+
+        UiDecodedAsset importDecoded = decoded;
+        const auto imported = app.importAudioFile (sourcePath, std::move (importDecoded));
+        INFO ("import status=" << static_cast<int> (imported.status));
+        INFO ("bundle status=" << static_cast<int> (imported.bundleResult.status));
+        INFO ("bundle message=" << imported.bundleResult.message);
+        INFO ("playback status=" << static_cast<int> (imported.playbackStatus));
+        REQUIRE (imported.ok());
+        REQUIRE (app.project().assets.size() == 1u);
+
+        const Asset& asset = app.project().assets.front();
+        const std::vector<float> channelMajor =
+            interleavedToChannelMajor (decoded.interleavedSamples, decoded.frames, decoded.channels);
+        const auto expected = buildWaveformPeakCache (asset,
+                                                      std::span<const float> (channelMajor.data(),
+                                                                              channelMajor.size()));
+        INFO (expected.message);
+        REQUIRE (expected.ok());
+
+        const auto ready = waitForReady (app.waveformService(), asset.contentHash);
+        REQUIRE (ready != nullptr);
+        REQUIRE (*ready == expected.cache);
+    }
+
+    std::filesystem::remove (sourcePath);
     std::filesystem::remove_all (bundlePath);
 }
 

@@ -213,9 +213,19 @@ file before request and proves the service rebuilds once. Local gates under `vcv
 full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**. An
 earlier full run hit a transient `YesDawTimelineGpuCheck` timing miss, then the isolated GPU gate passed
 **1/1** and the rerun full suite passed **311/311**.
+H16 CP2c added the pure `interleavedToChannelMajor()` helper, unit-checked exact multi-channel
+interleaved -> channel-major -> interleaved round-trip behavior with a wrong-channel negative control,
+and wired `UiAppModel` to own/start `WaveformPeakService`, expose `waveformService()`, and enqueue
+peak-cache builds for decoded Assets after import/load. `WaveformPeakService::start()` now resets derived
+service state on reattach while joining/restarting the worker cleanly. `YesDawWaveformCacheCheck` proves
+that after an app-model import the service reaches ready for the imported Asset content hash; CP2d paint
+reads were not started. Local gates under `vcvars64.bat`: focused
+`ctest --preset ci -R "YesDawWaveformCacheCheck|YesDawUiActionCheck" --output-on-failure` passed **2/2**;
+`git diff --check`; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure`
+passed **311/311**.
 
-**Now:** H16 CP2b (disk reload path + delete-file negative control) is complete locally. Stop at this
-checkpoint after commit/push and remote CI green; do not start CP2c in this thread.
+**Now:** H16 CP2c (channel-major helper + `UiAppModel` waveform service wiring) is complete locally.
+Stop at this checkpoint after commit/push and remote CI green; do not start CP2d in this thread.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -256,11 +266,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** After this CP2b commit is pushed and remote CI is green, spawn exactly one successor for
-**H16 CP2c — channel-major helper + UiAppModel wiring** from
+**Next:** After this CP2c commit is pushed and remote CI is green, spawn exactly one successor for
+**H16 CP2d — paint reads published cache, no visual change** from
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
-CP2c adds the pure `interleavedToChannelMajor` helper, unit-checks exact deinterleave/round-trip behavior,
-and wires `UiAppModel` to enqueue waveform cache builds on import/open without starting CP2d paint reads.
+CP2d wires the Timeline paint path to observe ready/not-ready published cache state while keeping the
+existing fake waveform rendering; no real column rendering yet.
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
 literal in real chrome.
 
