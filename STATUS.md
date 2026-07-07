@@ -184,7 +184,9 @@ fails the audit. This checkpoint moved MainComponent's demo timeline section-mar
 behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTimelineMarkers`
 placement default fails the audit. This checkpoint moved MainComponent's demo track-list meter defaults
 behind `UiTheme::Meter` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTracks` meter default
-fails the audit.
+fails the audit. This checkpoint moved MainComponent's demo mixer strip fader/meter/pan fallback defaults
+behind `UiTheme::Mixer` and tightened `YesDawThemeAuditCheck` so scratch raw `kMixer` demo defaults fail
+the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -217,14 +219,14 @@ values, timeline snap-grid default, no-selection inspector gain refresh fallback
 height, painted inspector readout fallback defaults, TimelineCanvas paint tone/default fractions, and
 MainComponent project/demo timeline clip style alpha defaults, demo timeline clip placement defaults, and
 demo timeline marker placement defaults are also tokenized; MainComponent demo track-list meter defaults
-are also tokenized; broad UI migration is not complete.
+and demo mixer strip fader/meter/pan fallback defaults are also tokenized; broad UI migration is not
+complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
-slice (likely the next narrow TimelineCanvas or MainComponent spacing/geometry surface), commit/push straight to
-`main`, wait for remote CI green, and create exactly one successor only if H16 still has another slice.
-The likely next slice is another narrow spacing/geometry surface that is not yet covered by the theme
-audit, before broad UI migration.
+slice (likely the next narrow MainComponent demo/default surface, or the next TimelineCanvas/TimelineLayout
+spacing/geometry surface if no smaller MainComponent prerequisite remains), commit/push straight to `main`,
+wait for remote CI green, and create exactly one successor only if H16 still has another slice.
 
 ---
 

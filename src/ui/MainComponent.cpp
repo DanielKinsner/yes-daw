@@ -70,6 +70,10 @@ constexpr const auto& kDemoTimelineMarkerSeconds =
     yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineMarkerSeconds;
 constexpr const auto& kDemoTrackLevels =
     yesdaw::ui::UiTheme::Meter::mainComponentDemoTrackLevels;
+constexpr const auto& kDemoMixerFaders =
+    yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripFaders;
+constexpr const auto& kDemoMixerMeters =
+    yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripMeters;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -155,17 +159,17 @@ const std::array<yesdaw::ui::TimelineMarker, 5> kTimelineMarkers {{
 }};
 
 const std::array<MixerStrip, 11> kMixer {{
-    { "Drums", kBlue, 0.64f, 0.86f, false },
-    { "Bass DI", kTeal, 0.58f, 0.70f, false },
-    { "Acoustic GTR", kAmber, 0.54f, 0.63f, false },
-    { "Elec GTR", kAmber.darker (0.25f), 0.52f, 0.66f, false },
-    { "Vocal Lead", kPurple, 0.66f, 0.84f, true },
-    { "Vocal Double", kPurple.darker (0.2f), 0.60f, 0.61f, false },
-    { "Keys", kCyan, 0.50f, 0.68f, false },
-    { "Ambience", kBlue.darker (0.2f), 0.42f, 0.73f, false },
-    { "FX Risers", kPurple.darker (0.35f), 0.48f, 0.44f, false },
-    { "Room Verb", kPurple.darker (0.15f), 0.55f, 0.57f, false },
-    { "Delay", kBlue.darker (0.3f), 0.50f, 0.52f, false }
+    { "Drums", kBlue, kDemoMixerFaders[0], kDemoMixerMeters[0], false },
+    { "Bass DI", kTeal, kDemoMixerFaders[1], kDemoMixerMeters[1], false },
+    { "Acoustic GTR", kAmber, kDemoMixerFaders[2], kDemoMixerMeters[2], false },
+    { "Elec GTR", kAmber.darker (0.25f), kDemoMixerFaders[3], kDemoMixerMeters[3], false },
+    { "Vocal Lead", kPurple, kDemoMixerFaders[4], kDemoMixerMeters[4], true },
+    { "Vocal Double", kPurple.darker (0.2f), kDemoMixerFaders[5], kDemoMixerMeters[5], false },
+    { "Keys", kCyan, kDemoMixerFaders[6], kDemoMixerMeters[6], false },
+    { "Ambience", kBlue.darker (0.2f), kDemoMixerFaders[7], kDemoMixerMeters[7], false },
+    { "FX Risers", kPurple.darker (0.35f), kDemoMixerFaders[8], kDemoMixerMeters[8], false },
+    { "Room Verb", kPurple.darker (0.15f), kDemoMixerFaders[9], kDemoMixerMeters[9], false },
+    { "Delay", kBlue.darker (0.3f), kDemoMixerFaders[10], kDemoMixerMeters[10], false }
 }};
 
 yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
@@ -184,13 +188,19 @@ yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
         strip.index = isBus ? i - 9u : i;
         strip.name = source.name;
         strip.linearGain = source.fader;
-        strip.pan = source.selected ? -0.08f : 0.0f;
+        strip.pan = source.selected ? yesdaw::ui::UiTheme::Mixer::mainComponentDemoSelectedPan
+                                    : yesdaw::ui::UiTheme::Mixer::mainComponentDemoDefaultPan;
         strip.muted = false;
         strip.soloed = source.selected;
         strip.soloSafe = isBus;
         strip.sidechainVisible = i == 1 || isBus;
-        strip.meter = yesdaw::ui::UiMixerMeterReadout { source.meter, source.meter * 0.92f,
-                                                        source.meter * 0.58f, source.meter * 0.52f, true };
+        strip.meter = yesdaw::ui::UiMixerMeterReadout {
+            source.meter,
+            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterPeakRightScale,
+            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterRmsLeftScale,
+            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterRmsRightScale,
+            true
+        };
 
         if (isBus)
             surface.buses.push_back (std::move (strip));

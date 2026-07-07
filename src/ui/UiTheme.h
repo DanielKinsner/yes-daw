@@ -70,6 +70,21 @@ struct UiTheme
         }};
     };
 
+    struct Mixer
+    {
+        static constexpr std::array<float, 11> mainComponentDemoStripFaders {{
+            0.64f, 0.58f, 0.54f, 0.52f, 0.66f, 0.60f, 0.50f, 0.42f, 0.48f, 0.55f, 0.50f
+        }};
+        static constexpr std::array<float, 11> mainComponentDemoStripMeters {{
+            0.86f, 0.70f, 0.63f, 0.66f, 0.84f, 0.61f, 0.68f, 0.73f, 0.44f, 0.57f, 0.52f
+        }};
+        static constexpr float mainComponentDemoSelectedPan = -0.08f;
+        static constexpr float mainComponentDemoDefaultPan = 0.0f;
+        static constexpr float mainComponentDemoMeterPeakRightScale = 0.92f;
+        static constexpr float mainComponentDemoMeterRmsLeftScale = 0.58f;
+        static constexpr float mainComponentDemoMeterRmsRightScale = 0.52f;
+    };
+
     struct Tone
     {
         static constexpr float timelineCanvasFallbackClipAmplitude = 0.7f;
