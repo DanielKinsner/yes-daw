@@ -541,7 +541,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideInspectorFadeSliderDefaults && inspectorFadeSliderDefaultsUseRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (line.find ("configureInspectorControls") != std::string::npos)
+            if (line.find ("configureInspectorControls") != std::string::npos
+                || line.find ("refreshInspectorControls") != std::string::npos)
             {
                 insideInspectorGainSliderDefaults = true;
                 inspectorGainSliderDefaultsDepth = 0;
@@ -1082,6 +1083,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "inspectorGain.setRange (0.0, 2.0, 0.01);\n";
         out << "inspectorGain.setValue (1.0, juce::dontSendNotification);\n";
         out << "}\n";
+        out << "void refreshInspectorControls() { inspectorGain.setValue (1.0, juce::dontSendNotification); }\n";
         out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
         out << "void makeTimelineStateDefaults() { state.totalSeconds = 98.0; state.playheadSeconds = 32.0; state.viewport.scrollSeconds = 0.0; state.viewport.pixelsPerSecond = width / std::max (1.0, state.totalSeconds); }\n";
         out << "void timelineSecondsAt() {\n";
@@ -1162,7 +1164,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 51u);
+    REQUIRE (findings.size() == 52u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1176,7 +1178,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 38u);
+    REQUIRE (mainComponentLines.size() == 39u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1209,8 +1211,9 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[31] == 37);
     REQUIRE (mainComponentLines[32] == 39);
     REQUIRE (mainComponentLines[33] == 40);
-    REQUIRE (mainComponentLines[34] == 42);
+    REQUIRE (mainComponentLines[34] == 41);
     REQUIRE (mainComponentLines[35] == 43);
-    REQUIRE (mainComponentLines[36] == 45);
+    REQUIRE (mainComponentLines[36] == 44);
     REQUIRE (mainComponentLines[37] == 46);
+    REQUIRE (mainComponentLines[38] == 47);
 }

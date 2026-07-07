@@ -1471,7 +1471,8 @@ private:
         }
         else
         {
-            inspectorGain.setValue (1.0, juce::dontSendNotification);
+            inspectorGain.setValue (yesdaw::ui::UiTheme::Layout::inspectorGainSliderDefault,
+                                    juce::dontSendNotification);
             inspectorFadeIn.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
                                       juce::dontSendNotification);
             inspectorFadeOut.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,

@@ -165,7 +165,9 @@ scratch raw `inspectorGain.setRange`/`setValue` defaults fail the audit. This ch
 mixer fader/pan slider ranges, steps, and fallback defaults behind `UiTheme::Layout` and tightened
 `YesDawThemeAuditCheck` so scratch raw `mixerFader`/`mixerPan` slider defaults fail the audit. This
 checkpoint moved MainComponent's timeline snap-grid default behind `UiTheme::Layout` and tightened
-`YesDawThemeAuditCheck` so a scratch raw `kTimelineSnapGridTicks` default fails the audit.
+`YesDawThemeAuditCheck` so a scratch raw `kTimelineSnapGridTicks` default fails the audit. This checkpoint
+moved MainComponent's no-selection inspector gain refresh fallback behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so a scratch raw `refreshInspectorControls` gain fallback fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -194,7 +196,8 @@ are also tokenized; TimelineCanvas toolbar reduced-inset geometry and TimelineCa
 total/playhead seconds are also tokenized; MainComponent's timeline total-seconds backing-field default is
 also tokenized; MainComponent inspector fade-slider range/step/clamp/default seconds and inspector
 gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan slider range/step/default
-values and timeline snap-grid default are also tokenized; broad UI migration is not complete.
+values, timeline snap-grid default, and no-selection inspector gain refresh fallback are also tokenized; broad
+UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
