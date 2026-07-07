@@ -174,7 +174,9 @@ checkpoint moved MainComponent's painted inspector readout fallback defaults beh
 tightened `YesDawThemeAuditCheck` so scratch raw `drawInspector` readout defaults fail the audit. This
 checkpoint moved TimelineCanvas fallback clip amplitude and paint alpha/brightness fractions behind
 `UiTheme::Tone` and tightened `YesDawThemeAuditCheck` so scratch raw TimelineCanvas paint tone defaults
-fail the audit.
+fail the audit. This checkpoint moved MainComponent's project timeline clip style alpha behind
+`UiTheme::Tone` and tightened `YesDawThemeAuditCheck` so scratch raw `rebuildTimelineClipViews()`
+clip-style tone defaults fail the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -204,8 +206,8 @@ total/playhead seconds are also tokenized; MainComponent's timeline total-second
 also tokenized; MainComponent inspector fade-slider range/step/clamp/default seconds and inspector
 gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan slider range/step/default
 values, timeline snap-grid default, no-selection inspector gain refresh fallback, shell/header separator
-height, painted inspector readout fallback defaults, and TimelineCanvas paint tone/default fractions are also
-tokenized; broad UI migration is not complete.
+height, painted inspector readout fallback defaults, TimelineCanvas paint tone/default fractions, and
+MainComponent project timeline clip style alpha are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

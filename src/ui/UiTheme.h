@@ -78,6 +78,7 @@ struct UiTheme
         static constexpr float timelineCanvasGridTrackTintAlpha = 0.20f;
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
         static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
+        static constexpr float mainComponentProjectClipAlpha = 0.82f;
     };
 
     struct Space

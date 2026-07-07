@@ -1796,7 +1796,7 @@ private:
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
             timelineClips.push_back ({ id, 0, startSeconds, lengthSeconds });
-            timelineClipStyles.push_back ({ kPurple, 0.82f });
+            timelineClipStyles.push_back ({ kPurple, yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (clip.id);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
