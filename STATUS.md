@@ -120,7 +120,9 @@ MainComponent shared panel-outline inset and stroke-width geometry behind `UiThe
 `YesDawThemeAuditCheck` so scratch raw `fillPanel` panel-chrome geometry in `MainComponent.cpp` fails
 the audit. This checkpoint moved MainComponent piano-roll key-range and grid-cadence geometry behind
 `UiTheme::Layout`, aligned the UI input harness with those tokens, and tightened `YesDawThemeAuditCheck`
-so scratch raw piano-roll key-range and grid-cadence values fail the audit.
+so scratch raw piano-roll key-range and grid-cadence values fail the audit. This checkpoint moved
+MainComponent timeline clip gain-drag gesture geometry behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so scratch raw gain-drag gesture constants fail the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -138,7 +140,8 @@ tokenized; MainComponent timeline viewport pixel-width/gutter geometry is also t
 timeline and piano-roll input drag dead-zone geometry is also tokenized; MainComponent piano-roll expression
 point and curve-stroke geometry is also tokenized; MainComponent default window-size geometry and shared
 panel-outline geometry are also tokenized; MainComponent piano-roll key-range and grid-cadence geometry is
-also tokenized; broad UI migration is not complete.
+also tokenized; MainComponent timeline clip gain-drag gesture geometry is also tokenized; broad UI
+migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

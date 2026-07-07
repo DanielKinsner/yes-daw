@@ -199,6 +199,14 @@ bool componentWindowUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawWindowGeometry);
 }
 
+bool timelineClipGainGestureUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawGainGestureGeometry {
+        R"(\bconstexpr\s+float\s+k(?:GainPerPixel|MaxGestureGain)\s*=\s*[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawGainGestureGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -246,6 +254,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineStateLayoutDepth = 0;
         bool insidePanelChromeLayout = false;
         int panelChromeLayoutDepth = 0;
+        bool insideTimelineClipGainGesture = false;
+        int timelineClipGainGestureDepth = 0;
         while (std::getline (in, line))
         {
             ++lineNumber;
@@ -347,6 +357,15 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineStateLayout && timelineStateUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("adjustTimelineClipGainByLayoutId") != std::string::npos)
+            {
+                insideTimelineClipGainGesture = true;
+                timelineClipGainGestureDepth = 0;
+            }
+
+            if (insideTimelineClipGainGesture && timelineClipGainGestureUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "MainComponent.cpp"
@@ -522,6 +541,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insidePanelChromeLayout = false;
             }
 
+            if (insideTimelineClipGainGesture)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineClipGainGestureDepth;
+                    else if (c == '}')
+                        --timelineClipGainGestureDepth;
+                }
+
+                if (timelineClipGainGestureDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineClipGainGesture = false;
+            }
+
             if (roundedStatement.empty())
             {
                 if (line.find ("fillRoundedRectangle") == std::string::npos
@@ -596,12 +629,16 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void window() { setSize (1536, 960); }\n";
         out << "constexpr int kPianoRollLowKey = 48;\n";
         out << "void drawPianoRollGrid() { for (Tick tick = 0; tick <= len; tick += 512) { if ((tick % 2048) == 0) {} } }\n";
+        out << "void adjustTimelineClipGainByLayoutId() {\n";
+        out << "constexpr float kGainPerPixel = 0.01f;\n";
+        out << "constexpr float kMaxGestureGain = 4.0f;\n";
+        out << "}\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 24u);
+    REQUIRE (findings.size() == 26u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -624,5 +661,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[19].line == 20);
     REQUIRE (findings[20].line == 21);
     REQUIRE (findings[22].line == 23);
-    REQUIRE (findings.back().line == 24);
+    REQUIRE (findings[24].line == 26);
+    REQUIRE (findings.back().line == 27);
 }

@@ -313,6 +313,8 @@ struct UiTheme
         static constexpr int timelineViewportMinPixelWidth = 1;
         static constexpr int timelineViewportRightGutter = 26;
         static constexpr int timelineClipEdgeHitWidth = 8;
+        static constexpr float timelineClipGainPerDragPixel = 0.01f;
+        static constexpr float timelineClipMaxGestureGain = 4.0f;
         static constexpr int inputDragDeadZonePixels = 2;
 
         static constexpr int pianoRollHeaderHeight = 38;

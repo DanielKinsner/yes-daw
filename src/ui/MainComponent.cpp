@@ -1854,12 +1854,10 @@ private:
         if (clip == nullptr)
             return;
 
-        constexpr float kGainPerPixel = 0.01f;
-        constexpr float kMaxGestureGain = 4.0f;
         const float nextGain = std::clamp (
-            clip->gain + static_cast<float> (deltaPixels) * kGainPerPixel,
+            clip->gain + static_cast<float> (deltaPixels) * yesdaw::ui::UiTheme::Layout::timelineClipGainPerDragPixel,
             0.0f,
-            kMaxGestureGain);
+            yesdaw::ui::UiTheme::Layout::timelineClipMaxGestureGain);
 
         if (std::fabs (nextGain - clip->gain) <= 0.000001f)
             return;
