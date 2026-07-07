@@ -206,6 +206,10 @@ struct UiTheme
         static constexpr int inspectorFadeControlLeftInset = 78;
         static constexpr int inspectorFadeControlHorizontalInset = 0;
         static constexpr int inspectorFadeControlVerticalInset = 6;
+        static constexpr double inspectorFadeSliderMinSeconds = 0.0;
+        static constexpr double inspectorFadeSliderMaxSeconds = 1.0;
+        static constexpr double inspectorFadeSliderIntervalSeconds = 0.001;
+        static constexpr double inspectorFadeSliderDefaultSeconds = 0.0;
         static constexpr int inspectorFadeRowHeight = 32;
         static constexpr int inspectorFadeRowInsetX = 0;
         static constexpr int inspectorFadeRowInsetY = 3;

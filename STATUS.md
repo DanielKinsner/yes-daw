@@ -157,7 +157,9 @@ reduced-inset geometry fails the audit. This checkpoint moved TimelineCanvas sta
 seconds behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so scratch raw TimelineCanvas state
 defaults fail the audit. This checkpoint moved MainComponent's timeline total-seconds backing-field default
 behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `timelineTotalSeconds`
-member initializer fails the audit.
+member initializer fails the audit. This checkpoint moved MainComponent inspector fade-slider range, step,
+clamp, and default seconds behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so scratch raw
+`configureInspectorFadeSlider` defaults fail the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -184,7 +186,8 @@ also tokenized; TimelineLayout default viewport and hit-test zero-floor geometry
 MainComponent timeline-state default span/playhead/scroll geometry and timeline coordinate-conversion floors
 are also tokenized; TimelineCanvas toolbar reduced-inset geometry and TimelineCanvas state default
 total/playhead seconds are also tokenized; MainComponent's timeline total-seconds backing-field default is
-also tokenized; broad UI migration is not complete.
+also tokenized; MainComponent inspector fade-slider range/step/clamp/default seconds are also tokenized;
+broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

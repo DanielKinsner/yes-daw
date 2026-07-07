@@ -41,7 +41,6 @@ constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
-constexpr double kMaxInspectorFadeSeconds = 1.0;
 
 const juce::Colour kBackground = yesdaw::ui::UiTheme::Color::appBackground();
 const juce::Colour kPanel = yesdaw::ui::UiTheme::Color::panel();
@@ -1171,8 +1170,11 @@ private:
                                 false,
                                 yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                 yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        slider.setRange (0.0, kMaxInspectorFadeSeconds, 0.001);
-        slider.setValue (0.0, juce::dontSendNotification);
+        slider.setRange (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
+                         yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds,
+                         yesdaw::ui::UiTheme::Layout::inspectorFadeSliderIntervalSeconds);
+        slider.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
+                         juce::dontSendNotification);
     }
 
     void configureMixerControls()
@@ -1449,19 +1451,21 @@ private:
             const double sampleRate = appModel.project().sampleRate.hz;
             inspectorGain.setValue (clip->gain, juce::dontSendNotification);
             inspectorFadeIn.setValue (std::clamp (static_cast<double> (clip->fadeIn) / sampleRate,
-                                                  0.0,
-                                                  kMaxInspectorFadeSeconds),
+                                                  yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
+                                                  yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds),
                                       juce::dontSendNotification);
             inspectorFadeOut.setValue (std::clamp (static_cast<double> (clip->fadeOut) / sampleRate,
-                                                   0.0,
-                                                   kMaxInspectorFadeSeconds),
+                                                   yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
+                                                   yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds),
                                        juce::dontSendNotification);
         }
         else
         {
             inspectorGain.setValue (1.0, juce::dontSendNotification);
-            inspectorFadeIn.setValue (0.0, juce::dontSendNotification);
-            inspectorFadeOut.setValue (0.0, juce::dontSendNotification);
+            inspectorFadeIn.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
+                                      juce::dontSendNotification);
+            inspectorFadeOut.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
+                                       juce::dontSendNotification);
         }
         refreshingInspectorControls = false;
     }
