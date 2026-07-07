@@ -336,6 +336,14 @@ bool timelineCanvasStateDefaultsUseRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawStateDefaults);
 }
 
+bool timelineCanvasPaintToneUsesRawDefault (std::string_view line)
+{
+    static const std::regex rawPaintTone {
+        R"(\bTimelineCanvasClipStyle\s+fallback\s*\{[^;\n]*,\s*[0-9]+(?:\.[0-9]+)?f?\s*\}|\b(?:withAlpha|brighter)\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\s*\))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawPaintTone);
+}
+
 bool timelineLayoutHitTestUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawHitTestGeometry {
@@ -419,6 +427,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCanvasPlayheadDepth = 0;
         bool insideTimelineCanvasStateDefaults = false;
         int timelineCanvasStateDefaultsDepth = 0;
+        bool insideTimelineCanvasPaintTone = false;
+        int timelineCanvasPaintToneDepth = 0;
         bool insideTimelineLayoutHitTest = false;
         int timelineLayoutHitTestDepth = 0;
         while (std::getline (in, line))
@@ -660,6 +670,21 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineCanvasStateDefaults && timelineCanvasStateDefaultsUseRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "TimelineCanvas.h"
+                && (line.find ("styleForClip") != std::string::npos
+                    || line.find ("void drawClipWaveform") != std::string::npos
+                    || line.find ("void drawClip (") != std::string::npos
+                    || line.find ("void drawClip(") != std::string::npos
+                    || line.find ("void drawRuler") != std::string::npos
+                    || line.find ("void drawGrid") != std::string::npos))
+            {
+                insideTimelineCanvasPaintTone = true;
+                timelineCanvasPaintToneDepth = 0;
+            }
+
+            if (insideTimelineCanvasPaintTone && timelineCanvasPaintToneUsesRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "TimelineLayout.h"
@@ -1027,6 +1052,19 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineCanvasStateDefaults = false;
             }
 
+            if (insideTimelineCanvasPaintTone)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCanvasPaintToneDepth;
+                    else if (c == '}')
+                        --timelineCanvasPaintToneDepth;
+                }
+                if (timelineCanvasPaintToneDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCanvasPaintTone = false;
+            }
+
             if (insideTimelineLayoutHitTest)
             {
                 for (const char c : line)
@@ -1154,6 +1192,8 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         timelineOut << "void drawPlayhead(juce::Rectangle<int> ruler) { g.fillRect (playheadX, ruler.getY(), 2, height); g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4), 30.0f, 16.0f, radius); g.drawText (label, playheadX - 12, ruler.getY() + 4, 24, 16, just, false); }\n";
         timelineOut << "constexpr int kVisibleClipCapacity = 4096;\n";
         timelineOut << "struct TimelineCanvasState { double totalSeconds = 96.0; double playheadSeconds = 32.0; };\n";
+        timelineOut << "TimelineCanvasClipStyle styleForClip() { TimelineCanvasClipStyle fallback { color, 0.7f }; return fallback; }\n";
+        timelineOut << "void drawGridTone() { g.setColour (colour.withAlpha (0.42f)); g.setColour (colour.brighter (0.35f)); }\n";
         timelineOut.close();
 
         std::ofstream layoutOut (scratch / "TimelineLayout.h");
@@ -1177,6 +1217,8 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     bool foundTimelineCanvasPlayhead = false;
     bool foundTimelineCanvasCapacity = false;
     bool foundTimelineCanvasStateDefaults = false;
+    bool foundTimelineCanvasFallbackTone = false;
+    bool foundTimelineCanvasPaintTone = false;
     bool foundTimelineLayoutViewport = false;
     bool foundTimelineLayoutHitTest = false;
     for (const auto& finding : findings)
@@ -1205,13 +1247,17 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineCanvasCapacity = true;
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 11)
             foundTimelineCanvasStateDefaults = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 12)
+            foundTimelineCanvasFallbackTone = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 13)
+            foundTimelineCanvasPaintTone = true;
         else if (finding.path.filename() == "TimelineLayout.h" && finding.line == 1)
             foundTimelineLayoutViewport = true;
         else if (finding.path.filename() == "TimelineLayout.h" && finding.line == 2)
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 54u);
+    REQUIRE (findings.size() == 56u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1223,6 +1269,8 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasPlayhead);
     REQUIRE (foundTimelineCanvasCapacity);
     REQUIRE (foundTimelineCanvasStateDefaults);
+    REQUIRE (foundTimelineCanvasFallbackTone);
+    REQUIRE (foundTimelineCanvasPaintTone);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
     REQUIRE (mainComponentLines.size() == 41u);

@@ -65,6 +65,21 @@ struct UiTheme
         static constexpr float horizontalHotBand = 0.18f;
     };
 
+    struct Tone
+    {
+        static constexpr float timelineCanvasFallbackClipAmplitude = 0.7f;
+        static constexpr float timelineCanvasWaveformBrightness = 0.42f;
+        static constexpr float timelineCanvasCompactClipAlpha = 0.44f;
+        static constexpr float timelineCanvasCompactHighlightBrightness = 0.3f;
+        static constexpr float timelineCanvasClipFillAlpha = 0.42f;
+        static constexpr float timelineCanvasClipOutlineBrightness = 0.35f;
+        static constexpr float timelineCanvasRulerTickAlpha = 0.65f;
+        static constexpr float timelineCanvasGridLaneSeparatorAlpha = 0.7f;
+        static constexpr float timelineCanvasGridTrackTintAlpha = 0.20f;
+        static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
+        static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
+    };
+
     struct Space
     {
         static constexpr int hairline = 1;

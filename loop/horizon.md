@@ -137,7 +137,9 @@ rejects a raw `refreshInspectorControls` gain fallback with a scratch negative c
 MainComponent's shell/header separator height behind `UiTheme::Layout`; the theme audit now rejects a raw
 `paint()` shell separator geometry value with a scratch negative control. This checkpoint moved MainComponent's
 painted inspector readout fallback defaults behind `UiTheme::Layout`; the theme audit now rejects raw
-`drawInspector` readout defaults with a scratch negative control.
+`drawInspector` readout defaults with a scratch negative control. This checkpoint moved TimelineCanvas
+fallback clip amplitude and paint alpha/brightness fractions behind `UiTheme::Tone`; the theme audit now
+rejects raw TimelineCanvas paint tone defaults with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

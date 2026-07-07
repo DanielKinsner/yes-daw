@@ -103,7 +103,10 @@ inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
 
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
 {
-    const TimelineCanvasClipStyle fallback { UiTheme::Color::accentBlue(), 0.7f };
+    const TimelineCanvasClipStyle fallback {
+        UiTheme::Color::accentBlue(),
+        UiTheme::Tone::timelineCanvasFallbackClipAmplitude
+    };
     if (state.clipStyles == nullptr || state.clips == nullptr || state.clipCount <= 0)
         return fallback;
 
@@ -134,7 +137,7 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
     const int step = std::max (UiTheme::Layout::timelineCanvasWaveformMinStep,
                                area.getWidth() / UiTheme::Layout::timelineCanvasWaveformStepDivisor);
 
-    g.setColour (colour.brighter (0.42f));
+    g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
     for (int x = 0; x < area.getWidth(); x += step)
     {
         const int phase = (clipId * UiTheme::Layout::timelineCanvasWaveformClipPhaseMultiplier
@@ -159,16 +162,16 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
 
     if (area.getHeight() <= UiTheme::Layout::timelineCanvasClipCompactHeight)
     {
-        g.setColour (style.colour.withAlpha (0.44f));
+        g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasCompactClipAlpha));
         g.fillRect (area);
-        g.setColour (style.colour.brighter (0.3f));
+        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasCompactHighlightBrightness));
         g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
         return;
     }
 
-    g.setColour (style.colour.withAlpha (0.42f));
+    g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha));
     g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::md);
-    g.setColour (style.colour.brighter (0.35f));
+    g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasClipOutlineBrightness));
     g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
                             UiTheme::Radius::md,
                             UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
@@ -248,7 +251,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     UiTheme::Layout::timelineCanvasRulerLabelWidth,
                     UiTheme::Layout::timelineCanvasRulerLabelHeight,
                     juce::Justification::centred, false);
-        g.setColour (kMutedText.withAlpha (0.65f));
+        g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
         g.fillRect (x,
                     ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
@@ -287,12 +290,12 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     for (int lane = 0; lane <= laneCount; ++lane)
     {
         const int y = clipArea.getY() + lane * laneHeight;
-        g.setColour (kGrid.withAlpha (0.7f));
+        g.setColour (kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridLaneSeparatorAlpha));
         g.fillRect (clipArea.getX(), y, clipArea.getWidth(), UiTheme::Layout::timelineCanvasGridLaneSeparatorHeight);
 
         if (lane < state.trackCount && state.tracks != nullptr)
         {
-            g.setColour (state.tracks[lane].colour.withAlpha (0.20f));
+            g.setColour (state.tracks[lane].colour.withAlpha (UiTheme::Tone::timelineCanvasGridTrackTintAlpha));
             g.fillRect (clipArea.getX(),
                         y + UiTheme::Layout::timelineCanvasGridTrackTintTopInset,
                         UiTheme::Layout::timelineCanvasGridTrackTintWidth,
@@ -310,7 +313,8 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
             continue;
 
         const bool major = (juce::roundToInt (seconds) % UiTheme::Layout::timelineCanvasGridMajorStepSeconds) == 0;
-        g.setColour (major ? kGrid.brighter (0.25f) : kGrid.withAlpha (0.38f));
+        g.setColour (major ? kGrid.brighter (UiTheme::Tone::timelineCanvasGridMajorLineBrightness)
+                            : kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha));
         g.fillRect (x, clipArea.getY(), UiTheme::Layout::timelineCanvasGridLineWidth, clipArea.getHeight());
     }
 }
