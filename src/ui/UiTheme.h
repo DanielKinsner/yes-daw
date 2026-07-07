@@ -65,6 +65,9 @@ struct UiTheme
 
         static constexpr float verticalHotBand = 0.22f;
         static constexpr float horizontalHotBand = 0.18f;
+        static constexpr std::array<float, 8> mainComponentDemoTrackLevels {{
+            0.86f, 0.72f, 0.68f, 0.82f, 0.58f, 0.70f, 0.76f, 0.48f
+        }};
     };
 
     struct Tone

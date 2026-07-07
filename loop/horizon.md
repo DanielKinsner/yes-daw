@@ -147,7 +147,9 @@ a raw `kClipStyles` alpha default with a scratch negative control. This checkpoi
 timeline clip placement defaults behind `UiTheme::Layout`; the theme audit now rejects a raw `kClips`
 placement default with a scratch negative control. This checkpoint moved MainComponent's demo timeline
 section-marker placement seconds behind `UiTheme::Layout`; the theme audit now rejects a raw
-`kTimelineMarkers` placement default with a scratch negative control.
+`kTimelineMarkers` placement default with a scratch negative control. This checkpoint moved MainComponent's
+demo track-list meter defaults behind `UiTheme::Meter`; the theme audit now rejects a raw `kTracks` meter
+default with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

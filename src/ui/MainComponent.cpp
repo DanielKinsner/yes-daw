@@ -68,6 +68,8 @@ constexpr const auto& kDemoTimelineClipLengthsSeconds =
     yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLengthsSeconds;
 constexpr const auto& kDemoTimelineMarkerSeconds =
     yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineMarkerSeconds;
+constexpr const auto& kDemoTrackLevels =
+    yesdaw::ui::UiTheme::Meter::mainComponentDemoTrackLevels;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -90,14 +92,14 @@ struct MixerStrip
 };
 
 const std::array<TrackRow, 8> kTracks {{
-    { "Drums", kBlue, 0.86f },
-    { "Bass DI", kTeal, 0.72f },
-    { "Acoustic GTR", kAmber, 0.68f },
-    { "Vocal Lead", kPurple, 0.82f },
-    { "Vocal Double", kPurple.darker (0.15f), 0.58f },
-    { "Keys", kCyan, 0.70f },
-    { "Ambience", kBlue.darker (0.2f), 0.76f },
-    { "FX Risers", kPurple.darker (0.35f), 0.48f }
+    { "Drums", kBlue, kDemoTrackLevels[0] },
+    { "Bass DI", kTeal, kDemoTrackLevels[1] },
+    { "Acoustic GTR", kAmber, kDemoTrackLevels[2] },
+    { "Vocal Lead", kPurple, kDemoTrackLevels[3] },
+    { "Vocal Double", kPurple.darker (0.15f), kDemoTrackLevels[4] },
+    { "Keys", kCyan, kDemoTrackLevels[5] },
+    { "Ambience", kBlue.darker (0.2f), kDemoTrackLevels[6] },
+    { "FX Risers", kPurple.darker (0.35f), kDemoTrackLevels[7] }
 }};
 
 const std::array<yesdaw::ui::Clip, 23> kClips {{

@@ -182,7 +182,9 @@ alpha default fails the audit. This checkpoint moved MainComponent's demo timeli
 behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `kClips` placement default
 fails the audit. This checkpoint moved MainComponent's demo timeline section-marker placement seconds
 behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTimelineMarkers`
-placement default fails the audit.
+placement default fails the audit. This checkpoint moved MainComponent's demo track-list meter defaults
+behind `UiTheme::Meter` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTracks` meter default
+fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -214,7 +216,8 @@ gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan
 values, timeline snap-grid default, no-selection inspector gain refresh fallback, shell/header separator
 height, painted inspector readout fallback defaults, TimelineCanvas paint tone/default fractions, and
 MainComponent project/demo timeline clip style alpha defaults, demo timeline clip placement defaults, and
-demo timeline marker placement defaults are also tokenized; broad UI migration is not complete.
+demo timeline marker placement defaults are also tokenized; MainComponent demo track-list meter defaults
+are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
