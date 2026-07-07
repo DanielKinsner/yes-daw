@@ -141,7 +141,9 @@ painted inspector readout fallback defaults behind `UiTheme::Layout`; the theme 
 fallback clip amplitude and paint alpha/brightness fractions behind `UiTheme::Tone`; the theme audit now
 rejects raw TimelineCanvas paint tone defaults with a scratch negative control. This checkpoint moved
 MainComponent's project timeline clip style alpha behind `UiTheme::Tone`; the theme audit now rejects raw
-`rebuildTimelineClipViews()` clip-style tone defaults with a scratch negative control.
+`rebuildTimelineClipViews()` clip-style tone defaults with a scratch negative control. This checkpoint moved
+MainComponent's demo timeline clip style alpha defaults behind `UiTheme::Tone`; the theme audit now rejects
+a raw `kClipStyles` alpha default with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

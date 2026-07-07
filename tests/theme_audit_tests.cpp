@@ -352,6 +352,14 @@ bool mainComponentTimelineClipStyleUsesRawTone (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawClipStyleTone);
 }
 
+bool mainComponentDemoClipStyleUsesRawTone (std::string_view line)
+{
+    static const std::regex rawDemoClipStyleTone {
+        R"(\{\s*k[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+\s*\([^;\n]*\))?\s*,\s*[0-9]+(?:\.[0-9]+)?f?\s*\})"
+    };
+    return std::regex_search (line.begin(), line.end(), rawDemoClipStyleTone);
+}
+
 bool timelineLayoutHitTestUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawHitTestGeometry {
@@ -439,6 +447,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int timelineCanvasPaintToneDepth = 0;
         bool insideMainComponentTimelineClipStyle = false;
         int mainComponentTimelineClipStyleDepth = 0;
+        bool insideMainComponentDemoClipStyle = false;
+        int mainComponentDemoClipStyleDepth = 0;
         bool insideTimelineLayoutHitTest = false;
         int timelineLayoutHitTestDepth = 0;
         while (std::getline (in, line))
@@ -705,6 +715,16 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideMainComponentTimelineClipStyle && mainComponentTimelineClipStyleUsesRawTone (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (entry.path().filename() == "MainComponent.cpp"
+                && line.find ("kClipStyles") != std::string::npos)
+            {
+                insideMainComponentDemoClipStyle = true;
+                mainComponentDemoClipStyleDepth = 0;
+            }
+
+            if (insideMainComponentDemoClipStyle && mainComponentDemoClipStyleUsesRawTone (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (entry.path().filename() == "TimelineLayout.h"
@@ -1098,6 +1118,19 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideMainComponentTimelineClipStyle = false;
             }
 
+            if (insideMainComponentDemoClipStyle)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++mainComponentDemoClipStyleDepth;
+                    else if (c == '}')
+                        --mainComponentDemoClipStyleDepth;
+                }
+                if (mainComponentDemoClipStyleDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideMainComponentDemoClipStyle = false;
+            }
+
             if (insideTimelineLayoutHitTest)
             {
                 for (const char c : line)
@@ -1211,6 +1244,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void configureMixerControls() { mixerFader.setRange (0.0, 2.0, 0.01); mixerPan.setValue (0.0, juce::dontSendNotification); }\n";
         out << "void paint() { auto separator = top.removeFromBottom (1); }\n";
         out << "void rebuildTimelineClipViews() { timelineClipStyles.push_back ({ kPurple, 0.82f }); }\n";
+        out << "const std::array<TimelineClipStyle, 1> kClipStyles {{ { kBlue, 0.82f } }};\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1291,7 +1325,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 57u);
+    REQUIRE (findings.size() == 58u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1307,7 +1341,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasPaintTone);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 42u);
+    REQUIRE (mainComponentLines.size() == 43u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1348,4 +1382,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[39] == 48);
     REQUIRE (mainComponentLines[40] == 49);
     REQUIRE (mainComponentLines[41] == 50);
+    REQUIRE (mainComponentLines[42] == 51);
 }

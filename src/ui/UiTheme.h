@@ -8,6 +8,8 @@
 
 #include <juce_graphics/juce_graphics.h>
 
+#include <array>
+
 namespace yesdaw::ui {
 
 struct UiTheme
@@ -79,6 +81,15 @@ struct UiTheme
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
         static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
         static constexpr float mainComponentProjectClipAlpha = 0.82f;
+        static constexpr std::array<float, 23> mainComponentDemoTimelineClipAlphas {{
+            0.82f, 0.78f, 0.80f, 0.70f, 0.76f, 0.85f,
+            0.72f, 0.75f, 0.70f,
+            0.64f, 0.67f, 0.70f, 0.62f,
+            0.88f, 0.90f, 0.86f,
+            0.62f, 0.66f, 0.58f,
+            0.50f, 0.52f, 0.48f,
+            0.68f
+        }};
     };
 
     struct Space

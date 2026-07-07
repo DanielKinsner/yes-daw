@@ -58,6 +58,8 @@ const juce::Colour kRed = yesdaw::ui::UiTheme::Color::dangerRed();
 
 using TrackRow = yesdaw::ui::TimelineCanvasTrack;
 using TimelineClipStyle = yesdaw::ui::TimelineCanvasClipStyle;
+constexpr const auto& kDemoTimelineClipAlphas =
+    yesdaw::ui::UiTheme::Tone::mainComponentDemoTimelineClipAlphas;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -103,16 +105,21 @@ const std::array<yesdaw::ui::Clip, 23> kClips {{
 }};
 
 const std::array<TimelineClipStyle, 23> kClipStyles {{
-    { kBlue, 0.82f }, { kBlue, 0.78f }, { kBlue, 0.80f },
-    { kBlue, 0.70f }, { kBlue, 0.76f }, { kBlue, 0.85f },
-    { kTeal, 0.72f }, { kTeal, 0.75f }, { kTeal, 0.70f },
-    { kAmber, 0.64f }, { kAmber, 0.67f }, { kAmber, 0.70f },
-    { kAmber, 0.62f },
-    { kPurple, 0.88f }, { kPurple, 0.90f }, { kPurple, 0.86f },
-    { kPurple.darker (0.2f), 0.62f }, { kPurple.darker (0.2f), 0.66f },
-    { kPurple.darker (0.2f), 0.58f },
-    { kCyan, 0.50f }, { kCyan, 0.52f }, { kCyan, 0.48f },
-    { kBlue.darker (0.35f), 0.68f }
+    { kBlue, kDemoTimelineClipAlphas[0] }, { kBlue, kDemoTimelineClipAlphas[1] },
+    { kBlue, kDemoTimelineClipAlphas[2] }, { kBlue, kDemoTimelineClipAlphas[3] },
+    { kBlue, kDemoTimelineClipAlphas[4] }, { kBlue, kDemoTimelineClipAlphas[5] },
+    { kTeal, kDemoTimelineClipAlphas[6] }, { kTeal, kDemoTimelineClipAlphas[7] },
+    { kTeal, kDemoTimelineClipAlphas[8] },
+    { kAmber, kDemoTimelineClipAlphas[9] }, { kAmber, kDemoTimelineClipAlphas[10] },
+    { kAmber, kDemoTimelineClipAlphas[11] }, { kAmber, kDemoTimelineClipAlphas[12] },
+    { kPurple, kDemoTimelineClipAlphas[13] }, { kPurple, kDemoTimelineClipAlphas[14] },
+    { kPurple, kDemoTimelineClipAlphas[15] },
+    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[16] },
+    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[17] },
+    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[18] },
+    { kCyan, kDemoTimelineClipAlphas[19] }, { kCyan, kDemoTimelineClipAlphas[20] },
+    { kCyan, kDemoTimelineClipAlphas[21] },
+    { kBlue.darker (0.35f), kDemoTimelineClipAlphas[22] }
 }};
 
 const std::array<yesdaw::ui::TimelineMarker, 5> kTimelineMarkers {{
