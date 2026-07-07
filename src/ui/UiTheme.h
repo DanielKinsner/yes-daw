@@ -247,6 +247,14 @@ struct UiTheme
         static constexpr int mixerFaderMinHeight = 72;
         static constexpr int mixerFaderBottomReserve = 18;
         static constexpr int mixerFaderWidth = 42;
+        static constexpr double mixerFaderSliderMin = 0.0;
+        static constexpr double mixerFaderSliderMax = 2.0;
+        static constexpr double mixerFaderSliderInterval = 0.01;
+        static constexpr double mixerFaderSliderDefault = 1.0;
+        static constexpr double mixerPanSliderMin = -1.0;
+        static constexpr double mixerPanSliderMax = 1.0;
+        static constexpr double mixerPanSliderInterval = 0.01;
+        static constexpr double mixerPanSliderDefault = 0.0;
         static constexpr int mixerToolsInsetX = 8;
         static constexpr int mixerToolsInsetY = 0;
         static constexpr int mixerToolsSendsLabelTop = 52;

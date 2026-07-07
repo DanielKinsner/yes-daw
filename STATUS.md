@@ -161,7 +161,9 @@ member initializer fails the audit. This checkpoint moved MainComponent inspecto
 clamp, and default seconds behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so scratch raw
 `configureInspectorFadeSlider` defaults fail the audit. This checkpoint moved MainComponent inspector
 gain-slider range, step, and default behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so
-scratch raw `inspectorGain.setRange`/`setValue` defaults fail the audit.
+scratch raw `inspectorGain.setRange`/`setValue` defaults fail the audit. This checkpoint moved MainComponent
+mixer fader/pan slider ranges, steps, and fallback defaults behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so scratch raw `mixerFader`/`mixerPan` slider defaults fail the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -189,7 +191,8 @@ MainComponent timeline-state default span/playhead/scroll geometry and timeline 
 are also tokenized; TimelineCanvas toolbar reduced-inset geometry and TimelineCanvas state default
 total/playhead seconds are also tokenized; MainComponent's timeline total-seconds backing-field default is
 also tokenized; MainComponent inspector fade-slider range/step/clamp/default seconds and inspector
-gain-slider range/step/default are also tokenized; broad UI migration is not complete.
+gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan slider range/step/default
+values are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

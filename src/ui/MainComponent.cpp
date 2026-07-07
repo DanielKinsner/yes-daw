@@ -1201,8 +1201,11 @@ private:
                                     false,
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        mixerFader.setRange (0.0, 2.0, 0.01);
-        mixerFader.setValue (1.0, juce::dontSendNotification);
+        mixerFader.setRange (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMin,
+                             yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax,
+                             yesdaw::ui::UiTheme::Layout::mixerFaderSliderInterval);
+        mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
+                             juce::dontSendNotification);
         mixerFader.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerFader.isEnabled())
                 return;
@@ -1219,8 +1222,11 @@ private:
                                   false,
                                   yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                   yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        mixerPan.setRange (-1.0, 1.0, 0.01);
-        mixerPan.setValue (0.0, juce::dontSendNotification);
+        mixerPan.setRange (yesdaw::ui::UiTheme::Layout::mixerPanSliderMin,
+                           yesdaw::ui::UiTheme::Layout::mixerPanSliderMax,
+                           yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval);
+        mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
+                           juce::dontSendNotification);
         mixerPan.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerPan.isEnabled())
                 return;
@@ -1523,8 +1529,10 @@ private:
         else
         {
             mixerTrackSelect.setButtonText ("Audio 1");
-            mixerFader.setValue (1.0, juce::dontSendNotification);
-            mixerPan.setValue (0.0, juce::dontSendNotification);
+            mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
+                                 juce::dontSendNotification);
+            mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
+                               juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
         }

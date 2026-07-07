@@ -240,6 +240,14 @@ bool inspectorGainSliderDefaultsUseRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawGainSliderDefault);
 }
 
+bool mixerSliderDefaultsUseRawGeometry (std::string_view line)
+{
+    static const std::regex rawMixerSliderDefault {
+        R"(\bmixer(?:Fader|Pan)\.set(?:Range|Value)\s*\([^;\n]*\b-?[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawMixerSliderDefault);
+}
+
 bool timelineCanvasToolbarUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawToolbarGeometry {
@@ -402,7 +410,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawTimelineCanvasCapacity)
                 || std::regex_search (line, rawTimelineTotalMemberDefault)
                 || componentWindowUsesRawGeometry (line)
-                || sliderTextBoxUsesRawGeometry (line))
+                || sliderTextBoxUsesRawGeometry (line)
+                || mixerSliderDefaultsUseRawGeometry (line))
             {
                 findings.push_back ({ entry.path(), lineNumber, line });
             }
@@ -1070,6 +1079,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "return std::max (0.0, seconds);\n";
         out << "}\n";
         out << "double timelineTotalSeconds = 98.0;\n";
+        out << "void configureMixerControls() { mixerFader.setRange (0.0, 2.0, 0.01); mixerPan.setValue (0.0, juce::dontSendNotification); }\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -1142,7 +1152,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 49u);
+    REQUIRE (findings.size() == 50u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1156,7 +1166,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 36u);
+    REQUIRE (mainComponentLines.size() == 37u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1191,4 +1201,5 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[33] == 41);
     REQUIRE (mainComponentLines[34] == 42);
     REQUIRE (mainComponentLines[35] == 44);
+    REQUIRE (mainComponentLines[36] == 45);
 }
