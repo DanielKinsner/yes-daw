@@ -208,6 +208,14 @@ bool timelineClipGainGestureUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawGainGestureGeometry);
 }
 
+bool timelineCoordinateConversionUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawCoordinateConversionGeometry {
+        R"(\bstd::max\s*\(\s*(?:0\.0|1\.0)\s*,\s*(?:geometry\.viewport\.pixelsPerSecond|seconds|drag\.startSeconds))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawCoordinateConversionGeometry);
+}
+
 bool sliderTextBoxUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawSliderTextBoxGeometry {
@@ -330,6 +338,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
         int panelChromeLayoutDepth = 0;
         bool insideTimelineClipGainGesture = false;
         int timelineClipGainGestureDepth = 0;
+        bool insideTimelineCoordinateConversion = false;
+        int timelineCoordinateConversionDepth = 0;
         bool insideTimelineCanvasToolbar = false;
         int timelineCanvasToolbarDepth = 0;
         bool insideTimelineCanvasOutline = false;
@@ -459,6 +469,17 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             }
 
             if (insideTimelineClipGainGesture && timelineClipGainGestureUsesRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
+            if (line.find ("void mouseDrag") != std::string::npos
+                || line.find ("timelineSecondsAt") != std::string::npos
+                || line.find ("dragModeForPointer") != std::string::npos)
+            {
+                insideTimelineCoordinateConversion = true;
+                timelineCoordinateConversionDepth = 0;
+            }
+
+            if (insideTimelineCoordinateConversion && timelineCoordinateConversionUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
             if (line.find ("void drawToolbar") != std::string::npos)
@@ -732,6 +753,20 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                     insideTimelineClipGainGesture = false;
             }
 
+            if (insideTimelineCoordinateConversion)
+            {
+                for (const char c : line)
+                {
+                    if (c == '{')
+                        ++timelineCoordinateConversionDepth;
+                    else if (c == '}')
+                        --timelineCoordinateConversionDepth;
+                }
+
+                if (timelineCoordinateConversionDepth <= 0 && line.find ('}') != std::string::npos)
+                    insideTimelineCoordinateConversion = false;
+            }
+
             if (insideTimelineCanvasToolbar)
             {
                 for (const char c : line)
@@ -921,6 +956,10 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void slider(juce::Slider& s) { s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0); }\n";
         out << "void drawToolbar(juce::Rectangle<int> toolbar) { auto tools = toolbar.withTrimmedLeft (16).withWidth (190); }\n";
         out << "void makeTimelineStateDefaults() { state.totalSeconds = 98.0; state.playheadSeconds = 32.0; state.viewport.scrollSeconds = 0.0; state.viewport.pixelsPerSecond = width / std::max (1.0, state.totalSeconds); }\n";
+        out << "void timelineSecondsAt() {\n";
+        out << "const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);\n";
+        out << "return std::max (0.0, seconds);\n";
+        out << "}\n";
         out.close();
 
         std::ofstream timelineOut (scratch / "TimelineCanvas.h");
@@ -985,7 +1024,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 40u);
+    REQUIRE (findings.size() == 42u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -997,7 +1036,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasCapacity);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 29u);
+    REQUIRE (mainComponentLines.size() == 31u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1025,4 +1064,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[26] == 29);
     REQUIRE (mainComponentLines[27] == 30);
     REQUIRE (mainComponentLines[28] == 31);
+    REQUIRE (mainComponentLines[29] == 33);
+    REQUIRE (mainComponentLines[30] == 34);
 }

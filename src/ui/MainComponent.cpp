@@ -443,8 +443,12 @@ public:
 
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
-        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
-        const double nextStartSeconds = std::max (0.0, drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        const double nextStartSeconds = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinateSecondsFloor,
+            drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
 
         if (onClipMoved)
             onClipMoved (drag.layoutClipId, nextStartSeconds, drag.mode == TimelineDragMode::SnapMove);
@@ -512,10 +516,12 @@ private:
         if (! geometry.clipArea.contains (position))
             return std::nullopt;
 
-        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
         const double seconds = geometry.viewport.scrollSeconds
                              + static_cast<double> (position.x - geometry.clipArea.getX()) / pixelsPerSecond;
-        return std::max (0.0, seconds);
+        return std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinateSecondsFloor, seconds);
     }
 
     [[nodiscard]] static TimelineDragMode dragModeForPointer (const yesdaw::ui::TimelineCanvasState& state,
@@ -529,7 +535,9 @@ private:
             return TimelineDragMode::Move;
 
         const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
-        const double pixelsPerSecond = std::max (1.0, geometry.viewport.pixelsPerSecond);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
         const double clipLeftX = static_cast<double> (geometry.clipArea.getX())
                                + (clip->startSeconds - geometry.viewport.scrollSeconds) * pixelsPerSecond;
         const double clipRightX = static_cast<double> (geometry.clipArea.getX())

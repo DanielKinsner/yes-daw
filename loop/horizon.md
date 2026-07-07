@@ -114,7 +114,10 @@ negative control. This checkpoint moved TimelineLayout default viewport and hit-
 behind `UiTheme::Layout`; the theme audit now rejects raw `TimelineLayout.h` viewport/hit-test geometry
 with a scratch negative control. This checkpoint moved MainComponent timeline-state default span, playhead,
 scroll, minimum visible seconds, and project end-padding geometry behind `UiTheme::Layout`; the theme audit
-now rejects raw `makeTimelineState()` defaults with a scratch negative control.
+now rejects raw `makeTimelineState()` defaults with a scratch negative control. This checkpoint moved
+MainComponent timeline coordinate-conversion floors for drag move, split-position, and clip-edge hit math
+behind `UiTheme::Layout`; the theme audit now rejects raw coordinate-conversion floors with a scratch
+negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent
