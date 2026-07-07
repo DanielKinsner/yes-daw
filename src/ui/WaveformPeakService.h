@@ -52,6 +52,9 @@ public:
 
     void requestBuild (const engine::Asset& asset, std::vector<float> channelMajorSamples)
     {
+        if (reloadAndPublish (asset.contentHash))
+            return;
+
         {
             std::lock_guard lock { queueMutex_ };
             jobs_.push_back (Job { asset, std::move (channelMajorSamples) });
@@ -118,6 +121,21 @@ private:
     static std::string keyForHash (const engine::AssetContentHash& hash)
     {
         return persistence::detail::peakHexBytes (hash.bytes);
+    }
+
+    [[nodiscard]] bool reloadAndPublish (const engine::AssetContentHash& hash)
+    {
+        auto loaded = persistence::readWaveformPeakCache (bundlePath_, hash);
+        if (! loaded.ok())
+            return false;
+
+        auto ready = std::make_shared<const persistence::WaveformPeakCache> (std::move (loaded.cache));
+        {
+            std::lock_guard lock { resultsMutex_ };
+            ready_[keyForHash (hash)] = ready;
+        }
+
+        return true;
     }
 
     void stop()

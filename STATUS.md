@@ -203,9 +203,19 @@ H16 CP2a added header-only `src/ui/WaveformPeakService.h` with one worker thread
 build/publish and flags caller-thread paint builds. Local gates under `vcvars64.bat`: focused
 `ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; after full
 `cmake --build --preset ci`, full `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP2b extended `WaveformPeakService::requestBuild()` so an existing `peaks/<hash>.ypeaks` reloads
+and publishes without queueing a worker rebuild or incrementing `buildCount()`. `YesDawWaveformCacheCheck`
+now proves the reload path with a pre-written cache, byte-identical file preservation, equality-identical
+published cache, and `buildCount() == 0`; the same-commit delete-file negative control removes the peak
+file before request and proves the service rebuilds once. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawWaveformCacheCheck`; focused
+`ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; `git diff --check`;
+full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**. An
+earlier full run hit a transient `YesDawTimelineGpuCheck` timing miss, then the isolated GPU gate passed
+**1/1** and the rerun full suite passed **311/311**.
 
-**Now:** H16 CP2a (service skeleton + off-thread waveform cache gate) is complete locally. Stop at this
-checkpoint after commit/push and remote CI green; do not start CP2b in this thread.
+**Now:** H16 CP2b (disk reload path + delete-file negative control) is complete locally. Stop at this
+checkpoint after commit/push and remote CI green; do not start CP2c in this thread.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -246,11 +256,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** After this CP2a commit is pushed and remote CI is green, spawn exactly one successor for
-**H16 CP2b — disk reload path** from
+**Next:** After this CP2b commit is pushed and remote CI is green, spawn exactly one successor for
+**H16 CP2c — channel-major helper + UiAppModel wiring** from
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
-CP2b extends `requestBuild()` to reload an existing `.ypeaks` without rebuilding and extends
-`YesDawWaveformCacheCheck` with build-count-zero reload proof plus the delete-file negative control.
+CP2c adds the pure `interleavedToChannelMajor` helper, unit-checks exact deinterleave/round-trip behavior,
+and wires `UiAppModel` to enqueue waveform cache builds on import/open without starting CP2d paint reads.
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
 literal in real chrome.
 

@@ -5,7 +5,9 @@
 
 #include <chrono>
 #include <cstdint>
+#include <fstream>
 #include <filesystem>
+#include <iterator>
 #include <memory>
 #include <span>
 #include <thread>
@@ -18,6 +20,8 @@ using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::SampleRate;
 using yesdaw::persistence::buildWaveformPeakCache;
+using yesdaw::persistence::waveformPeakCachePathForHash;
+using yesdaw::persistence::writeWaveformPeakCache;
 using yesdaw::ui::WaveformPeakService;
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
@@ -52,6 +56,23 @@ std::vector<float> makeChannelMajorSamples()
         -1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 0.75f, -0.25f, 0.25f,
         0.25f, -0.25f, 0.5f, -0.5f, 0.75f, -0.75f, 1.0f, -1.0f,
     };
+}
+
+std::vector<float> makeDifferentChannelMajorSamples()
+{
+    return {
+        0.125f, 0.25f, 0.375f, 0.5f, 0.625f, 0.75f, 0.875f, 1.0f,
+        -0.125f, -0.25f, -0.375f, -0.5f, -0.625f, -0.75f, -0.875f, -1.0f,
+    };
+}
+
+std::vector<std::uint8_t> readFileBytes (const std::filesystem::path& path)
+{
+    std::ifstream input (path, std::ios::binary);
+    REQUIRE (input);
+
+    return std::vector<std::uint8_t> (std::istreambuf_iterator<char> (input),
+                                      std::istreambuf_iterator<char>());
 }
 
 std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> waitForReady (
@@ -100,6 +121,89 @@ TEST_CASE ("H16 CP2a waveform service builds and publishes on its worker thread"
     REQUIRE (service.lastBuildThreadId() == service.workerThreadId());
     REQUIRE (service.lastBuildThreadId() != callerThread);
     REQUIRE_FALSE (service.builtOnForbiddenThread());
+
+    std::filesystem::remove_all (bundlePath);
+}
+
+TEST_CASE ("H16 CP2b waveform service reloads existing peak files without rebuilding", "[ui][waveform-cache]")
+{
+    const auto bundlePath = std::filesystem::temp_directory_path()
+                          / "yesdaw-waveform-cache-service-reload";
+    std::filesystem::remove_all (bundlePath);
+
+    const Asset asset = makeAsset();
+    const std::vector<float> prewrittenSamples = makeChannelMajorSamples();
+    const auto prewritten =
+        buildWaveformPeakCache (asset, std::span<const float> (prewrittenSamples.data(), prewrittenSamples.size()));
+    INFO (prewritten.message);
+    REQUIRE (prewritten.ok());
+
+    const auto writeResult = writeWaveformPeakCache (bundlePath, prewritten.cache);
+    INFO (writeResult.message);
+    REQUIRE (writeResult.ok());
+
+    const auto peakPath = waveformPeakCachePathForHash (bundlePath, asset.contentHash);
+    const auto prewrittenBytes = readFileBytes (peakPath);
+
+    const std::vector<float> requestSamples = makeDifferentChannelMajorSamples();
+    const auto rebuilt =
+        buildWaveformPeakCache (asset, std::span<const float> (requestSamples.data(), requestSamples.size()));
+    INFO (rebuilt.message);
+    REQUIRE (rebuilt.ok());
+    REQUIRE_FALSE (rebuilt.cache == prewritten.cache);
+
+    WaveformPeakService service;
+    service.start (bundlePath);
+    service.requestBuild (asset, requestSamples);
+
+    const auto ready = waitForReady (service, asset.contentHash);
+    REQUIRE (ready != nullptr);
+    REQUIRE (*ready == prewritten.cache);
+    REQUIRE (readFileBytes (peakPath) == prewrittenBytes);
+    REQUIRE (service.buildCount() == 0u);
+    REQUIRE (service.lastBuildThreadId() == std::thread::id {});
+
+    std::filesystem::remove_all (bundlePath);
+}
+
+TEST_CASE ("H16 CP2b waveform service delete-file control rebuilds once", "[ui][waveform-cache]")
+{
+    const auto bundlePath = std::filesystem::temp_directory_path()
+                          / "yesdaw-waveform-cache-service-delete-control";
+    std::filesystem::remove_all (bundlePath);
+
+    const Asset asset = makeAsset();
+    const std::vector<float> prewrittenSamples = makeChannelMajorSamples();
+    const auto prewritten =
+        buildWaveformPeakCache (asset, std::span<const float> (prewrittenSamples.data(), prewrittenSamples.size()));
+    INFO (prewritten.message);
+    REQUIRE (prewritten.ok());
+
+    const auto writeResult = writeWaveformPeakCache (bundlePath, prewritten.cache);
+    INFO (writeResult.message);
+    REQUIRE (writeResult.ok());
+
+    const auto peakPath = waveformPeakCachePathForHash (bundlePath, asset.contentHash);
+    std::error_code ec;
+    REQUIRE (std::filesystem::remove (peakPath, ec));
+    REQUIRE_FALSE (ec);
+
+    const std::vector<float> requestSamples = makeDifferentChannelMajorSamples();
+    const auto rebuilt =
+        buildWaveformPeakCache (asset, std::span<const float> (requestSamples.data(), requestSamples.size()));
+    INFO (rebuilt.message);
+    REQUIRE (rebuilt.ok());
+    REQUIRE_FALSE (rebuilt.cache == prewritten.cache);
+
+    WaveformPeakService service;
+    service.start (bundlePath);
+    service.requestBuild (asset, requestSamples);
+
+    const auto ready = waitForReady (service, asset.contentHash);
+    REQUIRE (ready != nullptr);
+    REQUIRE (*ready == rebuilt.cache);
+    REQUIRE (service.buildCount() == 1u);
+    REQUIRE (service.lastBuildThreadId() == service.workerThreadId());
 
     std::filesystem::remove_all (bundlePath);
 }
