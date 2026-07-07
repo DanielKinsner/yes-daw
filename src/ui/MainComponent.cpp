@@ -2141,7 +2141,8 @@ private:
         g.setColour (kText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::title)));
         const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
-        const float gainValue = selectedClip != nullptr ? selectedClip->gain : 1.0f;
+        const float gainValue = selectedClip != nullptr ? selectedClip->gain
+                                                        : yesdaw::ui::UiTheme::Layout::inspectorGainReadoutDefault;
         g.drawText (juce::String (gainValue, 2) + "x",
                     gain.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutLeftInset)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutHeight),
@@ -2151,9 +2152,15 @@ private:
         auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
         drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
-        const double fadeInSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeIn) / sampleRate : 0.0;
-        const double fadeOutSeconds = selectedClip != nullptr ? static_cast<double> (selectedClip->fadeOut) / sampleRate : 0.0;
+        const double sampleRate = appModel.project().sampleRate.isValid()
+                                      ? appModel.project().sampleRate.hz
+                                      : yesdaw::ui::UiTheme::Layout::inspectorReadoutFallbackSampleRate;
+        const double fadeInSeconds = selectedClip != nullptr
+                                         ? static_cast<double> (selectedClip->fadeIn) / sampleRate
+                                         : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
+        const double fadeOutSeconds = selectedClip != nullptr
+                                          ? static_cast<double> (selectedClip->fadeOut) / sampleRate
+                                          : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
         for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
                                    juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
         {

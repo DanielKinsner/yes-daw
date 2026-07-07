@@ -120,6 +120,14 @@ bool inspectorPanelLayoutUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawInspectorGeometry);
 }
 
+bool inspectorPaintDefaultsUseRawGeometry (std::string_view line)
+{
+    static const std::regex rawInspectorPaintDefault {
+        R"(\b(?:gainValue|sampleRate|fade(?:In|Out)Seconds)\s*=.*\?\s*[^:]+:\s*-?[0-9]+(?:\.[0-9]+)?f?\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawInspectorPaintDefault);
+}
+
 bool mixerControlLayoutUsesRawSpacing (std::string_view line)
 {
     static const std::regex rawMixerSpacing {
@@ -684,6 +692,9 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideInspectorPanelLayout && inspectorPanelLayoutUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
+            if (insideInspectorPanelLayout && inspectorPaintDefaultsUseRawGeometry (line))
+                findings.push_back ({ entry.path(), lineNumber, line });
+
             if (insideInspectorControlLayout)
             {
                 for (const char c : line)
@@ -1095,6 +1106,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void drawPianoRollExpressionPoint() { g.fillEllipse (x - 2.5f, y - 2.5f, 5.0f, 5.0f); }\n";
         out << "void drawPianoRollExpressionStroke() { g.strokePath (path, juce::PathStrokeType (1.5f)); }\n";
         out << "void drawInspector(juce::Rectangle<int> area) { auto tabs = area.removeFromTop (40); }\n";
+        out << "void drawInspectorDefaults() { const float gainValue = selected ? clip->gain : 1.0f; const double sampleRate = valid ? hz : 48000.0; const double fadeInSeconds = selected ? fadeIn / sampleRate : 0.0; }\n";
         out << "void resized() { button.setBounds (16, 50, 44, 26); }\n";
         out << "void makeTimelineState() { auto width = juce::jmax (1, timelineInput.getWidth() - 26); }\n";
         out << "void fillPanel(juce::Graphics& g, juce::Rectangle<int> area) { g.drawRoundedRectangle (area.toFloat().reduced (0.5f), radius, 1.0f); }\n";
@@ -1199,7 +1211,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 53u);
+    REQUIRE (findings.size() == 54u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1213,7 +1225,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 40u);
+    REQUIRE (mainComponentLines.size() == 41u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1235,21 +1247,22 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[18] == 19);
     REQUIRE (mainComponentLines[19] == 20);
     REQUIRE (mainComponentLines[20] == 21);
-    REQUIRE (mainComponentLines[22] == 23);
+    REQUIRE (mainComponentLines[21] == 22);
     REQUIRE (mainComponentLines[23] == 24);
-    REQUIRE (mainComponentLines[25] == 27);
+    REQUIRE (mainComponentLines[24] == 25);
     REQUIRE (mainComponentLines[26] == 28);
-    REQUIRE (mainComponentLines[27] == 30);
-    REQUIRE (mainComponentLines[28] == 32);
+    REQUIRE (mainComponentLines[27] == 29);
+    REQUIRE (mainComponentLines[28] == 31);
     REQUIRE (mainComponentLines[29] == 33);
-    REQUIRE (mainComponentLines[30] == 36);
+    REQUIRE (mainComponentLines[30] == 34);
     REQUIRE (mainComponentLines[31] == 37);
-    REQUIRE (mainComponentLines[32] == 39);
+    REQUIRE (mainComponentLines[32] == 38);
     REQUIRE (mainComponentLines[33] == 40);
     REQUIRE (mainComponentLines[34] == 41);
-    REQUIRE (mainComponentLines[35] == 43);
+    REQUIRE (mainComponentLines[35] == 42);
     REQUIRE (mainComponentLines[36] == 44);
-    REQUIRE (mainComponentLines[37] == 46);
+    REQUIRE (mainComponentLines[37] == 45);
     REQUIRE (mainComponentLines[38] == 47);
     REQUIRE (mainComponentLines[39] == 48);
+    REQUIRE (mainComponentLines[40] == 49);
 }

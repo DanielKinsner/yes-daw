@@ -204,6 +204,8 @@ struct UiTheme
         static constexpr double inspectorGainSliderMax = 2.0;
         static constexpr double inspectorGainSliderInterval = 0.01;
         static constexpr double inspectorGainSliderDefault = 1.0;
+        static constexpr float inspectorGainReadoutDefault = 1.0f;
+        static constexpr double inspectorReadoutFallbackSampleRate = 48000.0;
         static constexpr int inspectorFadesSectionTop = 214;
         static constexpr int inspectorFadesSectionHeight = 94;
         static constexpr int inspectorFadesControlTopInset = 22;
@@ -215,6 +217,7 @@ struct UiTheme
         static constexpr double inspectorFadeSliderMaxSeconds = 1.0;
         static constexpr double inspectorFadeSliderIntervalSeconds = 0.001;
         static constexpr double inspectorFadeSliderDefaultSeconds = 0.0;
+        static constexpr double inspectorFadeReadoutDefaultSeconds = inspectorFadeSliderDefaultSeconds;
         static constexpr int inspectorFadeRowHeight = 32;
         static constexpr int inspectorFadeRowInsetX = 0;
         static constexpr int inspectorFadeRowInsetY = 3;
