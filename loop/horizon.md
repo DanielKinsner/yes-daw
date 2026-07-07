@@ -130,6 +130,8 @@ MainComponent inspector gain-slider range, step, and default behind `UiTheme::La
 rejects raw `inspectorGain.setRange`/`setValue` defaults with a scratch negative control. This checkpoint
 moved MainComponent mixer fader/pan slider ranges, steps, and fallback defaults behind `UiTheme::Layout`;
 the theme audit now rejects raw `mixerFader`/`mixerPan` slider defaults with a scratch negative control.
+This checkpoint moved MainComponent's timeline snap-grid default behind `UiTheme::Layout`; the theme audit
+now rejects a raw `kTimelineSnapGridTicks` default with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

@@ -216,6 +216,14 @@ bool timelineCoordinateConversionUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawCoordinateConversionGeometry);
 }
 
+bool timelineSnapGridUsesRawDefault (std::string_view line)
+{
+    static const std::regex rawTimelineSnapGrid {
+        R"(\bconstexpr\s+(?:[A-Za-z_:][A-Za-z0-9_:]*\s+)*kTimelineSnapGridTicks\s*=\s*[0-9]+\b)"
+    };
+    return std::regex_search (line.begin(), line.end(), rawTimelineSnapGrid);
+}
+
 bool sliderTextBoxUsesRawGeometry (std::string_view line)
 {
     static const std::regex rawSliderTextBoxGeometry {
@@ -410,6 +418,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawTimelineCanvasCapacity)
                 || std::regex_search (line, rawTimelineTotalMemberDefault)
                 || componentWindowUsesRawGeometry (line)
+                || timelineSnapGridUsesRawDefault (line)
                 || sliderTextBoxUsesRawGeometry (line)
                 || mixerSliderDefaultsUseRawGeometry (line))
             {
@@ -1058,6 +1067,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "void mouseUp() { if (std::abs (deltaX) < 2) return; }\n";
         out << "void window() { setSize (1536, 960); }\n";
         out << "constexpr int kPianoRollLowKey = 48;\n";
+        out << "constexpr yesdaw::engine::Tick kTimelineSnapGridTicks = 512;\n";
         out << "void drawPianoRollGrid() { for (Tick tick = 0; tick <= len; tick += 512) { if ((tick % 2048) == 0) {} } }\n";
         out << "void adjustTimelineClipGainByLayoutId() {\n";
         out << "constexpr float kGainPerPixel = 0.01f;\n";
@@ -1152,7 +1162,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineLayoutHitTest = true;
     }
 
-    REQUIRE (findings.size() == 50u);
+    REQUIRE (findings.size() == 51u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasGeometryLaneFloor);
@@ -1166,7 +1176,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (foundTimelineCanvasStateDefaults);
     REQUIRE (foundTimelineLayoutViewport);
     REQUIRE (foundTimelineLayoutHitTest);
-    REQUIRE (mainComponentLines.size() == 37u);
+    REQUIRE (mainComponentLines.size() == 38u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);
     REQUIRE (mainComponentLines[2] == 3);
@@ -1189,17 +1199,18 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[19] == 20);
     REQUIRE (mainComponentLines[20] == 21);
     REQUIRE (mainComponentLines[22] == 23);
-    REQUIRE (mainComponentLines[24] == 26);
+    REQUIRE (mainComponentLines[23] == 24);
     REQUIRE (mainComponentLines[25] == 27);
-    REQUIRE (mainComponentLines[26] == 29);
-    REQUIRE (mainComponentLines[27] == 31);
+    REQUIRE (mainComponentLines[26] == 28);
+    REQUIRE (mainComponentLines[27] == 30);
     REQUIRE (mainComponentLines[28] == 32);
-    REQUIRE (mainComponentLines[29] == 35);
+    REQUIRE (mainComponentLines[29] == 33);
     REQUIRE (mainComponentLines[30] == 36);
-    REQUIRE (mainComponentLines[31] == 38);
+    REQUIRE (mainComponentLines[31] == 37);
     REQUIRE (mainComponentLines[32] == 39);
-    REQUIRE (mainComponentLines[33] == 41);
+    REQUIRE (mainComponentLines[33] == 40);
     REQUIRE (mainComponentLines[34] == 42);
-    REQUIRE (mainComponentLines[35] == 44);
+    REQUIRE (mainComponentLines[35] == 43);
     REQUIRE (mainComponentLines[36] == 45);
+    REQUIRE (mainComponentLines[37] == 46);
 }
