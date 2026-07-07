@@ -1117,7 +1117,10 @@ private:
     {
         configureActionComponent (inspectorGain, yesdaw::ui::UiActionId::TimelineClipSetGain, "Clip gain");
         inspectorGain.setSliderStyle (juce::Slider::LinearHorizontal);
-        inspectorGain.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        inspectorGain.setTextBoxStyle (juce::Slider::NoTextBox,
+                                       false,
+                                       yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                       yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
         inspectorGain.setRange (0.0, 2.0, 0.01);
         inspectorGain.setValue (1.0, juce::dontSendNotification);
         inspectorGain.onValueChange = [this] {
@@ -1156,7 +1159,10 @@ private:
         slider.setTitle (name);
         slider.setTooltip (componentId);
         slider.setSliderStyle (juce::Slider::LinearHorizontal);
-        slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        slider.setTextBoxStyle (juce::Slider::NoTextBox,
+                                false,
+                                yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
         slider.setRange (0.0, kMaxInspectorFadeSeconds, 0.001);
         slider.setValue (0.0, juce::dontSendNotification);
     }
@@ -1178,7 +1184,10 @@ private:
 
         configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
         mixerFader.setSliderStyle (juce::Slider::LinearVertical);
-        mixerFader.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        mixerFader.setTextBoxStyle (juce::Slider::NoTextBox,
+                                    false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
         mixerFader.setRange (0.0, 2.0, 0.01);
         mixerFader.setValue (1.0, juce::dontSendNotification);
         mixerFader.onValueChange = [this] {
@@ -1193,7 +1202,10 @@ private:
 
         configureActionComponent (mixerPan, yesdaw::ui::UiActionId::MixerTargetSetPan, "Mixer pan");
         mixerPan.setSliderStyle (juce::Slider::LinearHorizontal);
-        mixerPan.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        mixerPan.setTextBoxStyle (juce::Slider::NoTextBox,
+                                  false,
+                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
         mixerPan.setRange (-1.0, 1.0, 0.01);
         mixerPan.setValue (0.0, juce::dontSendNotification);
         mixerPan.onValueChange = [this] {

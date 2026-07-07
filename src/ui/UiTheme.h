@@ -215,6 +215,8 @@ struct UiTheme
         static constexpr int inspectorFxRowInsetY = 2;
         static constexpr int inspectorFxTextInsetX = 10;
         static constexpr int inspectorFxTextInsetY = 0;
+        static constexpr int hiddenSliderTextBoxWidth = 0;
+        static constexpr int hiddenSliderTextBoxHeight = 0;
 
         static constexpr int mixerToolsWidth = 120;
         static constexpr int mixerStripMinWidth = 84;

@@ -207,6 +207,14 @@ bool timelineClipGainGestureUsesRawGeometry (std::string_view line)
     return std::regex_search (line.begin(), line.end(), rawGainGestureGeometry);
 }
 
+bool sliderTextBoxUsesRawGeometry (std::string_view line)
+{
+    static const std::regex rawSliderTextBoxGeometry {
+        R"(\bsetTextBoxStyle\s*\([^;\n]*,\s*[0-9]+\s*,\s*[0-9]+\s*\))"
+    };
+    return std::regex_search (line.begin(), line.end(), rawSliderTextBoxGeometry);
+}
+
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
     const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
@@ -268,7 +276,8 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawShellSpacing)
                 || std::regex_search (line, rawInputDragThreshold)
                 || std::regex_search (line, rawPianoRollKeyRange)
-                || componentWindowUsesRawGeometry (line))
+                || componentWindowUsesRawGeometry (line)
+                || sliderTextBoxUsesRawGeometry (line))
             {
                 findings.push_back ({ entry.path(), lineNumber, line });
             }
@@ -633,12 +642,13 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         out << "constexpr float kGainPerPixel = 0.01f;\n";
         out << "constexpr float kMaxGestureGain = 4.0f;\n";
         out << "}\n";
+        out << "void slider(juce::Slider& s) { s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0); }\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
     std::filesystem::remove_all (scratch);
 
-    REQUIRE (findings.size() == 26u);
+    REQUIRE (findings.size() == 27u);
     REQUIRE (findings.front().line == 1);
     REQUIRE (findings[1].line == 2);
     REQUIRE (findings[2].line == 3);
@@ -662,5 +672,6 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (findings[20].line == 21);
     REQUIRE (findings[22].line == 23);
     REQUIRE (findings[24].line == 26);
-    REQUIRE (findings.back().line == 27);
+    REQUIRE (findings[25].line == 27);
+    REQUIRE (findings.back().line == 29);
 }

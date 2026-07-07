@@ -90,7 +90,9 @@ geometry in `MainComponent.cpp` with a scratch negative control. This checkpoint
 piano-roll key-range and grid-cadence geometry behind `UiTheme::Layout`; the theme audit now rejects raw
 piano-roll key-range and grid-cadence geometry with scratch negative controls. This checkpoint moved
 MainComponent timeline clip gain-drag gesture geometry behind `UiTheme::Layout`; the theme audit now
-rejects raw gain-drag gesture constants with scratch negative controls.
+rejects raw gain-drag gesture constants with scratch negative controls. This checkpoint moved MainComponent
+hidden slider text-box geometry behind `UiTheme::Layout`; the theme audit now rejects raw
+`setTextBoxStyle(..., 0, 0)` geometry with a scratch negative control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw MainComponent spacing/geometry surface not

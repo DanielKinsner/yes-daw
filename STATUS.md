@@ -54,7 +54,7 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ## Live packet — H16 implementation
 
-**Last updated:** 2026-07-06
+**Last updated:** 2026-07-07
 **Current horizon:** **H16 (Real UI) — OPEN.**
 
 H16 opened from live repo truth. The H15 final closeout commit
@@ -122,7 +122,9 @@ the audit. This checkpoint moved MainComponent piano-roll key-range and grid-cad
 `UiTheme::Layout`, aligned the UI input harness with those tokens, and tightened `YesDawThemeAuditCheck`
 so scratch raw piano-roll key-range and grid-cadence values fail the audit. This checkpoint moved
 MainComponent timeline clip gain-drag gesture geometry behind `UiTheme::Layout` and tightened
-`YesDawThemeAuditCheck` so scratch raw gain-drag gesture constants fail the audit.
+`YesDawThemeAuditCheck` so scratch raw gain-drag gesture constants fail the audit. This checkpoint moved
+MainComponent hidden slider text-box geometry behind `UiTheme::Layout` and tightened
+`YesDawThemeAuditCheck` so scratch raw `setTextBoxStyle(..., 0, 0)` geometry fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -140,8 +142,8 @@ tokenized; MainComponent timeline viewport pixel-width/gutter geometry is also t
 timeline and piano-roll input drag dead-zone geometry is also tokenized; MainComponent piano-roll expression
 point and curve-stroke geometry is also tokenized; MainComponent default window-size geometry and shared
 panel-outline geometry are also tokenized; MainComponent piano-roll key-range and grid-cadence geometry is
-also tokenized; MainComponent timeline clip gain-drag gesture geometry is also tokenized; broad UI
-migration is not complete.
+also tokenized; MainComponent timeline clip gain-drag gesture geometry and hidden slider text-box geometry
+are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token
