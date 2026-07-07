@@ -71,7 +71,7 @@ struct TimelineCanvasGeometry
 
 namespace timeline_canvas_detail {
 
-constexpr int kVisibleClipCapacity = 4096;
+constexpr int kVisibleClipCapacity = UiTheme::Layout::timelineCanvasVisibleClipCapacity;
 
 const juce::Colour kPanel = UiTheme::Color::panel();
 const juce::Colour kPanelStroke = UiTheme::Color::panelStroke();

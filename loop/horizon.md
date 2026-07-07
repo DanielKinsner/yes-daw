@@ -106,7 +106,9 @@ scratch negative control. This checkpoint moved TimelineCanvas playhead line, ba
 `UiTheme::Layout`; the theme audit now rejects raw `drawPlayhead` geometry with a scratch negative control.
 This checkpoint moved TimelineCanvas grid lane separator, track tint, cadence, major-step, and line-width
 geometry behind `UiTheme::Layout`; the theme audit now rejects raw `drawGrid` geometry with a scratch
-negative control.
+negative control. This checkpoint moved TimelineCanvas visible-clip paint capacity behind
+`UiTheme::Layout`; the theme audit now rejects a raw `kVisibleClipCapacity` value with a scratch negative
+control.
 
 Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
 to `UiTheme.h` before broad UI migration, likely another raw TimelineCanvas or MainComponent

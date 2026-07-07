@@ -282,6 +282,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
     const std::regex rawShellSpacing { R"(\b(?:work(?:\.[A-Za-z0-9_]+\s*\([^;\n]*\))*|mixer)\.reduced\s*\(\s*[0-9]+\s*,\s*[0-9]+\s*\))" };
     const std::regex rawInputDragThreshold { R"(\bstd::abs\s*\(\s*delta[XY]\s*\)\s*<\s*[0-9]+\b)" };
     const std::regex rawPianoRollKeyRange { R"(\bconstexpr\s+int\s+kPianoRoll(?:Low|High)Key\s*=\s*[0-9]+\b)" };
+    const std::regex rawTimelineCanvasCapacity { R"(\bconstexpr\s+int\s+kVisibleClipCapacity\s*=\s*[0-9]+\b)" };
     std::vector<ThemeAuditFinding> findings;
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
@@ -346,6 +347,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
                 || std::regex_search (line, rawShellSpacing)
                 || std::regex_search (line, rawInputDragThreshold)
                 || std::regex_search (line, rawPianoRollKeyRange)
+                || std::regex_search (line, rawTimelineCanvasCapacity)
                 || componentWindowUsesRawGeometry (line)
                 || sliderTextBoxUsesRawGeometry (line))
             {
@@ -892,6 +894,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
         timelineOut << "void drawRuler(juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea, Viewport vp) { g.fillRect (ruler.withHeight (1).withY (ruler.getBottom() - 1)); const double labelStep = vp.pixelsPerSecond < 24.0 ? 8.0 : 4.0; if (x < clipArea.getX() - 40) return; g.drawText (label, x - 18, ruler.getY() + 7, 36, 16, just, false); }\n";
         timelineOut << "void drawGrid(juce::Rectangle<int> clipArea) { const int laneCount = std::max (1, state.trackCount); g.fillRect (clipArea.getX(), y, clipArea.getWidth(), 1); g.fillRect (clipArea.getX(), y + 1, 3, laneHeight - 1); const double firstGrid = std::floor (vp.scrollSeconds / 4.0) * 4.0; for (double seconds = firstGrid; seconds <= rightSeconds + 4.0; seconds += 4.0) { const bool major = (seconds % 16) == 0; g.fillRect (x, clipArea.getY(), 1, clipArea.getHeight()); } }\n";
         timelineOut << "void drawPlayhead(juce::Rectangle<int> ruler) { g.fillRect (playheadX, ruler.getY(), 2, height); g.fillRoundedRectangle (static_cast<float> (playheadX - 15), static_cast<float> (ruler.getY() + 4), 30.0f, 16.0f, radius); g.drawText (label, playheadX - 12, ruler.getY() + 4, 24, 16, just, false); }\n";
+        timelineOut << "constexpr int kVisibleClipCapacity = 4096;\n";
     }
 
     const auto findings = auditThemeTokens (scratch);
@@ -904,6 +907,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     bool foundTimelineCanvasRuler = false;
     bool foundTimelineCanvasGrid = false;
     bool foundTimelineCanvasPlayhead = false;
+    bool foundTimelineCanvasCapacity = false;
     for (const auto& finding : findings)
     {
         if (finding.path.filename() == "MainComponent.cpp")
@@ -920,15 +924,18 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
             foundTimelineCanvasGrid = true;
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 6)
             foundTimelineCanvasPlayhead = true;
+        else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 7)
+            foundTimelineCanvasCapacity = true;
     }
 
-    REQUIRE (findings.size() == 34u);
+    REQUIRE (findings.size() == 35u);
     REQUIRE (foundTimelineCanvasOutline);
     REQUIRE (foundTimelineCanvasGeometry);
     REQUIRE (foundTimelineCanvasClipPaint);
     REQUIRE (foundTimelineCanvasRuler);
     REQUIRE (foundTimelineCanvasGrid);
     REQUIRE (foundTimelineCanvasPlayhead);
+    REQUIRE (foundTimelineCanvasCapacity);
     REQUIRE (mainComponentLines.size() == 28u);
     REQUIRE (mainComponentLines[0] == 1);
     REQUIRE (mainComponentLines[1] == 2);

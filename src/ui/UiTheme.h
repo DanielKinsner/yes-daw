@@ -425,6 +425,7 @@ struct UiTheme
         static constexpr int timelineCanvasPlayheadTextHalfWidth = 12;
         static constexpr int timelineCanvasPlayheadTextWidth = 24;
         static constexpr int timelineCanvasPlayheadTextHeight = 16;
+        static constexpr int timelineCanvasVisibleClipCapacity = 4096;
     };
 };
 
