@@ -180,7 +180,9 @@ clip-style tone defaults fail the audit. This checkpoint moved MainComponent's d
 alpha defaults behind `UiTheme::Tone` and tightened `YesDawThemeAuditCheck` so a scratch raw `kClipStyles`
 alpha default fails the audit. This checkpoint moved MainComponent's demo timeline clip placement defaults
 behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `kClips` placement default
-fails the audit.
+fails the audit. This checkpoint moved MainComponent's demo timeline section-marker placement seconds
+behind `UiTheme::Layout` and tightened `YesDawThemeAuditCheck` so a scratch raw `kTimelineMarkers`
+placement default fails the audit.
 Local gates passed: `git diff --check`; focused build target `YesDawThemeAuditCheck` under `vcvars64.bat`;
 focused H16/UI gates `YesDawUiActionCheck`, `YesDawThemeAuditCheck`, `YesDawUiInputCheck`, and
 `YesDawTimelineGpuCheck`; `cmake --build --preset ci` under `vcvars64.bat`; full
@@ -211,8 +213,8 @@ also tokenized; MainComponent inspector fade-slider range/step/clamp/default sec
 gain-slider range/step/default are also tokenized; MainComponent mixer fader/pan slider range/step/default
 values, timeline snap-grid default, no-selection inspector gain refresh fallback, shell/header separator
 height, painted inspector readout fallback defaults, TimelineCanvas paint tone/default fractions, and
-MainComponent project/demo timeline clip style alpha defaults and demo timeline clip placement defaults are
-also tokenized; broad UI migration is not complete.
+MainComponent project/demo timeline clip style alpha defaults, demo timeline clip placement defaults, and
+demo timeline marker placement defaults are also tokenized; broad UI migration is not complete.
 
 **Next:** The successor thread must `git pull --ff-only`, re-read the H16 docs, re-verify this checkpoint
 commit/run from live repo truth, continue only the next smallest independently green CP1 design-token

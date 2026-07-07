@@ -66,6 +66,8 @@ constexpr const auto& kDemoTimelineClipStartsSeconds =
     yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipStartsSeconds;
 constexpr const auto& kDemoTimelineClipLengthsSeconds =
     yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLengthsSeconds;
+constexpr const auto& kDemoTimelineMarkerSeconds =
+    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineMarkerSeconds;
 
 constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
 {
@@ -143,11 +145,11 @@ const std::array<TimelineClipStyle, 23> kClipStyles {{
 }};
 
 const std::array<yesdaw::ui::TimelineMarker, 5> kTimelineMarkers {{
-    { 8.0, "Intro" },
-    { 24.0, "Verse" },
-    { 32.0, "Chorus" },
-    { 64.0, "Bridge" },
-    { 80.0, "Outro" }
+    { kDemoTimelineMarkerSeconds[0], "Intro" },
+    { kDemoTimelineMarkerSeconds[1], "Verse" },
+    { kDemoTimelineMarkerSeconds[2], "Chorus" },
+    { kDemoTimelineMarkerSeconds[3], "Bridge" },
+    { kDemoTimelineMarkerSeconds[4], "Outro" }
 }};
 
 const std::array<MixerStrip, 11> kMixer {{

@@ -403,6 +403,9 @@ struct UiTheme
             26.0, 22.0, 24.0,
             38.0
         }};
+        static constexpr std::array<double, 5> mainComponentDemoTimelineMarkerSeconds {{
+            8.0, 24.0, 32.0, 64.0, 80.0
+        }};
 
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;
