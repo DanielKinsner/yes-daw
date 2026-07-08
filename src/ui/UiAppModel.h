@@ -1189,6 +1189,7 @@ public:
             case UiActionId::ViewMixer:
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
+            case UiActionId::MixerReadSends:
             case UiActionId::HelpShowKeymap:
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:

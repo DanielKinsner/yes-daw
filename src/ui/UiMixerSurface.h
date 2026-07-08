@@ -60,6 +60,15 @@ struct UiMixerLoudnessReadout
     bool valid = false;
 };
 
+struct UiMixerSendReadout
+{
+    std::uint32_t sendOrdinal = 0;
+    engine::NodeId faderNodeId = 0;
+    double normalizedLevel = 0.0;
+    std::size_t breakpointCount = 0;
+    bool automated = false;
+};
+
 struct UiMixerTargetControl
 {
     engine::EntityId targetId {};
@@ -109,6 +118,7 @@ struct UiMixerStrip
     bool effectivelyMuted = false;
     bool sidechainVisible = false;
     UiMixerMeterReadout meter;
+    std::vector<UiMixerSendReadout> sends;
 };
 
 struct UiMixerSurfaceSnapshot
@@ -185,6 +195,31 @@ inline std::string fallbackBusName (std::size_t index)
     return "Bus " + std::to_string (index + 1u);
 }
 
+inline std::vector<UiMixerSendReadout> sendReadoutsForTrack (const engine::Project& project,
+                                                             engine::EntityId trackId)
+{
+    std::vector<UiMixerSendReadout> sends;
+
+    for (const engine::AutomationLaneData& lane : project.automationLanes)
+    {
+        if (lane.ownerEntity != trackId || lane.role != engine::AutomationTargetRole::SendLevel)
+            continue;
+
+        UiMixerSendReadout readout;
+        readout.sendOrdinal = lane.paramId;
+        readout.faderNodeId = engine::projectMixerSendLevelNodeIdForTrack (trackId, lane.paramId);
+        readout.breakpointCount = lane.points.size();
+        readout.automated = ! lane.points.empty();
+        readout.normalizedLevel = readout.automated ? lane.points.back().value : 0.0;
+        sends.push_back (readout);
+    }
+
+    std::sort (sends.begin(), sends.end(), [] (const UiMixerSendReadout& lhs, const UiMixerSendReadout& rhs) {
+        return lhs.sendOrdinal < rhs.sendOrdinal;
+    });
+    return sends;
+}
+
 inline void applyEffectiveMute (UiMixerSurfaceSnapshot& snapshot)
 {
     std::vector<engine::MixerMuteTarget> targets;
@@ -245,6 +280,7 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.soloSafe = control != nullptr ? control->soloSafe : trackRow.strip.soloSafe;
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
+        strip.sends = detail::sendReadoutsForTrack (project, trackRow.id);
         snapshot.tracks.push_back (std::move (strip));
     }
 
@@ -364,6 +400,7 @@ public:
 
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
+            case UiActionId::MixerReadSends:
                 return { registry_.dispatch (id, context_), UiMixerActionStatus::Ok };
 
             default:

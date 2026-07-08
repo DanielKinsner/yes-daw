@@ -48,6 +48,7 @@ enum class UiActionId : std::uint8_t
     MixerTargetToggleSolo,
     MixerReadMeters,
     MixerReadLoudness,
+    MixerReadSends,
     PianoRollNoteSelect,
     PianoRollNoteMove,
     PianoRollNoteSetLength,
@@ -288,6 +289,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerReadMeters, "mixer.meters.read", "Meters", "Ctrl+Alt+V", "Read mixer meters",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
     { UiActionId::MixerReadLoudness, "mixer.loudness.read", "Loudness", "Ctrl+Alt+L", "Read loudness",
+      AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
+    { UiActionId::MixerReadSends, "mixer.sends.read", "Sends", "Ctrl+Alt+Shift+V", "Read mixer sends",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
     { UiActionId::PianoRollNoteSelect, "piano_roll.note.select", "Select Note", "Alt+N", "Select piano-roll note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, false },
@@ -657,6 +660,7 @@ public:
 
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
+            case UiActionId::MixerReadSends:
                 context.activePanel = UiPanel::Mixer;
                 ++context.mixerReadCount;
                 break;

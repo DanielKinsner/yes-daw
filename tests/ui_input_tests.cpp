@@ -32,6 +32,11 @@ using yesdaw::ui::findMainComponentChildForAction;
 using yesdaw::ui::mainShellToolbarActions;
 using yesdaw::ui::renderMainComponentPlayback;
 using yesdaw::ui::snapshotMainComponent;
+using yesdaw::engine::AutomationBreakpoint;
+using yesdaw::engine::AutomationCurveType;
+using yesdaw::engine::AutomationLaneData;
+using yesdaw::engine::AutomationTargetRole;
+using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
 
 namespace {
 
@@ -139,6 +144,26 @@ yesdaw::engine::Project makeEndToEndInputProject()
     audioTrack.id = yesdaw::engine::kDefaultAudioTrackId;
     audioTrack.strip.name = "Audio 1";
     project.tracks.insert (project.tracks.begin(), std::move (audioTrack));
+    return project;
+}
+
+yesdaw::engine::Project makeMixerSendsInputProject()
+{
+    yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+    REQUIRE (project.tracks.size() == 1u);
+
+    AutomationLaneData sendLane;
+    sendLane.id = idFromLowByte (90);
+    sendLane.ownerEntity = project.tracks.front().id;
+    sendLane.role = AutomationTargetRole::SendLevel;
+    sendLane.paramId = 0;
+    sendLane.points = {
+        AutomationBreakpoint { 0, 0.20, AutomationCurveType::Linear },
+        AutomationBreakpoint { 15360, 0.60, AutomationCurveType::Hold },
+    };
+    project.automationLanes.push_back (sendLane);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
     return project;
 }
 
@@ -619,7 +644,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 20u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 21u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -766,6 +791,40 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE_FALSE (laneRow.isVisible());
     REQUIRE_FALSE (addPoint.isVisible());
     REQUIRE_FALSE (deletePoint.isVisible());
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-backed mixer component",
+           "[ui][input][shell][mixer][sends]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-sends");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerSendsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
+    REQUIRE (sends.isEnabled());
+    REQUIRE (sends.getButtonText().contains ("Send 0"));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    const auto sendFaderNodeId = projectMixerSendLevelNodeIdForTrack (project.tracks.front().id, 0);
+    REQUIRE (sends.getButtonText().contains (juce::String (static_cast<int> (sendFaderNodeId))));
+    REQUIRE (sends.getButtonText().contains ("points 2"));
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (sends);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

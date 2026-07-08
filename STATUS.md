@@ -335,9 +335,23 @@ focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputChe
 focused `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; `git diff --check`; full `cmake --build --preset ci`; full
 `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP6 started with the smallest mixer-buildout readout slice: a new `MixerReadSends` query action and
+stable id `mixer.sends.read`, a shipped first-Track Sends button/readout in the mixer, and `UiMixerSurface`
+send readbacks derived from existing H15 `AutomationTargetRole::SendLevel` lanes. The readout reports the
+projected H15 send FaderNode id from `projectMixerSendLevelNodeIdForTrack`, the send ordinal, and persisted
+breakpoint count without adding send editing, FX slots, GR meters, dim/mono, engine policy, or Project schema
+changes. Gate bite: the first focused build caught the missing projected-strip send member before the tests
+could pass. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` and
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` each passed **1/1**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+`ctest --preset ci -R YesDawThemeAuditCheck --output-on-failure` and
+`ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure` each passed **1/1**; full
+`cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP5e (action-backed Delete Point breakpoint edit through the H15 undo verb) is complete locally. Stop at this
-checkpoint after commit/push and remote CI green.
+**Now:** H16 CP6 first mixer Sends readout slice is complete locally. Stop at this checkpoint after
+commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -378,9 +392,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP5 in a successor checkpoint with the smallest pencil-draw breakpoint gesture/action
-harness slice through the H15 `addAutomationBreakpoint` undo verb. Do not start drag editing or CP6 in the same
-checkpoint.
+**Next:** Continue H16 CP6 with the smallest FX-slot read-only action/component/harness slice over existing
+Track `fxChain` Project state. Do not add FX editing, GR meters, dim/mono, or CP7 in the same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

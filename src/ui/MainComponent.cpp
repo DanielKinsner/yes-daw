@@ -1451,6 +1451,17 @@ private:
         };
         addAndMakeVisible (mixerPan);
 
+        configureActionComponent (mixerSendsReadout, yesdaw::ui::UiActionId::MixerReadSends, "Mixer sends");
+        mixerSendsReadout.setButtonText ("Sends: none");
+        mixerSendsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerSendsReadout.setColour (juce::TextButton::textColourOffId, kText);
+        mixerSendsReadout.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadSends);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerSendsReadout);
+
         configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
         mixerMute.setButtonText ("M");
         mixerMute.onClick = [this] {
@@ -1565,6 +1576,8 @@ private:
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
                                   yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
         mixerTrackSelect.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
+        mixerSendsReadout.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
         mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
                                 .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
@@ -1914,6 +1927,8 @@ private:
                                                             appModel.context()).enabled);
         mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
                                                             appModel.context()).enabled);
+        mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
+                                                                    appModel.context()).enabled);
 
         refreshingMixerControls = true;
         if (projectHasTrack)
@@ -1924,6 +1939,7 @@ private:
             mixerPan.setValue (strip.pan, juce::dontSendNotification);
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
+            mixerSendsReadout.setButtonText (mixerSendsReadoutText());
         }
         else
         {
@@ -1934,8 +1950,26 @@ private:
                                juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
+            mixerSendsReadout.setButtonText ("Sends: no project");
         }
         refreshingMixerControls = false;
+    }
+
+    [[nodiscard]] juce::String mixerSendsReadoutText() const
+    {
+        const auto surface = currentMixerSurface();
+        if (surface.tracks.empty())
+            return "Sends: no Track";
+
+        const auto& track = surface.tracks.front();
+        if (track.sends.empty())
+            return juce::String (track.name.empty() ? "Track 1" : track.name) + " sends: none";
+
+        const yesdaw::ui::UiMixerSendReadout& send = track.sends.front();
+        return juce::String (track.name.empty() ? "Track 1" : track.name)
+             + " Send " + juce::String (static_cast<int> (send.sendOrdinal))
+             + " node " + juce::String (static_cast<int> (send.faderNodeId))
+             + " points " + juce::String (static_cast<int> (send.breakpointCount));
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -2790,6 +2824,7 @@ private:
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;
+    juce::TextButton mixerSendsReadout;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
     juce::TextButton autosaveRestoreButton;
