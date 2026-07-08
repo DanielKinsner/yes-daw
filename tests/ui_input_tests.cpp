@@ -677,7 +677,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 26u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 27u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1108,6 +1108,31 @@ TEST_CASE ("H16 CP6 UI input harness reads first Bus FX slot through an action-b
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (busFxSlots);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads master loudness through an action-backed header component",
+           "[ui][input][shell][mixer][loudness]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-loudness-readout");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+
+    juce::Button& loudness = requireButtonForAction (*shell, UiActionId::MixerReadLoudness);
+    REQUIRE (loudness.isEnabled());
+    REQUIRE (loudness.getButtonText() == "-- LUFS");
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (loudness);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);

@@ -953,6 +953,17 @@ public:
         configureAutosaveRecoveryButton (autosaveRestoreButton, yesdaw::ui::UiActionId::AutosaveRecoveryRestore);
         configureAutosaveRecoveryButton (autosaveDiscardButton, yesdaw::ui::UiActionId::AutosaveRecoveryDiscard);
 
+        configureActionComponent (masterLoudnessReadout, yesdaw::ui::UiActionId::MixerReadLoudness, "Master loudness");
+        masterLoudnessReadout.setButtonText ("-- LUFS");
+        masterLoudnessReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        masterLoudnessReadout.setColour (juce::TextButton::textColourOffId, kText);
+        masterLoudnessReadout.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadLoudness);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (masterLoudnessReadout);
+
         timelineInput.setComponentID (kTimelineComponentId);
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
@@ -1170,6 +1181,10 @@ public:
 
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
+        masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
+                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
+                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
+                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsHeight));
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
         layoutAutomationLaneControls();
@@ -1746,6 +1761,10 @@ private:
         }
 
         refreshAutosaveRecoveryControls();
+        masterLoudnessReadout.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
+                                          appModel.context()).enabled);
+        masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
         refreshAutomationLaneControls();
@@ -2155,6 +2174,15 @@ private:
              + (slot.enabled ? " on" : " off");
     }
 
+    [[nodiscard]] juce::String masterLoudnessReadoutText() const
+    {
+        const auto surface = currentMixerSurface();
+        if (! surface.loudness.valid)
+            return "-- LUFS";
+
+        return juce::String (surface.loudness.integratedLufs, 1) + " LUFS";
+    }
+
     void drawHeader (juce::Graphics& g) const
     {
         g.setColour (yesdaw::ui::UiTheme::Color::canvasLayer());
@@ -2254,17 +2282,6 @@ private:
         auto meter = master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterMeterHeight)
                          .withWidth (yesdaw::ui::UiTheme::Layout::headerMasterMeterWidth);
         drawHorizontalMeter (g, meter, 0.76f);
-        const auto surface = currentMixerSurface();
-        const juce::String lufs = surface.loudness.valid
-            ? juce::String (surface.loudness.integratedLufs, 1) + " LUFS"
-            : "-- LUFS";
-        drawSmallLabel (g,
-                        lufs,
-                        juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
-                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
-                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
-                                              yesdaw::ui::UiTheme::Layout::headerMasterLufsHeight),
-                        juce::Justification::centred);
 
         g.setColour (kMutedText);
         g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::statusIcon)));
@@ -3015,6 +3032,7 @@ private:
     juce::TextButton mixerFxSlotToggle;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
+    juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::TextButton automationLaneToggle;
