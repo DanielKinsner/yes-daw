@@ -14,6 +14,12 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <functional>
+#include <memory>
+
+namespace yesdaw::persistence {
+struct WaveformPeakCache;
+}
 
 namespace yesdaw::ui {
 
@@ -48,6 +54,8 @@ struct TimelineCanvasState
     const TimelineMarker* markers = nullptr;
     int markerCount = 0;
 
+    std::function<std::shared_ptr<const persistence::WaveformPeakCache> (int clipId)> waveformCacheLookup;
+
     Viewport viewport {};
     double totalSeconds = UiTheme::Layout::timelineCanvasDefaultTotalSeconds;
     double playheadSeconds = UiTheme::Layout::timelineCanvasDefaultPlayheadSeconds;
@@ -58,6 +66,8 @@ struct TimelineCanvasPaintStats
     int visibleClips = 0;
     int visibleClipCapacity = 0;
     bool hitVisibleClipCapacity = false;
+    int readyWaveformClips = 0;
+    int pendingWaveformClips = 0;
 };
 
 struct TimelineCanvasGeometry
@@ -433,7 +443,19 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                                              juce::roundToInt (rect.h))
                             .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline);
         clipRect = clipRect.getIntersection (clipArea);
-        drawClip (g, clipRect, style, rect.id);
+        const bool waveformReady = state.waveformCacheLookup
+            && state.waveformCacheLookup (rect.id) != nullptr;
+        if (waveformReady)
+        {
+            ++stats.readyWaveformClips;
+            drawClip (g, clipRect, style, rect.id);
+        }
+        else
+        {
+            if (state.waveformCacheLookup)
+                ++stats.pendingWaveformClips;
+            drawClip (g, clipRect, style, rect.id);
+        }
     }
 
     drawPlayhead (g, ruler, clipArea, state, vp);

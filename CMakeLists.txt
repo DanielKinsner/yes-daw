@@ -255,7 +255,13 @@ add_test(NAME YesDawThemeAuditCheck COMMAND $<TARGET_FILE:YesDawThemeAuditCheck>
 add_executable(YesDawWaveformCacheCheck tests/waveform_cache_service_tests.cpp)
 target_include_directories(YesDawWaveformCacheCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawWaveformCacheCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
-target_link_libraries(YesDawWaveformCacheCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+target_compile_definitions(YesDawWaveformCacheCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+target_link_libraries(YesDawWaveformCacheCheck
+  PRIVATE
+    Catch2::Catch2WithMain
+    sqlite3_amalgamation
+    juce::juce_gui_basics
+    juce::juce_recommended_config_flags)
 yesdaw_harden(YesDawWaveformCacheCheck)
 add_test(NAME YesDawWaveformCacheCheck COMMAND $<TARGET_FILE:YesDawWaveformCacheCheck>)
 

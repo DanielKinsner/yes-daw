@@ -1,5 +1,6 @@
 #include "persistence/WaveformPeakCache.h"
 #include "io/WavFile.h"
+#include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 #include "ui/WaveformPeakService.h"
 
@@ -27,10 +28,16 @@ using yesdaw::engine::SampleRate;
 using yesdaw::persistence::buildWaveformPeakCache;
 using yesdaw::persistence::waveformPeakCachePathForHash;
 using yesdaw::persistence::writeWaveformPeakCache;
+using yesdaw::ui::Clip;
+using yesdaw::ui::TimelineCanvasClipStyle;
+using yesdaw::ui::TimelineCanvasPaintStats;
+using yesdaw::ui::TimelineCanvasState;
+using yesdaw::ui::TimelineCanvasTrack;
 using yesdaw::ui::UiAppModel;
 using yesdaw::ui::UiDecodedAsset;
 using yesdaw::ui::WaveformPeakService;
 using yesdaw::ui::interleavedToChannelMajor;
+using yesdaw::ui::paintTimelineCanvas;
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
 {
@@ -141,6 +148,30 @@ std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> waitForReady (
     }
 
     return {};
+}
+
+TimelineCanvasState makePaintState (
+    const Clip* clips,
+    const TimelineCanvasClipStyle* styles,
+    int clipCount)
+{
+    static const TimelineCanvasTrack kTrack {
+        "Audio 1",
+        juce::Colour { 0xff7c5cff },
+        0.0f
+    };
+
+    TimelineCanvasState state;
+    state.tracks = &kTrack;
+    state.trackCount = 1;
+    state.clips = clips;
+    state.clipStyles = styles;
+    state.clipCount = clipCount;
+    state.totalSeconds = 2.0;
+    state.playheadSeconds = 0.0;
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = 160.0;
+    return state;
 }
 
 } // namespace
@@ -383,6 +414,85 @@ TEST_CASE ("H16 CP2a waveform service negative control flags caller-thread build
     REQUIRE (ready != nullptr);
     REQUIRE (service.builtOnForbiddenThread());
     REQUIRE (service.lastBuildThreadId() == std::this_thread::get_id());
+
+    std::filesystem::remove_all (bundlePath);
+}
+
+TEST_CASE ("H16 CP2d timeline paint observes ready and not-ready waveform cache state", "[ui][waveform-cache]")
+{
+    const Asset asset = makeAsset();
+    const std::vector<float> samples = makeChannelMajorSamples();
+    const auto expected = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()));
+    INFO (expected.message);
+    REQUIRE (expected.ok());
+    const auto ready = std::make_shared<const yesdaw::persistence::WaveformPeakCache> (expected.cache);
+
+    const std::array<Clip, 2> clips {{
+        { 0, 0, 0.0, 0.75 },
+        { 1, 0, 0.8, 0.75 },
+    }};
+    const std::array<TimelineCanvasClipStyle, 2> styles {{
+        { juce::Colour { 0xff7c5cff }, 0.65f },
+        { juce::Colour { 0xff26d7c9 }, 0.65f },
+    }};
+
+    TimelineCanvasState state = makePaintState (clips.data(), styles.data(), static_cast<int> (clips.size()));
+    int lookupCount = 0;
+    state.waveformCacheLookup = [&lookupCount, ready] (int clipId)
+        -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache>
+    {
+        ++lookupCount;
+        if (clipId == 0)
+            return ready;
+
+        return {};
+    };
+
+    juce::Image image (juce::Image::ARGB, 640, 160, true);
+    juce::Graphics graphics (image);
+    const TimelineCanvasPaintStats stats = paintTimelineCanvas (graphics, image.getBounds(), state);
+
+    REQUIRE (lookupCount == 2);
+    REQUIRE (stats.visibleClips == 2);
+    REQUIRE (stats.readyWaveformClips == 1);
+    REQUIRE (stats.pendingWaveformClips == 1);
+}
+
+TEST_CASE ("H16 CP2d timeline paint lookup does not build on the paint thread", "[ui][waveform-cache]")
+{
+    const auto bundlePath = std::filesystem::temp_directory_path()
+                          / "yesdaw-waveform-cache-paint-read-only";
+    std::filesystem::remove_all (bundlePath);
+
+    const Asset asset = makeAsset();
+    const std::vector<float> samples = makeChannelMajorSamples();
+
+    WaveformPeakService service;
+    service.start (bundlePath);
+    service.requestBuild (asset, samples);
+    REQUIRE (waitForReady (service, asset.contentHash) != nullptr);
+    REQUIRE (service.buildCount() == 1u);
+
+    service.registerPaintThread (std::this_thread::get_id());
+
+    const std::array<Clip, 1> clips {{ { 0, 0, 0.0, 0.75 } }};
+    const std::array<TimelineCanvasClipStyle, 1> styles {{ { juce::Colour { 0xff7c5cff }, 0.65f } }};
+    TimelineCanvasState state = makePaintState (clips.data(), styles.data(), static_cast<int> (clips.size()));
+    state.waveformCacheLookup = [&service, &asset] (int)
+        -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache>
+    {
+        return service.tryGetReady (asset.contentHash);
+    };
+
+    juce::Image image (juce::Image::ARGB, 640, 160, true);
+    juce::Graphics graphics (image);
+    const TimelineCanvasPaintStats stats = paintTimelineCanvas (graphics, image.getBounds(), state);
+
+    REQUIRE (stats.visibleClips == 1);
+    REQUIRE (stats.readyWaveformClips == 1);
+    REQUIRE (stats.pendingWaveformClips == 0);
+    REQUIRE (service.buildCount() == 1u);
+    REQUIRE_FALSE (service.builtOnForbiddenThread());
 
     std::filesystem::remove_all (bundlePath);
 }

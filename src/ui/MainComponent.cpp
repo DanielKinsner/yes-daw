@@ -1834,6 +1834,15 @@ private:
             state.clips = timelineClips.data();
             state.clipStyles = timelineClipStyles.data();
             state.clipCount = static_cast<int> (timelineClips.size());
+            state.waveformCacheLookup = [this] (int layoutClipId)
+                -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache>
+            {
+                if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipAssetHashes.size()))
+                    return {};
+
+                return appModel.waveformService().tryGetReady (
+                    timelineClipAssetHashes[static_cast<std::size_t> (layoutClipId)]);
+            };
             state.totalSeconds = timelineTotalSeconds;
             state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineProjectPlayheadSeconds;
         }
@@ -1855,6 +1864,7 @@ private:
         timelineClips.clear();
         timelineClipStyles.clear();
         timelineClipIds.clear();
+        timelineClipAssetHashes.clear();
 
         const yesdaw::engine::Project& project = appModel.project();
         if (! appModel.context().projectLoaded || project.clips.empty() || ! project.sampleRate.isValid())
@@ -1868,10 +1878,11 @@ private:
 
         for (const yesdaw::engine::Clip& clip : project.clips)
         {
+            const yesdaw::engine::Asset* const asset = project.findAsset (clip.assetId);
             if (! clip.id.isValid()
                 || clip.timelineStart < 0
                 || clip.timelineLength <= 0
-                || project.findAsset (clip.assetId) == nullptr)
+                || asset == nullptr)
             {
                 continue;
             }
@@ -1882,6 +1893,7 @@ private:
             timelineClips.push_back ({ id, 0, startSeconds, lengthSeconds });
             timelineClipStyles.push_back ({ kPurple, yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (clip.id);
+            timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
 
@@ -2458,6 +2470,7 @@ private:
     std::vector<yesdaw::ui::Clip> timelineClips;
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
+    std::vector<yesdaw::engine::AssetContentHash> timelineClipAssetHashes;
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;

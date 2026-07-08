@@ -223,9 +223,20 @@ reads were not started. Local gates under `vcvars64.bat`: focused
 `ctest --preset ci -R "YesDawWaveformCacheCheck|YesDawUiActionCheck" --output-on-failure` passed **2/2**;
 `git diff --check`; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure`
 passed **311/311**.
+H16 CP2d wired `TimelineCanvas` paint to observe a published waveform-cache lookup keyed by
+project-backed layout clip id, while keeping the existing fake waveform rendering in both ready and
+not-ready branches. `TimelineCanvasPaintStats` now exposes ready/not-ready branch counts for the
+mechanical gate, and `MainComponent` passes a `tryGetReady()` lookup from `UiAppModel::waveformService()`
+without giving the canvas the whole app model. `YesDawWaveformCacheCheck` now paints through the real
+canvas path and proves both ready/not-ready branch observation and paint-read-only behavior (`tryGetReady`
+only; build count unchanged; no forbidden paint-thread build). Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawWaveformCacheCheck`; focused
+`ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; focused UI/paint gates
+`YesDawUiActionCheck`, `YesDawWaveformCacheCheck`, and `YesDawTimelineGpuCheck` passed; `git diff --check`;
+full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP2c (channel-major helper + `UiAppModel` waveform service wiring) is complete locally.
-Stop at this checkpoint after commit/push and remote CI green; do not start CP2d in this thread.
+**Now:** H16 CP2d (paint reads published waveform cache state, no visual change) is complete locally.
+Stop at this checkpoint after commit/push and remote CI green; do not start CP3 in this thread.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -266,11 +277,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** After this CP2c commit is pushed and remote CI is green, spawn exactly one successor for
-**H16 CP2d — paint reads published cache, no visual change** from
+**Next:** After this CP2d commit is pushed and remote CI is green, spawn exactly one successor for
+**H16 CP3 — real waveform columns** from the next H16 waveform plan. CP3 may replace the fake
+waveform body with real peak columns; this CP2d checkpoint deliberately did not.
+For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
-CP2d wires the Timeline paint path to observe ready/not-ready published cache state while keeping the
-existing fake waveform rendering; no real column rendering yet.
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
 literal in real chrome.
 
