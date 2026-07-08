@@ -251,9 +251,24 @@ choice and exact fixture column values. Red proof: the focused build first faile
 `ui/WaveformColumns.h` include. Local gates under `vcvars64.bat`: focused
 `cmake --build --preset ci --target YesDawWaveformCacheCheck` plus
 `ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; `git diff --check`.
+Remote CI run `28953901092` for CP3a completed green across Linux, Windows, macOS, RTSan, and TSan.
+H16 CP3b wired the `TimelineCanvas` ready waveform branch to render min/max/rms columns from the
+published `WaveformPeakCache` via the pure CP3a helper, while the not-ready branch stays on the existing
+placeholder/fake waveform path. The canvas still gets only a lookup seam and calls it once per visible
+clip; paint observes ready caches but does not request builds, decode, block on I/O, or mutate cache files.
+`TimelineCanvasPaintStats` now exposes ready-column and placeholder counts for the app-capable mechanical
+gate. Red proof: the focused waveform build first failed on missing `readyWaveformColumns` /
+`placeholderWaveformClips` stats. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawWaveformCacheCheck` plus
+`ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; apps-off
+`cmake -B build-apps-off -G Ninja -DCMAKE_BUILD_TYPE=Release -DYESDAW_BUILD_APPS=OFF`,
+`cmake --build build-apps-off --target YesDawWaveformCacheCheck`, and
+`ctest --test-dir build-apps-off -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**;
+`git diff --check`; full `cmake --build --preset ci`; full
+`ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP3a (pure waveform columns helper + exact unit gate) is complete locally. Stop at this
-checkpoint after commit/push and remote CI green.
+**Now:** H16 CP3 (real waveform columns from the published cache in the timeline ready branch) is
+complete locally. Stop at this checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -294,8 +309,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** H16 CP3b — wire the `TimelineCanvas` ready branch to draw real cache columns while keeping
-the not-ready branch on the placeholder/fake path, preserving paint-read-only behavior.
+**Next:** After CP3 remote CI is green, H16 CP4 may open in a successor thread only; do not start CP4
+from this CP3 checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

@@ -564,6 +564,8 @@ TEST_CASE ("H16 CP2d timeline paint observes ready and not-ready waveform cache 
     REQUIRE (stats.visibleClips == 2);
     REQUIRE (stats.readyWaveformClips == 1);
     REQUIRE (stats.pendingWaveformClips == 1);
+    REQUIRE (stats.readyWaveformColumns > 0);
+    REQUIRE (stats.placeholderWaveformClips == 1);
 }
 
 TEST_CASE ("H16 CP2d timeline paint lookup does not build on the paint thread", "[ui][waveform-cache]")
@@ -599,9 +601,33 @@ TEST_CASE ("H16 CP2d timeline paint lookup does not build on the paint thread", 
     REQUIRE (stats.visibleClips == 1);
     REQUIRE (stats.readyWaveformClips == 1);
     REQUIRE (stats.pendingWaveformClips == 0);
+    REQUIRE (stats.readyWaveformColumns > 0);
+    REQUIRE (stats.placeholderWaveformClips == 0);
     REQUIRE (service.buildCount() == 1u);
     REQUIRE_FALSE (service.builtOnForbiddenThread());
 
     std::filesystem::remove_all (bundlePath);
+}
+
+TEST_CASE ("H16 CP3 timeline paint keeps not-ready waveform clips on the placeholder path", "[ui][waveform-cache]")
+{
+    const std::array<Clip, 1> clips {{ { 0, 0, 0.0, 0.75 } }};
+    const std::array<TimelineCanvasClipStyle, 1> styles {{ { juce::Colour { 0xff7c5cff }, 0.65f } }};
+    TimelineCanvasState state = makePaintState (clips.data(), styles.data(), static_cast<int> (clips.size()));
+    state.waveformCacheLookup = [] (int)
+        -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache>
+    {
+        return {};
+    };
+
+    juce::Image image (juce::Image::ARGB, 640, 160, true);
+    juce::Graphics graphics (image);
+    const TimelineCanvasPaintStats stats = paintTimelineCanvas (graphics, image.getBounds(), state);
+
+    REQUIRE (stats.visibleClips == 1);
+    REQUIRE (stats.readyWaveformClips == 0);
+    REQUIRE (stats.pendingWaveformClips == 1);
+    REQUIRE (stats.readyWaveformColumns == 0);
+    REQUIRE (stats.placeholderWaveformClips == 1);
 }
 #endif

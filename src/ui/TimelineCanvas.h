@@ -7,6 +7,7 @@
 
 #include "ui/TimelineLayout.h"
 #include "ui/UiTheme.h"
+#include "ui/WaveformColumns.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -68,6 +69,8 @@ struct TimelineCanvasPaintStats
     bool hitVisibleClipCapacity = false;
     int readyWaveformClips = 0;
     int pendingWaveformClips = 0;
+    int readyWaveformColumns = 0;
+    int placeholderWaveformClips = 0;
 };
 
 struct TimelineCanvasGeometry
@@ -130,6 +133,21 @@ inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, i
     return fallback;
 }
 
+inline const Clip* clipForId (const TimelineCanvasState& state, int clipId)
+{
+    if (state.clips == nullptr || state.clipCount <= 0)
+        return nullptr;
+
+    if (clipId >= 0 && clipId < state.clipCount && state.clips[clipId].id == clipId)
+        return &state.clips[clipId];
+
+    for (int i = 0; i < state.clipCount; ++i)
+        if (state.clips[i].id == clipId)
+            return &state.clips[i];
+
+    return nullptr;
+}
+
 inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
                               float amplitude, int clipId)
 {
@@ -163,12 +181,78 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
     }
 }
 
-inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasClipStyle& style,
-                      int clipId)
+inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
+                                   float amplitude, const Clip& clip,
+                                   const persistence::WaveformPeakCache& cache,
+                                   const Viewport& vp)
+{
+    area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
+                 UiTheme::Layout::timelineCanvasWaveformInsetY);
+    if (area.isEmpty()
+        || clip.lengthSeconds <= UiThemeLayout::timelineLayoutZeroFloor
+        || vp.pixelsPerSecond <= UiThemeLayout::timelineLayoutZeroFloor)
+    {
+        return 0;
+    }
+
+    const double sampleRate = static_cast<double> (cache.sourceFrames) / clip.lengthSeconds;
+    const double clipLocalStartSeconds = std::max (UiThemeLayout::timelineLayoutZeroFloor,
+                                                   vp.scrollSeconds - clip.startSeconds);
+    const double visibleSeconds = static_cast<double> (area.getWidth()) / vp.pixelsPerSecond;
+    const auto sourceFrameOffset = static_cast<std::uint64_t> (
+        std::llround (clipLocalStartSeconds * sampleRate));
+    const auto sourceFrameCount = static_cast<std::uint64_t> (
+        std::llround (visibleSeconds * sampleRate));
+
+    const WaveformColumnViewport columnViewport {
+        sourceFrameOffset,
+        sourceFrameCount,
+        sampleRate,
+        vp.pixelsPerSecond,
+        area.getWidth()
+    };
+    const WaveformColumns columns = computeWaveformColumns (cache, columnViewport);
+    if (columns.columns.empty())
+        return 0;
+
+    const float midY = static_cast<float> (area.getCentreY());
+    const float half = static_cast<float> (area.getHeight())
+                     * std::clamp (amplitude,
+                                   UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
+                                   UiTheme::Layout::timelineCanvasWaveformMaxAmplitude)
+                     * UiTheme::Layout::timelineCanvasWaveformHeightScale;
+    const float minValue = -UiTheme::Layout::timelineCanvasWaveformMaxAmplitude;
+    const float maxValue = UiTheme::Layout::timelineCanvasWaveformMaxAmplitude;
+    const juce::Colour peakColour = colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness);
+    const juce::Colour rmsColour = peakColour.withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha);
+
+    int x = area.getX();
+    for (const auto& column : columns.columns)
+    {
+        const float top = midY - half * std::clamp (column.max, minValue, maxValue);
+        const float bottom = midY - half * std::clamp (column.min, minValue, maxValue);
+        const float rms = half * std::clamp (column.rms, UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
+                                            UiTheme::Layout::timelineCanvasWaveformMaxAmplitude);
+
+        g.setColour (rmsColour);
+        g.drawVerticalLine (x, midY - rms, midY + rms);
+        g.setColour (peakColour);
+        g.drawVerticalLine (x, top, bottom);
+
+        ++x;
+        if (x >= area.getRight())
+            break;
+    }
+
+    return static_cast<int> (columns.columns.size());
+}
+
+inline bool drawClipFrame (juce::Graphics& g, juce::Rectangle<int> area,
+                           const TimelineCanvasClipStyle& style)
 {
     if (area.getWidth() <= UiTheme::Layout::timelineCanvasClipMinPaintWidth
         || area.getHeight() <= UiTheme::Layout::timelineCanvasClipMinPaintHeight)
-        return;
+        return false;
 
     if (area.getHeight() <= UiTheme::Layout::timelineCanvasClipCompactHeight)
     {
@@ -176,7 +260,7 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
         g.fillRect (area);
         g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasCompactHighlightBrightness));
         g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
-        return;
+        return false;
     }
 
     g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha));
@@ -185,6 +269,15 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
                             UiTheme::Radius::md,
                             UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+    return true;
+}
+
+inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasClipStyle& style,
+                      int clipId)
+{
+    if (! drawClipFrame (g, area, style))
+        return;
+
     drawClipWaveform (g, area, style.colour, style.amplitude, clipId);
 }
 
@@ -443,17 +536,28 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                                              juce::roundToInt (rect.h))
                             .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline);
         clipRect = clipRect.getIntersection (clipArea);
-        const bool waveformReady = state.waveformCacheLookup
-            && state.waveformCacheLookup (rect.id) != nullptr;
-        if (waveformReady)
+        const auto readyCache = state.waveformCacheLookup ? state.waveformCacheLookup (rect.id) : nullptr;
+        if (readyCache != nullptr)
         {
             ++stats.readyWaveformClips;
-            drawClip (g, clipRect, style, rect.id);
+            if (drawClipFrame (g, clipRect, style))
+            {
+                const Clip* clip = clipForId (state, rect.id);
+                if (clip != nullptr)
+                {
+                    stats.readyWaveformColumns += drawClipCachedWaveform (g, clipRect, style.colour,
+                                                                           style.amplitude, *clip,
+                                                                           *readyCache, vp);
+                }
+            }
         }
         else
         {
             if (state.waveformCacheLookup)
+            {
                 ++stats.pendingWaveformClips;
+                ++stats.placeholderWaveformClips;
+            }
             drawClip (g, clipRect, style, rect.id);
         }
     }
