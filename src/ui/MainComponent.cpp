@@ -45,6 +45,8 @@ constexpr const char* kInspectorEndComponentId = "clip.inspector.end";
 constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
+constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
+constexpr int kInspectorEqualPowerFadeCurveId = 1;
 
 const juce::Colour kBackground = yesdaw::ui::UiTheme::Color::appBackground();
 const juce::Colour kPanel = yesdaw::ui::UiTheme::Color::panel();
@@ -1276,6 +1278,21 @@ private:
             setSelectedInspectorFadesFromSliders();
         };
         addAndMakeVisible (inspectorFadeOut);
+
+        inspectorFadeCurve.setComponentID (kInspectorFadeCurveComponentId);
+        inspectorFadeCurve.setName ("Clip fade curve");
+        inspectorFadeCurve.setTitle ("Clip fade curve");
+        inspectorFadeCurve.setTooltip ("H14 canonical fade law");
+        inspectorFadeCurve.addItem ("Equal power", kInspectorEqualPowerFadeCurveId);
+        inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
+        inspectorFadeCurve.onChange = [this] {
+            if (refreshingInspectorControls)
+                return;
+
+            inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
+            repaint();
+        };
+        addAndMakeVisible (inspectorFadeCurve);
     }
 
     void configureInspectorTimeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
@@ -1473,6 +1490,10 @@ private:
                 .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
                 .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
                           yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset));
+        fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlTopGap);
+        inspectorFadeCurve.setBounds (
+            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset));
     }
 
     void layoutMixerControls()
@@ -1607,6 +1628,8 @@ private:
                                                                   appModel.context()).enabled);
         inspectorFadeOut.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
                                                                    appModel.context()).enabled);
+        inspectorFadeCurve.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
+                                                                     appModel.context()).enabled);
 
         refreshingInspectorControls = true;
         if (selected && appModel.project().sampleRate.isValid())
@@ -1641,7 +1664,8 @@ private:
             inspectorFadeOut.setValue (std::clamp (static_cast<double> (clip->fadeOut) / sampleRate,
                                                    yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
                                                    yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds),
-                                       juce::dontSendNotification);
+                                        juce::dontSendNotification);
+            inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
         }
         else
         {
@@ -1663,6 +1687,7 @@ private:
                                       juce::dontSendNotification);
             inspectorFadeOut.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
                                        juce::dontSendNotification);
+            inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
         }
         refreshingInspectorControls = false;
     }
@@ -2413,7 +2438,8 @@ private:
                                           ? static_cast<double> (selectedClip->fadeOut) / sampleRate
                                           : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
         for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
-                                   juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s" })
+                                   juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s",
+                                   juce::String ("Curve       Equal power") })
         {
             auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
@@ -2642,6 +2668,7 @@ private:
     juce::Slider inspectorGain;
     juce::Slider inspectorFadeIn;
     juce::Slider inspectorFadeOut;
+    juce::ComboBox inspectorFadeCurve;
     std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
     bool refreshingMixerControls = false;

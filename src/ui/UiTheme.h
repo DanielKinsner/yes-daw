@@ -290,9 +290,11 @@ struct UiTheme
         static constexpr float inspectorGainReadoutDefault = 1.0f;
         static constexpr double inspectorReadoutFallbackSampleRate = 48000.0;
         static constexpr int inspectorFadesSectionTop = 214;
-        static constexpr int inspectorFadesSectionHeight = 94;
+        static constexpr int inspectorFadesSectionHeight = 124;
         static constexpr int inspectorFadesControlTopInset = 22;
         static constexpr int inspectorFadeControlHeight = 32;
+        static constexpr int inspectorFadeCurveControlTopGap = 4;
+        static constexpr int inspectorFadeCurveControlHeight = 26;
         static constexpr int inspectorFadeControlLeftInset = 78;
         static constexpr int inspectorFadeControlHorizontalInset = 0;
         static constexpr int inspectorFadeControlVerticalInset = 6;
@@ -306,7 +308,7 @@ struct UiTheme
         static constexpr int inspectorFadeRowInsetY = 3;
         static constexpr int inspectorFadeTextInsetX = 8;
         static constexpr int inspectorFadeTextInsetY = 0;
-        static constexpr int inspectorFxSectionTop = 330;
+        static constexpr int inspectorFxSectionTop = 360;
         static constexpr int inspectorFxRowHeight = 28;
         static constexpr int inspectorFxRowInsetX = 0;
         static constexpr int inspectorFxRowInsetY = 2;

@@ -289,9 +289,18 @@ round-trip through save/reopen. Red proof: the focused `YesDawUiInputCheck` firs
 `cmake --build --preset ci --target YesDawUiInputCheck` plus
 `ctest --preset ci -R YesDawUiInputCheck --output-on-failure` passed **1/1**; adjacent
 `YesDawUiActionCheck` and `YesDawThemeAuditCheck` passed **2/2**; `git diff --check`.
+H16 CP5b added the inspector fade-curve picker as a real shipped Component next to the existing fade
+duration controls. The picker exposes the H14 canonical equal-power fade law without reopening Project
+schema or engine policy; it enables/disables with the existing `TimelineClipSetFades` action state, stays
+selected on no-selection/selection changes, and the UI input harness proves save/reopen keeps Clip fade
+metadata unchanged. Gate bite: the focused UI input gate caught the new shipped-child inventory until the
+harness was updated. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiInputCheck` plus focused
+`ctest --preset ci -R "YesDawUiInputCheck|YesDawUiActionCheck|YesDawThemeAuditCheck" --output-on-failure`
+passed **3/3**; `git diff --check`.
 
-**Now:** H16 CP5a (inspector start/end/length editing) is complete locally. Stop at this checkpoint after
-commit/push and remote CI green.
+**Now:** H16 CP5b (inspector fade-curve picker exposing H14 equal-power) is complete locally. Stop at this
+checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -332,8 +341,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP5 in a successor checkpoint with the remaining inspector fade-curve picker and
-automation lane editing slices. Do not start CP6.
+**Next:** Continue H16 CP5 in a successor checkpoint with the first automation lane editing slice. Do not
+start CP6.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

@@ -41,6 +41,8 @@ constexpr const char* kInspectorEndComponentId = "clip.inspector.end";
 constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
+constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
+constexpr int kInspectorEqualPowerFadeCurveId = 1;
 constexpr double kInspectorTimingShortenRatio = 0.5;
 constexpr double kInspectorFadeInRatio = 0.25;
 constexpr double kInspectorFadeOutRatio = 0.75;
@@ -243,6 +245,19 @@ juce::Slider& requireSliderWithComponentId (juce::Component& shell, const juce::
     REQUIRE (slider->getWidth() > 0);
     REQUIRE (slider->getHeight() > 0);
     return *slider;
+}
+
+juce::ComboBox& requireComboBoxWithComponentId (juce::Component& shell, const juce::String& componentId)
+{
+    juce::Component* component = findChildWithComponentId (shell, componentId);
+    REQUIRE (component != nullptr);
+
+    auto* comboBox = dynamic_cast<juce::ComboBox*> (component);
+    REQUIRE (comboBox != nullptr);
+    REQUIRE (comboBox->isVisible());
+    REQUIRE (comboBox->getWidth() > 0);
+    REQUIRE (comboBox->getHeight() > 0);
+    return *comboBox;
 }
 
 juce::Component& requireTimelineComponent (juce::Component& shell)
@@ -570,7 +585,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 15u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 16u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -864,6 +879,7 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     juce::Slider& gain = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
     juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
     juce::Slider& fadeOut = requireSliderWithComponentId (*shell, kInspectorFadeOutComponentId);
+    juce::ComboBox& fadeCurve = requireComboBoxWithComponentId (*shell, kInspectorFadeCurveComponentId);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
@@ -873,6 +889,9 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     REQUIRE (gain.isEnabled());
     REQUIRE (fadeIn.isEnabled());
     REQUIRE (fadeOut.isEnabled());
+    REQUIRE (fadeCurve.isEnabled());
+    REQUIRE (fadeCurve.getSelectedId() == kInspectorEqualPowerFadeCurveId);
+    REQUIRE (fadeCurve.getText() == "Equal power");
 
     mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
     snapshot = snapshotMainComponent (*shell);
@@ -883,6 +902,8 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     REQUIRE_FALSE (gain.isEnabled());
     REQUIRE_FALSE (fadeIn.isEnabled());
     REQUIRE_FALSE (fadeOut.isEnabled());
+    REQUIRE_FALSE (fadeCurve.isEnabled());
+    REQUIRE (fadeCurve.getSelectedId() == kInspectorEqualPowerFadeCurveId);
 
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
@@ -894,6 +915,8 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     REQUIRE (gain.isEnabled());
     REQUIRE (fadeIn.isEnabled());
     REQUIRE (fadeOut.isEnabled());
+    REQUIRE (fadeCurve.isEnabled());
+    REQUIRE (fadeCurve.getSelectedId() == kInspectorEqualPowerFadeCurveId);
 
     REQUIRE (imported.sampleRate.isValid());
     const double sampleRate = imported.sampleRate.hz;
@@ -953,6 +976,7 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
 
     const yesdaw::engine::Project reopened = readProjectSnapshot (bundlePath);
     REQUIRE (reopened.clips == edited.clips);
+    REQUIRE (fadeCurve.getSelectedId() == kInspectorEqualPowerFadeCurveId);
 }
 
 TEST_CASE ("H12 UI input harness drives an end-to-end saved session through shipped Components",
