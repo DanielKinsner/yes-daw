@@ -43,6 +43,7 @@ using yesdaw::ui::UiPianoRollActionStatus;
 using yesdaw::ui::UiPianoRollExpressionLaneKind;
 using yesdaw::ui::UiPianoRollSurfaceModel;
 using yesdaw::ui::UiRecordingMonitoringPolicy;
+using yesdaw::ui::TimelineTool;
 using yesdaw::ui::UiTimelineEditModel;
 using yesdaw::ui::UiTimelineEditPayload;
 using yesdaw::ui::descriptorForStableId;
@@ -192,6 +193,15 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("autosave.recovery.restore")->id == UiActionId::AutosaveRecoveryRestore);
     REQUIRE (descriptorForStableId ("autosave.recovery.discard")->id == UiActionId::AutosaveRecoveryDiscard);
     REQUIRE (descriptorForStableId ("help.show_keymap")->id == UiActionId::HelpShowKeymap);
+    REQUIRE (descriptorForStableId ("timeline.tool.pointer")->id == UiActionId::TimelineToolSelectPointer);
+    REQUIRE (descriptorForStableId ("timeline.tool.pencil")->id == UiActionId::TimelineToolSelectPencil);
+    REQUIRE (descriptorForStableId ("timeline.tool.scissors")->id == UiActionId::TimelineToolSelectScissors);
+    REQUIRE (descriptorForStableId ("timeline.tool.hand")->id == UiActionId::TimelineToolSelectHand);
+    REQUIRE (descriptorForStableId ("timeline.tool.zoom")->id == UiActionId::TimelineToolSelectZoom);
+    REQUIRE (descriptorForStableId ("timeline.snap.disable")->id == UiActionId::TimelineSnapDisable);
+    REQUIRE (descriptorForStableId ("timeline.snap.bar")->id == UiActionId::TimelineSnapSetBar);
+    REQUIRE (descriptorForStableId ("timeline.snap.beat")->id == UiActionId::TimelineSnapSetBeat);
+    REQUIRE (descriptorForStableId ("timeline.snap.sixteenth")->id == UiActionId::TimelineSnapSetSixteenth);
 
     std::set<std::string_view> stableIds;
     std::set<std::string_view> defaultKeys;
@@ -238,11 +248,11 @@ TEST_CASE ("H11 keymap remapping is stable and rejects duplicate or empty chords
     UiActionRegistry registry;
 
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::TransportPlay);
-    REQUIRE (registry.keymap().rebind (UiActionId::TransportPlay, "P") == KeymapRebindStatus::Ok);
-    REQUIRE (registry.keymap().actionForChord ("P") == UiActionId::TransportPlay);
+    REQUIRE (registry.keymap().rebind (UiActionId::TransportPlay, "Shift+P") == KeymapRebindStatus::Ok);
+    REQUIRE (registry.keymap().actionForChord ("Shift+P") == UiActionId::TransportPlay);
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::Count);
 
-    REQUIRE (registry.keymap().rebind (UiActionId::TransportStop, "P")
+    REQUIRE (registry.keymap().rebind (UiActionId::TransportStop, "Shift+P")
              == KeymapRebindStatus::DuplicateChord);
     REQUIRE (registry.keymap().chordFor (UiActionId::TransportStop) == "K");
 
@@ -266,6 +276,15 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
 
     context.projectLoaded = true;
     REQUIRE (registry.stateFor (UiActionId::TransportPlay, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineToolSelectPointer, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineToolSelectPencil, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineToolSelectScissors, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineToolSelectHand, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineToolSelectZoom, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineSnapDisable, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetBar, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetBeat, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetSixteenth, context).enabled);
 
     const auto undoWithoutStack = registry.stateFor (UiActionId::EditUndo, context);
     REQUIRE_FALSE (undoWithoutStack.enabled);
@@ -491,6 +510,30 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
 
     REQUIRE (registry.dispatch (UiActionId::HelpShowKeymap, context).dispatched);
     REQUIRE (context.keymapVisible);
+
+    REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectPencil, context).dispatched);
+    REQUIRE (context.activePanel == UiPanel::Timeline);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Pencil);
+    REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectScissors, context).dispatched);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Scissors);
+    REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectHand, context).dispatched);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Hand);
+    REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectZoom, context).dispatched);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Zoom);
+    REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectPointer, context).dispatched);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Pointer);
+
+    REQUIRE (registry.dispatch (UiActionId::TimelineSnapDisable, context).dispatched);
+    REQUIRE_FALSE (context.snapEnabled);
+    REQUIRE (registry.dispatch (UiActionId::TimelineSnapSetBar, context).dispatched);
+    REQUIRE (context.snapEnabled);
+    REQUIRE (context.snapGridTicks == 2048);
+    REQUIRE (registry.dispatch (UiActionId::TimelineSnapSetBeat, context).dispatched);
+    REQUIRE (context.snapEnabled);
+    REQUIRE (context.snapGridTicks == 512);
+    REQUIRE (registry.dispatch (UiActionId::TimelineSnapSetSixteenth, context).dispatched);
+    REQUIRE (context.snapEnabled);
+    REQUIRE (context.snapGridTicks == 128);
 }
 
 TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo",

@@ -266,9 +266,18 @@ gate. Red proof: the focused waveform build first failed on missing `readyWavefo
 `ctest --test-dir build-apps-off -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**;
 `git diff --check`; full `cmake --build --preset ci`; full
 `ctest --preset ci --output-on-failure` passed **311/311**.
+Remote CI run `28955682779` for CP3b completed green across Linux, Windows, macOS, RTSan, and TSan.
+H16 CP4a added the action-first tool/snap/keymap surface for the timeline tool palette and snap menu:
+pointer, pencil, scissors, hand, zoom, snap-off, snap-to-bar, snap-to-beat, and snap-to-sixteenth now have
+stable `UiActionId`s, default key chords, accessibility roles/names, and headless dispatch state in
+`UiActionRegistry`. The keymap duplicate negative control was tightened after pencil claimed `P`. This
+checkpoint does not wire visible Components, marker editing, transport display editing, inspector,
+automation lanes, mixer buildout, engine/model policy, ADRs, goldens, `docs/reality-lane.md`, or CP5+.
+Local gate under `vcvars64.bat`: focused `cmake --build --preset ci --target YesDawUiActionCheck` plus
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**; `git diff --check`.
 
-**Now:** H16 CP3 (real waveform columns from the published cache in the timeline ready branch) is
-complete locally. Stop at this checkpoint after commit/push and remote CI green.
+**Now:** H16 CP4a (action-first timeline tool/snap/keymap surface) is complete locally. Stop at this
+checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -309,8 +318,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** After CP3 remote CI is green, H16 CP4 may open in a successor thread only; do not start CP4
-from this CP3 checkpoint.
+**Next:** Continue H16 CP4 in a successor checkpoint by wiring the tool/snap actions to visible
+timeline toolbar Components and the input harness. Do not start CP5.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

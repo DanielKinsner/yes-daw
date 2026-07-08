@@ -57,6 +57,15 @@ enum class UiActionId : std::uint8_t
     AutosaveRecoveryRestore,
     AutosaveRecoveryDiscard,
     HelpShowKeymap,
+    TimelineToolSelectPointer,
+    TimelineToolSelectPencil,
+    TimelineToolSelectScissors,
+    TimelineToolSelectHand,
+    TimelineToolSelectZoom,
+    TimelineSnapDisable,
+    TimelineSnapSetBar,
+    TimelineSnapSetBeat,
+    TimelineSnapSetSixteenth,
     Count
 };
 
@@ -82,6 +91,15 @@ enum class UiPanel : std::uint8_t
     Timeline,
     Mixer,
     PianoRoll
+};
+
+enum class TimelineTool : std::uint8_t
+{
+    Pointer,
+    Pencil,
+    Scissors,
+    Hand,
+    Zoom
 };
 
 enum class UiRecordingMonitoringPolicy : std::uint8_t
@@ -136,6 +154,9 @@ struct UiActionContext
     bool isRecording = false;
     bool keymapVisible = false;
     UiPanel activePanel = UiPanel::Timeline;
+    TimelineTool activeTimelineTool = TimelineTool::Pointer;
+    bool snapEnabled = true;
+    std::int64_t snapGridTicks = 512;
     std::int64_t playheadFrame = 0;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -278,7 +299,25 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::AutosaveRecoveryDiscard, "autosave.recovery.discard", "Discard Autosave", "Ctrl+Alt+X", "Discard autosave recovery snapshot",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineToolSelectPointer, "timeline.tool.pointer", "Pointer", "V", "Select pointer tool",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectPencil, "timeline.tool.pencil", "Pencil", "P", "Select pencil tool",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectScissors, "timeline.tool.scissors", "Scissors", "S", "Select scissors tool",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectHand, "timeline.tool.hand", "Hand", "H", "Select hand tool",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectZoom, "timeline.tool.zoom", "Zoom", "Z", "Select zoom tool",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "Ctrl+0", "Disable timeline snap",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineSnapSetBar, "timeline.snap.bar", "Snap Bar", "Ctrl+1", "Set timeline snap to bar",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineSnapSetBeat, "timeline.snap.beat", "Snap Beat", "Ctrl+2", "Set timeline snap to beat",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineSnapSetSixteenth, "timeline.snap.sixteenth", "Snap 1/16", "Ctrl+3", "Set timeline snap to sixteenth note",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -639,6 +678,54 @@ public:
 
             case UiActionId::HelpShowKeymap:
                 context.keymapVisible = ! context.keymapVisible;
+                break;
+
+            case UiActionId::TimelineToolSelectPointer:
+                context.activePanel = UiPanel::Timeline;
+                context.activeTimelineTool = TimelineTool::Pointer;
+                break;
+
+            case UiActionId::TimelineToolSelectPencil:
+                context.activePanel = UiPanel::Timeline;
+                context.activeTimelineTool = TimelineTool::Pencil;
+                break;
+
+            case UiActionId::TimelineToolSelectScissors:
+                context.activePanel = UiPanel::Timeline;
+                context.activeTimelineTool = TimelineTool::Scissors;
+                break;
+
+            case UiActionId::TimelineToolSelectHand:
+                context.activePanel = UiPanel::Timeline;
+                context.activeTimelineTool = TimelineTool::Hand;
+                break;
+
+            case UiActionId::TimelineToolSelectZoom:
+                context.activePanel = UiPanel::Timeline;
+                context.activeTimelineTool = TimelineTool::Zoom;
+                break;
+
+            case UiActionId::TimelineSnapDisable:
+                context.activePanel = UiPanel::Timeline;
+                context.snapEnabled = false;
+                break;
+
+            case UiActionId::TimelineSnapSetBar:
+                context.activePanel = UiPanel::Timeline;
+                context.snapEnabled = true;
+                context.snapGridTicks = 2048;
+                break;
+
+            case UiActionId::TimelineSnapSetBeat:
+                context.activePanel = UiPanel::Timeline;
+                context.snapEnabled = true;
+                context.snapGridTicks = 512;
+                break;
+
+            case UiActionId::TimelineSnapSetSixteenth:
+                context.activePanel = UiPanel::Timeline;
+                context.snapEnabled = true;
+                context.snapGridTicks = 128;
                 break;
 
             case UiActionId::Count:
