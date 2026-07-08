@@ -194,6 +194,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
     REQUIRE (descriptorForStableId ("mixer.sends.read")->id == UiActionId::MixerReadSends);
+    REQUIRE (descriptorForStableId ("mixer.sends.first.set_level")->id == UiActionId::MixerSetFirstSendLevel);
     REQUIRE (descriptorForStableId ("mixer.fx_slots.read")->id == UiActionId::MixerReadFxSlots);
     REQUIRE (descriptorForStableId ("mixer.fx_slots.first.toggle_enabled")->id
              == UiActionId::MixerToggleFirstFxSlotEnabled);
@@ -340,6 +341,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::MixerReadMeters, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadLoudness, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadSends, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerSetFirstSendLevel, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadFxSlots, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerToggleFirstFxSlotEnabled, context).enabled);
 
@@ -506,6 +508,8 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.mixerEditCount == 1);
     REQUIRE (registry.dispatch (UiActionId::MixerToggleFirstFxSlotEnabled, context).dispatched);
     REQUIRE (context.mixerEditCount == 2);
+    REQUIRE (registry.dispatch (UiActionId::MixerSetFirstSendLevel, context).dispatched);
+    REQUIRE (context.mixerEditCount == 3);
     REQUIRE (context.canUndo);
     REQUIRE (registry.dispatch (UiActionId::MixerReadMeters, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadLoudness, context).dispatched);

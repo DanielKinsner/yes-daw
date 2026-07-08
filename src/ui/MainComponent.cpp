@@ -1462,6 +1462,17 @@ private:
         };
         addAndMakeVisible (mixerSendsReadout);
 
+        configureActionComponent (mixerSendLevelEdit, yesdaw::ui::UiActionId::MixerSetFirstSendLevel, "Mixer send level");
+        mixerSendLevelEdit.setButtonText ("Send");
+        mixerSendLevelEdit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerSendLevelEdit.setColour (juce::TextButton::textColourOffId, kText);
+        mixerSendLevelEdit.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerSetFirstSendLevel);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerSendLevelEdit);
+
         configureActionComponent (mixerFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadFxSlots, "Mixer FX slots");
         mixerFxSlotsReadout.setButtonText ("FX: none");
         mixerFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1609,9 +1620,12 @@ private:
         auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
-        mixerFxSlotToggle.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
-        mixerSolo.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
-        mixerMute.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
+        const std::array<juce::Button*, 4> mixerButtons { &mixerSendLevelEdit, &mixerFxSlotToggle, &mixerSolo, &mixerMute };
+        const int mixerButtonWidth = juce::jmin (
+            yesdaw::ui::UiTheme::Layout::mixerButtonWidth,
+            buttonRow.getWidth() / static_cast<int> (mixerButtons.size()));
+        for (juce::Button* button : mixerButtons)
+            button->setBounds (buttonRow.removeFromLeft (mixerButtonWidth));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
         auto faderArea = lane.removeFromTop (
             juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
@@ -1954,6 +1968,11 @@ private:
                                                             appModel.context()).enabled);
         mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
                                                                     appModel.context()).enabled);
+        const bool firstSendAvailable = appModel.firstTrackFirstSendAutomationLane() != nullptr;
+        mixerSendLevelEdit.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSetFirstSendLevel,
+                                          appModel.context()).enabled
+            && firstSendAvailable);
         mixerFxSlotsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadFxSlots,
                                                                       appModel.context()).enabled);
         const bool firstFxSlotAvailable = projectHasTrack && ! project.tracks.front().strip.fxChain.empty();
@@ -1972,6 +1991,7 @@ private:
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
             mixerSendsReadout.setButtonText (mixerSendsReadoutText());
+            mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
             mixerFxSlotToggle.setButtonText ("FX");
             mixerFxSlotToggle.setToggleState (firstFxSlotAvailable && strip.fxChain.front().enabled,
@@ -1987,6 +2007,7 @@ private:
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
             mixerSendsReadout.setButtonText ("Sends: no project");
+            mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText ("FX: no project");
             mixerFxSlotToggle.setButtonText ("FX");
             mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
@@ -2008,6 +2029,7 @@ private:
         return juce::String (track.name.empty() ? "Track 1" : track.name)
              + " Send " + juce::String (static_cast<int> (send.sendOrdinal))
              + " node " + juce::String (static_cast<int> (send.faderNodeId))
+             + " level " + juce::String (send.normalizedLevel, 2)
              + " points " + juce::String (static_cast<int> (send.breakpointCount));
     }
 
@@ -2897,6 +2919,7 @@ private:
     juce::Slider mixerFader;
     juce::Slider mixerPan;
     juce::TextButton mixerSendsReadout;
+    juce::TextButton mixerSendLevelEdit;
     juce::TextButton mixerFxSlotsReadout;
     juce::TextButton mixerFxSlotToggle;
     juce::ToggleButton mixerMute;

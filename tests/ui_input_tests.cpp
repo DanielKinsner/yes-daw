@@ -662,7 +662,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 23u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 24u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -836,6 +836,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
     REQUIRE (project.automationLanes.size() == 1u);
     const auto sendFaderNodeId = projectMixerSendLevelNodeIdForTrack (project.tracks.front().id, 0);
     REQUIRE (sends.getButtonText().contains (juce::String (static_cast<int> (sendFaderNodeId))));
+    REQUIRE (sends.getButtonText().contains ("level 0.60"));
     REQUIRE (sends.getButtonText().contains ("points 2"));
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
@@ -843,6 +844,77 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Project undo",
+           "[ui][input][shell][mixer][sends]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-send-level-edit");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerSendsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
+    juce::Button& sendLevel = requireButtonForAction (*shell, UiActionId::MixerSetFirstSendLevel);
+    REQUIRE (sendLevel.isEnabled());
+    REQUIRE (sendLevel.getButtonText() == "Send");
+    REQUIRE (sends.getButtonText().contains ("level 0.60"));
+
+    const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
+    REQUIRE (before.automationLanes.size() == 1u);
+    REQUIRE (before.automationLanes.front().role == AutomationTargetRole::SendLevel);
+    REQUIRE (before.automationLanes.front().paramId == 0u);
+    REQUIRE (before.automationLanes.front().points.size() == 2u);
+    REQUIRE (before.automationLanes.front().points.back().value == Catch::Approx (0.60));
+
+    const int beforeEditCount = snapshot.context.mixerEditCount;
+    clickButton (sendLevel);
+
+    const yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.automationLanes.size() == before.automationLanes.size());
+    REQUIRE (edited.automationLanes.front().id == before.automationLanes.front().id);
+    REQUIRE (edited.automationLanes.front().points.size() == before.automationLanes.front().points.size());
+    REQUIRE (edited.automationLanes.front().points.front() == before.automationLanes.front().points.front());
+    REQUIRE (edited.automationLanes.front().points.back().tick == before.automationLanes.front().points.back().tick);
+    REQUIRE (edited.automationLanes.front().points.back().curveType == before.automationLanes.front().points.back().curveType);
+    REQUIRE (edited.automationLanes.front().points.back().value
+             == Catch::Approx (yesdaw::ui::UiAppModel::kFirstTrackSendLevelEditValue));
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerEditCount == beforeEditCount + 1);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+    REQUIRE (sendLevel.getButtonText() == "Send");
+    REQUIRE (sends.getButtonText().contains ("level 0.80"));
+
+    juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
+    juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
+    REQUIRE (undo.isEnabled());
+    clickButton (undo);
+
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.automationLanes == before.automationLanes);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (sends.getButtonText().contains ("level 0.60"));
+
+    REQUIRE (redo.isEnabled());
+    clickButton (redo);
+
+    const yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.automationLanes == edited.automationLanes);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (sends.getButtonText().contains ("level 0.80"));
 }
 
 TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action-backed mixer component",

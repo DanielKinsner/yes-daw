@@ -170,6 +170,7 @@ class UiAppModel
 public:
     static constexpr engine::Tick kFirstTrackAutomationBreakpointAddTick = 1'920;
     static constexpr double kFirstTrackAutomationBreakpointAddValue = 0.50;
+    static constexpr double kFirstTrackSendLevelEditValue = 0.80;
 
     [[nodiscard]] const UiActionRegistry& registry() const noexcept { return registry_; }
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
@@ -189,6 +190,11 @@ public:
     [[nodiscard]] const engine::AutomationLaneData* firstTrackFaderAutomationLane() const noexcept
     {
         return firstTrackFaderAutomationLane (project_);
+    }
+
+    [[nodiscard]] const engine::AutomationLaneData* firstTrackFirstSendAutomationLane() const noexcept
+    {
+        return firstTrackFirstSendAutomationLane (project_);
     }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
@@ -850,6 +856,47 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult setFirstTrackFirstSendLevel()
+    {
+        const UiActionId id = UiActionId::MixerSetFirstSendLevel;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::AutomationLaneData* const lane = firstTrackFirstSendAutomationLane();
+        if (lane == nullptr)
+            return { id, { false, "first Track send level lane missing" }, false };
+
+        if (lane->points.empty())
+            return { id, { false, "first Track send level lane has no breakpoints" }, false };
+
+        const engine::Tick tick = lane->points.back().tick;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setAutomationBreakpointValue (
+                lane->id, tick, kFirstTrackSendLevelEditValue));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (canAdoptEditWithoutPlaybackRebuild (nextProject))
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "send level edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            return { id, { false, "send level edit did not persist" }, false };
+        }
+
+        context_.activePanel = UiPanel::Mixer;
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (engine::Tick timelineStart)
     {
         const UiActionId id = UiActionId::TimelineClipMove;
@@ -1247,6 +1294,9 @@ public:
             case UiActionId::MixerToggleFirstFxSlotEnabled:
                 return toggleFirstTrackFxSlotEnabled();
 
+            case UiActionId::MixerSetFirstSendLevel:
+                return setFirstTrackFirstSendLevel();
+
             case UiActionId::TimelineAutomationAddBreakpoint:
                 return addFirstTrackAutomationBreakpoint();
 
@@ -1379,6 +1429,26 @@ private:
         for (const engine::Track& track : project_.tracks)
             if (track.id == trackId)
                 return &track;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] static const engine::AutomationLaneData* firstTrackFirstSendAutomationLane (
+        const engine::Project& project) noexcept
+    {
+        if (project.tracks.empty())
+            return nullptr;
+
+        const engine::EntityId trackId = project.tracks.front().id;
+        for (const engine::AutomationLaneData& lane : project.automationLanes)
+        {
+            if (lane.ownerEntity == trackId
+                && lane.role == engine::AutomationTargetRole::SendLevel
+                && lane.paramId == 0u)
+            {
+                return &lane;
+            }
+        }
 
         return nullptr;
     }
