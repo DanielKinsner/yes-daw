@@ -364,8 +364,21 @@ adjacent
 `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full
 `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP6 continued with the smallest FX-slot edit slice: a new `MixerToggleFirstFxSlotEnabled` action and
+stable id `mixer.fx_slots.first.toggle_enabled`, a shipped first-Track FX toggle button in the mixer button
+row, and a `UiAppModel` ProjectUndo-backed edit that toggles the existing first Track `fxChain` insert's
+enabled/bypass state through `ProjectEditCommand::setFxInsertEnabled`. The UI input harness proves the action
+is component-backed, toggles the persisted bundle Project state off, updates the existing FX-slot readout from
+on to off, leaves the second insert unchanged, and undo/redo restores the exact `fxChain` rows. This did not
+add FX add/remove/reorder, send editing, GR meters, dim/mono, engine policy, Project schema changes, ADR edits,
+goldens, or CP7 behavior. Local gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent/broader
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+`ctest --preset ci -R YesDaw --output-on-failure` passed **29/29**; full `cmake --build --preset ci`; full
+`ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP6 first mixer FX-slot readout slice is complete locally. Stop at this checkpoint after
+**Now:** H16 CP6 first mixer FX-slot enabled/bypass toggle slice is complete locally. Stop at this checkpoint after
 commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -407,10 +420,10 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP6 with the smallest FX-slot edit slice over existing Track `fxChain` Project state:
-first-Track insert enabled/bypass toggle through an action and harness, using existing Project undo/edit
-infrastructure. Do not add send editing, GR meters, dim/mono, broad FX editing, engine policy, Project schema
-changes, or CP7 in the same checkpoint.
+**Next:** Continue H16 CP6 with the smallest send-edit slice over existing H15 `SendLevel` automation lane state:
+first-Track first-send normalized level edit through an action and harness, using existing Project undo/edit
+infrastructure. Do not add send creation/routing, FX add/remove/reorder/param editing, GR meters, dim/mono,
+engine policy, Project schema changes, or CP7 in the same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

@@ -50,6 +50,7 @@ enum class UiActionId : std::uint8_t
     MixerReadLoudness,
     MixerReadSends,
     MixerReadFxSlots,
+    MixerToggleFirstFxSlotEnabled,
     PianoRollNoteSelect,
     PianoRollNoteMove,
     PianoRollNoteSetLength,
@@ -295,6 +296,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
     { UiActionId::MixerReadFxSlots, "mixer.fx_slots.read", "FX Slots", "Ctrl+Alt+Shift+X", "Read mixer FX slots",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
+    { UiActionId::MixerToggleFirstFxSlotEnabled, "mixer.fx_slots.first.toggle_enabled", "FX On", "Ctrl+Alt+Shift+B", "Toggle first Track FX insert enabled",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false },
     { UiActionId::PianoRollNoteSelect, "piano_roll.note.select", "Select Note", "Alt+N", "Select piano-roll note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, false },
     { UiActionId::PianoRollNoteMove, "piano_roll.note.move", "Move Note", "Alt+Shift+M", "Move selected note",
@@ -657,7 +660,10 @@ public:
             case UiActionId::MixerTargetSetPan:
             case UiActionId::MixerTargetToggleMute:
             case UiActionId::MixerTargetToggleSolo:
+            case UiActionId::MixerToggleFirstFxSlotEnabled:
                 context.activePanel = UiPanel::Mixer;
+                context.canUndo = true;
+                context.canRedo = false;
                 ++context.mixerEditCount;
                 break;
 

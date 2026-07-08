@@ -812,6 +812,44 @@ public:
         });
     }
 
+    [[nodiscard]] UiActionDispatchResult toggleFirstTrackFxSlotEnabled()
+    {
+        const UiActionId id = UiActionId::MixerToggleFirstFxSlotEnabled;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (project_.tracks.empty() || project_.tracks.front().strip.fxChain.empty())
+            return { id, { false, "no first Track FX slot" }, false };
+
+        const engine::EntityId ownerId = project_.tracks.front().id;
+        const engine::FxInsert& firstInsert = project_.tracks.front().strip.fxChain.front();
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setFxInsertEnabled (ownerId, firstInsert.id, ! firstInsert.enabled));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (decodedAssets_.empty() && project_.clips.empty() && nextProject.clips.empty())
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "FX slot edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            return { id, { false, "FX slot edit did not persist" }, false };
+        }
+
+        context_.activePanel = UiPanel::Mixer;
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (engine::Tick timelineStart)
     {
         const UiActionId id = UiActionId::TimelineClipMove;
@@ -1205,6 +1243,9 @@ public:
             {
                 return registry_.dispatch (id, context_);
             }
+
+            case UiActionId::MixerToggleFirstFxSlotEnabled:
+                return toggleFirstTrackFxSlotEnabled();
 
             case UiActionId::TimelineAutomationAddBreakpoint:
                 return addFirstTrackAutomationBreakpoint();

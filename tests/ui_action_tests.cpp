@@ -195,6 +195,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
     REQUIRE (descriptorForStableId ("mixer.sends.read")->id == UiActionId::MixerReadSends);
     REQUIRE (descriptorForStableId ("mixer.fx_slots.read")->id == UiActionId::MixerReadFxSlots);
+    REQUIRE (descriptorForStableId ("mixer.fx_slots.first.toggle_enabled")->id
+             == UiActionId::MixerToggleFirstFxSlotEnabled);
     REQUIRE (descriptorForStableId ("piano_roll.note.select")->id == UiActionId::PianoRollNoteSelect);
     REQUIRE (descriptorForStableId ("piano_roll.note.quantize")->id == UiActionId::PianoRollNoteQuantize);
     REQUIRE (descriptorForStableId ("piano_roll.expression.read")->id == UiActionId::PianoRollReadExpressionLanes);
@@ -339,6 +341,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::MixerReadLoudness, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadSends, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadFxSlots, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerToggleFirstFxSlotEnabled, context).enabled);
 
     const auto noteSelectWithoutClip = registry.stateFor (UiActionId::PianoRollNoteSelect, context);
     REQUIRE_FALSE (noteSelectWithoutClip.enabled);
@@ -501,6 +504,9 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::MixerTargetSetFader, context).dispatched);
     REQUIRE (context.activePanel == UiPanel::Mixer);
     REQUIRE (context.mixerEditCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::MixerToggleFirstFxSlotEnabled, context).dispatched);
+    REQUIRE (context.mixerEditCount == 2);
+    REQUIRE (context.canUndo);
     REQUIRE (registry.dispatch (UiActionId::MixerReadMeters, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadLoudness, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadSends, context).dispatched);

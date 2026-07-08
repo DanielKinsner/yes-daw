@@ -8,6 +8,7 @@
 #include <catch2/catch_approx.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include "engine/nodes/EqNode.h"
 #include "engine/Time.h"
 #include "persistence/ProjectBundle.h"
 
@@ -175,7 +176,8 @@ yesdaw::engine::Project makeMixerFxSlotsInputProject()
     REQUIRE (project.tracks.size() == 1u);
 
     project.tracks.front().strip.fxChain = {
-        { idFromLowByte (91), yesdaw::engine::FxKind::Eq, true, { { 1, 0.35 } } },
+        { idFromLowByte (91), yesdaw::engine::FxKind::Eq, true,
+          { { yesdaw::engine::EqNode::parameterIdFor (0, yesdaw::engine::EqNode::kGainParamOffset), 0.35 } } },
         { idFromLowByte (92), yesdaw::engine::FxKind::Compressor, false, {} },
     };
     REQUIRE (project.hasValidAssetClipIndirection());
@@ -660,7 +662,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 22u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 23u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -878,6 +880,74 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state through Project undo",
+           "[ui][input][shell][mixer][fx-slots]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-fx-slot-toggle");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerFxSlotsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
+    juce::Button& fxToggle = requireButtonForAction (*shell, UiActionId::MixerToggleFirstFxSlotEnabled);
+    REQUIRE (fxToggle.isEnabled());
+    REQUIRE (fxToggle.getButtonText() == "FX");
+    REQUIRE (fxToggle.getToggleState());
+    REQUIRE (fxSlots.getButtonText().contains ("on"));
+
+    const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
+    REQUIRE (before.tracks.front().strip.fxChain.size() == 2u);
+    REQUIRE (before.tracks.front().strip.fxChain.front().enabled);
+
+    const int beforeEditCount = snapshot.context.mixerEditCount;
+    clickButton (fxToggle);
+
+    yesdaw::engine::Project toggled = readProjectSnapshot (bundlePath);
+    REQUIRE (toggled.tracks.front().strip.fxChain.size() == before.tracks.front().strip.fxChain.size());
+    REQUIRE (toggled.tracks.front().strip.fxChain.front().id == before.tracks.front().strip.fxChain.front().id);
+    REQUIRE_FALSE (toggled.tracks.front().strip.fxChain.front().enabled);
+    REQUIRE (toggled.tracks.front().strip.fxChain[1] == before.tracks.front().strip.fxChain[1]);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerEditCount == beforeEditCount + 1);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+    REQUIRE (fxToggle.getButtonText() == "FX");
+    REQUIRE_FALSE (fxToggle.getToggleState());
+    REQUIRE (fxSlots.getButtonText().contains ("off"));
+
+    juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
+    juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
+    REQUIRE (undo.isEnabled());
+    clickButton (undo);
+
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.tracks.front().strip.fxChain == before.tracks.front().strip.fxChain);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (fxToggle.getButtonText() == "FX");
+    REQUIRE (fxToggle.getToggleState());
+
+    REQUIRE (redo.isEnabled());
+    clickButton (redo);
+
+    const yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.tracks.front().strip.fxChain == toggled.tracks.front().strip.fxChain);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (fxToggle.getButtonText() == "FX");
+    REQUIRE_FALSE (fxToggle.getToggleState());
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

@@ -1473,6 +1473,17 @@ private:
         };
         addAndMakeVisible (mixerFxSlotsReadout);
 
+        configureActionComponent (mixerFxSlotToggle, yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled, "Mixer FX slot toggle");
+        mixerFxSlotToggle.setButtonText ("FX");
+        mixerFxSlotToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerFxSlotToggle.setColour (juce::TextButton::textColourOffId, kText);
+        mixerFxSlotToggle.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerFxSlotToggle);
+
         configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
         mixerMute.setButtonText ("M");
         mixerMute.onClick = [this] {
@@ -1598,6 +1609,7 @@ private:
         auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
+        mixerFxSlotToggle.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
         mixerSolo.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
         mixerMute.setBounds (buttonRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerButtonWidth));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
@@ -1944,6 +1956,11 @@ private:
                                                                     appModel.context()).enabled);
         mixerFxSlotsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadFxSlots,
                                                                       appModel.context()).enabled);
+        const bool firstFxSlotAvailable = projectHasTrack && ! project.tracks.front().strip.fxChain.empty();
+        mixerFxSlotToggle.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled,
+                                          appModel.context()).enabled
+            && firstFxSlotAvailable);
 
         refreshingMixerControls = true;
         if (projectHasTrack)
@@ -1956,6 +1973,9 @@ private:
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
             mixerSendsReadout.setButtonText (mixerSendsReadoutText());
             mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
+            mixerFxSlotToggle.setButtonText ("FX");
+            mixerFxSlotToggle.setToggleState (firstFxSlotAvailable && strip.fxChain.front().enabled,
+                                              juce::dontSendNotification);
         }
         else
         {
@@ -1968,6 +1988,8 @@ private:
             mixerSolo.setToggleState (false, juce::dontSendNotification);
             mixerSendsReadout.setButtonText ("Sends: no project");
             mixerFxSlotsReadout.setButtonText ("FX: no project");
+            mixerFxSlotToggle.setButtonText ("FX");
+            mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
         }
         refreshingMixerControls = false;
     }
@@ -2876,6 +2898,7 @@ private:
     juce::Slider mixerPan;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerFxSlotsReadout;
+    juce::TextButton mixerFxSlotToggle;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
     juce::TextButton autosaveRestoreButton;
