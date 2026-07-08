@@ -405,8 +405,15 @@ under the VS BuildTools `vcvars64.bat`: focused
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R YesDaw --output-on-failure` passed **29/29**; full `cmake --build --preset ci`; full
 `ctest --preset ci --output-on-failure` passed **311/311**.
+Remote run `28979966550` for `b0eda96` failed the macOS build on AppleClang
+`-Wmissing-field-initializers` in `tests/ui_action_tests.cpp` after `UiMixerTargetControl` gained the trailing
+GR readback vector. The follow-up fix adds the explicit empty vector initializer for the second mixer Track
+control fixture only. Local gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck`; focused
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**; full
+`cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP6 first mixer GR-meter readout slice is complete locally. Stop at this checkpoint after
+**Now:** H16 CP6 first mixer GR-meter readout slice plus the macOS initializer fix are complete locally. Stop at this checkpoint after
 commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the

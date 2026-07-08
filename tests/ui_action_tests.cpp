@@ -752,7 +752,8 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
             false,
             false,
             false,
-            UiMixerMeterReadout { 0.45f, 0.4f, 0.2f, 0.18f, true }
+            UiMixerMeterReadout { 0.45f, 0.4f, 0.2f, 0.18f, true },
+            {}
         }
     };
 
