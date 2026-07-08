@@ -349,8 +349,23 @@ could pass. Local gates under `vcvars64.bat`: focused
 `ctest --preset ci -R YesDawThemeAuditCheck --output-on-failure` and
 `ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure` each passed **1/1**; full
 `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP6 continued with the smallest FX-slot readback slice: a new `MixerReadFxSlots` query action and
+stable id `mixer.fx_slots.read`, a shipped first-Track FX Slots button/readout in the mixer, and
+`UiMixerSurface` FX-slot readbacks derived from existing Track `fxChain` Project state. The readout reports
+the first slot ordinal, built-in FX kind, projected H14/H15 FX NodeId from `projectMixerNodeIdForEntity`,
+enabled/bypass state, and normalized parameter count without adding FX slot editing, send editing, GR meters,
+dim/mono, engine policy, Project schema changes, ADR edits, goldens, or CP7 behavior. Local gates under the
+VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck" --output-on-failure` passed **2/2**;
+adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent
+`ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full
+`ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP6 first mixer Sends readout slice is complete locally. Stop at this checkpoint after
+**Now:** H16 CP6 first mixer FX-slot readout slice is complete locally. Stop at this checkpoint after
 commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -392,8 +407,10 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP6 with the smallest FX-slot read-only action/component/harness slice over existing
-Track `fxChain` Project state. Do not add FX editing, GR meters, dim/mono, or CP7 in the same checkpoint.
+**Next:** Continue H16 CP6 with the smallest FX-slot edit slice over existing Track `fxChain` Project state:
+first-Track insert enabled/bypass toggle through an action and harness, using existing Project undo/edit
+infrastructure. Do not add send editing, GR meters, dim/mono, broad FX editing, engine policy, Project schema
+changes, or CP7 in the same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

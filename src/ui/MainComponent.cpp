@@ -1462,6 +1462,17 @@ private:
         };
         addAndMakeVisible (mixerSendsReadout);
 
+        configureActionComponent (mixerFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadFxSlots, "Mixer FX slots");
+        mixerFxSlotsReadout.setButtonText ("FX: none");
+        mixerFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
+        mixerFxSlotsReadout.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadFxSlots);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerFxSlotsReadout);
+
         configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
         mixerMute.setButtonText ("M");
         mixerMute.onClick = [this] {
@@ -1578,6 +1589,8 @@ private:
         mixerTrackSelect.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
         mixerSendsReadout.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
+        mixerFxSlotsReadout.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
         mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
                                 .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
@@ -1929,6 +1942,8 @@ private:
                                                             appModel.context()).enabled);
         mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
                                                                     appModel.context()).enabled);
+        mixerFxSlotsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadFxSlots,
+                                                                      appModel.context()).enabled);
 
         refreshingMixerControls = true;
         if (projectHasTrack)
@@ -1940,6 +1955,7 @@ private:
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
             mixerSendsReadout.setButtonText (mixerSendsReadoutText());
+            mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
         }
         else
         {
@@ -1951,6 +1967,7 @@ private:
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
             mixerSendsReadout.setButtonText ("Sends: no project");
+            mixerFxSlotsReadout.setButtonText ("FX: no project");
         }
         refreshingMixerControls = false;
     }
@@ -1970,6 +1987,39 @@ private:
              + " Send " + juce::String (static_cast<int> (send.sendOrdinal))
              + " node " + juce::String (static_cast<int> (send.faderNodeId))
              + " points " + juce::String (static_cast<int> (send.breakpointCount));
+    }
+
+    [[nodiscard]] static const char* fxKindName (yesdaw::engine::FxKind kind) noexcept
+    {
+        switch (kind)
+        {
+            case yesdaw::engine::FxKind::Eq: return "EQ";
+            case yesdaw::engine::FxKind::Compressor: return "Compressor";
+            case yesdaw::engine::FxKind::Delay: return "Delay";
+            case yesdaw::engine::FxKind::Reverb: return "Reverb";
+            case yesdaw::engine::FxKind::Limiter: return "Limiter";
+        }
+
+        return "Unknown";
+    }
+
+    [[nodiscard]] juce::String mixerFxSlotsReadoutText() const
+    {
+        const auto surface = currentMixerSurface();
+        if (surface.tracks.empty())
+            return "FX: no Track";
+
+        const auto& track = surface.tracks.front();
+        if (track.fxSlots.empty())
+            return juce::String (track.name.empty() ? "Track 1" : track.name) + " FX: none";
+
+        const yesdaw::ui::UiMixerFxSlotReadout& slot = track.fxSlots.front();
+        return juce::String (track.name.empty() ? "Track 1" : track.name)
+             + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
+             + " " + juce::String (fxKindName (slot.kind))
+             + " node " + juce::String (static_cast<int> (slot.fxNodeId))
+             + " params " + juce::String (static_cast<int> (slot.parameterCount))
+             + (slot.enabled ? " on" : " off");
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -2825,6 +2875,7 @@ private:
     juce::Slider mixerFader;
     juce::Slider mixerPan;
     juce::TextButton mixerSendsReadout;
+    juce::TextButton mixerFxSlotsReadout;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;
     juce::TextButton autosaveRestoreButton;

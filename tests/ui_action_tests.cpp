@@ -56,6 +56,7 @@ using yesdaw::engine::AutomationBreakpoint;
 using yesdaw::engine::AutomationCurveType;
 using yesdaw::engine::AutomationLaneData;
 using yesdaw::engine::AutomationTargetRole;
+using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
 
 namespace {
@@ -193,6 +194,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
     REQUIRE (descriptorForStableId ("mixer.sends.read")->id == UiActionId::MixerReadSends);
+    REQUIRE (descriptorForStableId ("mixer.fx_slots.read")->id == UiActionId::MixerReadFxSlots);
     REQUIRE (descriptorForStableId ("piano_roll.note.select")->id == UiActionId::PianoRollNoteSelect);
     REQUIRE (descriptorForStableId ("piano_roll.note.quantize")->id == UiActionId::PianoRollNoteQuantize);
     REQUIRE (descriptorForStableId ("piano_roll.expression.read")->id == UiActionId::PianoRollReadExpressionLanes);
@@ -336,6 +338,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::MixerReadMeters, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadLoudness, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadSends, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerReadFxSlots, context).enabled);
 
     const auto noteSelectWithoutClip = registry.stateFor (UiActionId::PianoRollNoteSelect, context);
     REQUIRE_FALSE (noteSelectWithoutClip.enabled);
@@ -501,7 +504,8 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::MixerReadMeters, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadLoudness, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadSends, context).dispatched);
-    REQUIRE (context.mixerReadCount == 3);
+    REQUIRE (registry.dispatch (UiActionId::MixerReadFxSlots, context).dispatched);
+    REQUIRE (context.mixerReadCount == 4);
 
     context.midiClipSelected = true;
     REQUIRE (registry.dispatch (UiActionId::PianoRollNoteSelect, context).dispatched);
@@ -688,6 +692,7 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     const EntityId firstTrackId = project.tracks[0].id;
     const EntityId secondTrackId = project.tracks[1].id;
     const float originalFirstGain = project.clips[0].gain;
+    project.tracks[0].strip.fxChain.push_back ({ idFromLowByte (81), yesdaw::engine::FxKind::Delay, false, { { 5, 0.4 } } });
     AutomationLaneData sendLane;
     sendLane.id = idFromLowByte (80);
     sendLane.ownerEntity = firstTrackId;
@@ -762,6 +767,13 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (snapshot.tracks[0].sends[0].faderNodeId == projectMixerSendLevelNodeIdForTrack (firstTrackId, 0));
     REQUIRE (snapshot.tracks[0].sends[0].breakpointCount == 2u);
     REQUIRE (snapshot.tracks[0].sends[0].normalizedLevel == 0.75);
+    REQUIRE (snapshot.tracks[0].fxSlots.size() == 1u);
+    REQUIRE (snapshot.tracks[0].fxSlots[0].slotOrdinal == 0u);
+    REQUIRE (snapshot.tracks[0].fxSlots[0].fxNodeId
+             == projectMixerNodeIdForEntity (project.tracks[0].strip.fxChain[0].id, ProjectMixerNodeRole::Fx));
+    REQUIRE (snapshot.tracks[0].fxSlots[0].kind == yesdaw::engine::FxKind::Delay);
+    REQUIRE_FALSE (snapshot.tracks[0].fxSlots[0].enabled);
+    REQUIRE (snapshot.tracks[0].fxSlots[0].parameterCount == 1u);
     REQUIRE (snapshot.buses[0].linearGain == 0.65f);
     REQUIRE (snapshot.buses[0].soloSafe);
     REQUIRE (snapshot.loudness.valid);
@@ -814,7 +826,9 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (result.dispatch.dispatched);
     result = model.dispatch (UiActionId::MixerReadSends);
     REQUIRE (result.dispatch.dispatched);
-    REQUIRE (model.context().mixerReadCount == 3);
+    result = model.dispatch (UiActionId::MixerReadFxSlots);
+    REQUIRE (result.dispatch.dispatched);
+    REQUIRE (model.context().mixerReadCount == 4);
 }
 
 TEST_CASE ("H11 piano roll actions dispatch to Project MIDI edit commands and expression readback",

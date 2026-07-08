@@ -69,6 +69,16 @@ struct UiMixerSendReadout
     bool automated = false;
 };
 
+struct UiMixerFxSlotReadout
+{
+    std::uint32_t slotOrdinal = 0;
+    engine::EntityId insertId {};
+    engine::NodeId fxNodeId = 0;
+    engine::FxKind kind = engine::FxKind::Eq;
+    bool enabled = true;
+    std::size_t parameterCount = 0;
+};
+
 struct UiMixerTargetControl
 {
     engine::EntityId targetId {};
@@ -119,6 +129,7 @@ struct UiMixerStrip
     bool sidechainVisible = false;
     UiMixerMeterReadout meter;
     std::vector<UiMixerSendReadout> sends;
+    std::vector<UiMixerFxSlotReadout> fxSlots;
 };
 
 struct UiMixerSurfaceSnapshot
@@ -220,6 +231,28 @@ inline std::vector<UiMixerSendReadout> sendReadoutsForTrack (const engine::Proje
     return sends;
 }
 
+inline std::vector<UiMixerFxSlotReadout> fxSlotReadoutsForStrip (const engine::MixerStripState& strip)
+{
+    std::vector<UiMixerFxSlotReadout> slots;
+    slots.reserve (strip.fxChain.size());
+
+    for (std::size_t i = 0; i < strip.fxChain.size(); ++i)
+    {
+        const engine::FxInsert& insert = strip.fxChain[i];
+
+        UiMixerFxSlotReadout readout;
+        readout.slotOrdinal = static_cast<std::uint32_t> (i);
+        readout.insertId = insert.id;
+        readout.fxNodeId = engine::projectMixerNodeIdForEntity (insert.id, engine::ProjectMixerNodeRole::Fx);
+        readout.kind = insert.kind;
+        readout.enabled = insert.enabled;
+        readout.parameterCount = insert.normalizedParams.size();
+        slots.push_back (readout);
+    }
+
+    return slots;
+}
+
 inline void applyEffectiveMute (UiMixerSurfaceSnapshot& snapshot)
 {
     std::vector<engine::MixerMuteTarget> targets;
@@ -281,6 +314,7 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         strip.sends = detail::sendReadoutsForTrack (project, trackRow.id);
+        strip.fxSlots = detail::fxSlotReadoutsForStrip (trackRow.strip);
         snapshot.tracks.push_back (std::move (strip));
     }
 
@@ -401,6 +435,7 @@ public:
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
             case UiActionId::MixerReadSends:
+            case UiActionId::MixerReadFxSlots:
                 return { registry_.dispatch (id, context_), UiMixerActionStatus::Ok };
 
             default:

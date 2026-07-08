@@ -36,6 +36,8 @@ using yesdaw::engine::AutomationBreakpoint;
 using yesdaw::engine::AutomationCurveType;
 using yesdaw::engine::AutomationLaneData;
 using yesdaw::engine::AutomationTargetRole;
+using yesdaw::engine::ProjectMixerNodeRole;
+using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
 
 namespace {
@@ -162,6 +164,20 @@ yesdaw::engine::Project makeMixerSendsInputProject()
         AutomationBreakpoint { 15360, 0.60, AutomationCurveType::Hold },
     };
     project.automationLanes.push_back (sendLane);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
+    return project;
+}
+
+yesdaw::engine::Project makeMixerFxSlotsInputProject()
+{
+    yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+    REQUIRE (project.tracks.size() == 1u);
+
+    project.tracks.front().strip.fxChain = {
+        { idFromLowByte (91), yesdaw::engine::FxKind::Eq, true, { { 1, 0.35 } } },
+        { idFromLowByte (92), yesdaw::engine::FxKind::Compressor, false, {} },
+    };
     REQUIRE (project.hasValidAssetClipIndirection());
     REQUIRE (project.automationTargetsReferenceProjectRows());
     return project;
@@ -644,7 +660,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 21u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 22u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -822,6 +838,43 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (sends);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action-backed mixer component",
+           "[ui][input][shell][mixer][fx-slots]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-fx-slots");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerFxSlotsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
+    REQUIRE (fxSlots.isEnabled());
+    REQUIRE (fxSlots.getButtonText().contains ("FX 0"));
+    REQUIRE (fxSlots.getButtonText().contains ("EQ"));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+    const auto fxNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain.front().id,
+                                                       ProjectMixerNodeRole::Fx);
+    REQUIRE (fxSlots.getButtonText().contains (juce::String (static_cast<int> (fxNodeId))));
+    REQUIRE (fxSlots.getButtonText().contains ("params 1"));
+    REQUIRE (fxSlots.getButtonText().contains ("on"));
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (fxSlots);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
