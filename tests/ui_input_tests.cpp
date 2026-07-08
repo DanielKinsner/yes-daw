@@ -36,8 +36,14 @@ namespace {
 
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr const char* kInspectorStartComponentId = "clip.inspector.start";
+constexpr const char* kInspectorEndComponentId = "clip.inspector.end";
+constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
+constexpr double kInspectorTimingShortenRatio = 0.5;
+constexpr double kInspectorFadeInRatio = 0.25;
+constexpr double kInspectorFadeOutRatio = 0.75;
 constexpr int kPianoRollHighKey = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
 constexpr int kPianoRollKeyCount = yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;
 
@@ -340,6 +346,13 @@ void dragHorizontalSliderToNormalizedValue (juce::Slider& slider, double normali
     dragFromTo (slider, bounds.getCentre(), { std::clamp (x, bounds.getX(), bounds.getRight() - 1), bounds.getCentreY() });
 }
 
+void setSliderValueThroughComponent (juce::Slider& slider, double value)
+{
+    REQUIRE (slider.isEnabled());
+    slider.setValue (value, juce::sendNotificationSync);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
 void doubleClickAt (juce::Component& component,
                     juce::Point<int> position,
                     juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
@@ -557,7 +570,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 12u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 15u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -845,12 +858,18 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
     juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Slider& start = requireSliderWithComponentId (*shell, kInspectorStartComponentId);
+    juce::Slider& end = requireSliderWithComponentId (*shell, kInspectorEndComponentId);
+    juce::Slider& length = requireSliderWithComponentId (*shell, kInspectorLengthComponentId);
     juce::Slider& gain = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
     juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
     juce::Slider& fadeOut = requireSliderWithComponentId (*shell, kInspectorFadeOutComponentId);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (start.isEnabled());
+    REQUIRE (end.isEnabled());
+    REQUIRE (length.isEnabled());
     REQUIRE (gain.isEnabled());
     REQUIRE (fadeIn.isEnabled());
     REQUIRE (fadeOut.isEnabled());
@@ -858,6 +877,9 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.timelineClipSelected);
+    REQUIRE_FALSE (start.isEnabled());
+    REQUIRE_FALSE (end.isEnabled());
+    REQUIRE_FALSE (length.isEnabled());
     REQUIRE_FALSE (gain.isEnabled());
     REQUIRE_FALSE (fadeIn.isEnabled());
     REQUIRE_FALSE (fadeOut.isEnabled());
@@ -866,24 +888,64 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
+    REQUIRE (start.isEnabled());
+    REQUIRE (end.isEnabled());
+    REQUIRE (length.isEnabled());
     REQUIRE (gain.isEnabled());
     REQUIRE (fadeIn.isEnabled());
     REQUIRE (fadeOut.isEnabled());
 
+    REQUIRE (imported.sampleRate.isValid());
+    const double sampleRate = imported.sampleRate.hz;
+    setSliderValueThroughComponent (start, static_cast<double> (imported.clips.front().timelineLength) / sampleRate);
+    const yesdaw::engine::Project movedByInspector = readProjectSnapshot (bundlePath);
+    REQUIRE (movedByInspector.clips.size() == 1u);
+    REQUIRE (movedByInspector.clips.front().id == imported.clips.front().id);
+    REQUIRE (movedByInspector.clips.front().timelineStart > imported.clips.front().timelineStart);
+    REQUIRE (movedByInspector.clips.front().timelineLength == imported.clips.front().timelineLength);
+
+    const double shortenedLengthSeconds =
+        static_cast<double> (movedByInspector.clips.front().timelineLength) / sampleRate
+        * kInspectorTimingShortenRatio;
+    setSliderValueThroughComponent (length, shortenedLengthSeconds);
+    const yesdaw::engine::Project lengthEdited = readProjectSnapshot (bundlePath);
+    REQUIRE (lengthEdited.clips.size() == 1u);
+    REQUIRE (lengthEdited.clips.front().id == movedByInspector.clips.front().id);
+    REQUIRE (lengthEdited.clips.front().timelineStart == movedByInspector.clips.front().timelineStart);
+    REQUIRE (lengthEdited.clips.front().timelineLength > 0);
+    REQUIRE (lengthEdited.clips.front().timelineLength != movedByInspector.clips.front().timelineLength);
+
+    const double shortenedEndSeconds =
+        static_cast<double> (lengthEdited.clips.front().timelineStart) / sampleRate
+        + (static_cast<double> (lengthEdited.clips.front().timelineLength) / sampleRate
+           * kInspectorTimingShortenRatio);
+    setSliderValueThroughComponent (end, shortenedEndSeconds);
+    const yesdaw::engine::Project timeEdited = readProjectSnapshot (bundlePath);
+    REQUIRE (timeEdited.clips.size() == 1u);
+    REQUIRE (timeEdited.clips.front().id == lengthEdited.clips.front().id);
+    REQUIRE (timeEdited.clips.front().timelineStart == lengthEdited.clips.front().timelineStart);
+    REQUIRE (timeEdited.clips.front().timelineLength > 0);
+    REQUIRE (timeEdited.clips.front().timelineStart + timeEdited.clips.front().timelineLength
+             != lengthEdited.clips.front().timelineStart + lengthEdited.clips.front().timelineLength);
+
     dragHorizontalSliderToNormalizedValue (gain, 0.65);
-    dragHorizontalSliderToNormalizedValue (fadeIn, 0.08);
-    dragHorizontalSliderToNormalizedValue (fadeOut, 0.95);
+    const double editedLengthSeconds =
+        static_cast<double> (timeEdited.clips.front().timelineLength) / sampleRate;
+    setSliderValueThroughComponent (fadeIn, editedLengthSeconds * kInspectorFadeInRatio);
+    setSliderValueThroughComponent (fadeOut, editedLengthSeconds * kInspectorFadeOutRatio);
 
     const yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.clips.size() == 1u);
-    REQUIRE (edited.clips.front().gain > imported.clips.front().gain);
+    REQUIRE (edited.clips.front().timelineStart == timeEdited.clips.front().timelineStart);
+    REQUIRE (edited.clips.front().timelineLength == timeEdited.clips.front().timelineLength);
+    REQUIRE (edited.clips.front().gain > timeEdited.clips.front().gain);
     REQUIRE (edited.clips.front().gain <= 2.0f);
     REQUIRE (edited.clips.front().fadeIn > 0);
     REQUIRE (edited.clips.front().fadeOut > edited.clips.front().fadeIn);
     REQUIRE (edited.clips.front().fadeOut <= edited.clips.front().timelineLength);
 
     snapshot = snapshotMainComponent (*shell);
-    REQUIRE (snapshot.context.timelineEditCount >= 3);
+    REQUIRE (snapshot.context.timelineEditCount >= 6);
     REQUIRE (snapshot.context.canUndo);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));

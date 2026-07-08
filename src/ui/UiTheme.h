@@ -268,6 +268,13 @@ struct UiTheme
         static constexpr int inspectorStatsCellInsetX = 4;
         static constexpr int inspectorStatsCellInsetY = 0;
         static constexpr int inspectorStatsTextInset = 4;
+        static constexpr int inspectorTimingControlInsetX = 2;
+        static constexpr int inspectorTimingControlInsetY = 4;
+        static constexpr double inspectorTimeSliderMinSeconds = 0.0;
+        static constexpr double inspectorTimeSliderMaxSecondsFallback = 1.0;
+        static constexpr double inspectorTimeSliderRangePaddingScale = 1.25;
+        static constexpr double inspectorTimeSliderIntervalSeconds = 0.001;
+        static constexpr double inspectorTimeSliderDefaultSeconds = 0.0;
         static constexpr int inspectorSectionLabelHeight = 20;
         static constexpr int inspectorGainSectionTop = 118;
         static constexpr int inspectorGainSectionHeight = 84;

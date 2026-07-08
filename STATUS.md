@@ -279,10 +279,19 @@ Remote CI run `28957488537` exposed a macOS `-Wswitch` app-build failure: `UiApp
 not explicitly handle the nine new CP4a action IDs. The follow-up routes those action IDs through
 `UiActionRegistry` in the app model without adding Component wiring or Project/model policy. Additional
 local gate under `vcvars64.bat`: `cmake --build --preset ci --target YesDaw YesDawUiActionCheck` plus
-`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**.
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**. Remote CI run
+`28957785243` for CP4a completed green across Linux, Windows, macOS, RTSan, and TSan.
+H16 CP5a added real inspector start/end/length edit controls for the selected Clip. The controls are
+token-positioned in the existing inspector stats row, route through the existing timeline move/trim action
+paths and Project undo stack, and the UI input harness now proves start, length, end, gain, and fade edits
+round-trip through save/reopen. Red proof: the focused `YesDawUiInputCheck` first failed on the missing
+`clip.inspector.start` Component. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiInputCheck` plus
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure` passed **1/1**; adjacent
+`YesDawUiActionCheck` and `YesDawThemeAuditCheck` passed **2/2**; `git diff --check`.
 
-**Now:** H16 CP4a (action-first timeline tool/snap/keymap surface) is complete locally. Stop at this
-checkpoint after commit/push and remote CI green.
+**Now:** H16 CP5a (inspector start/end/length editing) is complete locally. Stop at this checkpoint after
+commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -323,8 +332,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP4 in a successor checkpoint by wiring the tool/snap actions to visible
-timeline toolbar Components and the input harness. Do not start CP5.
+**Next:** Continue H16 CP5 in a successor checkpoint with the remaining inspector fade-curve picker and
+automation lane editing slices. Do not start CP6.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

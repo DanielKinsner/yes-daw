@@ -40,6 +40,9 @@ constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
+constexpr const char* kInspectorStartComponentId = "clip.inspector.start";
+constexpr const char* kInspectorEndComponentId = "clip.inspector.end";
+constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 
@@ -1208,6 +1211,33 @@ private:
 
     void configureInspectorControls()
     {
+        configureInspectorTimeSlider (inspectorStart, kInspectorStartComponentId, "Clip start");
+        inspectorStart.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorStart.isEnabled())
+                return;
+
+            setSelectedInspectorStartFromSlider();
+        };
+        addAndMakeVisible (inspectorStart);
+
+        configureInspectorTimeSlider (inspectorEnd, kInspectorEndComponentId, "Clip end");
+        inspectorEnd.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorEnd.isEnabled())
+                return;
+
+            setSelectedInspectorEndFromSlider();
+        };
+        addAndMakeVisible (inspectorEnd);
+
+        configureInspectorTimeSlider (inspectorLength, kInspectorLengthComponentId, "Clip length");
+        inspectorLength.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorLength.isEnabled())
+                return;
+
+            setSelectedInspectorLengthFromSlider();
+        };
+        addAndMakeVisible (inspectorLength);
+
         configureActionComponent (inspectorGain, yesdaw::ui::UiActionId::TimelineClipSetGain, "Clip gain");
         inspectorGain.setSliderStyle (juce::Slider::LinearHorizontal);
         inspectorGain.setTextBoxStyle (juce::Slider::NoTextBox,
@@ -1246,6 +1276,24 @@ private:
             setSelectedInspectorFadesFromSliders();
         };
         addAndMakeVisible (inspectorFadeOut);
+    }
+
+    void configureInspectorTimeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
+    {
+        slider.setComponentID (componentId);
+        slider.setName (name);
+        slider.setTitle (name);
+        slider.setTooltip (componentId);
+        slider.setSliderStyle (juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle (juce::Slider::NoTextBox,
+                                false,
+                                yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+        slider.setRange (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMinSeconds,
+                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback,
+                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderIntervalSeconds);
+        slider.setValue (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderDefaultSeconds,
+                         juce::dontSendNotification);
     }
 
     void configureInspectorFadeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
@@ -1391,6 +1439,20 @@ private:
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
 
+        auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
+                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
+        auto startCell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
+                              .reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                        yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        auto endCell = stats.removeFromLeft (stats.getWidth() / (yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount - 1))
+                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                      yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        auto lengthCell = stats.reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                         yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        inspectorStart.setBounds (startCell);
+        inspectorEnd.setBounds (endCell);
+        inspectorLength.setBounds (lengthCell);
+
         auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
@@ -1533,6 +1595,12 @@ private:
         const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
         const bool selected = appModel.context().timelineClipSelected && clip != nullptr;
 
+        inspectorStart.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipMove,
+                                                                 appModel.context()).enabled);
+        inspectorEnd.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
+                                                               appModel.context()).enabled);
+        inspectorLength.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
+                                                                  appModel.context()).enabled);
         inspectorGain.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetGain,
                                                                 appModel.context()).enabled);
         inspectorFadeIn.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
@@ -1544,6 +1612,27 @@ private:
         if (selected && appModel.project().sampleRate.isValid())
         {
             const double sampleRate = appModel.project().sampleRate.hz;
+            const double startSeconds = static_cast<double> (clip->timelineStart) / sampleRate;
+            const double lengthSeconds = static_cast<double> (clip->timelineLength) / sampleRate;
+            const double endSeconds = startSeconds + lengthSeconds;
+            const double maxSeconds = std::max (
+                yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback,
+                endSeconds * yesdaw::ui::UiTheme::Layout::inspectorTimeSliderRangePaddingScale);
+            setInspectorTimeSliderRange (inspectorStart, maxSeconds);
+            setInspectorTimeSliderRange (inspectorEnd, maxSeconds);
+            setInspectorTimeSliderRange (inspectorLength, maxSeconds);
+            inspectorStart.setValue (std::clamp (startSeconds,
+                                                 yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMinSeconds,
+                                                 maxSeconds),
+                                     juce::dontSendNotification);
+            inspectorEnd.setValue (std::clamp (endSeconds,
+                                               yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMinSeconds,
+                                               maxSeconds),
+                                   juce::dontSendNotification);
+            inspectorLength.setValue (std::clamp (lengthSeconds,
+                                                  yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMinSeconds,
+                                                  maxSeconds),
+                                      juce::dontSendNotification);
             inspectorGain.setValue (clip->gain, juce::dontSendNotification);
             inspectorFadeIn.setValue (std::clamp (static_cast<double> (clip->fadeIn) / sampleRate,
                                                   yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
@@ -1556,6 +1645,18 @@ private:
         }
         else
         {
+            setInspectorTimeSliderRange (inspectorStart,
+                                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback);
+            setInspectorTimeSliderRange (inspectorEnd,
+                                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback);
+            setInspectorTimeSliderRange (inspectorLength,
+                                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback);
+            inspectorStart.setValue (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderDefaultSeconds,
+                                     juce::dontSendNotification);
+            inspectorEnd.setValue (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderDefaultSeconds,
+                                   juce::dontSendNotification);
+            inspectorLength.setValue (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderDefaultSeconds,
+                                      juce::dontSendNotification);
             inspectorGain.setValue (yesdaw::ui::UiTheme::Layout::inspectorGainSliderDefault,
                                     juce::dontSendNotification);
             inspectorFadeIn.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
@@ -1564,6 +1665,60 @@ private:
                                        juce::dontSendNotification);
         }
         refreshingInspectorControls = false;
+    }
+
+    void setInspectorTimeSliderRange (juce::Slider& slider, double maxSeconds)
+    {
+        slider.setRange (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMinSeconds,
+                         std::max (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback, maxSeconds),
+                         yesdaw::ui::UiTheme::Layout::inspectorTimeSliderIntervalSeconds);
+    }
+
+    [[nodiscard]] std::optional<yesdaw::engine::Tick> inspectorTickFromSeconds (double seconds) const noexcept
+    {
+        return timelineTickFromSeconds (seconds);
+    }
+
+    void setSelectedInspectorStartFromSlider()
+    {
+        if (! findProjectClipById (appModel.selectedTimelineClipId()))
+            return;
+
+        if (const auto tick = inspectorTickFromSeconds (inspectorStart.getValue()))
+            (void) appModel.moveSelectedTimelineClipTo (*tick);
+
+        refreshActionState();
+        repaint();
+    }
+
+    void setSelectedInspectorEndFromSlider()
+    {
+        const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
+        if (clip == nullptr)
+            return;
+
+        const std::optional<yesdaw::engine::Tick> endTick = inspectorTickFromSeconds (inspectorEnd.getValue());
+        if (! endTick || *endTick <= clip->timelineStart)
+            return;
+
+        (void) appModel.trimSelectedTimelineClipRightTo (*endTick);
+        refreshActionState();
+        repaint();
+    }
+
+    void setSelectedInspectorLengthFromSlider()
+    {
+        const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
+        if (clip == nullptr)
+            return;
+
+        const std::optional<yesdaw::engine::Tick> lengthTick = inspectorTickFromSeconds (inspectorLength.getValue());
+        if (! lengthTick || *lengthTick <= 0)
+            return;
+
+        (void) appModel.trimSelectedTimelineClipRightTo (clip->timelineStart + *lengthTick);
+        refreshActionState();
+        repaint();
     }
 
     void setSelectedInspectorFadesFromSliders()
@@ -2481,6 +2636,9 @@ private:
     juce::ToggleButton mixerSolo;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
+    juce::Slider inspectorStart;
+    juce::Slider inspectorEnd;
+    juce::Slider inspectorLength;
     juce::Slider inspectorGain;
     juce::Slider inspectorFadeIn;
     juce::Slider inspectorFadeOut;
