@@ -202,6 +202,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("timeline.snap.bar")->id == UiActionId::TimelineSnapSetBar);
     REQUIRE (descriptorForStableId ("timeline.snap.beat")->id == UiActionId::TimelineSnapSetBeat);
     REQUIRE (descriptorForStableId ("timeline.snap.sixteenth")->id == UiActionId::TimelineSnapSetSixteenth);
+    REQUIRE (descriptorForStableId ("timeline.automation.track_lane.toggle")->id
+             == UiActionId::TimelineAutomationToggleTrackLane);
 
     std::set<std::string_view> stableIds;
     std::set<std::string_view> defaultKeys;
@@ -285,6 +287,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetBar, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetBeat, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetSixteenth, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineAutomationToggleTrackLane, context).enabled);
 
     const auto undoWithoutStack = registry.stateFor (UiActionId::EditUndo, context);
     REQUIRE_FALSE (undoWithoutStack.enabled);
@@ -534,6 +537,17 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::TimelineSnapSetSixteenth, context).dispatched);
     REQUIRE (context.snapEnabled);
     REQUIRE (context.snapGridTicks == 128);
+
+    REQUIRE_FALSE (context.timelineAutomationTrackLaneVisible);
+    REQUIRE (registry.dispatch (UiActionId::TimelineAutomationToggleTrackLane, context).dispatched);
+    REQUIRE (context.activePanel == UiPanel::Timeline);
+    REQUIRE (context.timelineAutomationTrackLaneVisible);
+    REQUIRE (context.timelineAutomationTrackIndex == 0);
+    REQUIRE (context.timelineAutomationShowHideCount == 1);
+    REQUIRE (registry.dispatch (UiActionId::TimelineAutomationToggleTrackLane, context).dispatched);
+    REQUIRE_FALSE (context.timelineAutomationTrackLaneVisible);
+    REQUIRE (context.timelineAutomationTrackIndex == -1);
+    REQUIRE (context.timelineAutomationShowHideCount == 2);
 }
 
 TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo",

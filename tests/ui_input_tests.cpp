@@ -42,6 +42,7 @@ constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
+constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 constexpr double kInspectorTimingShortenRatio = 0.5;
 constexpr double kInspectorFadeInRatio = 0.25;
@@ -137,6 +138,26 @@ yesdaw::engine::Project makeEndToEndInputProject()
     audioTrack.id = yesdaw::engine::kDefaultAudioTrackId;
     audioTrack.strip.name = "Audio 1";
     project.tracks.insert (project.tracks.begin(), std::move (audioTrack));
+    return project;
+}
+
+yesdaw::engine::Project makeAutomationInputProject()
+{
+    yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+    REQUIRE (project.tracks.size() == 1u);
+
+    yesdaw::engine::AutomationLaneData lane;
+    lane.id = idFromLowByte (80);
+    lane.ownerEntity = project.tracks.front().id;
+    lane.role = yesdaw::engine::AutomationTargetRole::TrackFader;
+    lane.paramId = yesdaw::engine::FaderNode::kGainParameterId;
+    lane.points = {
+        { 0, 0.20, yesdaw::engine::AutomationCurveType::Linear },
+        { 960, 0.80, yesdaw::engine::AutomationCurveType::Linear }
+    };
+    project.automationLanes.push_back (lane);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
     return project;
 }
 
@@ -258,6 +279,18 @@ juce::ComboBox& requireComboBoxWithComponentId (juce::Component& shell, const ju
     REQUIRE (comboBox->getWidth() > 0);
     REQUIRE (comboBox->getHeight() > 0);
     return *comboBox;
+}
+
+juce::Label& requireLabelWithComponentId (juce::Component& shell, const juce::String& componentId)
+{
+    juce::Component* component = findChildWithComponentId (shell, componentId);
+    REQUIRE (component != nullptr);
+
+    auto* label = dynamic_cast<juce::Label*> (component);
+    REQUIRE (label != nullptr);
+    REQUIRE (label->getWidth() > 0);
+    REQUIRE (label->getHeight() > 0);
+    return *label;
 }
 
 juce::Component& requireTimelineComponent (juce::Component& shell)
@@ -585,7 +618,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 16u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 18u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -605,6 +638,49 @@ TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id"
     }
 
     REQUIRE (findMainComponentChildForAction (*shell, UiActionId::TimelineClipMove) == nullptr);
+}
+
+TEST_CASE ("H16 CP5 UI input harness shows and hides the first automation lane row",
+           "[ui][input][shell][automation]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-lane");
+    writeProjectSnapshot (bundlePath, makeAutomationInputProject());
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    juce::Button& automation = requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane);
+    juce::Label& laneRow = requireLabelWithComponentId (*shell, kAutomationLaneRowComponentId);
+
+    REQUIRE_FALSE (automation.isEnabled());
+    REQUIRE_FALSE (laneRow.isVisible());
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.context.timelineAutomationTrackLaneVisible);
+    REQUIRE (automation.isEnabled());
+    REQUIRE_FALSE (laneRow.isVisible());
+
+    clickButton (automation);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
+    REQUIRE (snapshot.context.timelineAutomationTrackLaneVisible);
+    REQUIRE (snapshot.context.timelineAutomationTrackIndex == 0);
+    REQUIRE (snapshot.context.timelineAutomationShowHideCount == 1);
+    REQUIRE (laneRow.isVisible());
+    REQUIRE (laneRow.getText().contains ("Audio 1"));
+    REQUIRE (laneRow.getText().contains ("Track fader"));
+    REQUIRE (laneRow.getText().contains ("2 breakpoints"));
+
+    clickButton (automation);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineAutomationTrackLaneVisible);
+    REQUIRE (snapshot.context.timelineAutomationTrackIndex == -1);
+    REQUIRE (snapshot.context.timelineAutomationShowHideCount == 2);
+    REQUIRE_FALSE (laneRow.isVisible());
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

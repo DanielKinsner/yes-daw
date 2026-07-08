@@ -1107,6 +1107,7 @@ public:
             case UiActionId::TimelineSnapSetBar:
             case UiActionId::TimelineSnapSetBeat:
             case UiActionId::TimelineSnapSetSixteenth:
+            case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);
             }

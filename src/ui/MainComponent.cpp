@@ -46,6 +46,7 @@ constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
+constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 
 const juce::Colour kBackground = yesdaw::ui::UiTheme::Color::appBackground();
@@ -981,6 +982,8 @@ public:
         };
         addAndMakeVisible (timelineInput);
 
+        configureAutomationLaneControls();
+
         pianoRollInput.setComponentID (kPianoRollComponentId);
         pianoRollInput.setName ("Piano Roll");
         pianoRollInput.setTitle ("Piano Roll");
@@ -1032,6 +1035,7 @@ public:
 
         configureInspectorControls();
         configureMixerControls();
+        resized();
         refreshActionState();
     }
 
@@ -1168,6 +1172,7 @@ public:
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
+        layoutAutomationLaneControls();
         layoutInspectorControls();
         layoutMixerControls();
     }
@@ -1209,6 +1214,36 @@ private:
         };
         button.setVisible (false);
         addAndMakeVisible (button);
+    }
+
+    void configureAutomationLaneControls()
+    {
+        constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
+        configureActionComponent (automationLaneToggle, action, "Automation lanes");
+        if (const auto* descriptor = appModel.registry().descriptor (action))
+            automationLaneToggle.setButtonText (descriptor->label);
+        else
+            automationLaneToggle.setButtonText ("Automation");
+        automationLaneToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        automationLaneToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
+        automationLaneToggle.setColour (juce::TextButton::textColourOffId, kText);
+        automationLaneToggle.setColour (juce::TextButton::textColourOnId, kText);
+        automationLaneToggle.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (automationLaneToggle);
+
+        automationLaneRow.setComponentID (kAutomationLaneRowComponentId);
+        automationLaneRow.setName ("First Track automation lane");
+        automationLaneRow.setTitle ("First Track automation lane");
+        automationLaneRow.setTooltip (kAutomationLaneRowComponentId);
+        automationLaneRow.setJustificationType (juce::Justification::centredLeft);
+        automationLaneRow.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::selectedLane());
+        automationLaneRow.setColour (juce::Label::textColourId, kText);
+        automationLaneRow.setVisible (false);
+        addAndMakeVisible (automationLaneRow);
     }
 
     void configureInspectorControls()
@@ -1519,6 +1554,13 @@ private:
                                   .withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
     }
 
+    void layoutAutomationLaneControls()
+    {
+        const auto timeline = timelineBounds();
+        automationLaneToggle.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timeline));
+        automationLaneRow.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
+    }
+
     void handleAction (yesdaw::ui::UiActionId action)
     {
         switch (action)
@@ -1593,8 +1635,47 @@ private:
         refreshAutosaveRecoveryControls();
         timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
+    }
+
+    void refreshAutomationLaneControls()
+    {
+        constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
+        const auto state = appModel.registry().stateFor (action, appModel.context());
+        const bool timelineVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll;
+        automationLaneToggle.setVisible (timelineVisible);
+        automationLaneToggle.setEnabled (state.enabled);
+        automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
+                                             juce::dontSendNotification);
+
+        automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
+        automationLaneRow.setVisible (timelineVisible && appModel.context().timelineAutomationTrackLaneVisible);
+    }
+
+    [[nodiscard]] juce::String automationLaneRowText() const
+    {
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! appModel.context().projectLoaded || project.tracks.empty())
+            return "No Track automation";
+
+        const yesdaw::engine::Track& track = project.tracks.front();
+        const yesdaw::engine::AutomationLaneData* visibleLane = nullptr;
+        for (const yesdaw::engine::AutomationLaneData& lane : project.automationLanes)
+        {
+            if (lane.ownerEntity == track.id
+                && lane.role == yesdaw::engine::AutomationTargetRole::TrackFader
+                && lane.paramId == yesdaw::engine::FaderNode::kGainParameterId)
+            {
+                visibleLane = &lane;
+                break;
+            }
+        }
+
+        const juce::String trackName = track.strip.name.empty() ? "Track 1" : juce::String (track.strip.name);
+        const int breakpointCount = visibleLane == nullptr ? 0 : static_cast<int> (visibleLane->points.size());
+        return trackName + " - Track fader - " + juce::String (breakpointCount) + " breakpoints";
     }
 
     void refreshAutosaveRecoveryControls()
@@ -2662,6 +2743,8 @@ private:
     juce::ToggleButton mixerSolo;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
+    juce::TextButton automationLaneToggle;
+    juce::Label automationLaneRow;
     juce::Slider inspectorStart;
     juce::Slider inspectorEnd;
     juce::Slider inspectorLength;

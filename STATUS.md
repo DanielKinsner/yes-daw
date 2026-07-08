@@ -298,8 +298,17 @@ harness was updated. Local gates under `vcvars64.bat`: focused
 `cmake --build --preset ci --target YesDawUiInputCheck` plus focused
 `ctest --preset ci -R "YesDawUiInputCheck|YesDawUiActionCheck|YesDawThemeAuditCheck" --output-on-failure`
 passed **3/3**; `git diff --check`.
+H16 CP5c started the automation lane editing surface with the smallest action/component slice: a new
+`TimelineAutomationToggleTrackLane` action toggles first-Track automation lane visibility, a shipped
+`timeline.automation.track.0.lane` row summarizes existing H15 `AutomationLaneData` for Track fader lanes,
+and no breakpoint draw/drag/delete or Project schema/engine policy changed. Gate bite: the focused build
+first failed on the missing CP5 action/context/component contract. Local gates under `vcvars64.bat`:
+focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck"` passed **3/3**;
+expanded adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck"`
+passed **4/4**.
 
-**Now:** H16 CP5b (inspector fade-curve picker exposing H14 equal-power) is complete locally. Stop at this
+**Now:** H16 CP5c (automation lane show/hide action plus first harness-visible H15 lane row) is complete locally. Stop at this
 checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -341,8 +350,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP5 in a successor checkpoint with the first automation lane editing slice. Do not
-start CP6.
+**Next:** Continue H16 CP5 in a successor checkpoint with the first automation breakpoint edit slice
+through the H15 undo verbs. Do not start CP6.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

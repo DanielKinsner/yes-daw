@@ -433,6 +433,28 @@ struct UiTheme
         static constexpr int timelineClipEdgeHitWidth = 8;
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;
+        static constexpr int automationLaneToggleLeftInset = 368;
+        static constexpr int automationLaneToggleTopInset = 8;
+        static constexpr int automationLaneToggleWidth = 116;
+        static constexpr int automationLaneToggleHeight = 26;
+        static constexpr int automationLaneRowLeftInset = 12;
+        static constexpr int automationLaneRowTopInset = 92;
+        static constexpr int automationLaneRowWidth = 320;
+        static constexpr int automationLaneRowHeight = 28;
+        static juce::Rectangle<int> automationLaneToggleBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timeline.withTrimmedLeft (automationLaneToggleLeftInset)
+                           .withTrimmedTop (automationLaneToggleTopInset)
+                           .withWidth (automationLaneToggleWidth)
+                           .withHeight (automationLaneToggleHeight);
+        }
+        static juce::Rectangle<int> automationLaneRowBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timeline.withTrimmedLeft (automationLaneRowLeftInset)
+                           .withTrimmedTop (automationLaneRowTopInset)
+                           .withWidth (automationLaneRowWidth)
+                           .withHeight (automationLaneRowHeight);
+        }
         static constexpr int inputDragDeadZonePixels = 2;
         static constexpr std::array<int, 23> mainComponentDemoTimelineClipLanes {{
             0, 0, 0, 0, 0, 0,

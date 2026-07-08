@@ -66,6 +66,7 @@ enum class UiActionId : std::uint8_t
     TimelineSnapSetBar,
     TimelineSnapSetBeat,
     TimelineSnapSetSixteenth,
+    TimelineAutomationToggleTrackLane,
     Count
 };
 
@@ -157,6 +158,9 @@ struct UiActionContext
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     bool snapEnabled = true;
     std::int64_t snapGridTicks = 512;
+    bool timelineAutomationTrackLaneVisible = false;
+    int timelineAutomationTrackIndex = -1;
+    int timelineAutomationShowHideCount = 0;
     std::int64_t playheadFrame = 0;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -317,7 +321,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineSnapSetBeat, "timeline.snap.beat", "Snap Beat", "Ctrl+2", "Set timeline snap to beat",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineSnapSetSixteenth, "timeline.snap.sixteenth", "Snap 1/16", "Ctrl+3", "Set timeline snap to sixteenth note",
-      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineAutomationToggleTrackLane, "timeline.automation.track_lane.toggle", "Automation", "A", "Toggle first Track automation lane",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -518,6 +524,8 @@ public:
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = false;
                 context.canRedo = false;
+                context.timelineAutomationTrackLaneVisible = false;
+                context.timelineAutomationTrackIndex = -1;
                 break;
 
             case UiActionId::ProjectSave:
@@ -726,6 +734,13 @@ public:
                 context.activePanel = UiPanel::Timeline;
                 context.snapEnabled = true;
                 context.snapGridTicks = 128;
+                break;
+
+            case UiActionId::TimelineAutomationToggleTrackLane:
+                context.activePanel = UiPanel::Timeline;
+                context.timelineAutomationTrackLaneVisible = ! context.timelineAutomationTrackLaneVisible;
+                context.timelineAutomationTrackIndex = context.timelineAutomationTrackLaneVisible ? 0 : -1;
+                ++context.timelineAutomationShowHideCount;
                 break;
 
             case UiActionId::Count:
