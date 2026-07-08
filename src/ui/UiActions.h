@@ -67,6 +67,7 @@ enum class UiActionId : std::uint8_t
     TimelineSnapSetBeat,
     TimelineSnapSetSixteenth,
     TimelineAutomationToggleTrackLane,
+    TimelineAutomationAddBreakpoint,
     Count
 };
 
@@ -161,6 +162,7 @@ struct UiActionContext
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
+    int timelineAutomationBreakpointEditCount = 0;
     std::int64_t playheadFrame = 0;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -323,7 +325,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineSnapSetSixteenth, "timeline.snap.sixteenth", "Snap 1/16", "Ctrl+3", "Set timeline snap to sixteenth note",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineAutomationToggleTrackLane, "timeline.automation.track_lane.toggle", "Automation", "A", "Toggle first Track automation lane",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::TimelineAutomationAddBreakpoint, "timeline.automation.breakpoint.add", "Add Point", "Shift+A", "Add breakpoint to first Track automation lane",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -741,6 +745,13 @@ public:
                 context.timelineAutomationTrackLaneVisible = ! context.timelineAutomationTrackLaneVisible;
                 context.timelineAutomationTrackIndex = context.timelineAutomationTrackLaneVisible ? 0 : -1;
                 ++context.timelineAutomationShowHideCount;
+                break;
+
+            case UiActionId::TimelineAutomationAddBreakpoint:
+                context.activePanel = UiPanel::Timeline;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineAutomationBreakpointEditCount;
                 break;
 
             case UiActionId::Count:

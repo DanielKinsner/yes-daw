@@ -1244,6 +1244,20 @@ private:
         automationLaneRow.setColour (juce::Label::textColourId, kText);
         automationLaneRow.setVisible (false);
         addAndMakeVisible (automationLaneRow);
+
+        constexpr yesdaw::ui::UiActionId addAction = yesdaw::ui::UiActionId::TimelineAutomationAddBreakpoint;
+        configureActionComponent (automationBreakpointAddButton, addAction, "Add automation breakpoint");
+        if (const auto* descriptor = appModel.registry().descriptor (addAction))
+            automationBreakpointAddButton.setButtonText (descriptor->label);
+        automationBreakpointAddButton.setColour (juce::TextButton::buttonColourId,
+                                                 yesdaw::ui::UiTheme::Color::buttonSurface());
+        automationBreakpointAddButton.onClick = [this] {
+            (void) appModel.addFirstTrackAutomationBreakpoint();
+            refreshActionState();
+            repaint();
+        };
+        automationBreakpointAddButton.setVisible (false);
+        addAndMakeVisible (automationBreakpointAddButton);
     }
 
     void configureInspectorControls()
@@ -1559,6 +1573,8 @@ private:
         const auto timeline = timelineBounds();
         automationLaneToggle.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timeline));
         automationLaneRow.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
+        automationBreakpointAddButton.setBounds (
+            yesdaw::ui::UiTheme::Layout::automationBreakpointAddButtonBounds (timeline));
     }
 
     void handleAction (yesdaw::ui::UiActionId action)
@@ -1651,7 +1667,16 @@ private:
                                              juce::dontSendNotification);
 
         automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
-        automationLaneRow.setVisible (timelineVisible && appModel.context().timelineAutomationTrackLaneVisible);
+        const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
+        automationLaneRow.setVisible (laneVisible);
+
+        const auto addState = appModel.registry().stateFor (
+            yesdaw::ui::UiActionId::TimelineAutomationAddBreakpoint,
+            appModel.context());
+        automationBreakpointAddButton.setVisible (laneVisible);
+        automationBreakpointAddButton.setEnabled (laneVisible
+                                                  && addState.enabled
+                                                  && appModel.firstTrackFaderAutomationLane() != nullptr);
     }
 
     [[nodiscard]] juce::String automationLaneRowText() const
@@ -2745,6 +2770,7 @@ private:
     juce::TextButton autosaveDiscardButton;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
+    juce::TextButton automationBreakpointAddButton;
     juce::Slider inspectorStart;
     juce::Slider inspectorEnd;
     juce::Slider inspectorLength;

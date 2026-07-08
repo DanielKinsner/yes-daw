@@ -307,8 +307,23 @@ focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputChe
 `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck"` passed **3/3**;
 expanded adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck"`
 passed **4/4**.
+H16 CP5d added the first breakpoint edit slice: a new `TimelineAutomationAddBreakpoint` action and shipped
+Add Point button append one deterministic breakpoint to the currently shown first Track fader automation
+lane through the existing H15 `ProjectEditCommand::addAutomationBreakpoint` undo verb. The UI input harness
+clicks the button, reads the persisted Project lane count/value/curve, then proves toolbar undo/redo restores
+the 2->3->2->3 breakpoint row text/count without adding draw, drag, or delete behavior. The app model now has
+a rows-only adoption path for empty no-playback/no-clip Projects so automation metadata edits can persist
+without inventing a playback graph; real playback projects still use the existing rebuild path. Gate bite:
+the focused UI input gate first caught the missing shipped button attachment and the empty-project playback
+rebuild gap. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+focused `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`,
+`ctest --preset ci -R YesDawUiInputCheck --output-on-failure`,
+`ctest --preset ci -R YesDawThemeAuditCheck --output-on-failure`, and
+`ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure` each passed **1/1**; shipped app build
+`cmake --build --preset ci --target YesDaw`; `git diff --check`.
 
-**Now:** H16 CP5c (automation lane show/hide action plus first harness-visible H15 lane row) is complete locally. Stop at this
+**Now:** H16 CP5d (first action-backed Add Point breakpoint edit through the H15 undo verb) is complete locally. Stop at this
 checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -350,8 +365,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP5 in a successor checkpoint with the first automation breakpoint edit slice
-through the H15 undo verbs. Do not start CP6.
+**Next:** Continue H16 CP5 in a successor checkpoint with the smallest delete-breakpoint action/harness slice
+through the H15 `removeAutomationBreakpoint` undo verb. Do not start draw/drag or CP6 in the same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

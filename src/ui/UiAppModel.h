@@ -168,6 +168,9 @@ struct UiAutosaveRecoveryPrompt
 class UiAppModel
 {
 public:
+    static constexpr engine::Tick kFirstTrackAutomationBreakpointAddTick = 1'920;
+    static constexpr double kFirstTrackAutomationBreakpointAddValue = 0.50;
+
     [[nodiscard]] const UiActionRegistry& registry() const noexcept { return registry_; }
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
     [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
@@ -183,6 +186,10 @@ public:
     [[nodiscard]] const UiRecordingCompSelection& recordingCompSelection() const noexcept { return recordingCompSelection_; }
     [[nodiscard]] const UiAutosaveRecoveryPrompt& autosaveRecoveryPrompt() const noexcept { return autosaveRecovery_; }
     [[nodiscard]] const WaveformPeakService& waveformService() const noexcept { return waveformService_; }
+    [[nodiscard]] const engine::AutomationLaneData* firstTrackFaderAutomationLane() const noexcept
+    {
+        return firstTrackFaderAutomationLane (project_);
+    }
 
     [[nodiscard]] static engine::Project makeDefaultSessionProject()
     {
@@ -951,6 +958,48 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult addFirstTrackAutomationBreakpoint (
+        engine::Tick tick = kFirstTrackAutomationBreakpointAddTick,
+        double value = kFirstTrackAutomationBreakpointAddValue,
+        engine::AutomationCurveType curve = engine::AutomationCurveType::Linear)
+    {
+        const UiActionId id = UiActionId::TimelineAutomationAddBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! context_.timelineAutomationTrackLaneVisible)
+            return { id, { false, "automation lane hidden" }, false };
+
+        const engine::AutomationLaneData* const lane = firstTrackFaderAutomationLane();
+        if (lane == nullptr)
+            return { id, { false, "first Track fader automation lane missing" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::addAutomationBreakpoint (lane->id, tick, value, curve));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (canAdoptEditWithoutPlaybackRebuild (nextProject))
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "automation breakpoint edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            return { id, { false, "automation breakpoint edit did not persist" }, false };
+        }
+
+        context_.activePanel = UiPanel::Timeline;
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -1111,6 +1160,9 @@ public:
             {
                 return registry_.dispatch (id, context_);
             }
+
+            case UiActionId::TimelineAutomationAddBreakpoint:
+                return addFirstTrackAutomationBreakpoint();
 
             case UiActionId::ViewPianoRoll:
             {
@@ -1738,6 +1790,32 @@ private:
         return true;
     }
 
+    [[nodiscard]] bool canAdoptEditWithoutPlaybackRebuild (const engine::Project& nextProject) const noexcept
+    {
+        return playback_ == nullptr
+            && decodedAssets_.empty()
+            && project_.clips.empty()
+            && nextProject.clips.empty();
+    }
+
+    [[nodiscard]] bool adoptEditedProjectWithoutPlaybackRebuild (
+        engine::Project nextProject,
+        engine::ProjectUndoStack nextUndo)
+    {
+        if (bundleDb_.isOpen())
+        {
+            persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return false;
+        }
+
+        project_ = std::move (nextProject);
+        undo_ = std::move (nextUndo);
+        playback_.reset();
+        syncProjectEditContext();
+        return true;
+    }
+
     [[nodiscard]] UiActionDispatchResult dispatchUndo (UiActionId id, UiActionState state)
     {
         engine::Project nextProject = project_;
@@ -1746,8 +1824,15 @@ private:
         if (undoStatus != engine::ProjectUndoStatus::Applied)
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        if (canAdoptEditWithoutPlaybackRebuild (nextProject))
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "undo did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
             return { id, { false, "undo did not persist" }, false };
+        }
 
         ++context_.commandDispatchCount;
         ++context_.undoCount;
@@ -1762,8 +1847,15 @@ private:
         if (undoStatus != engine::ProjectUndoStatus::Applied)
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        if (canAdoptEditWithoutPlaybackRebuild (nextProject))
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "redo did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
             return { id, { false, "redo did not persist" }, false };
+        }
 
         ++context_.commandDispatchCount;
         ++context_.redoCount;
@@ -2009,6 +2101,26 @@ private:
         }
 
         return end;
+    }
+
+    [[nodiscard]] static const engine::AutomationLaneData* firstTrackFaderAutomationLane (
+        const engine::Project& project) noexcept
+    {
+        if (project.tracks.empty())
+            return nullptr;
+
+        const engine::EntityId trackId = project.tracks.front().id;
+        for (const engine::AutomationLaneData& lane : project.automationLanes)
+        {
+            if (lane.ownerEntity == trackId
+                && lane.role == engine::AutomationTargetRole::TrackFader
+                && lane.paramId == engine::FaderNode::kGainParameterId)
+            {
+                return &lane;
+            }
+        }
+
+        return nullptr;
     }
 
     static void upsertDecodedAsset (std::vector<UiDecodedAsset>& decodedAssets,
