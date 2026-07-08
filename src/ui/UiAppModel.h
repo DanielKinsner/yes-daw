@@ -1277,6 +1277,7 @@ public:
             case UiActionId::MixerReadSends:
             case UiActionId::MixerReadFxSlots:
             case UiActionId::MixerReadGainReduction:
+            case UiActionId::MixerReadBusFxSlots:
             case UiActionId::HelpShowKeymap:
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:

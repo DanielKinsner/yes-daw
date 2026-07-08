@@ -185,6 +185,21 @@ yesdaw::engine::Project makeMixerFxSlotsInputProject()
     return project;
 }
 
+yesdaw::engine::Project makeMixerBusFxSlotsInputProject()
+{
+    yesdaw::engine::Project project = makeMixerFxSlotsInputProject();
+    yesdaw::engine::Bus bus;
+    bus.id = idFromLowByte (93);
+    bus.strip.name = "Room Bus";
+    bus.strip.fxChain = {
+        { idFromLowByte (94), yesdaw::engine::FxKind::Reverb, true, {} },
+    };
+    project.buses.push_back (std::move (bus));
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
+    return project;
+}
+
 yesdaw::engine::Project makeAutomationInputProject()
 {
     yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
@@ -662,7 +677,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 25u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 26u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1054,6 +1069,45 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an actio
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (gr);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads first Bus FX slot through an action-backed mixer component",
+           "[ui][input][shell][mixer][fx-slots]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-bus-fx-slots");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerBusFxSlotsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& busFxSlots = requireButtonForAction (*shell, UiActionId::MixerReadBusFxSlots);
+    REQUIRE (busFxSlots.isEnabled());
+    REQUIRE (busFxSlots.getButtonText().contains ("Room Bus"));
+    REQUIRE (busFxSlots.getButtonText().contains ("FX 0"));
+    REQUIRE (busFxSlots.getButtonText().contains ("Reverb"));
+    REQUIRE (busFxSlots.getButtonText().contains ("params 0"));
+    REQUIRE (busFxSlots.getButtonText().contains ("on"));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.size() == 1u);
+    REQUIRE (project.buses.front().strip.fxChain.size() == 1u);
+    const auto busFxNodeId = projectMixerNodeIdForEntity (project.buses.front().strip.fxChain.front().id,
+                                                         ProjectMixerNodeRole::Fx);
+    REQUIRE (busFxSlots.getButtonText().contains (juce::String (static_cast<int> (busFxNodeId))));
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (busFxSlots);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);

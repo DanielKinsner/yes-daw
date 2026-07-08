@@ -398,6 +398,8 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.soloSafe = control != nullptr ? control->soloSafe : (bus != nullptr && bus->strip.soloSafe);
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
+        if (bus != nullptr)
+            strip.fxSlots = detail::fxSlotReadoutsForStrip (bus->strip);
         snapshot.buses.push_back (std::move (strip));
     }
 
@@ -492,6 +494,7 @@ public:
             case UiActionId::MixerReadSends:
             case UiActionId::MixerReadFxSlots:
             case UiActionId::MixerReadGainReduction:
+            case UiActionId::MixerReadBusFxSlots:
                 return { registry_.dispatch (id, context_), UiMixerActionStatus::Ok };
 
             default:

@@ -1495,6 +1495,17 @@ private:
         };
         addAndMakeVisible (mixerGainReductionReadout);
 
+        configureActionComponent (mixerBusFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadBusFxSlots, "Mixer Bus FX slots");
+        mixerBusFxSlotsReadout.setButtonText ("Bus FX: none");
+        mixerBusFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerBusFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
+        mixerBusFxSlotsReadout.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadBusFxSlots);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerBusFxSlotsReadout);
+
         configureActionComponent (mixerFxSlotToggle, yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled, "Mixer FX slot toggle");
         mixerFxSlotToggle.setButtonText ("FX");
         mixerFxSlotToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1631,10 +1642,11 @@ private:
         auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
-        const std::array<juce::Button*, 5> mixerButtons {
+        const std::array<juce::Button*, 6> mixerButtons {
             &mixerSendLevelEdit,
             &mixerFxSlotToggle,
             &mixerGainReductionReadout,
+            &mixerBusFxSlotsReadout,
             &mixerSolo,
             &mixerMute
         };
@@ -1995,6 +2007,9 @@ private:
         mixerGainReductionReadout.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadGainReduction,
                                           appModel.context()).enabled);
+        mixerBusFxSlotsReadout.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadBusFxSlots,
+                                          appModel.context()).enabled);
         const bool firstFxSlotAvailable = projectHasTrack && ! project.tracks.front().strip.fxChain.empty();
         mixerFxSlotToggle.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled,
@@ -2014,6 +2029,7 @@ private:
             mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
             mixerGainReductionReadout.setButtonText (mixerGainReductionReadoutText());
+            mixerBusFxSlotsReadout.setButtonText (mixerBusFxSlotsReadoutText());
             mixerFxSlotToggle.setButtonText ("FX");
             mixerFxSlotToggle.setToggleState (firstFxSlotAvailable && strip.fxChain.front().enabled,
                                               juce::dontSendNotification);
@@ -2031,6 +2047,7 @@ private:
             mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText ("FX: no project");
             mixerGainReductionReadout.setButtonText ("GR: no project");
+            mixerBusFxSlotsReadout.setButtonText ("Bus FX: no project");
             mixerFxSlotToggle.setButtonText ("FX");
             mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
         }
@@ -2117,6 +2134,25 @@ private:
             return text + " " + juce::String (readout->gainReductionDb, 2) + " dB";
 
         return text + " n/a";
+    }
+
+    [[nodiscard]] juce::String mixerBusFxSlotsReadoutText() const
+    {
+        const auto surface = currentMixerSurface();
+        if (surface.buses.empty())
+            return "Bus FX: no Bus";
+
+        const auto& bus = surface.buses.front();
+        if (bus.fxSlots.empty())
+            return juce::String (bus.name.empty() ? "Bus 1" : bus.name) + " FX: none";
+
+        const yesdaw::ui::UiMixerFxSlotReadout& slot = bus.fxSlots.front();
+        return juce::String (bus.name.empty() ? "Bus 1" : bus.name)
+             + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
+             + " " + juce::String (fxKindName (slot.kind))
+             + " node " + juce::String (static_cast<int> (slot.fxNodeId))
+             + " params " + juce::String (static_cast<int> (slot.parameterCount))
+             + (slot.enabled ? " on" : " off");
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -2975,6 +3011,7 @@ private:
     juce::TextButton mixerSendLevelEdit;
     juce::TextButton mixerFxSlotsReadout;
     juce::TextButton mixerGainReductionReadout;
+    juce::TextButton mixerBusFxSlotsReadout;
     juce::TextButton mixerFxSlotToggle;
     juce::ToggleButton mixerMute;
     juce::ToggleButton mixerSolo;

@@ -200,6 +200,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("mixer.fx_slots.first.toggle_enabled")->id
              == UiActionId::MixerToggleFirstFxSlotEnabled);
     REQUIRE (descriptorForStableId ("mixer.gr.read")->id == UiActionId::MixerReadGainReduction);
+    REQUIRE (descriptorForStableId ("mixer.fx_slots.bus.read")->id == UiActionId::MixerReadBusFxSlots);
     REQUIRE (descriptorForStableId ("piano_roll.note.select")->id == UiActionId::PianoRollNoteSelect);
     REQUIRE (descriptorForStableId ("piano_roll.note.quantize")->id == UiActionId::PianoRollNoteQuantize);
     REQUIRE (descriptorForStableId ("piano_roll.expression.read")->id == UiActionId::PianoRollReadExpressionLanes);
@@ -347,6 +348,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::MixerReadFxSlots, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerToggleFirstFxSlotEnabled, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::MixerReadGainReduction, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::MixerReadBusFxSlots, context).enabled);
 
     const auto noteSelectWithoutClip = registry.stateFor (UiActionId::PianoRollNoteSelect, context);
     REQUIRE_FALSE (noteSelectWithoutClip.enabled);
@@ -519,7 +521,8 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::MixerReadSends, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadFxSlots, context).dispatched);
     REQUIRE (registry.dispatch (UiActionId::MixerReadGainReduction, context).dispatched);
-    REQUIRE (context.mixerReadCount == 5);
+    REQUIRE (registry.dispatch (UiActionId::MixerReadBusFxSlots, context).dispatched);
+    REQUIRE (context.mixerReadCount == 6);
 
     context.midiClipSelected = true;
     REQUIRE (registry.dispatch (UiActionId::PianoRollNoteSelect, context).dispatched);
@@ -712,6 +715,15 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
           yesdaw::engine::FxKind::Compressor,
           true,
           { { yesdaw::engine::CompressorNode::kThresholdParamId, 0.4 } } });
+    project.buses.push_back (
+        { idFromLowByte (82),
+          { "Room Verb",
+            0.65f,
+            0.15f,
+            false,
+            false,
+            true,
+            { { idFromLowByte (83), yesdaw::engine::FxKind::Reverb, true, {} } } } });
     AutomationLaneData sendLane;
     sendLane.id = idFromLowByte (80);
     sendLane.ownerEntity = firstTrackId;
@@ -807,6 +819,13 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (snapshot.tracks[0].fxSlots[0].gainReductionDb == 6.25f);
     REQUIRE (snapshot.buses[0].linearGain == 0.65f);
     REQUIRE (snapshot.buses[0].soloSafe);
+    REQUIRE (snapshot.buses[0].fxSlots.size() == 1u);
+    REQUIRE (snapshot.buses[0].fxSlots[0].slotOrdinal == 0u);
+    REQUIRE (snapshot.buses[0].fxSlots[0].fxNodeId
+             == projectMixerNodeIdForEntity (project.buses[0].strip.fxChain[0].id, ProjectMixerNodeRole::Fx));
+    REQUIRE (snapshot.buses[0].fxSlots[0].kind == yesdaw::engine::FxKind::Reverb);
+    REQUIRE (snapshot.buses[0].fxSlots[0].enabled);
+    REQUIRE (snapshot.buses[0].fxSlots[0].parameterCount == 0u);
     REQUIRE (snapshot.loudness.valid);
     REQUIRE (snapshot.loudness.integratedLufs == -14.2);
 
@@ -861,7 +880,9 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
     REQUIRE (result.dispatch.dispatched);
     result = model.dispatch (UiActionId::MixerReadGainReduction);
     REQUIRE (result.dispatch.dispatched);
-    REQUIRE (model.context().mixerReadCount == 5);
+    result = model.dispatch (UiActionId::MixerReadBusFxSlots);
+    REQUIRE (result.dispatch.dispatched);
+    REQUIRE (model.context().mixerReadCount == 6);
 }
 
 TEST_CASE ("H11 piano roll actions dispatch to Project MIDI edit commands and expression readback",

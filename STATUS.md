@@ -412,8 +412,24 @@ control fixture only. Local gates under the VS BuildTools `vcvars64.bat`: focuse
 `cmake --build --preset ci --target YesDawUiActionCheck`; focused
 `ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**; full
 `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP6 continued with the smallest remaining mixer readback/projection slice after send edit and GR readout:
+a new `MixerReadBusFxSlots` query action and stable id `mixer.fx_slots.bus.read`, a shipped Bus FX readout
+button in the mixer button row, and `UiMixerSurface` Bus-strip `fxSlots` projected from existing Project
+`Bus::strip.fxChain` state. The action harness proves Bus FX slots carry the projected FX NodeId/kind/enabled
+state; the UI input harness proves the action is component-backed and reports the first Bus Reverb slot from a
+saved bundle. This did not add send creation/routing, broad send editing, FX add/remove/reorder/parameter
+editing, dim/mono, engine policy, Project schema changes, ADR edits, goldens, or CP7 behavior. Gate bite: the
+focused UI input gate first caught the shipped child inventory update and a too-tall readout-row layout that
+squeezed the existing fader drag path; the final patch keeps Bus FX in the existing mixer button row. Local
+gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**.
 
-**Now:** H16 CP6 first mixer GR-meter readout slice plus the macOS initializer fix are complete locally. Stop at this checkpoint after
+**Now:** H16 CP6 first Bus FX-slot readout/projection slice is complete locally. Stop at this checkpoint after
 commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -455,9 +471,10 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP6 with the smallest remaining mixer buildout slice, preferably the first GR-meter
-readout/action harness over existing readback/projection state if repo truth supports it. Do not add send
-creation/routing, broad send editing, FX add/remove/reorder/param editing, dim/mono, engine policy, Project
+**Next:** Continue H16 CP6 with the smallest remaining mixer buildout slice. Prefer dim/mono only if live repo
+truth shows existing app/mixer state and a mechanical render assertion can be used without inventing engine
+policy; otherwise choose the next readback-only/projection-only slice already supported by existing state. Do
+not add send creation/routing, broad send editing, FX add/remove/reorder/param editing, engine policy, Project
 schema changes, or CP7 in the same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
