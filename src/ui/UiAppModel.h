@@ -1000,6 +1000,49 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult deleteLastFirstTrackAutomationBreakpoint()
+    {
+        const UiActionId id = UiActionId::TimelineAutomationDeleteBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! context_.timelineAutomationTrackLaneVisible)
+            return { id, { false, "automation lane hidden" }, false };
+
+        const engine::AutomationLaneData* const lane = firstTrackFaderAutomationLane();
+        if (lane == nullptr)
+            return { id, { false, "first Track fader automation lane missing" }, false };
+
+        if (lane->points.empty())
+            return { id, { false, "first Track fader automation lane has no breakpoints" }, false };
+
+        const engine::Tick tick = lane->points.back().tick;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::removeAutomationBreakpoint (lane->id, tick));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (canAdoptEditWithoutPlaybackRebuild (nextProject))
+        {
+            if (! adoptEditedProjectWithoutPlaybackRebuild (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "automation breakpoint edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            return { id, { false, "automation breakpoint edit did not persist" }, false };
+        }
+
+        context_.activePanel = UiPanel::Timeline;
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
@@ -1163,6 +1206,9 @@ public:
 
             case UiActionId::TimelineAutomationAddBreakpoint:
                 return addFirstTrackAutomationBreakpoint();
+
+            case UiActionId::TimelineAutomationDeleteBreakpoint:
+                return deleteLastFirstTrackAutomationBreakpoint();
 
             case UiActionId::ViewPianoRoll:
             {

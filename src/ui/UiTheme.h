@@ -445,6 +445,10 @@ struct UiTheme
         static constexpr int automationBreakpointAddButtonTopInset = automationLaneRowTopInset;
         static constexpr int automationBreakpointAddButtonWidth = 104;
         static constexpr int automationBreakpointAddButtonHeight = automationLaneRowHeight;
+        static constexpr int automationBreakpointDeleteButtonLeftInset = 452;
+        static constexpr int automationBreakpointDeleteButtonTopInset = automationLaneRowTopInset;
+        static constexpr int automationBreakpointDeleteButtonWidth = 112;
+        static constexpr int automationBreakpointDeleteButtonHeight = automationLaneRowHeight;
         static juce::Rectangle<int> automationLaneToggleBounds (juce::Rectangle<int> timeline) noexcept
         {
             return timeline.withTrimmedLeft (automationLaneToggleLeftInset)
@@ -466,6 +470,14 @@ struct UiTheme
                            .withTrimmedTop (automationBreakpointAddButtonTopInset)
                            .withWidth (automationBreakpointAddButtonWidth)
                            .withHeight (automationBreakpointAddButtonHeight);
+        }
+
+        static juce::Rectangle<int> automationBreakpointDeleteButtonBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timeline.withTrimmedLeft (automationBreakpointDeleteButtonLeftInset)
+                           .withTrimmedTop (automationBreakpointDeleteButtonTopInset)
+                           .withWidth (automationBreakpointDeleteButtonWidth)
+                           .withHeight (automationBreakpointDeleteButtonHeight);
         }
         static constexpr int inputDragDeadZonePixels = 2;
         static constexpr std::array<int, 23> mainComponentDemoTimelineClipLanes {{

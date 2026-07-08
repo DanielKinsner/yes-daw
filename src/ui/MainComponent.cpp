@@ -1258,6 +1258,20 @@ private:
         };
         automationBreakpointAddButton.setVisible (false);
         addAndMakeVisible (automationBreakpointAddButton);
+
+        constexpr yesdaw::ui::UiActionId deleteAction = yesdaw::ui::UiActionId::TimelineAutomationDeleteBreakpoint;
+        configureActionComponent (automationBreakpointDeleteButton, deleteAction, "Delete automation breakpoint");
+        if (const auto* descriptor = appModel.registry().descriptor (deleteAction))
+            automationBreakpointDeleteButton.setButtonText (descriptor->label);
+        automationBreakpointDeleteButton.setColour (juce::TextButton::buttonColourId,
+                                                    yesdaw::ui::UiTheme::Color::buttonSurface());
+        automationBreakpointDeleteButton.onClick = [this] {
+            (void) appModel.deleteLastFirstTrackAutomationBreakpoint();
+            refreshActionState();
+            repaint();
+        };
+        automationBreakpointDeleteButton.setVisible (false);
+        addAndMakeVisible (automationBreakpointDeleteButton);
     }
 
     void configureInspectorControls()
@@ -1575,6 +1589,8 @@ private:
         automationLaneRow.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
         automationBreakpointAddButton.setBounds (
             yesdaw::ui::UiTheme::Layout::automationBreakpointAddButtonBounds (timeline));
+        automationBreakpointDeleteButton.setBounds (
+            yesdaw::ui::UiTheme::Layout::automationBreakpointDeleteButtonBounds (timeline));
     }
 
     void handleAction (yesdaw::ui::UiActionId action)
@@ -1677,6 +1693,16 @@ private:
         automationBreakpointAddButton.setEnabled (laneVisible
                                                   && addState.enabled
                                                   && appModel.firstTrackFaderAutomationLane() != nullptr);
+
+        const yesdaw::engine::AutomationLaneData* const lane = appModel.firstTrackFaderAutomationLane();
+        const auto deleteState = appModel.registry().stateFor (
+            yesdaw::ui::UiActionId::TimelineAutomationDeleteBreakpoint,
+            appModel.context());
+        automationBreakpointDeleteButton.setVisible (laneVisible);
+        automationBreakpointDeleteButton.setEnabled (laneVisible
+                                                     && deleteState.enabled
+                                                     && lane != nullptr
+                                                     && ! lane->points.empty());
     }
 
     [[nodiscard]] juce::String automationLaneRowText() const
@@ -2771,6 +2797,7 @@ private:
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;
+    juce::TextButton automationBreakpointDeleteButton;
     juce::Slider inspectorStart;
     juce::Slider inspectorEnd;
     juce::Slider inspectorLength;

@@ -206,6 +206,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TimelineAutomationToggleTrackLane);
     REQUIRE (descriptorForStableId ("timeline.automation.breakpoint.add")->id
              == UiActionId::TimelineAutomationAddBreakpoint);
+    REQUIRE (descriptorForStableId ("timeline.automation.breakpoint.delete")->id
+             == UiActionId::TimelineAutomationDeleteBreakpoint);
 
     std::set<std::string_view> stableIds;
     std::set<std::string_view> defaultKeys;
@@ -291,6 +293,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::TimelineSnapSetSixteenth, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineAutomationToggleTrackLane, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineAutomationAddBreakpoint, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineAutomationDeleteBreakpoint, context).enabled);
 
     const auto undoWithoutStack = registry.stateFor (UiActionId::EditUndo, context);
     REQUIRE_FALSE (undoWithoutStack.enabled);
@@ -557,6 +560,12 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.canUndo);
     REQUIRE_FALSE (context.canRedo);
     REQUIRE (context.timelineAutomationBreakpointEditCount == 1);
+
+    REQUIRE (registry.dispatch (UiActionId::TimelineAutomationDeleteBreakpoint, context).dispatched);
+    REQUIRE (context.activePanel == UiPanel::Timeline);
+    REQUIRE (context.canUndo);
+    REQUIRE_FALSE (context.canRedo);
+    REQUIRE (context.timelineAutomationBreakpointEditCount == 2);
 }
 
 TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo",

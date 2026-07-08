@@ -68,6 +68,7 @@ enum class UiActionId : std::uint8_t
     TimelineSnapSetSixteenth,
     TimelineAutomationToggleTrackLane,
     TimelineAutomationAddBreakpoint,
+    TimelineAutomationDeleteBreakpoint,
     Count
 };
 
@@ -327,6 +328,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineAutomationToggleTrackLane, "timeline.automation.track_lane.toggle", "Automation", "A", "Toggle first Track automation lane",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TimelineAutomationAddBreakpoint, "timeline.automation.breakpoint.add", "Add Point", "Shift+A", "Add breakpoint to first Track automation lane",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineAutomationDeleteBreakpoint, "timeline.automation.breakpoint.delete", "Delete Point", "Shift+D", "Delete breakpoint from first Track automation lane",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -748,6 +751,7 @@ public:
                 break;
 
             case UiActionId::TimelineAutomationAddBreakpoint:
+            case UiActionId::TimelineAutomationDeleteBreakpoint:
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

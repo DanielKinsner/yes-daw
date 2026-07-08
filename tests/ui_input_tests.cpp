@@ -619,7 +619,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 19u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 20u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -657,10 +657,14 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     auto* addPointComponent = dynamic_cast<juce::Button*> (
         findMainComponentChildForAction (*shell, UiActionId::TimelineAutomationAddBreakpoint));
     REQUIRE (addPointComponent != nullptr);
+    auto* deletePointComponent = dynamic_cast<juce::Button*> (
+        findMainComponentChildForAction (*shell, UiActionId::TimelineAutomationDeleteBreakpoint));
+    REQUIRE (deletePointComponent != nullptr);
 
     REQUIRE_FALSE (automation.isEnabled());
     REQUIRE_FALSE (laneRow.isVisible());
     REQUIRE_FALSE (addPointComponent->isVisible());
+    REQUIRE_FALSE (deletePointComponent->isVisible());
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -669,6 +673,7 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE (automation.isEnabled());
     REQUIRE_FALSE (laneRow.isVisible());
     REQUIRE_FALSE (addPointComponent->isVisible());
+    REQUIRE_FALSE (deletePointComponent->isVisible());
 
     clickButton (automation);
     snapshot = snapshotMainComponent (*shell);
@@ -682,6 +687,8 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE (laneRow.getText().contains ("2 breakpoints"));
     juce::Button& addPoint = requireButtonForAction (*shell, UiActionId::TimelineAutomationAddBreakpoint);
     REQUIRE (addPoint.isEnabled());
+    juce::Button& deletePoint = requireButtonForAction (*shell, UiActionId::TimelineAutomationDeleteBreakpoint);
+    REQUIRE (deletePoint.isEnabled());
 
     clickButton (addPoint);
     const yesdaw::engine::Project added = readProjectSnapshot (bundlePath);
@@ -720,6 +727,37 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (laneRow.getText().contains ("3 breakpoints"));
 
+    clickButton (deletePoint);
+    const yesdaw::engine::Project deleted = readProjectSnapshot (bundlePath);
+    REQUIRE (deleted.automationLanes.size() == 1u);
+    REQUIRE (deleted.automationLanes.front().points.size() == 2u);
+    REQUIRE (deleted.automationLanes.front().points == undone.automationLanes.front().points);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineAutomationBreakpointEditCount == 2);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (laneRow.getText().contains ("2 breakpoints"));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::EditUndo));
+    const yesdaw::engine::Project deleteUndone = readProjectSnapshot (bundlePath);
+    REQUIRE (deleteUndone.automationLanes == added.automationLanes);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.undoCount == 2);
+    REQUIRE (snapshot.context.canRedo);
+    REQUIRE (laneRow.getText().contains ("3 breakpoints"));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::EditRedo));
+    const yesdaw::engine::Project deleteRedone = readProjectSnapshot (bundlePath);
+    REQUIRE (deleteRedone.automationLanes == deleted.automationLanes);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.redoCount == 2);
+    REQUIRE (snapshot.context.canUndo);
+    REQUIRE_FALSE (snapshot.context.canRedo);
+    REQUIRE (laneRow.getText().contains ("2 breakpoints"));
+
     clickButton (automation);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.timelineAutomationTrackLaneVisible);
@@ -727,6 +765,7 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE (snapshot.context.timelineAutomationShowHideCount == 2);
     REQUIRE_FALSE (laneRow.isVisible());
     REQUIRE_FALSE (addPoint.isVisible());
+    REQUIRE_FALSE (deletePoint.isVisible());
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

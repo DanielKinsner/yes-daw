@@ -322,8 +322,21 @@ focused `ctest --preset ci -R YesDawUiActionCheck --output-on-failure`,
 `ctest --preset ci -R YesDawThemeAuditCheck --output-on-failure`, and
 `ctest --preset ci -R YesDawAccessibilityCheck --output-on-failure` each passed **1/1**; shipped app build
 `cmake --build --preset ci --target YesDaw`; `git diff --check`.
+H16 CP5e added the matching breakpoint delete slice: a new `TimelineAutomationDeleteBreakpoint` action and
+shipped Delete Point button remove the last breakpoint from the currently shown first Track fader automation
+lane through the existing H15 `ProjectEditCommand::removeAutomationBreakpoint` undo verb. The UI input harness
+clicks Add Point, then Delete Point, reads the persisted Project lane rows, and proves undo/redo restores the
+3->2->3->2 breakpoint row text/count without adding draw, drag, or CP6 behavior. Gate bite: the proof-first
+focused build first failed on the missing `TimelineAutomationDeleteBreakpoint` action/component contract, then
+the focused UI input gate caught the shipped-child inventory until the harness was updated. Local gates under
+`vcvars64.bat`: focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`;
+focused `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck" --output-on-failure` passed **2/2**;
+focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+focused `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; `git diff --check`; full `cmake --build --preset ci`; full
+`ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP5d (first action-backed Add Point breakpoint edit through the H15 undo verb) is complete locally. Stop at this
+**Now:** H16 CP5e (action-backed Delete Point breakpoint edit through the H15 undo verb) is complete locally. Stop at this
 checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
@@ -365,8 +378,9 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP5 in a successor checkpoint with the smallest delete-breakpoint action/harness slice
-through the H15 `removeAutomationBreakpoint` undo verb. Do not start draw/drag or CP6 in the same checkpoint.
+**Next:** Continue H16 CP5 in a successor checkpoint with the smallest pencil-draw breakpoint gesture/action
+harness slice through the H15 `addAutomationBreakpoint` undo verb. Do not start drag editing or CP6 in the same
+checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
