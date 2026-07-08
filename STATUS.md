@@ -275,6 +275,11 @@ checkpoint does not wire visible Components, marker editing, transport display e
 automation lanes, mixer buildout, engine/model policy, ADRs, goldens, `docs/reality-lane.md`, or CP5+.
 Local gate under `vcvars64.bat`: focused `cmake --build --preset ci --target YesDawUiActionCheck` plus
 `ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**; `git diff --check`.
+Remote CI run `28957488537` exposed a macOS `-Wswitch` app-build failure: `UiAppModel::dispatch()` did
+not explicitly handle the nine new CP4a action IDs. The follow-up routes those action IDs through
+`UiActionRegistry` in the app model without adding Component wiring or Project/model policy. Additional
+local gate under `vcvars64.bat`: `cmake --build --preset ci --target YesDaw YesDawUiActionCheck` plus
+`ctest --preset ci -R YesDawUiActionCheck --output-on-failure` passed **1/1**.
 
 **Now:** H16 CP4a (action-first timeline tool/snap/keymap surface) is complete locally. Stop at this
 checkpoint after commit/push and remote CI green.

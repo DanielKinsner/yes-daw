@@ -1098,6 +1098,15 @@ public:
             case UiActionId::MixerReadMeters:
             case UiActionId::MixerReadLoudness:
             case UiActionId::HelpShowKeymap:
+            case UiActionId::TimelineToolSelectPointer:
+            case UiActionId::TimelineToolSelectPencil:
+            case UiActionId::TimelineToolSelectScissors:
+            case UiActionId::TimelineToolSelectHand:
+            case UiActionId::TimelineToolSelectZoom:
+            case UiActionId::TimelineSnapDisable:
+            case UiActionId::TimelineSnapSetBar:
+            case UiActionId::TimelineSnapSetBeat:
+            case UiActionId::TimelineSnapSetSixteenth:
             {
                 return registry_.dispatch (id, context_);
             }
