@@ -54,7 +54,7 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ## Live packet — H16 implementation
 
-**Last updated:** 2026-07-07
+**Last updated:** 2026-07-08
 **Current horizon:** **H16 (Real UI) — OPEN.**
 
 H16 opened from live repo truth. The H15 final closeout commit
@@ -244,9 +244,16 @@ Additional local gates under `vcvars64.bat`: apps-off configure/build
 `ctest --test-dir build-apps-off -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**;
 focused app-capable `YesDawWaveformCacheCheck` passed **1/1**; `git diff --check`; normal full
 `cmake --build --preset ci`; normal full `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP3a added pure `ui/WaveformColumns.h` column projection from published `WaveformPeakCache`
+data, with tier selection driven by `sampleRate / pixelsPerSecond` and source-frame viewport mapping
+for deterministic min/max/rms columns. `YesDawWaveformCacheCheck` now proves detailed-vs-folded tier
+choice and exact fixture column values. Red proof: the focused build first failed on the missing
+`ui/WaveformColumns.h` include. Local gates under `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawWaveformCacheCheck` plus
+`ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; `git diff --check`.
 
-**Now:** H16 CP2d (paint reads published waveform cache state, no visual change) is complete locally.
-Stop at this checkpoint after commit/push and remote CI green; do not start CP3 in this thread.
+**Now:** H16 CP3a (pure waveform columns helper + exact unit gate) is complete locally. Stop at this
+checkpoint after commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -287,9 +294,8 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** After this CP2d commit is pushed and remote CI is green, spawn exactly one successor for
-**H16 CP3 — real waveform columns** from the next H16 waveform plan. CP3 may replace the fake
-waveform body with real peak columns; this CP2d checkpoint deliberately did not.
+**Next:** H16 CP3b — wire the `TimelineCanvas` ready branch to draw real cache columns while keeping
+the not-ready branch on the placeholder/fake path, preserving paint-read-only behavior.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

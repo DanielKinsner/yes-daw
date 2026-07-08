@@ -1,6 +1,7 @@
 #include "persistence/WaveformPeakCache.h"
 #include "io/WavFile.h"
 #include "ui/UiAppModel.h"
+#include "ui/WaveformColumns.h"
 #include "ui/WaveformPeakService.h"
 
 #if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
@@ -41,7 +42,9 @@ using yesdaw::ui::TimelineCanvasTrack;
 #endif
 using yesdaw::ui::UiAppModel;
 using yesdaw::ui::UiDecodedAsset;
+using yesdaw::ui::WaveformColumnViewport;
 using yesdaw::ui::WaveformPeakService;
+using yesdaw::ui::computeWaveformColumns;
 using yesdaw::ui::interleavedToChannelMajor;
 #if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
 using yesdaw::ui::paintTimelineCanvas;
@@ -73,12 +76,36 @@ Asset makeAsset()
     return asset;
 }
 
+Asset makeColumnAsset()
+{
+    Asset asset;
+    asset.id = idFromLowByte (0x33);
+    asset.contentHash = hashFromSeed (0x90);
+    asset.frames = 64;
+    asset.sampleRate = SampleRate { 16.0 };
+    asset.channels = 1;
+    return asset;
+}
+
 std::vector<float> makeChannelMajorSamples()
 {
     return {
         -1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 0.75f, -0.25f, 0.25f,
         0.25f, -0.25f, 0.5f, -0.5f, 0.75f, -0.75f, 1.0f, -1.0f,
     };
+}
+
+std::vector<float> makeColumnSamples()
+{
+    std::vector<float> samples;
+    samples.reserve (64u);
+    for (std::uint64_t frame = 0; frame < 64u; ++frame)
+    {
+        const float value = static_cast<float> (frame + 1u) / 64.0f;
+        samples.push_back ((frame % 2u) == 0u ? -value : value);
+    }
+
+    return samples;
 }
 
 std::vector<float> makeDifferentChannelMajorSamples()
@@ -212,6 +239,76 @@ TEST_CASE ("H16 CP2c interleaved audio converts exactly to channel-major storage
                       swapped.begin() + static_cast<std::ptrdiff_t> (frames),
                       swapped.begin() + static_cast<std::ptrdiff_t> (frames));
     REQUIRE_FALSE (channelMajorToInterleaved (swapped, frames, channels) == interleaved);
+}
+
+TEST_CASE ("H16 CP3 waveform columns choose the peak tier from pixels per second", "[ui][waveform-cache]")
+{
+    const Asset asset = makeColumnAsset();
+    const std::vector<float> samples = makeColumnSamples();
+    const auto built = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()), 4);
+    INFO (built.message);
+    REQUIRE (built.ok());
+    REQUIRE (built.cache.tiers.size() == 2u);
+
+    WaveformColumnViewport detailedViewport;
+    detailedViewport.sourceFrameCount = 16;
+    detailedViewport.sampleRate = asset.sampleRate.hz;
+    detailedViewport.pixelsPerSecond = 4.0;
+    detailedViewport.widthPixels = 4;
+    const auto detailed = computeWaveformColumns (built.cache, detailedViewport);
+    REQUIRE (detailed.tierIndex == 0u);
+    REQUIRE (detailed.framesPerPeak == 4u);
+    REQUIRE (detailed.columns.size() == 4u);
+    for (std::size_t i = 0; i < detailed.columns.size(); ++i)
+    {
+        const auto& peak = built.cache.tiers[0].peaks[i];
+        REQUIRE (detailed.columns[i].min == peak.min);
+        REQUIRE (detailed.columns[i].max == peak.max);
+        REQUIRE (detailed.columns[i].rms == peak.rms);
+    }
+
+    WaveformColumnViewport foldedViewport;
+    foldedViewport.sourceFrameCount = asset.frames;
+    foldedViewport.sampleRate = asset.sampleRate.hz;
+    foldedViewport.pixelsPerSecond = 0.25;
+    foldedViewport.widthPixels = 1;
+    const auto folded = computeWaveformColumns (built.cache, foldedViewport);
+    REQUIRE (folded.tierIndex == 1u);
+    REQUIRE (folded.framesPerPeak == 64u);
+    REQUIRE (folded.columns.size() == 1u);
+    REQUIRE (folded.columns.front().min == built.cache.tiers[1].peaks.front().min);
+    REQUIRE (folded.columns.front().max == built.cache.tiers[1].peaks.front().max);
+    REQUIRE (folded.columns.front().rms == built.cache.tiers[1].peaks.front().rms);
+}
+
+TEST_CASE ("H16 CP3 waveform columns are deterministic for source-frame viewports", "[ui][waveform-cache]")
+{
+    const Asset asset = makeColumnAsset();
+    const std::vector<float> samples = makeColumnSamples();
+    const auto built = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()), 4);
+    INFO (built.message);
+    REQUIRE (built.ok());
+
+    WaveformColumnViewport viewport;
+    viewport.sourceFrameOffset = 8;
+    viewport.sourceFrameCount = 8;
+    viewport.sampleRate = asset.sampleRate.hz;
+    viewport.pixelsPerSecond = 4.0;
+    viewport.widthPixels = 2;
+
+    const auto first = computeWaveformColumns (built.cache, viewport);
+    const auto second = computeWaveformColumns (built.cache, viewport);
+    REQUIRE (first == second);
+    REQUIRE (first.tierIndex == 0u);
+    REQUIRE (first.columns.size() == 2u);
+
+    for (std::size_t i = 0; i < first.columns.size(); ++i)
+    {
+        const auto& peak = built.cache.tiers[0].peaks[i + 2u];
+        REQUIRE (first.columns[i].min == peak.min);
+        REQUIRE (first.columns[i].max == peak.max);
+        REQUIRE (first.columns[i].rms == peak.rms);
+    }
 }
 
 TEST_CASE ("H16 CP2a waveform service builds and publishes on its worker thread", "[ui][waveform-cache]")
