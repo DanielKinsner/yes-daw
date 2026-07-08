@@ -1,12 +1,16 @@
 #include "persistence/WaveformPeakCache.h"
 #include "io/WavFile.h"
-#include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 #include "ui/WaveformPeakService.h"
+
+#if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
+#include "ui/TimelineCanvas.h"
+#endif
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <fstream>
@@ -28,16 +32,20 @@ using yesdaw::engine::SampleRate;
 using yesdaw::persistence::buildWaveformPeakCache;
 using yesdaw::persistence::waveformPeakCachePathForHash;
 using yesdaw::persistence::writeWaveformPeakCache;
+#if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
 using yesdaw::ui::Clip;
 using yesdaw::ui::TimelineCanvasClipStyle;
 using yesdaw::ui::TimelineCanvasPaintStats;
 using yesdaw::ui::TimelineCanvasState;
 using yesdaw::ui::TimelineCanvasTrack;
+#endif
 using yesdaw::ui::UiAppModel;
 using yesdaw::ui::UiDecodedAsset;
 using yesdaw::ui::WaveformPeakService;
 using yesdaw::ui::interleavedToChannelMajor;
+#if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
 using yesdaw::ui::paintTimelineCanvas;
+#endif
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
 {
@@ -150,6 +158,7 @@ std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> waitForReady (
     return {};
 }
 
+#if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
 TimelineCanvasState makePaintState (
     const Clip* clips,
     const TimelineCanvasClipStyle* styles,
@@ -173,6 +182,7 @@ TimelineCanvasState makePaintState (
     state.viewport.pixelsPerSecond = 160.0;
     return state;
 }
+#endif
 
 } // namespace
 
@@ -418,6 +428,7 @@ TEST_CASE ("H16 CP2a waveform service negative control flags caller-thread build
     std::filesystem::remove_all (bundlePath);
 }
 
+#if YESDAW_WAVEFORM_CACHE_PAINT_TESTS
 TEST_CASE ("H16 CP2d timeline paint observes ready and not-ready waveform cache state", "[ui][waveform-cache]")
 {
     const Asset asset = makeAsset();
@@ -496,3 +507,4 @@ TEST_CASE ("H16 CP2d timeline paint lookup does not build on the paint thread", 
 
     std::filesystem::remove_all (bundlePath);
 }
+#endif

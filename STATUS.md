@@ -234,6 +234,16 @@ only; build count unchanged; no forbidden paint-thread build). Local gates under
 `ctest --preset ci -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**; focused UI/paint gates
 `YesDawUiActionCheck`, `YesDawWaveformCacheCheck`, and `YesDawTimelineGpuCheck` passed; `git diff --check`;
 full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed **311/311**.
+Remote CI run `28907456285` for the first CP2d commit exposed an apps-off configure gap in the RTSan/TSan
+legs: `YesDawWaveformCacheCheck` had been made to link JUCE GUI unconditionally, while sanitizer CI
+intentionally configures with `YESDAW_BUILD_APPS=OFF`. The follow-up kept the paint-path CP2d assertions
+enabled for app-capable CI legs and kept the pure service gate buildable for apps-off sanitizer legs.
+Additional local gates under `vcvars64.bat`: apps-off configure/build
+`cmake -B build-apps-off -G Ninja -DCMAKE_BUILD_TYPE=Release -DYESDAW_BUILD_APPS=OFF` plus
+`cmake --build build-apps-off --target YesDawWaveformCacheCheck`; apps-off
+`ctest --test-dir build-apps-off -R YesDawWaveformCacheCheck --output-on-failure` passed **1/1**;
+focused app-capable `YesDawWaveformCacheCheck` passed **1/1**; `git diff --check`; normal full
+`cmake --build --preset ci`; normal full `ctest --preset ci --output-on-failure` passed **311/311**.
 
 **Now:** H16 CP2d (paint reads published waveform cache state, no visual change) is complete locally.
 Stop at this checkpoint after commit/push and remote CI green; do not start CP3 in this thread.
