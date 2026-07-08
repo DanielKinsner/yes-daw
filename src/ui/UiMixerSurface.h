@@ -77,6 +77,17 @@ struct UiMixerFxSlotReadout
     engine::FxKind kind = engine::FxKind::Eq;
     bool enabled = true;
     std::size_t parameterCount = 0;
+    bool gainReductionAvailable = false;
+    float gainReductionDb = 0.0f;
+    bool gainReductionValid = false;
+};
+
+struct UiMixerFxGainReductionReadout
+{
+    engine::EntityId insertId {};
+    engine::NodeId fxNodeId = 0;
+    float gainReductionDb = 0.0f;
+    bool valid = false;
 };
 
 struct UiMixerTargetControl
@@ -90,6 +101,7 @@ struct UiMixerTargetControl
     bool soloSafe = false;
     bool sidechainVisible = false;
     UiMixerMeterReadout meter;
+    std::vector<UiMixerFxGainReductionReadout> fxGainReductionReadouts;
 };
 
 struct UiMixerBusControl
@@ -247,7 +259,45 @@ inline std::vector<UiMixerFxSlotReadout> fxSlotReadoutsForStrip (const engine::M
         readout.kind = insert.kind;
         readout.enabled = insert.enabled;
         readout.parameterCount = insert.normalizedParams.size();
+        readout.gainReductionAvailable = insert.kind == engine::FxKind::Compressor
+                                       || insert.kind == engine::FxKind::Limiter;
         slots.push_back (readout);
+    }
+
+    return slots;
+}
+
+inline const UiMixerFxGainReductionReadout* findFxGainReductionReadout (
+    std::span<const UiMixerFxGainReductionReadout> readouts,
+    engine::EntityId insertId,
+    engine::NodeId fxNodeId) noexcept
+{
+    for (const UiMixerFxGainReductionReadout& readout : readouts)
+    {
+        if (readout.insertId == insertId)
+            return &readout;
+        if (readout.fxNodeId != 0 && readout.fxNodeId == fxNodeId)
+            return &readout;
+    }
+
+    return nullptr;
+}
+
+inline std::vector<UiMixerFxSlotReadout> fxSlotReadoutsForStrip (
+    const engine::MixerStripState& strip,
+    std::span<const UiMixerFxGainReductionReadout> gainReductionReadouts)
+{
+    std::vector<UiMixerFxSlotReadout> slots = fxSlotReadoutsForStrip (strip);
+
+    for (UiMixerFxSlotReadout& slot : slots)
+    {
+        const UiMixerFxGainReductionReadout* const readout =
+            findFxGainReductionReadout (gainReductionReadouts, slot.insertId, slot.fxNodeId);
+        if (readout == nullptr)
+            continue;
+
+        slot.gainReductionDb = readout->gainReductionDb;
+        slot.gainReductionValid = readout->valid;
     }
 
     return slots;
@@ -314,7 +364,12 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         strip.sends = detail::sendReadoutsForTrack (project, trackRow.id);
-        strip.fxSlots = detail::fxSlotReadoutsForStrip (trackRow.strip);
+        strip.fxSlots = detail::fxSlotReadoutsForStrip (
+            trackRow.strip,
+            control != nullptr
+                ? std::span<const UiMixerFxGainReductionReadout> (control->fxGainReductionReadouts.data(),
+                                                                  control->fxGainReductionReadouts.size())
+                : std::span<const UiMixerFxGainReductionReadout> {});
         snapshot.tracks.push_back (std::move (strip));
     }
 
@@ -436,6 +491,7 @@ public:
             case UiActionId::MixerReadLoudness:
             case UiActionId::MixerReadSends:
             case UiActionId::MixerReadFxSlots:
+            case UiActionId::MixerReadGainReduction:
                 return { registry_.dispatch (id, context_), UiMixerActionStatus::Ok };
 
             default:

@@ -662,7 +662,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 24u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 25u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1020,6 +1020,43 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (fxToggle.getButtonText() == "FX");
     REQUIRE_FALSE (fxToggle.getToggleState());
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an action-backed mixer component",
+           "[ui][input][shell][mixer][gr]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-gr-readout");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] { return makeMixerFxSlotsInputProject(); };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& gr = requireButtonForAction (*shell, UiActionId::MixerReadGainReduction);
+    REQUIRE (gr.isEnabled());
+    REQUIRE (gr.getButtonText().contains ("GR 1"));
+    REQUIRE (gr.getButtonText().contains ("Compressor"));
+    REQUIRE (gr.getButtonText().contains ("n/a"));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+    REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Compressor);
+    const auto compressorNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain[1].id,
+                                                               ProjectMixerNodeRole::Fx);
+    REQUIRE (gr.getButtonText().contains (juce::String (static_cast<int> (compressorNodeId))));
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (gr);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

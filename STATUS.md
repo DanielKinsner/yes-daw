@@ -390,8 +390,23 @@ engine policy, Project schema changes, ADR edits, goldens, or CP7 behavior. Loca
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
 `ctest --preset ci -R YesDaw --output-on-failure` passed **29/29**; full `cmake --build --preset ci`; full
 `ctest --preset ci --output-on-failure` passed **311/311**.
+H16 CP6 continued with the smallest GR-meter readout slice: a new `MixerReadGainReduction` query action and
+stable id `mixer.gr.read`, a shipped first-Track GR button in the mixer button row, and `UiMixerSurface`
+FX-slot readbacks that carry GR availability plus supplied compressor/limiter readback values without changing
+engine policy. The action harness proves a projected first compressor slot carries node id plus `6.25 dB`
+readback state; the UI input harness proves the action is component-backed and reports the first Track's
+projected compressor slot/node with `n/a` when no runtime GR value has been supplied. This did not add send
+creation/routing, broad send editing, FX add/remove/reorder/parameter editing, dim/mono, engine policy, Project
+schema changes, ADR edits, goldens, or CP7 behavior. Gate bite: the focused UI input gate first caught the
+shipped child inventory update and the first layout attempt squeezing the existing fader drag path. Local gates
+under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent/broader
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+`ctest --preset ci -R YesDaw --output-on-failure` passed **29/29**; full `cmake --build --preset ci`; full
+`ctest --preset ci --output-on-failure` passed **311/311**.
 
-**Now:** H16 CP6 first mixer send-level edit slice is complete locally. Stop at this checkpoint after
+**Now:** H16 CP6 first mixer GR-meter readout slice is complete locally. Stop at this checkpoint after
 commit/push and remote CI green.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
