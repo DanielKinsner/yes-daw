@@ -973,6 +973,19 @@ public:
         exportAudioProgress.setColour (juce::Label::textColourId, kMutedText);
         addAndMakeVisible (exportAudioProgress);
 
+        configureActionComponent (exportAudioCancelButton,
+                                  yesdaw::ui::UiActionId::ProjectExportAudioCancel,
+                                  "Cancel audio export");
+        exportAudioCancelButton.setButtonText ("Cancel");
+        exportAudioCancelButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        exportAudioCancelButton.setColour (juce::TextButton::textColourOffId, kText);
+        exportAudioCancelButton.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::ProjectExportAudioCancel);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (exportAudioCancelButton);
+
         configureActionComponent (masterLoudnessReadout, yesdaw::ui::UiActionId::MixerReadLoudness, "Master loudness");
         masterLoudnessReadout.setButtonText ("-- LUFS");
         masterLoudnessReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1203,6 +1216,7 @@ public:
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
         exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
         exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
+        exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
         masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
@@ -1806,6 +1820,9 @@ private:
         refreshAutosaveRecoveryControls();
         exportAudioButton.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
+                                          appModel.context()).enabled);
+        exportAudioCancelButton.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudioCancel,
                                           appModel.context()).enabled);
         exportAudioProgress.setText (exportAudioProgressText(), juce::dontSendNotification);
         masterLoudnessReadout.setEnabled (
@@ -3101,6 +3118,7 @@ private:
     PianoRollInputComponent pianoRollInput;
     juce::TextButton exportAudioButton;
     juce::Label exportAudioProgress;
+    juce::TextButton exportAudioCancelButton;
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;

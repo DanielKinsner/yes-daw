@@ -679,7 +679,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 30u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 31u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1192,8 +1192,10 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     auto shell = makeShell (std::move (choices));
     juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
+    juce::Button& cancelExport = requireButtonForAction (*shell, UiActionId::ProjectExportAudioCancel);
     juce::Label& exportProgress = requireLabelWithComponentId (*shell, kExportAudioProgressComponentId);
     REQUIRE_FALSE (exportAudio.isEnabled());
+    REQUIRE_FALSE (cancelExport.isEnabled());
     REQUIRE (exportProgress.getText() == "Export --");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
@@ -1203,7 +1205,11 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.audioExportCount == 0);
     REQUIRE (snapshot.context.audioExportProgressPercent == -1);
+    REQUIRE_FALSE (snapshot.context.audioExportInProgress);
+    REQUIRE_FALSE (snapshot.context.audioExportCancelRequested);
+    REQUIRE (snapshot.context.audioExportCancelCount == 0);
     REQUIRE (exportAudio.isEnabled());
+    REQUIRE_FALSE (cancelExport.isEnabled());
     REQUIRE_FALSE (std::filesystem::exists (exportPath));
 
     const int beforeCommandCount = snapshot.context.commandDispatchCount;
@@ -1212,8 +1218,12 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.audioExportCount == 1);
     REQUIRE (snapshot.context.audioExportProgressPercent == 100);
+    REQUIRE_FALSE (snapshot.context.audioExportInProgress);
+    REQUIRE_FALSE (snapshot.context.audioExportCancelRequested);
+    REQUIRE (snapshot.context.audioExportCancelCount == 0);
     REQUIRE (snapshot.context.commandDispatchCount == beforeCommandCount + 1);
     REQUIRE (exportProgress.getText() == "Export 100%");
+    REQUIRE_FALSE (cancelExport.isEnabled());
     REQUIRE (std::filesystem::exists (exportPath));
 
     yesdaw::io::Float32Wav exported;

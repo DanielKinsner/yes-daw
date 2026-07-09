@@ -279,6 +279,8 @@ public:
         if (destinationPath.empty())
             return { id, { false, "audio export path required" }, false };
 
+        context_.audioExportCancelRequested = false;
+        context_.audioExportInProgress = true;
         context_.audioExportProgressPercent = 0;
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
@@ -286,7 +288,10 @@ public:
             project_,
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
         if (! rendered.ok())
+        {
+            context_.audioExportInProgress = false;
             return { id, { false, "audio export render failed" }, false };
+        }
 
         const io::WavResult written = io::writeFloat32WavFile (
             destinationPath,
@@ -295,10 +300,14 @@ public:
             rendered.frames,
             std::span<const float> (rendered.interleavedSamples.data(), rendered.interleavedSamples.size()));
         if (! written.ok())
+        {
+            context_.audioExportInProgress = false;
             return { id, { false, "audio export write failed" }, false };
+        }
 
         ++context_.audioExportCount;
         context_.audioExportProgressPercent = 100;
+        context_.audioExportInProgress = false;
         ++context_.commandDispatchCount;
         return { id, state, true };
     }

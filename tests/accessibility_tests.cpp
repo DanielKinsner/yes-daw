@@ -41,6 +41,7 @@ UiActionContext fullyReachableContext()
     context.recordingMonitoringSelected = true;
     context.recordingCompTakesAvailable = true;
     context.autosaveRecoveryPending = true;
+    context.audioExportInProgress = true;
     return context;
 }
 

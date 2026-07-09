@@ -20,6 +20,7 @@ enum class UiActionId : std::uint8_t
     ProjectSave,
     ProjectImportAudio,
     ProjectExportAudio,
+    ProjectExportAudioCancel,
     ProjectExportDawproject,
     TransportPlay,
     TransportStop,
@@ -176,6 +177,9 @@ struct UiActionContext
     int importCount = 0;
     int audioExportCount = 0;
     int audioExportProgressPercent = -1;
+    bool audioExportInProgress = false;
+    bool audioExportCancelRequested = false;
+    int audioExportCancelCount = 0;
     int dawprojectExportCount = 0;
     int deviceRefreshCount = 0;
     int deviceSelectCount = 0;
@@ -240,6 +244,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+Shift+E", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectExportAudioCancel, "project.export_audio.cancel", "Cancel Audio Export", "Esc", "Cancel audio export",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "Ctrl+Shift+D", "Export DAWproject package",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportPlay, "transport.play", "Play", "Space", "Play transport",
@@ -529,6 +535,8 @@ public:
             return { false, "not enough recording Takes" };
         if (descriptor->requiresAutosaveRecovery && ! context.autosaveRecoveryPending)
             return { false, "no autosave recovery snapshot" };
+        if (id == UiActionId::ProjectExportAudioCancel && ! context.audioExportInProgress)
+            return { false, "no audio export in progress" };
 
         return { true, "" };
     }
@@ -564,6 +572,12 @@ public:
 
             case UiActionId::ProjectExportAudio:
                 ++context.audioExportCount;
+                break;
+
+            case UiActionId::ProjectExportAudioCancel:
+                context.audioExportCancelRequested = true;
+                context.audioExportInProgress = false;
+                ++context.audioExportCancelCount;
                 break;
 
             case UiActionId::ProjectExportDawproject:

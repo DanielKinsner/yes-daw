@@ -181,6 +181,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (actions[1].stableId == std::string_view ("project.open"));
     REQUIRE (descriptorForStableId ("project.import_audio")->id == UiActionId::ProjectImportAudio);
     REQUIRE (descriptorForStableId ("project.export_audio")->id == UiActionId::ProjectExportAudio);
+    REQUIRE (descriptorForStableId ("project.export_audio.cancel")->id == UiActionId::ProjectExportAudioCancel);
     REQUIRE (descriptorForStableId ("project.export_dawproject")->id == UiActionId::ProjectExportDawproject);
     REQUIRE (descriptorForStableId ("transport.play")->id == UiActionId::TransportPlay);
     REQUIRE (descriptorForStableId ("device.refresh_audio")->id == UiActionId::DeviceRefreshAudio);
@@ -436,6 +437,15 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.importCount == 1);
     REQUIRE (context.audioExportCount == 1);
     REQUIRE (context.dawprojectExportCount == 1);
+
+    const auto idleCancel = registry.stateFor (UiActionId::ProjectExportAudioCancel, context);
+    REQUIRE_FALSE (idleCancel.enabled);
+    REQUIRE (std::string_view (idleCancel.disabledReason) == "no audio export in progress");
+    context.audioExportInProgress = true;
+    REQUIRE (registry.dispatch (UiActionId::ProjectExportAudioCancel, context).dispatched);
+    REQUIRE (context.audioExportCancelRequested);
+    REQUIRE_FALSE (context.audioExportInProgress);
+    REQUIRE (context.audioExportCancelCount == 1);
 
     REQUIRE (registry.dispatch (UiActionId::TransportPlay, context).dispatched);
     REQUIRE (context.isPlaying);

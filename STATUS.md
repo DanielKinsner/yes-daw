@@ -485,10 +485,28 @@ focused `ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adja
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
 adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
-**311/311**.
+**311/311**. Remote CI run `28986399539` for `15cca31c` completed green across Linux, Windows, macOS,
+RTSan, and TSan.
+H16 CP7 continued with the smallest export-cancel surface that does not invent async export or engine
+policy: a new action-backed stable id `project.export_audio.cancel` ships as a header `Cancel` button,
+enabled only while the UI action context reports `audioExportInProgress`. The synchronous WAV export path
+now clears stale cancel requests, marks export in progress during render/write, and returns to idle after
+success or failure. The action harness proves idle cancel is disabled, an injected in-progress context
+dispatches cancel, sets `audioExportCancelRequested`, clears `audioExportInProgress`, and advances
+`audioExportCancelCount`; the UI input harness proves the shipped cancel button is action-backed and idle
+disabled before and after the real canonical-WAV export path. This did not add async export, engine cancel,
+DAWproject export, format choices, CP8 behavior, engine policy, Project schema changes, ADR edits,
+goldens, or `docs/reality-lane.md`. Local gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**; `git diff --check` passed.
 
-**Now:** H16 CP7 export progress readout slice is complete locally. Commit/push this small green
-checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
+**Now:** H16 CP7 export cancel surface is complete locally. Commit/push this small green checkpoint, wait
+for remote CI green, then continue into the smallest CP8 screenshot/polish harness slice that can be proved
+mechanically.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
