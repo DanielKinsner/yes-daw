@@ -1466,6 +1466,17 @@ private:
         };
         addAndMakeVisible (mixerPan);
 
+        configureActionComponent (mixerMetersReadout, yesdaw::ui::UiActionId::MixerReadMeters, "Mixer meters");
+        mixerMetersReadout.setButtonText ("Meters: none");
+        mixerMetersReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        mixerMetersReadout.setColour (juce::TextButton::textColourOffId, kText);
+        mixerMetersReadout.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadMeters);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerMetersReadout);
+
         configureActionComponent (mixerSendsReadout, yesdaw::ui::UiActionId::MixerReadSends, "Mixer sends");
         mixerSendsReadout.setButtonText ("Sends: none");
         mixerSendsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1657,7 +1668,8 @@ private:
         auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
-        const std::array<juce::Button*, 6> mixerButtons {
+        const std::array<juce::Button*, 7> mixerButtons {
+            &mixerMetersReadout,
             &mixerSendLevelEdit,
             &mixerFxSlotToggle,
             &mixerGainReductionReadout,
@@ -2014,6 +2026,8 @@ private:
                                                             appModel.context()).enabled);
         mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
                                                             appModel.context()).enabled);
+        mixerMetersReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadMeters,
+                                                                     appModel.context()).enabled);
         mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
                                                                     appModel.context()).enabled);
         const bool firstSendAvailable = appModel.firstTrackFirstSendAutomationLane() != nullptr;
@@ -2044,6 +2058,7 @@ private:
             mixerPan.setValue (strip.pan, juce::dontSendNotification);
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
+            mixerMetersReadout.setButtonText (mixerMetersReadoutText());
             mixerSendsReadout.setButtonText (mixerSendsReadoutText());
             mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
@@ -2062,6 +2077,7 @@ private:
                                juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
+            mixerMetersReadout.setButtonText ("Meters: no project");
             mixerSendsReadout.setButtonText ("Sends: no project");
             mixerSendLevelEdit.setButtonText ("Send");
             mixerFxSlotsReadout.setButtonText ("FX: no project");
@@ -2071,6 +2087,24 @@ private:
             mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
         }
         refreshingMixerControls = false;
+    }
+
+    [[nodiscard]] juce::String mixerMetersReadoutText() const
+    {
+        const auto surface = currentMixerSurface();
+        if (surface.tracks.empty())
+            return "Meters: no Track";
+
+        const auto& track = surface.tracks.front();
+        juce::String text = juce::String (track.name.empty() ? "Track 1" : track.name)
+            + " meter node " + juce::String (static_cast<int> (track.meterNodeId));
+
+        if (! track.meter.valid)
+            return text + " peak n/a";
+
+        return text
+            + " peak L " + juce::String (track.meter.peakLeft, 2)
+            + " R " + juce::String (track.meter.peakRight, 2);
     }
 
     [[nodiscard]] juce::String mixerSendsReadoutText() const
@@ -3024,6 +3058,7 @@ private:
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;
+    juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerSendLevelEdit;
     juce::TextButton mixerFxSlotsReadout;

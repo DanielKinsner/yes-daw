@@ -442,9 +442,24 @@ VS BuildTools `vcvars64.bat`: focused
 adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **311/311**; `git diff --check` passed.
+H16 CP6 continued with the smallest remaining mixer readback/projection slice that did not invent dim/mono
+state: the existing `MixerReadMeters` query action and stable id `mixer.meters.read` now have a shipped
+first-Track meter readout component in the mixer button row over the existing `UiMixerMeterReadout`
+projection. The UI input harness proves the component is action-backed, reports the projected meter NodeId
+and `peak n/a` when no runtime meter readback has been supplied, and advances `mixerReadCount` through
+registry dispatch. This did not add dim/mono, send creation/routing, broad send editing, FX
+add/remove/reorder/parameter editing, engine policy, Project schema changes, ADR edits, goldens, or CP7
+behavior. Local gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`; focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2** after the shipped-child inventory
+expectation was updated; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**.
 
-**Now:** H16 CP6 first master loudness/LUFS component-backed readout slice is complete locally. Stop after
-commit/push and remote CI green.
+**Now:** H16 CP6 first Track meter component-backed readout slice is complete locally. Commit/push this
+small green checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -485,11 +500,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 CP6 with the smallest remaining mixer buildout slice. Prefer first dim/mono only if
-live repo truth shows existing app/mixer state and a mechanical render assertion can be used without
-inventing engine policy; otherwise choose the next readback-only/projection-only slice already supported by
-existing state. Do not add send creation/routing, broad send editing, FX add/remove/reorder/param editing,
-engine policy, Project schema changes, or CP7 in the same checkpoint.
+**Next:** Continue H16 in the next tiny batch. Re-check whether dim/mono has real backing before touching it;
+if it still does not, do not invent monitoring policy in UI. Move to the next plan-backed H16 slice that can
+be proved mechanically with existing state. Do not add send creation/routing, broad send editing, FX
+add/remove/reorder/param editing, engine policy, Project schema changes, or unrelated CP7 behavior in the
+same checkpoint.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

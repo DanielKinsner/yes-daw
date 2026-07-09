@@ -677,7 +677,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 27u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 28u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -856,6 +856,40 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (sends);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP6 UI input harness reads first Track meter through an action-backed mixer component",
+           "[ui][input][shell][mixer][meters]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-meter-readout");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    juce::Button& meters = requireButtonForAction (*shell, UiActionId::MixerReadMeters);
+    REQUIRE (meters.isEnabled());
+    REQUIRE (meters.getButtonText().contains ("Audio 1"));
+    REQUIRE (meters.getButtonText().contains ("meter node"));
+    REQUIRE (meters.getButtonText().contains ("peak n/a"));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 1u);
+    const auto meterNodeId = projectMixerNodeIdForTrack (project.tracks.front().id, ProjectMixerNodeRole::Meter);
+    REQUIRE (meters.getButtonText().contains (juce::String (static_cast<int> (meterNodeId))));
+
+    const int beforeReadCount = snapshot.context.mixerReadCount;
+    clickButton (meters);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
