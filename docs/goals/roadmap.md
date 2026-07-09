@@ -290,6 +290,10 @@ LookAndFeel/design-token system, then a batched polish pass (screenshot-iterate 
 **Exit:** the mockup-inventory checklist is mechanically covered by the UI input harness; the
 async-cache gate proves the UI thread never decodes; the real-GPU windowed frame gate on the owner
 machine plus the headless frame gate stay green. Plan: `docs/plans/2026-07-03-h16-real-ui-plan.md`.
+**Status (2026-07-09):** repo-owned mechanical implementation is complete and remote-green through
+`9d2fafa` / GitHub Actions run `28990907862` (Linux, Windows, macOS, RTSan, TSan). Remaining H16 closeout
+is owner/human only: record the real-GPU windowed frame smoke in `docs/reality-lane.md` and run the single
+sanctioned human eyeball session before opening H17, unless Dan explicitly defers those closeout facts.
 
 ## H17 — Distribution + Alpha
 Optimized Release preset, portable-zip packaging (unsigned — signing/installer/auto-update are

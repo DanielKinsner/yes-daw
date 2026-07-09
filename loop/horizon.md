@@ -46,9 +46,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1
 As new H16 gates land, update this command list in the same checkpoint. Run the focused gates that exist
 for the touched files plus `git diff --check` and the full `ci` preset.
 
-## Status: OPEN
+## Status: MECHANICAL IMPLEMENTATION COMPLETE; OWNER CLOSEOUT PENDING
 
-H16 CP1 is partially underway. The first design-token checkpoint opened `src/ui/UiTheme.h`, moved
+H16's repo-owned mechanical implementation is complete at `9d2fafa` / GitHub Actions run `28990907862`,
+green across Linux, Windows, macOS, RTSan, and TSan. The implemented slices cover CP1 design tokens, CP2
+async waveform cache, CP3 real waveform columns, CP4 editing/keymap UI, CP5 inspector/automation surface,
+CP6 mixer buildout, CP7 export/progress/cancel, and CP8 screenshot/frame-smoke command surfaces with
+self-asserting gates. The remaining H16 exit clauses are owner/human lanes, not another speculative code
+slice: record the real-GPU windowed frame smoke in `docs/reality-lane.md`, then run the single sanctioned
+human eyeball session and convert any findings into token/layout fixes or explicit deferrals.
+
+Historical CP1 status retained below for provenance:
+
+Historical note: H16 CP1 began with `src/ui/UiTheme.h`, moved
 Timeline/MainComponent raw UI colors behind named tokens, and added `YesDawThemeAuditCheck` with a raw
 color negative control. Follow-up CP1 slices moved Timeline canvas type/radius/spacing values,
 MainComponent typography values, MainComponent rounded radii, and MainComponent shell layout dimensions
@@ -161,9 +171,9 @@ scratch negative control. This checkpoint moved MainComponent's demo piano-roll 
 behind `UiTheme::PianoRoll`; the theme audit now rejects raw `makeDemoPianoRollSurface()` note defaults with a
 scratch negative control.
 
-Next checkpoint: Continue CP1 design tokens. Migrate the next narrow UI surface from legacy local tokens
-to `UiTheme.h` before broad UI migration, likely the remaining raw MainComponent demo piano-roll
-expression/default surface or a TimelineCanvas/TimelineLayout spacing/geometry surface not yet covered by the theme audit.
+Next checkpoint: owner-machine H16 closeout only. Run the real-GPU windowed frame smoke and record its
+PASS/FAIL in `docs/reality-lane.md`, then run the single sanctioned human eyeball checklist. Do not start
+H17 until those H16 closeout facts are recorded or explicitly deferred by Dan.
 
 ## The plan
 

@@ -54,8 +54,8 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ## Live packet — H16 implementation
 
-**Last updated:** 2026-07-08
-**Current horizon:** **H16 (Real UI) — OPEN.**
+**Last updated:** 2026-07-09
+**Current horizon:** **H16 (Real UI) — mechanical implementation complete; owner closeout pending.**
 
 H16 opened from live repo truth. The H15 final closeout commit
 `f1b093abe2f0e4f70b1266c88b61c168f98b1a10` (`docs(h15): close automation horizon review`) is present,
@@ -562,12 +562,20 @@ via `YesDawTimelineGpuCheck`; adjacent
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawUiScreenshotCheck YesDawTimelineGpuCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
 plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawUiScreenshotCheck|YesDawTimelineGpuCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **6/6**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
-**312/312**.
+**312/312**; `git diff --check` passed. Remote CI run `28990907862` for `9d2fafa` completed green across
+Linux, Windows, macOS, RTSan, and TSan.
+H16 mechanical implementation is now complete from repo truth: CP1 design tokens, CP2 async waveform cache,
+CP3 real waveform columns, CP4 editing/keymap UI, CP5 inspector/automation surface, CP6 mixer buildout,
+CP7 export/progress/cancel, and CP8 screenshot/frame-smoke command surfaces all have component-backed,
+self-asserting coverage and remote-green checkpoints. The remaining H16 exit clauses are not another
+agent-code slice: the owner-machine windowed frame-smoke PASS must be recorded in `docs/reality-lane.md`,
+and the single sanctioned human eyeball session must convert any findings into explicit token/layout fixes
+or deferred items. This closeout does not write `docs/reality-lane.md`, add goldens, start H17, or broaden
+engine/Project/ADR scope.
 
-**Now:** H16 CP8 frame-smoke command surface is complete locally. Run focused adjacent/full gates,
-`git diff --check`, commit/push this checkpoint, wait for remote CI green, then decide whether the
-remaining H16 work is only the sanctioned human/reality-lane closeout or if another mechanical CP8 polish
-slice is still supported by live repo truth.
+**Now:** H16 mechanical closeout docs are being committed. Local docs-only gate: `git diff --check`
+passed. After that commit is remote-green, H16 should stay parked at the owner-machine reality-lane + one
+human-session boundary until Dan records those results.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
