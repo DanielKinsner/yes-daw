@@ -37,12 +37,14 @@ ctest --preset ci --output-on-failure
 ctest --test-dir build-ci -R YesDawUiActionCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawThemeAuditCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawUiInputCheck --output-on-failure
+ctest --test-dir build-ci -R YesDawUiScreenshotCheck --output-on-failure
 ctest --test-dir build-ci -R YesDawTimelineGpuCheck --output-on-failure
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-screenshot.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1
 ```
 
-As new H16 gates land, update this command list in the same checkpoint. The first pending addition is
-`YesDawWaveformCacheCheck`. Until a new gate exists, run the focused gates
-that exist for the touched files plus `git diff --check` and the full `ci` preset.
+As new H16 gates land, update this command list in the same checkpoint. Run the focused gates that exist
+for the touched files plus `git diff --check` and the full `ci` preset.
 
 ## Status: OPEN
 

@@ -547,11 +547,27 @@ passed **1/1** and wrote exactly `yesdaw-timeline-shell.png`, `yesdaw-mixer-shel
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawUiScreenshotCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
 plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawUiScreenshotCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **5/5**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**312/312**. Remote CI run `28990018610` for `172cc70` completed green across Linux, Windows, macOS,
+RTSan, and TSan.
+H16 CP8 continued with the smallest frame-smoke readiness slice: `tools/ui-frame-smoke.ps1` now exists as
+a one-command wrapper for the already-shipped `YesDawTimelineGpuCheck` headless frame-time proxy. It
+configures/builds the CI preset target, runs `ctest -R YesDawTimelineGpuCheck`, and exits nonzero if the
+dense Timeline fixture misses the sustained 60 fps budget. This intentionally does not write
+`docs/reality-lane.md` or claim the owner-machine windowed PASS; it only makes the CP8 frame-smoke command
+surface real and mechanical. `loop/horizon.md` now lists the screenshot and frame-smoke commands alongside
+the H16 focused gates. This did not add layout-token polish, human visual review, goldens, H17 behavior,
+engine policy, Project schema changes, or ADR edits. Local gates under the VS BuildTools `vcvars64.bat`:
+one-command `powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1` passed **1/1**
+via `YesDawTimelineGpuCheck`; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawUiScreenshotCheck YesDawTimelineGpuCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
+plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawUiScreenshotCheck|YesDawTimelineGpuCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **6/6**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **312/312**.
 
-**Now:** H16 CP8 screenshot surface expansion is complete locally. Run `git diff --check`, commit/push
-this checkpoint, wait for remote CI green, then continue into the smallest remaining CP8 mechanical
-polish/readiness slice that can be proved without human visual judgment.
+**Now:** H16 CP8 frame-smoke command surface is complete locally. Run focused adjacent/full gates,
+`git diff --check`, commit/push this checkpoint, wait for remote CI green, then decide whether the
+remaining H16 work is only the sanctioned human/reality-lane closeout or if another mechanical CP8 polish
+slice is still supported by live repo truth.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
