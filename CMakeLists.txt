@@ -307,6 +307,26 @@ if (YESDAW_BUILD_APPS)
   yesdaw_harden(YesDawUiInputCheck)
   add_test(NAME YesDawUiInputCheck COMMAND $<TARGET_FILE:YesDawUiInputCheck>)
 
+  # --- UI screenshot harness (H16 CP8; mechanical nonblank PNG proof) ---
+  juce_add_console_app(YesDawUiScreenshotCheck PRODUCT_NAME "YesDawUiScreenshotCheck")
+  target_sources(YesDawUiScreenshotCheck PRIVATE tests/ui_screenshot_tests.cpp src/ui/MainComponent.cpp)
+  target_include_directories(YesDawUiScreenshotCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawUiScreenshotCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawUiScreenshotCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawUiScreenshotCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      sqlite3_amalgamation
+      juce::juce_audio_formats
+      juce::juce_gui_extra
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawUiScreenshotCheck)
+  add_test(NAME YesDawUiScreenshotCheck COMMAND $<TARGET_FILE:YesDawUiScreenshotCheck>)
+
   # --- Recording UX harness (H13; shipped MainComponent recording/device skeleton) ---
   juce_add_console_app(YesDawRecordingUxCheck PRODUCT_NAME "YesDawRecordingUxCheck")
   target_sources(YesDawRecordingUxCheck PRIVATE tests/recording_ux_tests.cpp src/ui/MainComponent.cpp)
