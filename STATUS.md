@@ -503,8 +503,19 @@ goldens, or `docs/reality-lane.md`. Local gates under the VS BuildTools `vcvars6
 adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **311/311**; `git diff --check` passed.
+The first remote run for that cancel commit (`28987376118`, `47d6fc8`) exposed a Linux/macOS GUI-build
+`-Werror=switch` miss: `UiAppModel::dispatch()` did not explicitly handle the new
+`ProjectExportAudioCancel` enum value. The repair keeps the action in the existing registry-dispatched
+command group so the shipped button and direct model dispatch share the same action semantics. Local repair
+gates under the VS BuildTools `vcvars64.bat`: focused
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck` plus focused
+`ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
+plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**; `git diff --check` passed.
 
-**Now:** H16 CP7 export cancel surface is complete locally. Commit/push this small green checkpoint, wait
+**Now:** H16 CP7 export cancel switch repair is complete locally. Commit/push this repair checkpoint, wait
 for remote CI green, then continue into the smallest CP8 screenshot/polish harness slice that can be proved
 mechanically.
 

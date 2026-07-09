@@ -1321,6 +1321,7 @@ public:
             case UiActionId::MixerReadFxSlots:
             case UiActionId::MixerReadGainReduction:
             case UiActionId::MixerReadBusFxSlots:
+            case UiActionId::ProjectExportAudioCancel:
             case UiActionId::HelpShowKeymap:
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:
