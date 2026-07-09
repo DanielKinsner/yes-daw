@@ -616,11 +616,12 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Owner-machine H16 closeout only. Dan runs
+**Next:** Owner-machine H16 closeout only, using
+`docs/checklists/2026-07-09-h16-owner-closeout-checklist.md`. Dan runs
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1`, records its PASS/FAIL in
-`docs/reality-lane.md`, then records the single sanctioned human eyeball checklist outcome as token/layout
-fixes or explicit deferrals. Do not start H17 until those H16 closeout facts are recorded or explicitly
-deferred by Dan.
+`docs/reality-lane.md` or explicitly defers the windowed evidence, then records the single sanctioned human
+session outcome as accepted, token/layout fixes, or explicit deferrals. Do not start H17 until those H16
+closeout facts are recorded or explicitly deferred by Dan.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

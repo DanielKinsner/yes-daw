@@ -171,9 +171,11 @@ scratch negative control. This checkpoint moved MainComponent's demo piano-roll 
 behind `UiTheme::PianoRoll`; the theme audit now rejects raw `makeDemoPianoRollSurface()` note defaults with a
 scratch negative control.
 
-Next checkpoint: owner-machine H16 closeout only. Run the real-GPU windowed frame smoke and record its
-PASS/FAIL in `docs/reality-lane.md`, then run the single sanctioned human eyeball checklist. Do not start
-H17 until those H16 closeout facts are recorded or explicitly deferred by Dan.
+Next checkpoint: owner-machine H16 closeout only. Use
+`docs/checklists/2026-07-09-h16-owner-closeout-checklist.md`, run the real-GPU/windowed frame smoke, and
+record its PASS/FAIL in `docs/reality-lane.md` or Dan's explicit deferral in `STATUS.md`. Then run the
+single sanctioned human session and record accepted findings, token/layout fixes, or explicit deferrals.
+Do not start H17 until those H16 closeout facts are recorded or explicitly deferred by Dan.
 
 ## The plan
 
