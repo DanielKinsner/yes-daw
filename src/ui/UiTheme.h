@@ -17,46 +17,60 @@ struct UiTheme
 {
     struct Color
     {
-        static juce::Colour appBackground() noexcept { return juce::Colour (0xff080c11); }
-        static juce::Colour panel() noexcept { return juce::Colour (0xff11161c); }
-        static juce::Colour panelRaised() noexcept { return juce::Colour (0xff151b22); }
-        static juce::Colour panelStroke() noexcept { return juce::Colour (0xff2a323b); }
-        static juce::Colour text() noexcept { return juce::Colour (0xfff0f3f6); }
-        static juce::Colour mutedText() noexcept { return juce::Colour (0xff9aa3ad); }
+        static juce::Colour appBackground() noexcept { return juce::Colour (0xff070a0d); }
+        static juce::Colour panel() noexcept { return juce::Colour (0xff0e1318); }
+        static juce::Colour panelRaised() noexcept { return juce::Colour (0xff141a20); }
+        static juce::Colour panelStroke() noexcept { return juce::Colour (0xff26303a); }
+        static juce::Colour panelInnerHighlight() noexcept { return juce::Colour (0xff35414c); }
+        static juce::Colour panelShadow() noexcept { return juce::Colour (0xff030507); }
+        static juce::Colour text() noexcept { return juce::Colour (0xffedf2f6); }
+        static juce::Colour mutedText() noexcept { return juce::Colour (0xff87929d); }
+        static juce::Colour faintText() noexcept { return juce::Colour (0xff5e6974); }
         static juce::Colour white() noexcept { return juce::Colour (0xffffffff); }
 
         static juce::Colour accentBlue() noexcept { return juce::Colour (0xff3b8cff); }
         static juce::Colour accentTeal() noexcept { return juce::Colour (0xff1bb5a6); }
         static juce::Colour accentAmber() noexcept { return juce::Colour (0xffd29118); }
-        static juce::Colour accentPurple() noexcept { return juce::Colour (0xffa762f0); }
+        static juce::Colour accentPurple() noexcept { return juce::Colour (0xffa578ff); }
+        static juce::Colour accentPurpleDeep() noexcept { return juce::Colour (0xff35234f); }
+        static juce::Colour accentPurpleGlow() noexcept { return juce::Colour (0xffc3a5ff); }
         static juce::Colour accentCyan() noexcept { return juce::Colour (0xff20c8d8); }
         static juce::Colour meterGreen() noexcept { return juce::Colour (0xff74df35); }
         static juce::Colour meterYellow() noexcept { return juce::Colour (0xffe2c832); }
         static juce::Colour dangerRed() noexcept { return juce::Colour (0xffff5757); }
 
-        static juce::Colour timelineGrid() noexcept { return juce::Colour (0xff24303a); }
-        static juce::Colour timelineCanvas() noexcept { return juce::Colour (0xff0c1217); }
-        static juce::Colour timelineToolbar() noexcept { return juce::Colour (0xff101720); }
-        static juce::Colour timelineRuler() noexcept { return juce::Colour (0xff0b1117); }
+        static juce::Colour timelineGrid() noexcept { return juce::Colour (0xff202a33); }
+        static juce::Colour timelineCanvas() noexcept { return juce::Colour (0xff090e12); }
+        static juce::Colour timelineToolbar() noexcept { return juce::Colour (0xff11171d); }
+        static juce::Colour timelineRuler() noexcept { return juce::Colour (0xff0b1014); }
 
-        static juce::Colour controlInset() noexcept { return juce::Colour (0xff0b1016); }
-        static juce::Colour controlInsetDeep() noexcept { return juce::Colour (0xff05080b); }
+        static juce::Colour controlInset() noexcept { return juce::Colour (0xff0a0f13); }
+        static juce::Colour controlInsetDeep() noexcept { return juce::Colour (0xff04070a); }
         static juce::Colour controlInsetBlack() noexcept { return juce::Colour (0xff070b10); }
-        static juce::Colour toolButton() noexcept { return juce::Colour (0xff080d12); }
+        static juce::Colour toolButton() noexcept { return juce::Colour (0xff151c23); }
         static juce::Colour snapField() noexcept { return juce::Colour (0xff070b0f); }
-        static juce::Colour buttonSurface() noexcept { return juce::Colour (0xff111820); }
-        static juce::Colour darkControl() noexcept { return juce::Colour (0xff121820); }
+        static juce::Colour buttonSurface() noexcept { return juce::Colour (0xff192129); }
+        static juce::Colour buttonSurfaceTop() noexcept { return juce::Colour (0xff222c35); }
+        static juce::Colour buttonPressed() noexcept { return juce::Colour (0xff0f151a); }
+        static juce::Colour buttonBorder() noexcept { return juce::Colour (0xff3a4651); }
+        static juce::Colour buttonTextMuted() noexcept { return juce::Colour (0xffb6c0c9); }
+        static juce::Colour focusRing() noexcept { return accentPurpleGlow(); }
+        static juce::Colour darkControl() noexcept { return juce::Colour (0xff10161c); }
         static juce::Colour warningButton() noexcept { return juce::Colour (0xff201b13); }
-        static juce::Colour separator() noexcept { return juce::Colour (0xff18202a); }
+        static juce::Colour separator() noexcept { return juce::Colour (0xff1b242c); }
         static juce::Colour canvasLayer() noexcept { return juce::Colour (0xff0d1218); }
-        static juce::Colour selectedLane() noexcept { return juce::Colour (0xff17131f); }
-        static juce::Colour mixerBack() noexcept { return juce::Colour (0xff0a0f14); }
+        static juce::Colour selectedLane() noexcept { return juce::Colour (0xff20182c); }
+        static juce::Colour mixerBack() noexcept { return juce::Colour (0xff080c10); }
         static juce::Colour pianoBlackKey() noexcept { return juce::Colour (0xff0a0e13); }
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
         static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
         static juce::Colour inspectorTab() noexcept { return juce::Colour (0xff151a22); }
         static juce::Colour selectedStrip() noexcept { return juce::Colour (0xff1c1428); }
         static juce::Colour faderThumb() noexcept { return juce::Colour (0xffc4c9cf); }
+        static juce::Colour faderThumbTop() noexcept { return juce::Colour (0xfff0f3f5); }
+        static juce::Colour meterTrack() noexcept { return juce::Colour (0xff030608); }
+        static juce::Colour knobFace() noexcept { return juce::Colour (0xff171e24); }
+        static juce::Colour knobArc() noexcept { return juce::Colour (0xff4a5661); }
         static juce::Colour transparent() noexcept { return juce::Colour (0x00000000); }
     };
 
@@ -91,6 +105,7 @@ struct UiTheme
         static constexpr double mainComponentDemoShortTermLufs = -8.8;
         static constexpr double mainComponentDemoLoudnessRangeLu = 5.0;
         static constexpr double mainComponentDemoTruePeakDbtp = -1.0;
+        static constexpr float paintedReadoutGainFloor = 0.0001f;
     };
 
     struct PianoRoll
@@ -119,6 +134,26 @@ struct UiTheme
 
     struct Tone
     {
+        static constexpr float disabledAlpha = 0.38f;
+        static constexpr float componentHiddenAlpha = 0.0f;
+        static constexpr float componentVisibleAlpha = 1.0f;
+        static constexpr float mutedControlAlpha = 0.72f;
+        static constexpr float hoverHighlightAlpha = 0.10f;
+        static constexpr float pressedHighlightAlpha = 0.16f;
+        static constexpr float innerHighlightAlpha = 0.46f;
+        static constexpr float shadowAlpha = 0.72f;
+        static constexpr float focusRingAlpha = 0.80f;
+        static constexpr float trackIconAlpha = 0.92f;
+        static constexpr float trackSliderFillAlpha = 0.76f;
+        static constexpr float trackSliderRailAlpha = 0.90f;
+        static constexpr float mixerHeaderAlpha = 0.36f;
+        static constexpr float mixerKnobHighlightAlpha = 0.75f;
+        static constexpr float clipSurfaceTopAlpha = 0.22f;
+        static constexpr float timelineCanvasClipSurfaceTopBrightness = 0.10f;
+        static constexpr float timelineCanvasClipSurfaceTopAlpha = 0.58f;
+        static constexpr std::array<float, 6> inspectorAutomationValues {{
+            0.72f, 0.32f, 0.58f, 0.44f, 0.70f, 0.62f
+        }};
         static constexpr float timelineCanvasFallbackClipAmplitude = 0.7f;
         static constexpr float timelineCanvasWaveformBrightness = 0.42f;
         static constexpr float timelineCanvasCompactClipAlpha = 0.44f;
@@ -158,23 +193,33 @@ struct UiTheme
     {
         static constexpr float none = 0.0f;
         static constexpr float xs = 2.0f;
-        static constexpr float sm = 3.0f;
-        static constexpr float md = 4.0f;
-        static constexpr float panel = 5.0f;
-        static constexpr float lg = 6.0f;
-        static constexpr float pill = 7.0f;
+        static constexpr float sm = 4.0f;
+        static constexpr float md = 5.0f;
+        static constexpr float panel = 7.0f;
+        static constexpr float lg = 9.0f;
+        static constexpr float pill = 12.0f;
     };
 
     struct Type
     {
-        static constexpr float tiny = 8.0f;
-        static constexpr float caption = 10.0f;
-        static constexpr float small = 11.0f;
-        static constexpr float body = 12.0f;
-        static constexpr float title = 13.0f;
-        static constexpr float readout = 16.0f;
+        static constexpr float tiny = 9.0f;
+        static constexpr float caption = 10.5f;
+        static constexpr float small = 11.5f;
+        static constexpr float body = 13.0f;
+        static constexpr float title = 14.0f;
+        static constexpr float readout = 17.0f;
         static constexpr float statusIcon = 19.0f;
-        static constexpr float transportClock = 25.0f;
+        static constexpr float transportClock = 27.0f;
+
+        static juce::Font font (float height, int styleFlags = juce::Font::plain)
+        {
+            return juce::Font (juce::FontOptions ("Segoe UI Variable", height, styleFlags));
+        }
+
+        static juce::Font numericFont (float height, int styleFlags = juce::Font::plain)
+        {
+            return juce::Font (juce::FontOptions ("Cascadia Mono", height, styleFlags));
+        }
     };
 
     struct Layout
@@ -229,21 +274,41 @@ struct UiTheme
         static constexpr int mixerPanelVerticalInset = 8;
         static constexpr float panelOutlineInset = 0.5f;
         static constexpr float panelOutlineStrokeWidth = 1.0f;
-        static juce::Rectangle<int> projectNewButtonBounds() noexcept { return { 16, 50, 44, 26 }; }
-        static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 64, 50, 50, 26 }; }
-        static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 118, 50, 48, 26 }; }
-        static juce::Rectangle<int> projectImportAudioButtonBounds() noexcept { return { 170, 50, 64, 26 }; }
-        static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 238, 50, 82, 26 }; }
-        static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 238, 50, 60, 26 }; }
-        static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 302, 50, 30, 26 }; }
+        static constexpr int controlShadowOffset = 2;
+        static constexpr float controlOutlineInset = 0.5f;
+        static constexpr float controlOutlineStrokeWidth = 1.0f;
+        static constexpr int controlInnerHighlightHeight = 1;
+        static constexpr int controlTextHorizontalInset = 8;
+        static constexpr int controlIconInset = 7;
+        static constexpr int controlIconTextGap = 5;
+        static constexpr int controlFocusInset = 1;
+        static constexpr float controlFocusStrokeWidth = 1.5f;
+        static constexpr int sliderTrackThickness = 5;
+        static constexpr int sliderThumbDiameter = 14;
+        static constexpr int sliderThumbShortSide = 16;
+        static constexpr int sliderThumbLongSide = 28;
+        static constexpr int sliderThumbHighlightHeight = 2;
+        static constexpr int comboArrowWidth = 10;
+        static constexpr int comboArrowHeight = 6;
+        static constexpr int comboArrowRightInset = 12;
+        static constexpr float iconStrokeWidth = 1.45f;
+        static constexpr float iconFineStrokeWidth = 1.1f;
+        static constexpr float iconBoldStrokeWidth = 1.8f;
+        static juce::Rectangle<int> projectNewButtonBounds() noexcept { return { 16, 50, 30, 26 }; }
+        static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 50, 50, 30, 26 }; }
+        static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 84, 50, 30, 26 }; }
+        static juce::Rectangle<int> projectImportAudioButtonBounds() noexcept { return { 118, 50, 30, 26 }; }
+        static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 156, 50, 88, 26 }; }
+        static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 156, 50, 60, 26 }; }
+        static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 218, 50, 30, 26 }; }
         static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 126, 78, 26 }; }
         static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 126, 104, 26 }; }
         static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 126, 68, 26 }; }
         static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 22, 156, 96, 26 }; }
-        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 122, 156, 76, 26 }; }
+        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 504, 16, 56, 56 }; }
         static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 202, 156, 72, 26 }; }
-        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 510, 46, 24, 26 }; }
-        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 538, 46, 24, 26 }; }
+        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 256, 50, 28, 26 }; }
+        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 288, 50, 28, 26 }; }
         static juce::Rectangle<int> transportLocateStartButtonBounds() noexcept { return { 336, 16, 56, 56 }; }
         static juce::Rectangle<int> transportPlayButtonBounds() noexcept { return { 392, 16, 56, 56 }; }
         static juce::Rectangle<int> transportStopButtonBounds() noexcept { return { 448, 16, 56, 56 }; }
@@ -270,9 +335,9 @@ struct UiTheme
         static constexpr int inspectorStatsSectionTop = 42;
         static constexpr int inspectorStatsSectionHeight = 46;
         static constexpr int inspectorStatsColumnCount = 3;
-        static constexpr int inspectorStatsCellInsetX = 4;
+        static constexpr int inspectorStatsCellInsetX = 2;
         static constexpr int inspectorStatsCellInsetY = 0;
-        static constexpr int inspectorStatsTextInset = 4;
+        static constexpr int inspectorStatsTextInset = 2;
         static constexpr int inspectorStatsLabelHeight = 16;
         static constexpr int inspectorStatsValueHeight = 18;
         static constexpr int inspectorTimingControlInsetX = 2;
@@ -321,6 +386,14 @@ struct UiTheme
         static constexpr int inspectorFxRowInsetY = 2;
         static constexpr int inspectorFxTextInsetX = 10;
         static constexpr int inspectorFxTextInsetY = 0;
+        static constexpr int inspectorAutomationSectionTop = 466;
+        static constexpr int inspectorAutomationChartTop = 4;
+        static constexpr int inspectorAutomationChartHeight = 44;
+        static constexpr int inspectorAutomationChartInsetX = 6;
+        static constexpr int inspectorAutomationChartInsetY = 4;
+        static constexpr int inspectorAutomationPointCount = 6;
+        static constexpr float inspectorAutomationPointRadius = 2.5f;
+        static constexpr float inspectorAutomationPathStrokeWidth = 1.4f;
         static constexpr int hiddenSliderTextBoxWidth = 0;
         static constexpr int hiddenSliderTextBoxHeight = 0;
 
@@ -360,9 +433,9 @@ struct UiTheme
         static constexpr int mixerToolsModeLabelHeight = 28;
         static constexpr int mixerToolsLabelInsetX = 12;
         static constexpr int mixerToolsLabelInsetY = 0;
-        static constexpr int mixerUtilityTop = 48;
-        static constexpr int mixerUtilityHeight = 28;
-        static constexpr int mixerUtilityGap = 4;
+        static constexpr int mixerUtilityTop = 44;
+        static constexpr int mixerUtilityHeight = 24;
+        static constexpr int mixerUtilityGap = 3;
         static constexpr int mixerUtilityInsetX = 10;
         static constexpr int mixerPaintedStripMinWidth = 84;
         static constexpr int mixerPaintedStripMinCount = 1;
@@ -402,6 +475,12 @@ struct UiTheme
         static constexpr int mixerPaintedThumbCenterInset = 8;
         static constexpr int mixerPaintedThumbWidthOverhang = 10;
         static constexpr int mixerPaintedThumbHeight = 18;
+        static constexpr int mixerPaintedScaleTickCount = 7;
+        static constexpr int mixerPaintedScaleTickWidth = 5;
+        static constexpr int mixerPaintedScaleTickGap = 2;
+        static constexpr int mixerPaintedReadoutHeight = 22;
+        static constexpr int mixerPaintedReadoutBottomInset = 4;
+        static constexpr int mixerPaintedReadoutHorizontalInset = 8;
 
         static constexpr int trackListHeaderHeight = 86;
         static constexpr int trackListHeaderLabelHeight = 24;
@@ -424,12 +503,26 @@ struct UiTheme
         static constexpr int trackListButtonWidth = 24;
         static constexpr int trackListButtonInsetX = 2;
         static constexpr int trackListButtonInsetY = 0;
+        static constexpr int trackListIconLeftInset = 45;
+        static constexpr int trackListIconTopInset = 13;
+        static constexpr int trackListIconSize = 28;
+        static constexpr int trackListPanRightInset = 44;
+        static constexpr int trackListPanTopInset = 8;
+        static constexpr int trackListPanDiameter = 24;
+        static constexpr int trackListPanIndicatorInset = 4;
+        static constexpr int trackListLevelRightInset = 40;
+        static constexpr int trackListLevelBottomInset = 10;
+        static constexpr int trackListLevelWidth = 46;
+        static constexpr int trackListLevelHeight = 5;
+        static constexpr int trackListLevelThumbWidth = 7;
         static constexpr int trackListMeterRightInset = 12;
         static constexpr int trackListMeterWidth = 14;
         static constexpr int trackListMeterHorizontalInset = 0;
         static constexpr int trackListMeterVerticalInset = 10;
 
         static constexpr int meterFillInset = 2;
+        static constexpr int meterSegmentSize = 3;
+        static constexpr int meterSegmentGap = 1;
 
         static constexpr int timelineViewportMinPixelWidth = 1;
         static constexpr int timelineViewportRightGutter = 26;
@@ -594,10 +687,14 @@ struct UiTheme
         static constexpr float timelineCanvasWaveformMinAmplitude = 0.1f;
         static constexpr float timelineCanvasWaveformMaxAmplitude = 1.0f;
         static constexpr float timelineCanvasWaveformHeightScale = 0.42f;
-        static constexpr int timelineCanvasWaveformMinStep = 8;
-        static constexpr int timelineCanvasWaveformStepDivisor = 9;
+        static constexpr int timelineCanvasWaveformMinStep = 2;
+        static constexpr int timelineCanvasWaveformStepDivisor = 64;
         static constexpr int timelineCanvasWaveformClipPhaseMultiplier = 37;
         static constexpr int timelineCanvasWaveformXPhaseMultiplier = 13;
+        static constexpr int timelineCanvasWaveformHashOffset = 17;
+        static constexpr int timelineCanvasWaveformHashShiftA = 5;
+        static constexpr int timelineCanvasWaveformHashShiftB = 11;
+        static constexpr int timelineCanvasWaveformHashMultiplier = 29;
         static constexpr int timelineCanvasWaveformPhaseMask = 31;
         static constexpr float timelineCanvasWaveformMinScale = 0.32f;
         static constexpr float timelineCanvasWaveformScaleRange = 0.68f;

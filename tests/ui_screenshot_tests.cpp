@@ -1,6 +1,7 @@
 // YES DAW - H16 CP8 mechanical UI screenshot harness.
 
 #include "ui/MainComponent.h"
+#include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -37,6 +38,16 @@ std::uint64_t sampledNonZeroPixelCount (const juce::Image& image)
     return count;
 }
 
+std::uint64_t nonTransparentPixelCount (const juce::Image& image)
+{
+    std::uint64_t count = 0;
+    for (int y = 0; y < image.getHeight(); ++y)
+        for (int x = 0; x < image.getWidth(); ++x)
+            if (image.getPixelAt (x, y).getAlpha() != 0)
+                ++count;
+    return count;
+}
+
 std::uint64_t sampledDifferentPixelCount (const juce::Image& image)
 {
     const auto first = image.getPixelAt (0, 0).getARGB();
@@ -47,6 +58,20 @@ std::uint64_t sampledDifferentPixelCount (const juce::Image& image)
             if (image.getPixelAt (x, y).getARGB() != first)
                 ++count;
 
+    return count;
+}
+
+std::uint64_t differentPixelCount (const juce::Image& first,
+                                   const juce::Image& second,
+                                   juce::Rectangle<int> region)
+{
+    REQUIRE (first.getBounds() == second.getBounds());
+    region = region.getIntersection (first.getBounds());
+    std::uint64_t count = 0;
+    for (int y = region.getY(); y < region.getBottom(); ++y)
+        for (int x = region.getX(); x < region.getRight(); ++x)
+            if (first.getPixelAt (x, y) != second.getPixelAt (x, y))
+                ++count;
     return count;
 }
 
@@ -226,6 +251,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::TransportLocateStart,
             UiActionId::TransportPlay,
             UiActionId::TransportStop,
+            UiActionId::TransportRecord,
             UiActionId::TransportToggleLoop
         },
         juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
@@ -236,7 +262,6 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::DeviceSelectTestAudio,
             UiActionId::RecordingArmTrack,
             UiActionId::RecordingSetMonitoringPolicy,
-            UiActionId::TransportRecord,
             UiActionId::RecordingAssembleComp
         },
         juce::Rectangle<int> { 0,
@@ -264,6 +289,14 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     REQUIRE (timelineFingerprint != mixerFingerprint);
     REQUIRE (timelineFingerprint != pianoRollFingerprint);
     REQUIRE (mixerFingerprint != pianoRollFingerprint);
+    const juce::Rectangle<int> headerRegion {
+        0,
+        0,
+        shell->getWidth(),
+        yesdaw::ui::UiTheme::Layout::headerHeight
+    };
+    REQUIRE (differentPixelCount (timelineImage, mixerImage, headerRegion) == 0u);
+    REQUIRE (differentPixelCount (timelineImage, pianoRollImage, headerRegion) == 0u);
 }
 
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
@@ -273,4 +306,64 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
                              yesdaw::ui::UiTheme::Layout::defaultWindowHeight,
                              true);
     REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
+}
+
+TEST_CASE ("H16 premium vector asset set covers every shipped shell action and tool family",
+           "[ui][screenshot][assets]")
+{
+    const juce::Rectangle<float> iconBounds {
+        4.0f,
+        4.0f,
+        40.0f,
+        40.0f
+    };
+
+    for (const UiActionId action : yesdaw::ui::mainShellToolbarActions())
+    {
+        INFO ("action=" << static_cast<int> (action));
+        REQUIRE (yesdaw::ui::hasActionIcon (action));
+        juce::Image image (juce::Image::ARGB, 48, 48, true);
+        {
+            juce::Graphics graphics (image);
+            REQUIRE (yesdaw::ui::drawActionIcon (
+                graphics,
+                action,
+                iconBounds,
+                yesdaw::ui::UiTheme::Color::text()));
+        }
+        REQUIRE (nonTransparentPixelCount (image) > 8u);
+    }
+
+    for (const yesdaw::ui::TimelineTool tool : {
+             yesdaw::ui::TimelineTool::Pointer,
+             yesdaw::ui::TimelineTool::Pencil,
+             yesdaw::ui::TimelineTool::Scissors,
+             yesdaw::ui::TimelineTool::Hand,
+             yesdaw::ui::TimelineTool::Zoom })
+    {
+        juce::Image image (juce::Image::ARGB, 48, 48, true);
+        {
+            juce::Graphics graphics (image);
+            yesdaw::ui::drawTimelineToolIcon (
+                graphics,
+                tool,
+                iconBounds,
+                yesdaw::ui::UiTheme::Color::text());
+        }
+        REQUIRE (nonTransparentPixelCount (image) > 8u);
+    }
+
+    for (std::size_t track = 0; track < 8u; ++track)
+    {
+        juce::Image image (juce::Image::ARGB, 48, 48, true);
+        {
+            juce::Graphics graphics (image);
+            yesdaw::ui::drawTrackGlyph (
+                graphics,
+                track,
+                iconBounds,
+                yesdaw::ui::UiTheme::Color::accentPurple());
+        }
+        REQUIRE (nonTransparentPixelCount (image) > 8u);
+    }
 }

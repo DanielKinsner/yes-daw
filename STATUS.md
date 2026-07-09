@@ -587,7 +587,19 @@ first native vector assets replace cramped undo/redo text. `YesDawUiScreenshotCh
 in every major surface region, asserts action bounds stay inside their regions without collisions, and has
 a blank-mixer negative control. Local full build + **312/312 CTest** passed.
 
-**Now:** H16 remains open for visual remediation. `tools/ui-frame-smoke.ps1` passed its headless
+Dan reran that build and rejected it again as visually unchanged: the collision repair had preserved the
+same engineering-placeholder control language instead of delivering the requested premium pass. The
+second visual-remediation checkpoint now installs a native `YesDawLookAndFeel`, a scalable vector asset set
+covering every shipped shell action plus timeline tools and Track identities, icon-only project/transport
+chrome with the real Record action in the transport, Segoe UI Variable/Cascadia numeric typography,
+machined double-bezel panels and controls, rotary pan controls, segmented meters, denser deterministic
+waveforms, Track identity/pan/level details, compact inspector automation preview, and a cleaned mixer
+utility/interactive-strip layout with no duplicate fader/pan/button painting. The screenshot harness now
+mechanically proves every vector family renders, keeps all three panel-state headers pixel-identical, and
+retains the prior coverage/collision/blank-surface gates. Fresh full local build + **312/312 CTest** passed.
+
+**Now:** H16 remains open pending Dan's visual recheck of the rebuilt premium pass. The code checkpoint is
+locally green, but it is not owner-accepted by inference. `tools/ui-frame-smoke.ps1` passed its headless
 `YesDawTimelineGpuCheck` proxy locally, but that command does not record the required owner-machine
 windowed evidence; no Smoke 4 result row has been written to `docs/reality-lane.md`. H17 remains closed.
 
@@ -630,11 +642,10 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 visual remediation in the next smallest green checkpoint: extend the native vector
-asset set and install a coherent premium control/typography treatment for the header and tool palettes,
-then regenerate all three screenshots under the strengthened coverage/collision gate. Keep changes to
-tokens, layout, and presentation only; do not start H17 until Dan accepts the final visual pass and the
-owner-machine Smoke 4 fact is recorded or explicitly deferred.
+**Next:** Dan reruns the rebuilt app and checks Timeline, Mixer, and Piano at the real window size. Record
+the outcome as accepted or as concrete remaining visual findings; if fixes remain, continue only the next
+smallest H16 token/layout/presentation checkpoint. Do not start H17 until Dan accepts the final visual pass
+and the owner-machine Smoke 4 fact is recorded or explicitly deferred.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ui/TimelineLayout.h"
+#include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
 #include "ui/WaveformColumns.h"
 
@@ -100,18 +101,26 @@ inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::R
                             juce::Justification justification = juce::Justification::centredLeft)
 {
     g.setColour (kMutedText);
-    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
+    g.setFont (UiTheme::Type::font (UiTheme::Type::small));
     g.drawText (text, area, justification, false);
 }
 
 inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
 {
+    g.setColour (UiTheme::Color::panelShadow().withAlpha (UiTheme::Tone::shadowAlpha));
+    g.fillRoundedRectangle (
+        area.toFloat().translated (0.0f, static_cast<float> (UiTheme::Layout::controlShadowOffset)),
+        UiTheme::Radius::lg);
     g.setColour (kPanel);
     g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::lg);
     g.setColour (kPanelStroke);
     g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
                             UiTheme::Radius::lg,
                             UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+    g.setColour (UiTheme::Color::panelInnerHighlight().withAlpha (UiTheme::Tone::innerHighlightAlpha));
+    g.drawHorizontalLine (area.getY() + UiTheme::Layout::controlInnerHighlightHeight,
+                          static_cast<float> (area.getX()) + UiTheme::Radius::lg,
+                          static_cast<float> (area.getRight()) - UiTheme::Radius::lg);
 }
 
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
@@ -168,8 +177,14 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
     g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
     for (int x = 0; x < area.getWidth(); x += step)
     {
-        const int phase = (clipId * UiTheme::Layout::timelineCanvasWaveformClipPhaseMultiplier
-                           + x * UiTheme::Layout::timelineCanvasWaveformXPhaseMultiplier)
+        std::uint32_t seed = static_cast<std::uint32_t> (
+            (clipId + 1) * UiTheme::Layout::timelineCanvasWaveformClipPhaseMultiplier
+            + (x + UiTheme::Layout::timelineCanvasWaveformHashOffset)
+                  * UiTheme::Layout::timelineCanvasWaveformXPhaseMultiplier);
+        seed ^= seed >> UiTheme::Layout::timelineCanvasWaveformHashShiftA;
+        seed *= static_cast<std::uint32_t> (UiTheme::Layout::timelineCanvasWaveformHashMultiplier);
+        seed ^= seed >> UiTheme::Layout::timelineCanvasWaveformHashShiftB;
+        const int phase = static_cast<int> (seed)
                         & UiTheme::Layout::timelineCanvasWaveformPhaseMask;
         const float scaled = UiTheme::Layout::timelineCanvasWaveformMinScale
                            + static_cast<float> (phase)
@@ -263,8 +278,15 @@ inline bool drawClipFrame (juce::Graphics& g, juce::Rectangle<int> area,
         return false;
     }
 
-    g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha));
-    g.fillRoundedRectangle (area.toFloat(), UiTheme::Radius::md);
+    const auto clipBounds = area.toFloat();
+    juce::ColourGradient clipGradient (
+        style.colour.brighter (UiTheme::Tone::timelineCanvasClipSurfaceTopBrightness)
+            .withAlpha (UiTheme::Tone::timelineCanvasClipSurfaceTopAlpha),
+        clipBounds.getCentreX(), clipBounds.getY(),
+        style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha),
+        clipBounds.getCentreX(), clipBounds.getBottom(), false);
+    g.setGradientFill (clipGradient);
+    g.fillRoundedRectangle (clipBounds, UiTheme::Radius::md);
     g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasClipOutlineBrightness));
     g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
                             UiTheme::Radius::md,
@@ -290,16 +312,29 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
                          .withWidth (UiTheme::Layout::timelineCanvasToolbarWidth)
                          .reduced (UiTheme::Layout::timelineCanvasToolbarInsetX,
                                    UiTheme::Layout::timelineCanvasToolbarInsetY);
-    for (const auto* label : { "A", "P", "E", "S", "L" })
+    const std::array<TimelineTool, 5> toolsInOrder {{
+        TimelineTool::Pointer,
+        TimelineTool::Pencil,
+        TimelineTool::Scissors,
+        TimelineTool::Hand,
+        TimelineTool::Zoom
+    }};
+    for (std::size_t index = 0; index < toolsInOrder.size(); ++index)
     {
         auto cell = tools.removeFromLeft (UiTheme::Layout::timelineCanvasToolCellWidth)
                          .reduced (UiTheme::Layout::timelineCanvasToolCellInsetX,
                                    UiTheme::Layout::timelineCanvasToolCellInsetY);
-        g.setColour (UiTheme::Color::toolButton());
+        g.setColour (index == 0u ? UiTheme::Color::accentPurpleDeep() : UiTheme::Color::toolButton());
         g.fillRoundedRectangle (cell.toFloat(), UiTheme::Radius::sm);
-        g.setColour (kMutedText);
-        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
-        g.drawText (label, cell, juce::Justification::centred, false);
+        g.setColour (UiTheme::Color::buttonBorder());
+        g.drawRoundedRectangle (cell.toFloat().reduced (UiTheme::Layout::controlOutlineInset),
+                                UiTheme::Radius::sm,
+                                UiTheme::Layout::controlOutlineStrokeWidth);
+        drawTimelineToolIcon (
+            g,
+            toolsInOrder[index],
+            cell.toFloat().reduced (static_cast<float> (UiTheme::Layout::controlIconInset)),
+            index == 0u ? UiTheme::Color::text() : UiTheme::Color::buttonTextMuted());
     }
 
     drawSmallLabel (g,
@@ -315,7 +350,7 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
                                    .toFloat(),
                             UiTheme::Radius::sm);
     g.setColour (kText);
-    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::body)));
+    g.setFont (UiTheme::Type::font (UiTheme::Type::body, juce::Font::bold));
     g.drawText ("Bar",
                 toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapValueX)
                        .withWidth (UiTheme::Layout::timelineCanvasSnapValueWidth),
@@ -347,7 +382,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
 
         const int barNumber = std::max (1, juce::roundToInt (seconds) + 1);
         g.setColour (kMutedText);
-        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
+        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
         g.drawText (juce::String (barNumber),
                     x - UiTheme::Layout::timelineCanvasRulerLabelLeftInset,
                     ruler.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
@@ -373,7 +408,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
             continue;
 
         g.setColour (kText);
-        g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
+        g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
         g.drawText (marker.label,
                     x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
                     ruler.getY() + UiTheme::Layout::timelineCanvasRulerMarkerLabelTopInset,
@@ -443,7 +478,7 @@ inline void drawPlayhead (juce::Graphics& g, juce::Rectangle<int> ruler, juce::R
         static_cast<float> (UiTheme::Layout::timelineCanvasPlayheadBadgeHeight),
         UiTheme::Radius::pill);
     g.setColour (kText);
-    g.setFont (juce::Font (juce::FontOptions (UiTheme::Type::small)));
+    g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small, juce::Font::bold));
     g.drawText (juce::String (std::max (1, juce::roundToInt (state.playheadSeconds) + 1)),
                 playheadX - UiTheme::Layout::timelineCanvasPlayheadTextHalfWidth,
                 ruler.getY() + UiTheme::Layout::timelineCanvasPlayheadBadgeTopInset,
