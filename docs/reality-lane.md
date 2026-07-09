@@ -46,6 +46,18 @@
   assertions and says so in its PASS line — it never silently weakens.
 - **Asserts:** exit 0 `PASS` with device, latency values used, and alignment error in frames.
 
+## Smoke 4 — H16 frame smoke (available NOW)
+
+- **What it proves:** the H16 dense Timeline frame-time smoke stays under the 60 fps budget on the
+  owner machine before H17 starts. The current command is the H16 headless frame-time proxy; if Dan
+  does not accept that as the required windowed evidence, record an explicit H16 deferral in
+  `STATUS.md` instead of writing a PASS.
+- **Run:** `powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1`.
+- **Asserts:** exit 0 by building/running `YesDawTimelineGpuCheck`, whose dense arrangement fixture
+  fails if sustained frame time exceeds 16.6 ms or the rendered image is blank.
+- **Cadence:** record a PASS/FAIL at H16 closeout, then re-run after Timeline renderer, shell paint, or
+  dense-session performance changes.
+
 ## Result log (append-only; newest first)
 
 Format: `YYYY-MM-DD | smoke | PASS/FAIL | machine | one-line detail (device, versions, numbers)`

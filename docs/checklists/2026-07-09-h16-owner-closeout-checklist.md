@@ -27,10 +27,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1
 
 Record exactly one of these outcomes before H17 opens:
 
-- `PASS`: add a dated H16 frame-smoke PASS row to `docs/reality-lane.md` with machine and measured
-  detail from the smoke output.
-- `FAIL`: add a dated H16 frame-smoke FAIL row to `docs/reality-lane.md`, keep H16 open, and turn the
-  failure into the next smallest mechanical fix.
+- `PASS`: add a dated `Smoke 4 - H16 frame smoke` PASS row to `docs/reality-lane.md` with machine and
+  measured detail from the smoke output.
+- `FAIL`: add a dated `Smoke 4 - H16 frame smoke` FAIL row to `docs/reality-lane.md`, keep H16 open,
+  and turn the failure into the next smallest mechanical fix.
 - `DEFERRED`: if the available command is not accepted as the required owner-machine windowed evidence,
   record Dan's explicit deferral in `STATUS.md` before opening H17.
 

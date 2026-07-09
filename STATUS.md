@@ -17,8 +17,8 @@ lanes: storage, targeting, compiled runtime) — all **Accepted**; implementatio
 `-h17-distribution-alpha-plan.md`; re-carved `docs/goals/roadmap.md` (H14 FX → H15 automation →
 H16 real UI → H17 distribution+alpha → H18 hosting → H19+ YES family); new `CONTEXT.md` terms
 (Insert, FX chain, ParamSpec, Automation lane, Breakpoint, Design token, Alpha, Reality lane);
-`docs/reality-lane.md` (three owner-machine smokes + committed result log — no PASS ever recorded
-yet); `docs/goals/risk-register.md`; `docs/fable5/implementer-brief.md` (packet hard-stops).
+`docs/reality-lane.md` (owner-machine smokes + committed result log — no PASS ever recorded yet);
+`docs/goals/risk-register.md`; `docs/fable5/implementer-brief.md` (packet hard-stops).
 
 **Decisions locked with Dan (2026-07-03 session):** product goal = dogfood alpha on the way to a
 distributable product; YES family (Master/Voice/Stems) integrate as plugins later (H19+); the
@@ -575,7 +575,9 @@ engine/Project/ADR scope.
 
 **Now:** H16 is parked at the owner-machine reality-lane + one human-session boundary. This handoff
 re-verified that no owner-machine frame-smoke PASS/FAIL or explicit H16 human-session deferral is recorded
-yet in repo truth, so agents must not claim those facts or open H17.
+yet in repo truth, so agents must not claim those facts or open H17. The H16 frame-smoke definition now
+lives in `docs/reality-lane.md` as Smoke 4; no result row has been written. Local docs-only gate:
+`git diff --check` passed.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
