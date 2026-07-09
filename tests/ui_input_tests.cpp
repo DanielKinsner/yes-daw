@@ -290,6 +290,18 @@ juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
     return *button;
 }
 
+juce::Button& requireRegisteredButtonForAction (juce::Component& shell, UiActionId action)
+{
+    juce::Component* component = findMainComponentChildForAction (shell, action);
+    REQUIRE (component != nullptr);
+
+    auto* button = dynamic_cast<juce::Button*> (component);
+    REQUIRE (button != nullptr);
+    REQUIRE (button->getWidth() > 0);
+    REQUIRE (button->getHeight() > 0);
+    return *button;
+}
+
 juce::Slider& requireSliderForAction (juce::Component& shell, UiActionId action)
 {
     juce::Component* component = findMainComponentChildForAction (shell, action);
@@ -1192,10 +1204,12 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     auto shell = makeShell (std::move (choices));
     juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
-    juce::Button& cancelExport = requireButtonForAction (*shell, UiActionId::ProjectExportAudioCancel);
+    juce::Button& cancelExport = requireRegisteredButtonForAction (*shell, UiActionId::ProjectExportAudioCancel);
     juce::Label& exportProgress = requireLabelWithComponentId (*shell, kExportAudioProgressComponentId);
     REQUIRE_FALSE (exportAudio.isEnabled());
     REQUIRE_FALSE (cancelExport.isEnabled());
+    REQUIRE_FALSE (cancelExport.isVisible());
+    REQUIRE_FALSE (exportProgress.isVisible());
     REQUIRE (exportProgress.getText() == "Export --");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));

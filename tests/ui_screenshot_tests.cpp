@@ -1,11 +1,13 @@
 // YES DAW - H16 CP8 mechanical UI screenshot harness.
 
 #include "ui/MainComponent.h"
+#include "ui/UiTheme.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <cstdint>
+#include <array>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -42,6 +44,21 @@ std::uint64_t sampledDifferentPixelCount (const juce::Image& image)
 
     for (int y = 0; y < image.getHeight(); y += 17)
         for (int x = 0; x < image.getWidth(); x += 19)
+            if (image.getPixelAt (x, y).getARGB() != first)
+                ++count;
+
+    return count;
+}
+
+std::uint64_t sampledDifferentPixelCount (const juce::Image& image, juce::Rectangle<int> region)
+{
+    region = region.getIntersection (image.getBounds());
+    REQUIRE_FALSE (region.isEmpty());
+
+    const auto first = image.getPixelAt (region.getX(), region.getY()).getARGB();
+    std::uint64_t count = 0;
+    for (int y = region.getY(); y < region.getBottom(); y += 17)
+        for (int x = region.getX(); x < region.getRight(); x += 19)
             if (image.getPixelAt (x, y).getARGB() != first)
                 ++count;
 
@@ -100,21 +117,85 @@ juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 void clickButton (juce::Button& button)
 {
     button.triggerClick();
-    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (150);
 }
 
-std::uint64_t captureShellPng (juce::Component& shell, const char* filename)
+juce::Image renderShell (juce::Component& shell)
 {
-    const juce::Image image = shell.createComponentSnapshot (shell.getLocalBounds(), true, 1.0f);
+    shell.repaint();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+
+    juce::Image image (juce::Image::ARGB, shell.getWidth(), shell.getHeight(), true);
+    {
+        juce::Graphics graphics (image);
+        shell.paintEntireComponent (graphics, true);
+    }
     REQUIRE (image.getWidth() == shell.getWidth());
     REQUIRE (image.getHeight() == shell.getHeight());
     REQUIRE (sampledNonZeroPixelCount (image) > 1000u);
     REQUIRE (sampledDifferentPixelCount (image) > 100u);
+    return image;
+}
+
+std::uint64_t captureShellPng (const juce::Image& image, const char* filename)
+{
 
     const auto outputPath = screenshotOutputDir() / filename;
     INFO ("screenshot: " << outputPath.string());
     REQUIRE (writePng (image, outputPath) == outputPath);
     return sampledArgbFingerprint (image);
+}
+
+bool hasHeaderCoverage (const juce::Image& image)
+{
+    return sampledDifferentPixelCount (image, { 0, 0, 320, 88 }) > 20u
+        && sampledDifferentPixelCount (image, { 320, 0, 760, 88 }) > 60u
+        && sampledDifferentPixelCount (image, { 1080, 0, image.getWidth() - 1080, 88 }) > 10u;
+}
+
+void requireArrangementSurfaceCoverage (const juce::Image& image)
+{
+    INFO ("header coverage menu="
+          << sampledDifferentPixelCount (image, { 0, 0, 320, 88 })
+          << " transport="
+          << sampledDifferentPixelCount (image, { 320, 0, 760, 88 })
+          << " master="
+          << sampledDifferentPixelCount (image, { 1080, 0, image.getWidth() - 1080, 88 }));
+    REQUIRE (hasHeaderCoverage (image));
+    REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 80u);
+    REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 200u);
+    REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 50u);
+    REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - 260, image.getWidth(), 260 }) > 180u);
+}
+
+bool hasMixerSurfaceCoverage (const juce::Image& image)
+{
+    return hasHeaderCoverage (image)
+        && sampledDifferentPixelCount (image, { 0, 88, 180, image.getHeight() - 88 }) > 80u
+        && sampledDifferentPixelCount (image,
+                                       { 180, 88, image.getWidth() - 180, image.getHeight() - 88 })
+               > 300u;
+}
+
+template <std::size_t N>
+void requireDisjointActionBounds (juce::Component& shell,
+                                  const std::array<UiActionId, N>& actions,
+                                  juce::Rectangle<int> allowedRegion)
+{
+    std::array<juce::Rectangle<int>, N> bounds {};
+    for (std::size_t i = 0; i < actions.size(); ++i)
+    {
+        juce::Component* component = yesdaw::ui::findMainComponentChildForAction (shell, actions[i]);
+        REQUIRE (component != nullptr);
+        bounds[i] = component->getBounds();
+        REQUIRE (allowedRegion.contains (bounds[i]));
+        REQUIRE (bounds[i].getWidth() >= 24);
+        REQUIRE (bounds[i].getHeight() >= 24);
+    }
+
+    for (std::size_t i = 0; i < bounds.size(); ++i)
+        for (std::size_t j = i + 1; j < bounds.size(); ++j)
+            REQUIRE_FALSE (bounds[i].intersects (bounds[j]));
 }
 
 } // namespace
@@ -132,17 +213,64 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     REQUIRE (shell->getHeight() == 960);
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
 
-    const std::uint64_t timelineFingerprint = captureShellPng (*shell, "yesdaw-timeline-shell.png");
+    requireDisjointActionBounds (
+        *shell,
+        std::array {
+            UiActionId::ProjectNew,
+            UiActionId::ProjectOpen,
+            UiActionId::ProjectSave,
+            UiActionId::ProjectImportAudio,
+            UiActionId::ProjectExportAudio,
+            UiActionId::EditUndo,
+            UiActionId::EditRedo,
+            UiActionId::TransportLocateStart,
+            UiActionId::TransportPlay,
+            UiActionId::TransportStop,
+            UiActionId::TransportToggleLoop
+        },
+        juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
+    requireDisjointActionBounds (
+        *shell,
+        std::array {
+            UiActionId::DeviceRefreshAudio,
+            UiActionId::DeviceSelectTestAudio,
+            UiActionId::RecordingArmTrack,
+            UiActionId::RecordingSetMonitoringPolicy,
+            UiActionId::TransportRecord,
+            UiActionId::RecordingAssembleComp
+        },
+        juce::Rectangle<int> { 0,
+                               yesdaw::ui::UiTheme::Layout::headerHeight,
+                               yesdaw::ui::UiTheme::Layout::leftRailWidth,
+                               yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                   + yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset });
+
+    const juce::Image timelineImage = renderShell (*shell);
+    requireArrangementSurfaceCoverage (timelineImage);
+    const std::uint64_t timelineFingerprint = captureShellPng (timelineImage, "yesdaw-timeline-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
-    const std::uint64_t mixerFingerprint = captureShellPng (*shell, "yesdaw-mixer-shell.png");
+    const juce::Image mixerImage = renderShell (*shell);
+    REQUIRE (hasMixerSurfaceCoverage (mixerImage));
+    const std::uint64_t mixerFingerprint = captureShellPng (mixerImage, "yesdaw-mixer-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
-    const std::uint64_t pianoRollFingerprint = captureShellPng (*shell, "yesdaw-piano-roll-shell.png");
+    const juce::Image pianoRollImage = renderShell (*shell);
+    requireArrangementSurfaceCoverage (pianoRollImage);
+    const std::uint64_t pianoRollFingerprint = captureShellPng (pianoRollImage, "yesdaw-piano-roll-shell.png");
 
     REQUIRE (timelineFingerprint != mixerFingerprint);
     REQUIRE (timelineFingerprint != pianoRollFingerprint);
     REQUIRE (mixerFingerprint != pianoRollFingerprint);
+}
+
+TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
+{
+    const juce::Image blank (juce::Image::ARGB,
+                             yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
+                             yesdaw::ui::UiTheme::Layout::defaultWindowHeight,
+                             true);
+    REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
 }

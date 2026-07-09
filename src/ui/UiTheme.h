@@ -57,6 +57,7 @@ struct UiTheme
         static juce::Colour inspectorTab() noexcept { return juce::Colour (0xff151a22); }
         static juce::Colour selectedStrip() noexcept { return juce::Colour (0xff1c1428); }
         static juce::Colour faderThumb() noexcept { return juce::Colour (0xffc4c9cf); }
+        static juce::Colour transparent() noexcept { return juce::Colour (0x00000000); }
     };
 
     struct Meter
@@ -143,6 +144,7 @@ struct UiTheme
 
     struct Space
     {
+        static constexpr int none = 0;
         static constexpr int hairline = 1;
         static constexpr int xxs = 2;
         static constexpr int xs = 4;
@@ -181,7 +183,7 @@ struct UiTheme
         static constexpr int defaultWindowWidth = 1536;
         static constexpr int defaultWindowHeight = 960;
         static constexpr int leftRailWidth = 318;
-        static constexpr int inspectorWidth = 248;
+        static constexpr int inspectorWidth = 320;
         static constexpr int mixerHeight = 260;
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 17;
@@ -231,28 +233,28 @@ struct UiTheme
         static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 64, 50, 50, 26 }; }
         static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 118, 50, 48, 26 }; }
         static juce::Rectangle<int> projectImportAudioButtonBounds() noexcept { return { 170, 50, 64, 26 }; }
-        static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 238, 16, 82, 26 }; }
-        static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 324, 16, 88, 26 }; }
-        static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 416, 16, 66, 26 }; }
-        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 104, 78, 26 }; }
-        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 104, 104, 26 }; }
-        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 104, 68, 26 }; }
-        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 22, 134, 96, 26 }; }
-        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 122, 134, 76, 26 }; }
-        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 202, 134, 72, 26 }; }
-        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 244, 50, 42, 26 }; }
-        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 290, 50, 42, 26 }; }
+        static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 238, 50, 82, 26 }; }
+        static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 238, 50, 60, 26 }; }
+        static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 302, 50, 30, 26 }; }
+        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 126, 78, 26 }; }
+        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 126, 104, 26 }; }
+        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 126, 68, 26 }; }
+        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 22, 156, 96, 26 }; }
+        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 122, 156, 76, 26 }; }
+        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 202, 156, 72, 26 }; }
+        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 510, 46, 24, 26 }; }
+        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 538, 46, 24, 26 }; }
         static juce::Rectangle<int> transportLocateStartButtonBounds() noexcept { return { 336, 16, 56, 56 }; }
         static juce::Rectangle<int> transportPlayButtonBounds() noexcept { return { 392, 16, 56, 56 }; }
         static juce::Rectangle<int> transportStopButtonBounds() noexcept { return { 448, 16, 56, 56 }; }
         static juce::Rectangle<int> transportToggleLoopButtonBounds() noexcept { return { 1008, 16, 64, 56 }; }
-        static juce::Rectangle<int> viewMixerButtonBounds (int componentHeight) noexcept
+        static juce::Rectangle<int> viewMixerButtonBounds (juce::Rectangle<int> mixer) noexcept
         {
-            return { 16, componentHeight - mixerHeight + 18, 76, 28 };
+            return { mixer.getX() + 10, mixer.getY() + 10, 76, 28 };
         }
-        static juce::Rectangle<int> viewPianoRollButtonBounds (int componentHeight) noexcept
+        static juce::Rectangle<int> viewPianoRollButtonBounds (juce::Rectangle<int> mixer) noexcept
         {
-            return { 96, componentHeight - mixerHeight + 18, 78, 28 };
+            return { mixer.getX() + 90, mixer.getY() + 10, 78, 28 };
         }
         static juce::Rectangle<int> autosaveRestoreButtonBounds() noexcept { return { 1180, 50, 132, 26 }; }
         static juce::Rectangle<int> autosaveDiscardButtonBounds() noexcept { return { 1316, 50, 132, 26 }; }
@@ -271,6 +273,8 @@ struct UiTheme
         static constexpr int inspectorStatsCellInsetX = 4;
         static constexpr int inspectorStatsCellInsetY = 0;
         static constexpr int inspectorStatsTextInset = 4;
+        static constexpr int inspectorStatsLabelHeight = 16;
+        static constexpr int inspectorStatsValueHeight = 18;
         static constexpr int inspectorTimingControlInsetX = 2;
         static constexpr int inspectorTimingControlInsetY = 4;
         static constexpr double inspectorTimeSliderMinSeconds = 0.0;
@@ -320,7 +324,7 @@ struct UiTheme
         static constexpr int hiddenSliderTextBoxWidth = 0;
         static constexpr int hiddenSliderTextBoxHeight = 0;
 
-        static constexpr int mixerToolsWidth = 120;
+        static constexpr int mixerToolsWidth = 180;
         static constexpr int mixerStripMinWidth = 84;
         static constexpr int mixerStripHorizontalInset = 3;
         static constexpr int mixerStripVerticalInset = 0;
@@ -356,6 +360,10 @@ struct UiTheme
         static constexpr int mixerToolsModeLabelHeight = 28;
         static constexpr int mixerToolsLabelInsetX = 12;
         static constexpr int mixerToolsLabelInsetY = 0;
+        static constexpr int mixerUtilityTop = 48;
+        static constexpr int mixerUtilityHeight = 28;
+        static constexpr int mixerUtilityGap = 4;
+        static constexpr int mixerUtilityInsetX = 10;
         static constexpr int mixerPaintedStripMinWidth = 84;
         static constexpr int mixerPaintedStripMinCount = 1;
         static constexpr int mixerPaintedStripExtraSlotCount = 1;
@@ -395,7 +403,8 @@ struct UiTheme
         static constexpr int mixerPaintedThumbWidthOverhang = 10;
         static constexpr int mixerPaintedThumbHeight = 18;
 
-        static constexpr int trackListHeaderHeight = 38;
+        static constexpr int trackListHeaderHeight = 86;
+        static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
         static constexpr int trackListRowMinHeight = 56;

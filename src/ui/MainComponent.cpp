@@ -5,6 +5,7 @@
 // accessibility traversal, and editing through the same action IDs.
 
 #include "ui/MainComponent.h"
+#include "ui/UiIcons.h"
 #include "engine/Time.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -915,12 +916,53 @@ private:
     PianoDragState dragState;
 };
 
+class ToolbarActionButton final : public juce::TextButton
+{
+public:
+    void setAction (yesdaw::ui::UiActionId value) noexcept { action = value; }
+
+    void paintButton (juce::Graphics& g, bool highlighted, bool down) override
+    {
+        if (getWidth() > yesdaw::ui::UiTheme::Space::xl * 2
+            || (action != yesdaw::ui::UiActionId::EditUndo
+                && action != yesdaw::ui::UiActionId::EditRedo))
+        {
+            juce::TextButton::paintButton (g, highlighted, down);
+            return;
+        }
+
+        auto surface = findColour (getToggleState() ? juce::TextButton::buttonOnColourId
+                                                    : juce::TextButton::buttonColourId);
+        if (down)
+            surface = surface.brighter (0.08f);
+        else if (highlighted)
+            surface = surface.brighter (0.04f);
+
+        g.setColour (surface);
+        g.fillRoundedRectangle (getLocalBounds().toFloat(), yesdaw::ui::UiTheme::Radius::md);
+        g.setColour (yesdaw::ui::UiTheme::Color::panelStroke());
+        g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                                yesdaw::ui::UiTheme::Radius::md,
+                                yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
+        (void) yesdaw::ui::drawCompactActionIcon (
+            g,
+            action,
+            getLocalBounds().toFloat().reduced (yesdaw::ui::UiTheme::Space::xs),
+            findColour (getToggleState() ? juce::TextButton::textColourOnId
+                                         : juce::TextButton::textColourOffId));
+    }
+
+private:
+    yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::ProjectNew;
+};
+
 class MainComponent : public juce::Component
 {
 public:
     explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices)
         : fileChoices (std::move (choices))
     {
+        setOpaque (true);
         setSize (yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
                  yesdaw::ui::UiTheme::Layout::defaultWindowHeight);
 
@@ -933,6 +975,7 @@ public:
                 continue;
 
             auto& button = buttons[i];
+            button.setAction (action);
             button.setButtonText (actionButtonText (action));
             button.setComponentID (descriptor->stableId);
             button.setName (descriptor->accessibleName);
@@ -946,6 +989,7 @@ public:
             button.onClick = [this, action] {
                 handleAction (action);
                 refreshActionState();
+                resized();
                 repaint();
             };
             addAndMakeVisible (button);
@@ -1127,7 +1171,13 @@ public:
                         .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
 
         auto work = bounds.withTrimmedTop (kHeaderHeight);
-        auto mixer = work.removeFromBottom (kMixerHeight);
+        if (appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
+        {
+            drawMixer (g, mixerPanelBounds());
+            return;
+        }
+
+        work.removeFromBottom (kMixerHeight);
         auto left = work.removeFromLeft (kLeftRailWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                   yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -1141,8 +1191,7 @@ public:
         if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
             drawPianoRoll (g, timeline);
         drawInspector (g, inspector);
-        drawMixer (g, mixer.reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
-                                     yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset));
+        drawMixer (g, mixerPanelBounds());
     }
 
     void resized() override
@@ -1203,10 +1252,10 @@ public:
                     buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportToggleLoopButtonBounds());
                     break;
                 case yesdaw::ui::UiActionId::ViewMixer:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewMixerButtonBounds (getHeight()));
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewMixerButtonBounds (mixerPanelBounds()));
                     break;
                 case yesdaw::ui::UiActionId::ViewPianoRoll:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewPianoRollButtonBounds (getHeight()));
+                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewPianoRollButtonBounds (mixerPanelBounds()));
                     break;
                 default: buttons[i].setBounds ({});
             }
@@ -1425,6 +1474,9 @@ private:
                          yesdaw::ui::UiTheme::Layout::inspectorTimeSliderIntervalSeconds);
         slider.setValue (yesdaw::ui::UiTheme::Layout::inspectorTimeSliderDefaultSeconds,
                          juce::dontSendNotification);
+        slider.setColour (juce::Slider::backgroundColourId, yesdaw::ui::UiTheme::Color::transparent());
+        slider.setColour (juce::Slider::trackColourId, yesdaw::ui::UiTheme::Color::transparent());
+        slider.setColour (juce::Slider::thumbColourId, yesdaw::ui::UiTheme::Color::transparent());
     }
 
     void configureInspectorFadeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
@@ -1614,12 +1666,19 @@ private:
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
 
-    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const
+    [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
-        auto mixer = work.removeFromBottom (kMixerHeight)
-                         .reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
-                                   yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
+        auto mixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer
+                         ? work
+                         : work.removeFromBottom (kMixerHeight);
+        return mixer.reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
+                              yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const
+    {
+        auto mixer = mixerPanelBounds();
         mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
 
         const auto surface = currentMixerSurface();
@@ -1689,6 +1748,23 @@ private:
 
     void layoutMixerControls()
     {
+        auto utility = mixerPanelBounds().withWidth (yesdaw::ui::UiTheme::Layout::mixerToolsWidth)
+                           .reduced (yesdaw::ui::UiTheme::Layout::mixerUtilityInsetX,
+                                     yesdaw::ui::UiTheme::Space::none);
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityTop);
+        const std::array<juce::Button*, 5> utilityButtons {
+            &mixerMetersReadout,
+            &mixerSendLevelEdit,
+            &mixerFxSlotToggle,
+            &mixerGainReductionReadout,
+            &mixerBusFxSlotsReadout
+        };
+        for (juce::Button* button : utilityButtons)
+        {
+            button->setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityHeight));
+            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
+        }
+
         auto lane = mixerFirstStripBounds()
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
                                   yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
@@ -1704,15 +1780,7 @@ private:
         auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
-        const std::array<juce::Button*, 7> mixerButtons {
-            &mixerMetersReadout,
-            &mixerSendLevelEdit,
-            &mixerFxSlotToggle,
-            &mixerGainReductionReadout,
-            &mixerBusFxSlotsReadout,
-            &mixerSolo,
-            &mixerMute
-        };
+        const std::array<juce::Button*, 2> mixerButtons { &mixerSolo, &mixerMute };
         const int mixerButtonWidth = juce::jmin (
             yesdaw::ui::UiTheme::Layout::mixerButtonWidth,
             buttonRow.getWidth() / static_cast<int> (mixerButtons.size()));
@@ -1800,6 +1868,14 @@ private:
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const auto action = toolbarActions[i];
+            const bool arrangementVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+            const bool arrangementOnlyAction = action == yesdaw::ui::UiActionId::DeviceRefreshAudio
+                                            || action == yesdaw::ui::UiActionId::DeviceSelectTestAudio
+                                            || action == yesdaw::ui::UiActionId::RecordingArmTrack
+                                            || action == yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy
+                                            || action == yesdaw::ui::UiActionId::TransportRecord
+                                            || action == yesdaw::ui::UiActionId::RecordingAssembleComp;
+            buttons[i].setVisible (! arrangementOnlyAction || arrangementVisible);
             const auto state = appModel.registry().stateFor (action, appModel.context());
             const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
             buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
@@ -1818,6 +1894,10 @@ private:
         }
 
         refreshAutosaveRecoveryControls();
+        const bool exportInProgress = appModel.context().audioExportInProgress;
+        exportAudioButton.setVisible (! exportInProgress);
+        exportAudioProgress.setVisible (exportInProgress);
+        exportAudioCancelButton.setVisible (exportInProgress);
         exportAudioButton.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
                                           appModel.context()).enabled);
@@ -1829,8 +1909,16 @@ private:
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
                                           appModel.context()).enabled);
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
-        timelineInput.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll);
+        timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        inspectorStart.setVisible (inspectorVisible);
+        inspectorEnd.setVisible (inspectorVisible);
+        inspectorLength.setVisible (inspectorVisible);
+        inspectorGain.setVisible (inspectorVisible);
+        inspectorFadeIn.setVisible (inspectorVisible);
+        inspectorFadeOut.setVisible (inspectorVisible);
+        inspectorFadeCurve.setVisible (inspectorVisible);
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
@@ -1840,7 +1928,7 @@ private:
     {
         constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
         const auto state = appModel.registry().stateFor (action, appModel.context());
-        const bool timelineVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll;
+        const bool timelineVisible = appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline;
         automationLaneToggle.setVisible (timelineVisible);
         automationLaneToggle.setEnabled (state.enabled);
         automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
@@ -2393,9 +2481,11 @@ private:
     {
         fillPanel (g, area);
         auto header = area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
-        drawSmallLabel (g, "TRACKS",
+        drawSmallLabel (g,
+                        "TRACKS",
                         header.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,
-                                        yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY));
+                                        yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::trackListHeaderLabelHeight));
 
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / static_cast<int> (kTracks.size()));
@@ -2857,7 +2947,12 @@ private:
 
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
-        for (const auto* label : { "Start\n33.1.1.00", "End\n41.1.1.00", "Length\n8.0.0.00" })
+        const std::array<std::pair<const char*, const char*>, 3> statsText {{
+            { "Start", "33.1.1.00" },
+            { "End", "41.1.1.00" },
+            { "Length", "8.0.0.00" }
+        }};
+        for (const auto& [label, value] : statsText)
         {
             auto cell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
                             .reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetX,
@@ -2866,10 +2961,16 @@ private:
             g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (kMutedText);
             g.setFont (juce::Font (juce::FontOptions (yesdaw::ui::UiTheme::Type::caption)));
-            g.drawFittedText (label,
-                              cell.reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsTextInset),
+            auto textArea = cell.reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsTextInset);
+            g.drawText (label,
+                        textArea.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorStatsLabelHeight),
+                        juce::Justification::centred,
+                        false);
+            g.setColour (kText);
+            g.drawFittedText (value,
+                              textArea.withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsValueHeight),
                               juce::Justification::centred,
-                              2);
+                              1);
         }
 
         auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
@@ -2946,24 +3047,6 @@ private:
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerToolsInsetY);
         fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
-        drawSmallLabel (g,
-                        "SENDS",
-                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsSendsLabelTop)
-                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsLabelHeight)
-                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
-                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
-        drawSmallLabel (g,
-                        "VIEW",
-                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsViewLabelTop)
-                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsLabelHeight)
-                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
-                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
-        drawSmallLabel (g,
-                        "Short",
-                        leftTools.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerToolsModeLabelTop)
-                            .withHeight (yesdaw::ui::UiTheme::Layout::mixerToolsModeLabelHeight)
-                            .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetX,
-                                      yesdaw::ui::UiTheme::Layout::mixerToolsLabelInsetY));
 
         const int stripWidth = juce::jmax (
             yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
@@ -3145,7 +3228,7 @@ private:
     juce::Slider inspectorFadeIn;
     juce::Slider inspectorFadeOut;
     juce::ComboBox inspectorFadeCurve;
-    std::array<juce::TextButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
+    std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
     bool refreshingMixerControls = false;
 

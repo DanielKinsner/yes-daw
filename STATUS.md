@@ -55,7 +55,7 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 ## Live packet — H16 implementation
 
 **Last updated:** 2026-07-09
-**Current horizon:** **H16 (Real UI) — mechanical implementation complete; owner closeout pending.**
+**Current horizon:** **H16 (Real UI) — human session found visual defects; remediation open.**
 
 H16 opened from live repo truth. The H15 final closeout commit
 `f1b093abe2f0e4f70b1266c88b61c168f98b1a10` (`docs(h15): close automation horizon review`) is present,
@@ -573,11 +573,23 @@ and the single sanctioned human eyeball session must convert any findings into e
 or deferred items. This closeout does not write `docs/reality-lane.md`, add goldens, start H17, or broaden
 engine/Project/ADR scope.
 
-**Now:** H16 is parked at the owner-machine reality-lane + one human-session boundary. This handoff
-re-verified that no owner-machine frame-smoke PASS/FAIL or explicit H16 human-session deferral is recorded
-yet in repo truth, so agents must not claim those facts or open H17. The H16 frame-smoke definition now
-lives in `docs/reality-lane.md` as Smoke 4; no result row has been written. Local docs-only gate:
-`git diff --check` passed.
+**Owner closeout update (2026-07-09): FIXES REQUIRED.** Dan compared the generated H16 screenshots with
+`docs/design/arrangement-view-reference.png` and rejected visual closeout. Verified findings: header and
+track controls overlapped; mixer/piano controls spilled into adjacent areas; inspector values collapsed
+below readable widths; the mixer-only screenshot could be almost blank while its old nonblank gate still
+passed; and the shell still lacks the premium icon/control treatment of the reference.
+
+The first visual-remediation checkpoint repairs the root layout contract: panel switches now recompute
+child bounds; Mixer is a real full-height surface; header/track action rectangles are disjoint; mixer
+utilities have a dedicated readable tools lane; inspector timing cards are wider and no longer have slider
+chrome painted over their text; idle export progress/cancel chrome no longer crowds the header; and the
+first native vector assets replace cramped undo/redo text. `YesDawUiScreenshotCheck` now requires coverage
+in every major surface region, asserts action bounds stay inside their regions without collisions, and has
+a blank-mixer negative control. Local full build + **312/312 CTest** passed.
+
+**Now:** H16 remains open for visual remediation. `tools/ui-frame-smoke.ps1` passed its headless
+`YesDawTimelineGpuCheck` proxy locally, but that command does not record the required owner-machine
+windowed evidence; no Smoke 4 result row has been written to `docs/reality-lane.md`. H17 remains closed.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -618,12 +630,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Owner-machine H16 closeout only, using
-`docs/checklists/2026-07-09-h16-owner-closeout-checklist.md`. Dan runs
-`powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1`, records its PASS/FAIL in
-`docs/reality-lane.md` or explicitly defers the windowed evidence, then records the single sanctioned human
-session outcome as accepted, token/layout fixes, or explicit deferrals. Do not start H17 until those H16
-closeout facts are recorded or explicitly deferred by Dan.
+**Next:** Continue H16 visual remediation in the next smallest green checkpoint: extend the native vector
+asset set and install a coherent premium control/typography treatment for the header and tool palettes,
+then regenerate all three screenshots under the strengthened coverage/collision gate. Keep changes to
+tokens, layout, and presentation only; do not start H17 until Dan accepts the final visual pass and the
+owner-machine Smoke 4 fact is recorded or explicitly deferred.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
