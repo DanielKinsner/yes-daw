@@ -175,6 +175,7 @@ struct UiActionContext
     int saveCount = 0;
     int importCount = 0;
     int audioExportCount = 0;
+    int audioExportProgressPercent = -1;
     int dawprojectExportCount = 0;
     int deviceRefreshCount = 0;
     int deviceSelectCount = 0;

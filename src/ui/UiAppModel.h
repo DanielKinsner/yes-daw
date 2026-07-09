@@ -279,6 +279,8 @@ public:
         if (destinationPath.empty())
             return { id, { false, "audio export path required" }, false };
 
+        context_.audioExportProgressPercent = 0;
+
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
             project_,
@@ -296,6 +298,7 @@ public:
             return { id, { false, "audio export write failed" }, false };
 
         ++context_.audioExportCount;
+        context_.audioExportProgressPercent = 100;
         ++context_.commandDispatchCount;
         return { id, state, true };
     }

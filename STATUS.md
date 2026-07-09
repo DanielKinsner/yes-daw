@@ -470,10 +470,25 @@ focused `ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adja
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
 adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**. Remote CI run `28985454551` for `994fe3a` completed green across Linux, Windows, macOS,
+RTSan, and TSan.
+H16 CP7 continued with the smallest export-progress readout slice: `UiActionContext` now carries a
+readback-only `audioExportProgressPercent`, `UiAppModel::exportAudioFile()` marks the existing
+synchronous WAV export as `0%` before render/write and `100%` after a successful write, and the shipped
+header component `project.export_audio.progress` reflects `Export --` before export and `Export 100%`
+after the existing `ProjectExportAudio` button path. The UI input harness proves the progress component
+is shipped, reports idle before export, and advances to 100% alongside the real exported WAV decode. This
+did not add async export, cancel, DAWproject export, format choices, CP8 behavior, engine policy, Project
+schema changes, ADR edits, goldens, or `docs/reality-lane.md`. Local gates under the VS BuildTools
+`vcvars64.bat`: focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`;
+focused `ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **311/311**.
 
-**Now:** H16 CP7 first Export WAV destination/render slice is complete locally. Commit/push this small
-green checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
+**Now:** H16 CP7 export progress readout slice is complete locally. Commit/push this small green
+checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The

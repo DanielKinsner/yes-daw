@@ -53,6 +53,7 @@ constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
+constexpr const char* kExportAudioProgressComponentId = "project.export_audio.progress";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 constexpr double kInspectorTimingShortenRatio = 0.5;
 constexpr double kInspectorFadeInRatio = 0.25;
@@ -678,7 +679,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 29u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 30u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1191,7 +1192,9 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     auto shell = makeShell (std::move (choices));
     juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
+    juce::Label& exportProgress = requireLabelWithComponentId (*shell, kExportAudioProgressComponentId);
     REQUIRE_FALSE (exportAudio.isEnabled());
+    REQUIRE (exportProgress.getText() == "Export --");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
@@ -1199,6 +1202,7 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.audioExportCount == 0);
+    REQUIRE (snapshot.context.audioExportProgressPercent == -1);
     REQUIRE (exportAudio.isEnabled());
     REQUIRE_FALSE (std::filesystem::exists (exportPath));
 
@@ -1207,7 +1211,9 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.audioExportCount == 1);
+    REQUIRE (snapshot.context.audioExportProgressPercent == 100);
     REQUIRE (snapshot.context.commandDispatchCount == beforeCommandCount + 1);
+    REQUIRE (exportProgress.getText() == "Export 100%");
     REQUIRE (std::filesystem::exists (exportPath));
 
     yesdaw::io::Float32Wav exported;

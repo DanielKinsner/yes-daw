@@ -47,6 +47,7 @@ constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
+constexpr const char* kExportAudioProgressComponentId = "project.export_audio.progress";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 
 const juce::Colour kBackground = yesdaw::ui::UiTheme::Color::appBackground();
@@ -964,6 +965,14 @@ public:
         };
         addAndMakeVisible (exportAudioButton);
 
+        exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
+        exportAudioProgress.setName ("Export audio progress");
+        exportAudioProgress.setText ("Export --", juce::dontSendNotification);
+        exportAudioProgress.setJustificationType (juce::Justification::centred);
+        exportAudioProgress.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        exportAudioProgress.setColour (juce::Label::textColourId, kMutedText);
+        addAndMakeVisible (exportAudioProgress);
+
         configureActionComponent (masterLoudnessReadout, yesdaw::ui::UiActionId::MixerReadLoudness, "Master loudness");
         masterLoudnessReadout.setButtonText ("-- LUFS");
         masterLoudnessReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1193,6 +1202,7 @@ public:
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
         exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
+        exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
         masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
@@ -1797,6 +1807,7 @@ private:
         exportAudioButton.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
                                           appModel.context()).enabled);
+        exportAudioProgress.setText (exportAudioProgressText(), juce::dontSendNotification);
         masterLoudnessReadout.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
                                           appModel.context()).enabled);
@@ -2239,6 +2250,15 @@ private:
             return "-- LUFS";
 
         return juce::String (surface.loudness.integratedLufs, 1) + " LUFS";
+    }
+
+    [[nodiscard]] juce::String exportAudioProgressText() const
+    {
+        const int percent = appModel.context().audioExportProgressPercent;
+        if (percent < 0)
+            return "Export --";
+
+        return "Export " + juce::String (percent) + "%";
     }
 
     void drawHeader (juce::Graphics& g) const
@@ -3080,6 +3100,7 @@ private:
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     juce::TextButton exportAudioButton;
+    juce::Label exportAudioProgress;
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;
