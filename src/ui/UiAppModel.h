@@ -269,6 +269,37 @@ public:
         return result;
     }
 
+    [[nodiscard]] UiActionDispatchResult exportAudioFile (const std::filesystem::path& destinationPath)
+    {
+        const UiActionId id = UiActionId::ProjectExportAudio;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (destinationPath.empty())
+            return { id, { false, "audio export path required" }, false };
+
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
+            project_,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+        if (! rendered.ok())
+            return { id, { false, "audio export render failed" }, false };
+
+        const io::WavResult written = io::writeFloat32WavFile (
+            destinationPath,
+            rendered.sampleRate,
+            rendered.channels,
+            rendered.frames,
+            std::span<const float> (rendered.interleavedSamples.data(), rendered.interleavedSamples.size()));
+        if (! written.ok())
+            return { id, { false, "audio export write failed" }, false };
+
+        ++context_.audioExportCount;
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiAppImportResult importAudioFile (const std::filesystem::path& sourcePath,
                                                      UiDecodedAsset decoded)
     {

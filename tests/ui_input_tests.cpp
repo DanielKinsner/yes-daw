@@ -10,6 +10,7 @@
 
 #include "engine/nodes/EqNode.h"
 #include "engine/Time.h"
+#include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
 
 #include <algorithm>
@@ -677,7 +678,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 28u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 29u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1170,6 +1171,53 @@ TEST_CASE ("H16 CP6 UI input harness reads master loudness through an action-bac
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+}
+
+TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WAV",
+           "[ui][input][shell][export]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("audio-export");
+    std::filesystem::path exportPath = bundlePath;
+    exportPath += ".wav";
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    std::error_code removeError;
+    std::filesystem::remove (exportPath, removeError);
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = [exportPath] { return exportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
+    REQUIRE_FALSE (exportAudio.isEnabled());
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.audioExportCount == 0);
+    REQUIRE (exportAudio.isEnabled());
+    REQUIRE_FALSE (std::filesystem::exists (exportPath));
+
+    const int beforeCommandCount = snapshot.context.commandDispatchCount;
+    clickButton (exportAudio);
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.audioExportCount == 1);
+    REQUIRE (snapshot.context.commandDispatchCount == beforeCommandCount + 1);
+    REQUIRE (std::filesystem::exists (exportPath));
+
+    yesdaw::io::Float32Wav exported;
+    REQUIRE (yesdaw::io::readFloat32WavFile (exportPath, exported).ok());
+    REQUIRE (exported.sampleRate == yesdaw::engine::SampleRate { 48000.0 });
+    REQUIRE (exported.channels == 2u);
+    REQUIRE (exported.frames > 0u);
+    REQUIRE (exported.interleavedSamples.size() == static_cast<std::size_t> (exported.frames * exported.channels));
+    REQUIRE (peakAbs (std::span<const float> (exported.interleavedSamples.data(),
+                                              exported.interleavedSamples.size())) > 0.01);
 }
 
 TEST_CASE ("H12 UI input harness rejects disabled shell input before Project load", "[ui][input][shell]")

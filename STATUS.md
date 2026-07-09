@@ -457,9 +457,23 @@ expectation was updated; adjacent
 adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **311/311**.
+H16 CP7 started with the smallest export destination/render slice: the existing `ProjectExportAudio`
+command action and stable id `project.export_audio` now have a shipped `Export WAV` button path, an
+injected `MainComponentFileChoices::chooseExportAudioFile` destination, and `UiAppModel::exportAudioFile()`
+renders the current Project through H7 `renderOfflineProject()` before writing a canonical float32 WAV.
+The UI input harness imports the existing fixture, clicks the shipped component, decodes the exported WAV,
+and asserts stereo output, nonzero frames, nonzero peak, `audioExportCount`, and command dispatch. This did
+not add export progress/cancel, DAWproject export, format choices, CP8 behavior, engine policy, Project
+schema changes, ADR edits, goldens, or `docs/reality-lane.md`. Local gates under the VS BuildTools
+`vcvars64.bat`: focused `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck`;
+focused `ctest --preset ci -R YesDawUi --output-on-failure` passed **2/2**; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`;
+adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **4/4**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**311/311**.
 
-**Now:** H16 CP6 first Track meter component-backed readout slice is complete locally. Commit/push this
-small green checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
+**Now:** H16 CP7 first Export WAV destination/render slice is complete locally. Commit/push this small
+green checkpoint, wait for remote CI green, then keep chaining H16 in small commits.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The

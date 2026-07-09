@@ -22,6 +22,7 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseNewProjectBundle;
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
     std::function<std::filesystem::path()> chooseImportAudioFile;
+    std::function<std::filesystem::path()> chooseExportAudioFile;
     std::function<engine::Project()> makeNewProject;
 };
 

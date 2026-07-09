@@ -953,6 +953,17 @@ public:
         configureAutosaveRecoveryButton (autosaveRestoreButton, yesdaw::ui::UiActionId::AutosaveRecoveryRestore);
         configureAutosaveRecoveryButton (autosaveDiscardButton, yesdaw::ui::UiActionId::AutosaveRecoveryDiscard);
 
+        configureActionComponent (exportAudioButton, yesdaw::ui::UiActionId::ProjectExportAudio, "Export audio");
+        exportAudioButton.setButtonText ("Export WAV");
+        exportAudioButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        exportAudioButton.setColour (juce::TextButton::textColourOffId, kText);
+        exportAudioButton.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::ProjectExportAudio);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (exportAudioButton);
+
         configureActionComponent (masterLoudnessReadout, yesdaw::ui::UiActionId::MixerReadLoudness, "Master loudness");
         masterLoudnessReadout.setButtonText ("-- LUFS");
         masterLoudnessReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
@@ -1181,6 +1192,7 @@ public:
 
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
+        exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
         masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
@@ -1728,6 +1740,15 @@ private:
                 }
                 return;
 
+            case yesdaw::ui::UiActionId::ProjectExportAudio:
+                if (fileChoices.chooseExportAudioFile)
+                {
+                    const std::filesystem::path path = fileChoices.chooseExportAudioFile();
+                    if (! path.empty())
+                        (void) appModel.exportAudioFile (path);
+                }
+                return;
+
             case yesdaw::ui::UiActionId::ProjectImportAudio:
                 if (fileChoices.chooseImportAudioFile)
                 {
@@ -1773,6 +1794,9 @@ private:
         }
 
         refreshAutosaveRecoveryControls();
+        exportAudioButton.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
+                                          appModel.context()).enabled);
         masterLoudnessReadout.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
                                           appModel.context()).enabled);
@@ -3055,6 +3079,7 @@ private:
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
+    juce::TextButton exportAudioButton;
     juce::TextButton mixerTrackSelect;
     juce::Slider mixerFader;
     juce::Slider mixerPan;
