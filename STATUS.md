@@ -573,9 +573,9 @@ and the single sanctioned human eyeball session must convert any findings into e
 or deferred items. This closeout does not write `docs/reality-lane.md`, add goldens, start H17, or broaden
 engine/Project/ADR scope.
 
-**Now:** H16 mechanical closeout docs are being committed. Local docs-only gate: `git diff --check`
-passed. After that commit is remote-green, H16 should stay parked at the owner-machine reality-lane + one
-human-session boundary until Dan records those results.
+**Now:** H16 is parked at the owner-machine reality-lane + one human-session boundary. This handoff
+re-verified that no owner-machine frame-smoke PASS/FAIL or explicit H16 human-session deferral is recorded
+yet in repo truth, so agents must not claim those facts or open H17.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
@@ -616,11 +616,11 @@ tokenise grind is **over**: no more standalone token slices, and demo/fixture li
 `drawClipWaveform` hash multipliers are explicitly out of scope (see the parent plan's "CP1 EXIT"
 note). The last ~41 commits chased granularity with diminishing returns; we stop and move to real UI.
 
-**Next:** Continue H16 in the next tiny batch. Re-check whether dim/mono has real backing before touching it;
-if it still does not, do not invent monitoring policy in UI. Move to the next plan-backed H16 slice that can
-be proved mechanically with existing state. Do not add send creation/routing, broad send editing, FX
-add/remove/reorder/param editing, engine policy, Project schema changes, or unrelated CP7 behavior in the
-same checkpoint.
+**Next:** Owner-machine H16 closeout only. Dan runs
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-frame-smoke.ps1`, records its PASS/FAIL in
+`docs/reality-lane.md`, then records the single sanctioned human eyeball checklist outcome as token/layout
+fixes or explicit deferrals. Do not start H17 until those H16 closeout facts are recorded or explicitly
+deferred by Dan.
 For CP2 history, see
 [`docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md`](docs/plans/2026-07-07-h16-cp2-async-waveform-cache-plan.md).
 Token slices are no longer a valid "next" — only broaden tokens if a CP2 change introduces a new raw
