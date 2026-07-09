@@ -10,6 +10,9 @@
 #include <memory>
 #include <string>
 
+using yesdaw::ui::UiActionId;
+using yesdaw::ui::UiPanel;
+
 namespace {
 
 std::filesystem::path screenshotOutputDir()
@@ -45,6 +48,21 @@ std::uint64_t sampledDifferentPixelCount (const juce::Image& image)
     return count;
 }
 
+std::uint64_t sampledArgbFingerprint (const juce::Image& image)
+{
+    std::uint64_t hash = 1469598103934665603ull;
+    for (int y = 0; y < image.getHeight(); y += 17)
+    {
+        for (int x = 0; x < image.getWidth(); x += 19)
+        {
+            hash ^= static_cast<std::uint64_t> (image.getPixelAt (x, y).getARGB());
+            hash *= 1099511628211ull;
+        }
+    }
+
+    return hash;
+}
+
 std::filesystem::path writePng (const juce::Image& image, const std::filesystem::path& outputPath)
 {
     std::filesystem::create_directories (outputPath.parent_path());
@@ -65,9 +83,43 @@ std::filesystem::path writePng (const juce::Image& image, const std::filesystem:
     return outputPath;
 }
 
+juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
+{
+    juce::Component* component = yesdaw::ui::findMainComponentChildForAction (shell, action);
+    REQUIRE (component != nullptr);
+
+    auto* button = dynamic_cast<juce::Button*> (component);
+    REQUIRE (button != nullptr);
+    REQUIRE (button->isVisible());
+    REQUIRE (button->isEnabled());
+    REQUIRE (button->getWidth() > 0);
+    REQUIRE (button->getHeight() > 0);
+    return *button;
+}
+
+void clickButton (juce::Button& button)
+{
+    button.triggerClick();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+std::uint64_t captureShellPng (juce::Component& shell, const char* filename)
+{
+    const juce::Image image = shell.createComponentSnapshot (shell.getLocalBounds(), true, 1.0f);
+    REQUIRE (image.getWidth() == shell.getWidth());
+    REQUIRE (image.getHeight() == shell.getHeight());
+    REQUIRE (sampledNonZeroPixelCount (image) > 1000u);
+    REQUIRE (sampledDifferentPixelCount (image) > 100u);
+
+    const auto outputPath = screenshotOutputDir() / filename;
+    INFO ("screenshot: " << outputPath.string());
+    REQUIRE (writePng (image, outputPath) == outputPath);
+    return sampledArgbFingerprint (image);
+}
+
 } // namespace
 
-TEST_CASE ("MainComponent renders a nonblank screenshot PNG", "[ui][screenshot]")
+TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface states", "[ui][screenshot]")
 {
     juce::MessageManager::getInstance();
 
@@ -78,15 +130,19 @@ TEST_CASE ("MainComponent renders a nonblank screenshot PNG", "[ui][screenshot]"
     REQUIRE (shell->getHeight() == yesdaw::ui::snapshotMainComponent (*shell).height);
     REQUIRE (shell->getWidth() == 1536);
     REQUIRE (shell->getHeight() == 960);
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
 
-    const juce::Image image = shell->createComponentSnapshot (shell->getLocalBounds(), true, 1.0f);
-    REQUIRE (image.getWidth() == shell->getWidth());
-    REQUIRE (image.getHeight() == shell->getHeight());
+    const std::uint64_t timelineFingerprint = captureShellPng (*shell, "yesdaw-timeline-shell.png");
 
-    REQUIRE (sampledNonZeroPixelCount (image) > 1000u);
-    REQUIRE (sampledDifferentPixelCount (image) > 100u);
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
+    const std::uint64_t mixerFingerprint = captureShellPng (*shell, "yesdaw-mixer-shell.png");
 
-    const auto outputPath = screenshotOutputDir() / "yesdaw-main-shell.png";
-    INFO ("screenshot: " << outputPath.string());
-    REQUIRE (writePng (image, outputPath) == outputPath);
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
+    const std::uint64_t pianoRollFingerprint = captureShellPng (*shell, "yesdaw-piano-roll-shell.png");
+
+    REQUIRE (timelineFingerprint != mixerFingerprint);
+    REQUIRE (timelineFingerprint != pianoRollFingerprint);
+    REQUIRE (mixerFingerprint != pianoRollFingerprint);
 }

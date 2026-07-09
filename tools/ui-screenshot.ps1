@@ -17,6 +17,7 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
 }
 
 New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
+Remove-Item -Path (Join-Path $resolvedOutputDir 'yesdaw-*-shell.png') -Force -ErrorAction SilentlyContinue
 
 Push-Location $repo
 try {

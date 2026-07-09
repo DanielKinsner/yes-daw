@@ -530,11 +530,28 @@ passed **1/1** and wrote `build-ci/ui-screenshots/yesdaw-main-shell.png`; adjace
 `cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawUiScreenshotCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
 plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawUiScreenshotCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
 passed **5/5**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
+**312/312**. Remote CI run `28989042272` for `907fdc8` completed green across Linux, Windows, macOS,
+RTSan, and TSan.
+H16 CP8 continued with the smallest screenshot-surface expansion: `YesDawUiScreenshotCheck` now drives
+the shipped `ViewMixer` and `ViewPianoRoll` buttons, captures separate nonblank PNGs for the timeline,
+mixer, and piano-roll shell states, and mechanically proves the active-panel readback plus sampled image
+fingerprints differ across those three captures. `tools/ui-screenshot.ps1` now clears stale
+`yesdaw-*-shell.png` files before running so the output folder reflects current coverage exactly. This
+did not add layout-token polish, human visual review, goldens, `docs/reality-lane.md`, CP9/H17 behavior,
+engine policy, Project schema changes, or ADR edits. Local gates under the VS BuildTools `vcvars64.bat`:
+focused `cmake --build --preset ci --target YesDawUiScreenshotCheck` plus focused
+`ctest --preset ci -R YesDawUiScreenshotCheck --output-on-failure` passed **1/1**; one-command
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools\ui-screenshot.ps1 -OutputDir build-ci\ui-screenshots`
+passed **1/1** and wrote exactly `yesdaw-timeline-shell.png`, `yesdaw-mixer-shell.png`, and
+`yesdaw-piano-roll-shell.png`; adjacent
+`cmake --build --preset ci --target YesDawUiActionCheck YesDawUiInputCheck YesDawUiScreenshotCheck YesDawThemeAuditCheck YesDawAccessibilityCheck`
+plus adjacent `ctest --preset ci -R "YesDawUiActionCheck|YesDawUiInputCheck|YesDawUiScreenshotCheck|YesDawThemeAuditCheck|YesDawAccessibilityCheck" --output-on-failure`
+passed **5/5**; full `cmake --build --preset ci`; full `ctest --preset ci --output-on-failure` passed
 **312/312**.
 
-**Now:** H16 CP8 screenshot harness is complete locally. Run `git diff --check`, commit/push this
-checkpoint, wait for remote CI green, then continue into the smallest CP8 mechanical polish/screenshot
-surface expansion that can be proved without human visual judgment.
+**Now:** H16 CP8 screenshot surface expansion is complete locally. Run `git diff --check`, commit/push
+this checkpoint, wait for remote CI green, then continue into the smallest remaining CP8 mechanical
+polish/readiness slice that can be proved without human visual judgment.
 
 CP1 design tokens are **CLOSED 2026-07-07** — see the CP1-CLOSED block below; the
 token migration history is retained here for the record but is no longer the active worklist. The
