@@ -213,12 +213,34 @@ struct UiTheme
 
         static juce::Font font (float height, int styleFlags = juce::Font::plain)
         {
-            return juce::Font (juce::FontOptions ("Segoe UI Variable", height, styleFlags));
+           #if JUCE_WINDOWS
+            static const juce::String family = []
+            {
+                const auto installed = juce::Font::findAllTypefaceNames();
+                return installed.contains ("Segoe UI Variable", true)
+                         ? juce::String { "Segoe UI Variable" }
+                         : juce::Font::getDefaultSansSerifFontName();
+            }();
+           #else
+            static const juce::String family = juce::Font::getDefaultSansSerifFontName();
+           #endif
+            return juce::Font (juce::FontOptions (family, height, styleFlags));
         }
 
         static juce::Font numericFont (float height, int styleFlags = juce::Font::plain)
         {
-            return juce::Font (juce::FontOptions ("Cascadia Mono", height, styleFlags));
+           #if JUCE_WINDOWS
+            static const juce::String family = []
+            {
+                const auto installed = juce::Font::findAllTypefaceNames();
+                return installed.contains ("Cascadia Mono", true)
+                         ? juce::String { "Cascadia Mono" }
+                         : juce::Font::getDefaultMonospacedFontName();
+            }();
+           #else
+            static const juce::String family = juce::Font::getDefaultMonospacedFontName();
+           #endif
+            return juce::Font (juce::FontOptions (family, height, styleFlags));
         }
     };
 

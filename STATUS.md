@@ -598,6 +598,15 @@ utility/interactive-strip layout with no duplicate fader/pan/button painting. Th
 mechanically proves every vector family renders, keeps all three panel-state headers pixel-identical, and
 retains the prior coverage/collision/blank-surface gates. Fresh full local build + **312/312 CTest** passed.
 
+The first remote premium-pass run (`29058452263`) exposed one platform-only defect instead of closing green:
+Linux completed the build but `YesDawUiScreenshotCheck` segfaulted on its first text paint. Root-cause tracing
+confirmed the theme had named Windows-only Segoe/Cascadia families unconditionally; JUCE's Linux FreeType
+backend returns no typeface for an unavailable named family. The repair keeps Segoe UI Variable/Cascadia Mono
+when installed on Windows and otherwise selects JUCE's guaranteed platform sans/monospace defaults. A direct
+font-resolution regression now fails before screenshot painting if either theme font cannot resolve. Fresh
+Windows app rebuild + full **312/312 CTest** passed after the repair; no layout, owner-evidence, H17, engine,
+Project, golden, or ADR scope changed.
+
 **Now:** H16 remains open pending Dan's visual recheck of the rebuilt premium pass. The code checkpoint is
 locally green, but it is not owner-accepted by inference. `tools/ui-frame-smoke.ps1` passed its headless
 `YesDawTimelineGpuCheck` proxy locally, but that command does not record the required owner-machine

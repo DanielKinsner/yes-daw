@@ -308,6 +308,17 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
     REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
 }
 
+TEST_CASE ("H16 theme fonts resolve to real typefaces on every build platform",
+           "[ui][screenshot][fonts]")
+{
+    REQUIRE (yesdaw::ui::UiTheme::Type::font (
+                 yesdaw::ui::UiTheme::Type::body).getTypefacePtr()
+             != nullptr);
+    REQUIRE (yesdaw::ui::UiTheme::Type::numericFont (
+                 yesdaw::ui::UiTheme::Type::readout).getTypefacePtr()
+             != nullptr);
+}
+
 TEST_CASE ("H16 premium vector asset set covers every shipped shell action and tool family",
            "[ui][screenshot][assets]")
 {
