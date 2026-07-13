@@ -76,24 +76,31 @@ scaffolding was started without opening H16's successor.
 - **CI packaging job** (build → `package` → run packaged self-check from a clean temp dir) is
   deferred: it depends on CP1 `--selfcheck`, which is not implemented.
 
-**CP1 `--selfcheck` — slice 1 DRAFTED on branch `vera/h17` (needs build-verify):**
+**CP1 `--selfcheck` — slice 1 CI-VERIFIED GREEN on branch `vera/h17` / PR #2 (ready to merge):**
 - Design record + slice plan: [`docs/plans/2026-07-13-h17-cp1-selfcheck-notes.md`](docs/plans/2026-07-13-h17-cp1-selfcheck-notes.md).
-- `src/app/SelfCheckMain.cpp` — a **dedicated `YesDawSelfCheck` console app** (mirrors `YesDawSoak`)
-  doing slice 1: `--selfcheck <bundle>` = open + read snapshot + `hasValidEntityIds` +
-  `hasValidAssetClipIndirection` → `SELFCHECK PASS/FAIL` → exit 0/1; plus `--version` (git-describe).
-  CMake adds the `YesDawSelfCheck` target + a `YESDAW_VERSION_STRING` git-describe stamp.
-- ⚠️ **DECISION for Dan (implementer-brief #9, flagged not silently chosen):** implemented as a
-  console app rather than the plan's literal `YesDaw --selfcheck` GUI-exe mode — a Windows GUI-subsystem
-  exe can't reliably print to a console, and this matches the repo's existing console-tool pattern.
-  Reversible; rationale in the CP1 note. Veto welcome.
-- 🔧 **Not built** (Linux session can't compile JUCE). On `vera/h17`, not `main`, so `main` stays
-  green. Build-verify steps are in the CP1 note; slices 2 (render) + 3 (export) follow once slice 1
-  compiles clean.
+- `src/app/SelfCheckMain.cpp` — a **dedicated `YesDawSelfCheck` console app** (mirrors `YesDawSoak`):
+  `--selfcheck <bundle>` = open + read snapshot + `hasValidEntityIds` + `hasValidAssetClipIndirection`
+  → `SELFCHECK PASS/FAIL` → exit 0/1; plus `--version` (git-describe). CMake adds the target + a
+  `YESDAW_VERSION_STRING` git-describe stamp.
+- ✅ **Verified by CI, not a local build** (public repo = free CI — Dan's insight). PR #2 is green:
+  compiles clean on Windows + Linux + macOS under `-Werror`/`/WX`, AND ctest RUNS the behavior gate on
+  every desktop leg — `YesDawSelfCheckVersion` (exit 0), `YesDawSelfCheckFixture` (real schema-v8
+  bundle → PASS), `YesDawSelfCheckRejectsNonBundle` (invalid dir → rejected; the implementer-brief #8
+  negative control). Confirmed in the CI logs (tests #284–286 Passed on all OSes).
+- ⚠️ **DECISION for Dan (implementer-brief #9, flagged not silently chosen):** console app rather than
+  the plan's literal `YesDaw --selfcheck` GUI-exe mode — a Windows GUI-subsystem exe can't reliably
+  print to a console, and this matches the repo's console-tool pattern. Reversible; rationale in the
+  CP1 note. Veto welcome.
 
 **Now / Next:**
-- Dan build-verifies `vera/h17` slice 1 (4-step check in the CP1 note) → merge → I do slices 2–3.
-- CP5 (`docs/alpha-gate.md` + `tools/alpha-verify`) is the next agent-doable scaffold, but its
-  mechanical asserts need a built exe that can export, so it waits on CP1 slice 3.
+- **Merge PR #2** (green) → slice 1 lands on `main`. Then slices 2 (render) + 3 (export round-trip)
+  build on merged-green main via the same push→CI-verify→iterate loop.
+- Slice 2 recon done: decode each `project.assets` entry via JUCE `WavAudioFormat` (as
+  `tests/bundle_render_tests.cpp` does; `juce_audio_formats` already linked) →
+  `renderOfflineProject` → assert `status==Ok`, finite, `frames>0`. Keep decoded-sample vectors alive
+  for the `DecodedAssetAudio` spans.
+- CP5 (`docs/alpha-gate.md` runbook landed on main; `tools/alpha-verify` still TODO) — its mechanical
+  asserts need slice 3 (export) first.
 - **Sequencing note:** H16 remains the open horizon; this H17 work is owner-directed parallel
   scaffolding (Dan's 2026-07-13 "just work the plan" instruction). Visual UI acceptance stays owner-only.
 
