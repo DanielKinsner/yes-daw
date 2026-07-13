@@ -52,6 +52,41 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## Parallel — H17 CP3 packaging scaffold (2026-07-13, Vera / Fable)
+
+**Owner-directed parallel work; does NOT change the horizon.** H16 remains the open horizon (see
+below) and its blockers stay Dan's (UI acceptance + the visual-defect remediation). Per the H17
+plan's Step 2 ("agent-doable, runs in parallel, no need to wait on the smokes"), the packaging
+scaffolding was started without opening H16's successor.
+
+**Landed (tooling/docs only — CI-neutral, `[skip ci]`):**
+- `tools/package.sh` + `tools/package.ps1` — CP3 packaging: build via the `ci` preset → stage
+  exe + `README-alpha.md` + git-describe `version.txt` (+ `LICENSE` if present) → zip
+  `YesDaw-<version>-<os>-portable.zip`. Windows (`.ps1`) is the primary alpha path (ADR-0037);
+  `.sh` is the POSIX sibling. `package.sh` syntax-checked (`bash -n`) and its `--help` /
+  unknown-arg paths exercised.
+- `README-alpha.md` — unzip-and-run instructions staged into the zip.
+
+**NOT done (honest gaps — do not mark CP3 closed):**
+- First real **build+zip green run** has not happened — needs a Windows build box (the scripts are
+  scaffolded + syntax-checked, not yet run against a real artefact). CP3's mechanical close is a
+  produced-zip run, so CP3 stays **open**.
+- **No `LICENSE`** file exists at repo root — the package scripts warn and ship without one. Picking
+  a license is an owner decision (flagged, not invented).
+- **CI packaging job** (build → `package` → run packaged self-check from a clean temp dir) is
+  deferred: it depends on CP1 `--selfcheck`, which is not implemented.
+
+**Now / Next (H17, when Dan chooses to advance it):**
+- **CP1 `--selfcheck`** (C++: headless load → render N blocks → export → validate → exit 0/1) and
+  **version stamping** (kill `project(... VERSION 0.0.0)`, derive from git-describe, add `--version`)
+  are the next chunks — both need a local build to verify, so they were **not** blind-pushed from
+  the Linux session (would risk red CI). Recommend Dan build-verify these before they land on `main`.
+- **Sequencing question for Dan:** H16 is still the open horizon. Options: (a) keep me scaffolding
+  H17 in parallel [what this note covers], (b) point me at concrete H16 remediation tasks if any are
+  mechanical (visual acceptance itself is owner-only), or (c) redirect to another repo. Rec: (a).
+
+---
+
 ## Live packet — H16 implementation
 
 **Last updated:** 2026-07-09
