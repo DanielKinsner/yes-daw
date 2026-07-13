@@ -213,6 +213,22 @@ if (YESDAW_BUILD_APPS)
   yesdaw_harden(YesDawPluginHost)
   add_test(NAME YesDawPluginHostSelfCheck COMMAND $<TARGET_FILE:YesDawPluginHost> --self-check)
 
+  # --- H17 CP1: runtime behavior gate for YesDawSelfCheck (compiling is not "works") ---
+  # Prove the self-check actually loads + validates a real bundle and exits 0 (PASS), that --version
+  # exits 0, and — the implementer-brief #8 negative control landing in the same change — that a path
+  # which is NOT a valid bundle is rejected (non-zero). Uses the committed schema-v8 fixture; pure
+  # load/validate, so no audio device or display is needed and it runs on every desktop CI leg.
+  add_test(NAME YesDawSelfCheckVersion COMMAND $<TARGET_FILE:YesDawSelfCheck> --version)
+  add_test(NAME YesDawSelfCheckFixture
+           COMMAND $<TARGET_FILE:YesDawSelfCheck> --selfcheck
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw)
+  # Negative control: an existing directory that is NOT a .yesdaw bundle (no project.db) must be
+  # rejected by openExistingBundle -> exit non-zero. Guards the "corrupted/invalid bundle is caught"
+  # claim so a always-PASS self-check can't slip through.
+  add_test(NAME YesDawSelfCheckRejectsNonBundle
+           COMMAND $<TARGET_FILE:YesDawSelfCheck> --selfcheck ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures)
+  set_tests_properties(YesDawSelfCheckRejectsNonBundle PROPERTIES WILL_FAIL TRUE)
+
   # --- Plugin host coordinator launch/handshake shell (H3; ADR-0015 control lane) ---
   # The coordinator owns process launch + JUCE's control message channel, but not plugin-hosting modules.
   # This self-check proves the worker boundary with a ready/echo handshake, RT-lane identity transfer,
