@@ -76,14 +76,26 @@ scaffolding was started without opening H16's successor.
 - **CI packaging job** (build → `package` → run packaged self-check from a clean temp dir) is
   deferred: it depends on CP1 `--selfcheck`, which is not implemented.
 
-**Now / Next (H17, when Dan chooses to advance it):**
-- **CP1 `--selfcheck`** (C++: headless load → render N blocks → export → validate → exit 0/1) and
-  **version stamping** (kill `project(... VERSION 0.0.0)`, derive from git-describe, add `--version`)
-  are the next chunks — both need a local build to verify, so they were **not** blind-pushed from
-  the Linux session (would risk red CI). Recommend Dan build-verify these before they land on `main`.
-- **Sequencing question for Dan:** H16 is still the open horizon. Options: (a) keep me scaffolding
-  H17 in parallel [what this note covers], (b) point me at concrete H16 remediation tasks if any are
-  mechanical (visual acceptance itself is owner-only), or (c) redirect to another repo. Rec: (a).
+**CP1 `--selfcheck` — slice 1 DRAFTED on branch `vera/h17` (needs build-verify):**
+- Design record + slice plan: [`docs/plans/2026-07-13-h17-cp1-selfcheck-notes.md`](docs/plans/2026-07-13-h17-cp1-selfcheck-notes.md).
+- `src/app/SelfCheckMain.cpp` — a **dedicated `YesDawSelfCheck` console app** (mirrors `YesDawSoak`)
+  doing slice 1: `--selfcheck <bundle>` = open + read snapshot + `hasValidEntityIds` +
+  `hasValidAssetClipIndirection` → `SELFCHECK PASS/FAIL` → exit 0/1; plus `--version` (git-describe).
+  CMake adds the `YesDawSelfCheck` target + a `YESDAW_VERSION_STRING` git-describe stamp.
+- ⚠️ **DECISION for Dan (implementer-brief #9, flagged not silently chosen):** implemented as a
+  console app rather than the plan's literal `YesDaw --selfcheck` GUI-exe mode — a Windows GUI-subsystem
+  exe can't reliably print to a console, and this matches the repo's existing console-tool pattern.
+  Reversible; rationale in the CP1 note. Veto welcome.
+- 🔧 **Not built** (Linux session can't compile JUCE). On `vera/h17`, not `main`, so `main` stays
+  green. Build-verify steps are in the CP1 note; slices 2 (render) + 3 (export) follow once slice 1
+  compiles clean.
+
+**Now / Next:**
+- Dan build-verifies `vera/h17` slice 1 (4-step check in the CP1 note) → merge → I do slices 2–3.
+- CP5 (`docs/alpha-gate.md` + `tools/alpha-verify`) is the next agent-doable scaffold, but its
+  mechanical asserts need a built exe that can export, so it waits on CP1 slice 3.
+- **Sequencing note:** H16 remains the open horizon; this H17 work is owner-directed parallel
+  scaffolding (Dan's 2026-07-13 "just work the plan" instruction). Visual UI acceptance stays owner-only.
 
 ---
 
