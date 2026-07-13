@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.25)
 project(YesDaw VERSION 0.0.0 LANGUAGES C CXX)
 
+# H17 CP1: git-describe version stamp for the self-check CLI (kills the 0.0.0 default for
+# `--version`). Best-effort at configure time; falls back to the project version when git is
+# unavailable (e.g. an exported tarball). Does NOT change the GUI app's JUCE bundle version — that
+# is a separate, flagged follow-up (touches shipped app identity).
+execute_process(
+  COMMAND git describe --tags --always --dirty
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE YESDAW_GIT_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET)
+if(NOT YESDAW_GIT_VERSION)
+  set(YESDAW_GIT_VERSION "${PROJECT_VERSION}")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # clang-format / clang-tidy / editors consume this
@@ -144,6 +158,26 @@ target_link_libraries(YesDawSoak
     juce::juce_audio_devices
     juce::juce_recommended_config_flags)
 yesdaw_harden(YesDawSoak)
+
+# --- Headless self-check (H17 CP1; console app, mechanical PASS/FAIL, no device/display) ---
+# Mirrors YesDawSoak: a console app so stdout is clean on all three OSes (a GUI-subsystem exe can't
+# reliably print to a Windows console). Slice 1 opens a .yesdaw bundle, reads the snapshot, and
+# validates it; render (slice 2) + export round-trip (slice 3) build on this. Compile-checked in CI
+# on all three OSes once merged; safe to run anywhere (no device/display).
+juce_add_console_app(YesDawSelfCheck PRODUCT_NAME "YesDawSelfCheck")
+target_sources(YesDawSelfCheck PRIVATE src/app/SelfCheckMain.cpp)
+target_include_directories(YesDawSelfCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawSelfCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_compile_definitions(YesDawSelfCheck PRIVATE
+  JUCE_WEB_BROWSER=0
+  JUCE_USE_CURL=0
+  YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+target_link_libraries(YesDawSelfCheck
+  PRIVATE
+    sqlite3_amalgamation
+    juce::juce_audio_formats
+    juce::juce_recommended_config_flags)
+yesdaw_harden(YesDawSelfCheck)
 
 endif() # YESDAW_BUILD_APPS
 
