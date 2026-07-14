@@ -219,9 +219,14 @@ if (YESDAW_BUILD_APPS)
   # which is NOT a valid bundle is rejected (non-zero). Uses the committed schema-v8 fixture; pure
   # load/validate, so no audio device or display is needed and it runs on every desktop CI leg.
   add_test(NAME YesDawSelfCheckVersion COMMAND $<TARGET_FILE:YesDawSelfCheck> --version)
-  add_test(NAME YesDawSelfCheckFixture
+  # The committed schema fixtures ship STUB (9-byte) asset files, not audio, so a full --selfcheck
+  # (which renders) correctly REJECTS them at asset-decode: a schema-valid bundle whose audio is
+  # missing/corrupt must not PASS. The render happy-path is proven by the YesDawSelfCheckTest Catch2
+  # target below, which generates a real bundle from the sine WAV fixture.
+  add_test(NAME YesDawSelfCheckStubAssetRejected
            COMMAND $<TARGET_FILE:YesDawSelfCheck> --selfcheck
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw)
+  set_tests_properties(YesDawSelfCheckStubAssetRejected PROPERTIES WILL_FAIL TRUE)
   # Negative control: an existing directory that is NOT a .yesdaw bundle (no project.db) must be
   # rejected by openExistingBundle -> exit non-zero. Guards the "corrupted/invalid bundle is caught"
   # claim so a always-PASS self-check can't slip through.
@@ -754,6 +759,26 @@ if (YESDAW_BUILD_APPS)
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawBundleRenderCheck)
   catch_discover_tests(YesDawBundleRenderCheck)
+
+  # H17 CP1: proves the self-check RENDER happy-path by generating a real bundle from the sine WAV
+  # fixture (the committed .yesdaw fixtures have stub assets). Calls yesdaw::app::runSelfCheck from
+  # src/app/SelfCheck.h directly. Mirrors YesDawBundleRenderCheck's link set.
+  juce_add_console_app(YesDawSelfCheckTest PRODUCT_NAME "YesDawSelfCheckTest")
+  target_sources(YesDawSelfCheckTest PRIVATE tests/selfcheck_tests.cpp)
+  target_include_directories(YesDawSelfCheckTest PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawSelfCheckTest SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawSelfCheckTest PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawSelfCheckTest
+    PRIVATE
+      Catch2::Catch2WithMain
+      sqlite3_amalgamation
+      juce::juce_audio_formats
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawSelfCheckTest)
+  catch_discover_tests(YesDawSelfCheckTest)
 endif()
 
 # Bless the golden after an INTENTIONAL DSP change (review the diff before committing):

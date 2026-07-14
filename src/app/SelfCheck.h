@@ -1,0 +1,189 @@
+// YES DAW — self-check logic (H17 CP1), shared by the YesDawSelfCheck CLI and its tests.
+//
+// Open a .yesdaw bundle → read snapshot → validate → decode mono assets → renderOfflineProject.
+// Pure: returns a SelfCheckResult and prints NOTHING (the CLI does the printing). Lifting this out
+// of main() lets a Catch2 test generate a real bundle and assert the render path, since the
+// committed .yesdaw fixtures ship stub (non-audio) asset files.
+//
+// Reuses the H7 offline path exactly as tests/bundle_render_tests.cpp does (JUCE WavAudioFormat
+// decode + renderOfflineProject). See docs/plans/2026-07-13-h17-cp1-selfcheck-notes.md.
+
+#pragma once
+
+#include "engine/OfflineRenderer.h"
+#include "engine/Project.h"
+#include "persistence/ProjectBundle.h"
+
+#include <juce_audio_formats/juce_audio_formats.h>
+
+#include <cstdint>
+#include <filesystem>
+#include <limits>
+#include <memory>
+#include <span>
+#include <string>
+#include <system_error>
+#include <vector>
+
+namespace yesdaw::app {
+
+struct SelfCheckResult
+{
+    bool          ok = false;
+    std::string   message;              // failure reason, or "ok"
+    std::size_t   assetCount = 0;
+    std::size_t   clipCount = 0;
+    std::size_t   midiClipCount = 0;
+    double        sampleRateHz = 0.0;
+    std::uint64_t renderedFrames = 0;
+    std::uint16_t renderedChannels = 0;
+};
+
+namespace detail {
+
+// Decode every (mono) Asset into DecodedAssetAudio. The decoded samples live in `storage`, which is
+// reserved up front (no reallocation) so the std::span each DecodedAssetAudio holds stays valid.
+[[nodiscard]] inline bool decodeBundleAssets (const engine::Project& project,
+                                              const std::filesystem::path& bundlePath,
+                                              std::vector<std::vector<float>>& storage,
+                                              std::vector<engine::DecodedAssetAudio>& out,
+                                              std::string& err)
+{
+    storage.reserve (project.assets.size());
+    out.reserve (project.assets.size());
+
+    juce::WavAudioFormat wav;
+
+    for (const engine::Asset& asset : project.assets)
+    {
+        if (asset.channels != 1u)
+        {
+            err = "asset is not mono (offline render requires mono assets)";
+            return false;
+        }
+        if (asset.frames == 0
+            || asset.frames > static_cast<std::uint64_t> (std::numeric_limits<int>::max()))
+        {
+            err = "asset frame count out of range";
+            return false;
+        }
+
+        const std::filesystem::path assetPath =
+            bundlePath / persistence::detail::assetRelativePathForHash (asset.contentHash);
+
+        const juce::File file { juce::String { assetPath.string() } };
+        std::unique_ptr<juce::AudioFormatReader> reader (
+            wav.createReaderFor (new juce::FileInputStream (file), true));
+
+        if (reader == nullptr)
+        {
+            err = "could not open asset audio file";
+            return false;
+        }
+        // Validate the decoded audio against the STORED metadata, sample rate included, so a swapped
+        // asset can't slip through (mirrors the read-back checks in tests/bundle_render_tests.cpp).
+        if (reader->sampleRate != asset.sampleRate.hz
+            || reader->numChannels != asset.channels
+            || reader->lengthInSamples != static_cast<juce::int64> (asset.frames))
+        {
+            err = "asset audio metadata mismatch (sample rate / channels / length)";
+            return false;
+        }
+
+        const int frames = static_cast<int> (asset.frames);
+        juce::AudioBuffer<float> buffer (1, frames);
+        if (! reader->read (&buffer, 0, frames, 0, true, false))
+        {
+            err = "asset audio decode failed";
+            return false;
+        }
+
+        const float* const channel = buffer.getReadPointer (0);
+        storage.emplace_back (channel, channel + frames);
+
+        engine::DecodedAssetAudio decoded;
+        decoded.assetId = asset.id;
+        decoded.sampleRate = asset.sampleRate;
+        decoded.frames = asset.frames;
+        decoded.channels = asset.channels;
+        decoded.interleavedSamples =
+            std::span<const float> (storage.back().data(), storage.back().size());
+        out.push_back (decoded);
+    }
+
+    return true;
+}
+
+} // namespace detail
+
+// Open + validate + render a bundle. Never throws for the expected failure modes; reports them in
+// `SelfCheckResult::message` with ok == false.
+[[nodiscard]] inline SelfCheckResult runSelfCheck (const std::filesystem::path& bundlePath)
+{
+    SelfCheckResult r;
+
+    std::error_code ec;
+    if (! std::filesystem::exists (bundlePath, ec))
+    {
+        r.message = "bundle path does not exist";
+        return r;
+    }
+
+    persistence::ProjectBundleDb db;
+    if (! persistence::ProjectBundleDb::openExistingBundle (bundlePath, db).ok())
+    {
+        r.message = "could not open bundle (missing/corrupt project.db)";
+        return r;
+    }
+
+    engine::Project project;
+    if (! db.readProjectSnapshot (project).ok())
+    {
+        r.message = "could not read project snapshot";
+        return r;
+    }
+    if (! project.hasValidEntityIds())
+    {
+        r.message = "project has invalid entity ids";
+        return r;
+    }
+    if (! project.hasValidAssetClipIndirection())
+    {
+        r.message = "project has invalid asset/clip indirection";
+        return r;
+    }
+
+    r.assetCount = project.assets.size();
+    r.clipCount = project.clips.size();
+    r.midiClipCount = project.midiClips.size();
+    r.sampleRateHz = static_cast<double> (project.sampleRate.hz);
+
+    std::vector<std::vector<float>> assetStorage;
+    std::vector<engine::DecodedAssetAudio> decodedAssets;
+    std::string decodeErr;
+    if (! detail::decodeBundleAssets (project, bundlePath, assetStorage, decodedAssets, decodeErr))
+    {
+        r.message = decodeErr;
+        return r;
+    }
+
+    const engine::OfflineRenderResult render = engine::renderOfflineProject (project, decodedAssets);
+    if (! render.ok())
+    {
+        r.message = "render failed (status " + std::to_string (static_cast<int> (render.status)) + ")";
+        return r;
+    }
+    if (render.frames == 0)
+    {
+        r.message = "render produced zero frames";
+        return r;
+    }
+
+    r.renderedFrames = render.frames;
+    r.renderedChannels = render.channels;
+    r.ok = true;
+    r.message = "ok";
+    return r;
+}
+
+} // namespace yesdaw::app
