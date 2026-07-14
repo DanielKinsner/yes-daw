@@ -12,6 +12,7 @@
 
 #include "engine/OfflineRenderer.h"
 #include "engine/Project.h"
+#include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
@@ -37,6 +38,7 @@ struct SelfCheckResult
     double        sampleRateHz = 0.0;
     std::uint64_t renderedFrames = 0;
     std::uint16_t renderedChannels = 0;
+    std::uint64_t exportedFrames = 0;   // frames written to WAV and re-imported bit-exact
 };
 
 namespace detail {
@@ -181,6 +183,53 @@ namespace detail {
 
     r.renderedFrames = render.frames;
     r.renderedChannels = render.channels;
+
+    // Export the render to a temp WAV, read it back, and assert a bit-exact round-trip (the H7 gate
+    // pattern) — proving the full open -> validate -> render -> export -> re-import chain. Canonical
+    // float32 WAV preserves exact bits for finite samples (the renderer guarantees finite), so an
+    // exact != comparison is correct here.
+    const std::filesystem::path exportPath =
+        std::filesystem::temp_directory_path()
+        / ("yesdaw-selfcheck-export-" + bundlePath.filename().string() + ".wav");
+
+    const io::WavResult wrote = io::writeFloat32WavFile (
+        exportPath, project.sampleRate, render.channels, render.frames,
+        std::span<const float> (render.interleavedSamples.data(), render.interleavedSamples.size()));
+    if (! wrote.ok())
+    {
+        std::error_code rmec;
+        std::filesystem::remove (exportPath, rmec);
+        r.message = "export write failed: " + wrote.message;
+        return r;
+    }
+
+    io::Float32Wav reimported;
+    const io::WavResult readBack = io::readFloat32WavFile (exportPath, reimported);
+    std::error_code rmec;
+    std::filesystem::remove (exportPath, rmec);
+    if (! readBack.ok())
+    {
+        r.message = "export re-read failed: " + readBack.message;
+        return r;
+    }
+
+    if (reimported.channels != render.channels
+        || reimported.frames != render.frames
+        || reimported.interleavedSamples.size() != render.interleavedSamples.size())
+    {
+        r.message = "export round-trip shape mismatch";
+        return r;
+    }
+    for (std::size_t i = 0; i < render.interleavedSamples.size(); ++i)
+    {
+        if (reimported.interleavedSamples[i] != render.interleavedSamples[i])
+        {
+            r.message = "export round-trip not bit-exact";
+            return r;
+        }
+    }
+
+    r.exportedFrames = render.frames;
     r.ok = true;
     r.message = "ok";
     return r;
