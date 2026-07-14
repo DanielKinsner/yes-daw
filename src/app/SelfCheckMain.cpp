@@ -105,10 +105,15 @@ bool decodeBundleAssets (const yesdaw::engine::Project& project,
             err = "could not open asset audio file";
             return false;
         }
-        if (reader->numChannels != asset.channels
+        // Validate the decoded audio against the STORED metadata, including sample rate — otherwise an
+        // asset swapped to a different rate (same channels + frame count) would pass and the render
+        // would run on bytes that no longer match the Project's metadata. Mirrors the read-back checks
+        // in tests/bundle_render_tests.cpp.
+        if (reader->sampleRate != asset.sampleRate.hz
+            || reader->numChannels != asset.channels
             || reader->lengthInSamples != static_cast<juce::int64> (asset.frames))
         {
-            err = "asset audio metadata mismatch";
+            err = "asset audio metadata mismatch (sample rate / channels / length)";
             return false;
         }
 
