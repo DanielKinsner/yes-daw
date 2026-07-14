@@ -48,14 +48,15 @@ int runSelfCheckCli (const std::string& bundle)
     }
 
     std::printf ("SELFCHECK PASS: %s (sr=%.0f, assets=%zu, clips=%zu, midiClips=%zu, "
-                 "rendered %llu frames x %u ch)\n",
+                 "rendered %llu frames x %u ch, exported+reimported %llu frames bit-exact)\n",
                  bundle.c_str(),
                  r.sampleRateHz,
                  r.assetCount,
                  r.clipCount,
                  r.midiClipCount,
                  static_cast<unsigned long long> (r.renderedFrames),
-                 static_cast<unsigned> (r.renderedChannels));
+                 static_cast<unsigned> (r.renderedChannels),
+                 static_cast<unsigned long long> (r.exportedFrames));
     return 0;
 }
 

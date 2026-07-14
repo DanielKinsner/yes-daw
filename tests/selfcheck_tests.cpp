@@ -106,6 +106,9 @@ TEST_CASE ("selfcheck renders a real generated bundle", "[selfcheck][render][h17
     CHECK (result.clipCount == 1u);
     CHECK (result.renderedFrames > 0u);
     CHECK (result.renderedChannels >= 1u);
+    // Slice 3: the render was exported to WAV and re-imported bit-exact (part of ok, asserted here).
+    CHECK (result.exportedFrames == result.renderedFrames);
+    CHECK (result.exportedFrames > 0u);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
