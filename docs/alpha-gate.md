@@ -9,8 +9,12 @@ CP5 and CLAUDE.md ("verification is mechanical; nothing subjective gates CI or t
 > the packaged self-check) are done and merged.** So the reopen assert (`YesDawSelfCheck --selfcheck`),
 > the export-exists assert, and the autosave-present assert are buildable now; the remaining two
 > (export re-imports bit-exact, integrated loudness) still wait on a small verify-CLI capability
-> (a WAV re-read + a libebur128 loudness read), called out per-row below. The human steps are
-> runnable as soon as there's a packaged build. `tools/alpha-verify` itself is not written yet.
+> (a WAV re-read + a libebur128 loudness read) — both now shipped as `YesDawSelfCheck --verify-wav`
+> and `--loudness`. The human steps are runnable as soon as there's a packaged build.
+> **`tools/alpha-verify.sh` / `.ps1` are now written** — they run all 5 asserts on a produced
+> bundle+WAV, and their `--self-test` (each assert's negative control) is CI-gated on Linux+Windows.
+> The full POSITIVE pass still needs a real produced song (H17 CP2's committed demo bundle, or an
+> owner session), so the mechanical close is tooling-complete but not yet exercised end-to-end green.
 
 ## What "alpha" means here
 
