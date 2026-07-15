@@ -195,3 +195,37 @@ TEST_CASE ("loudness rejects a missing file", "[selfcheck][loudness][negative][h
         yesdaw::app::measureLoudness (std::filesystem::temp_directory_path() / "yesdaw-loudness-absent-xyz.wav");
     CHECK_FALSE (r.ok);
 }
+
+TEST_CASE ("make-demo produces a bundle+mix that satisfies every alpha-verify assert",
+           "[selfcheck][makedemo][h17]")
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::filesystem::path outDir =
+        std::filesystem::temp_directory_path() / ("yesdaw-makedemo-test-" + std::to_string (ticks));
+
+    const yesdaw::app::MakeDemoResult demo = yesdaw::app::makeDemo (outDir);
+    INFO ("make-demo message: " << demo.message << ", lufs: " << demo.integratedLufs);
+    REQUIRE (demo.ok);
+    REQUIRE_FALSE (demo.bundlePath.empty());
+    REQUIRE_FALSE (demo.wavPath.empty());
+
+    const std::filesystem::path bundlePath { demo.bundlePath };
+    const std::filesystem::path wavPath { demo.wavPath };
+
+    // Assert 4 (reopen): the bundle opens, validates, renders, exports bit-exact.
+    CHECK (yesdaw::app::runSelfCheck (bundlePath).ok);
+    // Assert 2 (re-import bit-exact) on the exported mix.
+    CHECK (yesdaw::app::verifyWavRoundTrip (wavPath).ok);
+    // Assert 3 (loudness in range): the exported mix is neither silent nor clipped.
+    const yesdaw::app::LoudnessCheckResult loud = yesdaw::app::measureLoudness (wavPath);
+    REQUIRE (loud.ok);
+    CHECK (loud.integratedLufs >= -30.0);
+    CHECK (loud.integratedLufs <= -6.0);
+    // Assert 1 (export exists + non-empty).
+    std::error_code ec;
+    CHECK (std::filesystem::file_size (wavPath, ec) > 0);
+    // Assert 5 (autosave snapshot present).
+    CHECK (std::filesystem::exists (bundlePath / "autosave" / "last.yesdaw"));
+
+    std::filesystem::remove_all (outDir, ec);
+}
