@@ -52,6 +52,30 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-07-15 update (Vera) — CP1 + CP3 CLOSED, version stamping DONE (all CI-verified green on main)
+
+Supersedes the "scaffold" notes below. All of the following are merged to `main`, each CI-verified
+green (compile on Windows+Linux+macOS under `-Werror`/`/WX`, plus the run gates), via the
+public-repo push→CI→merge loop:
+
+- **CP1 `--selfcheck` COMPLETE** — all three slices (open+validate → render → export + bit-exact
+  re-import round-trip) are on `main`. `YesDawSelfCheck` console app + Catch2 gates green everywhere.
+- **CP3 packaging CLOSED** — `package.sh`/`.ps1` now also build + stage `YesDawSelfCheck`, and a new
+  CI `package` job builds → runs the packaging script → extracts the zip into a clean temp dir
+  **outside** the checkout → runs the packaged `--version` there (repo-independence proof; asserts it
+  matches `version.txt` and rejects the unstamped fallback). The first real produced-zip run is
+  **green in CI** — that was CP3's remaining mechanical close.
+- **Version stamping DONE — the bare `0.0.0` is gone everywhere it shipped:** the GUI app
+  (`getApplicationVersion()` → git-describe, window title carries it, project `VERSION` → `0.1.0`)
+  and the exported `.dawproject` `<Application version="…">` (with a mechanical test asserting the
+  real stamp and no `0.0.0`).
+- **Still owner-only / deferred (unchanged):** CP4 autosave-scheduling-ON-by-default is GUI `Timer`
+  wiring in the shell that cannot be verified headless — deferred rather than blind-shipped. CP2's
+  *committed* demo-song fixture needs a bundle produced by running the tool (the generated-bundle
+  test already covers the render path). Reality-lane smokes + H16 UI acceptance remain Dan's.
+
+---
+
 ## Parallel — H17 CP3 packaging scaffold (2026-07-13, Vera / Fable)
 
 **Owner-directed parallel work; does NOT change the horizon.** H16 remains the open horizon (see
