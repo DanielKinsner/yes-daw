@@ -144,3 +144,62 @@ jobs:
 
       - name: Run under TSan (aborts on a data race)
         run: ctest --test-dir build-tsan --output-on-failure --no-tests=error
+
+  # H17 CP3: prove the portable zip actually works. Build via the ci preset, run the packaging
+  # script, then extract the zip into a clean temp dir OUTSIDE the checkout and run the packaged
+  # self-check there — a repo-independence proof (the shipped binary must not need the source tree),
+  # plus a guard that a real git-describe version was baked in (not the unstamped fallback).
+  package:
+    name: Package (portable zip + packaged self-check)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libjack-jackd2-dev ladspa-sdk \
+            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libglu1-mesa-dev mesa-common-dev ninja-build zip unzip
+
+      - name: Get CMake + Ninja (consistent across all runners)
+        uses: lukka/get-cmake@latest
+
+      - name: Cache fetched dependencies
+        uses: actions/cache@v4
+        with:
+          path: build-ci/_deps
+          key: deps-${{ runner.os }}-juce8.0.4-catch3.7.1-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
+
+      - name: Configure (Release)
+        run: cmake --preset ci
+
+      - name: Package (build GUI + self-check, stage, zip)
+        run: tools/package.sh
+
+      - name: Run the packaged self-check from a clean temp dir (repo-independence)
+        run: |
+          set -euo pipefail
+          zip="$(ls dist/YesDaw-*-linux-portable.zip)"
+          echo "packaged zip: $zip"
+          clean="$(mktemp -d)"
+          unzip -q "$zip" -d "$clean"
+          pkg="$(ls -d "$clean"/YesDaw-*-linux-portable)"
+          expected="$(cat "$pkg/version.txt")"
+          echo "version.txt: $expected"
+          # Reject the unstamped fallbacks — a real git-describe value must have been baked in.
+          case "$expected" in
+            0.0.0-nogit|0.0.0-dev|"") echo "FAIL: version.txt is an unstamped fallback ('$expected')"; exit 1 ;;
+          esac
+          # Run the shipped binary from OUTSIDE the repo checkout (prove it needs no source tree).
+          cd /
+          out="$("$pkg/YesDawSelfCheck" --version)"
+          echo "packaged --version: $out"
+          case "$out" in
+            *"$expected"*) echo "OK: packaged self-check reports the staged version ($expected)" ;;
+            *) echo "FAIL: packaged --version ('$out') does not contain version.txt ('$expected')"; exit 1 ;;
+          esac
