@@ -196,3 +196,36 @@ TEST_CASE ("H11 app model loads a Project bundle and drives transport through ac
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("H17 CP4 autosave scheduling default is on and writeAutosaveTick is a safe no-op",
+           "[ui][app][autosave]")
+{
+    UiAppModel app;
+
+    // The scheduling policy default flows through the model headlessly (the shell reads this to
+    // decide whether to start its Timer).
+    REQUIRE (app.autosaveSchedule().enabled);
+    REQUIRE (app.autosaveSchedule().intervalMs > 0);
+
+    // With no bundle/engine live yet, a scheduled tick must no-op cleanly — not crash, not error.
+    REQUIRE (app.writeAutosaveTick().ok());
+
+    // With a real bundle open, a tick still returns ok: a freshly-loaded project is clean, so the
+    // underlying write no-ops via PlaybackEngine::needsAutosave rather than doing spurious disk I/O.
+    const std::filesystem::path bundlePath = makeTempBundlePath ("autosave-tick");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.writeAutosaveTick().ok());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

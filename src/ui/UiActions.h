@@ -207,6 +207,16 @@ struct UiActionContext
     int midiReadCount = 0;
 };
 
+// H17 CP4 — crash-safety default. The shipped shell schedules an autosave on a control-tick
+// cadence, and it is ON by default (a fresh install crash-recovers out of the box). Kept in this
+// pure, JUCE-free action layer so the default is asserted by a headless test; the GUI shell drives
+// a juce::Timer from it and the write itself is gated on the engine's needs-autosave revision.
+struct AutosaveSchedulePolicy
+{
+    bool enabled = true;       // scheduling ON by default (CP4)
+    int  intervalMs = 30000;   // control-tick cadence between autosave attempts (30s)
+};
+
 struct UiActionState
 {
     bool enabled = false;
