@@ -283,6 +283,14 @@ TEST_CASE ("H11 keymap remapping is stable and rejects duplicate or empty chords
              == KeymapRebindStatus::UnknownAction);
 }
 
+TEST_CASE ("H17 CP4 autosave scheduling is ON by default", "[ui][autosave]")
+{
+    // Crash-safety default: a fresh shell schedules autosave without the user opting in.
+    const yesdaw::ui::AutosaveSchedulePolicy policy;
+    REQUIRE (policy.enabled);
+    REQUIRE (policy.intervalMs > 0);
+}
+
 TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo commands",
            "[ui][actions]")
 {

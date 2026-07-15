@@ -997,7 +997,7 @@ private:
     yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::ProjectNew;
 };
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component, private juce::Timer
 {
 public:
     explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices)
@@ -1167,11 +1167,25 @@ public:
         configureMixerControls();
         resized();
         refreshActionState();
+
+        // H17 CP4: scheduled autosave is ON by default (policy lives in the headless app model, so the
+        // default is covered by a headless test). The Timer fires on the message thread — which is this
+        // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
+        if (appModel.autosaveSchedule().enabled)
+            startTimer (appModel.autosaveSchedule().intervalMs);
     }
 
     ~MainComponent() override
     {
+        stopTimer();
         setLookAndFeel (nullptr);
+    }
+
+    // H17 CP4: one scheduled autosave attempt. Delegates to the model, which no-ops when no bundle is
+    // open and (via PlaybackEngine::needsAutosave) when the project is clean.
+    void timerCallback() override
+    {
+        (void) appModel.writeAutosaveTick();
     }
 
     [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }

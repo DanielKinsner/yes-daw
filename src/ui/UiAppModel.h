@@ -11,6 +11,7 @@
 #include "engine/Recording.h"
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
+#include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
 #include "ui/WaveformPeakService.h"
@@ -267,6 +268,21 @@ public:
         }
 
         return result;
+    }
+
+    // H17 CP4: the shipped shell's autosave-scheduling policy (ON by default). The GUI shell drives a
+    // juce::Timer off this; keeping it here means the shell never reaches into the engine/bundle itself.
+    [[nodiscard]] const AutosaveSchedulePolicy& autosaveSchedule() const noexcept { return autosaveSchedule_; }
+
+    // One scheduled autosave attempt, called from the shell's control-tick Timer. No-ops safely when no
+    // bundle/engine is live yet; the underlying write itself no-ops unless the project is dirty
+    // (PlaybackEngine::needsAutosave). CONTROL-THREAD ONLY (heavy SQLite/asset I/O) — never the audio callback.
+    [[nodiscard]] persistence::AutosaveResult writeAutosaveTick()
+    {
+        if (playback_ == nullptr || ! bundleDb_.isOpen())
+            return persistence::autosave_detail::ok();
+
+        return persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
     }
 
     [[nodiscard]] UiActionDispatchResult exportAudioFile (const std::filesystem::path& destinationPath)
@@ -2436,6 +2452,7 @@ private:
     UiRecordedMidiTake pendingMidiPlacement_;
     UiRecordingCompSelection recordingCompSelection_;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
+    AutosaveSchedulePolicy autosaveSchedule_ {};
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
