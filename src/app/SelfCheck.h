@@ -14,10 +14,12 @@
 #include "engine/OfflineRenderer.h"
 #include "engine/Project.h"
 #include "io/WavFile.h"
+#include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
@@ -381,6 +383,144 @@ struct LoudnessCheckResult
     r.channels = wav.channels;
     r.frames = wav.frames;
     r.sampleRateHz = static_cast<double> (wav.sampleRate.hz);
+    r.ok = true;
+    r.message = "ok";
+    return r;
+}
+
+// --- H17 CP2 (make-demo) — generate a real demo bundle + exported mix ----------------------------
+// Produces a self-contained demo song so alpha-verify's POSITIVE pass runs end-to-end (and gives
+// testers a ready project). Builds a moderate-level tone asset (renders mid-window on the -30..-6
+// LUFS gate), persists a .yesdaw bundle, writes an autosave snapshot (the autosave-present assert),
+// renders the project, and exports demo.wav. Outputs <outDir>/demo.yesdaw and <outDir>/demo.wav.
+struct MakeDemoResult
+{
+    bool          ok = false;
+    std::string   message;
+    std::string   bundlePath;
+    std::string   wavPath;
+    double        integratedLufs = 0.0;    // exported-mix loudness (sanity/logging)
+    std::uint16_t renderedChannels = 0;
+    std::uint64_t renderedFrames = 0;
+};
+
+[[nodiscard]] inline MakeDemoResult makeDemo (const std::filesystem::path& outDir)
+{
+    MakeDemoResult r;
+
+    const auto idFrom = [] (std::uint8_t low) {
+        engine::EntityId::StorageBytes bytes {};
+        bytes.back() = low;
+        return engine::EntityId::fromBytes (bytes);
+    };
+
+    std::error_code ec;
+    std::filesystem::create_directories (outDir, ec);
+
+    const engine::SampleRate sampleRate { 48000.0 };
+    const std::uint16_t channels = 1;
+    const std::uint64_t frames = 96000; // 2 seconds — comfortably past BS.1770 gating
+
+    // Steady mid-level tone: amplitude 0.35 renders (unity gain) to roughly -14 LUFS, safely inside
+    // the -30..-6 LUFS alpha gate with wide margin.
+    std::vector<float> assetSamples (static_cast<std::size_t> (frames));
+    for (std::uint64_t f = 0; f < frames; ++f)
+        assetSamples[static_cast<std::size_t> (f)] =
+            0.35f * std::sin (2.0f * 3.14159265f * 220.0f * static_cast<float> (f) / 48000.0f);
+
+    // Write the source asset WAV, then import it into a fresh bundle.
+    const std::filesystem::path sourceWav = outDir / "demo-source.wav";
+    const io::WavResult wroteSource = io::writeFloat32WavFile (
+        sourceWav, sampleRate, channels, frames,
+        std::span<const float> (assetSamples.data(), assetSamples.size()));
+    if (! wroteSource.ok()) { r.message = "write source wav failed: " + wroteSource.message; return r; }
+
+    const std::filesystem::path bundlePath = outDir / "demo.yesdaw";
+    std::filesystem::remove_all (bundlePath, ec);
+
+    persistence::ProjectBundleDb db;
+    if (! persistence::ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok())
+    {
+        std::filesystem::remove (sourceWav, ec);
+        r.message = "open bundle failed";
+        return r;
+    }
+
+    engine::Asset imported;
+    const persistence::AssetImportRequest request { sourceWav, idFrom (10), frames, sampleRate, channels };
+    if (! db.importAssetBytes (request, imported).ok())
+    {
+        std::filesystem::remove (sourceWav, ec);
+        r.message = "import asset failed";
+        return r;
+    }
+    std::filesystem::remove (sourceWav, ec); // now stored inside the bundle; drop the loose copy
+
+    engine::Clip clip;
+    clip.id = idFrom (20);
+    clip.assetId = imported.id;
+    clip.trackId = idFrom (30);
+    clip.timelineStart = 0;
+    clip.timelineLength = static_cast<engine::Tick> (frames);
+    clip.srcOffset = 0;
+    clip.srcLen = frames;
+    clip.gain = 1.0f;
+    clip.fadeIn = 0;
+    clip.fadeOut = 0;
+    clip.timeBase = engine::TimeBase::SampleLocked;
+
+    engine::Project project;
+    project.id = idFrom (1);
+    project.sampleRate = sampleRate;
+    project.assets.push_back (imported);
+
+    engine::Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Demo";
+    project.tracks.push_back (track);
+    project.clips.push_back (clip);
+
+    if (! project.hasValidAssetClipIndirection()) { r.message = "invalid asset/clip indirection"; return r; }
+    if (! db.writeProjectSnapshot (project).ok()) { r.message = "write snapshot failed"; return r; }
+
+    // Autosave snapshot -> satisfies alpha-verify's autosave-present assert (autosave/last.yesdaw).
+    const persistence::AutosaveResult autosave = persistence::writeAutosaveSnapshot (db, project);
+    if (! autosave.ok()) { r.message = "write autosave failed: " + autosave.message; return r; }
+
+    // Render from the in-memory samples (kept alive above) and export the mix.
+    engine::DecodedAssetAudio decoded;
+    decoded.assetId = imported.id;
+    decoded.sampleRate = sampleRate;
+    decoded.frames = frames;
+    decoded.channels = channels;
+    decoded.interleavedSamples = std::span<const float> (assetSamples.data(), assetSamples.size());
+    const std::vector<engine::DecodedAssetAudio> decodedAssets { decoded };
+
+    const engine::OfflineRenderResult render = engine::renderOfflineProject (
+        project, std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
+    if (! render.ok())
+    {
+        r.message = "render failed (status " + std::to_string (static_cast<int> (render.status)) + ")";
+        return r;
+    }
+    if (render.frames == 0) { r.message = "render produced zero frames"; return r; }
+
+    const std::filesystem::path wavPath = outDir / "demo.wav";
+    const io::WavResult wroteMix = io::writeFloat32WavFile (
+        wavPath, project.sampleRate, render.channels, render.frames,
+        std::span<const float> (render.interleavedSamples.data(), render.interleavedSamples.size()));
+    if (! wroteMix.ok()) { r.message = "write mix failed: " + wroteMix.message; return r; }
+
+    // Report the exported mix's integrated loudness (sanity/logging; the -30..-6 verdict is the gate's).
+    const analysis::LoudnessResult loud = analysis::analyzeInterleavedLoudness (
+        std::span<const float> (render.interleavedSamples.data(), render.interleavedSamples.size()),
+        static_cast<std::uint32_t> (render.channels), 48000u);
+    r.integratedLufs = (loud.status == analysis::LoudnessStatus::Ok) ? loud.metrics.integratedLufs : 0.0;
+
+    r.renderedChannels = render.channels;
+    r.renderedFrames = render.frames;
+    r.bundlePath = bundlePath.string();
+    r.wavPath = wavPath.string();
     r.ok = true;
     r.message = "ok";
     return r;

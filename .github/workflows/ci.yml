@@ -260,3 +260,23 @@ jobs:
       - name: Alpha-verify self-test (Windows)
         if: runner.os == 'Windows'
         run: powershell -ExecutionPolicy Bypass -File tools\alpha-verify.ps1 -SelfTest
+
+      # H17 CP2: the full POSITIVE pass — generate a real demo bundle+mix (--make-demo) then run all 5
+      # alpha asserts on it. This closes CP5's mechanical gate end-to-end (positive + negative) in CI.
+      - name: Make demo + alpha-verify POSITIVE pass (POSIX)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sc="build-ci/YesDawSelfCheck_artefacts/Release/YesDawSelfCheck"
+          demo="$(mktemp -d)"
+          "$sc" --make-demo "$demo"
+          tools/alpha-verify.sh --bundle "$demo/demo.yesdaw" --wav "$demo/demo.wav"
+
+      - name: Make demo + alpha-verify POSITIVE pass (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $sc = "build-ci\YesDawSelfCheck_artefacts\Release\YesDawSelfCheck.exe"
+          $demo = Join-Path $env:RUNNER_TEMP ("demo-" + [System.Guid]::NewGuid().ToString('N'))
+          & $sc --make-demo $demo
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          powershell -ExecutionPolicy Bypass -File tools\alpha-verify.ps1 -Bundle "$demo\demo.yesdaw" -Wav "$demo\demo.wav"

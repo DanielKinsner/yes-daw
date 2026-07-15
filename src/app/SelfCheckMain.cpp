@@ -3,6 +3,7 @@
 //   YesDawSelfCheck --selfcheck <bundle.yesdaw>   open + validate + render -> PASS/FAIL, exit 0/1
 //   YesDawSelfCheck --verify-wav <file.wav>        WAV round-trips bit-exact -> PASS/FAIL, exit 0/1
 //   YesDawSelfCheck --loudness <file.wav>          print integrated LUFS (measure ok -> exit 0/1)
+//   YesDawSelfCheck --make-demo <out-dir>          generate demo.yesdaw + demo.wav (for alpha-verify)
 //   YesDawSelfCheck --version                      print the git-describe build version, exit 0
 //
 // The self-check logic lives in src/app/SelfCheck.h so a Catch2 test (tests/selfcheck_tests.cpp)
@@ -32,6 +33,7 @@ int printUsage()
     std::puts ("usage: YesDawSelfCheck --selfcheck <bundle.yesdaw>");
     std::puts ("       YesDawSelfCheck --verify-wav <file.wav>");
     std::puts ("       YesDawSelfCheck --loudness <file.wav>");
+    std::puts ("       YesDawSelfCheck --make-demo <out-dir>");
     std::puts ("       YesDawSelfCheck --version");
     return 2;
 }
@@ -100,6 +102,24 @@ int runLoudnessCli (const std::string& wav)
     return 0;
 }
 
+int runMakeDemoCli (const std::string& outDir)
+{
+    const yesdaw::app::MakeDemoResult r = yesdaw::app::makeDemo (std::filesystem::path (outDir));
+    if (! r.ok)
+    {
+        std::printf ("MAKEDEMO FAIL: %s\n", r.message.c_str());
+        return 1;
+    }
+
+    std::printf ("MAKEDEMO OK: bundle=%s wav=%s (integrated %.2f LUFS, %llu frames x %u ch)\n",
+                 r.bundlePath.c_str(),
+                 r.wavPath.c_str(),
+                 r.integratedLufs,
+                 static_cast<unsigned long long> (r.renderedFrames),
+                 static_cast<unsigned> (r.renderedChannels));
+    return 0;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -142,6 +162,17 @@ int main (int argc, char** argv)
             }
 
             return runLoudnessCli (std::string (args[i + 1]));
+        }
+
+        if (args[i] == "--make-demo")
+        {
+            if (i + 1 >= args.size())
+            {
+                std::printf ("MAKEDEMO FAIL: --make-demo requires an <out-dir> path\n");
+                return 1;
+            }
+
+            return runMakeDemoCli (std::string (args[i + 1]));
         }
     }
 
