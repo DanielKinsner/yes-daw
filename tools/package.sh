@@ -5,10 +5,11 @@
 # is produced by tools/package.ps1; this is the POSIX sibling (macOS zip is produced but its
 # notarization story is explicitly beta — ADR-0037).
 #
-# Honest scope: this builds via the `ci` preset, stages the artefact + alpha readme +
-# git-describe version.txt (+ LICENSE if present), and zips it. It does NOT run the packaged
-# self-check — that is CP1 `--selfcheck`, still open — and it never writes a reality-lane PASS
-# row (owner-only, docs/reality-lane.md). Exit 0 on a produced zip, non-zero on any failure.
+# Honest scope: this builds via the `ci` preset, stages BOTH the GUI app and the YesDawSelfCheck
+# CLI + alpha readme + git-describe version.txt (+ LICENSE if present), and zips it. It stages —
+# but does not itself RUN — the packaged self-check; the CI `package` job runs it from a clean
+# temp dir (repo-independence proof). It never writes a reality-lane PASS row (owner-only,
+# docs/reality-lane.md). Exit 0 on a produced zip, non-zero on any failure.
 #
 # Usage:
 #   tools/package.sh            build (ci/Release) then package
@@ -37,8 +38,10 @@ else
   version="0.0.0-nogit"
 fi
 
-# Platform label + expected Release artefact from the `ci` preset (binaryDir = build-ci/).
+# Platform label + expected Release artefacts from the `ci` preset (binaryDir = build-ci/).
+# The self-check CLI is a console app, so it is a bare binary on every OS (no .app bundle).
 uname_s="$(uname -s)"
+selfcheck_artefact="build-ci/YesDawSelfCheck_artefacts/Release/YesDawSelfCheck"
 case "$uname_s" in
   Darwin) os_label="macos"; artefact="build-ci/YesDaw_artefacts/Release/YesDaw.app" ;;
   Linux)  os_label="linux"; artefact="build-ci/YesDaw_artefacts/Release/YesDaw" ;;
@@ -47,11 +50,15 @@ esac
 
 if [ "$no_build" -eq 0 ]; then
   echo "[package] building via ci preset (Release)..."
-  cmake --build --preset ci --target YesDaw
+  cmake --build --preset ci --target YesDaw YesDawSelfCheck
 fi
 
 if [ ! -e "$artefact" ]; then
   echo "[package] FAIL: artefact not found: $artefact (build first, or drop --no-build)" >&2
+  exit 1
+fi
+if [ ! -e "$selfcheck_artefact" ]; then
+  echo "[package] FAIL: self-check artefact not found: $selfcheck_artefact (build first, or drop --no-build)" >&2
   exit 1
 fi
 
@@ -63,6 +70,10 @@ mkdir -p "$pkg_root"
 
 # Stage the artefact (dir-copy handles the macOS .app bundle; file-copy the bare Linux binary).
 cp -R "$artefact" "$pkg_root/"
+
+# Stage the headless self-check CLI beside the app so the packaged build can prove itself: the CI
+# `package` job runs `YesDawSelfCheck --version` from a clean temp dir (repo-independence proof).
+cp "$selfcheck_artefact" "$pkg_root/"
 
 # version.txt — the single value the packaged `--version` must match (CP1 version-stamp gate).
 printf '%s\n' "$version" > "$pkg_root/version.txt"

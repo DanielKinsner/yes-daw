@@ -4,9 +4,10 @@
 # YesDaw-<version>-win64-portable.zip from the `ci` (Release) build. This is the primary alpha
 # artefact path (ADR-0037: portable unsigned zip for alpha; signing/installer are beta).
 #
-# Honest scope: build -> stage exe + alpha readme + git-describe version.txt (+ LICENSE if
-# present) -> zip. It does NOT run the packaged self-check (CP1 `--selfcheck`, still open) and
-# never writes a reality-lane PASS row. Exit 0 on a produced zip, 1 on failure.
+# Honest scope: build -> stage the GUI exe + the YesDawSelfCheck CLI + alpha readme + git-describe
+# version.txt (+ LICENSE if present) -> zip. It stages — but does not itself RUN — the packaged
+# self-check; the CI `package` job runs it from a clean temp dir (repo-independence proof). Never
+# writes a reality-lane PASS row. Exit 0 on a produced zip, 1 on failure.
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File tools\package.ps1            build then package
@@ -29,12 +30,20 @@ if (-not $version) { $version = '0.0.0-nogit' }
 if (-not $NoBuild) {
   Write-Host "[package] building via ci preset (Release)..."
   Push-Location $root
-  try { cmake --build --preset ci --target YesDaw } finally { Pop-Location }
+  try { cmake --build --preset ci --target YesDaw YesDawSelfCheck } finally { Pop-Location }
 }
 
 $exe = Join-Path $root 'build-ci\YesDaw_artefacts\Release\YesDaw.exe'
 if (-not (Test-Path -LiteralPath $exe)) {
   Write-Error "[package] artefact not found: $exe (build first, or drop -NoBuild)"
+  exit 1
+}
+
+# The self-check CLI is a console app -> a bare .exe (no bundle), staged beside the GUI app so
+# the packaged build can prove itself (the CI package job runs its --version from a clean dir).
+$selfcheck = Join-Path $root 'build-ci\YesDawSelfCheck_artefacts\Release\YesDawSelfCheck.exe'
+if (-not (Test-Path -LiteralPath $selfcheck)) {
+  Write-Error "[package] self-check artefact not found: $selfcheck (build first, or drop -NoBuild)"
   exit 1
 }
 
@@ -45,6 +54,7 @@ New-Item -ItemType Directory -Force -Path $pkgRoot | Out-Null
 
 try {
   Copy-Item -LiteralPath $exe -Destination $pkgRoot
+  Copy-Item -LiteralPath $selfcheck -Destination $pkgRoot
 
   # version.txt — the single value the packaged `--version` must match (CP1 version-stamp gate).
   Set-Content -LiteralPath (Join-Path $pkgRoot 'version.txt') -Value $version
