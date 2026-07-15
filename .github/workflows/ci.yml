@@ -203,3 +203,60 @@ jobs:
             *"$expected"*) echo "OK: packaged self-check reports the staged version ($expected)" ;;
             *) echo "FAIL: packaged --version ('$out') does not contain version.txt ('$expected')"; exit 1 ;;
           esac
+
+  # H17 CP5: exercise tools/alpha-verify (the alpha-gate mechanical companion). Builds only the
+  # YesDawSelfCheck CLI, then runs the script's --self-test, which proves each of the 5 alpha asserts
+  # FAILS on a synthetic bad input (empty export, garbage WAV, out-of-range loudness, non-bundle,
+  # missing autosave) — the implementer-brief #8 negative controls. The full POSITIVE pass needs a
+  # real produced song (CP2 / an owner session) and is intentionally not run here. Both the POSIX
+  # (.sh) and Windows (.ps1) scripts are covered.
+  alpha-verify:
+    name: Alpha-verify self-test (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux,   os: ubuntu-22.04 }
+          - { name: Windows, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libjack-jackd2-dev ladspa-sdk \
+            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libglu1-mesa-dev mesa-common-dev ninja-build
+
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Get CMake + Ninja (consistent across all runners)
+        uses: lukka/get-cmake@latest
+
+      - name: Cache fetched dependencies
+        uses: actions/cache@v4
+        with:
+          path: build-ci/_deps
+          key: deps-${{ runner.os }}-juce8.0.4-catch3.7.1-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
+
+      - name: Configure (Release)
+        run: cmake --preset ci
+
+      - name: Build the self-check CLI
+        run: cmake --build --preset ci --target YesDawSelfCheck
+
+      - name: Alpha-verify self-test (POSIX)
+        if: runner.os == 'Linux'
+        run: tools/alpha-verify.sh --self-test
+
+      - name: Alpha-verify self-test (Windows)
+        if: runner.os == 'Windows'
+        run: powershell -ExecutionPolicy Bypass -File tools\alpha-verify.ps1 -SelfTest
