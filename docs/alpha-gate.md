@@ -4,10 +4,13 @@
 close that actually gates the horizon. Per [H17 plan](plans/2026-07-03-h17-distribution-alpha-plan.md)
 CP5 and CLAUDE.md ("verification is mechanical; nothing subjective gates CI or the horizon").*
 
-> Status (2026-07-13): this is the **runbook + gate definition**. The mechanical companion
-> `tools/alpha-verify` and the reopen/export asserts depend on CP1 slices 2–3 (render + export) and
-> the packaging job (CP3 CI wiring); each assert below names the tooling it waits on. The human
-> steps are runnable as soon as there's a packaged build.
+> Status (2026-07-15): this is the **runbook + gate definition**. Its blockers have now cleared —
+> **CP1 (all slices: open→validate→render→export bit-exact) and CP3 (packaging + the CI job that runs
+> the packaged self-check) are done and merged.** So the reopen assert (`YesDawSelfCheck --selfcheck`),
+> the export-exists assert, and the autosave-present assert are buildable now; the remaining two
+> (export re-imports bit-exact, integrated loudness) still wait on a small verify-CLI capability
+> (a WAV re-read + a libebur128 loudness read), called out per-row below. The human steps are
+> runnable as soon as there's a packaged build. `tools/alpha-verify` itself is not written yet.
 
 ## What "alpha" means here
 
