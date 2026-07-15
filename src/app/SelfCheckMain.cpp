@@ -1,6 +1,7 @@
 // YES DAW — headless self-check console app (H17 CP1). Thin CLI over yesdaw::app::runSelfCheck.
 //
 //   YesDawSelfCheck --selfcheck <bundle.yesdaw>   open + validate + render -> PASS/FAIL, exit 0/1
+//   YesDawSelfCheck --verify-wav <file.wav>        WAV round-trips bit-exact -> PASS/FAIL, exit 0/1
 //   YesDawSelfCheck --version                      print the git-describe build version, exit 0
 //
 // The self-check logic lives in src/app/SelfCheck.h so a Catch2 test (tests/selfcheck_tests.cpp)
@@ -28,6 +29,7 @@ namespace {
 int printUsage()
 {
     std::puts ("usage: YesDawSelfCheck --selfcheck <bundle.yesdaw>");
+    std::puts ("       YesDawSelfCheck --verify-wav <file.wav>");
     std::puts ("       YesDawSelfCheck --version");
     return 2;
 }
@@ -60,6 +62,23 @@ int runSelfCheckCli (const std::string& bundle)
     return 0;
 }
 
+int runVerifyWavCli (const std::string& wav)
+{
+    const yesdaw::app::WavVerifyResult r = yesdaw::app::verifyWavRoundTrip (std::filesystem::path (wav));
+    if (! r.ok)
+    {
+        std::printf ("VERIFYWAV FAIL: %s\n", r.message.c_str());
+        return 1;
+    }
+
+    std::printf ("VERIFYWAV PASS: %s (sr=%.0f, %llu frames x %u ch, round-trips bit-exact)\n",
+                 wav.c_str(),
+                 r.sampleRateHz,
+                 static_cast<unsigned long long> (r.frames),
+                 static_cast<unsigned> (r.channels));
+    return 0;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -80,6 +99,17 @@ int main (int argc, char** argv)
             }
 
             return runSelfCheckCli (std::string (args[i + 1]));
+        }
+
+        if (args[i] == "--verify-wav")
+        {
+            if (i + 1 >= args.size())
+            {
+                std::printf ("VERIFYWAV FAIL: --verify-wav requires a <file.wav> path\n");
+                return 1;
+            }
+
+            return runVerifyWavCli (std::string (args[i + 1]));
         }
     }
 

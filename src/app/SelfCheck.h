@@ -235,4 +235,88 @@ namespace detail {
     return r;
 }
 
+// --- H17 CP5 (alpha-verify) — WAV round-trip check -----------------------------------------------
+// Proves an exported WAV is well-formed AND reversible (the H7 gate pattern) against an EXTERNAL
+// file: read it, write it back through the canonical float32 writer, re-read, and assert bit-exact.
+// Used by the alpha-verify "export re-imports bit-exact" assert on the mix a real session produced.
+struct WavVerifyResult
+{
+    bool          ok = false;
+    std::string   message;        // failure reason, or "ok"
+    std::uint16_t channels = 0;
+    std::uint64_t frames = 0;
+    double        sampleRateHz = 0.0;
+};
+
+[[nodiscard]] inline WavVerifyResult verifyWavRoundTrip (const std::filesystem::path& wavPath)
+{
+    WavVerifyResult r;
+
+    std::error_code ec;
+    if (! std::filesystem::exists (wavPath, ec))
+    {
+        r.message = "wav path does not exist";
+        return r;
+    }
+
+    io::Float32Wav original;
+    const io::WavResult read1 = io::readFloat32WavFile (wavPath, original);
+    if (! read1.ok())
+    {
+        r.message = "could not read wav: " + read1.message;
+        return r;
+    }
+    if (original.channels == 0 || original.frames == 0)
+    {
+        r.message = "wav is empty (zero channels or frames)";
+        return r;
+    }
+
+    const std::filesystem::path tempPath =
+        std::filesystem::temp_directory_path()
+        / ("yesdaw-verifywav-" + wavPath.filename().string() + ".roundtrip.wav");
+
+    const io::WavResult wrote = io::writeFloat32WavFile (
+        tempPath, original.sampleRate, original.channels, original.frames,
+        std::span<const float> (original.interleavedSamples.data(), original.interleavedSamples.size()));
+    if (! wrote.ok())
+    {
+        std::filesystem::remove (tempPath, ec);
+        r.message = "round-trip write failed: " + wrote.message;
+        return r;
+    }
+
+    io::Float32Wav reread;
+    const io::WavResult read2 = io::readFloat32WavFile (tempPath, reread);
+    std::filesystem::remove (tempPath, ec);
+    if (! read2.ok())
+    {
+        r.message = "round-trip re-read failed: " + read2.message;
+        return r;
+    }
+
+    if (reread.channels != original.channels
+        || reread.frames != original.frames
+        || reread.interleavedSamples.size() != original.interleavedSamples.size())
+    {
+        r.message = "round-trip shape mismatch";
+        return r;
+    }
+    for (std::size_t i = 0; i < original.interleavedSamples.size(); ++i)
+    {
+        if (reread.interleavedSamples[i] != original.interleavedSamples[i])
+        {
+            r.message = "round-trip not bit-exact";
+            return r;
+        }
+    }
+
+    r.channels = original.channels;
+    r.frames = original.frames;
+    r.sampleRateHz = static_cast<double> (original.sampleRate.hz);
+    r.ok = true;
+    r.message = "ok";
+    return r;
+}
+
 } // namespace yesdaw::app

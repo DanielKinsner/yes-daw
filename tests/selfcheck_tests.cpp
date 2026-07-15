@@ -121,3 +121,35 @@ TEST_CASE ("selfcheck rejects a path that is not a bundle", "[selfcheck][negativ
 
     CHECK_FALSE (result.ok);
 }
+
+TEST_CASE ("verify-wav round-trips a canonical float32 wav bit-exact", "[selfcheck][verifywav][h17]")
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::filesystem::path wavPath =
+        std::filesystem::temp_directory_path() / ("yesdaw-verifywav-test-" + std::to_string (ticks) + ".wav");
+
+    const std::vector<float> samples { 0.0f, 0.25f, -0.5f, 0.75f, -1.0f, 1.0f, 0.125f, -0.125f };
+    const std::uint16_t channels = 2;
+    const std::uint64_t frames = static_cast<std::uint64_t> (samples.size()) / channels; // 4
+
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+                 wavPath, SampleRate { 48000.0 }, channels, frames,
+                 std::span<const float> (samples.data(), samples.size())).ok());
+
+    const yesdaw::app::WavVerifyResult r = yesdaw::app::verifyWavRoundTrip (wavPath);
+    INFO ("verify message: " << r.message);
+    REQUIRE (r.ok);
+    CHECK (r.channels == channels);
+    CHECK (r.frames == frames);
+    CHECK (r.sampleRateHz == 48000.0);
+
+    std::error_code ec;
+    std::filesystem::remove (wavPath, ec);
+}
+
+TEST_CASE ("verify-wav rejects a missing file", "[selfcheck][verifywav][negative][h17]")
+{
+    const yesdaw::app::WavVerifyResult r =
+        yesdaw::app::verifyWavRoundTrip (std::filesystem::temp_directory_path() / "yesdaw-verifywav-absent-xyz.wav");
+    CHECK_FALSE (r.ok);
+}
