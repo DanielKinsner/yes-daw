@@ -399,6 +399,32 @@ TEST_CASE ("DAWproject number I/O stays radix-'.' under a comma-decimal locale",
     std::filesystem::remove (packagePath, ec);
 }
 
+TEST_CASE ("DAWproject export stamps the real build version, never the bare 0.0.0 placeholder",
+           "[h10][dawproject][version]")
+{
+    const Project project = makeInterchangeProject();
+    const std::vector<DecodedAssetAudio> decoded = makeDecodedAssets (project);
+    const std::filesystem::path packagePath = makeTempPath ("version", ".dawproject");
+
+    REQUIRE (yesdaw::interchange::dawproject::exportProjectToDawproject (
+                 packagePath,
+                 project,
+                 std::span<const DecodedAssetAudio> (decoded.data(), decoded.size())).ok());
+
+    const std::string xml = projectXmlFromEntries (readEntries (packagePath));
+
+    // The <Application> tag carries the git-describe stamp this target was compiled with (CMake
+    // defines YESDAW_VERSION_STRING for it), and never the retired "0.0.0" placeholder that shipped
+    // inside interchange files a user shares to another DAW.
+    const std::string expected =
+        std::string ("<Application name=\"YES DAW\" version=\"") + YESDAW_VERSION_STRING + "\"";
+    REQUIRE (xml.find (expected) != std::string::npos);
+    REQUIRE (xml.find ("version=\"0.0.0\"") == std::string::npos);
+
+    std::error_code ec;
+    std::filesystem::remove (packagePath, ec);
+}
+
 TEST_CASE ("DAWproject reader rejects missing media and malformed package summaries", "[h10][dawproject][negative]")
 {
     const Project project = makeInterchangeProject();

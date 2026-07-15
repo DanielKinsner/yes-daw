@@ -21,6 +21,14 @@
 #include <utility>
 #include <vector>
 
+// Build-time version stamp (git-describe), injected by CMake (YESDAW_GIT_VERSION) — the same stamp
+// the GUI app and the YesDawSelfCheck CLI carry. The exported .dawproject <Application> tag uses it
+// so interchange files a user shares to another DAW no longer advertise a bare "0.0.0". Falls back
+// to a dev marker for a target that does not define it (e.g. a pure test build).
+#ifndef YESDAW_VERSION_STRING
+  #define YESDAW_VERSION_STRING "0.0.0-dev"
+#endif
+
 namespace yesdaw::interchange::dawproject {
 
 enum class PackageStatus : std::uint8_t
@@ -588,7 +596,7 @@ inline bool midiTrackAlreadySeen (std::span<const engine::EntityId> tracks, engi
     projectXml.imbue (std::locale::classic());
     projectXml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     projectXml << "<Project version=\"1.0\">\n";
-    projectXml << "  <Application name=\"YES DAW\" version=\"0.0.0\"/>\n";
+    projectXml << "  <Application name=\"YES DAW\" version=\"" << YESDAW_VERSION_STRING << "\"/>\n";
 
     const engine::TempoChange tempo = project.tempoMap.empty() ? engine::TempoChange {} : project.tempoMap.front();
     if (tempo.tick != 0 || ! tempo.hasValidBpm())

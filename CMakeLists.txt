@@ -631,6 +631,9 @@ add_test(NAME YesDawDawprojectPrimitivesCheck COMMAND $<TARGET_FILE:YesDawDawpro
 add_executable(YesDawDawprojectCheck tests/dawproject_package_tests.cpp)
 target_include_directories(YesDawDawprojectCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawDawprojectCheck PRIVATE Catch2::Catch2WithMain)
+# Compile the interchange export with the real git-describe stamp so the test exercises (and can
+# assert) the actual <Application version="..."> that ships, not the header's dev fallback.
+target_compile_definitions(YesDawDawprojectCheck PRIVATE YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
 yesdaw_harden(YesDawDawprojectCheck)
 add_test(NAME YesDawDawprojectCheck COMMAND $<TARGET_FILE:YesDawDawprojectCheck>)
 
