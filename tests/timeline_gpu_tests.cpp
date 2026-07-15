@@ -148,8 +148,18 @@ TEST_CASE ("Timeline canvas scrolls a large arrangement under one 60 fps frame",
     // Tolerate more of those single-frame outliers on CI (env CI is set on GitHub Actions) while
     // keeping the strict local bar. The gate still catches a real regression: a genuinely slow renderer
     // blows the *sustained* (~95th-percentile) frame below, which fails regardless of outlier count.
-    const int allowedOutlierFrames =
-        (std::getenv ("CI") != nullptr) ? 8 : kAllowedOutlierFrames;
+    // std::getenv trips MSVC's C4996 "deprecated" warning, which is -Werror/`/WX` here. The env-var
+    // name is a fixed literal (not user input), so the "unsafe" advisory doesn't apply — suppress it
+    // locally rather than reach for the non-portable getenv_s.
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
+    const bool runningOnCi = (std::getenv ("CI") != nullptr);
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
+    const int allowedOutlierFrames = runningOnCi ? 8 : kAllowedOutlierFrames;
 
     std::sort (frameTimes.begin(), frameTimes.end());
     const auto sustainedIndex = static_cast<std::size_t> (std::max (0, kMeasuredFrames - allowedOutlierFrames - 1));
