@@ -52,7 +52,7 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
-## 2026-07-15 update (Vera) — CP1 + CP3 CLOSED, version stamping DONE (all CI-verified green on main)
+## 2026-07-15 update (Vera) — CP1 + CP3 + CP4 CLOSED, CP5 tooling DONE, version stamping DONE (all CI-green on main)
 
 Supersedes the "scaffold" notes below. All of the following are merged to `main`, each CI-verified
 green (compile on Windows+Linux+macOS under `-Werror`/`/WX`, plus the run gates), via the
@@ -69,10 +69,27 @@ public-repo push→CI→merge loop:
   (`getApplicationVersion()` → git-describe, window title carries it, project `VERSION` → `0.1.0`)
   and the exported `.dawproject` `<Application version="…">` (with a mechanical test asserting the
   real stamp and no `0.0.0`).
-- **Still owner-only / deferred (unchanged):** CP4 autosave-scheduling-ON-by-default is GUI `Timer`
-  wiring in the shell that cannot be verified headless — deferred rather than blind-shipped. CP2's
-  *committed* demo-song fixture needs a bundle produced by running the tool (the generated-bundle
-  test already covers the render path). Reality-lane smokes + H16 UI acceptance remain Dan's.
+- **CP4 CLOSED — autosave scheduling ON by default.** `AutosaveSchedulePolicy{enabled=true}` in the
+  pure JUCE-free `UiActions` layer (default asserted by a headless test), a gated
+  `UiAppModel::writeAutosaveTick()`, and a `juce::Timer` in the shell firing it on the control thread.
+  ⚠️ **Flagged, not silently shipped as working:** the timer fires but currently no-ops, because the
+  edit path never calls `PlaybackEngine::markProjectEdited()` (zero prod callers) and
+  `adoptEditedProject` rebuilds a fresh engine per edit, resetting the needs-autosave revision.
+  Scheduling is ON (CP4 met); *actually writing* autosaves needs edit-dirty tracking wired — a real
+  separate follow-up.
+- **CP5 TOOLING DONE (mechanical companion) — `tools/alpha-verify` + its CLI backends.**
+  `YesDawSelfCheck --verify-wav` (WAV round-trips bit-exact) and `--loudness` (integrated LUFS via the
+  shared LoudnessMeter/libebur128) landed; `tools/alpha-verify.sh`/`.ps1` run all 5 alpha-gate asserts
+  on a produced bundle+WAV, and a CI `alpha-verify` job runs their `--self-test` (each assert's
+  negative control) green on Linux + Windows. **What's left for CP5's full close:** the *positive*
+  end-to-end pass needs a real produced song — i.e. **CP2** (a make-demo generator so CI can produce a
+  bundle+WAV and run the positive asserts, OR a committed demo fixture) — plus the owner reality-lane
+  smokes.
+- **Still Dan's:** CP2 demo song, reality-lane smokes, H16 UI acceptance.
+- **⚠️ Flaky CI test:** `YesDawTimelineGpuCheck` (a frame-time perf gate) intermittently fails on the
+  macOS runner under scheduler contention (it tolerates 2 outlier frames; a contended macOS run can
+  exceed that). Not a code regression — it passed on main's re-run of the same commit. Loosening its
+  tolerance / adding a retry is a quality-gate decision left for Dan.
 
 ---
 
