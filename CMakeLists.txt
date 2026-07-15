@@ -170,6 +170,7 @@ juce_add_console_app(YesDawSelfCheck PRODUCT_NAME "YesDawSelfCheck")
 target_sources(YesDawSelfCheck PRIVATE src/app/SelfCheckMain.cpp)
 target_include_directories(YesDawSelfCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawSelfCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_include_directories(YesDawSelfCheck SYSTEM PRIVATE ${libebur128_SOURCE_DIR}/ebur128)
 target_compile_definitions(YesDawSelfCheck PRIVATE
   JUCE_WEB_BROWSER=0
   JUCE_USE_CURL=0
@@ -178,6 +179,7 @@ target_link_libraries(YesDawSelfCheck
   PRIVATE
     sqlite3_amalgamation
     juce::juce_audio_formats
+    ebur128
     juce::juce_recommended_config_flags)
 yesdaw_harden(YesDawSelfCheck)
 
@@ -772,6 +774,7 @@ if (YESDAW_BUILD_APPS)
   target_sources(YesDawSelfCheckTest PRIVATE tests/selfcheck_tests.cpp)
   target_include_directories(YesDawSelfCheckTest PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawSelfCheckTest SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_include_directories(YesDawSelfCheckTest SYSTEM PRIVATE ${libebur128_SOURCE_DIR}/ebur128)
   target_compile_definitions(YesDawSelfCheckTest PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -781,6 +784,7 @@ if (YESDAW_BUILD_APPS)
       Catch2::Catch2WithMain
       sqlite3_amalgamation
       juce::juce_audio_formats
+      ebur128
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawSelfCheckTest)
   catch_discover_tests(YesDawSelfCheckTest)

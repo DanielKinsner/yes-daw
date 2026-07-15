@@ -12,11 +12,14 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 using yesdaw::engine::Asset;
 using yesdaw::engine::Clip;
@@ -151,5 +154,44 @@ TEST_CASE ("verify-wav rejects a missing file", "[selfcheck][verifywav][negative
 {
     const yesdaw::app::WavVerifyResult r =
         yesdaw::app::verifyWavRoundTrip (std::filesystem::temp_directory_path() / "yesdaw-verifywav-absent-xyz.wav");
+    CHECK_FALSE (r.ok);
+}
+
+TEST_CASE ("loudness measures a canonical float32 wav", "[selfcheck][loudness][h17]")
+{
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::filesystem::path wavPath =
+        std::filesystem::temp_directory_path() / ("yesdaw-loudness-test-" + std::to_string (ticks) + ".wav");
+
+    // 1 second of a moderate stereo tone at 48k, so BS.1770 gating has real audio to integrate.
+    const std::uint16_t channels = 2;
+    const std::uint64_t frames = 48000;
+    std::vector<float> samples (static_cast<std::size_t> (frames) * channels);
+    for (std::uint64_t f = 0; f < frames; ++f)
+    {
+        const float s = 0.5f * std::sin (2.0f * 3.14159265f * 440.0f * static_cast<float> (f) / 48000.0f);
+        samples[static_cast<std::size_t> (f) * channels]     = s;
+        samples[static_cast<std::size_t> (f) * channels + 1] = s;
+    }
+
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+                 wavPath, SampleRate { 48000.0 }, channels, frames,
+                 std::span<const float> (samples.data(), samples.size())).ok());
+
+    const yesdaw::app::LoudnessCheckResult r = yesdaw::app::measureLoudness (wavPath);
+    INFO ("loudness message: " << r.message << ", lufs: " << r.integratedLufs);
+    REQUIRE (r.ok);
+    CHECK (r.channels == channels);
+    CHECK (r.frames == frames);
+    CHECK (r.integratedLufs < 0.0);   // any real signal (or silence) integrates below 0 LUFS
+
+    std::error_code ec;
+    std::filesystem::remove (wavPath, ec);
+}
+
+TEST_CASE ("loudness rejects a missing file", "[selfcheck][loudness][negative][h17]")
+{
+    const yesdaw::app::LoudnessCheckResult r =
+        yesdaw::app::measureLoudness (std::filesystem::temp_directory_path() / "yesdaw-loudness-absent-xyz.wav");
     CHECK_FALSE (r.ok);
 }

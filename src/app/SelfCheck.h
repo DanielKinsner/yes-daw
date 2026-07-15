@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "analysis/LoudnessMeter.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/Project.h"
 #include "io/WavFile.h"
@@ -314,6 +315,72 @@ struct WavVerifyResult
     r.channels = original.channels;
     r.frames = original.frames;
     r.sampleRateHz = static_cast<double> (original.sampleRate.hz);
+    r.ok = true;
+    r.message = "ok";
+    return r;
+}
+
+// --- H17 CP5 (alpha-verify) — integrated loudness read ------------------------------------------
+// Report a WAV's integrated loudness (LUFS, BS.1770 / EBU R128 via the shared LoudnessMeter) so
+// alpha-verify can assert the produced mix is neither silent nor clipped-to-hell. `ok` means the
+// measurement succeeded — it is NOT a range verdict; the caller (alpha-verify) owns the range.
+struct LoudnessCheckResult
+{
+    bool          ok = false;
+    std::string   message;        // failure reason, or "ok"
+    double        integratedLufs = 0.0;
+    std::uint16_t channels = 0;
+    std::uint64_t frames = 0;
+    double        sampleRateHz = 0.0;
+};
+
+[[nodiscard]] inline LoudnessCheckResult measureLoudness (const std::filesystem::path& wavPath)
+{
+    LoudnessCheckResult r;
+
+    std::error_code ec;
+    if (! std::filesystem::exists (wavPath, ec))
+    {
+        r.message = "wav path does not exist";
+        return r;
+    }
+
+    io::Float32Wav wav;
+    const io::WavResult read = io::readFloat32WavFile (wavPath, wav);
+    if (! read.ok())
+    {
+        r.message = "could not read wav: " + read.message;
+        return r;
+    }
+    if (wav.channels == 0 || wav.frames == 0)
+    {
+        r.message = "wav is empty (zero channels or frames)";
+        return r;
+    }
+
+    std::uint32_t sampleRateHz = 0;
+    if (! io::detail::sampleRateToUint32 (wav.sampleRate, sampleRateHz))
+    {
+        r.message = "wav sample rate is not a usable integer";
+        return r;
+    }
+
+    const analysis::LoudnessResult loudness = analysis::analyzeInterleavedLoudness (
+        std::span<const float> (wav.interleavedSamples.data(), wav.interleavedSamples.size()),
+        static_cast<std::uint32_t> (wav.channels),
+        sampleRateHz);
+
+    if (loudness.status != analysis::LoudnessStatus::Ok)
+    {
+        r.message = "loudness analysis failed (status "
+                    + std::to_string (static_cast<int> (loudness.status)) + ")";
+        return r;
+    }
+
+    r.integratedLufs = loudness.metrics.integratedLufs;
+    r.channels = wav.channels;
+    r.frames = wav.frames;
+    r.sampleRateHz = static_cast<double> (wav.sampleRate.hz);
     r.ok = true;
     r.message = "ok";
     return r;
