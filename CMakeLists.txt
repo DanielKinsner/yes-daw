@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
-project(YesDaw VERSION 0.0.0 LANGUAGES C CXX)
+project(YesDaw VERSION 0.1.0 LANGUAGES C CXX)
 
-# H17 CP1: git-describe version stamp for the self-check CLI (kills the 0.0.0 default for
-# `--version`). Best-effort at configure time; falls back to the project version when git is
-# unavailable (e.g. an exported tarball). Does NOT change the GUI app's JUCE bundle version — that
-# is a separate, flagged follow-up (touches shipped app identity).
+# H17: git-describe version stamp, shared by the YesDawSelfCheck CLI and the YesDaw GUI app (both are
+# compiled with -DYESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}"). Best-effort at configure time; falls
+# back to the numeric project version above when git is unavailable (e.g. an exported tarball). The
+# bare 0.0.0 placeholder is gone: the numeric metadata is 0.1.0 (alpha) and the runtime version the
+# apps report is the precise git-describe string.
 execute_process(
   COMMAND git describe --tags --always --dirty
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -134,7 +135,8 @@ target_compile_definitions(YesDaw PRIVATE
   JUCE_WEB_BROWSER=0
   JUCE_USE_CURL=0
   JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:YesDaw,JUCE_PRODUCT_NAME>"
-  JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:YesDaw,JUCE_VERSION>")
+  JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:YesDaw,JUCE_VERSION>"
+  YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
 
 target_link_libraries(YesDaw
   PRIVATE

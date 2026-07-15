@@ -6,15 +6,23 @@
 
 #include <memory>
 
+// Build-time version stamp (git-describe), injected by CMake (YESDAW_GIT_VERSION) exactly as the
+// YesDawSelfCheck CLI is stamped. Falls back to a dev marker for an unstamped/loose build so the
+// GUI never reports the bare "0.0.0" placeholder again. (H17: kill the 0.0.0 version.)
+#ifndef YESDAW_VERSION_STRING
+  #define YESDAW_VERSION_STRING "0.0.0-dev"
+#endif
+
 class YesDawApplication : public juce::JUCEApplication
 {
 public:
     const juce::String getApplicationName() override    { return "YesDaw"; }
-    const juce::String getApplicationVersion() override { return "0.0.0"; }
+    const juce::String getApplicationVersion() override { return YESDAW_VERSION_STRING; }
 
     void initialise (const juce::String&) override
     {
-        mainWindow.reset (new MainWindow ("YES DAW", yesdaw::ui::createMainComponent().release(), *this));
+        const juce::String title = "YES DAW " + getApplicationVersion();
+        mainWindow.reset (new MainWindow (title, yesdaw::ui::createMainComponent().release(), *this));
     }
 
     void shutdown() override { mainWindow = nullptr; }
