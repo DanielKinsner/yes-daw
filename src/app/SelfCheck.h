@@ -19,6 +19,7 @@
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
@@ -400,6 +401,7 @@ struct MakeDemoResult
     std::string   bundlePath;
     std::string   wavPath;
     double        integratedLufs = 0.0;    // exported-mix loudness (sanity/logging)
+    double        midiContributionPeak = 0.0;
     std::uint16_t renderedChannels = 0;
     std::uint64_t renderedFrames = 0;
 };
@@ -476,8 +478,68 @@ struct MakeDemoResult
 
     engine::Track track;
     track.id = clip.trackId;
-    track.strip.name = "Demo";
+    track.strip.name = "Imported audio";
+    engine::FxInsert trackEq;
+    trackEq.id = idFrom (40);
+    trackEq.kind = engine::FxKind::Eq;
+    track.strip.fxChain.push_back (trackEq);
     project.tracks.push_back (track);
+
+    engine::Track midiTrack;
+    midiTrack.id = idFrom (31);
+    midiTrack.strip.name = "Demo instrument";
+    project.tracks.push_back (midiTrack);
+
+    engine::MidiClip midiClip;
+    midiClip.id = idFrom (70);
+    midiClip.trackId = midiTrack.id;
+    midiClip.timelineStart = 0;
+    midiClip.timelineLength = 30'720;
+    midiClip.timeBase = engine::TimeBase::TempoLocked;
+    midiClip.notes = {
+        engine::Note { idFrom (71), 0,      7'680, 60, 60.0, 0.75, -1, 0 },
+        engine::Note { idFrom (72), 7'680,  7'680, 64, 64.0, 0.70, -1, 0 },
+        engine::Note { idFrom (73), 15'360, 7'680, 67, 67.0, 0.80, -1, 0 },
+        engine::Note { idFrom (74), 23'040, 7'680, 72, 72.0, 0.70, -1, 0 },
+    };
+    project.midiClips.push_back (midiClip);
+
+    engine::Bus fxBus;
+    fxBus.id = idFrom (50);
+    fxBus.strip.name = "Space";
+    engine::FxInsert busReverb;
+    busReverb.id = idFrom (51);
+    busReverb.kind = engine::FxKind::Reverb;
+    fxBus.strip.fxChain.push_back (busReverb);
+    project.buses.push_back (fxBus);
+
+    engine::AutomationLaneData panLane;
+    panLane.id = idFrom (80);
+    panLane.ownerEntity = track.id;
+    panLane.role = engine::AutomationTargetRole::TrackPan;
+    panLane.paramId = engine::PanNode::kPanParameterId;
+    panLane.points = {
+        engine::AutomationBreakpoint { 0,      0.50, engine::AutomationCurveType::Linear },
+        engine::AutomationBreakpoint { 15'360, 0.60, engine::AutomationCurveType::Linear },
+    };
+
+    engine::AutomationLaneData eqLane;
+    eqLane.id = idFrom (81);
+    eqLane.ownerEntity = trackEq.id;
+    eqLane.role = engine::AutomationTargetRole::FxInsertParam;
+    eqLane.paramId = engine::EqNode::parameterIdFor (0, engine::EqNode::kGainParamOffset);
+    eqLane.points = {
+        engine::AutomationBreakpoint { 0,      0.50, engine::AutomationCurveType::Linear },
+        engine::AutomationBreakpoint { 15'360, 0.55, engine::AutomationCurveType::Hold },
+    };
+    project.automationLanes = { panLane, eqLane };
+
+    project.tempoMap = { engine::TempoChange { 0, 120.0, engine::TempoCurve::Jump } };
+    project.meterMap = { engine::MeterChange { 0, 4, 4 } };
+    project.markers = {
+        engine::Marker { idFrom (90), 0,      "Intro" },
+        engine::Marker { idFrom (91), 15'360, "Lift" },
+    };
     project.clips.push_back (clip);
 
     if (! project.hasValidAssetClipIndirection()) { r.message = "invalid asset/clip indirection"; return r; }
@@ -504,6 +566,45 @@ struct MakeDemoResult
         return r;
     }
     if (render.frames == 0) { r.message = "render produced zero frames"; return r; }
+
+    // Render an otherwise-identical negative control so the demo gate proves that its MIDI clip
+    // contributes audio, rather than merely proving that MIDI rows survived persistence.
+    engine::Project audioOnly = project;
+    audioOnly.midiClips.clear();
+    const engine::OfflineRenderResult audioOnlyRender = engine::renderOfflineProject (
+        audioOnly, std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
+    if (! audioOnlyRender.ok())
+    {
+        r.message = "audio-only control render failed (status "
+                    + std::to_string (static_cast<int> (audioOnlyRender.status)) + ")";
+        return r;
+    }
+    if (audioOnlyRender.channels != render.channels
+        || audioOnlyRender.frames != render.frames
+        || audioOnlyRender.interleavedSamples.size() != render.interleavedSamples.size())
+    {
+        r.message = "audio-only control render shape mismatch";
+        return r;
+    }
+
+    double midiContributionPeak = 0.0;
+    for (std::size_t i = 0; i < render.interleavedSamples.size(); ++i)
+    {
+        const double delta = static_cast<double> (render.interleavedSamples[i])
+                             - static_cast<double> (audioOnlyRender.interleavedSamples[i]);
+        if (! std::isfinite (delta))
+        {
+            r.message = "MIDI contribution was non-finite";
+            return r;
+        }
+        midiContributionPeak = std::max (midiContributionPeak, std::abs (delta));
+    }
+    if (! (midiContributionPeak > 0.0))
+    {
+        r.message = "MIDI clip contributed no audio";
+        return r;
+    }
+    r.midiContributionPeak = midiContributionPeak;
 
     const std::filesystem::path wavPath = outDir / "demo.wav";
     const io::WavResult wroteMix = io::writeFloat32WavFile (

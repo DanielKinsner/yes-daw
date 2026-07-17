@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -204,13 +205,83 @@ TEST_CASE ("make-demo produces a bundle+mix that satisfies every alpha-verify as
         std::filesystem::temp_directory_path() / ("yesdaw-makedemo-test-" + std::to_string (ticks));
 
     const yesdaw::app::MakeDemoResult demo = yesdaw::app::makeDemo (outDir);
-    INFO ("make-demo message: " << demo.message << ", lufs: " << demo.integratedLufs);
+    INFO ("make-demo message: " << demo.message << ", lufs: " << demo.integratedLufs
+                                << ", MIDI contribution peak: " << demo.midiContributionPeak);
     REQUIRE (demo.ok);
     REQUIRE_FALSE (demo.bundlePath.empty());
     REQUIRE_FALSE (demo.wavPath.empty());
+    REQUIRE (std::isfinite (demo.midiContributionPeak));
+    REQUIRE (demo.midiContributionPeak > 0.0);
 
     const std::filesystem::path bundlePath { demo.bundlePath };
     const std::filesystem::path wavPath { demo.wavPath };
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, reopened).ok());
+    Project demoProject;
+    REQUIRE (reopened.readProjectSnapshot (demoProject).ok());
+
+    // CP2 fixture contract, persisted surfaces: audio + MIDI/instrument material, FX on a Track and
+    // a Bus, automation, musical time, and section Markers. These assertions keep make-demo from
+    // silently collapsing back to the single-tone smoke that originally landed under the CP2 label.
+    REQUIRE_FALSE (demoProject.clips.empty());
+    REQUIRE (demoProject.midiClips.size() == 1u);
+    REQUIRE (demoProject.midiClips.front().notes.size() >= 3u);
+
+    const Track* const audioTrack = demoProject.findTrack (demoProject.clips.front().trackId);
+    const Track* const midiTrack = demoProject.findTrack (demoProject.midiClips.front().trackId);
+    REQUIRE (audioTrack != nullptr);
+    REQUIRE (midiTrack != nullptr);
+    REQUIRE (audioTrack->id != midiTrack->id);
+    REQUIRE (audioTrack->strip.fxChain.size() == 1u);
+    REQUIRE (audioTrack->strip.fxChain.front().kind == yesdaw::engine::FxKind::Eq);
+
+    REQUIRE (demoProject.buses.size() == 1u);
+    REQUIRE (demoProject.buses.front().strip.fxChain.size() == 1u);
+    REQUIRE (demoProject.buses.front().strip.fxChain.front().kind == yesdaw::engine::FxKind::Reverb);
+
+    const auto findAutomationLane = [&demoProject] (EntityId owner,
+                                                    yesdaw::engine::AutomationTargetRole role,
+                                                    std::uint32_t paramId)
+    {
+        const auto lane = std::find_if (
+            demoProject.automationLanes.begin(),
+            demoProject.automationLanes.end(),
+            [owner, role, paramId] (const yesdaw::engine::AutomationLaneData& candidate)
+            {
+                return candidate.ownerEntity == owner && candidate.role == role && candidate.paramId == paramId;
+            });
+        return lane != demoProject.automationLanes.end() ? &*lane : nullptr;
+    };
+    const yesdaw::engine::AutomationLaneData* const panLane = findAutomationLane (
+        audioTrack->id,
+        yesdaw::engine::AutomationTargetRole::TrackPan,
+        yesdaw::engine::PanNode::kPanParameterId);
+    const yesdaw::engine::AutomationLaneData* const eqLane = findAutomationLane (
+        audioTrack->strip.fxChain.front().id,
+        yesdaw::engine::AutomationTargetRole::FxInsertParam,
+        yesdaw::engine::EqNode::parameterIdFor (0, yesdaw::engine::EqNode::kGainParamOffset));
+    REQUIRE (panLane != nullptr);
+    REQUIRE (eqLane != nullptr);
+
+    REQUIRE (panLane->points.size() == 2u);
+    REQUIRE (panLane->points[0].tick == 0);
+    REQUIRE (panLane->points[0].value == 0.50);
+    REQUIRE (panLane->points[0].curveType == yesdaw::engine::AutomationCurveType::Linear);
+    REQUIRE (panLane->points[1].tick == 15'360);
+    REQUIRE (panLane->points[1].value == 0.60);
+    REQUIRE (panLane->points[1].curveType == yesdaw::engine::AutomationCurveType::Linear);
+
+    REQUIRE (eqLane->points.size() == 2u);
+    REQUIRE (eqLane->points[0].tick == 0);
+    REQUIRE (eqLane->points[0].value == 0.50);
+    REQUIRE (eqLane->points[0].curveType == yesdaw::engine::AutomationCurveType::Linear);
+    REQUIRE (eqLane->points[1].tick == 15'360);
+    REQUIRE (eqLane->points[1].value == 0.55);
+    REQUIRE (eqLane->points[1].curveType == yesdaw::engine::AutomationCurveType::Hold);
+    REQUIRE_FALSE (demoProject.tempoMap.empty());
+    REQUIRE_FALSE (demoProject.meterMap.empty());
+    REQUIRE (demoProject.markers.size() >= 2u);
 
     // Assert 4 (reopen): the bundle opens, validates, renders, exports bit-exact.
     CHECK (yesdaw::app::runSelfCheck (bundlePath).ok);

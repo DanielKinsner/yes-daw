@@ -52,6 +52,25 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-07-17 update (Codex) — H17 CP2 supported-surface demo slice DONE locally
+
+- `--make-demo` now persists and renders an audio Track with EQ, a tempo-locked MIDI clip with notes,
+  a Bus with Reverb, Track-pan and EQ-gain automation breakpoints, a tempo/meter map, and two markers.
+- The gate reopens the bundle and checks the exact Track/clip relationships, FX kinds, automation targets,
+  and breakpoint data. An audio-only negative control proves that the MIDI path changes the rendered mix.
+- Mechanical checks are green locally: the focused self-check has 68 assertions, `alpha-verify.ps1` passes
+  all five assertions, and the canonical CI configure/build plus all 322 CTest tests pass.
+- **Honest boundary:** this does not close the locked CP2. Still missing are the committed
+  `tests/fixtures/demo-song.yesdaw/` bundle, distinct recorded-audio/take coverage, persisted Send routing,
+  and persisted loop-region state. The current `Project` model has no stored Send or loop-region fields.
+
+**Now:** ship this supported-surface slice and confirm the remote CI gate on `main`.
+
+**Next:** take one tiny CP2 slice, likely the committed demo fixture plus recorded-take metadata. Treat Send
+and loop persistence as model/ADR-aware work; do not fake H16 or reality-lane PASS evidence.
+
+---
+
 ## 2026-07-15 update (Vera) — CP1 + CP3 + CP4 CLOSED, CP5 tooling DONE, version stamping DONE (all CI-green on main)
 
 Supersedes the "scaffold" notes below. All of the following are merged to `main`, each CI-verified
