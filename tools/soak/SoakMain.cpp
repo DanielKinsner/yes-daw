@@ -189,6 +189,7 @@ private:
         yesdaw::engine::Clip clip;
         clip.id = idFromLowByte (2);
         clip.assetId = asset.id;
+        clip.trackId = idFromLowByte (4);
         clip.timelineStart = 0;
         clip.timelineLength = static_cast<yesdaw::engine::Tick> (frames);
         clip.srcOffset = 0;
@@ -196,11 +197,19 @@ private:
         clip.gain = 1.0f;
         clip.timeBase = yesdaw::engine::TimeBase::SampleLocked;
 
+        // The Clip must live on a Track: the mixer projection only projects clips owned by a
+        // project.tracks entry, so a track-less project renders silence (caught on real hardware
+        // 2026-07-27 — the smoke soaked zeros while device_error stayed set).
+        yesdaw::engine::Track track;
+        track.id = clip.trackId;
+        track.strip.name = "Soak tone";
+
         project_ = {};
         project_.id = idFromLowByte (3);
         project_.sampleRate = yesdaw::engine::SampleRate { sampleRate_ };
         project_.assets = { asset };
         project_.clips = { clip };
+        project_.tracks = { track };
 
         decodedAssets_ = {
             yesdaw::engine::DecodedAssetAudio {
@@ -317,6 +326,57 @@ int main (int argc, char** argv)
     juce::AudioDeviceManager::AudioDeviceSetup setup;
     setup.bufferSize = requestedBlock;
     const juce::String err = adm.initialise (loopback ? 2 : 0, 2, nullptr, true, {}, &setup);
+
+    // Default shared-mode WASAPI rounds the block up to its 10 ms period (480 @ 48 kHz), which can
+    // never meet the 128-frame target. Escalate through JUCE's lower-latency Windows backends until
+    // one honours the request; whatever is actually granted is still reported honestly in stats.
+    if (err.isEmpty())
+    {
+        const auto meetsBlock = [&adm, requestedBlock]
+        {
+            auto* d = adm.getCurrentAudioDevice();
+            return d != nullptr && d->getCurrentBufferSizeSamples() <= requestedBlock;
+        };
+
+        if (! meetsBlock())
+        {
+            const juce::String defaultType = adm.getCurrentAudioDeviceType();
+            for (auto* type : adm.getAvailableDeviceTypes())
+                std::printf ("block-escalate: available type \"%s\"\n", type->getTypeName().toRawUTF8());
+            bool met = false;
+            for (const char* typeName : { "Windows Audio (Low Latency Mode)", "Windows Audio (Exclusive Mode)" })
+            {
+                adm.setCurrentAudioDeviceType (typeName, true);
+                juce::AudioDeviceManager::AudioDeviceSetup retry = adm.getAudioDeviceSetup();
+                retry.bufferSize = requestedBlock;
+                const juce::String retryError = adm.setAudioDeviceSetup (retry, true);
+                auto* granted = adm.getCurrentAudioDevice();
+                int minAvailable = -1;
+                if (granted != nullptr)
+                    for (const int candidate : granted->getAvailableBufferSizes())
+                        if (minAvailable < 0 || candidate < minAvailable)
+                            minAvailable = candidate;
+                std::printf ("block-escalate: %s -> %s (granted block %d, device min %d)\n",
+                             typeName,
+                             retryError.isEmpty() ? "opened" : retryError.toRawUTF8(),
+                             granted != nullptr ? granted->getCurrentBufferSizeSamples() : -1,
+                             minAvailable);
+                if (retryError.isEmpty() && meetsBlock())
+                {
+                    met = true;
+                    break;
+                }
+            }
+            if (! met)
+            {
+                // No backend met the target: fall back to the default type so the soak still runs
+                // and the script reports "block > target" with the real numbers. (Switching type
+                // reopens the type's default device; no extra setup call, that would just churn
+                // the stream again.)
+                adm.setCurrentAudioDeviceType (defaultType, true);
+            }
+        }
+    }
 
     auto writeStats = [&] (const std::string& deviceName, double sr, int block,
                            int xruns, int deadlineMisses, double maxCbMs, double budgetMs,
