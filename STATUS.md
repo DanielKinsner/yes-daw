@@ -52,22 +52,27 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
-## 2026-07-27 update (Fable, owner machine) — first reality-lane PASSes; whole pipeline proven end-to-end on real hardware
+## 2026-07-28 correction to the 2026-07-27 owner-machine checkpoint — useful fixes landed; locked gates remain open
 
-Everything below ran on Dan's Windows box (the owner machine), all mechanical, all exit-0:
+The July 27 work produced useful owner-machine evidence and found two real bugs, but its checkpoint
+report over-credited that evidence. This correction preserves the measured results while restoring the
+locked H8/H17 gate accounting:
 
 - **Full local green at af9f58e:** fresh `cmake --preset ci` configure + build (242 targets, `/WX` clean),
   then `ctest --preset ci` — **322/322 passed**.
-- **First positive alpha-verify pass on a real machine:** `--make-demo` → demo bundle + WAV, then
+- **First positive generated-demo alpha-verify pass on a real machine:** `--make-demo` → demo bundle + WAV, then
   `alpha-verify.ps1` — **all 5 asserts PASS** (export non-empty, bit-exact re-import, −13.28 LUFS in
-  range, bundle reopens clean, autosave present).
+  range, bundle reopens clean, autosave present). This is a useful tooling check, not the plan's
+  real-song packaged-build session or the still-incomplete committed CP2 fixture.
 - **Packaged zip proven:** `package.ps1` → `YesDaw-af9f58e-win64-portable.zip`; extracted to a clean
   temp dir; packaged `--version` matches `version.txt`; packaged `--selfcheck` on the demo bundle
   PASSes (render + bit-exact round-trip). The GUI app launches from the packaged folder with the
   version-stamped title `YES DAW af9f58e` (verified mechanically via `MainWindowTitle`).
-- **Reality lane opened — first rows ever recorded** (see `docs/reality-lane.md`): Smoke 1 hardware
-  playback PASS (120 s, Focusrite, zero misses — at a **480-frame** shared block, see caveat) and
-  Smoke 4 frame smoke PASS.
+- **Owner-machine observations recorded** (see `docs/reality-lane.md`): the locked Smoke 1 hardware
+  playback gate **FAILs** because the 128-frame request is granted as 480 frames in shared WASAPI
+  mode. A separate 480-frame run held 120 s with zero misses, which is useful stability evidence but
+  is not a Smoke 1 PASS. The Smoke 4 headless frame proxy passed; it counts as H16 windowed evidence
+  only if Dan explicitly accepts that proxy under the reality-lane contract.
 - **Two real bugs found and fixed** (each its own commit):
   - `tools/*.ps1` had UTF-8 em-dashes in BOM-less files → Windows PowerShell 5.1 parsed them as
     ANSI and **soak.ps1 wouldn't parse at all** (playback smoke was unrunnable via `powershell -File`).
@@ -85,10 +90,16 @@ Everything below ran on Dan's Windows box (the owner machine), all mechanical, a
   is syncing build artefacts (the repo lives in OneDrive) — 164 misses during a sync storm, 0 on a
   quiet box; keep that in mind when reading smoke FAILs.
 
-**Now:** pushed to `main`; remote CI is the gate on these commits.
+**Gate accounting:** H17 is not mechanically closed. Its reality-lane requirement remains a
+128-frame playback PASS plus a recording-round-trip PASS against the **packaged** artifact. The
+current playback wrapper selects a build-tree `YesDawSoak`, not the packaged app, Smoke 3 is not
+built, and the alpha-gate contract does not allow agent-transcribed PASS rows to earn close credit.
 
-**Next:** owner decisions — ASIO backend for the 128-frame clause (or accept 144-exclusive + a better
-dropout metric), LICENSE file for the alpha zip, and the recording-smoke (Smoke 3) build-out.
+**Now:** ship this truth correction and confirm its remote CI gate on `main`.
+
+**Next:** preserve the 128-frame target: take a docs-first checkpoint that defines package-aware
+playback/recording smoke interfaces and the ASIO route before backend code. The LICENSE decision,
+recording-smoke build-out, DOS 8.3 path bug, and remaining CP2 fixture surfaces stay open.
 
 ---
 

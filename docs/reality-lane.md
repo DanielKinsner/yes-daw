@@ -62,7 +62,11 @@
 
 Format: `YYYY-MM-DD | smoke | PASS/FAIL | machine | one-line detail (device, versions, numbers)`
 
+When a classification is wrong, append a newer correction instead of deleting history. The newest
+applicable row controls gate accounting; an administrative correction is not itself new smoke evidence.
+
 | Date | Smoke | Result | Machine | Detail |
 |---|---|---|---|---|
+| 2026-07-28 | Smoke 1 — Hardware playback (gate correction) | FAIL | Dan's Windows 11 box | The locked command requested a 128-frame Block, the Focusrite WASAPI device granted 480 shared-mode frames, and `soak.ps1` correctly exited 1 with `block 480 > target 128`. This supersedes the 2026-07-27 PASS classification for gate accounting. The separate `-BlockSize 480` exit-0 run remains useful stability evidence, but it changed the target and therefore is not a Smoke 1 PASS. Administrative correction from the already committed output; not new smoke evidence and not H17 packaged-artifact credit. |
 | 2026-07-27 | Smoke 1 — Hardware playback | PASS | Dan's Windows 11 box | `playback-smoke.ps1 -Seconds 120 -BlockSize 480` on "Speakers (Focusrite USB Audio)", 48 kHz, exit 0: deadline_misses=0, device_error=false, max_block_ms=0.318/10.0. **Caveat: 480-frame shared-mode block, not the 128 H8 target** — this device's WASAPI floor is 480 shared / 144 exclusive (measured), so 128 needs an ASIO backend (owner decision). Run at the default 128 request, the script correctly FAILs with "block 480 > target 128". Pre-fix note: before `fix(soak)` this smoke soaked pure silence (track-less project → PlaybackEngine::create failed); this PASS is real rendered Project audio. |
 | 2026-07-27 | Smoke 4 — H16 frame smoke | PASS | Dan's Windows 11 box | `ui-frame-smoke.ps1` exit 0: YesDawTimelineGpuCheck passed in 0.53 s on the ci-preset Release build at af9f58e. |
