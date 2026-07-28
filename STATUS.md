@@ -52,6 +52,46 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-07-27 update (Fable, owner machine) — first reality-lane PASSes; whole pipeline proven end-to-end on real hardware
+
+Everything below ran on Dan's Windows box (the owner machine), all mechanical, all exit-0:
+
+- **Full local green at af9f58e:** fresh `cmake --preset ci` configure + build (242 targets, `/WX` clean),
+  then `ctest --preset ci` — **322/322 passed**.
+- **First positive alpha-verify pass on a real machine:** `--make-demo` → demo bundle + WAV, then
+  `alpha-verify.ps1` — **all 5 asserts PASS** (export non-empty, bit-exact re-import, −13.28 LUFS in
+  range, bundle reopens clean, autosave present).
+- **Packaged zip proven:** `package.ps1` → `YesDaw-af9f58e-win64-portable.zip`; extracted to a clean
+  temp dir; packaged `--version` matches `version.txt`; packaged `--selfcheck` on the demo bundle
+  PASSes (render + bit-exact round-trip). The GUI app launches from the packaged folder with the
+  version-stamped title `YES DAW af9f58e` (verified mechanically via `MainWindowTitle`).
+- **Reality lane opened — first rows ever recorded** (see `docs/reality-lane.md`): Smoke 1 hardware
+  playback PASS (120 s, Focusrite, zero misses — at a **480-frame** shared block, see caveat) and
+  Smoke 4 frame smoke PASS.
+- **Two real bugs found and fixed** (each its own commit):
+  - `tools/*.ps1` had UTF-8 em-dashes in BOM-less files → Windows PowerShell 5.1 parsed them as
+    ANSI and **soak.ps1 wouldn't parse at all** (playback smoke was unrunnable via `powershell -File`).
+  - **The playback soak has been soaking silence:** its synthetic project predated Tracks, the mixer
+    projection only projects clips owned by a `project.tracks` entry, so `PlaybackEngine::create`
+    failed and the callback zero-filled with `device_error` set. Fixed by giving the soak project a
+    Track; the smoke now renders real Project audio (max_block_ms moved 0.005 → 0.3).
+- **Open, honest gaps:** (1) the H8 128-frame clause is unreachable on this hardware via WASAPI
+  (device floor: 480 shared / 144 exclusive, measured by the soak's new escalation diagnostics) —
+  meeting it needs an ASIO backend, an owner decision (SDK licence); at 144-exclusive the 1.5×-period
+  inter-arrival heuristic also fires constantly (bursty delivery), so the miss metric may need
+  rethinking alongside ASIO. (2) `--make-demo` fails if the out-dir path contains a DOS 8.3
+  short-name component (e.g. `DANIEL~1`) — path canonicalization mismatch in the autosave asset copy;
+  flagged as a spawned follow-up task. (3) One machine caveat: deadline misses appear when OneDrive
+  is syncing build artefacts (the repo lives in OneDrive) — 164 misses during a sync storm, 0 on a
+  quiet box; keep that in mind when reading smoke FAILs.
+
+**Now:** pushed to `main`; remote CI is the gate on these commits.
+
+**Next:** owner decisions — ASIO backend for the 128-frame clause (or accept 144-exclusive + a better
+dropout metric), LICENSE file for the alpha zip, and the recording-smoke (Smoke 3) build-out.
+
+---
+
 ## 2026-07-17 update (Codex) — H17 CP2 supported-surface demo slice DONE locally
 
 - `--make-demo` now persists and renders an audio Track with EQ, a tempo-locked MIDI clip with notes,

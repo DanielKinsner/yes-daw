@@ -64,4 +64,5 @@ Format: `YYYY-MM-DD | smoke | PASS/FAIL | machine | one-line detail (device, ver
 
 | Date | Smoke | Result | Machine | Detail |
 |---|---|---|---|---|
-| — | — | — | — | *No reality-lane result has ever been recorded. First PASS goes here.* |
+| 2026-07-27 | Smoke 1 — Hardware playback | PASS | Dan's Windows 11 box | `playback-smoke.ps1 -Seconds 120 -BlockSize 480` on "Speakers (Focusrite USB Audio)", 48 kHz, exit 0: deadline_misses=0, device_error=false, max_block_ms=0.318/10.0. **Caveat: 480-frame shared-mode block, not the 128 H8 target** — this device's WASAPI floor is 480 shared / 144 exclusive (measured), so 128 needs an ASIO backend (owner decision). Run at the default 128 request, the script correctly FAILs with "block 480 > target 128". Pre-fix note: before `fix(soak)` this smoke soaked pure silence (track-less project → PlaybackEngine::create failed); this PASS is real rendered Project audio. |
+| 2026-07-27 | Smoke 4 — H16 frame smoke | PASS | Dan's Windows 11 box | `ui-frame-smoke.ps1` exit 0: YesDawTimelineGpuCheck passed in 0.53 s on the ci-preset Release build at af9f58e. |
