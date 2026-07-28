@@ -52,25 +52,32 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
-## 2026-07-28 H17 packaged hardware verifier contract — DONE locally
+## 2026-07-28 H17 packaged hardware verifier implementation plan — DONE locally
 
-- ADR-0040 accepts the owner-usable interface: one `verify-hardware.ps1` command in the extracted
-  Windows package, automatic default hardware, packaged playback/recording/frame stages, structured
-  evidence, and no checkout, build tools, UI operation, listening, or visual judgment.
-- The requirements-only focused plan records the exact product behavior, negative controls, evidence
-  ownership, and honest capture-only recording boundary.
-- The 48 kHz / 128-frame playback target remains locked. The observed 480-frame shared-WASAPI and
-  144-frame exclusive-WASAPI modes remain failures, not revised targets.
-- ASIO is the selected route for this Windows hardware, but implementation is blocked until Dan
-  explicitly accepts the Steinberg ASIO SDK licence terms. No licence acceptance or SDK material was
-  inferred or added by this checkpoint.
+- The unified focused plan is now implementation-ready: 23 requirements, 12 technical decisions,
+  seven independently green checkpoints, exact files/tests, a stable result schema, package-manifest
+  hashes, child crash/timeout handling, Windows clean-extraction CI, and one generated owner-evidence
+  handoff.
+- The architecture is one package-root `verify-hardware.ps1` orchestrator plus distinct packaged
+  playback, recording, and headless dense-Timeline checkers. Existing regression target names remain
+  untouched.
+- Playback still requires a requested and granted 48 kHz / 128-frame Block. Diagnostic 480/144-frame
+  WASAPI runs remain FAIL evidence rather than revised targets.
+- Recording grants full alignment credit only when a device loopback endpoint is mechanically
+  identified and the coded burst correlates. Microphone/unclassified captures can pass only as the
+  explicit capture-only Reality-lane claim.
+- Dan approved planning toward Steinberg's proprietary ASIO path so YES DAW can remain eligible for
+  closed-source/commercial distribution. No purchase was inferred. The ASIO unit remains owner-gated
+  on completing the applicable agreement; no SDK source may be fetched, vendored, cached, or shipped.
+- The headless document review caught and corrected command/cwd ambiguity, a missing manifest-size
+  negative control, licensed-build actor drift, two CMake target-name collisions, and unproved
+  loopback-route provenance.
 
-**Now:** ship this docs-first contract and confirm its remote CI gate on `main`.
+**Now:** ship this docs-only implementation-plan checkpoint and confirm its exact remote CI run is
+green on `main`.
 
-**Next:** after Dan accepts or declines the Steinberg ASIO SDK licence terms, enrich the focused plan
-into implementation units. The first code checkpoint should package the verifier shell and existing
-playback/frame checkers with package-isolation and negative-control gates; recording follows as its
-own small checkpoint.
+**Next:** only after Dan starts implementation, execute U1 — shared schema, verdict policy, and the
+device-free `verify-hardware.ps1 -SelfTest` — as its own small green checkpoint, then stop.
 
 ---
 

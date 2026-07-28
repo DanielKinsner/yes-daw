@@ -11,7 +11,7 @@ The Reality lane is already defined as mechanical, but its current commands stil
 
 Dan does not use the development environment and should not need to understand the app UI to prove the packaged build on real hardware. H17 therefore needs a package-level verification surface, not instructions for running repository tools.
 
-The locked playback gate remains 48 kHz, a requested and granted 128-frame Block, zero Underruns, and no callback-budget breach. The current Windows device grants 480 frames through shared WASAPI and 144 through exclusive WASAPI, so neither result can earn the 128-frame PASS. JUCE 8.0.4 can expose ASIO only when the build enables it and supplies the Steinberg ASIO SDK under its licence terms.
+The locked playback gate remains 48 kHz, a requested and granted 128-frame Block, zero Underruns, and no callback-budget breach. The current Windows device grants 480 frames through shared WASAPI and 144 through exclusive WASAPI, so neither result can earn the 128-frame PASS. JUCE 8.0.4 can expose ASIO only when the build enables it and supplies the Steinberg ASIO SDK under its licence terms. Steinberg now offers the SDK under GPLv3 or a proprietary path; Dan selected the proprietary path for planning so YES DAW remains eligible for closed-source or commercial distribution.
 
 ## Options considered
 
@@ -42,7 +42,7 @@ The command will:
 
 The verifier will remain a console workflow. It will not ask Dan to listen, watch a meter, inspect a frame, operate the app UI, or run a development server.
 
-ASIO support is the selected route for the observed Windows hardware because WASAPI cannot currently meet the locked target. This decision does not accept Steinberg's licence terms on Dan's behalf. ASIO implementation is blocked until Dan explicitly accepts those terms and the build/redistribution path is documented.
+ASIO support is the selected route for the observed Windows hardware because WASAPI cannot currently meet the locked target. The implementation will use an owner-supplied external SDK and the proprietary path; it will not vendor or download SDK material. This decision does not complete Steinberg's agreement on Dan's behalf. The ASIO unit remains blocked until Dan completes the applicable agreement and the build/redistribution path is documented.
 
 ## Consequences
 
@@ -51,4 +51,4 @@ ASIO support is the selected route for the observed Windows hardware because WAS
 - **Positive:** unsupported hardware produces an honest setup failure with evidence instead of an ambiguous developer error.
 - **Negative:** the package must carry additional console verification code and keep its evidence schema compatible.
 - **Negative:** a full recording-alignment proof still requires device loopback or a physical loopback cable; automation cannot manufacture that hardware path.
-- **Open blocker:** Dan must explicitly accept the Steinberg ASIO SDK licence terms before ASIO code or SDK material is added to the build.
+- **Open owner gate:** Dan must complete the applicable proprietary agreement before the ASIO unit starts or an ASIO-enabled package is distributed.
