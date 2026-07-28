@@ -57,6 +57,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0037](0037-alpha-target-and-h14-h19-recarve.md) | Alpha target and the H14–H19 re-carve | Accepted |
 | [0038](0038-built-in-fx-suite.md) | Built-in FX suite: five Nodes, ParamSpec, insert chains, tails | Accepted |
 | [0039](0039-automation-lanes-runtime.md) | Automation lanes: storage, targeting, compiled runtime | Accepted |
+| [0040](0040-packaged-hardware-verifier.md) | Packaged, one-command hardware verification | Accepted |
 
 ## Decision status (the five research forks)
 

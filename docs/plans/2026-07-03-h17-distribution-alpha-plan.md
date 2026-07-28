@@ -63,6 +63,12 @@ against a written checklist; every finding becomes a tracked task (token/layout 
 explicit deferral); Dan's product-level "alpha declared" line is recorded in `docs/alpha-gate.md`
 as a product milestone layered on top of — never gating — the mechanical close.
 
+**CP6 — Packaged hardware verifier.** Per ADR-0040 and the focused
+[`packaged-hardware-verifier plan`](2026-07-28-h17-packaged-hardware-verifier-plan.md), the Windows
+zip ships one root command that automatically runs playback, recording, and frame checks from the
+package, emits structured evidence, and generates its proposed Reality-lane row. Build-tree scripts,
+manual UI operation, listening, and visual judgment cannot earn this checkpoint.
+
 ## Beta parking lot (explicitly NOT H17)
 
 Code signing + timestamping (adapt yes-master playbook), installer (MSIX/Inno), macOS

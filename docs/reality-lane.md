@@ -10,6 +10,18 @@
 > machine." As of 2026-07-03 **no smoke below has ever recorded a PASS.** Every entry converts one
 > reality risk into a cheap, repeatable fact.
 
+## H17 packaged entry point (decided; not built yet)
+
+ADR-0040 replaces the eventual owner workflow with one root-level `verify-hardware.ps1` command in
+the extracted Windows package. With no arguments it will select default hardware and run packaged
+playback, recording, and frame stages, then emit one structured result, one plain verdict, and a
+measurement-generated result row. It will not require this repository, a build tree, CMake, the app
+UI, listening, or visual judgment.
+
+Until that command lands, the individual commands below remain the available developer-facing
+surfaces and cannot earn H17 packaged-artifact credit. The package-aware requirements live in
+[`docs/plans/2026-07-28-h17-packaged-hardware-verifier-plan.md`](plans/2026-07-28-h17-packaged-hardware-verifier-plan.md).
+
 ## Smoke 1 — Hardware playback (available NOW)
 
 - **What it proves:** a known Project plays out the real audio device with zero Underruns at a

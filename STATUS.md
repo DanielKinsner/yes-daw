@@ -52,6 +52,28 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-07-28 H17 packaged hardware verifier contract — DONE locally
+
+- ADR-0040 accepts the owner-usable interface: one `verify-hardware.ps1` command in the extracted
+  Windows package, automatic default hardware, packaged playback/recording/frame stages, structured
+  evidence, and no checkout, build tools, UI operation, listening, or visual judgment.
+- The requirements-only focused plan records the exact product behavior, negative controls, evidence
+  ownership, and honest capture-only recording boundary.
+- The 48 kHz / 128-frame playback target remains locked. The observed 480-frame shared-WASAPI and
+  144-frame exclusive-WASAPI modes remain failures, not revised targets.
+- ASIO is the selected route for this Windows hardware, but implementation is blocked until Dan
+  explicitly accepts the Steinberg ASIO SDK licence terms. No licence acceptance or SDK material was
+  inferred or added by this checkpoint.
+
+**Now:** ship this docs-first contract and confirm its remote CI gate on `main`.
+
+**Next:** after Dan accepts or declines the Steinberg ASIO SDK licence terms, enrich the focused plan
+into implementation units. The first code checkpoint should package the verifier shell and existing
+playback/frame checkers with package-isolation and negative-control gates; recording follows as its
+own small checkpoint.
+
+---
+
 ## 2026-07-28 correction to the 2026-07-27 owner-machine checkpoint — useful fixes landed; locked gates remain open
 
 The July 27 work produced useful owner-machine evidence and found two real bugs, but its checkpoint

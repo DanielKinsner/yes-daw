@@ -461,6 +461,12 @@ The standing set of one-command, self-asserting owner-machine hardware smokes wh
 results are committed to `docs/reality-lane.md`. CI cannot run them; they are still mechanical.
 _Avoid_: manual testing (they self-assert), CI gate (they are owner-machine, outside CI)
 
+**Packaged hardware verifier**:
+The H17 portable package's one-command Reality-lane entry point. It automatically runs packaged
+playback, recording, and frame checks against default hardware, emits structured evidence, and never
+requires a checkout, build tools, UI operation, listening, or visual judgment.
+_Avoid_: dev smoke (runs from the build tree), manual test (asks the owner to interpret behavior)
+
 ## Open questions (resolve as we decide the wedge)
 
 - **Product name & wedge — RESOLVED.** YES DAW is a full general-purpose multi-track DAW (not a
