@@ -1,9 +1,9 @@
-# tools/alpha-verify.ps1 — H17 CP5 mechanical close for the alpha gate (Windows).
+# tools/alpha-verify.ps1 - H17 CP5 mechanical close for the alpha gate (Windows).
 #
 # PowerShell sibling of tools/alpha-verify.sh. Runs the objective sub-asserts from
 # docs/alpha-gate.md against a produced project bundle + its exported WAV. Exit 0 iff every assert
 # passes. The subjective "feel session" is separate and never gates. An agent never writes a
-# reality-lane PASS row — this only runs mechanical checks.
+# reality-lane PASS row - this only runs mechanical checks.
 #
 # The 5 asserts (each with a named negative control exercised by -SelfTest):
 #   1. export exists + non-empty        (control: an empty file)

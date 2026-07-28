@@ -1,11 +1,11 @@
-# tools/package.ps1 — build + stage + zip a portable YES DAW alpha build (Windows).
+# tools/package.ps1 - build + stage + zip a portable YES DAW alpha build (Windows).
 #
 # H17 CP3 (see docs/plans/2026-07-03-h17-distribution-alpha-plan.md). Produces
 # YesDaw-<version>-win64-portable.zip from the `ci` (Release) build. This is the primary alpha
 # artefact path (ADR-0037: portable unsigned zip for alpha; signing/installer are beta).
 #
 # Honest scope: build -> stage the GUI exe + the YesDawSelfCheck CLI + alpha readme + git-describe
-# version.txt (+ LICENSE if present) -> zip. It stages — but does not itself RUN — the packaged
+# version.txt (+ LICENSE if present) -> zip. It stages - but does not itself RUN - the packaged
 # self-check; the CI `package` job runs it from a clean temp dir (repo-independence proof). Never
 # writes a reality-lane PASS row. Exit 0 on a produced zip, 1 on failure.
 #
@@ -56,10 +56,10 @@ try {
   Copy-Item -LiteralPath $exe -Destination $pkgRoot
   Copy-Item -LiteralPath $selfcheck -Destination $pkgRoot
 
-  # version.txt — the single value the packaged `--version` must match (CP1 version-stamp gate).
+  # version.txt - the single value the packaged `--version` must match (CP1 version-stamp gate).
   Set-Content -LiteralPath (Join-Path $pkgRoot 'version.txt') -Value $version
 
-  # README-alpha.md — how to run the portable build (staged if present).
+  # README-alpha.md - how to run the portable build (staged if present).
   $readme = Join-Path $root 'README-alpha.md'
   if (Test-Path -LiteralPath $readme) {
     Copy-Item -LiteralPath $readme -Destination $pkgRoot
@@ -67,7 +67,7 @@ try {
     Write-Warning "[package] README-alpha.md missing - packaging without it."
   }
 
-  # LICENSE — staged if present. Absence is flagged, never invented (licensing is an owner
+  # LICENSE - staged if present. Absence is flagged, never invented (licensing is an owner
   # decision, not a packaging default; CLAUDE.md: no taste decisions).
   $license = Join-Path $root 'LICENSE'
   if (Test-Path -LiteralPath $license) {

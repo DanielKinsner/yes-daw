@@ -1,4 +1,4 @@
-# YES DAW — H0 real-machine soak gate, native PowerShell (no Git Bash, no Python needed).
+# YES DAW - H0 real-machine soak gate, native PowerShell (no Git Bash, no Python needed).
 #
 #   From PowerShell:   .\tools\soak.ps1 30
 #   From cmd:          powershell -ExecutionPolicy Bypass -File tools\soak.ps1 30
@@ -21,7 +21,7 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 # Find the built soak binary. The `ci` preset (the documented path) builds Ninja/Release into build-ci\
 # (JUCE console apps land under <name>_artefacts\<config>\); the casual `cmake -B build` Visual Studio
-# path lands under build\ the same way — check both.
+# path lands under build\ the same way - check both.
 $candidates = @(
   "$repo\build-ci\YesDawSoak_artefacts\Release\YesDawSoak.exe",
   "$repo\build-ci\YesDawSoak_artefacts\Debug\YesDawSoak.exe",
@@ -56,10 +56,10 @@ if ($s.device_error)                                                 { $problems
 if ($PlaybackProject -and $s.mode -ne "playback_project")            { $problems += "mode=$($s.mode) (expected playback_project)" }
 if ($s.block_budget_ms -gt 0 -and $s.max_block_ms -ge $s.block_budget_ms) { $problems += ("max_block_ms {0:N3} >= budget {1:N3}" -f $s.max_block_ms, $s.block_budget_ms) }
 # The roadmap names a 128-frame Block; a larger forced block means the H0 target wasn't met.
-if ($s.block_size -gt $s.requested_block_size) { $problems += ("block {0} > target {1} (device could not meet it — needs a low-latency/exclusive driver)" -f $s.block_size, $s.requested_block_size) }
+if ($s.block_size -gt $s.requested_block_size) { $problems += ("block {0} > target {1} (device could not meet it - needs a low-latency/exclusive driver)" -f $s.block_size, $s.requested_block_size) }
 if ($s.loopback) {
   if (-not ($s.loopback_peak_rms -gt 0.01)) { $problems += ("silent loopback (rms={0:N4})" -f $s.loopback_peak_rms) }
-  # Non-silent isn't enough — the energy must be at 440 Hz (pure tone: 440_mag ~ sqrt(2)*rms).
+  # Non-silent isn't enough - the energy must be at 440 Hz (pure tone: 440_mag ~ sqrt(2)*rms).
   elseif (-not ($s.loopback_440_mag -gt (0.5 * $s.loopback_peak_rms))) { $problems += ("loopback not 440 Hz (440_mag={0:N4} vs rms={1:N4})" -f $s.loopback_440_mag, $s.loopback_peak_rms) }
 }
 
