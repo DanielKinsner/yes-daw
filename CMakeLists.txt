@@ -418,6 +418,24 @@ if (YESDAW_BUILD_APPS)
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawTimelineGpuCheck)
   add_test(NAME YesDawTimelineGpuCheck COMMAND $<TARGET_FILE:YesDawTimelineGpuCheck>)
+
+  # --- Hardware verification policy check (H17 packaged verifier U1) ---
+  # Deterministic and device-free: schema v1, child-document acceptance, the pass-record
+  # consistency policy, and the KTD11 aggregate verdict. Replays the SAME committed fixtures that
+  # tools/verify-hardware.ps1 -SelfTest replays with its PowerShell mirror of this policy; both
+  # sides assert the exact fixture set so the two implementations cannot drift silently.
+  add_executable(YesDawHardwareVerificationCheck tests/hardware_verification_tests.cpp)
+  target_include_directories(YesDawHardwareVerificationCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_compile_definitions(YesDawHardwareVerificationCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_HWVERIFY_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/hardware-verification")
+  target_link_libraries(YesDawHardwareVerificationCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      juce::juce_core)
+  yesdaw_harden(YesDawHardwareVerificationCheck)
+  add_test(NAME YesDawHardwareVerificationCheck COMMAND $<TARGET_FILE:YesDawHardwareVerificationCheck>)
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---

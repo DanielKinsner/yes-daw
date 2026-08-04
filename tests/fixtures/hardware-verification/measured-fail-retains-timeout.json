@@ -1,0 +1,55 @@
+{
+  "fixture": "measured-fail-retains-timeout",
+  "run_id": "run-fixture-0001",
+  "checker_version": "0.0.0-fixture",
+  "children": [
+    {
+      "stage": "playback",
+      "outcome": "document",
+      "document": {
+        "schema_version": 1,
+        "run_id": "run-fixture-0001",
+        "stage": "playback",
+        "checker_version": "0.0.0-fixture",
+        "state": "fail",
+        "claim_level": "",
+        "started_at": "2026-07-28T12:00:00Z",
+        "completed_at": "2026-07-28T12:02:00Z",
+        "duration_ms": 120000.0,
+        "measurements": {
+          "requested_sample_rate_hz": 48000,
+          "granted_sample_rate_hz": 48000,
+          "requested_block_frames": 128,
+          "granted_block_frames": 480
+        },
+        "failure_codes": ["playback_block_exceeds_target"],
+        "detail": "fixture: WASAPI shared mode granted 480 frames"
+      }
+    },
+    { "stage": "recording", "outcome": "timeout" },
+    {
+      "stage": "frame",
+      "outcome": "document",
+      "document": {
+        "schema_version": 1,
+        "run_id": "run-fixture-0001",
+        "stage": "frame",
+        "checker_version": "0.0.0-fixture",
+        "state": "pass",
+        "claim_level": "headless_dense_timeline",
+        "started_at": "2026-07-28T12:03:00Z",
+        "completed_at": "2026-07-28T12:03:30Z",
+        "duration_ms": 30000.0,
+        "measurements": { "max_frame_ms": 6.4 },
+        "failure_codes": [],
+        "detail": "fixture: frame pass"
+      }
+    }
+  ],
+  "expected": {
+    "overall_state": "fail",
+    "exit_code": 1,
+    "stage_states": { "playback": "fail", "recording": "crash", "frame": "pass" },
+    "failure_codes": ["playback_block_exceeds_target", "child_timeout"]
+  }
+}

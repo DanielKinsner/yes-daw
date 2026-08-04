@@ -1,0 +1,75 @@
+{
+  "fixture": "child-wrong-stage",
+  "run_id": "run-fixture-0001",
+  "checker_version": "0.0.0-fixture",
+  "children": [
+    {
+      "stage": "playback",
+      "outcome": "document",
+      "document": {
+        "schema_version": 1,
+        "run_id": "run-fixture-0001",
+        "stage": "recording",
+        "checker_version": "0.0.0-fixture",
+        "state": "pass",
+        "claim_level": "full_alignment",
+        "started_at": "2026-07-28T12:00:00Z",
+        "completed_at": "2026-07-28T12:02:00Z",
+        "duration_ms": 120000.0,
+        "measurements": {
+          "alignment_status": "claimed",
+          "input_route": "device_loopback",
+          "alignment_frames": 2
+        },
+        "failure_codes": [],
+        "detail": "fixture: recording document delivered to the playback slot"
+      }
+    },
+    {
+      "stage": "recording",
+      "outcome": "document",
+      "document": {
+        "schema_version": 1,
+        "run_id": "run-fixture-0001",
+        "stage": "recording",
+        "checker_version": "0.0.0-fixture",
+        "state": "pass",
+        "claim_level": "full_alignment",
+        "started_at": "2026-07-28T12:02:00Z",
+        "completed_at": "2026-07-28T12:03:00Z",
+        "duration_ms": 60000.0,
+        "measurements": {
+          "alignment_status": "claimed",
+          "input_route": "device_loopback",
+          "alignment_frames": 2
+        },
+        "failure_codes": [],
+        "detail": "fixture: recording pass"
+      }
+    },
+    {
+      "stage": "frame",
+      "outcome": "document",
+      "document": {
+        "schema_version": 1,
+        "run_id": "run-fixture-0001",
+        "stage": "frame",
+        "checker_version": "0.0.0-fixture",
+        "state": "pass",
+        "claim_level": "headless_dense_timeline",
+        "started_at": "2026-07-28T12:03:00Z",
+        "completed_at": "2026-07-28T12:03:30Z",
+        "duration_ms": 30000.0,
+        "measurements": { "max_frame_ms": 6.4 },
+        "failure_codes": [],
+        "detail": "fixture: frame pass"
+      }
+    }
+  ],
+  "expected": {
+    "overall_state": "setup",
+    "exit_code": 2,
+    "stage_states": { "playback": "crash", "recording": "pass", "frame": "pass" },
+    "failure_codes": ["child_wrong_stage"]
+  }
+}
