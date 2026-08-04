@@ -52,6 +52,41 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-03 H17 packaged verifier U1 — schema, verdict policy, device-free self-test — DONE
+
+Dan gave the go; U1 of the packaged-verifier plan is implemented and green.
+
+- `src/app/HardwareVerification.h` is the schema-v1 authority: stage states
+  (pass/fail/setup/crash/skipped), claim levels (`locked_playback`, `full_alignment`,
+  `capture_only`, `headless_dense_timeline`), the stable failure-code registry, child-document
+  acceptance (schema/run-id/stage/checker-version must match the invocation), the pass-record
+  consistency policy, KTD11 aggregation (any measured fail → exit 1; else any setup/crash/skipped
+  → exit 2; only all-pass → exit 0), locale-invariant JSON via `juce::JSON`, and atomic
+  tmp+rename writes.
+- **The policy bites without hardware:** a playback "pass" whose own evidence shows a 480-frame
+  grant is converted to a measured FAIL (`playback_block_exceeds_target`, never setup); a
+  `capture_only` recording carrying any alignment value is rejected as
+  `recording_invented_alignment`; a frame stage claiming `window_gpu` is rejected as
+  `frame_claim_mismatch`.
+- `tools/verify-hardware.ps1` (ASCII-only, Windows PowerShell 5.1) mirrors the policy in
+  PowerShell. `-SelfTest` replays the 16 committed fixtures in
+  `tests/fixtures/hardware-verification/` — the same files the new Catch2 target replays — and
+  BOTH harnesses assert the exact fixture set, so C++/PowerShell drift fails mechanically. The
+  normal (no-argument) path honestly exits 2 until U2–U5 stage the packaged checkers.
+- New gates: `YesDawHardwareVerificationCheck` (all desktop CI legs) and
+  `YesDawVerifyHardwareSelfTest` (Windows ctest running the script self-test under powershell.exe).
+- Local: full build `/WX`-clean, ctest **324/324** (was 322), script self-test 16/16, normal path
+  exit 2, `git diff --check` clean.
+
+**Now:** U1 shipped in two green chunks; confirm this push's remote CI run is green on `main`.
+
+**Next:** U2 — reusable headless dense-Timeline frame checker (extract the measurement core from
+`tests/timeline_gpu_tests.cpp` into `src/ui/TimelineFrameCheck.h`, add the `YesDawFrameCheck`
+JSON-emitting console binary, keep the Catch2 gate calling the same helper) as its own small green
+checkpoint — then stop.
+
+---
+
 ## 2026-07-28 H17 packaged hardware verifier implementation plan — DONE locally
 
 - The unified focused plan is now implementation-ready: 23 requirements, 12 technical decisions,

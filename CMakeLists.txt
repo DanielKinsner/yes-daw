@@ -436,6 +436,14 @@ if (YESDAW_BUILD_APPS)
       juce::juce_core)
   yesdaw_harden(YesDawHardwareVerificationCheck)
   add_test(NAME YesDawHardwareVerificationCheck COMMAND $<TARGET_FILE:YesDawHardwareVerificationCheck>)
+
+  # The PowerShell side of the lockstep, on the platform whose 5.1 host is the compatibility
+  # floor. Uses powershell.exe (not pwsh) deliberately; the packaged owner command runs there.
+  if (WIN32)
+    add_test(NAME YesDawVerifyHardwareSelfTest
+             COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                     -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/verify-hardware.ps1 -SelfTest)
+  endif()
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---
