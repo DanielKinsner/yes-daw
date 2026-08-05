@@ -186,6 +186,18 @@ TEST_CASE ("failure-code registry strings are frozen")
     CHECK (std::string { hw::kRouteTypeUnavailable } == "type_unavailable");
     CHECK (std::string { hw::kRouteNoDevice } == "no_device");
     CHECK (hw::kPlaybackMinOutputRms == 0.01);
+
+    // Recording stage codes and route vocabulary (U4).
+    CHECK (std::string { hw::kFailureRecordingFifoDrop } == "recording_fifo_drop");
+    CHECK (std::string { hw::kFailureRecordingSilent } == "recording_silent");
+    CHECK (std::string { hw::kFailureRecordingInvalidWav } == "recording_invalid_wav");
+    CHECK (std::string { hw::kFailureRecordingBrokenLinkage } == "recording_broken_linkage");
+    CHECK (std::string { hw::kFailureRecordingHashMismatch } == "recording_hash_mismatch");
+    CHECK (std::string { hw::kFailureRecordingBadAlignment } == "recording_bad_alignment");
+    CHECK (std::string { hw::kRouteMicrophone } == "microphone");
+    CHECK (std::string { hw::kRouteUnclassified } == "unclassified");
+    CHECK (hw::kRecordingMinCaptureRms == 1.0e-4);
+    CHECK (hw::kRecordingAlignmentToleranceFrames == 128);
 }
 
 TEST_CASE ("JSON serialization is locale-invariant and escapes hostile strings")
@@ -683,6 +695,136 @@ TEST_CASE ("playback stage record maps verdicts and preserves ordered backend at
         hw::normalizeStageRecord (accepted);
         CHECK (accepted.state == hw::StageState::fail);
         CHECK (accepted.failureCodes.contains (hw::kFailurePlaybackBlockExceedsTarget));
+    }
+}
+
+namespace {
+
+hw::RecordingMeasurement makeHealthyLoopbackRecording()
+{
+    hw::RecordingMeasurement m;
+    m.sampleRateHz = 48000.0;
+    m.channels = 1;
+    m.capturedFrames = 96000;
+    m.droppedFrames = 0;
+    m.captureRms = 0.05;
+    m.wavValid = true;
+    m.linkageValid = true;
+    m.hashMatch = true;
+    m.inputRoute = hw::kRouteDeviceLoopback;
+    m.correlationFound = true;
+    m.correlationSnr = 40.0;
+    m.alignmentErrorFrames = 3;
+    m.deviceName = "Loopback (Test)";
+    m.backendName = "Windows Audio";
+    return m;
+}
+
+} // namespace
+
+TEST_CASE ("recording owner evaluation gates alignment credit on proved loopback")
+{
+    SECTION ("loopback-proved, in-tolerance capture claims full alignment")
+    {
+        const auto v = hw::evaluateRecordingMeasurement (makeHealthyLoopbackRecording());
+        CHECK (v.state == hw::StageState::pass);
+        CHECK (v.claimLevel == hw::kClaimFullAlignment);
+        CHECK (v.alignmentStatus == hw::kAlignmentClaimed);
+        CHECK (v.failureCodes.isEmpty());
+    }
+    SECTION ("loopback out of tolerance is a measured FAIL")
+    {
+        auto m = makeHealthyLoopbackRecording();
+        m.alignmentErrorFrames = hw::kRecordingAlignmentToleranceFrames + 1;
+        const auto v = hw::evaluateRecordingMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureRecordingBadAlignment });
+    }
+    SECTION ("loopback with no correlation degrades to capture_only (AE3)")
+    {
+        auto m = makeHealthyLoopbackRecording();
+        m.correlationFound = false;
+        const auto v = hw::evaluateRecordingMeasurement (m);
+        CHECK (v.state == hw::StageState::pass);
+        CHECK (v.claimLevel == hw::kClaimCaptureOnly);
+        CHECK (v.alignmentStatus == hw::kAlignmentNotClaimed);
+    }
+    SECTION ("microphone correlation cannot earn alignment credit (R16)")
+    {
+        auto m = makeHealthyLoopbackRecording();
+        m.inputRoute = hw::kRouteMicrophone;
+        m.alignmentErrorFrames = 0;   // even a perfect-looking number is not proof
+        const auto v = hw::evaluateRecordingMeasurement (m);
+        CHECK (v.state == hw::StageState::pass);
+        CHECK (v.claimLevel == hw::kClaimCaptureOnly);
+        CHECK (v.alignmentStatus == hw::kAlignmentNotClaimed);
+    }
+    SECTION ("unclassified route degrades to capture_only")
+    {
+        auto m = makeHealthyLoopbackRecording();
+        m.inputRoute = hw::kRouteUnclassified;
+        const auto v = hw::evaluateRecordingMeasurement (m);
+        CHECK (v.claimLevel == hw::kClaimCaptureOnly);
+    }
+    SECTION ("each capture/persistence violation fails with its own code")
+    {
+        auto drop = makeHealthyLoopbackRecording();
+        drop.droppedFrames = 1;
+        CHECK (hw::evaluateRecordingMeasurement (drop).failureCodes
+               == juce::StringArray { hw::kFailureRecordingFifoDrop });
+
+        auto silent = makeHealthyLoopbackRecording();
+        silent.captureRms = 0.0;
+        CHECK (hw::evaluateRecordingMeasurement (silent).failureCodes
+               == juce::StringArray { hw::kFailureRecordingSilent });
+
+        auto badWav = makeHealthyLoopbackRecording();
+        badWav.wavValid = false;
+        CHECK (hw::evaluateRecordingMeasurement (badWav).failureCodes
+               == juce::StringArray { hw::kFailureRecordingInvalidWav });
+
+        auto badLink = makeHealthyLoopbackRecording();
+        badLink.linkageValid = false;
+        CHECK (hw::evaluateRecordingMeasurement (badLink).failureCodes
+               == juce::StringArray { hw::kFailureRecordingBrokenLinkage });
+
+        auto badHash = makeHealthyLoopbackRecording();
+        badHash.hashMatch = false;
+        CHECK (hw::evaluateRecordingMeasurement (badHash).failureCodes
+               == juce::StringArray { hw::kFailureRecordingHashMismatch });
+    }
+}
+
+TEST_CASE ("recording stage record carries honest claims through acceptance")
+{
+    SECTION ("full alignment pass carries the claimed value and tolerance")
+    {
+        const auto m = makeHealthyLoopbackRecording();
+        const auto record = hw::makeRecordingStageRecord (m, hw::evaluateRecordingMeasurement (m),
+                                                          "1.0.0-t", "2026-08-04T12:00:00Z",
+                                                          "2026-08-04T12:01:00Z", 60000.0);
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-r"),
+                                                 { "run-r", hw::kStageRecording, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::pass);
+        CHECK (accepted.claimLevel == hw::kClaimFullAlignment);
+        CHECK (static_cast<int> (accepted.measurements[hw::kMeasAlignmentFrames]) == 3);
+    }
+    SECTION ("capture_only pass NEVER carries an alignment value (R17), even with a correlation")
+    {
+        auto m = makeHealthyLoopbackRecording();
+        m.inputRoute = hw::kRouteMicrophone;   // correlated, but provenance unproved
+        const auto record = hw::makeRecordingStageRecord (m, hw::evaluateRecordingMeasurement (m),
+                                                          "1.0.0-t", "2026-08-04T12:00:00Z",
+                                                          "2026-08-04T12:01:00Z", 60000.0);
+        CHECK (! record.measurements.hasProperty (hw::kMeasAlignmentFrames));
+        CHECK (record.measurements.hasProperty ("correlation_offset_frames_diagnostic"));
+
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-r"),
+                                                 { "run-r", hw::kStageRecording, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::pass);   // NOT rejected as invented alignment
+        CHECK (accepted.claimLevel == hw::kClaimCaptureOnly);
     }
 }
 

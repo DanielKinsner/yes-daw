@@ -80,6 +80,12 @@ inline constexpr const char* kFailurePlaybackSilentOutput       = "playback_sile
 inline constexpr const char* kFailurePlaybackCallbackBudget     = "playback_callback_budget";
 inline constexpr const char* kFailureRecordingInventedAlignment = "recording_invented_alignment";
 inline constexpr const char* kFailureRecordingAlignmentUnproved = "recording_alignment_unproved";
+inline constexpr const char* kFailureRecordingFifoDrop          = "recording_fifo_drop";
+inline constexpr const char* kFailureRecordingSilent            = "recording_silent";
+inline constexpr const char* kFailureRecordingInvalidWav        = "recording_invalid_wav";
+inline constexpr const char* kFailureRecordingBrokenLinkage     = "recording_broken_linkage";
+inline constexpr const char* kFailureRecordingHashMismatch      = "recording_hash_mismatch";
+inline constexpr const char* kFailureRecordingBadAlignment      = "recording_bad_alignment";
 inline constexpr const char* kFailureFrameClaimMismatch         = "frame_claim_mismatch";
 inline constexpr const char* kFailureFrameBlankOutput           = "frame_blank_output";
 inline constexpr const char* kFailureFrameInsufficientDensity   = "frame_insufficient_density";
@@ -639,6 +645,146 @@ struct PlaybackVerdict
     meas->setProperty ("device", m.deviceName);
     meas->setProperty ("backend", m.backendName);
     meas->setProperty ("backend_attempts", backendAttemptsToVar (attempts));
+    r.measurements = juce::var { meas };
+    return r;
+}
+
+// --- Recording stage owner policy (U4; R15-R17) ---------------------------------------------------
+// Full alignment credit (claim full_alignment, alignment_status claimed) exists ONLY when the
+// selected input is mechanically identified as a device loopback endpoint AND the coded burst
+// correlates AND the compensated placement error is inside the tolerance. Every other valid
+// capture — microphone correlation included — is the explicit capture_only claim with
+// alignment_status not_claimed and NO alignment value (R16/R17: no invented numbers). Silence,
+// FIFO drops, invalid WAV, broken linkage, and sample-hash mismatches are measured FAILs.
+inline constexpr double kRecordingMinCaptureRms = 1.0e-4;
+// ADR-0018's deterministic model places a looped-back click on its exact original frame; real
+// hardware reports approximate latencies, so the packaged gate allows this fixed error budget
+// (128 frames = the locked block target, ~2.7 ms @ 48 kHz). Revising it is an ADR-level change.
+inline constexpr long long kRecordingAlignmentToleranceFrames = 128;
+
+// input_route vocabulary (kRouteDeviceLoopback already exists above).
+inline constexpr const char* kRouteMicrophone   = "microphone";
+inline constexpr const char* kRouteUnclassified = "unclassified";
+
+struct RecordingMeasurement
+{
+    double        sampleRateHz = 0.0;
+    int           channels = 0;
+    std::uint64_t capturedFrames = 0;
+    std::uint64_t droppedFrames = 0;      // bounded-FIFO backpressure drops (authoritative)
+    double        captureRms = -1.0;
+    bool          wavValid = false;       // canonical float WAV decoded with expected format
+    bool          linkageValid = false;   // Asset/Clip/Take indirection intact after reopen
+    bool          hashMatch = false;      // captured samples identical before persist / after reopen
+    juce::String  inputRoute;             // device_loopback | microphone | unclassified
+    bool          correlationFound = false;
+    double        correlationSnr = 0.0;
+    long long     alignmentErrorFrames = 0;   // meaningful only when correlationFound
+    juce::String  deviceName;
+    juce::String  backendName;
+};
+
+struct RecordingVerdict
+{
+    StageState        state = StageState::fail;
+    juce::String      claimLevel;         // full_alignment | capture_only (empty on fail)
+    juce::String      alignmentStatus;    // claimed | not_claimed
+    juce::StringArray failureCodes;
+};
+
+[[nodiscard]] inline RecordingVerdict evaluateRecordingMeasurement (const RecordingMeasurement& m)
+{
+    RecordingVerdict v;
+    if (m.droppedFrames > 0)
+        v.failureCodes.add (kFailureRecordingFifoDrop);
+    if (m.capturedFrames == 0 || m.captureRms < kRecordingMinCaptureRms)
+        v.failureCodes.add (kFailureRecordingSilent);
+    if (! m.wavValid)
+        v.failureCodes.add (kFailureRecordingInvalidWav);
+    if (! m.linkageValid)
+        v.failureCodes.add (kFailureRecordingBrokenLinkage);
+    if (! m.hashMatch)
+        v.failureCodes.add (kFailureRecordingHashMismatch);
+
+    const bool loopbackProved = m.inputRoute == kRouteDeviceLoopback && m.correlationFound;
+    if (loopbackProved
+        && (m.alignmentErrorFrames > kRecordingAlignmentToleranceFrames
+            || m.alignmentErrorFrames < -kRecordingAlignmentToleranceFrames))
+        v.failureCodes.add (kFailureRecordingBadAlignment);
+
+    if (! v.failureCodes.isEmpty())
+    {
+        v.state = StageState::fail;
+        return v;
+    }
+
+    v.state = StageState::pass;
+    if (loopbackProved)
+    {
+        v.claimLevel = kClaimFullAlignment;
+        v.alignmentStatus = kAlignmentClaimed;
+    }
+    else
+    {
+        // Valid capture without loopback ground truth: the explicit degraded claim (R17).
+        v.claimLevel = kClaimCaptureOnly;
+        v.alignmentStatus = kAlignmentNotClaimed;
+    }
+    return v;
+}
+
+[[nodiscard]] inline StageRecord makeRecordingStageRecord (const RecordingMeasurement& m,
+                                                           const RecordingVerdict& verdict,
+                                                           const juce::String& checkerVersion,
+                                                           const juce::String& startedAt,
+                                                           const juce::String& completedAt,
+                                                           double durationMs)
+{
+    StageRecord r;
+    r.stage          = kStageRecording;
+    r.state          = verdict.state;
+    r.claimLevel     = verdict.state == StageState::pass ? verdict.claimLevel : juce::String {};
+    r.startedAt      = startedAt;
+    r.completedAt    = completedAt;
+    r.durationMs     = durationMs;
+    r.failureCodes   = verdict.failureCodes;
+    r.checkerVersion = checkerVersion;
+    if (verdict.state != StageState::pass)
+        r.detail = "recording capture/persistence violated the gate";
+    else if (verdict.claimLevel == kClaimFullAlignment)
+        r.detail = "loopback-proved capture persisted canonically within alignment tolerance";
+    else
+        r.detail = "capture persisted canonically; alignment not claimed (no loopback ground truth)";
+
+    auto* meas = new juce::DynamicObject();
+    meas->setProperty ("sample_rate_hz", m.sampleRateHz);
+    meas->setProperty ("channels", m.channels);
+    meas->setProperty ("captured_frames", static_cast<juce::int64> (m.capturedFrames));
+    meas->setProperty ("dropped_frames", static_cast<juce::int64> (m.droppedFrames));
+    meas->setProperty ("capture_rms", m.captureRms);
+    meas->setProperty ("min_capture_rms", kRecordingMinCaptureRms);
+    meas->setProperty ("wav_valid", m.wavValid);
+    meas->setProperty ("linkage_valid", m.linkageValid);
+    meas->setProperty ("sample_hash_match", m.hashMatch);
+    meas->setProperty (kMeasInputRoute, m.inputRoute);
+    meas->setProperty ("device", m.deviceName);
+    meas->setProperty ("backend", m.backendName);
+    meas->setProperty (kMeasAlignmentStatus, verdict.alignmentStatus);
+    meas->setProperty ("correlation_found", m.correlationFound);
+    meas->setProperty ("correlation_snr", m.correlationSnr);
+    if (verdict.state == StageState::pass && verdict.claimLevel == kClaimFullAlignment)
+    {
+        // The ONLY place an alignment value may appear (R17): a claimed, loopback-proved pass.
+        meas->setProperty (kMeasAlignmentFrames, static_cast<juce::int64> (m.alignmentErrorFrames));
+        meas->setProperty ("alignment_tolerance_frames",
+                           static_cast<juce::int64> (kRecordingAlignmentToleranceFrames));
+    }
+    else if (m.correlationFound)
+    {
+        // Correlation without proved provenance stays a diagnostic, never the claim key.
+        meas->setProperty ("correlation_offset_frames_diagnostic",
+                           static_cast<juce::int64> (m.alignmentErrorFrames));
+    }
     r.measurements = juce::var { meas };
     return r;
 }
