@@ -139,12 +139,42 @@ Dan gave a standing go to chain units; U3 shipped as its own green checkpoint.
   route to a real PASS on this box.
 - Local: full build `/WX`-clean, ctest **326/326** (was 325).
 
-**Now:** U3 shipped; confirm this push's remote CI run is green on `main`.
+**U3 remote CI:** run `30967303202` — all legs green except Windows still executing at the time
+U4 landed locally; U4's push waited for it (see below).
 
-**Next:** U4 — real capture + canonical recorded-audio persistence checker (extract the
-Asset/Clip/Take commit from `UiAppModel` into a shared control-side service, coded-burst
-correlation with loopback-provenance gating, capture-only claim path) as its own green
-checkpoint — then U5 (manifest + orchestrator + Windows package CI).
+## 2026-08-04 H17 packaged verifier U4 — real capture + canonical persistence checker — DONE
+
+- **Shared commit service (KTD7):** `app::commitRecordedAudioTake`
+  (`src/app/RecordingAssetCommit.h`) owns the canonical Asset/Clip/Take persistence — float-WAV
+  bytes into the bundle, Clip at timeline end of a real Track, RecordingTake linkage, ONE snapshot
+  write. `UiAppModel`'s recording path now delegates to it; the session-ULID allocator, the
+  "Audio 1" fallback rule, and the H13 paired synthetic MIDI take ride caller hooks, so the
+  synthetic UI helper can never satisfy the hardware stage. Behavior-preserving refactor — full
+  suite stayed green untouched.
+- **Recording verdict policy:** FIFO drops / silence / invalid WAV / broken linkage / hash
+  mismatch fail with distinct codes; `full_alignment` is claimable ONLY for a mechanically
+  identified `device_loopback` route with valid coded-burst correlation inside the fixed
+  128-frame tolerance; microphone/unclassified captures pass only as explicit `capture_only`
+  with `alignment_status: not_claimed` and NO alignment value (an unproved correlation is
+  retained under a diagnostic key — pinned so U1's invented-alignment rejection can never trip
+  on an honest record).
+- **`YesDawHardwareRecordingCheck`:** coded burst out, capture through the REAL bounded H5 path
+  (`captureRecordingInputBlock` → SPSC FIFO → `RecordingTakeFileWriter` round-trip), commit
+  through the shared service into a fresh bundle, reopen, verify linkage + canonical WAV +
+  FNV-1a sample-hash identity. `--version` regex-gated in CI.
+- **Owner-machine diagnostic (not gate credit):** end-to-end run on real hardware — 192,480
+  frames captured, zero drops, take file round-tripped, commit + reopen verified
+  (`wav=1 link=1 hash=1`) — and the verdict honestly FAILed `recording_silent`: the default
+  input (HyperX mic) delivered all-zeros (muted). The pipeline works; the route needs a live
+  input or a loopback endpoint on the owner run.
+- Local: full build `/WX`-clean, ctest **327/327** (was 326).
+
+**Now:** U4 shipped (three green chunks); confirm the U3+U4 remote CI runs are green on `main`.
+
+**Next:** U5 — package manifest (KTD5 in `package.ps1`), the `verify-hardware.ps1` normal-path
+orchestration (children, timeouts, atomic aggregate, generated Reality-lane row), and the Windows
+package CI job with the full R20 negative-control inventory — the biggest remaining unit. Then U6
+(owner-gated ASIO) and U7 (owner run) remain.
 
 ---
 

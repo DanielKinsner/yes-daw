@@ -492,6 +492,33 @@ if (YESDAW_BUILD_APPS)
            COMMAND $<TARGET_FILE:YesDawHardwarePlaybackCheck> --version)
   set_tests_properties(YesDawHardwarePlaybackCheckVersion PROPERTIES
     PASS_REGULAR_EXPRESSION "YesDawHardwarePlaybackCheck ${YESDAW_GIT_VERSION}")
+
+  # --- Packaged recording stage checker (H17 packaged verifier U4) ---
+  # YesDawHardwareRecordingCheck captures through the real bounded H5 path
+  # (captureRecordingInputBlock -> RecordingChunkFifo -> RecordingTakeFileWriter), persists through
+  # the SAME app::commitRecordedAudioTake service the app model uses (KTD7), reopens the bundle,
+  # and verifies linkage + canonical WAV + sample-hash identity. Alignment is claimed only for a
+  # mechanically identified loopback route with a valid coded-burst correlation; everything else is
+  # the explicit capture_only claim. CI compiles it and runs --version only — real capture is
+  # owner-machine evidence (U7).
+  juce_add_console_app(YesDawHardwareRecordingCheck PRODUCT_NAME "YesDawHardwareRecordingCheck")
+  target_sources(YesDawHardwareRecordingCheck PRIVATE tools/hardware/RecordingCheckMain.cpp)
+  target_include_directories(YesDawHardwareRecordingCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawHardwareRecordingCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawHardwareRecordingCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+  target_link_libraries(YesDawHardwareRecordingCheck
+    PRIVATE
+      sqlite3_amalgamation
+      juce::juce_audio_devices
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawHardwareRecordingCheck)
+  add_test(NAME YesDawHardwareRecordingCheckVersion
+           COMMAND $<TARGET_FILE:YesDawHardwareRecordingCheck> --version)
+  set_tests_properties(YesDawHardwareRecordingCheckVersion PROPERTIES
+    PASS_REGULAR_EXPRESSION "YesDawHardwareRecordingCheck ${YESDAW_GIT_VERSION}")
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---
