@@ -444,6 +444,29 @@ if (YESDAW_BUILD_APPS)
              COMMAND powershell -NoProfile -ExecutionPolicy Bypass
                      -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/verify-hardware.ps1 -SelfTest)
   endif()
+
+  # --- Packaged frame stage checker (H17 packaged verifier U2) ---
+  # YesDawFrameCheck runs the SAME dense-Timeline measurement core as YesDawTimelineGpuCheck
+  # (src/ui/TimelineFrameCheck.h) under the FIXED owner policy in src/app/HardwareVerification.h —
+  # no CI relaxation, no threshold flags — and emits the schema-v1 frame stage document for the
+  # verify-hardware.ps1 orchestrator. CI proves the binary runs and reports the build version; the
+  # strict-policy measurement itself is owner-machine evidence (U7), not a shared-runner test.
+  juce_add_console_app(YesDawFrameCheck PRODUCT_NAME "YesDawFrameCheck")
+  target_sources(YesDawFrameCheck PRIVATE tools/hardware/FrameCheckMain.cpp)
+  target_include_directories(YesDawFrameCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_compile_definitions(YesDawFrameCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+  target_link_libraries(YesDawFrameCheck
+    PRIVATE
+      juce::juce_gui_basics
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawFrameCheck)
+  # --version must run and print the same stamp every packaged binary carries (R4 groundwork).
+  add_test(NAME YesDawFrameCheckVersion COMMAND $<TARGET_FILE:YesDawFrameCheck> --version)
+  set_tests_properties(YesDawFrameCheckVersion PROPERTIES
+    PASS_REGULAR_EXPRESSION "YesDawFrameCheck ${YESDAW_GIT_VERSION}")
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---

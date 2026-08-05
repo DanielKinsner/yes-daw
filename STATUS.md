@@ -78,12 +78,37 @@ Dan gave the go; U1 of the packaged-verifier plan is implemented and green.
 - Local: full build `/WX`-clean, ctest **324/324** (was 322), script self-test 16/16, normal path
   exit 2, `git diff --check` clean.
 
-**Now:** U1 shipped in two green chunks; confirm this push's remote CI run is green on `main`.
+**U1 remote-green:** GitHub Actions run `30877702997` (commit `465d96c`) passed all legs.
 
-**Next:** U2 — reusable headless dense-Timeline frame checker (extract the measurement core from
-`tests/timeline_gpu_tests.cpp` into `src/ui/TimelineFrameCheck.h`, add the `YesDawFrameCheck`
-JSON-emitting console binary, keep the Catch2 gate calling the same helper) as its own small green
-checkpoint — then stop.
+## 2026-08-04 H17 packaged verifier U2 — reusable headless frame checker — DONE
+
+- `src/ui/TimelineFrameCheck.h` now owns the dense-Timeline fixture + measurement loop, extracted
+  verbatim from `tests/timeline_gpu_tests.cpp`. The Catch2 gate and the new packaged checker run
+  the SAME core, so they cannot drift. The fixture palette is expressed as `UiTheme` tokens (the
+  file sits inside the H16 theme-audit boundary, which caught the raw literals on the first local
+  run — the gate bit exactly as designed; five of six literals were already identical to UiTheme
+  accents, the sixth was a near-duplicate of `accentPurple` and folded into it).
+- `src/app/HardwareVerification.h` gained the FIXED frame owner policy (budget 16.6 ms, 2 outliers,
+  ≥250 visible clips, ≥20 distinct samples — all constexpr, pinned by test, provably ignorant of
+  ambient `CI`), four new stable codes (`frame_blank_output`, `frame_insufficient_density`,
+  `frame_capacity_exceeded`, `frame_over_budget`), `evaluateFrameMeasurement`, and
+  `makeFrameStageRecord` (pass claims exactly `headless_dense_timeline`; fail claims nothing).
+- `YesDawFrameCheck` (tools/hardware/FrameCheckMain.cpp) is the thin packaged binary:
+  `--run-id/--json-out/--version`, atomic schema-v1 stage JSON, exit 0/1/2. No flag or env var can
+  relax a threshold. CI runs `--version` (stamp must match the build); the strict measurement is
+  owner-machine evidence for U7.
+- Degenerate-fixture bites through the REAL paint path: a tiny canvas that cannot prove nonblank
+  rendering fails `frame_blank_output`; a sparse arrangement fails `frame_insufficient_density`
+  while staying nonblank; a real short dense run round-trips schema v1 through acceptance.
+- Local: full build `/WX`-clean, ctest **325/325** (was 324), standalone owner run on this machine:
+  `FRAME PASS sustained_ms=2.160 max_ms=2.630 slow=0/160 visible=336 distinct=300` (diagnostic
+  only — packaged-run evidence still belongs to U7).
+
+**Now:** U2 shipped; confirm this push's remote CI run is green on `main`.
+
+**Next:** U3 — packaged real-Project playback checker (factor the soak's measurement core, explicit
+48 kHz/128 request with granted values recorded independently, deterministic backend-attempt
+records, real JSON serializer, `--version`) as its own small green checkpoint — then stop.
 
 ---
 
