@@ -469,6 +469,29 @@ if (YESDAW_BUILD_APPS)
   set_tests_properties(YesDawFrameCheckVersion PROPERTIES
     PASS_REGULAR_EXPRESSION "YesDawFrameCheck ${YESDAW_GIT_VERSION}")
 
+  # --- Packaged playback stage checker (H17 packaged verifier U3) ---
+  # YesDawHardwarePlaybackCheck shares the soak's callback + tone-Project fixture (KTD6: one
+  # playback engine path), requests the locked 48 kHz/128 explicitly through a deterministic
+  # backend order, records every route attempt with a stable reason code, and emits the schema-v1
+  # playback stage document. CI compiles it and runs --version only — a positive device test needs
+  # real hardware (owner evidence, U7). Links only juce_audio_devices, like the soak.
+  juce_add_console_app(YesDawHardwarePlaybackCheck PRODUCT_NAME "YesDawHardwarePlaybackCheck")
+  target_sources(YesDawHardwarePlaybackCheck PRIVATE tools/hardware/PlaybackCheckMain.cpp)
+  target_include_directories(YesDawHardwarePlaybackCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawHardwarePlaybackCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawHardwarePlaybackCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+  target_link_libraries(YesDawHardwarePlaybackCheck
+    PRIVATE
+      juce::juce_audio_devices
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawHardwarePlaybackCheck)
+  add_test(NAME YesDawHardwarePlaybackCheckVersion
+           COMMAND $<TARGET_FILE:YesDawHardwarePlaybackCheck> --version)
+  set_tests_properties(YesDawHardwarePlaybackCheckVersion PROPERTIES
+    PASS_REGULAR_EXPRESSION "YesDawHardwarePlaybackCheck ${YESDAW_GIT_VERSION}")
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---

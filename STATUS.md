@@ -104,11 +104,47 @@ Dan gave the go; U1 of the packaged-verifier plan is implemented and green.
   `FRAME PASS sustained_ms=2.160 max_ms=2.630 slow=0/160 visible=336 distinct=300` (diagnostic
   only — packaged-run evidence still belongs to U7).
 
-**Now:** U2 shipped; confirm this push's remote CI run is green on `main`.
+**U2 remote-green:** GitHub Actions run `30962697474` (commit `affe6d7`) passed all legs.
 
-**Next:** U3 — packaged real-Project playback checker (factor the soak's measurement core, explicit
-48 kHz/128 request with granted values recorded independently, deterministic backend-attempt
-records, real JSON serializer, `--version`) as its own small green checkpoint — then stop.
+## 2026-08-04 H17 packaged verifier U3 — packaged real-Project playback checker — DONE
+
+Dan gave a standing go to chain units; U3 shipped as its own green checkpoint.
+
+- **One playback engine path (KTD6):** the soak's measurement callback and tone-Project fixture
+  now live in `tools/soak/PlaybackSoakCallback.h` + `src/app/PlaybackCheckFixture.h`, shared
+  verbatim by `YesDawSoak` and the new `YesDawHardwarePlaybackCheck`. `stats.json` shape unchanged
+  (soak.ps1/soak.sh untouched). The fixture is finally assertable device-free: tests render it
+  through `PlaybackEngine` and prove non-silence, and prove the track-less variant cannot build an
+  engine — the exact 2026-07-27 silent-soak bug class, now pinned.
+- **Locked verdict policy in `HardwareVerification.h`:** granted rate must be exactly 48000,
+  granted Block ≤ 128 (zero Underruns cannot rescue a 480/144 grant — AE2), authoritative xruns
+  fail, callback-work-at-or-over-budget fails, silent output fails
+  (`output_rms < 0.01`; the callback grew an output-RMS accumulator as the mechanical
+  non-silence proof), and the 1.5× inter-arrival heuristic is **pinned diagnostic** — a
+  5000-miss run with clean authoritative metrics still passes (KTD6). New codes:
+  `playback_xrun`, `playback_device_error`, `playback_silent_output`, `playback_callback_budget`;
+  route reason codes `met_target`/`open_error`/`block_above_target`/`wrong_sample_rate`/
+  `type_unavailable`/`no_device`.
+- **`YesDawHardwarePlaybackCheck`:** deterministic ASIO→WASAPI route order, every attempt recorded
+  in order with granted values; first target-meeting backend wins; otherwise the best relaxed
+  route runs as retained diagnostic evidence and the verdict is a measured FAIL. Schema-v1 JSON
+  via the shared serializer, `--version` regex-gated in CI.
+- **Live catch during U3:** the first candidate order let **DirectSound** claim a 128-frame grant
+  ("Primary Sound Driver", met_target) — and it xrunned within 5 s. DirectSound's 128 is a
+  callback chunk over a big ring buffer, a false latency claim. R6 names ASIO + WASAPI only;
+  DirectSound is now explicitly excluded, with the observed evidence in the source comment.
+- **Owner-machine diagnostic (not gate credit):** all three WASAPI routes granted 480 on the
+  Focusrite; the checker ran the relaxed route, rendered real audio (output_rms 0.09), and exited
+  1 with `playback_block_exceeds_target` + all attempts recorded — exactly AE2. ASIO (U6) is the
+  route to a real PASS on this box.
+- Local: full build `/WX`-clean, ctest **326/326** (was 325).
+
+**Now:** U3 shipped; confirm this push's remote CI run is green on `main`.
+
+**Next:** U4 — real capture + canonical recorded-audio persistence checker (extract the
+Asset/Clip/Take commit from `UiAppModel` into a shared control-side service, coded-burst
+correlation with loopback-provenance gating, capture-only claim path) as its own green
+checkpoint — then U5 (manifest + orchestrator + Windows package CI).
 
 ---
 
