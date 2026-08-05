@@ -426,6 +426,7 @@ if (YESDAW_BUILD_APPS)
   # sides assert the exact fixture set so the two implementations cannot drift silently.
   add_executable(YesDawHardwareVerificationCheck tests/hardware_verification_tests.cpp)
   target_include_directories(YesDawHardwareVerificationCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawHardwareVerificationCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawHardwareVerificationCheck PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -467,6 +468,7 @@ if (YESDAW_BUILD_APPS)
   add_test(NAME YesDawFrameCheckVersion COMMAND $<TARGET_FILE:YesDawFrameCheck> --version)
   set_tests_properties(YesDawFrameCheckVersion PROPERTIES
     PASS_REGULAR_EXPRESSION "YesDawFrameCheck ${YESDAW_GIT_VERSION}")
+
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---

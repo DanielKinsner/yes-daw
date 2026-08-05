@@ -74,6 +74,10 @@ inline constexpr const char* kFailureDeviceUnavailable    = "device_unavailable"
 inline constexpr const char* kFailurePlaybackEvidenceMissing   = "playback_evidence_missing";
 inline constexpr const char* kFailurePlaybackWrongSampleRate   = "playback_wrong_sample_rate";
 inline constexpr const char* kFailurePlaybackBlockExceedsTarget = "playback_block_exceeds_target";
+inline constexpr const char* kFailurePlaybackXrun               = "playback_xrun";
+inline constexpr const char* kFailurePlaybackDeviceError        = "playback_device_error";
+inline constexpr const char* kFailurePlaybackSilentOutput       = "playback_silent_output";
+inline constexpr const char* kFailurePlaybackCallbackBudget     = "playback_callback_budget";
 inline constexpr const char* kFailureRecordingInventedAlignment = "recording_invented_alignment";
 inline constexpr const char* kFailureRecordingAlignmentUnproved = "recording_alignment_unproved";
 inline constexpr const char* kFailureFrameClaimMismatch         = "frame_claim_mismatch";
@@ -506,6 +510,137 @@ struct AggregateVerdict
                                : (anyIncomplete ? OverallState::setup : OverallState::pass);
     verdict.exitCode = exitCodeFor (verdict.overall);
     return verdict;
+}
+
+// --- Playback stage owner policy (U3; R5-R7, R12-R14) ---------------------------------------------
+// The locked gate: 48 kHz granted exactly, Block granted at or below 128 frames, no authoritative
+// Underrun, callback work inside the block budget, and non-silent Project output into the device
+// buffer. The 1.5x inter-arrival heuristic (deadline_misses) is DIAGNOSTIC ONLY — recorded, never
+// gating — until an independent negative control proves it maps to a real budget breach (KTD6).
+inline constexpr double kPlaybackMinOutputRms = 0.01;   // fixture tone RMS is ~0.127
+
+// Stable reason codes for every backend/device route attempt (R7). These live in the attempt
+// records, not in failure_codes; U6 adds the ASIO ambiguity/busy vocabulary.
+inline constexpr const char* kRouteMetTarget        = "met_target";
+inline constexpr const char* kRouteOpenError        = "open_error";
+inline constexpr const char* kRouteBlockAboveTarget = "block_above_target";
+inline constexpr const char* kRouteWrongSampleRate  = "wrong_sample_rate";
+inline constexpr const char* kRouteTypeUnavailable  = "type_unavailable";
+inline constexpr const char* kRouteNoDevice         = "no_device";
+
+struct PlaybackBackendAttempt
+{
+    juce::String backend;       // JUCE device-type name ("ASIO", "Windows Audio (Exclusive Mode)", ...)
+    juce::String device;        // device name, empty if none opened
+    juce::String openError;     // JUCE error text, empty on success
+    juce::String reasonCode;    // one of the kRoute* codes above
+    double       grantedSampleRateHz = 0.0;
+    int          grantedBlockFrames = 0;
+};
+
+[[nodiscard]] inline juce::var backendAttemptsToVar (const std::vector<PlaybackBackendAttempt>& attempts)
+{
+    juce::Array<juce::var> array;
+    for (const auto& attempt : attempts)
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty ("backend", attempt.backend);
+        obj->setProperty ("device", attempt.device);
+        obj->setProperty ("open_error", attempt.openError);
+        obj->setProperty ("reason_code", attempt.reasonCode);
+        obj->setProperty ("granted_sample_rate_hz", attempt.grantedSampleRateHz);
+        obj->setProperty ("granted_block_frames", attempt.grantedBlockFrames);
+        array.add (juce::var { obj });
+    }
+    return juce::var { array };
+}
+
+struct PlaybackMeasurement
+{
+    double grantedSampleRateHz = 0.0;
+    int    grantedBlockFrames = 0;
+    double seconds = 0.0;
+    int    xruns = -1;               // device-reported; -1 = the backend cannot report them
+    int    deadlineMisses = 0;       // inter-arrival heuristic, DIAGNOSTIC only
+    double maxCallbackMs = 0.0;      // authoritative: our own work per callback
+    double blockBudgetMs = 0.0;
+    bool   deviceError = false;
+    double outputRms = -1.0;         // channel-0 RMS of what landed in the device buffer
+    juce::String deviceName;
+    juce::String backendName;
+};
+
+struct PlaybackVerdict
+{
+    StageState        state = StageState::fail;
+    juce::StringArray failureCodes;
+};
+
+[[nodiscard]] inline PlaybackVerdict evaluatePlaybackMeasurement (const PlaybackMeasurement& m)
+{
+    PlaybackVerdict v;
+    v.state = StageState::pass;
+    // A completed measurement that violates the locked gate is a FAIL — never reinterpreted as
+    // setup, and zero Underruns cannot rescue a relaxed Block (AE2).
+    if (m.grantedSampleRateHz != kRequiredSampleRateHz)
+        v.failureCodes.add (kFailurePlaybackWrongSampleRate);
+    if (m.grantedBlockFrames > kMaxGrantedBlockFrames)
+        v.failureCodes.add (kFailurePlaybackBlockExceedsTarget);
+    if (m.xruns > 0)
+        v.failureCodes.add (kFailurePlaybackXrun);
+    if (m.deviceError)
+        v.failureCodes.add (kFailurePlaybackDeviceError);
+    if (m.blockBudgetMs > 0.0 && m.maxCallbackMs >= m.blockBudgetMs)
+        v.failureCodes.add (kFailurePlaybackCallbackBudget);
+    if (m.outputRms < kPlaybackMinOutputRms)
+        v.failureCodes.add (kFailurePlaybackSilentOutput);
+    // deadlineMisses deliberately absent: diagnostic, not gating (KTD6).
+    if (! v.failureCodes.isEmpty())
+        v.state = StageState::fail;
+    return v;
+}
+
+[[nodiscard]] inline StageRecord makePlaybackStageRecord (const PlaybackMeasurement& m,
+                                                          const PlaybackVerdict& verdict,
+                                                          const std::vector<PlaybackBackendAttempt>& attempts,
+                                                          const juce::String& checkerVersion,
+                                                          const juce::String& startedAt,
+                                                          const juce::String& completedAt,
+                                                          double durationMs)
+{
+    StageRecord r;
+    r.stage          = kStagePlayback;
+    r.state          = verdict.state;
+    r.claimLevel     = verdict.state == StageState::pass ? juce::String { kClaimLockedPlayback }
+                                                         : juce::String {};
+    r.startedAt      = startedAt;
+    r.completedAt    = completedAt;
+    r.durationMs     = durationMs;
+    r.failureCodes   = verdict.failureCodes;
+    r.checkerVersion = checkerVersion;
+    r.detail         = verdict.state == StageState::pass
+                         ? juce::String { "real-Project playback met the locked 48 kHz / 128-frame gate" }
+                         : juce::String { "real-Project playback violated the locked gate" };
+
+    auto* meas = new juce::DynamicObject();
+    meas->setProperty ("requested_sample_rate_hz", kRequiredSampleRateHz);
+    meas->setProperty (kMeasGrantedSampleRateHz, m.grantedSampleRateHz);
+    meas->setProperty ("requested_block_frames", kMaxGrantedBlockFrames);
+    meas->setProperty (kMeasGrantedBlockFrames, m.grantedBlockFrames);
+    meas->setProperty ("seconds", m.seconds);
+    meas->setProperty ("xruns", m.xruns);
+    meas->setProperty ("xrun_reporting_supported", m.xruns >= 0);
+    meas->setProperty ("deadline_misses_diagnostic", m.deadlineMisses);
+    meas->setProperty ("max_callback_ms", m.maxCallbackMs);
+    meas->setProperty ("block_budget_ms", m.blockBudgetMs);
+    meas->setProperty ("device_error", m.deviceError);
+    meas->setProperty ("output_rms", m.outputRms);
+    meas->setProperty ("min_output_rms", kPlaybackMinOutputRms);
+    meas->setProperty ("device", m.deviceName);
+    meas->setProperty ("backend", m.backendName);
+    meas->setProperty ("backend_attempts", backendAttemptsToVar (attempts));
+    r.measurements = juce::var { meas };
+    return r;
 }
 
 // --- Frame stage owner policy (U2; R18-R19) -------------------------------------------------------

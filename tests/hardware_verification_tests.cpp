@@ -8,10 +8,13 @@
 // fails mechanically instead of silently.
 
 #include "app/HardwareVerification.h"
+#include "app/PlaybackCheckFixture.h"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <clocale>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <string>
@@ -170,6 +173,19 @@ TEST_CASE ("failure-code registry strings are frozen")
     CHECK (hw::kFrameAllowedOutlierFrames == 2);
     CHECK (hw::kFrameMinVisibleClips == 250);
     CHECK (hw::kFrameMinDistinctSamples == 20);
+
+    // Playback stage codes and route reason codes (U3).
+    CHECK (std::string { hw::kFailurePlaybackXrun } == "playback_xrun");
+    CHECK (std::string { hw::kFailurePlaybackDeviceError } == "playback_device_error");
+    CHECK (std::string { hw::kFailurePlaybackSilentOutput } == "playback_silent_output");
+    CHECK (std::string { hw::kFailurePlaybackCallbackBudget } == "playback_callback_budget");
+    CHECK (std::string { hw::kRouteMetTarget } == "met_target");
+    CHECK (std::string { hw::kRouteOpenError } == "open_error");
+    CHECK (std::string { hw::kRouteBlockAboveTarget } == "block_above_target");
+    CHECK (std::string { hw::kRouteWrongSampleRate } == "wrong_sample_rate");
+    CHECK (std::string { hw::kRouteTypeUnavailable } == "type_unavailable");
+    CHECK (std::string { hw::kRouteNoDevice } == "no_device");
+    CHECK (hw::kPlaybackMinOutputRms == 0.01);
 }
 
 TEST_CASE ("JSON serialization is locale-invariant and escapes hostile strings")
@@ -506,6 +522,224 @@ TEST_CASE ("frame stage record maps verdicts to honest claims")
         hw::normalizeStageRecord (accepted);
         CHECK (accepted.state == hw::StageState::fail);
         CHECK (accepted.failureCodes == juce::StringArray { hw::kFailureFrameOverBudget });
+    }
+}
+
+namespace {
+
+hw::PlaybackMeasurement makeHealthyPlaybackMeasurement()
+{
+    hw::PlaybackMeasurement m;
+    m.grantedSampleRateHz = 48000.0;
+    m.grantedBlockFrames = 128;
+    m.seconds = 30.0;
+    m.xruns = 0;
+    m.deadlineMisses = 0;
+    m.maxCallbackMs = 0.4;
+    m.blockBudgetMs = 128.0 / 48000.0 * 1000.0;
+    m.deviceError = false;
+    m.outputRms = 0.127;
+    m.deviceName = "Test Device";
+    m.backendName = "Windows Audio (Exclusive Mode)";
+    return m;
+}
+
+} // namespace
+
+TEST_CASE ("playback owner evaluation enforces the locked gate")
+{
+    SECTION ("healthy measurement passes with no codes")
+    {
+        const auto v = hw::evaluatePlaybackMeasurement (makeHealthyPlaybackMeasurement());
+        CHECK (v.state == hw::StageState::pass);
+        CHECK (v.failureCodes.isEmpty());
+    }
+    SECTION ("a 480-frame grant fails even with zero Underruns (AE2)")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.grantedBlockFrames = 480;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackBlockExceedsTarget });
+    }
+    SECTION ("a 144-frame grant fails too — the target is 128, not 'close'")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.grantedBlockFrames = 144;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes.contains (hw::kFailurePlaybackBlockExceedsTarget));
+    }
+    SECTION ("a 44.1 kHz grant fails a 48 kHz request")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.grantedSampleRateHz = 44100.0;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackWrongSampleRate });
+    }
+    SECTION ("an authoritative xrun fails")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.xruns = 1;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackXrun });
+    }
+    SECTION ("unsupported xrun reporting is not a failure by itself")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.xruns = -1;   // backend cannot report; the callback-budget metric stays authoritative
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.state == hw::StageState::pass);
+    }
+    SECTION ("a device error fails")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.deviceError = true;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackDeviceError });
+    }
+    SECTION ("silent output fails — soaking zeros is not playback")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.outputRms = 0.0;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackSilentOutput });
+    }
+    SECTION ("callback work at or over the block budget fails")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.maxCallbackMs = m.blockBudgetMs;
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailurePlaybackCallbackBudget });
+    }
+    SECTION ("the inter-arrival heuristic is diagnostic: misses alone never gate (KTD6)")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.deadlineMisses = 5000;   // bursty-but-healthy exclusive WASAPI looks exactly like this
+        const auto v = hw::evaluatePlaybackMeasurement (m);
+        CHECK (v.state == hw::StageState::pass);
+    }
+}
+
+TEST_CASE ("playback stage record maps verdicts and preserves ordered backend attempts")
+{
+    std::vector<hw::PlaybackBackendAttempt> attempts;
+    hw::PlaybackBackendAttempt asio;
+    asio.backend = "ASIO";
+    asio.reasonCode = hw::kRouteTypeUnavailable;
+    attempts.push_back (asio);
+    hw::PlaybackBackendAttempt shared;
+    shared.backend = "Windows Audio (Low Latency Mode)";
+    shared.device = "Speakers";
+    shared.grantedSampleRateHz = 48000.0;
+    shared.grantedBlockFrames = 480;
+    shared.reasonCode = hw::kRouteBlockAboveTarget;
+    attempts.push_back (shared);
+    hw::PlaybackBackendAttempt exclusive;
+    exclusive.backend = "Windows Audio (Exclusive Mode)";
+    exclusive.device = "Speakers";
+    exclusive.grantedSampleRateHz = 48000.0;
+    exclusive.grantedBlockFrames = 128;
+    exclusive.reasonCode = hw::kRouteMetTarget;
+    attempts.push_back (exclusive);
+
+    SECTION ("pass claims locked_playback and survives acceptance + normalization")
+    {
+        const auto m = makeHealthyPlaybackMeasurement();
+        const auto record = hw::makePlaybackStageRecord (m, hw::evaluatePlaybackMeasurement (m),
+                                                         attempts, "1.0.0-t",
+                                                         "2026-08-04T11:00:00Z",
+                                                         "2026-08-04T11:00:30Z", 30000.0);
+        CHECK (record.claimLevel == hw::kClaimLockedPlayback);
+
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-p"),
+                                                 { "run-p", hw::kStagePlayback, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::pass);
+        CHECK (accepted.claimLevel == hw::kClaimLockedPlayback);
+
+        // Every route attempt is retained, in order, with its reason code (R7).
+        const juce::var recorded = accepted.measurements["backend_attempts"];
+        REQUIRE (recorded.isArray());
+        REQUIRE (recorded.getArray()->size() == 3);
+        CHECK ((*recorded.getArray())[0]["reason_code"].toString() == hw::kRouteTypeUnavailable);
+        CHECK ((*recorded.getArray())[1]["reason_code"].toString() == hw::kRouteBlockAboveTarget);
+        CHECK ((*recorded.getArray())[2]["reason_code"].toString() == hw::kRouteMetTarget);
+    }
+    SECTION ("a relaxed 480-frame run claims nothing and cannot normalize into a pass")
+    {
+        auto m = makeHealthyPlaybackMeasurement();
+        m.grantedBlockFrames = 480;
+        const auto record = hw::makePlaybackStageRecord (m, hw::evaluatePlaybackMeasurement (m),
+                                                         attempts, "1.0.0-t",
+                                                         "2026-08-04T11:00:00Z",
+                                                         "2026-08-04T11:00:30Z", 30000.0);
+        CHECK (record.claimLevel.isEmpty());
+        CHECK (record.state == hw::StageState::fail);
+
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-p"),
+                                                 { "run-p", hw::kStagePlayback, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::fail);
+        CHECK (accepted.failureCodes.contains (hw::kFailurePlaybackBlockExceedsTarget));
+    }
+}
+
+TEST_CASE ("tone playback fixture renders non-silence through a Track (device-free)")
+{
+    namespace eng = yesdaw::engine;
+
+    auto fixture = hw::buildTonePlaybackFixture (48000.0, 128, 0.25);
+    REQUIRE (fixture.ok);
+    REQUIRE (fixture.project.tracks.size() == 1);
+
+    eng::OfflineRenderOptions options;
+    options.maxBlockSize = 128;
+
+    SECTION ("with its Track the Project renders the tone")
+    {
+        auto created = eng::PlaybackEngine::create (
+            fixture.project,
+            std::span<const eng::DecodedAssetAudio> (fixture.decodedAssets.data(),
+                                                     fixture.decodedAssets.size()),
+            options);
+        REQUIRE (created.ok());
+
+        std::vector<float> left (128, 0.0f), right (128, 0.0f);
+        std::array<float*, 2> channels { left.data(), right.data() };
+        double sumSq = 0.0;
+        std::size_t count = 0;
+        for (int block = 0; block < 32; ++block)
+        {
+            created.engine->processBlock (channels.data(), 2, 128);
+            for (const float sample : left)
+            {
+                sumSq += static_cast<double> (sample) * static_cast<double> (sample);
+                ++count;
+            }
+        }
+        const double rms = std::sqrt (sumSq / static_cast<double> (count));
+        INFO ("rendered rms=" << rms);
+        CHECK (rms >= hw::kPlaybackMinOutputRms);
+    }
+    SECTION ("track-less, the same Project cannot even build an engine (the 2026-07-27 bug class)")
+    {
+        auto broken = hw::buildTonePlaybackFixture (48000.0, 128, 0.25);
+        REQUIRE (broken.ok);
+        broken.project.tracks.clear();
+        auto created = eng::PlaybackEngine::create (
+            broken.project,
+            std::span<const eng::DecodedAssetAudio> (broken.decodedAssets.data(),
+                                                     broken.decodedAssets.size()),
+            options);
+        CHECK (! created.ok());
+    }
+    SECTION ("degenerate parameters are reported, not rendered")
+    {
+        CHECK (! hw::buildTonePlaybackFixture (0.0, 128, 0.25).ok);
+        CHECK (! hw::buildTonePlaybackFixture (48000.0, 0, 0.25).ok);
+        CHECK (! hw::buildTonePlaybackFixture (48000.0, 128, 0.0).ok);
     }
 }
 
