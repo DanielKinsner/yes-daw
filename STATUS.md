@@ -169,12 +169,50 @@ U4 landed locally; U4's push waited for it (see below).
   input or a loopback endpoint on the owner run.
 - Local: full build `/WX`-clean, ctest **327/327** (was 326).
 
-**Now:** U4 shipped (three green chunks); confirm the U3+U4 remote CI runs are green on `main`.
+**U3 remote-green:** run `30967303202` (commit `c4c6acc`) passed all legs (Windows was just slow).
 
-**Next:** U5 — package manifest (KTD5 in `package.ps1`), the `verify-hardware.ps1` normal-path
-orchestration (children, timeouts, atomic aggregate, generated Reality-lane row), and the Windows
-package CI job with the full R20 negative-control inventory — the biggest remaining unit. Then U6
-(owner-gated ASIO) and U7 (owner run) remain.
+## 2026-08-04 H17 packaged verifier U5 — manifest, orchestrator, Windows package CI — DONE
+
+The owner command exists end-to-end. `package.ps1` stages `verify-hardware.ps1`, the three stage
+checkers, and the verdict fixtures into the portable zip and generates `package-manifest.json`
+(KTD5: relative path, bytes, SHA-256, and the version each staged binary itself reports — the
+staging aborts if a binary carries a stale stamp). `verify-hardware.ps1`'s normal path validates
+the manifest strictly under `$PSScriptRoot` (no PATH, no build tree, path-escape rejected), runs
+the three checkers with timeouts, accepts/normalizes/aggregates through the SAME policy functions
+`-SelfTest` proves, and atomically writes `result.json` + generated Reality-lane rows under
+`hardware-results/<UTC stamp>-<version>/`. Integrity failure stops before any hardware launch and
+still writes an exit-2 aggregate. `-IntegrityOnly` exists for the mutation controls and can never
+produce a hardware verdict (always exit 2).
+
+- **R20 negative controls, all biting in the packaged `-SelfTest`:** clean-copy integrity OK,
+  `manifest_missing`, `manifest_file_missing`, `manifest_size_mismatch`, `manifest_hash_mismatch`,
+  `manifest_path_escape`, `checker_version_mismatch` — each on a disposable package copy — plus
+  the child-hang kill mechanics through the real launch function. 16/16 fixtures + 8/8 controls
+  green from a clean extraction outside the checkout, invoked by absolute path from an unrelated
+  working directory (R2).
+- **New CI job `package-windows`:** builds the Windows zip, extracts outside the checkout, cds to
+  an unrelated directory WITH A SPACE, runs the packaged `-SelfTest` under Windows PowerShell 5.1.
+- **Three real bugs caught by running the real thing on this machine:**
+  1. `Start-Process -ArgumentList` (PS 5.1) does not quote array elements — a results path with a
+     space shattered into multiple child args and every checker printed usage. Explicit quoting.
+  2. `Process.ExitCode` reads `$null` unless the handle is cached — and `$null -lt 0` is TRUE in
+     PowerShell, so polite exits classified as crashes. Handle cached, null handled.
+  3. Windows MAX_PATH: the recording stage nests a content-addressed bundle under the results dir;
+     deep extraction paths blew 260 chars and the commit service failed. All verifier-controlled
+     path segments shortened (results dir per KTD4, `rec/`, `rec.yesdaw`); README tells the owner
+     to prefer a short extract path.
+- **Full packaged owner-command dry-run on this box (diagnostic, not U7 credit):**
+  `playback FAIL playback_block_exceeds_target` (WASAPI 480), `recording FAIL recording_silent`
+  (muted mic), `frame PASS headless_dense_timeline` → overall FAIL exit 1, evidence + three
+  generated rows retained. Exactly the honest mixed verdict AE6 describes.
+- Local: ctest **327/327**, checkout `-SelfTest` 16/16, `git diff --check` clean.
+
+**Now:** U5 shipped; confirm the U4+U5 remote CI runs (including the new `package-windows` job)
+are green on `main`.
+
+**Next:** U6 — owner-gated ASIO build option. HARD GATE: requires Dan to record completion of the
+applicable Steinberg proprietary agreement first (KTD8); no SDK may be fetched or vendored. U7
+(the real owner-machine run + committed rows) follows U6. Both need Dan.
 
 ---
 

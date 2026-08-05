@@ -24,9 +24,32 @@ run the executable. It writes nothing to system locations you didn't point it at
 | File | What it is |
 |---|---|
 | `YesDaw.exe` / `YesDaw.app` | the application |
+| `YesDawSelfCheck.exe` | headless project self-check CLI |
+| `verify-hardware.ps1` | the one-command hardware verifier (below) |
+| `YesDawHardwarePlaybackCheck.exe` | packaged playback stage checker (used by the verifier) |
+| `YesDawHardwareRecordingCheck.exe` | packaged recording stage checker (used by the verifier) |
+| `YesDawFrameCheck.exe` | packaged headless frame stage checker (used by the verifier) |
+| `package-manifest.json` | integrity manifest the verifier validates before touching hardware |
+| `verify-fixtures/` | verdict-policy fixtures for `verify-hardware.ps1 -SelfTest` |
 | `version.txt` | the exact build version (git-describe); the app's `--version` matches this |
 | `README-alpha.md` | this file |
 | `LICENSE` | present once a license is chosen (alpha zips may ship without one) |
+
+## Verify this machine's hardware (one command, no judgment calls)
+
+Open PowerShell **in the unzipped folder** (tip: keep the folder path short, e.g. `C:\YesDaw`) and
+run:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File .\verify-hardware.ps1
+```
+
+It validates the package against `package-manifest.json`, then runs packaged playback, recording,
+and headless frame checks and prints one PASS / FAIL / setup-incomplete verdict per stage plus an
+overall exit code (0 = all pass, 1 = a measured gate failed, 2 = incomplete). **Playback and
+recording will make a short, quiet sound** — that is informational; nothing asks you to listen or
+judge. Full evidence (JSON + proposed reality-lane rows) is retained under `hardware-results\`.
+`-SelfTest` exercises the verdict policy and package negative controls without touching hardware.
 
 ## Verifying the build
 

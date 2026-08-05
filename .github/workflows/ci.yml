@@ -204,6 +204,64 @@ jobs:
             *) echo "FAIL: packaged --version ('$out') does not contain version.txt ('$expected')"; exit 1 ;;
           esac
 
+  # H17 packaged verifier (U5): build the WINDOWS portable zip, extract it OUTSIDE the checkout,
+  # change to an unrelated working directory (with a space in it - R2), and run the packaged
+  # verify-hardware.ps1 -SelfTest under Windows PowerShell 5.1 (the compatibility floor). That
+  # exercises the verdict-policy fixture lockstep AND the full R20 package mutation inventory
+  # (manifest missing/invalid file/size/hash/path-escape/version, child-hang kill mechanics) on
+  # disposable package copies. No hardware PASS is claimed - CI has no audio device; -IntegrityOnly
+  # and -SelfTest are device-free by construction.
+  package-windows:
+    name: Package (Windows zip + packaged hardware-verifier self-test)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Get CMake + Ninja (consistent across all runners)
+        uses: lukka/get-cmake@latest
+
+      - name: Cache fetched dependencies
+        uses: actions/cache@v4
+        with:
+          path: build-ci/_deps
+          key: deps-${{ runner.os }}-juce8.0.4-catch3.7.1-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
+
+      - name: Configure (Release)
+        run: cmake --preset ci
+
+      - name: Package (build GUI + self-check + hardware checkers, stage, manifest, zip)
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\package.ps1
+
+      - name: Packaged verifier self-test from a clean extraction outside the checkout
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = (Get-ChildItem dist\YesDaw-*-win64-portable.zip)[0].FullName
+          Write-Host "packaged zip: $zip"
+          $clean = Join-Path $env:RUNNER_TEMP 'yd-pkg'
+          Expand-Archive -LiteralPath $zip -DestinationPath $clean
+          $pkg = (Get-ChildItem $clean -Directory)[0].FullName
+          $expected = (Get-Content (Join-Path $pkg 'version.txt') -Raw).Trim()
+          Write-Host "version.txt: $expected"
+          if ($expected -eq '' -or $expected -eq '0.0.0-nogit' -or $expected -eq '0.0.0-dev') {
+            Write-Error "version.txt is an unstamped fallback ('$expected')"
+            exit 1
+          }
+          # Unrelated working directory, deliberately containing a space (R2).
+          $work = Join-Path $env:RUNNER_TEMP 'un related'
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          Set-Location $work
+          & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $pkg 'verify-hardware.ps1') -SelfTest
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "packaged verify-hardware.ps1 -SelfTest failed (exit $LASTEXITCODE)"
+            exit 1
+          }
+
   # H17 CP5: exercise tools/alpha-verify (the alpha-gate mechanical companion). Builds only the
   # YesDawSelfCheck CLI, then runs the script's --self-test, which proves each of the 5 alpha asserts
   # FAILS on a synthetic bad input (empty export, garbage WAV, out-of-range loudness, non-bundle,
