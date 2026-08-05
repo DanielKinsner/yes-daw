@@ -19,6 +19,7 @@
 #include <juce_core/juce_core.h>
 
 #include <cmath>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -76,6 +77,10 @@ inline constexpr const char* kFailurePlaybackBlockExceedsTarget = "playback_bloc
 inline constexpr const char* kFailureRecordingInventedAlignment = "recording_invented_alignment";
 inline constexpr const char* kFailureRecordingAlignmentUnproved = "recording_alignment_unproved";
 inline constexpr const char* kFailureFrameClaimMismatch         = "frame_claim_mismatch";
+inline constexpr const char* kFailureFrameBlankOutput           = "frame_blank_output";
+inline constexpr const char* kFailureFrameInsufficientDensity   = "frame_insufficient_density";
+inline constexpr const char* kFailureFrameCapacityExceeded      = "frame_capacity_exceeded";
+inline constexpr const char* kFailureFrameOverBudget            = "frame_over_budget";
 
 // --- Stage states (KTD11). A child may only report pass/fail/setup about itself; crash and -------
 // skipped are synthesized by the orchestrator (timeout, abnormal exit, untrustworthy output).
@@ -501,6 +506,94 @@ struct AggregateVerdict
                                : (anyIncomplete ? OverallState::setup : OverallState::pass);
     verdict.exitCode = exitCodeFor (verdict.overall);
     return verdict;
+}
+
+// --- Frame stage owner policy (U2; R18-R19) -------------------------------------------------------
+// FIXED thresholds for the packaged YesDawFrameCheck. These constants are constexpr and the
+// evaluation below is a pure function of its inputs, so ambient CI (or any environment variable)
+// cannot relax the owner verdict — the CI-runner outlier tolerance lives ONLY in the Catch2
+// regression configuration in tests/timeline_gpu_tests.cpp. The measurement itself comes from
+// src/ui/TimelineFrameCheck.h; this side only judges the numbers.
+inline constexpr double kFrameBudgetMs             = 16.6;
+inline constexpr int    kFrameAllowedOutlierFrames = 2;
+inline constexpr int    kFrameMinVisibleClips      = 250;
+inline constexpr int    kFrameMinDistinctSamples   = 20;
+
+struct FrameMeasurement
+{
+    double        sustainedFrameMs = 0.0;   // worst frame after discarding the allowed outliers
+    double        maxFrameMs = 0.0;
+    int           slowFrameCount = 0;       // frames at or over budget
+    int           measuredFrames = 0;
+    int           maxVisibleClips = 0;
+    int           distinctSamples = 0;
+    bool          hitVisibleClipCapacity = false;
+    std::uint64_t checksum = 0;
+    int           totalClips = 0;
+};
+
+struct FrameVerdict
+{
+    StageState        state = StageState::fail;
+    juce::StringArray failureCodes;
+};
+
+[[nodiscard]] inline FrameVerdict evaluateFrameMeasurement (const FrameMeasurement& m)
+{
+    FrameVerdict v;
+    v.state = StageState::pass;
+    if (m.distinctSamples < kFrameMinDistinctSamples)
+        v.failureCodes.add (kFailureFrameBlankOutput);
+    if (m.maxVisibleClips < kFrameMinVisibleClips)
+        v.failureCodes.add (kFailureFrameInsufficientDensity);
+    if (m.hitVisibleClipCapacity)
+        v.failureCodes.add (kFailureFrameCapacityExceeded);
+    // R19: fail on sustained frame time at or above budget. Too many single-frame spikes is the
+    // same verdict — a genuinely slow renderer, not a scheduler blip.
+    if (m.sustainedFrameMs >= kFrameBudgetMs || m.slowFrameCount > kFrameAllowedOutlierFrames)
+        v.failureCodes.add (kFailureFrameOverBudget);
+    if (! v.failureCodes.isEmpty())
+        v.state = StageState::fail;
+    return v;
+}
+
+// The exact stage record the packaged checker emits (and tests validate). A passing frame stage
+// claims headless_dense_timeline and nothing grander; a failing one claims nothing.
+[[nodiscard]] inline StageRecord makeFrameStageRecord (const FrameMeasurement& m,
+                                                       const FrameVerdict& verdict,
+                                                       const juce::String& checkerVersion,
+                                                       const juce::String& startedAt,
+                                                       const juce::String& completedAt,
+                                                       double durationMs)
+{
+    StageRecord r;
+    r.stage          = kStageFrame;
+    r.state          = verdict.state;
+    r.claimLevel     = verdict.state == StageState::pass ? juce::String { kClaimHeadlessDenseTimeline }
+                                                         : juce::String {};
+    r.startedAt      = startedAt;
+    r.completedAt    = completedAt;
+    r.durationMs     = durationMs;
+    r.failureCodes   = verdict.failureCodes;
+    r.checkerVersion = checkerVersion;
+    r.detail         = verdict.state == StageState::pass
+                         ? juce::String { "headless dense-Timeline proxy within budget" }
+                         : juce::String { "headless dense-Timeline proxy violated the owner policy" };
+
+    auto* meas = new juce::DynamicObject();
+    meas->setProperty ("sustained_frame_ms", m.sustainedFrameMs);
+    meas->setProperty ("max_frame_ms", m.maxFrameMs);
+    meas->setProperty ("slow_frame_count", m.slowFrameCount);
+    meas->setProperty ("measured_frames", m.measuredFrames);
+    meas->setProperty ("frame_budget_ms", kFrameBudgetMs);
+    meas->setProperty ("allowed_outlier_frames", kFrameAllowedOutlierFrames);
+    meas->setProperty ("max_visible_clips", m.maxVisibleClips);
+    meas->setProperty ("distinct_samples", m.distinctSamples);
+    meas->setProperty ("hit_visible_clip_capacity", m.hitVisibleClipCapacity);
+    meas->setProperty ("total_clips", m.totalClips);
+    meas->setProperty ("checksum", juce::String { m.checksum });
+    r.measurements = juce::var { meas };
+    return r;
 }
 
 } // namespace yesdaw::app::hardware

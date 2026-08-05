@@ -4,144 +4,53 @@
 // the same Timeline canvas renderer used by the app shell and fails if sustained measured paint exceeds
 // the 16.6 ms frame budget. Two outliers are tolerated so shared CI scheduler pauses do not masquerade as
 // renderer regressions.
+//
+// Since U2 of the H17 packaged verifier the fixture + measurement loop live in
+// src/ui/TimelineFrameCheck.h, shared verbatim with the packaged YesDawFrameCheck stage checker.
+// This Catch2 gate keeps its CI-runner outlier tolerance; the packaged owner policy
+// (src/app/HardwareVerification.h) is fixed and never reads ambient CI.
 
-#include "ui/TimelineCanvas.h"
+#include "app/HardwareVerification.h"
+#include "ui/TimelineFrameCheck.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
 #include <cstdlib>
-#include <vector>
 
-using yesdaw::ui::Clip;
-using yesdaw::ui::TimelineCanvasClipStyle;
-using yesdaw::ui::TimelineCanvasPaintStats;
-using yesdaw::ui::TimelineCanvasState;
-using yesdaw::ui::TimelineCanvasTrack;
-using yesdaw::ui::paintTimelineCanvas;
+using yesdaw::ui::TimelineFrameCheckConfig;
+using yesdaw::ui::TimelineFrameCheckResult;
+using yesdaw::ui::countFramesAtOrOverBudget;
+using yesdaw::ui::runTimelineFrameCheck;
+using yesdaw::ui::sustainedFrameMs;
+
+namespace hw = yesdaw::app::hardware;
 
 namespace {
 
-const juce::Colour kTrackColours[] = {
-    juce::Colour (0xff3b8cff),
-    juce::Colour (0xff1bb5a6),
-    juce::Colour (0xffd29118),
-    juce::Colour (0xffa762f0),
-    juce::Colour (0xff20c8d8),
-    juce::Colour (0xff74df35)
-};
-
-std::vector<TimelineCanvasTrack> makeTracks (int count)
+// Convert a raw run into the packaged checker's measurement, judged at the given outlier count.
+hw::FrameMeasurement toMeasurement (const TimelineFrameCheckResult& result, int allowedOutlierFrames)
 {
-    std::vector<TimelineCanvasTrack> tracks;
-    tracks.reserve (static_cast<std::size_t> (count));
-    for (int i = 0; i < count; ++i)
-        tracks.push_back ({ "Track", kTrackColours[i % 6], 0.35f + static_cast<float> (i % 8) * 0.07f });
-    return tracks;
-}
-
-void makeClips (int lanes, int clipsPerLane, std::vector<Clip>& clips,
-                std::vector<TimelineCanvasClipStyle>& styles)
-{
-    clips.reserve (static_cast<std::size_t> (lanes * clipsPerLane));
-    styles.reserve (static_cast<std::size_t> (lanes * clipsPerLane));
-
-    int id = 0;
-    for (int lane = 0; lane < lanes; ++lane)
-    {
-        for (int clipIndex = 0; clipIndex < clipsPerLane; ++clipIndex)
-        {
-            const double start = static_cast<double> (clipIndex) * 3.0
-                               + static_cast<double> ((lane + clipIndex) % 5) * 0.18;
-            const double length = 1.15 + static_cast<double> ((lane * 3 + clipIndex) % 7) * 0.18;
-            clips.push_back ({ id, lane, start, length });
-            styles.push_back ({ kTrackColours[lane % 6], 0.38f + static_cast<float> ((id % 9)) * 0.06f });
-            ++id;
-        }
-    }
-}
-
-int countDifferentSamples (const juce::Image& image)
-{
-    const auto first = image.getPixelAt (0, 0).getARGB();
-    int different = 0;
-    for (int y = 24; y < image.getHeight(); y += 48)
-        for (int x = 24; x < image.getWidth(); x += 96)
-            if (image.getPixelAt (x, y).getARGB() != first)
-                ++different;
-    return different;
+    hw::FrameMeasurement m;
+    m.sustainedFrameMs = sustainedFrameMs (result.frameTimesMs, allowedOutlierFrames);
+    m.maxFrameMs = result.maxFrameMs;
+    m.slowFrameCount = countFramesAtOrOverBudget (result.frameTimesMs, hw::kFrameBudgetMs);
+    m.measuredFrames = static_cast<int> (result.frameTimesMs.size());
+    m.maxVisibleClips = result.maxVisibleClips;
+    m.distinctSamples = result.distinctSamples;
+    m.hitVisibleClipCapacity = result.hitVisibleClipCapacity;
+    m.checksum = result.checksum;
+    m.totalClips = result.totalClips;
+    return m;
 }
 
 } // namespace
 
 TEST_CASE ("Timeline canvas scrolls a large arrangement under one 60 fps frame", "[timeline][gpu][perf]")
 {
-    constexpr int kWidth = 1920;
-    constexpr int kHeight = 720;
-    constexpr int kLanes = 48;
-    constexpr int kClipsPerLane = 430;
-    constexpr int kWarmupFrames = 24;
-    constexpr int kMeasuredFrames = 160;
     constexpr int kAllowedOutlierFrames = 2;
-    constexpr double kFrameBudgetMs = 16.6;
 
-    auto tracks = makeTracks (kLanes);
-    std::vector<Clip> clips;
-    std::vector<TimelineCanvasClipStyle> styles;
-    makeClips (kLanes, kClipsPerLane, clips, styles);
-
-    juce::Image image (juce::Image::ARGB, kWidth, kHeight, true);
-
-    TimelineCanvasState state;
-    state.tracks = tracks.data();
-    state.trackCount = static_cast<int> (tracks.size());
-    state.clips = clips.data();
-    state.clipStyles = styles.data();
-    state.clipCount = static_cast<int> (clips.size());
-    state.viewport.pixelsPerSecond = 100.0;
-    state.totalSeconds = static_cast<double> (kClipsPerLane) * 3.0;
-
-    const auto paintFrame = [&] {
-        juce::Graphics graphics (image);
-        return paintTimelineCanvas (graphics, image.getBounds(), state);
-    };
-
-    TimelineCanvasPaintStats lastStats;
-    for (int frame = 0; frame < kWarmupFrames; ++frame)
-    {
-        state.viewport.scrollSeconds = static_cast<double> (frame) * 1.5;
-        state.playheadSeconds = state.viewport.scrollSeconds + 8.0;
-        lastStats = paintFrame();
-    }
-
-    double maxFrameMs = 0.0;
-    int maxVisibleClips = 0;
-    int slowFrameCount = 0;
-    bool hitCapacity = false;
-    std::uint64_t checksum = 0;
-    std::vector<double> frameTimes;
-    frameTimes.reserve (kMeasuredFrames);
-
-    for (int frame = 0; frame < kMeasuredFrames; ++frame)
-    {
-        state.viewport.scrollSeconds = static_cast<double> (frame) * 2.0;
-        state.playheadSeconds = state.viewport.scrollSeconds + 8.0;
-
-        const auto t0 = std::chrono::steady_clock::now();
-        lastStats = paintFrame();
-        const auto t1 = std::chrono::steady_clock::now();
-
-        const double frameMs = std::chrono::duration<double, std::milli> (t1 - t0).count();
-        frameTimes.push_back (frameMs);
-        maxFrameMs = std::max (maxFrameMs, frameMs);
-        if (frameMs >= kFrameBudgetMs)
-            ++slowFrameCount;
-        maxVisibleClips = std::max (maxVisibleClips, lastStats.visibleClips);
-        hitCapacity = hitCapacity || lastStats.hitVisibleClipCapacity;
-        checksum += image.getPixelAt ((frame * 37) % kWidth, (frame * 53) % kHeight).getARGB();
-    }
+    const TimelineFrameCheckConfig config;   // the dense H11 fixture, unchanged
+    const TimelineFrameCheckResult result = runTimelineFrameCheck (config);
 
     // Shared CI runners (macOS especially) take scheduler pauses that spike isolated frames; over 160
     // frames more than 2 can exceed budget from contention alone, which is NOT a renderer regression.
@@ -161,18 +70,91 @@ TEST_CASE ("Timeline canvas scrolls a large arrangement under one 60 fps frame",
 #endif
     const int allowedOutlierFrames = runningOnCi ? 8 : kAllowedOutlierFrames;
 
-    std::sort (frameTimes.begin(), frameTimes.end());
-    const auto sustainedIndex = static_cast<std::size_t> (std::max (0, kMeasuredFrames - allowedOutlierFrames - 1));
-    const double sustainedFrameMs = frameTimes[sustainedIndex];
+    const double sustained = sustainedFrameMs (result.frameTimesMs, allowedOutlierFrames);
+    const int slowFrameCount = countFramesAtOrOverBudget (result.frameTimesMs, hw::kFrameBudgetMs);
 
-    INFO ("max_frame_ms=" << maxFrameMs << ", sustained_frame_ms=" << sustainedFrameMs
+    INFO ("max_frame_ms=" << result.maxFrameMs << ", sustained_frame_ms=" << sustained
                           << ", slow_frames=" << slowFrameCount
                           << ", allowed_outliers=" << allowedOutlierFrames
-                          << ", max_visible_clips=" << maxVisibleClips
-                          << ", total_clips=" << clips.size() << ", checksum=" << checksum);
-    REQUIRE (maxVisibleClips >= 250);
-    REQUIRE_FALSE (hitCapacity);
-    REQUIRE (countDifferentSamples (image) >= 20);
-    REQUIRE (sustainedFrameMs < kFrameBudgetMs);
+                          << ", max_visible_clips=" << result.maxVisibleClips
+                          << ", total_clips=" << result.totalClips << ", checksum=" << result.checksum);
+    REQUIRE (result.maxVisibleClips >= hw::kFrameMinVisibleClips);
+    REQUIRE_FALSE (result.hitVisibleClipCapacity);
+    REQUIRE (result.distinctSamples >= hw::kFrameMinDistinctSamples);
+    REQUIRE (sustained < hw::kFrameBudgetMs);
     REQUIRE (slowFrameCount <= allowedOutlierFrames);
+}
+
+TEST_CASE ("frame verdict policy bites on real degenerate fixtures", "[timeline][gpu]")
+{
+    SECTION ("an output that cannot prove nonblank rendering fails blank")
+    {
+        // A full-size canvas always paints toolbar/ruler/grid chrome, so "blank" cannot be staged
+        // there honestly. A tiny canvas exercises the REAL paint + sampling path while leaving the
+        // sampling grid too little evidence of nonblank rendering - exactly what the blank gate
+        // protects: no proof of pixels => no pass.
+        TimelineFrameCheckConfig config;
+        config.width = 64;
+        config.height = 64;
+        config.lanes = 1;
+        config.clipsPerLane = 0;
+        config.warmupFrames = 1;
+        config.measuredFrames = 4;
+
+        const auto verdict = hw::evaluateFrameMeasurement (
+            toMeasurement (runTimelineFrameCheck (config), hw::kFrameAllowedOutlierFrames));
+        CHECK (verdict.state == hw::StageState::fail);
+        CHECK (verdict.failureCodes.contains (hw::kFailureFrameBlankOutput));
+        CHECK (verdict.failureCodes.contains (hw::kFailureFrameInsufficientDensity));
+    }
+    SECTION ("a sparse arrangement renders nonblank but is not the dense proxy")
+    {
+        TimelineFrameCheckConfig config;
+        config.lanes = 8;
+        config.clipsPerLane = 12;
+        config.warmupFrames = 2;
+        config.measuredFrames = 8;
+
+        const auto result = runTimelineFrameCheck (config);
+        const auto verdict = hw::evaluateFrameMeasurement (
+            toMeasurement (result, hw::kFrameAllowedOutlierFrames));
+        INFO ("distinct_samples=" << result.distinctSamples
+              << ", max_visible_clips=" << result.maxVisibleClips);
+        CHECK (verdict.state == hw::StageState::fail);
+        CHECK (! verdict.failureCodes.contains (hw::kFailureFrameBlankOutput));
+        CHECK (verdict.failureCodes.contains (hw::kFailureFrameInsufficientDensity));
+    }
+}
+
+TEST_CASE ("a real short dense run emits an acceptable schema v1 stage document", "[timeline][gpu]")
+{
+    // Short but still dense: the viewport shows ~19 s at 100 px/s, clips land every 3 s per lane,
+    // so 48 lanes keep max_visible_clips comfortably above the 250 floor while the run stays quick.
+    TimelineFrameCheckConfig config;
+    config.clipsPerLane = 60;
+    config.warmupFrames = 4;
+    config.measuredFrames = 24;
+
+    const auto measurement = toMeasurement (runTimelineFrameCheck (config), hw::kFrameAllowedOutlierFrames);
+    const auto verdict = hw::evaluateFrameMeasurement (measurement);
+
+    // Timing on a shared runner may legitimately fail the strict owner budget, so this test asserts
+    // schema validity and claim honesty for WHATEVER the measured verdict was - never a forced PASS.
+    const hw::StageRecord emitted = hw::makeFrameStageRecord (measurement, verdict, "1.2.3-test",
+                                                              "2026-08-04T12:00:00Z",
+                                                              "2026-08-04T12:00:30Z", 30000.0);
+    const juce::String json = hw::toJsonText (hw::stageDocumentToVar (emitted, "run-frame-json"));
+    const auto reparsed = hw::parseJsonText (json);
+    REQUIRE (reparsed.has_value());
+
+    auto accepted = hw::acceptStageDocument (*reparsed, { "run-frame-json", hw::kStageFrame, "1.2.3-test" });
+    hw::normalizeStageRecord (accepted);
+
+    CHECK (accepted.state == verdict.state);
+    CHECK (! accepted.failureCodes.contains (hw::kFailureChildInvalidResult));
+    if (verdict.state == hw::StageState::pass)
+        CHECK (accepted.claimLevel == hw::kClaimHeadlessDenseTimeline);
+    else
+        CHECK (accepted.claimLevel.isEmpty());
+    CHECK (static_cast<int> ((*reparsed)["measurements"]["max_visible_clips"]) >= hw::kFrameMinVisibleClips);
 }

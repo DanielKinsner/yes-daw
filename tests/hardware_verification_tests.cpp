@@ -12,6 +12,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <clocale>
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -154,10 +155,21 @@ TEST_CASE ("failure-code registry strings are frozen")
     CHECK (std::string { hw::kFailureRecordingInventedAlignment } == "recording_invented_alignment");
     CHECK (std::string { hw::kFailureRecordingAlignmentUnproved } == "recording_alignment_unproved");
     CHECK (std::string { hw::kFailureFrameClaimMismatch } == "frame_claim_mismatch");
+    CHECK (std::string { hw::kFailureFrameBlankOutput } == "frame_blank_output");
+    CHECK (std::string { hw::kFailureFrameInsufficientDensity } == "frame_insufficient_density");
+    CHECK (std::string { hw::kFailureFrameCapacityExceeded } == "frame_capacity_exceeded");
+    CHECK (std::string { hw::kFailureFrameOverBudget } == "frame_over_budget");
 
     CHECK (hw::kSchemaVersion == 1);
     CHECK (hw::kRequiredSampleRateHz == 48000.0);
     CHECK (hw::kMaxGrantedBlockFrames == 128);
+
+    // The frame owner policy is FIXED (R19). Changing any of these numbers is an ADR-level gate
+    // change, not a tweak — this pin makes that mechanical.
+    CHECK (hw::kFrameBudgetMs == 16.6);
+    CHECK (hw::kFrameAllowedOutlierFrames == 2);
+    CHECK (hw::kFrameMinVisibleClips == 250);
+    CHECK (hw::kFrameMinDistinctSamples == 20);
 }
 
 TEST_CASE ("JSON serialization is locale-invariant and escapes hostile strings")
@@ -353,6 +365,147 @@ TEST_CASE ("aggregation requires exactly the three canonical stages")
         CHECK (verdict.overall == hw::OverallState::pass);
         CHECK (verdict.exitCode == 0);
         CHECK (verdict.failureCodes.isEmpty());
+    }
+}
+
+namespace {
+
+hw::FrameMeasurement makeHealthyFrameMeasurement()
+{
+    hw::FrameMeasurement m;
+    m.sustainedFrameMs = 6.0;
+    m.maxFrameMs = 12.0;
+    m.slowFrameCount = 1;
+    m.measuredFrames = 160;
+    m.maxVisibleClips = 300;
+    m.distinctSamples = 40;
+    m.hitVisibleClipCapacity = false;
+    m.checksum = 12345;
+    m.totalClips = 20640;
+    return m;
+}
+
+} // namespace
+
+TEST_CASE ("frame owner evaluation fails each violation with its own code")
+{
+    SECTION ("healthy measurement passes with no codes")
+    {
+        const auto v = hw::evaluateFrameMeasurement (makeHealthyFrameMeasurement());
+        CHECK (v.state == hw::StageState::pass);
+        CHECK (v.failureCodes.isEmpty());
+    }
+    SECTION ("blank output")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.distinctSamples = hw::kFrameMinDistinctSamples - 1;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureFrameBlankOutput });
+    }
+    SECTION ("insufficient density")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.maxVisibleClips = hw::kFrameMinVisibleClips - 1;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureFrameInsufficientDensity });
+    }
+    SECTION ("capacity clamp invalidates the density claim")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.hitVisibleClipCapacity = true;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureFrameCapacityExceeded });
+    }
+    SECTION ("sustained frame time at the budget fails (>= is the contract)")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.sustainedFrameMs = hw::kFrameBudgetMs;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureFrameOverBudget });
+    }
+    SECTION ("too many slow frames fails even with a good sustained value")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.slowFrameCount = hw::kFrameAllowedOutlierFrames + 1;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes == juce::StringArray { hw::kFailureFrameOverBudget });
+    }
+    SECTION ("multiple violations accumulate")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.distinctSamples = 0;
+        m.sustainedFrameMs = 99.0;
+        const auto v = hw::evaluateFrameMeasurement (m);
+        CHECK (v.state == hw::StageState::fail);
+        CHECK (v.failureCodes.contains (hw::kFailureFrameBlankOutput));
+        CHECK (v.failureCodes.contains (hw::kFailureFrameOverBudget));
+    }
+}
+
+TEST_CASE ("ambient CI does not relax the frame owner evaluation")
+{
+    // The Catch2 GPU gate deliberately widens its outlier tolerance on CI runners; the packaged
+    // owner policy must never do that. This pin runs the same borderline measurement with CI set
+    // and asserts the verdict is byte-identical — it bites the moment someone teaches
+    // evaluateFrameMeasurement (or its constants) to read the environment.
+    auto borderline = makeHealthyFrameMeasurement();
+    borderline.slowFrameCount = hw::kFrameAllowedOutlierFrames + 1;   // CI-tolerant logic would allow this
+
+    const auto before = hw::evaluateFrameMeasurement (borderline);
+
+#if defined(_WIN32)
+    _putenv_s ("CI", "1");
+#else
+    setenv ("CI", "1", 1);
+#endif
+    const auto during = hw::evaluateFrameMeasurement (borderline);
+#if defined(_WIN32)
+    _putenv_s ("CI", "");
+#else
+    unsetenv ("CI");
+#endif
+
+    CHECK (before.state == hw::StageState::fail);
+    CHECK (during.state == before.state);
+    CHECK (during.failureCodes == before.failureCodes);
+}
+
+TEST_CASE ("frame stage record maps verdicts to honest claims")
+{
+    SECTION ("pass claims exactly headless_dense_timeline and survives acceptance")
+    {
+        const auto m = makeHealthyFrameMeasurement();
+        const auto record = hw::makeFrameStageRecord (m, hw::evaluateFrameMeasurement (m), "1.0.0-t",
+                                                      "2026-08-04T10:00:00Z", "2026-08-04T10:00:30Z",
+                                                      30000.0);
+        CHECK (record.claimLevel == hw::kClaimHeadlessDenseTimeline);
+
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-f"),
+                                                 { "run-f", hw::kStageFrame, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::pass);
+        CHECK (accepted.claimLevel == hw::kClaimHeadlessDenseTimeline);
+        CHECK (static_cast<double> (accepted.measurements["frame_budget_ms"]) == hw::kFrameBudgetMs);
+    }
+    SECTION ("fail claims nothing and keeps its codes through acceptance")
+    {
+        auto m = makeHealthyFrameMeasurement();
+        m.sustainedFrameMs = 40.0;
+        const auto record = hw::makeFrameStageRecord (m, hw::evaluateFrameMeasurement (m), "1.0.0-t",
+                                                      "2026-08-04T10:00:00Z", "2026-08-04T10:00:30Z",
+                                                      30000.0);
+        CHECK (record.claimLevel.isEmpty());
+
+        auto accepted = hw::acceptStageDocument (hw::stageDocumentToVar (record, "run-f"),
+                                                 { "run-f", hw::kStageFrame, "1.0.0-t" });
+        hw::normalizeStageRecord (accepted);
+        CHECK (accepted.state == hw::StageState::fail);
+        CHECK (accepted.failureCodes == juce::StringArray { hw::kFailureFrameOverBudget });
     }
 }
 
