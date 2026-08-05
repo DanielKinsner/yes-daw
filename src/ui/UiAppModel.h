@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "app/RecordingAssetCommit.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/ProjectUndo.h"
@@ -369,48 +370,112 @@ public:
         }
 
         UiDecodedAsset decoded = makeDeterministicRecordedAudio();
-        const std::filesystem::path sourcePath = makeRecordingSourceTempPath();
-        if (! writeDecodedAudioSourceWav (sourcePath, decoded))
+
+        // The canonical Asset/Clip/Take persistence runs through the SHARED control-side service
+        // (app::commitRecordedAudioTake) — the same code path the packaged hardware recording
+        // checker uses (H17 U4 / KTD7). This model only decorates the commit with its paired
+        // synthetic MIDI take and then adopts the committed project into playback + UI state.
+        app::RecordedAudioTakeRequest request;
+        request.sampleRate = decoded.sampleRate;
+        request.frames = decoded.frames;
+        request.channels = decoded.channels;
+        request.interleavedSamples = std::span<const float> (decoded.interleavedSamples.data(),
+                                                             decoded.interleavedSamples.size());
+        request.targetTrackId = recordingTrackInput_.trackId;
+        request.deviceStableId = recordingDevice_.stableDeviceId;
+        request.inputChannel = recordingTrackInput_.inputChannel;
+        request.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
+        request.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
+
+        UiRecordedMidiTake placedMidiTake;
+        app::RecordedTakeCommitResult commit = app::commitRecordedAudioTake (
+            bundleDb_,
+            project_,
+            request,
+            [this] (std::uint8_t seedByte, const engine::Project& project)
+            { return allocateSessionEntityId (seedByte, project); },
+            [this] (engine::Project& project) -> engine::Track&
+            { return ensureDefaultAudioTrack (project); },
+            [this, &placedMidiTake, &request] (engine::Project& nextProject)
+            { placedMidiTake = appendDeterministicMidiTake (nextProject, request.inputChannel); });
+
+        result.importResult.bundleResult = commit.bundleResult;
+        switch (commit.status)
         {
-            result.status = UiAppRecordStatus::SourceWriteFailed;
-            return result;
-        }
-
-        RecordingTakeDraft takeDraft;
-        takeDraft.deviceStableId = recordingDevice_.stableDeviceId;
-        takeDraft.inputChannel = recordingTrackInput_.inputChannel;
-        takeDraft.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
-        takeDraft.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
-
-        result.importResult = addAudioAssetClipFromSource (
-            sourcePath,
-            std::move (decoded),
-            recordingTrackInput_.trackId,
-            0xA2u,
-            0xC3u,
-            takeDraft);
-
-        std::error_code removeError;
-        std::filesystem::remove (sourcePath, removeError);
-
-        switch (result.importResult.status)
-        {
-            case UiAppImportStatus::Ok:
+            case app::RecordedTakeCommitStatus::Ok:
                 break;
-            case UiAppImportStatus::AssetImportFailed:
+            case app::RecordedTakeCommitStatus::SourceWriteFailed:
+                result.importResult.status = UiAppImportStatus::InvalidDecodedAudio;
+                result.status = UiAppRecordStatus::SourceWriteFailed;
+                return result;
+            case app::RecordedTakeCommitStatus::AssetImportFailed:
+                result.importResult.status = UiAppImportStatus::AssetImportFailed;
                 result.status = UiAppRecordStatus::AssetImportFailed;
                 return result;
-            case UiAppImportStatus::ProjectWriteFailed:
+            case app::RecordedTakeCommitStatus::ProjectWriteFailed:
+                result.importResult.status = UiAppImportStatus::ProjectWriteFailed;
                 result.status = UiAppRecordStatus::ProjectWriteFailed;
                 return result;
-            case UiAppImportStatus::PlaybackBuildFailed:
-                result.status = UiAppRecordStatus::PlaybackBuildFailed;
+            case app::RecordedTakeCommitStatus::NoBundleOpen:
+                result.importResult.status = UiAppImportStatus::NoBundleOpen;
+                result.status = UiAppRecordStatus::PreconditionsNotMet;
                 return result;
-            case UiAppImportStatus::NoBundleOpen:
-            case UiAppImportStatus::InvalidDecodedAudio:
+            case app::RecordedTakeCommitStatus::InvalidDecodedAudio:
+            case app::RecordedTakeCommitStatus::InvalidProjectIndirection:
+                result.importResult.status = UiAppImportStatus::InvalidDecodedAudio;
                 result.status = UiAppRecordStatus::PreconditionsNotMet;
                 return result;
         }
+
+        // Adopt the committed project: rebuild playback over the new decoded set, then swap.
+        decoded.assetId = commit.importedAsset.id;
+        std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
+        upsertDecodedAsset (nextDecoded, std::move (decoded));
+
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
+        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
+            commit.project,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+
+        result.importResult.playbackStatus = built.status;
+        result.importResult.projectError = built.projectError;
+        result.importResult.mixerError = built.mixerError;
+        if (! built.ok())
+        {
+            result.importResult.status = UiAppImportStatus::PlaybackBuildFailed;
+            result.status = UiAppRecordStatus::PlaybackBuildFailed;
+            return result;
+        }
+
+        (void) built.engine->stop();
+        drainTransport (*built.engine);
+
+        project_ = std::move (commit.project);
+        decodedAssets_ = std::move (nextDecoded);
+        decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        playback_ = std::move (built.engine);
+        context_.projectLoaded = true;
+        selectedTimelineClipId_ = commit.clipId;
+        context_.timelineClipSelected = true;
+        if (placedMidiTake.midiClipId.isValid())
+            selectedMidiClipId_ = placedMidiTake.midiClipId;
+        context_.canUndo = false;
+        context_.canRedo = false;
+        syncProjectEditContext();
+        syncContextFromPlayback();
+
+        pendingAudioPlacement_ = {
+            commit.importedAsset.id,
+            commit.clipId,
+            commit.trackId,
+            commit.takeId,
+            commit.timelineStart,
+            commit.importedAsset.frames,
+            commit.importedAsset.channels
+        };
+        pendingMidiPlacement_ = placedMidiTake;
+        enqueueWaveformBuildsForDecodedAssets();
+        result.importResult.status = UiAppImportStatus::Ok;
 
         lastRecordedAudioTake_ = pendingAudioPlacement_;
         lastRecordedMidiTake_ = pendingMidiPlacement_;
@@ -424,20 +489,60 @@ public:
     }
 
 private:
-    struct RecordingTakeDraft
+    // The paired synthetic MIDI take the H13 recording skeleton places next to a recorded audio
+    // take. UI-model-only scaffolding: it rides the shared commit's decoration hook and is never
+    // part of the canonical recorded-audio service (the packaged checker must not produce it).
+    [[nodiscard]] UiRecordedMidiTake appendDeterministicMidiTake (engine::Project& nextProject,
+                                                                  std::uint16_t inputChannel)
     {
-        std::uint32_t deviceStableId = 0;
-        std::uint16_t inputChannel = 0;
-        std::uint32_t takeOrdinal = 0;
-        engine::RecordingMonitoringPolicy monitoringPolicy = engine::RecordingMonitoringPolicy::Off;
-    };
+        const engine::Clip& clip = nextProject.clips.back();
+        const engine::EntityId placedTrackId = clip.trackId;
+
+        engine::MidiClip midiClip;
+        midiClip.id = allocateSessionEntityId (0xD1u, nextProject);
+        midiClip.trackId = placedTrackId;
+        midiClip.timelineStart = clip.timelineStart;
+        midiClip.timelineLength = clip.timelineLength;
+        midiClip.timeBase = engine::TimeBase::SampleLocked;
+
+        engine::Note noteA;
+        noteA.id = allocateSessionEntityId (0xD2u, nextProject);
+        noteA.startTick = 32;
+        noteA.lengthTicks = 48;
+        noteA.key = 60;
+        noteA.pitchNote = 60.0;
+        noteA.normalizedVelocity = 0.75;
+        noteA.portIndex = 0;
+        noteA.channel = static_cast<std::int16_t> (inputChannel);
+
+        engine::Note noteB;
+        noteB.id = allocateSessionEntityId (0xD3u, nextProject);
+        noteB.startTick = 128;
+        noteB.lengthTicks = 64;
+        noteB.key = 67;
+        noteB.pitchNote = 67.0;
+        noteB.normalizedVelocity = 0.5;
+        noteB.portIndex = 0;
+        noteB.channel = static_cast<std::int16_t> (inputChannel);
+
+        midiClip.notes.push_back (noteA);
+        midiClip.notes.push_back (noteB);
+        const UiRecordedMidiTake placed {
+            midiClip.id,
+            placedTrackId,
+            midiClip.timelineStart,
+            midiClip.timelineLength,
+            midiClip.notes.size()
+        };
+        nextProject.midiClips.push_back (std::move (midiClip));
+        return placed;
+    }
 
     [[nodiscard]] UiAppImportResult addAudioAssetClipFromSource (const std::filesystem::path& sourcePath,
                                                                  UiDecodedAsset decoded,
                                                                  std::optional<engine::EntityId> targetTrackId,
                                                                  std::uint8_t assetSeed,
-                                                                 std::uint8_t clipSeed,
-                                                                 std::optional<RecordingTakeDraft> recordingTakeDraft = std::nullopt)
+                                                                 std::uint8_t clipSeed)
     {
         UiAppImportResult result;
 
@@ -501,66 +606,6 @@ private:
         clip.timeBase = engine::TimeBase::SampleLocked;
         nextProject.clips.push_back (clip);
 
-        engine::EntityId placedTakeId;
-        if (recordingTakeDraft)
-        {
-            engine::RecordingTake take;
-            take.id = allocateSessionEntityId (0xA4u, nextProject);
-            take.assetId = imported.id;
-            take.trackId = placedTrackId;
-            take.clipId = clip.id;
-            take.timelineStart = clip.timelineStart;
-            take.frameCount = imported.frames;
-            take.takeOrdinal = recordingTakeDraft->takeOrdinal;
-            take.inputChannel = recordingTakeDraft->inputChannel;
-            take.deviceStableId = recordingTakeDraft->deviceStableId;
-            take.monitoringPolicy = recordingTakeDraft->monitoringPolicy;
-            placedTakeId = take.id;
-            nextProject.recordingTakes.push_back (take);
-        }
-
-        UiRecordedMidiTake placedMidiTake;
-        if (recordingTakeDraft)
-        {
-            engine::MidiClip midiClip;
-            midiClip.id = allocateSessionEntityId (0xD1u, nextProject);
-            midiClip.trackId = placedTrackId;
-            midiClip.timelineStart = clip.timelineStart;
-            midiClip.timelineLength = clip.timelineLength;
-            midiClip.timeBase = engine::TimeBase::SampleLocked;
-
-            engine::Note noteA;
-            noteA.id = allocateSessionEntityId (0xD2u, nextProject);
-            noteA.startTick = 32;
-            noteA.lengthTicks = 48;
-            noteA.key = 60;
-            noteA.pitchNote = 60.0;
-            noteA.normalizedVelocity = 0.75;
-            noteA.portIndex = 0;
-            noteA.channel = static_cast<std::int16_t> (recordingTakeDraft->inputChannel);
-
-            engine::Note noteB;
-            noteB.id = allocateSessionEntityId (0xD3u, nextProject);
-            noteB.startTick = 128;
-            noteB.lengthTicks = 64;
-            noteB.key = 67;
-            noteB.pitchNote = 67.0;
-            noteB.normalizedVelocity = 0.5;
-            noteB.portIndex = 0;
-            noteB.channel = static_cast<std::int16_t> (recordingTakeDraft->inputChannel);
-
-            midiClip.notes.push_back (noteA);
-            midiClip.notes.push_back (noteB);
-            placedMidiTake = {
-                midiClip.id,
-                placedTrackId,
-                midiClip.timelineStart,
-                midiClip.timelineLength,
-                midiClip.notes.size()
-            };
-            nextProject.midiClips.push_back (std::move (midiClip));
-        }
-
         if (! nextProject.hasValidAssetClipIndirection())
         {
             result.status = UiAppImportStatus::InvalidDecodedAudio;
@@ -602,8 +647,6 @@ private:
         context_.projectLoaded = true;
         selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
-        if (placedMidiTake.midiClipId.isValid())
-            selectedMidiClipId_ = placedMidiTake.midiClipId;
         context_.canUndo = false;
         context_.canRedo = false;
         syncProjectEditContext();
@@ -613,12 +656,12 @@ private:
             imported.id,
             clip.id,
             placedTrackId,
-            placedTakeId,
+            engine::EntityId {},
             clip.timelineStart,
             imported.frames,
             imported.channels
         };
-        pendingMidiPlacement_ = placedMidiTake;
+        pendingMidiPlacement_ = {};
         enqueueWaveformBuildsForDecodedAssets();
 
         result.status = UiAppImportStatus::Ok;
@@ -2120,28 +2163,6 @@ private:
         return decoded;
     }
 
-    [[nodiscard]] std::filesystem::path makeRecordingSourceTempPath() const
-    {
-        const auto now = std::chrono::steady_clock::now().time_since_epoch();
-        const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds> (now).count();
-        return std::filesystem::temp_directory_path()
-             / ("yesdaw-recorded-test-device-" + std::to_string (nanos) + ".wav");
-    }
-
-    [[nodiscard]] static bool writeDecodedAudioSourceWav (const std::filesystem::path& path,
-                                                          const UiDecodedAsset& decoded)
-    {
-        if (! decodedAudioIsValid (decoded))
-            return false;
-
-        return io::writeFloat32WavFile (
-            path,
-            decoded.sampleRate,
-            decoded.channels,
-            decoded.frames,
-            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size())).ok();
-    }
-
     static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
     {
         std::vector<engine::DecodedAssetAudio> views;
@@ -2307,21 +2328,8 @@ private:
 
     [[nodiscard]] static engine::Tick timelineEnd (const engine::Project& project) noexcept
     {
-        engine::Tick end = 0;
-        for (const engine::Clip& clip : project.clips)
-        {
-            if (clip.timelineStart < 0 || clip.timelineLength < 0)
-                continue;
-
-            if (clip.timelineStart > std::numeric_limits<engine::Tick>::max() - clip.timelineLength)
-                continue;
-
-            const engine::Tick clipEnd = clip.timelineStart + clip.timelineLength;
-            if (clipEnd > end)
-                end = clipEnd;
-        }
-
-        return end;
+        // One definition, shared with the canonical recorded-audio commit service (U4).
+        return app::projectTimelineEnd (project);
     }
 
     [[nodiscard]] static const engine::AutomationLaneData* firstTrackFaderAutomationLane (
