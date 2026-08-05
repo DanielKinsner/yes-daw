@@ -30,7 +30,10 @@ if (-not $version) { $version = '0.0.0-nogit' }
 if (-not $NoBuild) {
   Write-Host "[package] building via ci preset (Release)..."
   Push-Location $root
-  try { cmake --build --preset ci --target YesDaw YesDawSelfCheck } finally { Pop-Location }
+  try {
+    cmake --build --preset ci --target YesDaw YesDawSelfCheck `
+      YesDawFrameCheck YesDawHardwarePlaybackCheck YesDawHardwareRecordingCheck
+  } finally { Pop-Location }
 }
 
 $exe = Join-Path $root 'build-ci\YesDaw_artefacts\Release\YesDaw.exe'
@@ -47,6 +50,20 @@ if (-not (Test-Path -LiteralPath $selfcheck)) {
   exit 1
 }
 
+# The H17 packaged hardware verifier (U5): one root script + three stage checkers + the verdict
+# fixtures its -SelfTest replays. All are manifest-listed so the verifier can prove the package.
+$hardwareCheckers = @(
+  'build-ci\YesDawHardwarePlaybackCheck_artefacts\Release\YesDawHardwarePlaybackCheck.exe',
+  'build-ci\YesDawHardwareRecordingCheck_artefacts\Release\YesDawHardwareRecordingCheck.exe',
+  'build-ci\YesDawFrameCheck_artefacts\Release\YesDawFrameCheck.exe'
+)
+foreach ($rel in $hardwareCheckers) {
+  if (-not (Test-Path -LiteralPath (Join-Path $root $rel))) {
+    Write-Error "[package] hardware checker artefact not found: $rel (build first, or drop -NoBuild)"
+    exit 1
+  }
+}
+
 $pkgName = "YesDaw-$version-win64-portable"
 $stage   = Join-Path ([System.IO.Path]::GetTempPath()) ("yesdaw-pkg-" + [System.Guid]::NewGuid().ToString('N'))
 $pkgRoot = Join-Path $stage $pkgName
@@ -58,6 +75,46 @@ try {
 
   # version.txt - the single value the packaged `--version` must match (CP1 version-stamp gate).
   Set-Content -LiteralPath (Join-Path $pkgRoot 'version.txt') -Value $version
+
+  # Hardware verifier: root script, three stage checkers, and the -SelfTest verdict fixtures.
+  foreach ($rel in $hardwareCheckers) {
+    Copy-Item -LiteralPath (Join-Path $root $rel) -Destination $pkgRoot
+  }
+  Copy-Item -LiteralPath (Join-Path $root 'tools\verify-hardware.ps1') -Destination $pkgRoot
+  $fixtureDst = Join-Path $pkgRoot 'verify-fixtures'
+  New-Item -ItemType Directory -Force -Path $fixtureDst | Out-Null
+  Copy-Item -Path (Join-Path $root 'tests\fixtures\hardware-verification\*.json') -Destination $fixtureDst
+
+  # package-manifest.json (KTD5): generated AFTER staging, hashing the staged bytes themselves.
+  # Lists the verifier script, version.txt, and every binary the verifier invokes, each with the
+  # package-relative path, byte size, SHA-256, and the version the staged binary itself reports.
+  $manifestEntries = @()
+  $manifestFiles = @('verify-hardware.ps1', 'version.txt',
+                     'YesDawHardwarePlaybackCheck.exe', 'YesDawHardwareRecordingCheck.exe',
+                     'YesDawFrameCheck.exe')
+  foreach ($name in $manifestFiles) {
+    $staged = Join-Path $pkgRoot $name
+    $entry = [ordered]@{
+      path   = $name
+      bytes  = (Get-Item -LiteralPath $staged).Length
+      sha256 = (Get-FileHash -LiteralPath $staged -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    if ($name -like '*.exe') {
+      $reported = (& $staged --version | Out-String).Trim()
+      if ($reported -notlike "*$version*") {
+        Write-Error "[package] staged $name reports '$reported', which does not carry version '$version'"
+        exit 1
+      }
+      $entry['version'] = $reported
+    }
+    $manifestEntries += [pscustomobject] $entry
+  }
+  $manifest = [pscustomobject][ordered]@{
+    schema_version  = 1
+    package_version = $version
+    entries         = $manifestEntries
+  }
+  $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $pkgRoot 'package-manifest.json') -Encoding UTF8
 
   # README-alpha.md - how to run the portable build (staged if present).
   $readme = Join-Path $root 'README-alpha.md'

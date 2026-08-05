@@ -458,8 +458,10 @@ int main (int argc, char** argv)
 
     const CorrelationResult correlation = correlateBurst (capture, callback.burst());
 
-    // Canonical persistence through the SHARED commit service into a fresh bundle.
-    const std::filesystem::path bundlePath = workDir / "recording-check.yesdaw";
+    // Canonical persistence through the SHARED commit service into a fresh bundle. Short name on
+    // purpose: the bundle nests content-addressed asset paths below it and Windows MAX_PATH is a
+    // real constraint under deep extraction directories (observed live 2026-08-04).
+    const std::filesystem::path bundlePath = workDir / "rec.yesdaw";
     std::filesystem::remove_all (bundlePath, ec);
     persist::ProjectBundleDb bundle;
     if (! persist::ProjectBundleDb::openOrCreateBundle (bundlePath, bundle).ok())

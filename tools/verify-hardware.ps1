@@ -1,17 +1,25 @@
-# tools/verify-hardware.ps1 - H17 packaged hardware verifier (U1: verdict policy + device-free -SelfTest).
+# tools/verify-hardware.ps1 - H17 packaged hardware verifier (U1 policy + U5 orchestration).
 #
-# This is the package-root orchestrator for the Windows portable alpha. In U1 only the shared
-# verdict policy and its -SelfTest route exist. The normal (no-argument) path will validate the
-# package manifest and orchestrate the packaged playback/recording/frame checkers once U2-U5 land;
-# until then it reports an honest setup-incomplete verdict and exits 2. It NEVER fabricates a PASS.
+# THE package-root command for the Windows portable alpha: unzip, open PowerShell in the package
+# folder, run this with no arguments. It validates the package manifest, runs the packaged
+# playback, recording, and headless dense-Timeline frame checkers with timeouts, and writes one
+# structured aggregate + one plain summary + generated Reality-lane rows. Playback and recording
+# will make a short, quiet sound on the default output device - that is information, not a prompt;
+# nothing here ever asks a human to listen or judge.
 #
 # Policy mirror: src/app/HardwareVerification.h is the C++ authority for schema v1 - stage states,
 # claim levels, stable failure codes, child-document acceptance, the pass-record consistency
 # policy, and the KTD11 aggregate verdict (any measured fail -> exit 1; else any
 # setup/crash/skipped -> exit 2; only all-pass -> exit 0). This script reimplements that policy in
-# PowerShell. Both replay the SAME fixtures in tests/fixtures/hardware-verification/ and both
-# hardcode the same fixture list, so the two implementations cannot drift silently. Change policy
-# on one side => change the other side and the fixtures in the same commit.
+# PowerShell. Both replay the SAME fixtures in tests/fixtures/hardware-verification/ (staged into
+# the package as verify-fixtures/) and both hardcode the same fixture list, so the two
+# implementations cannot drift silently. Change policy on one side => change the other side and
+# the fixtures in the same commit.
+#
+# Package boundary (KTD5): every executable used for gate credit resolves LITERALLY under this
+# script's own folder ($PSScriptRoot), must match package-manifest.json (relative path, byte size,
+# SHA-256, compiled version), and PATH or a build tree is never searched. Integrity failure stops
+# before any hardware launch and writes an exit-2 aggregate.
 #
 # Windows PowerShell 5.1 compatible. ASCII only, no BOM (see docs/solutions/h0-build-and-ci-gotchas.md:
 # a single em-dash once made this whole file unparseable under powershell.exe).
@@ -19,14 +27,27 @@
 # Usage:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\verify-hardware.ps1
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\verify-hardware.ps1 -SelfTest [-FixtureDir <dir>]
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\verify-hardware.ps1 -IntegrityOnly
 #
-# Exit codes (R10): 0 = every required check passed; 1 = a completed measurement violated a gate;
-# 2 = no measured failure, but setup/integrity/crash/incompleteness prevented a complete verdict.
-# For -SelfTest itself: 0 = every fixture agrees with the policy, 1 = at least one disagreement.
+# -SelfTest      device-free: replays the committed verdict fixtures through the SAME policy
+#                functions the normal path uses, plus (when run from a real package) the package
+#                mutation negative controls on disposable copies. Exit 0 = all agree, 1 = not.
+# -IntegrityOnly internal/self-test surface: manifest validation only, stages recorded as skipped,
+#                aggregate written, ALWAYS exits 2 (it can never produce a hardware verdict, so it
+#                can never fabricate a PASS).
+# -PlaybackSeconds / -RecordingSeconds set how long the measurements listen. They are durations,
+# not thresholds - no flag on this script (or any checker) can relax a gate value.
+#
+# Exit codes (R10): 0 = every required stage passed its permitted claim; 1 = at least one
+# completed measurement violated a gate; 2 = setup, package integrity, child crash/hang, or
+# incomplete execution prevented a complete verdict.
 
 param(
   [switch] $SelfTest,
-  [string] $FixtureDir
+  [string] $FixtureDir,
+  [switch] $IntegrityOnly,
+  [double] $PlaybackSeconds = 30,
+  [double] $RecordingSeconds = 4
 )
 $ErrorActionPreference = 'Stop'
 
@@ -35,6 +56,19 @@ $SchemaVersion = 1
 $RequiredSampleRateHz = 48000
 $MaxGrantedBlockFrames = 128
 $StageNames = @('playback', 'recording', 'frame')
+
+# Package-boundary failure codes (orchestrator-side; the R20 integrity vocabulary).
+$CodeManifestMissing        = 'manifest_missing'
+$CodeManifestInvalid        = 'manifest_invalid'
+$CodeManifestFileMissing    = 'manifest_file_missing'
+$CodeManifestPathEscape     = 'manifest_path_escape'
+$CodeManifestSizeMismatch   = 'manifest_size_mismatch'
+$CodeManifestHashMismatch   = 'manifest_hash_mismatch'
+$CodeCheckerVersionMismatch = 'checker_version_mismatch'
+
+# Stage child timeouts (seconds). Generous: a timeout means "synthesize crash and move on", never
+# a relaxed verdict. Playback/recording get the measurement duration plus device-open headroom.
+$FrameTimeoutSec = 300
 
 # The committed fixture set, alphabetical. tests/hardware_verification_tests.cpp hardcodes the
 # same list; adding a fixture means updating BOTH lists in the same commit.
@@ -57,6 +91,14 @@ $FixtureNames = @(
   'stage-skipped'
 )
 
+# The three packaged stage checkers, in canonical run order (R21: later stages still run after an
+# earlier failure so the run retains maximum evidence).
+$StageCheckers = @(
+  @{ Stage = 'playback';  Exe = 'YesDawHardwarePlaybackCheck.exe' },
+  @{ Stage = 'recording'; Exe = 'YesDawHardwareRecordingCheck.exe' },
+  @{ Stage = 'frame';     Exe = 'YesDawFrameCheck.exe' }
+)
+
 # --- Small helpers -----------------------------------------------------------------------------
 function Test-Prop {
   param($Object, [string] $Name)
@@ -70,6 +112,19 @@ function ConvertTo-SafeArray {
   param($Value)
   if ($null -eq $Value) { return @() }
   return @($Value)
+}
+function Get-UtcNowIso {
+  return (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+}
+function Get-FileSha256Hex {
+  param([string] $Path)
+  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+function Write-JsonAtomic {
+  param([string] $Path, $Object)
+  $tmp = $Path + '.tmp'
+  $Object | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $tmp -Encoding UTF8
+  Move-Item -LiteralPath $tmp -Destination $Path -Force
 }
 
 function New-StageRecord {
@@ -284,7 +339,7 @@ function Get-AggregateVerdict {
   return @{ overall_state = $overall; exit_code = $exit; failure_codes = @($codes) }
 }
 
-# --- Orchestrator-side child handling shared by the (future) normal path and the fixtures -------
+# --- Orchestrator-side child handling shared by the normal path and the fixtures ----------------
 function ConvertTo-ChildRecord {
   param($Child, [string] $RunId, [string] $CheckerVersion)
   $slot = [string] $Child.stage
@@ -303,11 +358,328 @@ function ConvertTo-ChildRecord {
   }
 }
 
-# --- -SelfTest: replay the committed fixtures through the SAME policy functions -----------------
-function Invoke-SelfTest {
+# Launch one stage checker and classify what came back. The JSON document (not the exit code) is
+# the evidence; exit codes only separate "wrote nothing and died" from "wrote nothing politely".
+function Invoke-StageChild {
+  param([string] $ExePath, [string] $Stage, [string] $RunId, [string] $OutJson,
+        [int] $TimeoutSec, [string[]] $ExtraArgs, [string[]] $ArgsOverride)
+
+  $argList = @('--run-id', $RunId, '--json-out', $OutJson) + (ConvertTo-SafeArray $ExtraArgs)
+  # ArgsOverride exists ONLY for the self-test's hang-mechanics control, whose stand-in child
+  # (powershell.exe) cannot accept the checker argument contract. The launch/wait/kill/classify
+  # mechanics being proved are identical either way.
+  if ((ConvertTo-SafeArray $ArgsOverride).Count -gt 0) { $argList = $ArgsOverride }
+  $stdout = $OutJson + '.stdout.log'
+  $stderr = $OutJson + '.stderr.log'
+
+  # Windows PowerShell 5.1 does NOT quote array elements for Start-Process, so a results path
+  # containing a space would shatter into several child arguments (observed live 2026-08-04: every
+  # checker printed usage and exited under "C:\Users\Daniel Kinsner\..."). Quote explicitly.
+  $quoted = foreach ($a in $argList) {
+    if ($a -match '[\s"]') { '"' + ($a -replace '"', '\"') + '"' } else { $a }
+  }
+  $argString = $quoted -join ' '
+
+  try {
+    $process = Start-Process -FilePath $ExePath -ArgumentList $argString -PassThru -NoNewWindow `
+      -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $null = $process.Handle   # cache the handle NOW or ExitCode reads $null after exit (PS 5.1)
+  } catch {
+    return @{ stage = $Stage; outcome = 'crash' }
+  }
+
+  if (-not $process.WaitForExit($TimeoutSec * 1000)) {
+    try { $process.Kill() } catch {}
+    try { [void] $process.WaitForExit(5000) } catch {}
+    return @{ stage = $Stage; outcome = 'timeout' }
+  }
+
+  if (Test-Path -LiteralPath $OutJson) {
+    $document = $null
+    try { $document = Get-Content -LiteralPath $OutJson -Raw | ConvertFrom-Json } catch { $document = $null }
+    return @{ stage = $Stage; outcome = 'document'; document = $document }
+  }
+
+  $exitCode = $process.ExitCode
+  if ($null -eq $exitCode -or $exitCode -lt 0) { return @{ stage = $Stage; outcome = 'crash' } }
+  return @{ stage = $Stage; outcome = 'missing' }
+}
+
+# --- Package integrity (KTD5) --------------------------------------------------------------------
+function Test-PackageIntegrity {
+  param([string] $Root)
+
+  $result = @{ ok = $true; failure_codes = @(); details = @(); manifest = $null; package_version = '' }
+  $manifestPath = Join-Path $Root 'package-manifest.json'
+
+  if (-not (Test-Path -LiteralPath $manifestPath)) {
+    $result.ok = $false
+    $result.failure_codes = @($CodeManifestMissing)
+    $result.details = @('package-manifest.json is missing')
+    return $result
+  }
+
+  $manifest = $null
+  try { $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json } catch { $manifest = $null }
+  if ($null -eq $manifest -or -not (Test-Prop $manifest 'package_version') -or -not (Test-Prop $manifest 'entries')) {
+    $result.ok = $false
+    $result.failure_codes = @($CodeManifestInvalid)
+    $result.details = @('package-manifest.json did not parse or lacks required fields')
+    return $result
+  }
+  $result.manifest = $manifest
+  $result.package_version = [string] $manifest.package_version
+
+  $codes = New-Object System.Collections.Generic.List[string]
+  $details = @()
+
+  $versionFile = Join-Path $Root 'version.txt'
+  if (-not (Test-Path -LiteralPath $versionFile) -or
+      ((Get-Content -LiteralPath $versionFile -Raw).Trim() -cne [string] $manifest.package_version)) {
+    if (-not $codes.Contains($CodeCheckerVersionMismatch)) { [void] $codes.Add($CodeCheckerVersionMismatch) }
+    $details += 'version.txt does not match the manifest package_version'
+  }
+
+  $rootFull = [System.IO.Path]::GetFullPath($Root + [System.IO.Path]::DirectorySeparatorChar)
+  foreach ($entry in (ConvertTo-SafeArray $manifest.entries)) {
+    $rel = [string] $entry.path
+    # Reject absolute paths, drive-qualified paths, and parent traversal BEFORE touching the disk.
+    if ($rel -eq '' -or $rel -match '\.\.' -or $rel -match '^[\\/]' -or $rel -match ':') {
+      if (-not $codes.Contains($CodeManifestPathEscape)) { [void] $codes.Add($CodeManifestPathEscape) }
+      $details += ('entry path escapes the package root: ' + $rel)
+      continue
+    }
+    $full = [System.IO.Path]::GetFullPath((Join-Path $Root $rel))
+    if (-not $full.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+      if (-not $codes.Contains($CodeManifestPathEscape)) { [void] $codes.Add($CodeManifestPathEscape) }
+      $details += ('entry resolves outside the package root: ' + $rel)
+      continue
+    }
+    if (-not (Test-Path -LiteralPath $full)) {
+      if (-not $codes.Contains($CodeManifestFileMissing)) { [void] $codes.Add($CodeManifestFileMissing) }
+      $details += ('listed file is missing: ' + $rel)
+      continue
+    }
+    $actualSize = (Get-Item -LiteralPath $full).Length
+    if ($actualSize -ne [long] $entry.bytes) {
+      if (-not $codes.Contains($CodeManifestSizeMismatch)) { [void] $codes.Add($CodeManifestSizeMismatch) }
+      $details += ('size mismatch for ' + $rel + ': ' + $actualSize + ' != ' + $entry.bytes)
+      continue
+    }
+    if ((Get-FileSha256Hex $full) -ne ([string] $entry.sha256).ToLowerInvariant()) {
+      if (-not $codes.Contains($CodeManifestHashMismatch)) { [void] $codes.Add($CodeManifestHashMismatch) }
+      $details += ('SHA-256 mismatch for ' + $rel)
+      continue
+    }
+    # Compiled-version check for executables: the binary must report the manifest version itself.
+    if ($rel -like '*.exe') {
+      $reported = ''
+      try { $reported = (& $full --version 2>$null | Out-String).Trim() } catch { $reported = '' }
+      if ($reported -notlike ('*' + [string] $manifest.package_version + '*')) {
+        if (-not $codes.Contains($CodeCheckerVersionMismatch)) { [void] $codes.Add($CodeCheckerVersionMismatch) }
+        $details += ('compiled version mismatch for ' + $rel + ': "' + $reported + '"')
+      }
+    }
+  }
+
+  if ($codes.Count -gt 0) {
+    $result.ok = $false
+    $result.failure_codes = @($codes)
+    $result.details = $details
+  }
+  return $result
+}
+
+# --- Aggregate + evidence writing ----------------------------------------------------------------
+function ConvertTo-StageJsonObject {
+  param($Record)
+  return @{
+    stage         = $Record.stage
+    state         = $Record.state
+    claim_level   = $Record.claim_level
+    failure_codes = ConvertTo-SafeArray $Record.failure_codes
+    detail        = $Record.detail
+  }
+}
+
+function New-RealityLaneRows {
+  param($Records, [string] $PackageVersion, [string] $RunId)
+  $today = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+  $machine = $env:COMPUTERNAME
+  if (-not $machine) { $machine = 'unknown-machine' }
+  $smokeNames = @{
+    playback  = 'Smoke 1 - Hardware playback (packaged verifier)'
+    recording = 'Smoke 3 - Hardware recording round-trip (packaged verifier)'
+    frame     = 'Smoke 4 - H16 frame smoke (packaged verifier, headless proxy)'
+  }
+  $rows = @()
+  foreach ($name in $StageNames) {
+    $record = @($Records | Where-Object { $_.stage -ceq $name })[0]
+    $state = [string] $record.state
+    $verdictWord = 'SETUP-INCOMPLETE'
+    if ($state -ceq 'pass') { $verdictWord = 'PASS' }
+    elseif ($state -ceq 'fail') { $verdictWord = 'FAIL' }
+    $claimNote = ''
+    if ($record.claim_level -ne '') { $claimNote = ' claim=' + $record.claim_level }
+    $codesNote = ''
+    $codes = ConvertTo-SafeArray $record.failure_codes
+    if ($codes.Count -gt 0) { $codesNote = ' codes=' + ($codes -join ',') }
+    $rows += ('| ' + $today + ' | ' + $smokeNames[$name] + ' | ' + $verdictWord + ' | ' + $machine +
+              ' | Generated by verify-hardware.ps1 run ' + $RunId + ' on package ' + $PackageVersion +
+              '.' + $claimNote + $codesNote + ' Stage state ' + $state +
+              '; see result.json beside this row for the full measurements. |')
+  }
+  return $rows
+}
+
+function Write-AggregateEvidence {
+  param([string] $ResultsDir, [string] $RunId, [string] $PackageVersion, [string] $ManifestSha,
+        $Records, $Verdict, [string] $StartedAt, $IntegrityCodes, $IntegrityDetails)
+
+  $stages = @{}
+  foreach ($record in (ConvertTo-SafeArray $Records)) {
+    $stages[$record.stage] = ConvertTo-StageJsonObject $record
+  }
+
+  $failureCodes = @((ConvertTo-SafeArray $IntegrityCodes) + (ConvertTo-SafeArray $Verdict.failure_codes))
+
+  $aggregate = @{
+    schema_version          = $SchemaVersion
+    package_version         = $PackageVersion
+    package_manifest_sha256 = $ManifestSha
+    asio_compiled           = $false   # U6 wires the real capability flag through the manifest
+    run_id                  = $RunId
+    started_at              = $StartedAt
+    completed_at            = Get-UtcNowIso
+    host_os                 = [System.Environment]::OSVersion.VersionString
+    machine                 = $env:COMPUTERNAME
+    overall_state           = $Verdict.overall_state
+    exit_code               = $Verdict.exit_code
+    failure_codes           = $failureCodes
+    integrity_details       = ConvertTo-SafeArray $IntegrityDetails
+    stages                  = $stages
+    generated_row_path      = 'reality-lane-rows.txt'
+  }
+  Write-JsonAtomic -Path (Join-Path $ResultsDir 'result.json') -Object $aggregate
+
+  if ((ConvertTo-SafeArray $Records).Count -gt 0) {
+    $rows = New-RealityLaneRows -Records $Records -PackageVersion $PackageVersion -RunId $RunId
+    $tmp = Join-Path $ResultsDir 'reality-lane-rows.txt.tmp'
+    Set-Content -LiteralPath $tmp -Value ($rows -join "`r`n") -Encoding UTF8
+    Move-Item -LiteralPath $tmp -Destination (Join-Path $ResultsDir 'reality-lane-rows.txt') -Force
+  }
+}
+
+# --- Normal path / integrity-only path -----------------------------------------------------------
+function Invoke-Verification {
+  param([bool] $StagesEnabled)
+
+  $root = $PSScriptRoot
+  $startedAt = Get-UtcNowIso
+  $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
+  $runId = 'run-' + $stamp + '-' + ([System.Guid]::NewGuid().ToString('N').Substring(0, 8))
+
+  $integrity = Test-PackageIntegrity -Root $root
+  $packageVersion = $integrity.package_version
+  if (-not $packageVersion) { $packageVersion = 'unknown' }
+
+  # KTD4 layout: hardware-results/<UTC timestamp>-<package version>/, never overwriting a prior
+  # run. Path segments stay SHORT on purpose: the recording stage nests a content-addressed bundle
+  # below here, and Windows MAX_PATH bit a deep extraction live on 2026-08-04.
+  $resultsRoot = Join-Path $root 'hardware-results'
+  $resultsDir = Join-Path $resultsRoot ($stamp + '-' + $packageVersion)
+  if (Test-Path -LiteralPath $resultsDir) {
+    $resultsDir = $resultsDir + '-' + ([System.Guid]::NewGuid().ToString('N').Substring(0, 4))
+  }
+  New-Item -ItemType Directory -Force -Path $resultsDir | Out-Null
+
+  $manifestSha = ''
+  $manifestPath = Join-Path $root 'package-manifest.json'
+  if (Test-Path -LiteralPath $manifestPath) { $manifestSha = Get-FileSha256Hex $manifestPath }
+
+  if (-not $integrity.ok) {
+    # Integrity failure stops BEFORE any hardware launch (R20) and still writes durable evidence.
+    $verdict = @{ overall_state = 'setup'; exit_code = 2; failure_codes = @() }
+    Write-AggregateEvidence -ResultsDir $resultsDir -RunId $runId -PackageVersion $packageVersion `
+      -ManifestSha $manifestSha -Records @() -Verdict $verdict -StartedAt $startedAt `
+      -IntegrityCodes $integrity.failure_codes -IntegrityDetails $integrity.details
+    Write-Host 'verify-hardware: PACKAGE INTEGRITY FAILED - no hardware stage was launched.'
+    foreach ($detail in $integrity.details) { Write-Host ('  - ' + $detail) }
+    Write-Host ('verify-hardware: evidence: ' + $resultsDir)
+    return 2
+  }
+
+  if (-not $StagesEnabled) {
+    $records = @()
+    foreach ($name in $StageNames) {
+      $records += , (New-SynthesizedRecord -Stage $name -State 'skipped' -FailureCode '' -Detail 'integrity-only run')
+    }
+    $verdict = Get-AggregateVerdict -Records $records
+    Write-AggregateEvidence -ResultsDir $resultsDir -RunId $runId -PackageVersion $packageVersion `
+      -ManifestSha $manifestSha -Records $records -Verdict $verdict -StartedAt $startedAt `
+      -IntegrityCodes @() -IntegrityDetails @()
+    Write-Host 'verify-hardware: integrity OK; stages skipped (-IntegrityOnly can never produce a hardware verdict).'
+    Write-Host ('verify-hardware: evidence: ' + $resultsDir)
+    return 2
+  }
+
+  Write-Host ('verify-hardware: package ' + $packageVersion + ' integrity OK; run ' + $runId)
+  Write-Host 'verify-hardware: note - playback and recording will make a short, quiet sound. This is informational only.'
+
+  $records = @()
+  foreach ($checker in $StageCheckers) {
+    $stage = [string] $checker.Stage
+    $exe = Join-Path $root ([string] $checker.Exe)
+    $outJson = Join-Path $resultsDir ($stage + '.json')
+    $extra = @()
+    $timeout = $FrameTimeoutSec
+    if ($stage -ceq 'playback') {
+      $extra = @('--seconds', [string] $PlaybackSeconds)
+      $timeout = [int] ($PlaybackSeconds + 90)
+    }
+    elseif ($stage -ceq 'recording') {
+      # Short segment name: a content-addressed .yesdaw bundle nests below this (MAX_PATH).
+      $extra = @('--seconds', [string] $RecordingSeconds,
+                 '--work-dir', (Join-Path $resultsDir 'rec'))
+      $timeout = [int] ($RecordingSeconds + 90)
+    }
+
+    Write-Host ('verify-hardware: running ' + $stage + ' stage (' + $checker.Exe + ', timeout ' + $timeout + ' s)...')
+    $child = Invoke-StageChild -ExePath $exe -Stage $stage -RunId $runId -OutJson $outJson `
+      -TimeoutSec $timeout -ExtraArgs $extra
+    $records += , (ConvertTo-ChildRecord -Child $child -RunId $runId -CheckerVersion $packageVersion)
+  }
+
+  $verdict = Get-AggregateVerdict -Records $records
+  Write-AggregateEvidence -ResultsDir $resultsDir -RunId $runId -PackageVersion $packageVersion `
+    -ManifestSha $manifestSha -Records $records -Verdict $verdict -StartedAt $startedAt `
+    -IntegrityCodes @() -IntegrityDetails @()
+
+  Write-Host ''
+  Write-Host ('verify-hardware: overall = ' + $verdict.overall_state + ' (exit ' + $verdict.exit_code + ')')
+  foreach ($record in $records) {
+    $claim = ''
+    if ($record.claim_level -ne '') { $claim = ' claim=' + $record.claim_level }
+    $codes = ConvertTo-SafeArray $record.failure_codes
+    $codesText = ''
+    if ($codes.Count -gt 0) { $codesText = ' codes=' + ($codes -join ',') }
+    Write-Host ('  ' + $record.stage.PadRight(9) + ' ' + $record.state + $claim + $codesText)
+  }
+  Write-Host ('verify-hardware: evidence retained in ' + $resultsDir)
+  Write-Host 'verify-hardware: the generated Reality-lane rows may be committed verbatim; never reclassified.'
+  return $verdict.exit_code
+}
+
+# --- -SelfTest ------------------------------------------------------------------------------------
+function Invoke-FixtureReplay {
   if (-not $FixtureDir) {
-    $repoRoot = Split-Path -Parent $PSScriptRoot
-    $script:FixtureDir = Join-Path $repoRoot 'tests\fixtures\hardware-verification'
+    $packaged = Join-Path $PSScriptRoot 'verify-fixtures'
+    if (Test-Path -LiteralPath $packaged) {
+      $script:FixtureDir = $packaged
+    } else {
+      $repoRoot = Split-Path -Parent $PSScriptRoot
+      $script:FixtureDir = Join-Path $repoRoot 'tests\fixtures\hardware-verification'
+    }
   }
   if (-not (Test-Path -LiteralPath $script:FixtureDir)) {
     Write-Host ('selftest: FAIL - fixture directory not found: ' + $script:FixtureDir)
@@ -378,13 +750,116 @@ function Invoke-SelfTest {
   return 1
 }
 
-# --- Entry -------------------------------------------------------------------------------------
-if ($SelfTest) {
-  exit (Invoke-SelfTest)
+function Invoke-PackageMutationControls {
+  # Runs only when this script sits inside a real package (manifest beside it). Each control
+  # mutates a DISPOSABLE copy, runs the copied script with -IntegrityOnly, and asserts the named
+  # code in the copy's aggregate. Both sides are proved: the clean copy first, then the mutations.
+  $manifestPath = Join-Path $PSScriptRoot 'package-manifest.json'
+  if (-not (Test-Path -LiteralPath $manifestPath)) {
+    Write-Host 'selftest: package mutation controls skipped (no package-manifest.json beside the script; checkout mode)'
+    return 0
+  }
+
+  $failures = 0
+  $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+  $checkerRel = [string] (@($manifest.entries | Where-Object { $_.path -like '*.exe' })[0].path)
+
+  $controls = @(
+    @{ Name = 'clean_copy_integrity_ok'; Expect = ''; Mutate = { param($copy) } },
+    @{ Name = 'manifest_missing'; Expect = $CodeManifestMissing;
+       Mutate = { param($copy) Remove-Item -LiteralPath (Join-Path $copy 'package-manifest.json') -Force } },
+    @{ Name = 'manifest_file_missing'; Expect = $CodeManifestFileMissing;
+       Mutate = { param($copy) Remove-Item -LiteralPath (Join-Path $copy $checkerRel) -Force } },
+    @{ Name = 'manifest_size_mismatch'; Expect = $CodeManifestSizeMismatch;
+       Mutate = { param($copy) Add-Content -LiteralPath (Join-Path $copy $checkerRel) -Value 'x' -Encoding Ascii } },
+    @{ Name = 'manifest_hash_mismatch'; Expect = $CodeManifestHashMismatch;
+       Mutate = { param($copy)
+         $target = Join-Path $copy $checkerRel
+         $bytes = [System.IO.File]::ReadAllBytes($target)
+         $bytes[$bytes.Length - 1] = $bytes[$bytes.Length - 1] -bxor 0xFF
+         [System.IO.File]::WriteAllBytes($target, $bytes) } },
+    @{ Name = 'manifest_path_escape'; Expect = $CodeManifestPathEscape;
+       Mutate = { param($copy)
+         $m = Get-Content -LiteralPath (Join-Path $copy 'package-manifest.json') -Raw | ConvertFrom-Json
+         $m.entries[0].path = '..\outside.exe'
+         $m | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $copy 'package-manifest.json') -Encoding UTF8 } },
+    @{ Name = 'checker_version_mismatch'; Expect = $CodeCheckerVersionMismatch;
+       Mutate = { param($copy)
+         Set-Content -LiteralPath (Join-Path $copy 'version.txt') -Value 'not-the-real-version' -Encoding Ascii } }
+  )
+
+  foreach ($control in $controls) {
+    $copy = Join-Path ([System.IO.Path]::GetTempPath()) ('yesdaw-verify-mutation-' + [System.Guid]::NewGuid().ToString('N'))
+    Copy-Item -LiteralPath $PSScriptRoot -Destination $copy -Recurse
+    try {
+      & $control.Mutate $copy
+      $copiedScript = Join-Path $copy 'verify-hardware.ps1'
+      & powershell -NoProfile -ExecutionPolicy Bypass -File $copiedScript -IntegrityOnly *> $null
+      $aggregate = $null
+      # Newest first: the package copy may carry result dirs from earlier real runs.
+      $resultFiles = @(Get-ChildItem -LiteralPath (Join-Path $copy 'hardware-results') -Recurse -Filter 'result.json' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending)
+      if ($resultFiles.Count -ge 1) {
+        $aggregate = Get-Content -LiteralPath $resultFiles[0].FullName -Raw | ConvertFrom-Json
+      }
+
+      $problem = ''
+      if ($null -eq $aggregate) {
+        $problem = 'no aggregate was written'
+      }
+      elseif ($control.Expect -eq '') {
+        if ((ConvertTo-SafeArray $aggregate.failure_codes).Count -ne 0) {
+          $problem = 'clean copy unexpectedly reported: ' + ((ConvertTo-SafeArray $aggregate.failure_codes) -join ',')
+        }
+        elseif ([int] $aggregate.exit_code -eq 0) {
+          $problem = '-IntegrityOnly produced exit 0, which must be impossible'
+        }
+      }
+      elseif ((ConvertTo-SafeArray $aggregate.failure_codes) -cnotcontains $control.Expect) {
+        $problem = 'expected code ' + $control.Expect + ' but got [' + ((ConvertTo-SafeArray $aggregate.failure_codes) -join ',') + ']'
+      }
+      elseif ([int] $aggregate.exit_code -ne 2) {
+        $problem = 'integrity failure must aggregate to exit 2'
+      }
+
+      if ($problem -eq '') {
+        Write-Host ('[PASS] mutation ' + $control.Name)
+      } else {
+        $failures += 1
+        Write-Host ('[FAIL] mutation ' + $control.Name + ' : ' + $problem)
+      }
+    } finally {
+      Remove-Item -LiteralPath $copy -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+
+  # Child-hang mechanics: the SAME launch/kill/synthesize function the normal path uses, against a
+  # deliberately hanging child, must come back as a timeout within the declared budget.
+  $hangJson = Join-Path ([System.IO.Path]::GetTempPath()) ('yesdaw-hang-' + [System.Guid]::NewGuid().ToString('N') + '.json')
+  $outcome = Invoke-StageChild -ExePath 'powershell' -Stage 'frame' -RunId 'run-hang' -OutJson $hangJson `
+    -TimeoutSec 2 -ExtraArgs @() -ArgsOverride @('-NoProfile', '-Command', 'Start-Sleep -Seconds 600')
+  Remove-Item -LiteralPath ($hangJson + '.stdout.log'), ($hangJson + '.stderr.log') -Force -ErrorAction SilentlyContinue
+  if ($outcome.outcome -ceq 'timeout') {
+    Write-Host '[PASS] mutation child_hang_killed_at_timeout'
+  } else {
+    $failures += 1
+    Write-Host ('[FAIL] mutation child_hang_killed_at_timeout : outcome was ' + $outcome.outcome)
+  }
+
+  if ($failures -eq 0) { return 0 }
+  return 1
 }
 
-# Normal path: the packaged stage checkers arrive in U2-U5. Until they are staged into the package
-# this command cannot produce a hardware verdict, and it says so instead of inventing one (R10).
-Write-Output 'verify-hardware: the packaged playback/recording/frame checkers are not shipped yet (U1 policy-only build).'
-Write-Output 'verify-hardware: verdict = setup-incomplete. Run -SelfTest to exercise the verdict policy without hardware.'
-exit 2
+# --- Entry -------------------------------------------------------------------------------------
+if ($SelfTest) {
+  $fixtureExit = Invoke-FixtureReplay
+  $mutationExit = Invoke-PackageMutationControls
+  if ($fixtureExit -eq 0 -and $mutationExit -eq 0) { exit 0 }
+  exit 1
+}
+
+if ($IntegrityOnly) {
+  exit (Invoke-Verification -StagesEnabled $false)
+}
+
+exit (Invoke-Verification -StagesEnabled $true)
