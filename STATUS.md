@@ -63,11 +63,19 @@ instead of one flat text column, while preserving every existing real control an
 - Green evidence: the regenerated 1536x960 arrangement screenshot passes all four anchors;
   warnings-as-errors `ci` build passes; the six UI gates pass 6/6; full ctest passes 327/327.
 
-**Now:** commit and push this Inspector checkpoint, then confirm its exact remote CI run.
+**Done:** Inspector checkpoint `6d99507` passed GitHub Actions run `31250042188` across all nine jobs.
+The clean Windows portable package `dist/YesDaw-6d99507-win64-portable.zip` was installed at
+`%LOCALAPPDATA%/YES DAW/6d99507/YesDaw-6d99507-win64-portable`. Its packaged verifier passed all
+16/16 verdict-policy fixtures and every integrity mutation; the shipped self-check and frame-check
+binaries both report `6d99507`. The Desktop `YES DAW Alpha.lnk` now targets that exact installed
+executable, which launched successfully as `YES DAW 6d99507` (PID 20676; SHA-256
+`645B960190B97302E0425BE6E8500E0061DF1BE5BAA40824480AEBEACA76437A`).
 
-**Next:** build the clean Windows portable package from the final green commit, install it beside the
-previous version, update the Desktop shortcut, and prove the installed GUI launches with the new
-version title.
+**Now:** the latest visual-normalization build is installed, open, and locally plus remote green.
+
+**Next:** continue the accepted audit in a separate green checkpoint: normalize semantic control
+variants and finish the remaining cross-surface type hierarchy, with red screenshot controls before
+changing pixels.
 
 ---
 
