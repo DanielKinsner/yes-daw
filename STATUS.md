@@ -52,6 +52,27 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 usable-DAW visual continuation — project/transport hierarchy
+
+The second visual normalization checkpoint groups the existing header chrome into three deliberate
+zones matching the accepted reference: compact project/history utilities, the dominant transport,
+and Master monitoring. This is a token/layout-only CP8 change: all action IDs, shortcuts, accessible
+names, component bounds, and behavior remain unchanged.
+
+- Three tokenized recessed section plates now unify the related controls without adding decorative
+  copy or competing accents; Record remains the sole destructive/high-salience transport action.
+- Red control: the new screenshot hierarchy assertion rejected the previous undifferentiated header
+  at all three section anchors.
+- Green evidence: the regenerated 1536x960 arrangement screenshot passes the new anchor assertion;
+  warnings-as-errors `ci` build passes; the six UI gates pass 6/6; full ctest passes 327/327.
+
+**Now:** commit and push this header checkpoint, then confirm its exact remote CI run.
+
+**Next:** deepen arrangement track headers with compact, readable pan/fader summaries while preserving
+the existing action-backed M/S/arm controls, real meters, and disjoint hit targets.
+
+---
+
 ## 2026-08-08 usable-DAW visual continuation — mixer master summary
 
 Dan rejected Alpha as the finish line and directed continuous work toward a complete, usable,
@@ -69,10 +90,8 @@ highest-value Mixer composition defect documented in
   screenshot, and Timeline GPU gates pass 6/6; the regenerated 1536x960 Mixer screenshot visibly
   contains the Master summary.
 
-**Now:** commit and push this Mixer checkpoint, then confirm its exact remote CI run.
-
-**Next:** normalize project/transport hierarchy against the accepted arrangement reference, preserving
-the existing action registry, real state, theme tokens, and mechanical screenshot/accessibility gates.
+**Done:** Mixer checkpoint `ff26873` passed GitHub Actions run `31246951391` across all nine Linux,
+Windows, macOS, RTSan, TSan, Alpha verification, and package-verification jobs.
 
 ---
 

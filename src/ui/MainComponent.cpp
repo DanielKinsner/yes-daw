@@ -2462,6 +2462,24 @@ private:
         g.fillRect (headerBounds.withHeight (
             yesdaw::ui::UiTheme::Layout::controlInnerHighlightHeight));
 
+        const std::array headerSections {
+            yesdaw::ui::UiTheme::Layout::headerProjectSectionBounds(),
+            yesdaw::ui::UiTheme::Layout::headerTransportSectionBounds(),
+            yesdaw::ui::UiTheme::Layout::headerMasterSectionBounds()
+        };
+        for (const auto section : headerSections)
+        {
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRoundedRectangle (section.toFloat(), yesdaw::ui::UiTheme::Radius::panel);
+            g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
+                yesdaw::ui::UiTheme::Tone::innerHighlightAlpha));
+            g.drawRoundedRectangle (
+                section.toFloat().reduced (
+                    yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                yesdaw::ui::UiTheme::Radius::panel,
+                yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
+        }
+
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
         int menuX = yesdaw::ui::UiTheme::Layout::headerMenuStartX;

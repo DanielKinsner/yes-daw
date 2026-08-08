@@ -258,6 +258,18 @@ struct UiTheme
         static constexpr int headerMenuHeight = 18;
         static constexpr int headerMenuStep = 48;
         static constexpr int headerOptionsMenuStep = 72;
+        static juce::Rectangle<int> headerProjectSectionBounds() noexcept
+        {
+            return { 10, 43, 310, 37 };
+        }
+        static juce::Rectangle<int> headerTransportSectionBounds() noexcept
+        {
+            return { 328, 10, 752, 68 };
+        }
+        static juce::Rectangle<int> headerMasterSectionBounds() noexcept
+        {
+            return { 1092, 10, 434, 68 };
+        }
         static constexpr int headerTransportRecordX = 520;
         static constexpr int headerTransportRecordY = 36;
         static constexpr int headerTransportRecordSize = 18;
