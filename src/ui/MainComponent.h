@@ -12,6 +12,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -30,6 +31,10 @@ struct MainComponentSnapshot
 {
     bool isMainComponent = false;
     bool primaryFileChoicesReady = false;
+    bool desktopAudioRequested = false;
+    bool desktopAudioOpen = false;
+    std::uint64_t deviceAudioCallbackBlockCount = 0;
+    std::uint64_t deviceAudioNonSilentBlockCount = 0;
     bool playbackReady = false;
     int width = 0;
     int height = 0;
@@ -50,6 +55,10 @@ struct MainComponentSnapshot
 [[nodiscard]] std::vector<float> renderMainComponentPlayback (juce::Component& component,
                                                               std::uint64_t frames,
                                                               int blockSize);
+[[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
+                                                         float* const* outputChannels,
+                                                         int numOutputChannels,
+                                                         int numFrames);
 
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);

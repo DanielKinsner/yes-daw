@@ -18,9 +18,11 @@
 #include "ui/WaveformPeakService.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -182,6 +184,32 @@ public:
     [[nodiscard]] engine::EntityId selectedMidiNoteId() const noexcept { return selectedMidiNoteId_; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
+    void setPlaybackReplacementCallbacks (std::function<void()> willReplace,
+                                          std::function<void()> didReplace)
+    {
+        playbackReplacementWillBegin_ = std::move (willReplace);
+        playbackReplacementDidEnd_ = std::move (didReplace);
+    }
+    void setPlaybackMaxBlockSize (int maxBlockSize) noexcept
+    {
+        if (maxBlockSize > 0)
+            playbackMaxBlockSize_ = maxBlockSize;
+    }
+
+    [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
+                                                int numOutputChannels,
+                                                int numFrames) noexcept YESDAW_RT_HOT
+    {
+        engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
+        if (playback == nullptr || numFrames < 0 || numFrames > playback->maxBlockSize())
+        {
+            zeroAudioOutputs (outputChannels, numOutputChannels, numFrames);
+            return false;
+        }
+
+        playback->processBlock (outputChannels, numOutputChannels, numFrames);
+        return true;
+    }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
     [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
@@ -435,7 +463,8 @@ public:
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
             commit.project,
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+            playbackBuildOptions());
 
         result.importResult.playbackStatus = built.status;
         result.importResult.projectError = built.projectError;
@@ -453,7 +482,7 @@ public:
         project_ = std::move (commit.project);
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        playback_ = std::move (built.engine);
+        replacePlayback (std::move (built.engine));
         context_.projectLoaded = true;
         selectedTimelineClipId_ = commit.clipId;
         context_.timelineClipSelected = true;
@@ -462,7 +491,7 @@ public:
         context_.canUndo = false;
         context_.canRedo = false;
         syncProjectEditContext();
-        syncContextFromPlayback();
+        resetContextForFreshPlayback();
 
         pendingAudioPlacement_ = {
             commit.importedAsset.id,
@@ -626,7 +655,8 @@ private:
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
             nextProject,
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+            playbackBuildOptions());
 
         result.playbackStatus = built.status;
         result.projectError = built.projectError;
@@ -643,14 +673,14 @@ private:
         project_ = std::move (nextProject);
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        playback_ = std::move (built.engine);
+        replacePlayback (std::move (built.engine));
         context_.projectLoaded = true;
         selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
         context_.canUndo = false;
         context_.canRedo = false;
         syncProjectEditContext();
-        syncContextFromPlayback();
+        resetContextForFreshPlayback();
 
         pendingAudioPlacement_ = {
             imported.id,
@@ -1232,8 +1262,15 @@ public:
 
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
         const std::filesystem::path& bundlePath,
+        std::span<const UiDecodedAsset> decodedAssets)
+    {
+        return loadProjectBundle (bundlePath, decodedAssets, playbackBuildOptions());
+    }
+
+    [[nodiscard]] UiAppLoadResult loadProjectBundle (
+        const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets,
-        engine::OfflineRenderOptions options = {})
+        engine::OfflineRenderOptions options)
     {
         UiAppLoadResult result;
 
@@ -1276,10 +1313,10 @@ public:
         attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        playback_ = std::move (built.engine);
+        replacePlayback (std::move (built.engine));
         enqueueWaveformBuildsForDecodedAssets();
 
-        syncContextFromPlayback();
+        resetContextForFreshPlayback();
         detectAutosaveRecoveryPrompt();
 
         result.status = UiAppLoadStatus::Ok;
@@ -2030,7 +2067,8 @@ private:
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
             nextProject,
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+            playbackBuildOptions());
 
         if (! built.ok())
             return false;
@@ -2048,9 +2086,9 @@ private:
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        playback_ = std::move (built.engine);
+        replacePlayback (std::move (built.engine));
         syncProjectEditContext();
-        syncContextFromPlayback();
+        resetContextForFreshPlayback();
         return true;
     }
 
@@ -2075,7 +2113,7 @@ private:
 
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
-        playback_.reset();
+        replacePlayback (nullptr);
         syncProjectEditContext();
         return true;
     }
@@ -2404,7 +2442,7 @@ private:
         undo_ = {};
         decodedAssets_.clear();
         decodedAssetViews_.clear();
-        playback_.reset();
+        replacePlayback (nullptr);
 
         context_ = {};
         context_.projectLoaded = true;
@@ -2442,6 +2480,45 @@ private:
         context_.playheadFrame = playback_->playheadFrame();
     }
 
+    void resetContextForFreshPlayback() noexcept
+    {
+        context_.isPlaying = false;
+        context_.loopEnabled = false;
+        context_.playheadFrame = 0;
+    }
+
+    [[nodiscard]] engine::OfflineRenderOptions playbackBuildOptions() const
+    {
+        engine::OfflineRenderOptions options;
+        options.maxBlockSize = playbackMaxBlockSize_;
+        return options;
+    }
+
+    void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement)
+    {
+        if (playbackReplacementWillBegin_)
+            playbackReplacementWillBegin_();
+
+        audioPlayback_.store (nullptr, std::memory_order_release);
+        playback_ = std::move (replacement);
+        audioPlayback_.store (playback_.get(), std::memory_order_release);
+
+        if (playbackReplacementDidEnd_)
+            playbackReplacementDidEnd_();
+    }
+
+    static void zeroAudioOutputs (float* const* outputChannels,
+                                  int numOutputChannels,
+                                  int numFrames) noexcept YESDAW_RT_HOT
+    {
+        if (outputChannels == nullptr || numOutputChannels <= 0 || numFrames <= 0)
+            return;
+
+        for (int channel = 0; channel < numOutputChannels; ++channel)
+            if (outputChannels[channel] != nullptr)
+                std::fill_n (outputChannels[channel], numFrames, 0.0f);
+    }
+
     UiActionRegistry registry_;
     UiActionContext context_;
     persistence::ProjectBundleDb bundleDb_;
@@ -2464,6 +2541,10 @@ private:
     std::vector<UiDecodedAsset> decodedAssets_;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
+    std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };
+    int playbackMaxBlockSize_ = 128;
+    std::function<void()> playbackReplacementWillBegin_;
+    std::function<void()> playbackReplacementDidEnd_;
     WaveformPeakService waveformService_;
 };
 

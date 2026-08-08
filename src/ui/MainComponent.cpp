@@ -15,9 +15,11 @@
 #include "ui/YesDawLookAndFeel.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -417,10 +419,18 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
     }
 }
 
-std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWavForImport (const std::filesystem::path& sourcePath)
+juce::File juceFileFromPath (const std::filesystem::path& path)
+{
+    const std::u8string utf8 = path.u8string();
+    return juce::File { juce::String::fromUTF8 (
+        reinterpret_cast<const char*> (utf8.data()),
+        static_cast<int> (utf8.size())) };
+}
+
+std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWav (const std::filesystem::path& sourcePath)
 {
     juce::WavAudioFormat wav;
-    const juce::File file { juce::String { sourcePath.string() } };
+    const juce::File file = juceFileFromPath (sourcePath);
     std::unique_ptr<juce::AudioFormatReader> reader (
         wav.createReaderFor (new juce::FileInputStream (file), true));
     if (reader == nullptr)
@@ -444,6 +454,36 @@ std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWavForImport (const std::fil
     decoded.channels = 1;
     decoded.interleavedSamples.assign (channel, channel + frames);
     return decoded;
+}
+
+std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> decodeStoredProjectAssets (
+    const std::filesystem::path& bundlePath)
+{
+    yesdaw::persistence::ProjectBundleDb db;
+    if (! yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db).ok())
+        return std::nullopt;
+
+    yesdaw::engine::Project project;
+    if (! db.readProjectSnapshot (project).ok())
+        return std::nullopt;
+
+    std::vector<yesdaw::ui::UiDecodedAsset> decodedAssets;
+    decodedAssets.reserve (project.assets.size());
+    for (const yesdaw::engine::Asset& asset : project.assets)
+    {
+        auto decoded = decodeMonoWav (
+            yesdaw::persistence::storedAssetPathForHash (bundlePath, asset.contentHash));
+        if (! decoded
+            || decoded->frames != asset.frames
+            || decoded->sampleRate != asset.sampleRate
+            || decoded->channels != asset.channels)
+            return std::nullopt;
+
+        decoded->assetId = asset.id;
+        decodedAssets.push_back (std::move (*decoded));
+    }
+
+    return decodedAssets;
 }
 
 } // namespace
@@ -1000,12 +1040,18 @@ private:
     yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::ProjectNew;
 };
 
-class MainComponent : public juce::Component, private juce::Timer
+class MainComponent : public juce::Component,
+                      private juce::Timer,
+                      private juce::AudioIODeviceCallback
 {
 public:
-    explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices)
-        : fileChoices (std::move (choices))
+    explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool enableDesktopAudio)
+        : fileChoices (std::move (choices)), desktopAudioRequested (enableDesktopAudio)
     {
+        appModel.setPlaybackReplacementCallbacks (
+            [this] { suspendDesktopAudioCallback(); },
+            [this] { resumeDesktopAudioCallback(); });
+
         setOpaque (true);
         setLookAndFeel (&lookAndFeel);
         setSize (yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
@@ -1171,6 +1217,19 @@ public:
         resized();
         refreshActionState();
 
+        if (desktopAudioRequested)
+        {
+            const juce::String error = audioDeviceManager.initialiseWithDefaultDevices (0, 2);
+            if (error.isEmpty())
+            {
+                if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
+                    appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
+                audioDeviceManager.addAudioCallback (this);
+                desktopAudioCallbackRegistered = true;
+                desktopAudioOpen.store (true, std::memory_order_release);
+            }
+        }
+
         // H17 CP4: scheduled autosave is ON by default (policy lives in the headless app model, so the
         // default is covered by a headless test). The Timer fires on the message thread — which is this
         // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
@@ -1181,6 +1240,9 @@ public:
     ~MainComponent() override
     {
         stopTimer();
+        if (desktopAudioCallbackRegistered)
+            audioDeviceManager.removeAudioCallback (this);
+        audioDeviceManager.closeAudioDevice();
         setLookAndFeel (nullptr);
     }
 
@@ -1189,6 +1251,55 @@ public:
     void timerCallback() override
     {
         (void) appModel.writeAutosaveTick();
+    }
+
+    void audioDeviceAboutToStart (juce::AudioIODevice* device) override
+    {
+        if (device != nullptr)
+            appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
+        desktopAudioOpen.store (device != nullptr, std::memory_order_release);
+    }
+
+    void audioDeviceIOCallbackWithContext (const float* const*,
+                                           int,
+                                           float* const* outputChannels,
+                                           int numOutputChannels,
+                                           int numFrames,
+                                           const juce::AudioIODeviceCallbackContext&) override
+    {
+        (void) processDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+    }
+
+    void audioDeviceStopped() override
+    {
+        desktopAudioOpen.store (false, std::memory_order_release);
+    }
+
+    void audioDeviceError (const juce::String&) override
+    {
+        desktopAudioOpen.store (false, std::memory_order_release);
+    }
+
+    [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
+                                                int numOutputChannels,
+                                                int numFrames) noexcept
+    {
+        const bool processed = appModel.processDeviceAudioBlock (
+            outputChannels, numOutputChannels, numFrames);
+
+        float peak = 0.0f;
+        if (outputChannels != nullptr && numFrames > 0)
+        {
+            for (int channel = 0; channel < numOutputChannels; ++channel)
+                if (outputChannels[channel] != nullptr)
+                    for (int frame = 0; frame < numFrames; ++frame)
+                        peak = std::max (peak, std::fabs (outputChannels[channel][frame]));
+        }
+
+        deviceAudioCallbackBlockCount.fetch_add (1u, std::memory_order_relaxed);
+        if (peak > 0.000001f)
+            deviceAudioNonSilentBlockCount.fetch_add (1u, std::memory_order_relaxed);
+        return processed;
     }
 
     [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }
@@ -1225,6 +1336,25 @@ public:
             && static_cast<bool> (fileChoices.chooseExportAudioFile);
     }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
+    [[nodiscard]] bool harnessDesktopAudioRequested() const noexcept { return desktopAudioRequested; }
+    [[nodiscard]] bool harnessDesktopAudioOpen() const noexcept
+    {
+        return desktopAudioOpen.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] std::uint64_t harnessDeviceAudioCallbackBlockCount() const noexcept
+    {
+        return deviceAudioCallbackBlockCount.load (std::memory_order_relaxed);
+    }
+    [[nodiscard]] std::uint64_t harnessDeviceAudioNonSilentBlockCount() const noexcept
+    {
+        return deviceAudioNonSilentBlockCount.load (std::memory_order_relaxed);
+    }
+    [[nodiscard]] bool harnessProcessDeviceAudioBlock (float* const* outputChannels,
+                                                       int numOutputChannels,
+                                                       int numFrames) noexcept
+    {
+        return processDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+    }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -1886,7 +2016,40 @@ private:
             yesdaw::ui::UiTheme::Layout::automationBreakpointDeleteButtonBounds (timeline));
     }
 
+    void suspendDesktopAudioCallback()
+    {
+        if (desktopAudioCallbackSuspendDepth++ != 0)
+            return;
+
+        resumeDesktopAudioAfterSuspend = desktopAudioCallbackRegistered;
+        if (desktopAudioCallbackRegistered)
+        {
+            audioDeviceManager.removeAudioCallback (this);
+            desktopAudioCallbackRegistered = false;
+        }
+    }
+
+    void resumeDesktopAudioCallback()
+    {
+        if (desktopAudioCallbackSuspendDepth <= 0 || --desktopAudioCallbackSuspendDepth != 0)
+            return;
+
+        if (resumeDesktopAudioAfterSuspend && audioDeviceManager.getCurrentAudioDevice() != nullptr)
+        {
+            audioDeviceManager.addAudioCallback (this);
+            desktopAudioCallbackRegistered = true;
+        }
+        resumeDesktopAudioAfterSuspend = false;
+    }
+
     void handleAction (yesdaw::ui::UiActionId action)
+    {
+        suspendDesktopAudioCallback();
+        handleActionWhileAudioStopped (action);
+        resumeDesktopAudioCallback();
+    }
+
+    void handleActionWhileAudioStopped (yesdaw::ui::UiActionId action)
     {
         switch (action)
         {
@@ -1909,7 +2072,15 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
                     if (! path.empty())
-                        (void) appModel.openProjectBundle (path);
+                    {
+                        if (auto decodedAssets = decodeStoredProjectAssets (path); decodedAssets && ! decodedAssets->empty())
+                            (void) appModel.loadProjectBundle (
+                                path,
+                                std::span<const yesdaw::ui::UiDecodedAsset> (
+                                    decodedAssets->data(), decodedAssets->size()));
+                        else if (decodedAssets)
+                            (void) appModel.openProjectBundle (path);
+                    }
                 }
                 return;
 
@@ -1927,7 +2098,7 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseImportAudioFile();
                     if (! path.empty())
-                        if (auto decoded = decodeMonoWavForImport (path))
+                        if (auto decoded = decodeMonoWav (path))
                             (void) appModel.importAudioFile (path, std::move (*decoded));
                 }
                 return;
@@ -3772,6 +3943,14 @@ private:
     yesdaw::ui::YesDawLookAndFeel lookAndFeel;
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
+    juce::AudioDeviceManager audioDeviceManager;
+    const bool desktopAudioRequested = false;
+    bool desktopAudioCallbackRegistered = false;
+    int desktopAudioCallbackSuspendDepth = 0;
+    bool resumeDesktopAudioAfterSuspend = false;
+    std::atomic<bool> desktopAudioOpen { false };
+    std::atomic<std::uint32_t> deviceAudioCallbackBlockCount { 0u };
+    std::atomic<std::uint32_t> deviceAudioNonSilentBlockCount { 0u };
     yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
     yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
     std::array<TrackRow, 1> projectTimelineTrack {{{
@@ -3925,12 +4104,12 @@ namespace yesdaw::ui {
 
 std::unique_ptr<juce::Component> createMainComponent()
 {
-    return std::make_unique<MainComponent> (makeNativeFileChoices());
+    return std::make_unique<MainComponent> (makeNativeFileChoices(), true);
 }
 
 std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices)
 {
-    return std::make_unique<MainComponent> (std::move (fileChoices));
+    return std::make_unique<MainComponent> (std::move (fileChoices), false);
 }
 
 MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
@@ -3944,6 +4123,10 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
     {
         snapshot.isMainComponent = true;
         snapshot.primaryFileChoicesReady = mainComponent->harnessPrimaryFileChoicesReady();
+        snapshot.desktopAudioRequested = mainComponent->harnessDesktopAudioRequested();
+        snapshot.desktopAudioOpen = mainComponent->harnessDesktopAudioOpen();
+        snapshot.deviceAudioCallbackBlockCount = mainComponent->harnessDeviceAudioCallbackBlockCount();
+        snapshot.deviceAudioNonSilentBlockCount = mainComponent->harnessDeviceAudioNonSilentBlockCount();
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.bundlePath = mainComponent->harnessBundlePath();
         snapshot.context = mainComponent->harnessContext();
@@ -3966,6 +4149,17 @@ std::vector<float> renderMainComponentPlayback (juce::Component& component,
         return mainComponent->harnessRenderPlaybackFrames (frames, blockSize);
 
     return {};
+}
+
+bool processMainComponentDeviceAudioBlock (juce::Component& component,
+                                           float* const* outputChannels,
+                                           int numOutputChannels,
+                                           int numFrames)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessProcessDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+
+    return false;
 }
 
 juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action)

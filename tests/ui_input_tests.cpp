@@ -694,10 +694,69 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
 
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
+    REQUIRE (snapshot.desktopAudioRequested);
     REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 31u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
+}
+
+TEST_CASE ("shipped MainComponent device callback renders playing Project audio",
+           "[ui][input][shell][playback][device]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("device-playback");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+
+    std::array<float, 128> left {};
+    std::array<float, 128> right {};
+    std::array<float*, 2> outputs { left.data(), right.data() };
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+    REQUIRE (peakAbs (left) > 0.01);
+    REQUIRE (peakAbs (right) > 0.01);
+
+    const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.deviceAudioCallbackBlockCount == 1u);
+    REQUIRE (snapshot.deviceAudioNonSilentBlockCount == 1u);
+}
+
+TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",
+           "[ui][input][shell][project][playback][device]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("reopen-playback");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices createChoices;
+    createChoices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    createChoices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    {
+        auto shell = makeShell (std::move (createChoices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        REQUIRE (snapshotMainComponent (*shell).playbackReady);
+    }
+
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    REQUIRE (snapshotMainComponent (*reopened).playbackReady);
+    clickButton (requireButtonForAction (*reopened, UiActionId::TransportPlay));
+
+    std::array<float, 128> left {};
+    std::array<float, 128> right {};
+    std::array<float*, 2> outputs { left.data(), right.data() };
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*reopened, outputs.data(), 2, 128));
+    REQUIRE (peakAbs (left) > 0.01);
+    REQUIRE (peakAbs (right) > 0.01);
 }
 
 TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id", "[ui][input][shell]")
@@ -2283,7 +2342,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.mixerTargetSelected);
-    REQUIRE_FALSE (snapshot.playbackReady);
+    REQUIRE (snapshot.playbackReady);
     REQUIRE (snapshot.bundlePath == bundlePath);
 
     const yesdaw::engine::Project reopenedMixer = readProjectSnapshot (bundlePath);

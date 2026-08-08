@@ -1400,6 +1400,13 @@ inline BundleResult configureConnection (sqlite3* db)
 
 } // namespace detail
 
+[[nodiscard]] inline std::filesystem::path storedAssetPathForHash (
+    const std::filesystem::path& bundlePath,
+    const engine::AssetContentHash& hash)
+{
+    return bundlePath / detail::assetRelativePathForHash (hash);
+}
+
 class ProjectBundleDb final
 {
 public:

@@ -70,11 +70,33 @@ callbacks, so it proved the component/model path but missed the real executable 
 - Green evidence: warnings-as-errors full build passes; focused `YesDawUiInputCheck` passes; full ctest
   passes 327/327.
 
-**Now:** commit and push the shipped lifecycle repair, then confirm its exact remote CI run.
+Checkpoint `fa354ed` is pushed. Its exact remote run is `31264982790`; eight of nine jobs are green and
+the remaining desktop build is still running as this follow-up is committed.
 
-**Next:** wire the shipped GUI to the real audio device callback. The current Play action drives the
-proven `PlaybackEngine` transport but the GUI executable owns no `AudioDeviceManager`, so it still cannot
-send Project samples to Windows audio.
+### Live desktop playback and playable reopen follow-up
+
+- Red control 1: after New + Import + Play through shipped Components, the device-callback-shaped harness
+  returned `false` and silence because the GUI owned no `AudioDeviceManager` / `AudioIODeviceCallback`.
+- Red control 2: closing and reopening that saved Project left `playbackReady == false`; Open loaded the
+  SQLite Project but did not decode bundled immutable Asset bytes or rebuild `PlaybackEngine`.
+- The shipped factory now opens the default desktop output, rebuilds playback for the device's granted max
+  Block size, and sends only `PlaybackEngine::processBlock` work through the RT-hot callback. Project and
+  transport mutations quiesce/restart the callback around control-side replacement, per ADR-0031.
+- Open now decodes every bundled mono WAV Asset, verifies its stored metadata, and rebuilds playable
+  Project audio. The deterministic injected factory still opens no hardware.
+- Green evidence: both red controls now pass with non-silent stereo output; the complete shell harness
+  passes 1,484 assertions; warnings-as-errors full build passes; full ctest passes 327/327.
+- Real-machine evidence: the Focusrite output checker measured non-silent Project output (`RMS 0.0900`) at
+  48 kHz with a 0.126 ms worst callback against a 10 ms granted budget. It correctly reported the separate
+  locked alpha-policy failure `playback_block_exceeds_target` because Windows granted 480 frames instead of
+  128; the GUI accepts and builds for that actual 480-frame device contract.
+
+**Now:** commit and push the live desktop playback + playable reopen checkpoint, then confirm its exact
+remote CI run.
+
+**Next:** remove the mono-only WAV limitation so normal stereo Project audio imports, reopens, plays, and
+exports through the same mechanically proven path; then package, install, and prove the exact installed
+build.
 
 ---
 

@@ -142,6 +142,7 @@ target_compile_definitions(YesDaw PRIVATE
 target_link_libraries(YesDaw
   PRIVATE
     sqlite3_amalgamation
+    juce::juce_audio_devices
     juce::juce_audio_formats
     juce::juce_gui_extra
     juce::juce_recommended_config_flags)
@@ -361,6 +362,7 @@ if (YESDAW_BUILD_APPS)
     PRIVATE
       Catch2::Catch2WithMain
       sqlite3_amalgamation
+      juce::juce_audio_devices
       juce::juce_audio_formats
       juce::juce_gui_extra
       juce::juce_recommended_config_flags)
@@ -381,6 +383,7 @@ if (YESDAW_BUILD_APPS)
     PRIVATE
       Catch2::Catch2WithMain
       sqlite3_amalgamation
+      juce::juce_audio_devices
       juce::juce_audio_formats
       juce::juce_gui_extra
       juce::juce_recommended_config_flags)
@@ -401,6 +404,7 @@ if (YESDAW_BUILD_APPS)
     PRIVATE
       Catch2::Catch2WithMain
       sqlite3_amalgamation
+      juce::juce_audio_devices
       juce::juce_audio_formats
       juce::juce_gui_extra
       juce::juce_recommended_config_flags)

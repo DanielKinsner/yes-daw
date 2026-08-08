@@ -270,7 +270,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
 {
     juce::MessageManager::getInstance();
 
-    auto shell = yesdaw::ui::createMainComponent();
+    auto shell = yesdaw::ui::createMainComponent (yesdaw::ui::MainComponentFileChoices {});
     REQUIRE (shell != nullptr);
     shell->setVisible (true);
     REQUIRE (shell->getWidth() == yesdaw::ui::snapshotMainComponent (*shell).width);
