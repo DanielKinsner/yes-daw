@@ -52,6 +52,32 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 shipped workflow recovery — native Project and WAV choices
+
+Dan reported that the installed app was only a shell. Reproduction against `6d99507` confirmed the
+primary failure: invoking the shipped `New` button produced no dialog and no Project. `Main.cpp`
+constructed `MainComponentFileChoices {}` implicitly, while New, Open, Import, and Export all return
+without work when their injected chooser callback is null. The H12 harness always injected deterministic
+callbacks, so it proved the component/model path but missed the real executable boundary.
+
+- Red control: default `createMainComponent()` failed the new shipped-factory assertion because all four
+  primary file choices were absent.
+- The default factory now supplies native JUCE choices for a `.yesdaw` Project, Project folder open, WAV
+  import, and WAV export; the explicitly injected overload remains deterministic for tests.
+- A real Windows mouse/dialog workflow created a temporary `.yesdaw`, imported the committed 440 Hz WAV
+  as one immutable Asset plus one Clip, and exported a 32,812-byte stereo WAV. `YesDawSelfCheck` rendered
+  4096 frames x 2 channels and proved export/reimport bit-exact; `--verify-wav` also passed the GUI export.
+- Green evidence: warnings-as-errors full build passes; focused `YesDawUiInputCheck` passes; full ctest
+  passes 327/327.
+
+**Now:** commit and push the shipped lifecycle repair, then confirm its exact remote CI run.
+
+**Next:** wire the shipped GUI to the real audio device callback. The current Play action drives the
+proven `PlaybackEngine` transport but the GUI executable owns no `AudioDeviceManager`, so it still cannot
+send Project samples to Windows audio.
+
+---
+
 ## 2026-08-08 usable-DAW visual continuation — Inspector hierarchy
 
 The fourth visual normalization checkpoint makes the Clip Inspector scan as four distinct operations

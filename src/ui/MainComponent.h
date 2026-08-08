@@ -29,6 +29,7 @@ struct MainComponentFileChoices
 struct MainComponentSnapshot
 {
     bool isMainComponent = false;
+    bool primaryFileChoicesReady = false;
     bool playbackReady = false;
     int width = 0;
     int height = 0;
@@ -43,7 +44,8 @@ struct MainComponentSnapshot
     UiAutosaveRecoveryPrompt autosaveRecovery;
 };
 
-[[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices = {});
+[[nodiscard]] std::unique_ptr<juce::Component> createMainComponent();
+[[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices);
 [[nodiscard]] MainComponentSnapshot snapshotMainComponent (const juce::Component& component);
 [[nodiscard]] std::vector<float> renderMainComponentPlayback (juce::Component& component,
                                                               std::uint64_t frames,

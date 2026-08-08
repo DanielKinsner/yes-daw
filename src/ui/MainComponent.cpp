@@ -1217,6 +1217,13 @@ public:
         return appModel.autosaveRecoveryPrompt();
     }
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
+    [[nodiscard]] bool harnessPrimaryFileChoicesReady() const noexcept
+    {
+        return static_cast<bool> (fileChoices.chooseNewProjectBundle)
+            && static_cast<bool> (fileChoices.chooseOpenProjectBundle)
+            && static_cast<bool> (fileChoices.chooseImportAudioFile)
+            && static_cast<bool> (fileChoices.chooseExportAudioFile);
+    }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
@@ -3850,7 +3857,76 @@ juce::String stableIdForAction (yesdaw::ui::UiActionId action)
     return {};
 }
 
+std::filesystem::path pathFromJuceFile (const juce::File& file)
+{
+    const std::string utf8 = file.getFullPathName().toStdString();
+    const auto* begin = reinterpret_cast<const char8_t*> (utf8.data());
+    return std::filesystem::path (std::u8string (begin, begin + utf8.size()));
+}
+
+std::filesystem::path withExtension (std::filesystem::path path, const std::filesystem::path& extension)
+{
+    if (path.extension() != extension)
+        path += extension;
+
+    return path;
+}
+
+yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
+{
+    yesdaw::ui::MainComponentFileChoices choices;
+
+    choices.chooseNewProjectBundle = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Create YES DAW Project",
+                                   documents.getChildFile ("Untitled.yesdaw"),
+                                   "*.yesdaw",
+                                   true);
+        if (! chooser.browseForFileToSave (true))
+            return std::filesystem::path {};
+
+        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
+    };
+
+    choices.chooseOpenProjectBundle = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Open YES DAW Project Folder", documents, {}, true);
+        if (! chooser.browseForDirectory())
+            return std::filesystem::path {};
+
+        return pathFromJuceFile (chooser.getResult());
+    };
+
+    choices.chooseImportAudioFile = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Import WAV Audio", documents, "*.wav;*.wave", true);
+        if (! chooser.browseForFileToOpen())
+            return std::filesystem::path {};
+
+        return pathFromJuceFile (chooser.getResult());
+    };
+
+    choices.chooseExportAudioFile = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Export YES DAW Mix",
+                                   documents.getChildFile ("YES DAW Mix.wav"),
+                                   "*.wav",
+                                   true);
+        if (! chooser.browseForFileToSave (true))
+            return std::filesystem::path {};
+
+        return withExtension (pathFromJuceFile (chooser.getResult()), ".wav");
+    };
+
+    return choices;
+}
+
 namespace yesdaw::ui {
+
+std::unique_ptr<juce::Component> createMainComponent()
+{
+    return std::make_unique<MainComponent> (makeNativeFileChoices());
+}
 
 std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices)
 {
@@ -3867,6 +3943,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
     {
         snapshot.isMainComponent = true;
+        snapshot.primaryFileChoicesReady = mainComponent->harnessPrimaryFileChoicesReady();
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.bundlePath = mainComponent->harnessBundlePath();
         snapshot.context = mainComponent->harnessContext();

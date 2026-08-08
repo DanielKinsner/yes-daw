@@ -687,10 +687,13 @@ yesdaw::engine::Tick pianoRollDeltaTicksForPixels (juce::Component& pianoRoll,
 
 TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][input][shell]")
 {
-    auto shell = makeShell();
+    juce::MessageManager::getInstance();
+    auto shell = yesdaw::ui::createMainComponent();
+    REQUIRE (shell != nullptr);
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 
     REQUIRE (snapshot.isMainComponent);
+    REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 31u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
