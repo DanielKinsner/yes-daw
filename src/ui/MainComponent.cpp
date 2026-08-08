@@ -1616,7 +1616,7 @@ private:
         addAndMakeVisible (mixerPan);
 
         configureActionComponent (mixerMetersReadout, yesdaw::ui::UiActionId::MixerReadMeters, "Mixer meters");
-        mixerMetersReadout.setButtonText ("Meters: none");
+        mixerMetersReadout.setButtonText ("Meters");
         mixerMetersReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerMetersReadout.setColour (juce::TextButton::textColourOffId, kText);
         mixerMetersReadout.onClick = [this] {
@@ -1627,7 +1627,7 @@ private:
         addAndMakeVisible (mixerMetersReadout);
 
         configureActionComponent (mixerSendsReadout, yesdaw::ui::UiActionId::MixerReadSends, "Mixer sends");
-        mixerSendsReadout.setButtonText ("Sends: none");
+        mixerSendsReadout.setButtonText ("Sends");
         mixerSendsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerSendsReadout.setColour (juce::TextButton::textColourOffId, kText);
         mixerSendsReadout.onClick = [this] {
@@ -1638,7 +1638,7 @@ private:
         addAndMakeVisible (mixerSendsReadout);
 
         configureActionComponent (mixerSendLevelEdit, yesdaw::ui::UiActionId::MixerSetFirstSendLevel, "Mixer send level");
-        mixerSendLevelEdit.setButtonText ("Send");
+        mixerSendLevelEdit.setButtonText ("Set send");
         mixerSendLevelEdit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerSendLevelEdit.setColour (juce::TextButton::textColourOffId, kText);
         mixerSendLevelEdit.onClick = [this] {
@@ -1649,7 +1649,7 @@ private:
         addAndMakeVisible (mixerSendLevelEdit);
 
         configureActionComponent (mixerFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadFxSlots, "Mixer FX slots");
-        mixerFxSlotsReadout.setButtonText ("FX: none");
+        mixerFxSlotsReadout.setButtonText ("Track FX");
         mixerFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
         mixerFxSlotsReadout.onClick = [this] {
@@ -1660,7 +1660,7 @@ private:
         addAndMakeVisible (mixerFxSlotsReadout);
 
         configureActionComponent (mixerGainReductionReadout, yesdaw::ui::UiActionId::MixerReadGainReduction, "Mixer gain reduction");
-        mixerGainReductionReadout.setButtonText ("GR: none");
+        mixerGainReductionReadout.setButtonText ("Gain reduction");
         mixerGainReductionReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerGainReductionReadout.setColour (juce::TextButton::textColourOffId, kText);
         mixerGainReductionReadout.onClick = [this] {
@@ -1671,7 +1671,7 @@ private:
         addAndMakeVisible (mixerGainReductionReadout);
 
         configureActionComponent (mixerBusFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadBusFxSlots, "Mixer Bus FX slots");
-        mixerBusFxSlotsReadout.setButtonText ("Bus FX: none");
+        mixerBusFxSlotsReadout.setButtonText ("Bus FX");
         mixerBusFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerBusFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
         mixerBusFxSlotsReadout.onClick = [this] {
@@ -1682,7 +1682,7 @@ private:
         addAndMakeVisible (mixerBusFxSlotsReadout);
 
         configureActionComponent (mixerFxSlotToggle, yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled, "Mixer FX slot toggle");
-        mixerFxSlotToggle.setButtonText ("FX");
+        mixerFxSlotToggle.setButtonText ("Bypass FX");
         mixerFxSlotToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerFxSlotToggle.setColour (juce::TextButton::textColourOffId, kText);
         mixerFxSlotToggle.onClick = [this] {
@@ -2295,13 +2295,13 @@ private:
                                juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
-            mixerMetersReadout.setButtonText ("Meters: no project");
-            mixerSendsReadout.setButtonText ("Sends: no project");
-            mixerSendLevelEdit.setButtonText ("Send");
-            mixerFxSlotsReadout.setButtonText ("FX: no project");
-            mixerGainReductionReadout.setButtonText ("GR: no project");
-            mixerBusFxSlotsReadout.setButtonText ("Bus FX: no project");
-            mixerFxSlotToggle.setButtonText ("FX");
+            mixerMetersReadout.setButtonText ("Meters");
+            mixerSendsReadout.setButtonText ("Sends");
+            mixerSendLevelEdit.setButtonText ("Set send");
+            mixerFxSlotsReadout.setButtonText ("Track FX");
+            mixerFxSlotToggle.setButtonText ("Bypass FX");
+            mixerGainReductionReadout.setButtonText ("Gain reduction");
+            mixerBusFxSlotsReadout.setButtonText ("Bus FX");
             mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
         }
         refreshingMixerControls = false;
@@ -3465,6 +3465,183 @@ private:
                 state.linearGain));
             g.drawText (juce::String (gainDb, 1), readout, juce::Justification::centred, false);
         }
+
+        auto masterLane = area.removeFromLeft (stripWidth)
+                              .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
+                                        yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+        g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
+            yesdaw::ui::UiTheme::Tone::shadowAlpha));
+        g.fillRoundedRectangle (
+            masterLane.toFloat().translated (
+                0.0f,
+                static_cast<float> (yesdaw::ui::UiTheme::Layout::controlShadowOffset)),
+            yesdaw::ui::UiTheme::Radius::panel);
+        juce::ColourGradient masterGradient (
+            yesdaw::ui::UiTheme::Color::panelInnerHighlight(),
+            static_cast<float> (masterLane.getCentreX()),
+            static_cast<float> (masterLane.getY()),
+            yesdaw::ui::UiTheme::Color::panel(),
+            static_cast<float> (masterLane.getCentreX()),
+            static_cast<float> (masterLane.getBottom()),
+            false);
+        g.setGradientFill (masterGradient);
+        g.fillRoundedRectangle (masterLane.toFloat(), yesdaw::ui::UiTheme::Radius::panel);
+        g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight());
+        g.drawRoundedRectangle (
+            masterLane.toFloat().reduced (
+                yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
+            yesdaw::ui::UiTheme::Radius::panel,
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
+
+        g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
+            yesdaw::ui::UiTheme::Tone::mixerHeaderAlpha));
+        g.fillRect (masterLane.withHeight (
+            yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight));
+        g.setColour (kText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (
+            yesdaw::ui::UiTheme::Type::small,
+            juce::Font::bold));
+        g.drawText ("MASTER",
+                    masterLane.withHeight (
+                        yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight),
+                    juce::Justification::centred,
+                    false);
+
+        auto masterContent = masterLane.reduced (
+            yesdaw::ui::UiTheme::Layout::mixerMasterContentInsetX,
+            yesdaw::ui::UiTheme::Space::none);
+        masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterContentTop);
+
+        auto loudnessCard = masterContent.removeFromTop (
+            yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight);
+        g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+        g.fillRoundedRectangle (loudnessCard.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (
+            yesdaw::ui::UiTheme::Type::tiny,
+            juce::Font::bold));
+        g.drawText ("INTEGRATED", loudnessCard.withHeight (
+                        yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop),
+                    juce::Justification::centred,
+                    false);
+        g.setColour (kText);
+        g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+            yesdaw::ui::UiTheme::Type::readout,
+            juce::Font::bold));
+        const juce::String integrated = surface.loudness.valid
+            ? juce::String (surface.loudness.integratedLufs, 1)
+            : juce::String ("--");
+        g.drawText (integrated,
+                    loudnessCard.withTrimmedTop (
+                        yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop)
+                        .withHeight (
+                            yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueHeight),
+                    juce::Justification::centred,
+                    false);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+        g.drawText ("LUFS-I",
+                    loudnessCard.withTrimmedTop (
+                        yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop
+                        + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueHeight)
+                        .withHeight (
+                            yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessUnitHeight),
+                    juce::Justification::centred,
+                    false);
+
+        masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap);
+        auto peakCard = masterContent.removeFromTop (
+            yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight);
+        g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+        g.fillRoundedRectangle (peakCard.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (
+            yesdaw::ui::UiTheme::Type::tiny,
+            juce::Font::bold));
+        g.drawText ("TRUE PEAK",
+                    peakCard.withHeight (
+                        yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueTop),
+                    juce::Justification::centred,
+                    false);
+        g.setColour (surface.loudness.valid && surface.loudness.truePeakDbtp > 0.0
+                         ? yesdaw::ui::UiTheme::Color::dangerRed()
+                         : kText);
+        g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+            yesdaw::ui::UiTheme::Type::body,
+            juce::Font::bold));
+        const juce::String truePeak = surface.loudness.valid
+            ? juce::String (surface.loudness.truePeakDbtp, 1) + " dBTP"
+            : juce::String ("-- dBTP");
+        g.drawText (truePeak,
+                    peakCard.withTrimmedTop (
+                        yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueTop)
+                        .withHeight (
+                            yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueHeight),
+                    juce::Justification::centred,
+                    false);
+
+        float masterPeakLeft = 0.0f;
+        float masterPeakRight = 0.0f;
+        const auto accumulatePeak = [&masterPeakLeft, &masterPeakRight] (const auto& strips)
+        {
+            for (const auto& strip : strips)
+            {
+                if (! strip.meter.valid)
+                    continue;
+                masterPeakLeft = std::max (masterPeakLeft, strip.meter.peakLeft);
+                masterPeakRight = std::max (masterPeakRight, strip.meter.peakRight);
+            }
+        };
+        accumulatePeak (surface.tracks);
+        accumulatePeak (surface.buses);
+
+        masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
+        auto meterArea = masterContent.withTrimmedBottom (
+            yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset);
+        auto scale = meterArea.removeFromLeft (
+            yesdaw::ui::UiTheme::Layout::mixerMasterScaleWidth);
+        g.setColour (yesdaw::ui::UiTheme::Color::faintText());
+        g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+            yesdaw::ui::UiTheme::Type::tiny));
+        for (std::size_t i = 0;
+             i < yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size();
+             ++i)
+        {
+            const float fraction = static_cast<float> (i)
+                                 / static_cast<float> (
+                                       yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size() - 1u);
+            const int y = scale.getY()
+                        + juce::roundToInt (fraction * static_cast<float> (
+                              scale.getHeight()
+                              - yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight));
+            g.drawText (juce::String (yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb[i]),
+                        juce::Rectangle<int> {
+                            scale.getX(), y, scale.getWidth(),
+                            yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight },
+                        juce::Justification::centredRight,
+                        false);
+        }
+
+        const int meterPairWidth = 2 * yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth
+                                 + yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap;
+        auto meterPair = meterArea.withWidth (meterPairWidth)
+                             .withCentre ({ meterArea.getCentreX(), meterArea.getCentreY() });
+        auto leftMeter = meterPair.removeFromLeft (
+            yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth);
+        meterPair.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap);
+        auto rightMeter = meterPair.removeFromLeft (
+            yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth);
+        drawMeter (g, leftMeter, masterPeakLeft);
+        drawMeter (g, rightMeter, masterPeakRight);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+        auto channelLabels = masterLane.withTrimmedTop (
+                                 masterLane.getHeight()
+                                 - yesdaw::ui::UiTheme::Layout::mixerMasterMeterChannelLabelHeight)
+                                 .reduced (
+                                     yesdaw::ui::UiTheme::Layout::mixerMasterContentInsetX,
+                                     yesdaw::ui::UiTheme::Space::none);
+        g.drawText ("L     R", channelLabels, juce::Justification::centred, false);
     }
 
     [[nodiscard]] yesdaw::ui::UiMixerSurfaceSnapshot currentMixerSurface() const

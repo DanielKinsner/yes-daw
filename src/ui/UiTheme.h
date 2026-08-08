@@ -503,6 +503,24 @@ struct UiTheme
         static constexpr int mixerPaintedReadoutHeight = 22;
         static constexpr int mixerPaintedReadoutBottomInset = 4;
         static constexpr int mixerPaintedReadoutHorizontalInset = 8;
+        static constexpr int mixerMasterContentInsetX = 10;
+        static constexpr int mixerMasterContentTop = 42;
+        static constexpr int mixerMasterLoudnessCardHeight = 74;
+        static constexpr int mixerMasterLoudnessValueTop = 20;
+        static constexpr int mixerMasterLoudnessValueHeight = 32;
+        static constexpr int mixerMasterLoudnessUnitHeight = 16;
+        static constexpr int mixerMasterSectionGap = 10;
+        static constexpr int mixerMasterPeakCardHeight = 50;
+        static constexpr int mixerMasterPeakValueTop = 20;
+        static constexpr int mixerMasterPeakValueHeight = 24;
+        static constexpr int mixerMasterMeterTopGap = 14;
+        static constexpr int mixerMasterMeterBottomInset = 24;
+        static constexpr int mixerMasterScaleWidth = 28;
+        static constexpr int mixerMasterMeterWidth = 16;
+        static constexpr int mixerMasterMeterGap = 4;
+        static constexpr int mixerMasterMeterChannelLabelHeight = 18;
+        static constexpr int mixerMasterScaleLabelHeight = 14;
+        static constexpr std::array<int, 4> mixerMasterScaleDb {{ 0, -12, -24, -60 }};
 
         static constexpr int trackListHeaderHeight = 86;
         static constexpr int trackListHeaderLabelHeight = 24;

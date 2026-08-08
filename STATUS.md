@@ -52,6 +52,30 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 usable-DAW visual continuation — mixer master summary
+
+Dan rejected Alpha as the finish line and directed continuous work toward a complete, usable,
+premium DAW without lowering quality gates. The first visual normalization checkpoint addresses the
+highest-value Mixer composition defect documented in
+`docs/reviews/2026-08-08-usable-daw-ui-audit.md`.
+
+- The previously blank reserved right-most Mixer strip is now a read-only Master summary built from
+  the existing real Mixer snapshot: integrated LUFS, true peak, aggregate stereo peak meters, and a
+  labelled dB scale. It does not invent an unimplemented Master fader or a second source of truth.
+- The left utility rail now uses stable action labels (`Meters`, `Sends`, `Track FX`, and so on)
+  instead of exposing internal empty-project/debug state in button text.
+- Red control: the strengthened screenshot gate rejected the old blank Master column.
+- Green evidence: warnings-as-errors `ci` build passes; UI action, theme audit, accessibility, input,
+  screenshot, and Timeline GPU gates pass 6/6; the regenerated 1536x960 Mixer screenshot visibly
+  contains the Master summary.
+
+**Now:** commit and push this Mixer checkpoint, then confirm its exact remote CI run.
+
+**Next:** normalize project/transport hierarchy against the accepted arrangement reference, preserving
+the existing action registry, real state, theme tokens, and mechanical screenshot/accessibility gates.
+
+---
+
 ## 2026-08-08 H17 packaging recovery — current checkout always restamps packaged binaries
 
 The U5 checkpoint is confirmed remote-green: GitHub Actions run `30969944664` passed Linux,
@@ -77,9 +101,11 @@ one-command package path refreshes every compiled version surface before manifes
   dense-Timeline frame stage passed. This dirty non-ASIO run is diagnostic evidence, not U7 gate
   credit, and its generated rows are not committed.
 
-**Now:** ship this packaging recovery as one small checkpoint and confirm its exact remote CI run.
+**Done:** packaging recovery commit `1ad0f10` passed GitHub Actions run `31245519271` across Linux,
+Windows, macOS, RTSan, TSan, and the Windows package job. The clean portable build is installed and
+launch-verified at `%LOCALAPPDATA%\YES DAW\1ad0f10`; a Desktop shortcut points to that exact binary.
 
-**Next:** U6 remains owner-gated. Dan must record completion of the applicable Steinberg proprietary
+**H17 next:** U6 remains owner-gated. Dan must record completion of the applicable Steinberg proprietary
 agreement and provide the external ASIO SDK path; no agent may infer acceptance, fetch the SDK, or
 vendor it. Then build the ASIO-capable package, run U7 on the Focusrite route, and use a live input
 instead of the currently silent default HyperX microphone.

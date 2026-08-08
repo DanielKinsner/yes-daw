@@ -202,6 +202,20 @@ bool hasMixerSurfaceCoverage (const juce::Image& image)
                > 300u;
 }
 
+bool hasMixerMasterSummaryCoverage (const juce::Image& image)
+{
+    const int regionWidth = 104;
+    const juce::Rectangle<int> masterRegion {
+        image.getWidth() - regionWidth - yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
+        yesdaw::ui::UiTheme::Layout::headerHeight
+            + yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset,
+        regionWidth,
+        image.getHeight() - yesdaw::ui::UiTheme::Layout::headerHeight
+            - 2 * yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset
+    };
+    return sampledDifferentPixelCount (image, masterRegion) > 45u;
+}
+
 template <std::size_t N>
 void requireDisjointActionBounds (juce::Component& shell,
                                   const std::array<UiActionId, N>& actions,
@@ -278,6 +292,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
     const juce::Image mixerImage = renderShell (*shell);
     REQUIRE (hasMixerSurfaceCoverage (mixerImage));
+    REQUIRE (hasMixerMasterSummaryCoverage (mixerImage));
     const std::uint64_t mixerFingerprint = captureShellPng (mixerImage, "yesdaw-mixer-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
@@ -306,6 +321,7 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
                              yesdaw::ui::UiTheme::Layout::defaultWindowHeight,
                              true);
     REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
+    REQUIRE_FALSE (hasMixerMasterSummaryCoverage (blank));
 }
 
 TEST_CASE ("H16 theme fonts resolve to real typefaces on every build platform",
