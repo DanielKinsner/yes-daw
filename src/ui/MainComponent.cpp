@@ -965,9 +965,12 @@ public:
             down);
 
         juce::Graphics::ScopedSaveState state (g);
-        g.setOpacity (isEnabled() ? 1.0f : yesdaw::ui::UiTheme::Tone::disabledAlpha);
+        g.setOpacity (yesdaw::ui::UiTheme::Tone::componentVisibleAlpha);
         const auto iconColour = findColour (getToggleState() ? juce::TextButton::textColourOnId
-                                                             : juce::TextButton::textColourOffId);
+                                                              : juce::TextButton::textColourOffId)
+                                    .withMultipliedAlpha (
+                                        isEnabled() ? yesdaw::ui::UiTheme::Tone::componentVisibleAlpha
+                                                    : yesdaw::ui::UiTheme::Tone::disabledAlpha);
         auto content = getLocalBounds();
         if (yesdaw::ui::actionUsesIconOnlyChrome (action))
         {
@@ -2630,6 +2633,46 @@ private:
                     static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize)),
                 track.colour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
 
+            auto mixSummary = row.withRight (
+                                     row.getRight()
+                                     - yesdaw::ui::UiTheme::Layout::trackListMixSummaryRightInset)
+                                  .removeFromRight (
+                                      yesdaw::ui::UiTheme::Layout::trackListMixSummaryWidth)
+                                  .reduced (
+                                      yesdaw::ui::UiTheme::Space::none,
+                                      yesdaw::ui::UiTheme::Layout::trackListMixSummaryVerticalInset);
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRoundedRectangle (mixSummary.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
+            g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
+                yesdaw::ui::UiTheme::Tone::innerHighlightAlpha));
+            g.drawRoundedRectangle (
+                mixSummary.toFloat().reduced (
+                    yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                yesdaw::ui::UiTheme::Radius::sm,
+                yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
+            g.setColour (yesdaw::ui::UiTheme::Color::faintText());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (
+                yesdaw::ui::UiTheme::Type::tiny,
+                juce::Font::bold));
+            auto mixLabel = mixSummary.withTrimmedLeft (
+                                          yesdaw::ui::UiTheme::Layout::trackListMixLabelLeftInset)
+                                .withWidth (
+                                    yesdaw::ui::UiTheme::Layout::trackListMixLabelWidth)
+                                .withHeight (
+                                    yesdaw::ui::UiTheme::Layout::trackListMixLabelHeight);
+            g.drawText ("PAN",
+                        mixLabel.translated (
+                            yesdaw::ui::UiTheme::Space::none,
+                            yesdaw::ui::UiTheme::Layout::trackListPanLabelTopInset),
+                        juce::Justification::centredLeft,
+                        false);
+            g.drawText ("VOL",
+                        mixLabel.translated (
+                            yesdaw::ui::UiTheme::Space::none,
+                            yesdaw::ui::UiTheme::Layout::trackListVolumeLabelTopInset),
+                        juce::Justification::centredLeft,
+                        false);
+
             auto pan = row.withRight (
                               row.getRight() - yesdaw::ui::UiTheme::Layout::trackListPanRightInset)
                            .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListPanDiameter)
@@ -2652,6 +2695,17 @@ private:
                         static_cast<float> (pan.getCentreX()),
                         static_cast<float> (pan.getCentreY()),
                         yesdaw::ui::UiTheme::Layout::iconBoldStrokeWidth);
+            g.setColour (kMutedText);
+            g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+                yesdaw::ui::UiTheme::Type::tiny));
+            g.drawText ("C",
+                        pan.withY (
+                               row.getY()
+                               + yesdaw::ui::UiTheme::Layout::trackListPanValueTopInset)
+                            .withHeight (
+                                yesdaw::ui::UiTheme::Layout::trackListMixLabelHeight),
+                        juce::Justification::centred,
+                        false);
 
             auto level = row.withRight (
                                 row.getRight() - yesdaw::ui::UiTheme::Layout::trackListLevelRightInset)

@@ -186,6 +186,13 @@ bool hasHeaderSectionHierarchy (const juce::Image& image)
         && image.getPixelAt (1100, 12) == sectionFill;
 }
 
+bool hasTrackMixSummaryCoverage (const juce::Image& image)
+{
+    const auto summaryFill = yesdaw::ui::UiTheme::Color::controlInset();
+    return image.getPixelAt (220, 190) == summaryFill
+        && image.getPixelAt (220, 631) == summaryFill;
+}
+
 void requireArrangementSurfaceCoverage (const juce::Image& image)
 {
     INFO ("header coverage menu="
@@ -196,6 +203,7 @@ void requireArrangementSurfaceCoverage (const juce::Image& image)
           << sampledDifferentPixelCount (image, { 1080, 0, image.getWidth() - 1080, 88 }));
     REQUIRE (hasHeaderCoverage (image));
     REQUIRE (hasHeaderSectionHierarchy (image));
+    REQUIRE (hasTrackMixSummaryCoverage (image));
     REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 80u);
     REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 200u);
     REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 50u);
@@ -332,6 +340,7 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
     REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
     REQUIRE_FALSE (hasMixerMasterSummaryCoverage (blank));
     REQUIRE_FALSE (hasHeaderSectionHierarchy (blank));
+    REQUIRE_FALSE (hasTrackMixSummaryCoverage (blank));
 }
 
 TEST_CASE ("H16 theme fonts resolve to real typefaces on every build platform",

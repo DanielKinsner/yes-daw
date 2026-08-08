@@ -52,6 +52,30 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 usable-DAW visual continuation — arrangement track mix summaries
+
+The third visual normalization checkpoint turns each arrangement Track row's loose pan/level marks
+into a compact channel-summary zone without changing model behavior or inventing a second control
+path.
+
+- Each row now has a tokenized recessed PAN/VOL zone, a readable centred-pan value, and longer fader
+  travel; the real edge meter remains visually separate.
+- Red control: the new screenshot assertion rejected the old first and last Track rows because neither
+  contained the bounded mix-summary surface.
+- The stronger render exposed a deterministic screenshot bug: disabled icon alpha was inherited from
+  the incoming Graphics opacity, so entering Piano Roll changed 59 Play-icon pixels despite identical
+  component state. Disabled alpha now belongs to the icon colour after resetting Graphics opacity;
+  exact-zero header equality across Timeline/Mixer/Piano passes again without relaxing the gate.
+- Green evidence: regenerated 1536x960 screenshots pass; warnings-as-errors `ci` build passes; the six
+  UI gates pass 6/6; full ctest passes 327/327.
+
+**Now:** commit and push this Track-header checkpoint, then confirm its exact remote CI run.
+
+**Next:** improve Inspector section hierarchy and numeric legibility using the existing real controls,
+selected-Clip state, theme tokens, and screenshot/input/accessibility gates.
+
+---
+
 ## 2026-08-08 usable-DAW visual continuation — project/transport hierarchy
 
 The second visual normalization checkpoint groups the existing header chrome into three deliberate
@@ -66,10 +90,7 @@ names, component bounds, and behavior remain unchanged.
 - Green evidence: the regenerated 1536x960 arrangement screenshot passes the new anchor assertion;
   warnings-as-errors `ci` build passes; the six UI gates pass 6/6; full ctest passes 327/327.
 
-**Now:** commit and push this header checkpoint, then confirm its exact remote CI run.
-
-**Next:** deepen arrangement track headers with compact, readable pan/fader summaries while preserving
-the existing action-backed M/S/arm controls, real meters, and disjoint hit targets.
+**Done:** header checkpoint `bd1af5f` passed GitHub Actions run `31248118370` across all nine jobs.
 
 ---
 
