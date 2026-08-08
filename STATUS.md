@@ -80,11 +80,27 @@ arrangement instead of rejecting it.
 - First pushed checkpoint `c1ef844` exposed one macOS Clang `/Werror` equivalent: an obsolete screenshot
   coverage helper became unused when the fake arrangement expectation was replaced. The helper is removed;
   the warnings-as-errors build and full 327/327 local gate pass again.
+- Corrective checkpoint `188baa8` is exact-remote green in GitHub Actions run `31270961579` across all
+  nine jobs: Linux, Windows, macOS, RTSan, TSan, both alpha-verifier jobs, and both package/self-check jobs.
+- Clean Windows package `dist/YesDaw-188baa8-win64-portable.zip` is installed at
+  `%LOCALAPPDATA%/YES DAW/188baa8/YesDaw-188baa8-win64-portable`; packaged integrity self-test exits 0 and
+  every console binary reports `188baa8`. Desktop `YES DAW Alpha.lnk` targets this exact executable.
+- Installed launch proof: `YES DAW 188baa8` opened responsive as PID 9992; executable SHA-256 is
+  `FEAEA83B11BEBF523F815DBEBC8038D55CFA383C582D675A5AFA796009DDCAA5`.
+- Installed interaction proof created a real empty Project, enabled Play, advanced the clock and playhead
+  in two captured intervals, stopped, and relocated the stopped playhead between two unoccluded ruler
+  clicks (526 clock pixels and 752 timeline pixels changed).
+- Installed real-audio proof imported a verified 384,000-frame mono WAV into the bundle byte-for-byte,
+  painted its real 8-second waveform, moved that Clip from `0.000 s` to `0.991 s` without changing its
+  `8.000 s` length, and saved. Packaged self-check passed 1 Asset / 1 Clip, rendered 431,554 stereo frames,
+  and export/reimported them bit-exact. During playback the real callback meter rose from 0 to 24 exact
+  meter-fill pixels; after Stop it returned to the stopped state.
 
-**Now:** corrective checkpoint is locally green and ready to commit/push.
+**Now:** the honest-state build is installed, open, stopped, mechanically exercised, and exact-remote green.
 
-**Next:** wait for the exact pushed GitHub Actions run, build the commit-stamped Windows portable package,
-replace the Desktop installation, and mechanically launch-prove the installed executable.
+**Next:** remove the mono-only WAV limitation so normal stereo Project audio imports, reopens, plays, and
+exports through the same mechanically proven path. This requires the explicit stereo Track pan/balance
+decision already called out below; do not hide it behind a lossy downmix.
 
 ---
 
