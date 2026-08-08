@@ -77,8 +77,11 @@ arrangement instead of rejecting it.
   silent empty playback advances 128 frames, ruler click/drag locates exact frames, live callback samples
   raise both Master peaks, no-Project snapshots expose zero fake entities, and a two-Track Project edits the
   intended real Clip on its real lane. Screenshot tests now assert the honest empty state.
+- First pushed checkpoint `c1ef844` exposed one macOS Clang `/Werror` equivalent: an obsolete screenshot
+  coverage helper became unused when the fake arrangement expectation was replaced. The helper is removed;
+  the warnings-as-errors build and full 327/327 local gate pass again.
 
-**Now:** local checkpoint is green and ready to commit/push.
+**Now:** corrective checkpoint is locally green and ready to commit/push.
 
 **Next:** wait for the exact pushed GitHub Actions run, build the commit-stamped Windows portable package,
 replace the Desktop installation, and mechanically launch-prove the installed executable.

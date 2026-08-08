@@ -202,24 +202,6 @@ bool hasInspectorSectionHierarchy (const juce::Image& image)
         && image.getPixelAt (1244, 621) == sectionFill;
 }
 
-void requireArrangementSurfaceCoverage (const juce::Image& image)
-{
-    INFO ("header coverage menu="
-          << sampledDifferentPixelCount (image, { 0, 0, 320, 88 })
-          << " transport="
-          << sampledDifferentPixelCount (image, { 320, 0, 760, 88 })
-          << " master="
-          << sampledDifferentPixelCount (image, { 1080, 0, image.getWidth() - 1080, 88 }));
-    REQUIRE (hasHeaderCoverage (image));
-    REQUIRE (hasHeaderSectionHierarchy (image));
-    REQUIRE (hasTrackMixSummaryCoverage (image));
-    REQUIRE (hasInspectorSectionHierarchy (image));
-    REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 80u);
-    REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 200u);
-    REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 50u);
-    REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - 260, image.getWidth(), 260 }) > 180u);
-}
-
 void requireHonestEmptyArrangementCoverage (const juce::Image& image)
 {
     REQUIRE (hasHeaderCoverage (image));
