@@ -3175,6 +3175,19 @@ private:
                     juce::Justification::centredLeft,
                     false);
 
+        const auto drawInspectorSectionCard = [&g] (juce::Rectangle<int> section)
+        {
+            g.setColour (yesdaw::ui::UiTheme::Color::panelRaised());
+            g.fillRoundedRectangle (section.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
+                yesdaw::ui::UiTheme::Tone::innerHighlightAlpha));
+            g.drawRoundedRectangle (
+                section.toFloat().reduced (
+                    yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                yesdaw::ui::UiTheme::Radius::md,
+                yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
+        };
+
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
         const std::array<std::pair<const char*, const char*>, 3> statsText {{
@@ -3198,6 +3211,9 @@ private:
                         juce::Justification::centred,
                         false);
             g.setColour (kText);
+            g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+                yesdaw::ui::UiTheme::Type::body,
+                juce::Font::bold));
             g.drawFittedText (value,
                               textArea.withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsValueHeight),
                               juce::Justification::centred,
@@ -3206,6 +3222,7 @@ private:
 
         auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
+        drawInspectorSectionCard (gain);
         drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
@@ -3224,6 +3241,7 @@ private:
 
         auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        drawInspectorSectionCard (fades);
         drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         const double sampleRate = appModel.project().sampleRate.isValid()
                                       ? appModel.project().sampleRate.hz
@@ -3251,7 +3269,9 @@ private:
                         false);
         }
 
-        auto fx = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop);
+        auto fx = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop)
+                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFxSectionHeight);
+        drawInspectorSectionCard (fx);
         drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
         for (const auto* label : { "De-Esser", "Compressor", "EQ" })
         {
@@ -3271,6 +3291,7 @@ private:
 
         auto automation = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
+        drawInspectorSectionCard (automation);
         drawSmallLabel (
             g,
             "AUTOMATION  -  VOLUME",

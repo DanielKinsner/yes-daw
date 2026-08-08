@@ -52,6 +52,25 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 usable-DAW visual continuation — Inspector hierarchy
+
+The fourth visual normalization checkpoint makes the Clip Inspector scan as four distinct operations
+instead of one flat text column, while preserving every existing real control and selected-Clip value.
+
+- Gain, Fades, Clip FX, and Automation now occupy separate tokenized section surfaces with restrained
+  outlines; timing values use the existing larger bold numeric tier.
+- Red control: the strengthened screenshot gate rejected the old Inspector at all four section anchors.
+- Green evidence: the regenerated 1536x960 arrangement screenshot passes all four anchors;
+  warnings-as-errors `ci` build passes; the six UI gates pass 6/6; full ctest passes 327/327.
+
+**Now:** commit and push this Inspector checkpoint, then confirm its exact remote CI run.
+
+**Next:** build the clean Windows portable package from the final green commit, install it beside the
+previous version, update the Desktop shortcut, and prove the installed GUI launches with the new
+version title.
+
+---
+
 ## 2026-08-08 usable-DAW visual continuation — arrangement track mix summaries
 
 The third visual normalization checkpoint turns each arrangement Track row's loose pan/level marks
@@ -69,10 +88,7 @@ path.
 - Green evidence: regenerated 1536x960 screenshots pass; warnings-as-errors `ci` build passes; the six
   UI gates pass 6/6; full ctest passes 327/327.
 
-**Now:** commit and push this Track-header checkpoint, then confirm its exact remote CI run.
-
-**Next:** improve Inspector section hierarchy and numeric legibility using the existing real controls,
-selected-Clip state, theme tokens, and screenshot/input/accessibility gates.
+**Done:** Track-header checkpoint `a8054ce` passed GitHub Actions run `31249030608` across all nine jobs.
 
 ---
 

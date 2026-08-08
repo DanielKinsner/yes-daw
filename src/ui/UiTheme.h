@@ -415,6 +415,7 @@ struct UiTheme
         static constexpr int inspectorFadeTextInsetX = 8;
         static constexpr int inspectorFadeTextInsetY = 0;
         static constexpr int inspectorFxSectionTop = 360;
+        static constexpr int inspectorFxSectionHeight = 100;
         static constexpr int inspectorFxRowHeight = 28;
         static constexpr int inspectorFxRowInsetX = 0;
         static constexpr int inspectorFxRowInsetY = 2;
