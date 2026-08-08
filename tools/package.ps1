@@ -31,6 +31,10 @@ if (-not $NoBuild) {
   Write-Host "[package] building via ci preset (Release)..."
   Push-Location $root
   try {
+    # The package version is injected by CMake at configure time. Reconfigure even when the
+    # existing build tree is otherwise up to date, or an incremental checkout can package stale
+    # binaries whose --version no longer matches the current git describe value.
+    cmake --preset ci
     cmake --build --preset ci --target YesDaw YesDawSelfCheck `
       YesDawFrameCheck YesDawHardwarePlaybackCheck YesDawHardwareRecordingCheck
   } finally { Pop-Location }

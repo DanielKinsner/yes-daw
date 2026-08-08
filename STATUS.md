@@ -52,6 +52,40 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 H17 packaging recovery — current checkout always restamps packaged binaries
+
+The U5 checkpoint is confirmed remote-green: GitHub Actions run `30969944664` passed Linux,
+Windows, macOS, RTSan, TSan, and the Windows package job on commit `6c87a7f`.
+
+An owner-machine package attempt then exposed one incremental-build defect: `tools/package.ps1`
+computed the current `git describe` value but only ran `cmake --build`, while
+`YESDAW_VERSION_STRING` is captured at CMake configure time. An otherwise up-to-date build tree
+therefore retained `efd5afa-dirty` binaries and packaging correctly rejected them against current
+`6c87a7f`. The script now runs `cmake --preset ci` before its targeted build, so the documented
+one-command package path refreshes every compiled version surface before manifest validation.
+
+- Red control: before the fix, packaging failed because
+  `YesDawHardwarePlaybackCheck efd5afa-dirty` did not carry package version `6c87a7f`.
+- Green path: the fixed command reconfigured, rebuilt the five packaged targets, and produced
+  `YesDaw-6c87a7f-dirty-win64-portable.zip`; the clean-extraction Windows PowerShell 5.1 verifier
+  self-test passed 16/16 fixtures plus 8/8 package mutation/timeout controls; the packaged GUI
+  launched, stayed running, and exposed title `YES DAW 6c87a7f-dirty`.
+- Fresh real-hardware diagnostic from that package: playback rendered non-silent Project audio
+  through `Speakers (Focusrite USB Audio)` but honestly failed the locked gate because Windows
+  granted 480 frames for the requested 128; recording selected
+  `Microphone (HyperX Cloud Alpha Wireless)` and honestly failed `recording_silent`; the packaged
+  dense-Timeline frame stage passed. This dirty non-ASIO run is diagnostic evidence, not U7 gate
+  credit, and its generated rows are not committed.
+
+**Now:** ship this packaging recovery as one small checkpoint and confirm its exact remote CI run.
+
+**Next:** U6 remains owner-gated. Dan must record completion of the applicable Steinberg proprietary
+agreement and provide the external ASIO SDK path; no agent may infer acceptance, fetch the SDK, or
+vendor it. Then build the ASIO-capable package, run U7 on the Focusrite route, and use a live input
+instead of the currently silent default HyperX microphone.
+
+---
+
 ## 2026-08-03 H17 packaged verifier U1 — schema, verdict policy, device-free self-test — DONE
 
 Dan gave the go; U1 of the packaged-verifier plan is implemented and green.
