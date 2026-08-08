@@ -178,6 +178,21 @@ public:
 
     [[nodiscard]] const UiActionRegistry& registry() const noexcept { return registry_; }
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
+    [[nodiscard]] UiActionContext contextSnapshot() const noexcept
+    {
+        UiActionContext snapshot = context_;
+        if (playback_ != nullptr)
+        {
+            snapshot.isPlaying = playback_->isPlaying();
+            snapshot.loopEnabled = playback_->loopEnabled();
+            snapshot.playheadFrame = playback_->playheadFrame();
+        }
+        return snapshot;
+    }
+    void refreshTransportSnapshot() noexcept
+    {
+        syncContextFromPlayback();
+    }
     [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
     [[nodiscard]] engine::EntityId selectedTimelineClipId() const noexcept { return selectedTimelineClipId_; }
     [[nodiscard]] engine::EntityId selectedMidiClipId() const noexcept { return selectedMidiClipId_; }
@@ -194,6 +209,16 @@ public:
     {
         if (maxBlockSize > 0)
             playbackMaxBlockSize_ = maxBlockSize;
+    }
+    [[nodiscard]] bool locatePlaybackFrame (std::int64_t timelineFrame) noexcept
+    {
+        if (playback_ == nullptr || ! playback_->locate (timelineFrame))
+            return false;
+
+        drainTransport (*playback_);
+        syncContextFromPlayback();
+        ++context_.commandDispatchCount;
+        return true;
     }
 
     [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
@@ -2094,8 +2119,7 @@ private:
 
     [[nodiscard]] bool canAdoptEditWithoutPlaybackRebuild (const engine::Project& nextProject) const noexcept
     {
-        return playback_ == nullptr
-            && decodedAssets_.empty()
+        return decodedAssets_.empty()
             && project_.clips.empty()
             && nextProject.clips.empty();
     }
@@ -2113,8 +2137,16 @@ private:
 
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
-        replacePlayback (nullptr);
+        std::unique_ptr<engine::PlaybackEngine> transport =
+            engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
+        if (transport != nullptr)
+        {
+            (void) transport->stop();
+            drainTransport (*transport);
+        }
+        replacePlayback (std::move (transport));
         syncProjectEditContext();
+        resetContextForFreshPlayback();
         return true;
     }
 
@@ -2442,7 +2474,14 @@ private:
         undo_ = {};
         decodedAssets_.clear();
         decodedAssetViews_.clear();
-        replacePlayback (nullptr);
+        std::unique_ptr<engine::PlaybackEngine> transport =
+            engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
+        if (transport != nullptr)
+        {
+            (void) transport->stop();
+            drainTransport (*transport);
+        }
+        replacePlayback (std::move (transport));
 
         context_ = {};
         context_.projectLoaded = true;

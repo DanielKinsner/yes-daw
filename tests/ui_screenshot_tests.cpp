@@ -220,6 +220,16 @@ void requireArrangementSurfaceCoverage (const juce::Image& image)
     REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - 260, image.getWidth(), 260 }) > 180u);
 }
 
+void requireHonestEmptyArrangementCoverage (const juce::Image& image)
+{
+    REQUIRE (hasHeaderCoverage (image));
+    REQUIRE (hasHeaderSectionHierarchy (image));
+    REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 20u);
+    REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 100u);
+    REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 10u);
+    REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - 260, image.getWidth(), 260 }) > 40u);
+}
+
 bool hasMixerSurfaceCoverage (const juce::Image& image)
 {
     return hasHeaderCoverage (image)
@@ -240,7 +250,7 @@ bool hasMixerMasterSummaryCoverage (const juce::Image& image)
         image.getHeight() - yesdaw::ui::UiTheme::Layout::headerHeight
             - 2 * yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset
     };
-    return sampledDifferentPixelCount (image, masterRegion) > 45u;
+    return sampledDifferentPixelCount (image, masterRegion) > 20u;
 }
 
 template <std::size_t N>
@@ -278,6 +288,16 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     REQUIRE (shell->getWidth() == 1536);
     REQUIRE (shell->getHeight() == 960);
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
+    const yesdaw::ui::MainComponentSnapshot startup = yesdaw::ui::snapshotMainComponent (*shell);
+    REQUIRE_FALSE (startup.context.projectLoaded);
+    REQUIRE (startup.visibleTimelineTrackCount == 0);
+    REQUIRE (startup.visibleTimelineClipCount == 0);
+    REQUIRE (startup.visibleMixerTrackCount == 0);
+    REQUIRE (startup.visibleMixerBusCount == 0);
+    REQUIRE_FALSE (startup.visibleMixerLoudnessValid);
+    REQUIRE (startup.visibleMasterPeakLeft == 0.0f);
+    REQUIRE (startup.visibleMasterPeakRight == 0.0f);
+    REQUIRE (startup.visiblePianoRollNoteCount == 0);
 
     requireDisjointActionBounds (
         *shell,
@@ -312,7 +332,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
                                    + yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset });
 
     const juce::Image timelineImage = renderShell (*shell);
-    requireArrangementSurfaceCoverage (timelineImage);
+    requireHonestEmptyArrangementCoverage (timelineImage);
     const std::uint64_t timelineFingerprint = captureShellPng (timelineImage, "yesdaw-timeline-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
@@ -325,7 +345,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
     const juce::Image pianoRollImage = renderShell (*shell);
-    requireArrangementSurfaceCoverage (pianoRollImage);
+    requireHonestEmptyArrangementCoverage (pianoRollImage);
     const std::uint64_t pianoRollFingerprint = captureShellPng (pianoRollImage, "yesdaw-piano-roll-shell.png");
 
     REQUIRE (timelineFingerprint != mixerFingerprint);

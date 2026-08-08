@@ -1,5 +1,8 @@
 # 0033. H12 operable session UX
 
+> **Superseded in part by ADR-0041:** a loaded empty Project now owns a real silent-capable transport;
+> empty-session transport is no longer disabled.
+
 - **Status:** Accepted
 - **Date:** 2026-06-29
 - **Deciders:** Dan (owner), build agent

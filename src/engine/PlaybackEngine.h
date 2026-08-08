@@ -15,6 +15,7 @@
 #include "choc/containers/choc_SingleReaderSingleWriterFIFO.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -71,6 +72,18 @@ public:
         return out;
     }
 
+    // CONTROL THREAD: a loaded Project has a real transport before it has media. The empty Runtime is the
+    // canonical silence path, so no hidden Asset/Clip/Node is needed and the audio callback stays identical.
+    [[nodiscard]] static std::unique_ptr<PlaybackEngine> createTransportOnly (SampleRate sampleRate,
+                                                                              int maxBlockSize)
+    {
+        if (! sampleRate.isValid() || maxBlockSize <= 0)
+            return nullptr;
+
+        return std::unique_ptr<PlaybackEngine> (
+            new PlaybackEngine (sampleRate, 2u, 0u, maxBlockSize));
+    }
+
     PlaybackEngine (const PlaybackEngine&)            = delete;
     PlaybackEngine& operator= (const PlaybackEngine&) = delete;
 
@@ -90,6 +103,7 @@ public:
         if (! playing_)
         {
             zeroOutputChannels (outChannels, numOutputChannels, numFrames);
+            publishTransportSnapshot();
             return;
         }
 
@@ -118,6 +132,8 @@ public:
             if (loopEnabled_ && playheadFrame_ >= loopEndFrame_)
                 playheadFrame_ = loopStartFrame_;
         }
+
+        publishTransportSnapshot();
     }
 
     // CONTROL THREAD: transport changes travel through one bounded SPSC command queue. The audio callback
@@ -161,11 +177,26 @@ public:
     [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }   // full timeline incl tail
     [[nodiscard]] int           maxBlockSize() const noexcept { return maxBlockSize_; }
     [[nodiscard]] std::uint64_t processedGen() const noexcept { return driver_.processedGen(); }
-    [[nodiscard]] bool          isPlaying() const noexcept { return playing_; }
-    [[nodiscard]] bool          loopEnabled() const noexcept { return loopEnabled_; }
-    [[nodiscard]] std::int64_t  playheadFrame() const noexcept { return playheadFrame_; }
-    [[nodiscard]] std::int64_t  loopStartFrame() const noexcept { return loopStartFrame_; }
-    [[nodiscard]] std::int64_t  loopEndFrame() const noexcept { return loopEndFrame_; }
+    [[nodiscard]] bool          isPlaying() const noexcept
+    {
+        return publishedPlaying_.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] bool          loopEnabled() const noexcept
+    {
+        return publishedLoopEnabled_.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] std::int64_t  playheadFrame() const noexcept
+    {
+        return publishedPlayheadFrame_.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] std::int64_t  loopStartFrame() const noexcept
+    {
+        return publishedLoopStartFrame_.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] std::int64_t  loopEndFrame() const noexcept
+    {
+        return publishedLoopEndFrame_.load (std::memory_order_acquire);
+    }
     [[nodiscard]] bool          needsAutosave() const noexcept { return editRevision_ != autosavedRevision_; }
 
     // CONTROL THREAD ONLY (like reclaim()): needsAutosave / markProjectEdited / markAutosaved are plain
@@ -260,6 +291,15 @@ private:
         }
     }
 
+    void publishTransportSnapshot() noexcept YESDAW_RT_HOT
+    {
+        publishedPlaying_.store (playing_, std::memory_order_release);
+        publishedLoopEnabled_.store (loopEnabled_, std::memory_order_release);
+        publishedPlayheadFrame_.store (playheadFrame_, std::memory_order_release);
+        publishedLoopStartFrame_.store (loopStartFrame_, std::memory_order_release);
+        publishedLoopEndFrame_.store (loopEndFrame_, std::memory_order_release);
+    }
+
     static void zeroOutputChannels (float* const* outChannels,
                                     int numOutputChannels,
                                     int numFrames) noexcept YESDAW_RT_HOT
@@ -308,6 +348,14 @@ private:
     std::uint64_t      autosavedRevision_ = 0;
     bool               playing_ = true;
     bool               loopEnabled_ = false;
+    std::atomic<bool> publishedPlaying_ { true };
+    std::atomic<bool> publishedLoopEnabled_ { false };
+    std::atomic<std::int64_t> publishedPlayheadFrame_ { 0 };
+    std::atomic<std::int64_t> publishedLoopStartFrame_ { 0 };
+    std::atomic<std::int64_t> publishedLoopEndFrame_ { 0 };
 };
+
+static_assert (std::atomic<std::int64_t>::is_always_lock_free,
+               "published transport frames must stay lock-free on the audio thread");
 
 } // namespace yesdaw::engine

@@ -36,6 +36,15 @@ struct MainComponentSnapshot
     std::uint64_t deviceAudioCallbackBlockCount = 0;
     std::uint64_t deviceAudioNonSilentBlockCount = 0;
     bool playbackReady = false;
+    int visibleTimelineTrackCount = 0;
+    int visibleTimelineClipCount = 0;
+    double visibleTimelineTotalSeconds = 0.0;
+    int visibleMixerTrackCount = 0;
+    int visibleMixerBusCount = 0;
+    bool visibleMixerLoudnessValid = false;
+    float visibleMasterPeakLeft = 0.0f;
+    float visibleMasterPeakRight = 0.0f;
+    int visiblePianoRollNoteCount = 0;
     int width = 0;
     int height = 0;
     int childCount = 0;

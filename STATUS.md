@@ -52,6 +52,39 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-08 honest DAW state + real empty-Project transport
+
+Dan reported that the installed UI still behaved like a fake shell: meters moved without audio, the
+arrangement waveforms could not be manipulated, Play was disabled, and the playhead could not be moved.
+The report was correct. The no-Project paint path substituted eight hard-coded tracks, 23 clips, 11 mixer
+strips, fake meter/loudness values, a fixed timecode, a fixed playhead, and fake piano-roll notes. The H12
+decision also explicitly disabled transport for an empty Project, and screenshot tests protected the fake
+arrangement instead of rejecting it.
+
+- ADR-0041 now requires every loaded Project to own a real transport, including a zero-Asset/zero-Clip
+  Project. Empty playback renders exact silence while advancing the absolute-frame playhead; it does not
+  create a hidden Asset, Clip, or Node.
+- The shipped no-Project UI is now an honest empty state: no fake tracks, clips, meters, loudness, selected
+  Clip, FX, automation, markers, or piano notes. Header readouts and Master loudness show unavailable state
+  instead of fabricated values.
+- Play, Stop, and ruler locate now drive the real transport for an empty Project. The UI reads a lock-free
+  transport snapshot rather than racing directly with audio-thread state.
+- The Master peak meter now follows samples delivered by the real device callback and returns to zero for
+  exact silence.
+- Loaded Project clips are assigned to their actual Track lanes; real waveform hit-testing, move, trim,
+  fade, gain, split, duplicate, delete, undo, and redo gestures remain active.
+- Mechanical evidence: warnings-as-errors build passes; full ctest passes 327/327. New controls prove exact
+  silent empty playback advances 128 frames, ruler click/drag locates exact frames, live callback samples
+  raise both Master peaks, no-Project snapshots expose zero fake entities, and a two-Track Project edits the
+  intended real Clip on its real lane. Screenshot tests now assert the honest empty state.
+
+**Now:** local checkpoint is green and ready to commit/push.
+
+**Next:** wait for the exact pushed GitHub Actions run, build the commit-stamped Windows portable package,
+replace the Desktop installation, and mechanically launch-prove the installed executable.
+
+---
+
 ## 2026-08-08 shipped workflow recovery — native Project and WAV choices
 
 Dan reported that the installed app was only a shell. Reproduction against `6d99507` confirmed the

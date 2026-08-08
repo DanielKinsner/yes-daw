@@ -38,6 +38,7 @@ constexpr int kHeaderHeight = yesdaw::ui::UiTheme::Layout::headerHeight;
 constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
 constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
 constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
+constexpr int kUiRefreshIntervalMs = 33;
 constexpr yesdaw::engine::Tick kTimelineSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::timelineSnapGridTicks;
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
@@ -69,239 +70,11 @@ const juce::Colour kRed = yesdaw::ui::UiTheme::Color::dangerRed();
 
 using TrackRow = yesdaw::ui::TimelineCanvasTrack;
 using TimelineClipStyle = yesdaw::ui::TimelineCanvasClipStyle;
-constexpr const auto& kDemoTimelineClipAlphas =
-    yesdaw::ui::UiTheme::Tone::mainComponentDemoTimelineClipAlphas;
-constexpr const auto& kDemoTimelineClipLanes =
-    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLanes;
-constexpr const auto& kDemoTimelineClipStartsSeconds =
-    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipStartsSeconds;
-constexpr const auto& kDemoTimelineClipLengthsSeconds =
-    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineClipLengthsSeconds;
-constexpr const auto& kDemoTimelineMarkerSeconds =
-    yesdaw::ui::UiTheme::Layout::mainComponentDemoTimelineMarkerSeconds;
-constexpr const auto& kDemoTrackLevels =
-    yesdaw::ui::UiTheme::Meter::mainComponentDemoTrackLevels;
-constexpr const auto& kDemoMixerFaders =
-    yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripFaders;
-constexpr const auto& kDemoMixerMeters =
-    yesdaw::ui::UiTheme::Mixer::mainComponentDemoStripMeters;
-constexpr const auto& kDemoPianoRollNoteIdLows =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteIdLows;
-constexpr const auto& kDemoPianoRollNoteStartTicks =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteStartTicks;
-constexpr const auto& kDemoPianoRollNoteLengthTicks =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteLengthTicks;
-constexpr const auto& kDemoPianoRollNoteKeys =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteKeys;
-constexpr const auto& kDemoPianoRollNotePitches =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNotePitches;
-constexpr const auto& kDemoPianoRollNoteVelocities =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteVelocities;
-constexpr const auto& kDemoPianoRollNotePortIndexes =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNotePortIndexes;
-constexpr const auto& kDemoPianoRollNoteChannels =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteChannels;
-constexpr const auto& kDemoPianoRollNoteSelected =
-    yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoNoteSelected;
-
-constexpr yesdaw::engine::EntityId demoEntityId (std::uint8_t low) noexcept
-{
-    return yesdaw::engine::EntityId::fromBigEndianParts (0, low);
-}
 
 constexpr bool isBlackMidiKey (int key) noexcept
 {
     const int octaveKey = key % 12;
     return octaveKey == 1 || octaveKey == 3 || octaveKey == 6 || octaveKey == 8 || octaveKey == 10;
-}
-
-struct MixerStrip
-{
-    const char* name;
-    juce::Colour colour;
-    float fader;
-    float meter;
-    bool selected;
-};
-
-const std::array<TrackRow, 8> kTracks {{
-    { "Drums", kBlue, kDemoTrackLevels[0] },
-    { "Bass DI", kTeal, kDemoTrackLevels[1] },
-    { "Acoustic GTR", kAmber, kDemoTrackLevels[2] },
-    { "Vocal Lead", kPurple, kDemoTrackLevels[3] },
-    { "Vocal Double", kPurple.darker (0.15f), kDemoTrackLevels[4] },
-    { "Keys", kCyan, kDemoTrackLevels[5] },
-    { "Ambience", kBlue.darker (0.2f), kDemoTrackLevels[6] },
-    { "FX Risers", kPurple.darker (0.35f), kDemoTrackLevels[7] }
-}};
-
-const std::array<yesdaw::ui::Clip, 23> kClips {{
-    { 0, kDemoTimelineClipLanes[0], kDemoTimelineClipStartsSeconds[0], kDemoTimelineClipLengthsSeconds[0] },
-    { 1, kDemoTimelineClipLanes[1], kDemoTimelineClipStartsSeconds[1], kDemoTimelineClipLengthsSeconds[1] },
-    { 2, kDemoTimelineClipLanes[2], kDemoTimelineClipStartsSeconds[2], kDemoTimelineClipLengthsSeconds[2] },
-    { 3, kDemoTimelineClipLanes[3], kDemoTimelineClipStartsSeconds[3], kDemoTimelineClipLengthsSeconds[3] },
-    { 4, kDemoTimelineClipLanes[4], kDemoTimelineClipStartsSeconds[4], kDemoTimelineClipLengthsSeconds[4] },
-    { 5, kDemoTimelineClipLanes[5], kDemoTimelineClipStartsSeconds[5], kDemoTimelineClipLengthsSeconds[5] },
-    { 6, kDemoTimelineClipLanes[6], kDemoTimelineClipStartsSeconds[6], kDemoTimelineClipLengthsSeconds[6] },
-    { 7, kDemoTimelineClipLanes[7], kDemoTimelineClipStartsSeconds[7], kDemoTimelineClipLengthsSeconds[7] },
-    { 8, kDemoTimelineClipLanes[8], kDemoTimelineClipStartsSeconds[8], kDemoTimelineClipLengthsSeconds[8] },
-    { 9, kDemoTimelineClipLanes[9], kDemoTimelineClipStartsSeconds[9], kDemoTimelineClipLengthsSeconds[9] },
-    { 10, kDemoTimelineClipLanes[10], kDemoTimelineClipStartsSeconds[10], kDemoTimelineClipLengthsSeconds[10] },
-    { 11, kDemoTimelineClipLanes[11], kDemoTimelineClipStartsSeconds[11], kDemoTimelineClipLengthsSeconds[11] },
-    { 12, kDemoTimelineClipLanes[12], kDemoTimelineClipStartsSeconds[12], kDemoTimelineClipLengthsSeconds[12] },
-    { 13, kDemoTimelineClipLanes[13], kDemoTimelineClipStartsSeconds[13], kDemoTimelineClipLengthsSeconds[13] },
-    { 14, kDemoTimelineClipLanes[14], kDemoTimelineClipStartsSeconds[14], kDemoTimelineClipLengthsSeconds[14] },
-    { 15, kDemoTimelineClipLanes[15], kDemoTimelineClipStartsSeconds[15], kDemoTimelineClipLengthsSeconds[15] },
-    { 16, kDemoTimelineClipLanes[16], kDemoTimelineClipStartsSeconds[16], kDemoTimelineClipLengthsSeconds[16] },
-    { 17, kDemoTimelineClipLanes[17], kDemoTimelineClipStartsSeconds[17], kDemoTimelineClipLengthsSeconds[17] },
-    { 18, kDemoTimelineClipLanes[18], kDemoTimelineClipStartsSeconds[18], kDemoTimelineClipLengthsSeconds[18] },
-    { 19, kDemoTimelineClipLanes[19], kDemoTimelineClipStartsSeconds[19], kDemoTimelineClipLengthsSeconds[19] },
-    { 20, kDemoTimelineClipLanes[20], kDemoTimelineClipStartsSeconds[20], kDemoTimelineClipLengthsSeconds[20] },
-    { 21, kDemoTimelineClipLanes[21], kDemoTimelineClipStartsSeconds[21], kDemoTimelineClipLengthsSeconds[21] },
-    { 22, kDemoTimelineClipLanes[22], kDemoTimelineClipStartsSeconds[22], kDemoTimelineClipLengthsSeconds[22] }
-}};
-
-const std::array<TimelineClipStyle, 23> kClipStyles {{
-    { kBlue, kDemoTimelineClipAlphas[0] }, { kBlue, kDemoTimelineClipAlphas[1] },
-    { kBlue, kDemoTimelineClipAlphas[2] }, { kBlue, kDemoTimelineClipAlphas[3] },
-    { kBlue, kDemoTimelineClipAlphas[4] }, { kBlue, kDemoTimelineClipAlphas[5] },
-    { kTeal, kDemoTimelineClipAlphas[6] }, { kTeal, kDemoTimelineClipAlphas[7] },
-    { kTeal, kDemoTimelineClipAlphas[8] },
-    { kAmber, kDemoTimelineClipAlphas[9] }, { kAmber, kDemoTimelineClipAlphas[10] },
-    { kAmber, kDemoTimelineClipAlphas[11] }, { kAmber, kDemoTimelineClipAlphas[12] },
-    { kPurple, kDemoTimelineClipAlphas[13] }, { kPurple, kDemoTimelineClipAlphas[14] },
-    { kPurple, kDemoTimelineClipAlphas[15] },
-    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[16] },
-    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[17] },
-    { kPurple.darker (0.2f), kDemoTimelineClipAlphas[18] },
-    { kCyan, kDemoTimelineClipAlphas[19] }, { kCyan, kDemoTimelineClipAlphas[20] },
-    { kCyan, kDemoTimelineClipAlphas[21] },
-    { kBlue.darker (0.35f), kDemoTimelineClipAlphas[22] }
-}};
-
-const std::array<yesdaw::ui::TimelineMarker, 5> kTimelineMarkers {{
-    { kDemoTimelineMarkerSeconds[0], "Intro" },
-    { kDemoTimelineMarkerSeconds[1], "Verse" },
-    { kDemoTimelineMarkerSeconds[2], "Chorus" },
-    { kDemoTimelineMarkerSeconds[3], "Bridge" },
-    { kDemoTimelineMarkerSeconds[4], "Outro" }
-}};
-
-const std::array<MixerStrip, 11> kMixer {{
-    { "Drums", kBlue, kDemoMixerFaders[0], kDemoMixerMeters[0], false },
-    { "Bass DI", kTeal, kDemoMixerFaders[1], kDemoMixerMeters[1], false },
-    { "Acoustic GTR", kAmber, kDemoMixerFaders[2], kDemoMixerMeters[2], false },
-    { "Elec GTR", kAmber.darker (0.25f), kDemoMixerFaders[3], kDemoMixerMeters[3], false },
-    { "Vocal Lead", kPurple, kDemoMixerFaders[4], kDemoMixerMeters[4], true },
-    { "Vocal Double", kPurple.darker (0.2f), kDemoMixerFaders[5], kDemoMixerMeters[5], false },
-    { "Keys", kCyan, kDemoMixerFaders[6], kDemoMixerMeters[6], false },
-    { "Ambience", kBlue.darker (0.2f), kDemoMixerFaders[7], kDemoMixerMeters[7], false },
-    { "FX Risers", kPurple.darker (0.35f), kDemoMixerFaders[8], kDemoMixerMeters[8], false },
-    { "Room Verb", kPurple.darker (0.15f), kDemoMixerFaders[9], kDemoMixerMeters[9], false },
-    { "Delay", kBlue.darker (0.3f), kDemoMixerFaders[10], kDemoMixerMeters[10], false }
-}};
-
-yesdaw::ui::UiMixerSurfaceSnapshot makeDemoMixerSurface()
-{
-    yesdaw::ui::UiMixerSurfaceSnapshot surface;
-    surface.projectLoaded = true;
-    surface.loudness = yesdaw::ui::UiMixerLoudnessReadout {
-        yesdaw::ui::UiTheme::Mixer::mainComponentDemoIntegratedLufs,
-        yesdaw::ui::UiTheme::Mixer::mainComponentDemoMomentaryLufs,
-        yesdaw::ui::UiTheme::Mixer::mainComponentDemoShortTermLufs,
-        yesdaw::ui::UiTheme::Mixer::mainComponentDemoLoudnessRangeLu,
-        yesdaw::ui::UiTheme::Mixer::mainComponentDemoTruePeakDbtp,
-        true
-    };
-
-    for (std::size_t i = 0; i < kMixer.size(); ++i)
-    {
-        const bool isBus = i >= 9;
-        const auto& source = kMixer[i];
-
-        yesdaw::ui::UiMixerStrip strip;
-        strip.kind = isBus ? yesdaw::ui::UiMixerTargetKind::Bus : yesdaw::ui::UiMixerTargetKind::Track;
-        strip.index = isBus ? i - 9u : i;
-        strip.name = source.name;
-        strip.linearGain = source.fader;
-        strip.pan = source.selected ? yesdaw::ui::UiTheme::Mixer::mainComponentDemoSelectedPan
-                                    : yesdaw::ui::UiTheme::Mixer::mainComponentDemoDefaultPan;
-        strip.muted = false;
-        strip.soloed = source.selected;
-        strip.soloSafe = isBus;
-        strip.sidechainVisible = i == 1 || isBus;
-        strip.meter = yesdaw::ui::UiMixerMeterReadout {
-            source.meter,
-            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterPeakRightScale,
-            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterRmsLeftScale,
-            source.meter * yesdaw::ui::UiTheme::Mixer::mainComponentDemoMeterRmsRightScale,
-            true
-        };
-
-        if (isBus)
-            surface.buses.push_back (std::move (strip));
-        else
-            surface.tracks.push_back (std::move (strip));
-    }
-
-    return surface;
-}
-
-yesdaw::ui::UiPianoRollSurfaceSnapshot makeDemoPianoRollSurface()
-{
-    yesdaw::ui::UiPianoRollSurfaceSnapshot surface;
-    surface.projectLoaded = true;
-    surface.midiClipSelected = true;
-    surface.midiClipId = demoEntityId (yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoMidiClipIdLow);
-    surface.timelineStart = yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoTimelineStartTicks;
-    surface.timelineLength = yesdaw::ui::UiTheme::PianoRoll::mainComponentDemoTimelineLengthTicks;
-    surface.notes = {
-        { demoEntityId (kDemoPianoRollNoteIdLows[0]), kDemoPianoRollNoteStartTicks[0],
-          kDemoPianoRollNoteLengthTicks[0], kDemoPianoRollNoteKeys[0], kDemoPianoRollNotePitches[0],
-          kDemoPianoRollNoteVelocities[0], kDemoPianoRollNotePortIndexes[0], kDemoPianoRollNoteChannels[0],
-          kDemoPianoRollNoteSelected[0] },
-        { demoEntityId (kDemoPianoRollNoteIdLows[1]), kDemoPianoRollNoteStartTicks[1],
-          kDemoPianoRollNoteLengthTicks[1], kDemoPianoRollNoteKeys[1], kDemoPianoRollNotePitches[1],
-          kDemoPianoRollNoteVelocities[1], kDemoPianoRollNotePortIndexes[1], kDemoPianoRollNoteChannels[1],
-          kDemoPianoRollNoteSelected[1] },
-        { demoEntityId (kDemoPianoRollNoteIdLows[2]), kDemoPianoRollNoteStartTicks[2],
-          kDemoPianoRollNoteLengthTicks[2], kDemoPianoRollNoteKeys[2], kDemoPianoRollNotePitches[2],
-          kDemoPianoRollNoteVelocities[2], kDemoPianoRollNotePortIndexes[2], kDemoPianoRollNoteChannels[2],
-          kDemoPianoRollNoteSelected[2] },
-        { demoEntityId (kDemoPianoRollNoteIdLows[3]), kDemoPianoRollNoteStartTicks[3],
-          kDemoPianoRollNoteLengthTicks[3], kDemoPianoRollNoteKeys[3], kDemoPianoRollNotePitches[3],
-          kDemoPianoRollNoteVelocities[3], kDemoPianoRollNotePortIndexes[3], kDemoPianoRollNoteChannels[3],
-          kDemoPianoRollNoteSelected[3] },
-        { demoEntityId (kDemoPianoRollNoteIdLows[4]), kDemoPianoRollNoteStartTicks[4],
-          kDemoPianoRollNoteLengthTicks[4], kDemoPianoRollNoteKeys[4], kDemoPianoRollNotePitches[4],
-          kDemoPianoRollNoteVelocities[4], kDemoPianoRollNotePortIndexes[4], kDemoPianoRollNoteChannels[4],
-          kDemoPianoRollNoteSelected[4] },
-        { demoEntityId (kDemoPianoRollNoteIdLows[5]), kDemoPianoRollNoteStartTicks[5],
-          kDemoPianoRollNoteLengthTicks[5], kDemoPianoRollNoteKeys[5], kDemoPianoRollNotePitches[5],
-          kDemoPianoRollNoteVelocities[5], kDemoPianoRollNotePortIndexes[5], kDemoPianoRollNoteChannels[5],
-          kDemoPianoRollNoteSelected[5] }
-    };
-
-    for (const auto kind : { yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity,
-                             yesdaw::ui::UiPianoRollExpressionLaneKind::Pitch })
-    {
-        yesdaw::ui::UiPianoRollExpressionLaneReadout lane;
-        lane.kind = kind;
-        lane.valid = true;
-        lane.points.reserve (surface.notes.size());
-
-        for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
-        {
-            const double value = kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity
-                ? note.normalizedVelocity
-                : note.pitchNote;
-            lane.points.push_back ({ note.noteId, note.startTick, value });
-        }
-
-        surface.expressionLanes.push_back (std::move (lane));
-    }
-
-    return surface;
 }
 
 juce::String actionButtonText (yesdaw::ui::UiActionId id)
@@ -419,6 +192,12 @@ void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float va
     }
 }
 
+juce::Colour stripColourForIndex (std::size_t index)
+{
+    const std::array colours { kBlue, kTeal, kAmber, kPurple, kCyan };
+    return colours[index % colours.size()];
+}
+
 juce::File juceFileFromPath (const std::filesystem::path& path)
 {
     const std::u8string utf8 = path.u8string();
@@ -499,11 +278,36 @@ public:
     std::function<void (int, double)> onClipTrimmedRight;
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double)> onClipFadeAdjusted;
+    std::function<void (double)> onTimelineLocated;
 
     void paint (juce::Graphics& g) override
     {
         if (stateProvider)
-            (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), stateProvider());
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), state);
+            if (state.trackCount == 0 && state.clipCount == 0)
+            {
+                const auto geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+                g.setColour (kText);
+                g.setFont (yesdaw::ui::UiTheme::Type::font (
+                    yesdaw::ui::UiTheme::Type::title,
+                    juce::Font::bold));
+                const int centreY = geometry.clipArea.getCentreY();
+                g.drawText ("Create or open a Project",
+                            juce::Rectangle<int> { geometry.clipArea.getX(), centreY - 30,
+                                                   geometry.clipArea.getWidth(), 24 },
+                            juce::Justification::centred,
+                            false);
+                g.setColour (kMutedText);
+                g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
+                g.drawText ("Use New or Open in the top-left toolbar",
+                            juce::Rectangle<int> { geometry.clipArea.getX(), centreY + 2,
+                                                   geometry.clipArea.getWidth(), 20 },
+                            juce::Justification::centred,
+                            false);
+            }
+        }
     }
 
     void mouseDown (const juce::MouseEvent& event) override
@@ -511,6 +315,7 @@ public:
         if (! stateProvider)
             return;
 
+        playheadLocateActive = false;
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
@@ -534,18 +339,45 @@ public:
         }
 
         dragState = {};
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        if (geometry.rulerArea.contains (event.getPosition()))
+        {
+            playheadLocateActive = true;
+            if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                if (onTimelineLocated)
+                    onTimelineLocated (*seconds);
+            return;
+        }
+
+        playheadLocateActive = false;
         if (onEmptyClicked)
             onEmptyClicked();
     }
 
-    void mouseDrag (const juce::MouseEvent&) override
+    void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (playheadLocateActive && stateProvider)
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                if (onTimelineLocated)
+                    onTimelineLocated (*seconds);
+            return;
+        }
+
         if (dragState.active)
             dragState.moved = true;
     }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (playheadLocateActive)
+        {
+            playheadLocateActive = false;
+            return;
+        }
+
         if (! dragState.active)
             return;
 
@@ -672,7 +504,8 @@ private:
                                                                   juce::Point<int> position) noexcept
     {
         const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
-        if (! geometry.clipArea.contains (position))
+        if (! geometry.clipArea.getHorizontalRange().contains (position.x)
+            || (! geometry.clipArea.contains (position) && ! geometry.rulerArea.contains (position)))
             return std::nullopt;
 
         const double pixelsPerSecond = std::max (
@@ -728,6 +561,7 @@ private:
     }
 
     TimelineDragState dragState;
+    bool playheadLocateActive = false;
 };
 
 struct PianoRollCanvasGeometry
@@ -1159,6 +993,14 @@ public:
         timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds) {
             adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds);
         };
+        timelineInput.onTimelineLocated = [this] (double seconds) {
+            if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
+            {
+                (void) appModel.locatePlaybackFrame (*frame);
+                refreshActionState();
+                repaint();
+            }
+        };
         addAndMakeVisible (timelineInput);
 
         configureAutomationLaneControls();
@@ -1233,8 +1075,7 @@ public:
         // H17 CP4: scheduled autosave is ON by default (policy lives in the headless app model, so the
         // default is covered by a headless test). The Timer fires on the message thread — which is this
         // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
-        if (appModel.autosaveSchedule().enabled)
-            startTimer (appModel.autosaveSchedule().intervalMs);
+        startTimer (kUiRefreshIntervalMs);
     }
 
     ~MainComponent() override
@@ -1246,11 +1087,23 @@ public:
         setLookAndFeel (nullptr);
     }
 
-    // H17 CP4: one scheduled autosave attempt. Delegates to the model, which no-ops when no bundle is
-    // open and (via PlaybackEngine::needsAutosave) when the project is clean.
+    // The UI polls the lock-free audio-thread transport snapshot at ~30 Hz. Autosave remains on its
+    // independent slow schedule and never runs in the device callback.
     void timerCallback() override
     {
-        (void) appModel.writeAutosaveTick();
+        appModel.refreshTransportSnapshot();
+        refreshActionState();
+        repaint();
+
+        if (! appModel.autosaveSchedule().enabled)
+            return;
+
+        autosaveElapsedMs += kUiRefreshIntervalMs;
+        if (autosaveElapsedMs >= appModel.autosaveSchedule().intervalMs)
+        {
+            autosaveElapsedMs = 0;
+            (void) appModel.writeAutosaveTick();
+        }
     }
 
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override
@@ -1288,13 +1141,25 @@ public:
             outputChannels, numOutputChannels, numFrames);
 
         float peak = 0.0f;
+        float leftPeak = 0.0f;
+        float rightPeak = 0.0f;
         if (outputChannels != nullptr && numFrames > 0)
         {
             for (int channel = 0; channel < numOutputChannels; ++channel)
                 if (outputChannels[channel] != nullptr)
                     for (int frame = 0; frame < numFrames; ++frame)
-                        peak = std::max (peak, std::fabs (outputChannels[channel][frame]));
+                    {
+                        const float samplePeak = std::fabs (outputChannels[channel][frame]);
+                        peak = std::max (peak, samplePeak);
+                        if (channel == 0)
+                            leftPeak = std::max (leftPeak, samplePeak);
+                        else if (channel == 1)
+                            rightPeak = std::max (rightPeak, samplePeak);
+                    }
         }
+
+        liveMasterPeakLeft.store (leftPeak, std::memory_order_release);
+        liveMasterPeakRight.store (rightPeak, std::memory_order_release);
 
         deviceAudioCallbackBlockCount.fetch_add (1u, std::memory_order_relaxed);
         if (peak > 0.000001f)
@@ -1302,7 +1167,7 @@ public:
         return processed;
     }
 
-    [[nodiscard]] const yesdaw::ui::UiActionContext& harnessContext() const noexcept { return appModel.context(); }
+    [[nodiscard]] yesdaw::ui::UiActionContext harnessContext() const noexcept { return appModel.contextSnapshot(); }
     [[nodiscard]] const yesdaw::ui::UiRecordingDeviceSelection& harnessRecordingDevice() const noexcept
     {
         return appModel.recordingDeviceSelection();
@@ -1336,6 +1201,42 @@ public:
             && static_cast<bool> (fileChoices.chooseExportAudioFile);
     }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
+    [[nodiscard]] int harnessVisibleTimelineTrackCount() const
+    {
+        return appModel.context().projectLoaded ? static_cast<int> (projectTimelineTracks.size()) : 0;
+    }
+    [[nodiscard]] int harnessVisibleTimelineClipCount() const
+    {
+        return appModel.context().projectLoaded ? static_cast<int> (timelineClips.size()) : 0;
+    }
+    [[nodiscard]] double harnessVisibleTimelineTotalSeconds() const noexcept
+    {
+        return timelineTotalSeconds;
+    }
+    [[nodiscard]] int harnessVisibleMixerTrackCount() const
+    {
+        return static_cast<int> (currentMixerSurface().tracks.size());
+    }
+    [[nodiscard]] int harnessVisibleMixerBusCount() const
+    {
+        return static_cast<int> (currentMixerSurface().buses.size());
+    }
+    [[nodiscard]] bool harnessVisibleMixerLoudnessValid() const
+    {
+        return currentMixerSurface().loudness.valid;
+    }
+    [[nodiscard]] int harnessVisiblePianoRollNoteCount() const
+    {
+        return static_cast<int> (currentPianoRollSurface().notes.size());
+    }
+    [[nodiscard]] float harnessVisibleMasterPeakLeft() const noexcept
+    {
+        return liveMasterPeakLeft.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] float harnessVisibleMasterPeakRight() const noexcept
+    {
+        return liveMasterPeakRight.load (std::memory_order_acquire);
+    }
     [[nodiscard]] bool harnessDesktopAudioRequested() const noexcept { return desktopAudioRequested; }
     [[nodiscard]] bool harnessDesktopAudioOpen() const noexcept
     {
@@ -1918,7 +1819,6 @@ private:
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
-
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
         auto startCell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
@@ -2162,7 +2062,8 @@ private:
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
-        const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer
+                                   && appModel.context().timelineClipSelected;
         inspectorStart.setVisible (inspectorVisible);
         inspectorEnd.setVisible (inspectorVisible);
         inspectorLength.setVisible (inspectorVisible);
@@ -2408,6 +2309,23 @@ private:
         const bool projectHasTrack = appModel.context().projectLoaded && ! project.tracks.empty();
         const bool selected = appModel.context().mixerTargetSelected;
 
+        for (juce::Component* control : std::array<juce::Component*, 12> {
+                 &mixerTrackSelect,
+                 &mixerFader,
+                 &mixerPan,
+                 &mixerMetersReadout,
+                 &mixerSendsReadout,
+                 &mixerSendLevelEdit,
+                 &mixerFxSlotsReadout,
+                 &mixerGainReductionReadout,
+                 &mixerBusFxSlotsReadout,
+                 &mixerFxSlotToggle,
+                 &mixerMute,
+                 &mixerSolo })
+        {
+            control->setVisible (projectHasTrack);
+        }
+
         const float interactiveAlpha = selected
                                            ? yesdaw::ui::UiTheme::Tone::componentVisibleAlpha
                                            : yesdaw::ui::UiTheme::Tone::componentHiddenAlpha;
@@ -2469,7 +2387,7 @@ private:
         }
         else
         {
-            mixerTrackSelect.setButtonText ("Audio 1");
+            mixerTrackSelect.setButtonText ("No Track");
             mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                                  juce::dontSendNotification);
             mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
@@ -2697,22 +2615,41 @@ private:
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::transportClock));
-        g.drawText ("01:02:45:18",
+        const double sampleRate = appModel.project().sampleRate.isValid()
+                                      ? appModel.project().sampleRate.hz
+                                      : 48000.0;
+        const double seconds = static_cast<double> (std::max<std::int64_t> (0, appModel.context().playheadFrame))
+                             / sampleRate;
+        const int totalMilliseconds = static_cast<int> (std::floor (seconds * 1000.0));
+        const int hours = totalMilliseconds / 3'600'000;
+        const int minutes = (totalMilliseconds / 60'000) % 60;
+        const int wholeSeconds = (totalMilliseconds / 1'000) % 60;
+        const int milliseconds = totalMilliseconds % 1'000;
+        const juce::String clock = juce::String::formatted (
+            "%02d:%02d:%02d:%03d", hours, minutes, wholeSeconds, milliseconds);
+        g.drawText (clock,
                     time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                   yesdaw::ui::UiTheme::Layout::headerTransportClockInsetY)
                         .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportClockHeight),
                     juce::Justification::centred,
                     false);
         drawSmallLabel (g,
-                        "BAR | BEAT",
+                        "TIME",
                         time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                       yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
                         juce::Justification::centred);
 
-        const std::array<std::pair<const char*, const char*>, 3> readouts {{
-            { "120.00", "TEMPO" },
-            { "4/4", "TIME SIG" },
-            { "Cmaj", "KEY" }
+        const juce::String tempo = appModel.context().projectLoaded && ! appModel.project().tempoMap.empty()
+                                     ? juce::String (appModel.project().tempoMap.front().bpm, 2)
+                                     : juce::String ("--");
+        const juce::String meter = appModel.context().projectLoaded && ! appModel.project().meterMap.empty()
+                                     ? juce::String (appModel.project().meterMap.front().numerator)
+                                         + "/" + juce::String (appModel.project().meterMap.front().denominator)
+                                     : juce::String ("--");
+        const std::array<std::pair<juce::String, const char*>, 3> readouts {{
+            { tempo, "TEMPO" },
+            { meter, "TIME SIG" },
+            { "--", "KEY" }
         }};
 
         auto box = juce::Rectangle<int> (
@@ -2751,7 +2688,7 @@ private:
         drawSmallLabel (g, "MASTER", master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterLabelHeight));
         auto meter = master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterMeterHeight)
                          .withWidth (yesdaw::ui::UiTheme::Layout::headerMasterMeterWidth);
-        drawHorizontalMeter (g, meter, 0.76f);
+        drawHorizontalMeter (g, meter, liveMasterPeakLeft.load (std::memory_order_acquire));
 
         yesdaw::ui::drawSettingsIcon (
             g,
@@ -2773,12 +2710,26 @@ private:
                                         yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY)
                             .withHeight (yesdaw::ui::UiTheme::Layout::trackListHeaderLabelHeight));
 
+        if (! appModel.context().projectLoaded || appModel.project().tracks.empty())
+        {
+            drawSmallLabel (g,
+                            "No Project",
+                            area.reduced (yesdaw::ui::UiTheme::Layout::trackListEmptyLabelInset),
+                            juce::Justification::centred);
+            return;
+        }
+
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          area.getHeight() / static_cast<int> (kTracks.size()));
-        for (std::size_t i = 0; i < kTracks.size(); ++i)
+                                          area.getHeight() / static_cast<int> (appModel.project().tracks.size()));
+        for (std::size_t i = 0; i < appModel.project().tracks.size(); ++i)
         {
             auto row = area.removeFromTop (rowHeight);
-            const auto& track = kTracks[i];
+            const auto& projectTrack = appModel.project().tracks[i];
+            const juce::String fallbackName = "Track " + juce::String (static_cast<int> (i + 1));
+            const juce::String trackName = projectTrack.strip.name.empty()
+                                               ? fallbackName
+                                               : juce::String (projectTrack.strip.name);
+            const juce::Colour trackColour = kPurple;
 
             const auto rowSurface = row.reduced (
                 yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
@@ -2794,7 +2745,7 @@ private:
                 false);
             g.setGradientFill (rowGradient);
             g.fillRect (rowSurface);
-            g.setColour (track.colour);
+            g.setColour (trackColour);
             g.fillRect (row.withWidth (yesdaw::ui::UiTheme::Layout::trackListAccentWidth)
                              .reduced (yesdaw::ui::UiTheme::Layout::trackListAccentHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::trackListAccentVerticalInset));
@@ -2809,7 +2760,7 @@ private:
                     static_cast<float> (row.getY() + yesdaw::ui::UiTheme::Layout::trackListIconTopInset),
                     static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize),
                     static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize)),
-                track.colour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
+                trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
 
             auto mixSummary = row.withRight (
                                      row.getRight()
@@ -2866,7 +2817,7 @@ private:
             g.setColour (yesdaw::ui::UiTheme::Color::knobArc());
             g.drawEllipse (pan.toFloat().reduced (yesdaw::ui::UiTheme::Layout::controlOutlineInset),
                            yesdaw::ui::UiTheme::Layout::iconFineStrokeWidth);
-            g.setColour (track.colour);
+            g.setColour (trackColour);
             g.drawLine (static_cast<float> (pan.getCentreX()),
                         static_cast<float> (pan.getY()
                                             + yesdaw::ui::UiTheme::Layout::trackListPanIndicatorInset),
@@ -2895,8 +2846,8 @@ private:
                 yesdaw::ui::UiTheme::Tone::trackSliderRailAlpha));
             g.fillRoundedRectangle (level.toFloat(), yesdaw::ui::UiTheme::Radius::pill);
             const int liveWidth = juce::roundToInt (
-                static_cast<float> (level.getWidth()) * juce::jlimit (0.0f, 1.0f, track.meter));
-            g.setColour (track.colour.withAlpha (yesdaw::ui::UiTheme::Tone::trackSliderFillAlpha));
+                static_cast<float> (level.getWidth()) * projectTrack.strip.linearGain);
+            g.setColour (trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackSliderFillAlpha));
             g.fillRoundedRectangle (level.withWidth (liveWidth).toFloat(), yesdaw::ui::UiTheme::Radius::pill);
             auto levelThumb = level.withWidth (yesdaw::ui::UiTheme::Layout::trackListLevelThumbWidth)
                                   .withX (level.getX() + liveWidth
@@ -2908,7 +2859,7 @@ private:
             g.setFont (yesdaw::ui::UiTheme::Type::font (
                 yesdaw::ui::UiTheme::Type::title,
                 juce::Font::bold));
-            g.drawText (track.name,
+            g.drawText (trackName,
                         row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
                             .withHeight (yesdaw::ui::UiTheme::Layout::trackListNameHeight)
                             .translated (yesdaw::ui::UiTheme::Layout::trackListNameOffsetX,
@@ -2943,7 +2894,7 @@ private:
                              .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
                              .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
-            drawMeter (g, meter, track.meter);
+            drawMeter (g, meter, 0.0f);
         }
     }
 
@@ -2952,20 +2903,20 @@ private:
         rebuildTimelineClipViews();
 
         yesdaw::ui::TimelineCanvasState state;
-        if (timelineClips.empty())
+        if (! appModel.context().projectLoaded)
         {
-            state.tracks = kTracks.data();
-            state.trackCount = static_cast<int> (kTracks.size());
-            state.clips = kClips.data();
-            state.clipStyles = kClipStyles.data();
-            state.clipCount = static_cast<int> (kClips.size());
+            state.tracks = nullptr;
+            state.trackCount = 0;
+            state.clips = nullptr;
+            state.clipStyles = nullptr;
+            state.clipCount = 0;
             state.totalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
-            state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineDemoPlayheadSeconds;
+            state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineInitialPlayheadSeconds;
         }
         else
         {
-            state.tracks = projectTimelineTrack.data();
-            state.trackCount = static_cast<int> (projectTimelineTrack.size());
+            state.tracks = projectTimelineTracks.data();
+            state.trackCount = static_cast<int> (projectTimelineTracks.size());
             state.clips = timelineClips.data();
             state.clipStyles = timelineClipStyles.data();
             state.clipCount = static_cast<int> (timelineClips.size());
@@ -2979,11 +2930,14 @@ private:
                     timelineClipAssetHashes[static_cast<std::size_t> (layoutClipId)]);
             };
             state.totalSeconds = timelineTotalSeconds;
-            state.playheadSeconds = yesdaw::ui::UiTheme::Layout::timelineProjectPlayheadSeconds;
+            state.playheadSeconds = appModel.project().sampleRate.isValid()
+                                        ? static_cast<double> (appModel.context().playheadFrame)
+                                            / appModel.project().sampleRate.hz
+                                        : yesdaw::ui::UiTheme::Layout::timelineInitialPlayheadSeconds;
         }
 
-        state.markers = kTimelineMarkers.data();
-        state.markerCount = static_cast<int> (kTimelineMarkers.size());
+        state.markers = nullptr;
+        state.markerCount = 0;
         state.viewport.scrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
         state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
                                            yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
@@ -3000,13 +2954,20 @@ private:
         timelineClipStyles.clear();
         timelineClipIds.clear();
         timelineClipAssetHashes.clear();
+        projectTimelineTracks.clear();
 
         const yesdaw::engine::Project& project = appModel.project();
-        if (! appModel.context().projectLoaded || project.clips.empty() || ! project.sampleRate.isValid())
+        if (! appModel.context().projectLoaded || ! project.sampleRate.isValid())
         {
             timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
             return;
         }
+
+        projectTimelineTracks.reserve (project.tracks.size());
+        for (const yesdaw::engine::Track& track : project.tracks)
+            projectTimelineTracks.push_back ({ track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
+                                               kPurple,
+                                               0.0f });
 
         double endSeconds = 0.0;
         const double sampleRate = project.sampleRate.hz;
@@ -3022,19 +2983,27 @@ private:
                 continue;
             }
 
+            const auto track = std::find_if (project.tracks.begin(), project.tracks.end(), [&clip] (const auto& candidate) {
+                return candidate.id == clip.trackId;
+            });
+            if (track == project.tracks.end())
+                continue;
+
+            const int lane = static_cast<int> (std::distance (project.tracks.begin(), track));
             const double startSeconds = static_cast<double> (clip.timelineStart) / sampleRate;
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
-            timelineClips.push_back ({ id, 0, startSeconds, lengthSeconds });
+            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds });
             timelineClipStyles.push_back ({ kPurple, yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
 
-        timelineTotalSeconds =
-            std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
-                      endSeconds * yesdaw::ui::UiTheme::Layout::timelineProjectEndPaddingScale);
+        timelineTotalSeconds = timelineClips.empty()
+            ? yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds
+            : std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                        endSeconds * yesdaw::ui::UiTheme::Layout::timelineProjectEndPaddingScale);
     }
 
     void selectTimelineClipByLayoutId (int layoutClipId)
@@ -3336,6 +3305,13 @@ private:
 
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+        const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
+        if (selectedClip == nullptr)
+        {
+            drawSmallLabel (g, "No clip selected", area, juce::Justification::centred);
+            return;
+        }
+
         g.setColour (kPurple);
         g.fillRoundedRectangle (static_cast<float> (area.getX()),
                                 static_cast<float> (area.getY()
@@ -3347,7 +3323,7 @@ private:
         g.setFont (yesdaw::ui::UiTheme::Type::font (
             yesdaw::ui::UiTheme::Type::title,
             juce::Font::bold));
-        g.drawText ("Vocal Lead_03",
+        g.drawText ("Audio Clip",
                     area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
                     juce::Justification::centredLeft,
@@ -3368,10 +3344,13 @@ private:
 
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
-        const std::array<std::pair<const char*, const char*>, 3> statsText {{
-            { "Start", "33.1.1.00" },
-            { "End", "41.1.1.00" },
-            { "Length", "8.0.0.00" }
+        const double selectedSampleRate = appModel.project().sampleRate.hz;
+        const double selectedStartSeconds = static_cast<double> (selectedClip->timelineStart) / selectedSampleRate;
+        const double selectedLengthSeconds = static_cast<double> (selectedClip->timelineLength) / selectedSampleRate;
+        const std::array<std::pair<const char*, juce::String>, 3> statsText {{
+            { "Start", juce::String (selectedStartSeconds, 3) + " s" },
+            { "End", juce::String (selectedStartSeconds + selectedLengthSeconds, 3) + " s" },
+            { "Length", juce::String (selectedLengthSeconds, 3) + " s" }
         }};
         for (const auto& [label, value] : statsText)
         {
@@ -3405,9 +3384,7 @@ private:
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::title));
-        const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
-        const float gainValue = selectedClip != nullptr ? selectedClip->gain
-                                                        : yesdaw::ui::UiTheme::Layout::inspectorGainReadoutDefault;
+        const float gainValue = selectedClip->gain;
         const float gainDb = 20.0f * std::log10 (std::max (
             yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
             gainValue));
@@ -3451,21 +3428,8 @@ private:
                       .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFxSectionHeight);
         drawInspectorSectionCard (fx);
         drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        for (const auto* label : { "De-Esser", "Compressor", "EQ" })
-        {
-            auto row = fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFxRowHeight)
-                           .reduced (yesdaw::ui::UiTheme::Layout::inspectorFxRowInsetX,
-                                     yesdaw::ui::UiTheme::Layout::inspectorFxRowInsetY);
-            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-            g.setColour (kText);
-            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
-            g.drawText (label,
-                        row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
-                                     yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY),
-                        juce::Justification::centredLeft,
-                        false);
-        }
+        drawSmallLabel (g, "None", fx.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
+                                                yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY));
 
         auto automation = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
@@ -3484,38 +3448,7 @@ private:
         g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
         g.fillRoundedRectangle (chart.toFloat(), yesdaw::ui::UiTheme::Radius::md);
 
-        juce::Path automationPath;
-        for (std::size_t point = 0;
-             point < yesdaw::ui::UiTheme::Tone::inspectorAutomationValues.size();
-             ++point)
-        {
-            const float fractionX = static_cast<float> (point)
-                                  / static_cast<float> (
-                                        yesdaw::ui::UiTheme::Tone::inspectorAutomationValues.size() - 1u);
-            const float x = static_cast<float> (chart.getX())
-                          + fractionX * static_cast<float> (chart.getWidth());
-            const float y = static_cast<float> (chart.getBottom())
-                          - yesdaw::ui::UiTheme::Tone::inspectorAutomationValues[point]
-                                * static_cast<float> (chart.getHeight());
-            if (point == 0u)
-                automationPath.startNewSubPath (x, y);
-            else
-                automationPath.lineTo (x, y);
-
-            g.setColour (kPurple);
-            g.fillEllipse (
-                x - yesdaw::ui::UiTheme::Layout::inspectorAutomationPointRadius,
-                y - yesdaw::ui::UiTheme::Layout::inspectorAutomationPointRadius,
-                yesdaw::ui::UiTheme::Layout::inspectorAutomationPointRadius * 2.0f,
-                yesdaw::ui::UiTheme::Layout::inspectorAutomationPointRadius * 2.0f);
-        }
-        g.setColour (kPurple);
-        g.strokePath (
-            automationPath,
-            juce::PathStrokeType (
-                yesdaw::ui::UiTheme::Layout::inspectorAutomationPathStrokeWidth,
-                juce::PathStrokeType::curved,
-                juce::PathStrokeType::rounded));
+        drawSmallLabel (g, "No automation", chart, juce::Justification::centred);
     }
 
     void drawMixer (juce::Graphics& g, juce::Rectangle<int> area) const
@@ -3531,17 +3464,18 @@ private:
                                        yesdaw::ui::UiTheme::Layout::mixerToolsInsetY);
         fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
 
-        const int stripWidth = juce::jmax (
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+        const int stripWidth = std::clamp (
             area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
                                            static_cast<int> (stripCount))
-                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount));
+                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
         for (std::size_t stripIndex = 0; stripIndex < stripCount; ++stripIndex)
         {
             const bool isBus = stripIndex >= surface.tracks.size();
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
-            const auto& demoStrip = kMixer[std::min (stripIndex, kMixer.size() - 1u)];
+            const juce::Colour stripColour = stripColourForIndex (stripIndex);
             const bool selected = appModel.context().mixerTargetSelected && stripIndex == 0;
             const bool interactiveStrip = selected;
 
@@ -3573,7 +3507,7 @@ private:
                                         ? yesdaw::ui::UiTheme::Layout::mixerPaintedStripSelectedStrokeWidth
                                         : yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
 
-            g.setColour (demoStrip.colour.withAlpha (yesdaw::ui::UiTheme::Tone::mixerHeaderAlpha));
+            g.setColour (stripColour.withAlpha (yesdaw::ui::UiTheme::Tone::mixerHeaderAlpha));
             g.fillRect (lane.withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight));
             g.setColour (kText);
             g.setFont (yesdaw::ui::UiTheme::Type::font (
@@ -3604,7 +3538,7 @@ private:
                                static_cast<float> (panY),
                                static_cast<float> (panDiameter),
                                static_cast<float> (panDiameter));
-                g.setColour (demoStrip.colour.withAlpha (
+                g.setColour (stripColour.withAlpha (
                     yesdaw::ui::UiTheme::Tone::mixerKnobHighlightAlpha));
                 g.drawEllipse (static_cast<float> (panX),
                                static_cast<float> (panY),
@@ -3644,7 +3578,7 @@ private:
                     g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
                     const bool on = (label == std::string ("S") && state.soloed)
                                  || (label == std::string ("M") && state.muted);
-                    g.setColour (on ? demoStrip.colour.brighter (0.55f) : kText);
+                    g.setColour (on ? stripColour.brighter (0.55f) : kText);
                     g.drawText (label, cell, juce::Justification::centred, false);
                 }
             }
@@ -3737,7 +3671,7 @@ private:
             g.drawText (juce::String (gainDb, 1), readout, juce::Justification::centred, false);
         }
 
-        auto masterLane = area.removeFromLeft (stripWidth)
+        auto masterLane = area.removeFromRight (stripWidth)
                               .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
                                         yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
         g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
@@ -3851,20 +3785,8 @@ private:
                     juce::Justification::centred,
                     false);
 
-        float masterPeakLeft = 0.0f;
-        float masterPeakRight = 0.0f;
-        const auto accumulatePeak = [&masterPeakLeft, &masterPeakRight] (const auto& strips)
-        {
-            for (const auto& strip : strips)
-            {
-                if (! strip.meter.valid)
-                    continue;
-                masterPeakLeft = std::max (masterPeakLeft, strip.meter.peakLeft);
-                masterPeakRight = std::max (masterPeakRight, strip.meter.peakRight);
-            }
-        };
-        accumulatePeak (surface.tracks);
-        accumulatePeak (surface.buses);
+        const float masterPeakLeft = liveMasterPeakLeft.load (std::memory_order_acquire);
+        const float masterPeakRight = liveMasterPeakRight.load (std::memory_order_acquire);
 
         masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
         auto meterArea = masterContent.withTrimmedBottom (
@@ -3920,7 +3842,7 @@ private:
         if (appModel.context().projectLoaded)
             return yesdaw::ui::projectUiMixerSurface (appModel.project());
 
-        return mixerSurface;
+        return {};
     }
 
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot currentPianoRollSurface() const
@@ -3937,7 +3859,7 @@ private:
                 appModel.selectedMidiNoteId());
         }
 
-        return pianoSurface;
+        return {};
     }
 
     yesdaw::ui::YesDawLookAndFeel lookAndFeel;
@@ -3951,13 +3873,9 @@ private:
     std::atomic<bool> desktopAudioOpen { false };
     std::atomic<std::uint32_t> deviceAudioCallbackBlockCount { 0u };
     std::atomic<std::uint32_t> deviceAudioNonSilentBlockCount { 0u };
-    yesdaw::ui::UiMixerSurfaceSnapshot mixerSurface = makeDemoMixerSurface();
-    yesdaw::ui::UiPianoRollSurfaceSnapshot pianoSurface = makeDemoPianoRollSurface();
-    std::array<TrackRow, 1> projectTimelineTrack {{{
-        "Audio 1",
-        kPurple,
-        yesdaw::ui::UiTheme::Meter::mainComponentProjectTimelineTrackLevel
-    }}};
+    std::atomic<float> liveMasterPeakLeft { 0.0f };
+    std::atomic<float> liveMasterPeakRight { 0.0f };
+    std::vector<TrackRow> projectTimelineTracks;
     std::vector<yesdaw::ui::Clip> timelineClips;
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
@@ -3997,6 +3915,7 @@ private:
     std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
     bool refreshingMixerControls = false;
+    int autosaveElapsedMs = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
@@ -4128,6 +4047,15 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.deviceAudioCallbackBlockCount = mainComponent->harnessDeviceAudioCallbackBlockCount();
         snapshot.deviceAudioNonSilentBlockCount = mainComponent->harnessDeviceAudioNonSilentBlockCount();
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
+        snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
+        snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
+        snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();
+        snapshot.visibleMixerTrackCount = mainComponent->harnessVisibleMixerTrackCount();
+        snapshot.visibleMixerBusCount = mainComponent->harnessVisibleMixerBusCount();
+        snapshot.visibleMixerLoudnessValid = mainComponent->harnessVisibleMixerLoudnessValid();
+        snapshot.visibleMasterPeakLeft = mainComponent->harnessVisibleMasterPeakLeft();
+        snapshot.visibleMasterPeakRight = mainComponent->harnessVisibleMasterPeakRight();
+        snapshot.visiblePianoRollNoteCount = mainComponent->harnessVisiblePianoRollNoteCount();
         snapshot.bundlePath = mainComponent->harnessBundlePath();
         snapshot.context = mainComponent->harnessContext();
         snapshot.recordingDevice = mainComponent->harnessRecordingDevice();

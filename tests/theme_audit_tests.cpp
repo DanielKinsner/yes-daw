@@ -1365,9 +1365,11 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
 TEST_CASE ("H16 theme audit rejects raw UI tokens outside UiTheme", "[ui][theme]")
 {
     const auto findings = auditThemeTokens (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui");
-    if (! findings.empty())
-        INFO (findings.front().path.string() + ":" + std::to_string (findings.front().line)
-              + ": " + findings.front().text);
+    const auto firstFinding = findings.empty()
+                                ? std::string {}
+                                : findings.front().path.string() + ":" + std::to_string (findings.front().line)
+                                    + ": " + findings.front().text;
+    INFO (firstFinding);
     REQUIRE (findings.empty());
 }
 

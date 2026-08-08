@@ -483,6 +483,15 @@ void doubleClickAt (juce::Component& component,
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
+int timelineLaneForClip (const yesdaw::engine::Project& project, const yesdaw::engine::Clip& clip)
+{
+    const auto track = std::find_if (project.tracks.begin(), project.tracks.end(), [&clip] (const auto& candidate) {
+        return candidate.id == clip.trackId;
+    });
+    REQUIRE (track != project.tracks.end());
+    return static_cast<int> (std::distance (project.tracks.begin(), track));
+}
+
 juce::Point<int> timelineClipRightEdgeDragPoint (juce::Component& timeline,
                                                  const yesdaw::engine::Project& project,
                                                  std::size_t clipIndex)
@@ -499,12 +508,12 @@ juce::Point<int> timelineClipRightEdgeDragPoint (juce::Component& timeline,
         const yesdaw::engine::Clip& clip = project.clips[i];
         const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
         const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
-        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
         endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
     }
 
     yesdaw::ui::TimelineCanvasState state;
-    state.trackCount = 1;
+    state.trackCount = static_cast<int> (project.tracks.size());
     state.clips = clips.data();
     state.clipCount = static_cast<int> (clips.size());
     state.totalSeconds = std::max (1.0, endSeconds * 1.25);
@@ -540,12 +549,12 @@ juce::Point<int> timelineClipLeftEdgeDragPoint (juce::Component& timeline,
         const yesdaw::engine::Clip& clip = project.clips[i];
         const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
         const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
-        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
         endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
     }
 
     yesdaw::ui::TimelineCanvasState state;
-    state.trackCount = 1;
+    state.trackCount = static_cast<int> (project.tracks.size());
     state.clips = clips.data();
     state.clipCount = static_cast<int> (clips.size());
     state.totalSeconds = std::max (1.0, endSeconds * 1.25);
@@ -582,12 +591,12 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
         const yesdaw::engine::Clip& clip = project.clips[i];
         const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
         const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
-        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
         endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
     }
 
     yesdaw::ui::TimelineCanvasState state;
-    state.trackCount = 1;
+    state.trackCount = static_cast<int> (project.tracks.size());
     state.clips = clips.data();
     state.clipCount = static_cast<int> (clips.size());
     state.totalSeconds = std::max (1.0, endSeconds * 1.25);
@@ -609,6 +618,45 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
     return { x, y };
 }
 
+juce::Point<int> emptyProjectRulerPointAtSeconds (juce::Component& timeline, double seconds)
+{
+    yesdaw::ui::TimelineCanvasState state;
+    state.totalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
+    state.viewport.scrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+    state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
+                                         yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                         timeline.getWidth()
+                                             - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                   / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                               state.totalSeconds);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    return {
+        geometry.clipArea.getX() + juce::roundToInt (
+            (seconds - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond),
+        geometry.rulerArea.getCentreY()
+    };
+}
+
+std::int64_t emptyProjectFrameAtRulerPoint (juce::Component& timeline, juce::Point<int> point)
+{
+    yesdaw::ui::TimelineCanvasState state;
+    state.totalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
+    state.viewport.scrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+    state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
+                                         yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                         timeline.getWidth()
+                                             - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                   / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                               state.totalSeconds);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const double seconds = geometry.viewport.scrollSeconds
+                         + static_cast<double> (point.x - geometry.clipArea.getX())
+                             / geometry.viewport.pixelsPerSecond;
+    return static_cast<std::int64_t> (std::llround (seconds * 48'000.0));
+}
+
 double timelinePixelsPerSecond (juce::Component& timeline, const yesdaw::engine::Project& project)
 {
     REQUIRE (project.sampleRate.isValid());
@@ -622,12 +670,12 @@ double timelinePixelsPerSecond (juce::Component& timeline, const yesdaw::engine:
         const yesdaw::engine::Clip& clip = project.clips[i];
         const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
         const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
-        clips.push_back ({ static_cast<int> (i), 0, startSeconds, lengthSeconds });
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
         endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
     }
 
     yesdaw::ui::TimelineCanvasState state;
-    state.trackCount = 1;
+    state.trackCount = static_cast<int> (project.tracks.size());
     state.clips = clips.data();
     state.clipCount = static_cast<int> (clips.size());
     state.totalSeconds = std::max (1.0, endSeconds * 1.25);
@@ -699,6 +747,14 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
+    REQUIRE (snapshot.visibleTimelineTrackCount == 0);
+    REQUIRE (snapshot.visibleTimelineClipCount == 0);
+    REQUIRE (snapshot.visibleMixerTrackCount == 0);
+    REQUIRE (snapshot.visibleMixerBusCount == 0);
+    REQUIRE_FALSE (snapshot.visibleMixerLoudnessValid);
+    REQUIRE (snapshot.visibleMasterPeakLeft == 0.0f);
+    REQUIRE (snapshot.visibleMasterPeakRight == 0.0f);
+    REQUIRE (snapshot.visiblePianoRollNoteCount == 0);
 }
 
 TEST_CASE ("shipped MainComponent device callback renders playing Project audio",
@@ -726,6 +782,8 @@ TEST_CASE ("shipped MainComponent device callback renders playing Project audio"
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.deviceAudioCallbackBlockCount == 1u);
     REQUIRE (snapshot.deviceAudioNonSilentBlockCount == 1u);
+    REQUIRE (snapshot.visibleMasterPeakLeft > 0.01f);
+    REQUIRE (snapshot.visibleMasterPeakRight > 0.01f);
 }
 
 TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",
@@ -1326,6 +1384,28 @@ TEST_CASE ("H12 UI input harness rejects disabled shell input before Project loa
     REQUIRE (snapshot.context.commandDispatchCount == 0);
 }
 
+TEST_CASE ("loaded empty Project ruler click and drag locate the real transport",
+           "[ui][input][shell][project][transport][ruler]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("empty-ruler-locate");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+
+    const juce::Point<int> twoSeconds = emptyProjectRulerPointAtSeconds (timeline, 2.0);
+    mouseDownAt (timeline, twoSeconds);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
+
+    const juce::Point<int> threeSeconds = emptyProjectRulerPointAtSeconds (timeline, 3.0);
+    dragFromTo (timeline, twoSeconds, threeSeconds);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, threeSeconds));
+}
+
 TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bundles through shell Components",
            "[ui][input][shell][project]")
 {
@@ -1341,7 +1421,7 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
-    REQUIRE_FALSE (snapshot.playbackReady);
+    REQUIRE (snapshot.playbackReady);
     REQUIRE (snapshot.bundlePath == bundlePath);
     REQUIRE (snapshot.context.commandDispatchCount == 1);
 
@@ -1365,7 +1445,7 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
-    REQUIRE_FALSE (snapshot.playbackReady);
+    REQUIRE (snapshot.playbackReady);
     REQUIRE (snapshot.bundlePath == bundlePath);
     REQUIRE (snapshot.context.saveCount == 0);
     REQUIRE (snapshot.context.commandDispatchCount == 1);
@@ -1377,12 +1457,21 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
     REQUIRE (reopened.meterMap == created.meterMap);
 
     juce::Button& play = requireButtonForAction (*shell, UiActionId::TransportPlay);
-    REQUIRE_FALSE (play.isEnabled());
+    REQUIRE (play.isEnabled());
     clickButton (play);
 
     snapshot = snapshotMainComponent (*shell);
-    REQUIRE_FALSE (snapshot.context.isPlaying);
-    REQUIRE (snapshot.context.commandDispatchCount == 1);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.commandDispatchCount == 2);
+
+    std::array<float, 128> emptyLeft {};
+    std::array<float, 128> emptyRight {};
+    std::array<float*, 2> emptyOutputs { emptyLeft.data(), emptyRight.data() };
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, emptyOutputs.data(), 2, 128));
+    REQUIRE (peakAbs (emptyLeft) == 0.0f);
+    REQUIRE (peakAbs (emptyRight) == 0.0f);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.playheadFrame == 128);
 
     juce::Button& mixer = requireButtonForAction (*shell, UiActionId::ViewMixer);
     clickButton (mixer);
@@ -1701,7 +1790,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
-    REQUIRE_FALSE (snapshot.playbackReady);
+    REQUIRE (snapshot.playbackReady);
 
     juce::Button& import = requireButtonForAction (*shell, UiActionId::ProjectImportAudio);
     REQUIRE (import.isEnabled());

@@ -81,55 +81,11 @@ struct UiTheme
 
         static constexpr float verticalHotBand = 0.22f;
         static constexpr float horizontalHotBand = 0.18f;
-        static constexpr std::array<float, 8> mainComponentDemoTrackLevels {{
-            0.86f, 0.72f, 0.68f, 0.82f, 0.58f, 0.70f, 0.76f, 0.48f
-        }};
-        static constexpr float mainComponentProjectTimelineTrackLevel = 0.75f;
     };
 
     struct Mixer
     {
-        static constexpr std::array<float, 11> mainComponentDemoStripFaders {{
-            0.64f, 0.58f, 0.54f, 0.52f, 0.66f, 0.60f, 0.50f, 0.42f, 0.48f, 0.55f, 0.50f
-        }};
-        static constexpr std::array<float, 11> mainComponentDemoStripMeters {{
-            0.86f, 0.70f, 0.63f, 0.66f, 0.84f, 0.61f, 0.68f, 0.73f, 0.44f, 0.57f, 0.52f
-        }};
-        static constexpr float mainComponentDemoSelectedPan = -0.08f;
-        static constexpr float mainComponentDemoDefaultPan = 0.0f;
-        static constexpr float mainComponentDemoMeterPeakRightScale = 0.92f;
-        static constexpr float mainComponentDemoMeterRmsLeftScale = 0.58f;
-        static constexpr float mainComponentDemoMeterRmsRightScale = 0.52f;
-        static constexpr double mainComponentDemoIntegratedLufs = -7.2;
-        static constexpr double mainComponentDemoMomentaryLufs = -9.4;
-        static constexpr double mainComponentDemoShortTermLufs = -8.8;
-        static constexpr double mainComponentDemoLoudnessRangeLu = 5.0;
-        static constexpr double mainComponentDemoTruePeakDbtp = -1.0;
         static constexpr float paintedReadoutGainFloor = 0.0001f;
-    };
-
-    struct PianoRoll
-    {
-        static constexpr std::uint8_t mainComponentDemoMidiClipIdLow = 80;
-        static constexpr std::int64_t mainComponentDemoTimelineStartTicks = 0;
-        static constexpr std::int64_t mainComponentDemoTimelineLengthTicks = 4096;
-        static constexpr std::array<std::uint8_t, 6> mainComponentDemoNoteIdLows {{ 81, 82, 83, 84, 85, 86 }};
-        static constexpr std::array<std::int64_t, 6> mainComponentDemoNoteStartTicks {{
-            0, 512, 1024, 1792, 2560, 3328
-        }};
-        static constexpr std::array<std::int64_t, 6> mainComponentDemoNoteLengthTicks {{
-            512, 384, 512, 768, 512, 512
-        }};
-        static constexpr std::array<std::int16_t, 6> mainComponentDemoNoteKeys {{ 60, 64, 67, 72, 69, 67 }};
-        static constexpr std::array<double, 6> mainComponentDemoNotePitches {{
-            60.25, 64.10, 67.35, 72.00, 69.20, 66.85
-        }};
-        static constexpr std::array<double, 6> mainComponentDemoNoteVelocities {{
-            0.70, 0.58, 0.82, 0.64, 0.90, 0.74
-        }};
-        static constexpr std::array<std::int16_t, 6> mainComponentDemoNotePortIndexes {{ 0, 0, 0, 0, 0, 0 }};
-        static constexpr std::array<std::int16_t, 6> mainComponentDemoNoteChannels {{ 1, 1, 1, 1, 1, 1 }};
-        static constexpr std::array<bool, 6> mainComponentDemoNoteSelected {{ true, false, false, false, false, false }};
     };
 
     struct Tone
@@ -166,15 +122,6 @@ struct UiTheme
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
         static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
         static constexpr float mainComponentProjectClipAlpha = 0.82f;
-        static constexpr std::array<float, 23> mainComponentDemoTimelineClipAlphas {{
-            0.82f, 0.78f, 0.80f, 0.70f, 0.76f, 0.85f,
-            0.72f, 0.75f, 0.70f,
-            0.64f, 0.67f, 0.70f, 0.62f,
-            0.88f, 0.90f, 0.86f,
-            0.62f, 0.66f, 0.58f,
-            0.50f, 0.52f, 0.48f,
-            0.68f
-        }};
     };
 
     struct Space
@@ -473,6 +420,7 @@ struct UiTheme
         static constexpr int mixerUtilityGap = 3;
         static constexpr int mixerUtilityInsetX = 10;
         static constexpr int mixerPaintedStripMinWidth = 84;
+        static constexpr int mixerPaintedStripMaxWidth = 112;
         static constexpr int mixerPaintedStripMinCount = 1;
         static constexpr int mixerPaintedStripExtraSlotCount = 1;
         static constexpr int mixerPaintedStripInsetX = 3;
@@ -539,6 +487,7 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int trackListEmptyLabelInset = 24;
         static constexpr int trackListRowMinHeight = 56;
         static constexpr int trackListRowHorizontalInset = 1;
         static constexpr int trackListRowVerticalInset = 0;
@@ -589,8 +538,7 @@ struct UiTheme
         static constexpr int timelineViewportMinPixelWidth = 1;
         static constexpr int timelineViewportRightGutter = 26;
         static constexpr double timelineDefaultTotalSeconds = 98.0;
-        static constexpr double timelineDemoPlayheadSeconds = 32.0;
-        static constexpr double timelineProjectPlayheadSeconds = 0.0;
+        static constexpr double timelineInitialPlayheadSeconds = 0.0;
         static constexpr double timelineViewportScrollSeconds = 0.0;
         static constexpr double timelineMinVisibleSeconds = 1.0;
         static constexpr double timelineProjectEndPaddingScale = 1.25;
@@ -647,37 +595,6 @@ struct UiTheme
                            .withHeight (automationBreakpointDeleteButtonHeight);
         }
         static constexpr int inputDragDeadZonePixels = 2;
-        static constexpr std::array<int, 23> mainComponentDemoTimelineClipLanes {{
-            0, 0, 0, 0, 0, 0,
-            1, 1, 1,
-            2, 2, 2, 2,
-            3, 3, 3,
-            4, 4, 4,
-            5, 5, 5,
-            6
-        }};
-        static constexpr std::array<double, 23> mainComponentDemoTimelineClipStartsSeconds {{
-            0.0, 17.0, 27.0, 48.0, 65.0, 77.0,
-            4.0, 22.0, 47.0,
-            3.0, 25.0, 41.0, 69.0,
-            11.0, 39.0, 57.0,
-            11.0, 37.0, 59.0,
-            7.0, 33.0, 65.0,
-            0.0
-        }};
-        static constexpr std::array<double, 23> mainComponentDemoTimelineClipLengthsSeconds {{
-            17.0, 10.0, 17.0, 17.0, 12.0, 14.0,
-            18.0, 20.0, 30.0,
-            18.0, 18.0, 26.0, 16.0,
-            28.0, 18.0, 30.0,
-            24.0, 22.0, 28.0,
-            26.0, 22.0, 24.0,
-            38.0
-        }};
-        static constexpr std::array<double, 5> mainComponentDemoTimelineMarkerSeconds {{
-            8.0, 24.0, 32.0, 64.0, 80.0
-        }};
-
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;
         static constexpr int pianoRollPanelInsetY = 8;
