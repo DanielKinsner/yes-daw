@@ -70,8 +70,7 @@ callbacks, so it proved the component/model path but missed the real executable 
 - Green evidence: warnings-as-errors full build passes; focused `YesDawUiInputCheck` passes; full ctest
   passes 327/327.
 
-Checkpoint `fa354ed` is pushed. Its exact remote run is `31264982790`; eight of nine jobs are green and
-the remaining desktop build is still running as this follow-up is committed.
+Checkpoint `fa354ed` is exact-remote green in run `31264982790` across all nine jobs.
 
 ### Live desktop playback and playable reopen follow-up
 
@@ -91,12 +90,25 @@ the remaining desktop build is still running as this follow-up is committed.
   locked alpha-policy failure `playback_block_exceeds_target` because Windows granted 480 frames instead of
   128; the GUI accepts and builds for that actual 480-frame device contract.
 
-**Now:** commit and push the live desktop playback + playable reopen checkpoint, then confirm its exact
-remote CI run.
+**Done:** live desktop playback + playable reopen checkpoint `2bf5cfc` is exact-remote green in run
+`31266041206` across all nine jobs. The clean Windows package
+`dist/YesDaw-2bf5cfc-win64-portable.zip` is installed at
+`%LOCALAPPDATA%/YES DAW/2bf5cfc/YesDaw-2bf5cfc-win64-portable`; every packaged binary reports
+`2bf5cfc`, the 16/16 verifier policy fixtures and all eight integrity mutations pass under the supported
+Windows PowerShell host, and the installed self-check passes the real GUI-created one-Asset Project.
+
+The Desktop `YES DAW Alpha.lnk` targets that exact executable. It launched as `YES DAW 2bf5cfc`
+(PID 10828; SHA-256 `E2B544FC27280904EC3E77B4E0553B345835324ECC54A7C8E0DA340FD7403DBA`).
+Through the installed native Open dialog, the saved Project reopened with Play enabled; Loop + Play raised
+the default Focusrite endpoint from a `0.0000207` baseline peak to `0.353568`, then Stop returned with the
+GUI responsive.
+
+**Now:** the repaired build is installed, open, mechanically verified, and exact-remote green.
 
 **Next:** remove the mono-only WAV limitation so normal stereo Project audio imports, reopens, plays, and
-exports through the same mechanically proven path; then package, install, and prove the exact installed
-build.
+exports through the same mechanically proven path. This requires an explicit stereo-Track pan/balance
+decision because ADR-0008 and the current mixer graph intentionally define mono source -> stereo Pan;
+never hide that decision behind a lossy downmix.
 
 ---
 
