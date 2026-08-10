@@ -96,6 +96,7 @@ enum class UiActionId : std::uint8_t
     TransportToggleMetronome,
     TimelineMarkerAdd,
     TimelineMarkerRemove,
+    TimelineMidiClipAdd,
     Count
 };
 
@@ -426,6 +427,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineMarkerAdd, "timeline.marker.add", "Add Marker", "M", "Add marker at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Shift+M", "Remove nearest marker",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "Ctrl+M", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -943,6 +946,13 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineEditCount;
+                break;
+
+            case UiActionId::TimelineMidiClipAdd:
+                context.midiClipSelected = true;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.midiEditCount;
                 break;
 
             case UiActionId::Count:

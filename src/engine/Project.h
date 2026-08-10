@@ -1916,6 +1916,29 @@ namespace detail {
 
 // Insert a fully-specified Clip row referencing an EXISTING Asset and Track (paste/duplicate,
 // usable-DAW P1). The same storage-safety rules as import apply; identity must be fresh.
+// Insert an empty (or pre-filled) MIDI Clip on an existing Track (usable-DAW P1: sequence MIDI
+// without recording).
+[[nodiscard]] inline ProjectEditStatus addMidiClip (Project& project, const MidiClip& midiClip)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClip.id.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (detail::projectContainsEntityId (project, midiClip.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findTrack (midiClip.trackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (! midiClip.isValid() || midiClip.timelineStart < 0 || midiClip.timelineLength <= 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    project.midiClips.push_back (midiClip);
+    return ProjectEditStatus::Applied;
+}
+
 [[nodiscard]] inline ProjectEditStatus addClip (Project& project, const Clip& clip)
 {
     if (! detail::projectCanApplyClipEdit (project))

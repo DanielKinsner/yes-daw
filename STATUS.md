@@ -190,11 +190,19 @@ the production projection (playback + export), scheduler gates re-pinned (MIDI g
 refused by the parallel guard; loop first-pass identity + wrap energy), pitch/attack/release/
 block-size-invariance ADR gate green.
 
-**Next:** piano-roll pencil add (model verb exists — addPianoRollNoteAt) + MIDI clip creation
-without recording (needs AddMidiClip engine command),
-piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
-import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
-trim-left, copy/paste/duplicate clip, FX param editing).
+**DONE: MIDI clip creation + piano-roll pencil** — Ctrl+M (TimelineMidiClipAdd) adds an undoable
+one-bar MIDI Clip at the playhead on the selected track (new AddMidiClip engine command, head
+tempo/meter length, opens the piano roll); clicking EMPTY piano-roll grid pencils a note at the
+clicked tick (snap-grid quantized) and key, via addPianoRollNoteAt. Fixes riding along: (1)
+canAdoptEditWithoutPlaybackRebuild ignored MIDI clips, so MIDI edits in audio-clip-free projects
+never rebuilt playback; (2) renderPlaybackFrames passed caller block sizes straight through to
+processBlock — a request above the engine's build-time maxBlockSize (128 default) tripped the
+PlaybackEngine RT_FATAL frame-count invariant; it now renders in engine-sized chunks. New gates:
+[midi-only] end-to-end (create clip → pencil note → play → audible energy) and the [pencil] shell
+gate.
+
+**Next:** real device chooser, send/bus UI, FX param editing panel, export options (bit depth /
+sample rate / range), menu bar or remove painted one, track-rail mini pan/VOL/meter interactivity.
 
 ---
 

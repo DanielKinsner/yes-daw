@@ -683,3 +683,27 @@ TEST_CASE ("mute and solo are audible: the strip state drives the playback mute 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("midi-only project pencils a note and renders it audibly", "[ui][app][midi-only]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-only");
+
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath).ok());
+
+    REQUIRE (app.addMidiClipAtPlayhead().dispatched);
+    REQUIRE (app.project().midiClips.size() == 1u);
+
+    REQUIRE (app.addPianoRollNoteAt (0, 24'000, 69).dispatched);
+    REQUIRE (app.project().midiClips.front().notes.size() == 1u);
+
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> rendered = app.renderPlaybackFrames (24'000, 512);
+    double energy = 0.0;
+    for (const float sample : rendered)
+        energy += std::abs (static_cast<double> (sample));
+    REQUIRE (energy > 1.0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

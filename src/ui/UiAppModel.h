@@ -1026,6 +1026,12 @@ public:
         if (playback_ == nullptr || frames == 0 || blockSize <= 0)
             return {};
 
+        // The engine's processBlock contract caps numFrames at its build-time maxBlockSize;
+        // render in engine-sized chunks when the caller asks for more.
+        blockSize = std::min (blockSize, playback_->maxBlockSize());
+        if (blockSize <= 0)
+            return {};
+
         const int channels = static_cast<int> (playback_->channels());
         if (channels <= 0)
             return {};
@@ -1784,6 +1790,57 @@ public:
 
         ++context_.commandDispatchCount;
         ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
+    // Create a MIDI Clip on the selected Track at the playhead (usable-DAW P1): one bar at the head
+    // tempo/meter, selected for immediate piano-roll editing — MIDI without recording.
+    [[nodiscard]] UiActionDispatchResult addMidiClipAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineMidiClipAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (project_.tracks.empty())
+            return { id, { false, "no track for the MIDI clip" }, false };
+
+        const int selectedStrip = selectedMixerTrackStripIndex();
+        const std::size_t trackIndex = selectedStrip >= 0
+                && selectedStrip < static_cast<int> (project_.tracks.size())
+            ? static_cast<std::size_t> (selectedStrip)
+            : std::size_t {};
+        const engine::EntityId trackId = project_.tracks[trackIndex].id;
+
+        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        const double beatsPerBar = ! project_.meterMap.empty()
+            ? static_cast<double> (project_.meterMap.front().numerator)
+            : 4.0;
+        const engine::Tick barTicks = std::max<engine::Tick> (
+            1, static_cast<engine::Tick> (sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0) * beatsPerBar + 0.5));
+
+        engine::Project nextProject = project_;
+        const engine::EntityId midiClipId = allocateSessionEntityId (0xD5u, nextProject);
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::addMidiClip (
+                                  midiClipId,
+                                  trackId,
+                                  static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+                                  barTicks,
+                                  engine::TimeBase::SampleLocked)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "MIDI clip did not persist" }, false };
+
+        selectedMidiClipId_ = midiClipId;
+        selectedMidiNoteId_ = {};
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
         return { id, state, true };
     }
 
@@ -2658,6 +2715,9 @@ public:
                 return removeTimelineMarkerNearestTick (
                     static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
 
+            case UiActionId::TimelineMidiClipAdd:
+                return addMidiClipAtPlayhead();
+
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();
 
@@ -3359,9 +3419,13 @@ private:
 
     [[nodiscard]] bool canAdoptEditWithoutPlaybackRebuild (const engine::Project& nextProject) const noexcept
     {
+        // MIDI clips are renderable content too (ADR-0043): an edit touching a project that has or
+        // gains MIDI must rebuild playback, or penciled notes would stay silent.
         return decodedAssets_.empty()
             && project_.clips.empty()
-            && nextProject.clips.empty();
+            && nextProject.clips.empty()
+            && project_.midiClips.empty()
+            && nextProject.midiClips.empty();
     }
 
     [[nodiscard]] bool adoptEditedProjectWithoutPlaybackRebuild (

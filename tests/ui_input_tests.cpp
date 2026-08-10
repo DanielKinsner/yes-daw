@@ -3191,3 +3191,55 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.automationLanes.front().points.size() == 2u);
 }
+
+TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui][input][shell][pencil]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-pencil");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // Ctrl+M: a one-bar MIDI clip appears on the selected track and the piano roll opens.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.size() == 1u);
+    REQUIRE (project.midiClips.front().notes.empty());
+    REQUIRE (project.midiClips.front().timelineLength == 96'000);   // one 4/4 bar at 120 BPM / 48 kHz
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
+    REQUIRE (snapshot.context.midiClipSelected);
+
+    // Pencil: a click on the empty grid creates a note at the clicked key and snapped tick.
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    const yesdaw::engine::Note penciled = project.midiClips.front().notes.front();
+    REQUIRE (penciled.lengthTicks > 0);
+    REQUIRE (penciled.key >= yesdaw::ui::UiTheme::Layout::pianoRollLowKey);
+    REQUIRE (penciled.key <= yesdaw::ui::UiTheme::Layout::pianoRollHighKey);
+    REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+
+    // The synth makes it audible: play through the device-shaped harness and require energy.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    // Locate to the note start so the render window contains it.
+    const yesdaw::engine::Tick noteAbsoluteFrame =
+        project.midiClips.front().timelineStart + penciled.startTick;
+    (void) noteAbsoluteFrame;
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
+    double energy = 0.0;
+    for (const float sample : rendered)
+        energy += std::abs (static_cast<double> (sample));
+    REQUIRE (energy > 1.0);
+
+    // Backspace deletes the selected note.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::backspaceKey)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.empty());
+}

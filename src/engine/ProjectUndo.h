@@ -55,7 +55,8 @@ enum class ProjectEditVerb : std::uint8_t
     SetProjectTempo,
     SetProjectMeter,
     AddMarker,
-    RemoveMarker
+    RemoveMarker,
+    AddMidiClip
 };
 
 struct ProjectEditCommand
@@ -533,6 +534,22 @@ struct ProjectEditCommand
     }
 
     // Marker name rides the trackName array (same trivially-copyable command constraint).
+    [[nodiscard]] static constexpr ProjectEditCommand addMidiClip (EntityId midiClipId,
+                                                                    EntityId trackId,
+                                                                    Tick timelineStart,
+                                                                    Tick timelineLength,
+                                                                    TimeBase timeBase) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddMidiClip;
+        command.midiClipId = midiClipId;
+        command.trackId = trackId;
+        command.timelineStart = timelineStart;
+        command.timelineLength = timelineLength;
+        command.clipTimeBase = timeBase;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -704,7 +721,8 @@ namespace detail {
            || verb == ProjectEditVerb::CutNote
            || verb == ProjectEditVerb::QuantizeNote
            || verb == ProjectEditVerb::TransposeNote
-           || verb == ProjectEditVerb::AddNote;
+           || verb == ProjectEditVerb::AddNote
+           || verb == ProjectEditVerb::AddMidiClip;
 }
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
@@ -925,6 +943,17 @@ namespace detail {
 
         case ProjectEditVerb::RemoveMarker:
             return removeMarker (project, command.markerId);
+
+        case ProjectEditVerb::AddMidiClip:
+        {
+            MidiClip midiClip;
+            midiClip.id = command.midiClipId;
+            midiClip.trackId = command.trackId;
+            midiClip.timelineStart = command.timelineStart;
+            midiClip.timelineLength = command.timelineLength;
+            midiClip.timeBase = command.clipTimeBase;
+            return addMidiClip (project, midiClip);
+        }
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -990,6 +1019,20 @@ namespace detail {
                                                         const ProjectEditCommand& command,
                                                         ProjectMidiClipRowsDiff& out)
 {
+    if (command.verb == ProjectEditVerb::AddMidiClip)
+    {
+        std::size_t addedIndex = 0;
+        if (! findMidiClipIndex (after, command.midiClipId, addedIndex)
+            || after.midiClips.size() != before.midiClips.size() + 1u)
+            return false;
+
+        out = {};
+        out.firstMidiClipIndex = addedIndex;
+        out.before = {};
+        out.after = { after.midiClips[addedIndex] };
+        return true;
+    }
+
     std::size_t index = 0;
     if (! findMidiClipIndex (before, command.midiClipId, index))
         return false;

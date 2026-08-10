@@ -811,6 +811,7 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, std::int32_t)> onNoteTransposed;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteQuantized;
     std::function<void()> onExpressionRead;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::Tick, std::int16_t)> onNoteAdded;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
@@ -822,6 +823,29 @@ public:
         if (! hit)
         {
             dragState = {};
+            // Pencil (usable-DAW P1): a click on EMPTY grid adds a note at the clicked tick and key,
+            // snapped to the piano-roll grid.
+            if (surface.midiClipSelected && onNoteAdded)
+            {
+                const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+                if (geometry.grid.contains (event.getPosition()) && geometry.grid.getWidth() > 0)
+                {
+                    const double normalized =
+                        static_cast<double> (event.getPosition().x - geometry.grid.getX())
+                        / static_cast<double> (geometry.grid.getWidth());
+                    const auto timelineLength = static_cast<double> (pianoRollTimelineLength (surface));
+                    yesdaw::engine::Tick tick =
+                        static_cast<yesdaw::engine::Tick> (normalized * timelineLength);
+                    tick -= tick % kPianoRollSnapGridTicks;
+
+                    const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
+                    const int key = yesdaw::ui::UiTheme::Layout::pianoRollHighKey
+                        - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
+                    if (key >= yesdaw::ui::UiTheme::Layout::pianoRollLowKey
+                        && key <= yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
+                        onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
+                }
+            }
             return;
         }
 
@@ -1626,6 +1650,12 @@ public:
                                                  yesdaw::engine::Tick snapGridTicks) {
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.quantizeSelectedPianoRollNoteTo (yesdaw::engine::SnapGrid { snapGridTicks });
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteAdded = [this] (yesdaw::engine::EntityId midiClipId, yesdaw::engine::Tick tick, std::int16_t key) {
+            (void) midiClipId;
+            (void) appModel.addPianoRollNoteAt (tick, kPianoRollSnapGridTicks, key);
             refreshActionState();
             repaint();
         };
