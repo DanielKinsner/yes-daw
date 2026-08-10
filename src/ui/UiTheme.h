@@ -487,6 +487,10 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr double timelineZoomWheelStep = 1.25;
+        static constexpr double timelineZoomMin = 1.0;
+        static constexpr double timelineZoomMax = 64.0;
+        static constexpr double timelineScrollWheelFraction = 0.15;
         static constexpr int headerTempoTextWidth = 52;
         static constexpr int headerTempoTextHeight = 18;
         static constexpr double headerTempoMinBpm = 20.0;

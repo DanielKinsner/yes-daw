@@ -328,6 +328,8 @@ public:
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
+    std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
+    std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
 
     void paint (juce::Graphics& g) override
     {
@@ -541,6 +543,29 @@ public:
 
         if (onClipMoved)
             onClipMoved (drag.layoutClipId, nextStartSeconds, drag.mode == TimelineDragMode::SnapMove);
+    }
+
+    void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+    {
+        if (! stateProvider)
+            return;
+
+        const double delta = std::abs (wheel.deltaY) > std::abs (wheel.deltaX) ? wheel.deltaY : wheel.deltaX;
+        if (delta == 0.0)
+            return;
+
+        if (event.mods.isCtrlDown() || event.mods.isCommandDown())
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            const double anchor =
+                timelineSecondsAt (state, getLocalBounds(), event.getPosition()).value_or (state.viewport.scrollSeconds);
+            if (onZoomWheel)
+                onZoomWheel (anchor, static_cast<double> (wheel.deltaY));
+            return;
+        }
+
+        if (onScrollWheel)
+            onScrollWheel (delta);
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -1169,6 +1194,29 @@ public:
         timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds) {
             adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds);
         };
+        timelineInput.onZoomWheel = [this] (double anchorSeconds, double wheelDelta) {
+            const double factor = wheelDelta > 0.0
+                ? yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
+                : 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep;
+            const double previousZoom = timelineZoomFactor;
+            timelineZoomFactor = std::clamp (timelineZoomFactor * factor,
+                                             yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+                                             yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+            if (timelineZoomFactor != previousZoom)
+            {
+                // Keep the pointer's timeline position stationary while the density changes.
+                const double zoomRatio = previousZoom / timelineZoomFactor;
+                timelineScrollSeconds = anchorSeconds - (anchorSeconds - timelineScrollSeconds) * zoomRatio;
+            }
+            repaint();
+        };
+        timelineInput.onScrollWheel = [this] (double wheelDelta) {
+            const double visibleSeconds = std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    timelineTotalSeconds / std::max (1.0, timelineZoomFactor));
+            timelineScrollSeconds -= wheelDelta * visibleSeconds
+                                   * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction;
+            repaint();
+        };
         timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds) {
             const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
             const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
@@ -1484,6 +1532,8 @@ public:
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
     [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
+    [[nodiscard]] double harnessTimelineZoomFactor() const noexcept { return timelineZoomFactor; }
+    [[nodiscard]] double harnessTimelineScrollSeconds() const noexcept { return timelineScrollSeconds; }
     [[nodiscard]] int harnessVisibleTimelineTrackCount() const
     {
         return appModel.context().projectLoaded ? static_cast<int> (projectTimelineTracks.size()) : 0;
@@ -3563,13 +3613,21 @@ private:
 
         state.markers = nullptr;
         state.markerCount = 0;
-        state.viewport.scrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
-        state.viewport.pixelsPerSecond = static_cast<double> (juce::jmax (
-                                           yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
-                                           timelineInput.getWidth()
-                                               - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
-                                      / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
-                                                  state.totalSeconds);
+
+        // Live zoom + horizontal scroll (usable-DAW P1): zoom scales the fit-to-window density and
+        // the scroll offset is clamped so the view never runs past the timeline end.
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                              yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                              timelineInput.getWidth()
+                                                  - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * timelineZoomFactor;
+        const double visibleSeconds = static_cast<double> (juce::jmax (1, timelineInput.getWidth()))
+                                    / std::max (1.0, state.viewport.pixelsPerSecond);
+        const double maxScroll = std::max (0.0, state.totalSeconds - visibleSeconds);
+        timelineScrollSeconds = std::clamp (timelineScrollSeconds, 0.0, maxScroll);
+        state.viewport.scrollSeconds = timelineScrollSeconds;
         return state;
     }
 
@@ -4537,6 +4595,8 @@ private:
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     std::vector<yesdaw::engine::AssetContentHash> timelineClipAssetHashes;
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
+    double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
+    mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
@@ -4728,6 +4788,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.playbackLoopStartFrame = mainComponent->harnessPlaybackLoopStartFrame();
         snapshot.playbackLoopEndFrame = mainComponent->harnessPlaybackLoopEndFrame();
+        snapshot.timelineZoomFactor = mainComponent->harnessTimelineZoomFactor();
+        snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
         snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();

@@ -2900,3 +2900,47 @@ TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][sh
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
 }
+
+TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor == 1.0);
+
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    juce::MouseEvent ctrlWheel = makeMouseEvent (timeline, centre, centre, false, 1,
+                                                 juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    timeline.mouseWheelMove (ctrlWheel, wheelUp);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor > 1.0);
+
+    // Plain wheel scrolls; scroll clamps to zero at the left edge after zooming back out.
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    juce::MouseEvent plainWheel = makeMouseEvent (timeline, centre, centre, false, 1, juce::ModifierKeys {});
+    timeline.mouseWheelMove (plainWheel, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    const double scrolled = snapshot.timelineScrollSeconds;
+    REQUIRE (scrolled >= 0.0);
+
+    juce::MouseEvent ctrlWheelOut = makeMouseEvent (timeline, centre, centre, false, 1,
+                                                    juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    timeline.mouseWheelMove (ctrlWheelOut, wheelDown);
+    timeline.mouseWheelMove (ctrlWheelOut, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor == 1.0);   // clamped at fit-to-window
+}
