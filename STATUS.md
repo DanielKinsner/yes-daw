@@ -107,7 +107,13 @@ for Dan's hands-on pass. Screen-control for an agent-driven GUI proof was declin
 the interactive stereo/record pass is Dan's to click through — everything it exercises is already
 covered by the shipped-boundary gates in CI.
 
-**Next:** the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane canvas,
+**P1 progress (2026-08-10, after the P0 close):** user loop regions landed — shift-drag on the ruler
+sets the transport loop (gate-covered); and the new rapid-FX gate exposed + fixed a REAL latent bug:
+UiAppModel's stale private projectContainsEntityId copy never scanned FX-insert/automation-lane ids,
+so same-millisecond allocations collided and silently dropped the second edit (now delegates to the
+engine's authoritative scan; 15/15-failing repro now 0/15).
+
+**Next:** the rest of the P1 sweep (zoom/scroll, markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
