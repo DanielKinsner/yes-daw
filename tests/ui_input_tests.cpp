@@ -745,7 +745,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 74u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 75u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2823,6 +2823,43 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("menu bar model lists real menus and dispatches actions through the shell",
+           "[ui][input][shell][menubar]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("menubar");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "View", "Options", "Help" }));
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 6);
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 6);
+    REQUIRE (model->getMenuForIndex (4, "Help").getNumItems() == 1);
+
+    // File > New Project through the model creates a real bundle.
+    model->menuItemSelected (static_cast<int> (UiActionId::ProjectNew) + 1, 0);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+
+    // File > Import lands a clip; View > Mixer switches the active panel.
+    model->menuItemSelected (static_cast<int> (UiActionId::ProjectImportAudio) + 1, 0);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+    model->menuItemSelected (static_cast<int> (UiActionId::ViewMixer) + 1, 2);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("export bit-depth chooser drives a 16-bit PCM export through the real button",

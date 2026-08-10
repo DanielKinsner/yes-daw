@@ -199,6 +199,7 @@ struct UiTheme
         static constexpr int leftRailWidth = 318;
         static constexpr int inspectorWidth = 320;
         static constexpr int mixerHeight = 260;
+        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 22, 14, 320, 24 }; }
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 17;
         static constexpr int headerMenuWidth = 70;

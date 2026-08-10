@@ -227,8 +227,15 @@ lands (no resample hacks). Gates: [export-options] app gate (16-bit full project
 frame count at 24-bit, honest no-loop failure) + [exportopts] shell gate (real chooser + real
 Export button → PCM/16 header on disk).
 
-**Next:** send/bus UI, menu bar or remove painted one, track-rail mini pan/VOL/meter
-interactivity.
+**DONE: real menu bar** — the painted FILE/EDIT/VIEW/OPTIONS/HELP text is gone; a real
+juce::MenuBarComponent (`shell.menubar`) sits in the header. File (New/Open/Save/Save As/
+Import/Export), Edit (Undo/Redo/Copy/Paste/Duplicate/Delete), View (Timeline/Mixer/Piano Roll),
+Options (Metronome/Loop/Snap modes), Help (Keymap) — every item dispatches through the SAME
+handleAction path as the toolbar and keymap, with enable state from the action registry. Gate:
+[menubar] — model lists the five menus with correct item counts, and menu-driven New/Import/
+View-Mixer mutate the real project and panel.
+
+**Next:** send/bus UI, track-rail mini pan/VOL/meter interactivity.
 
 ---
 

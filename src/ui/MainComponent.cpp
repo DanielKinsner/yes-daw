@@ -1248,6 +1248,7 @@ public:
 };
 
 class MainComponent : public juce::Component,
+                      public juce::MenuBarModel,
                       private juce::Timer,
                       private juce::AudioIODeviceCallback
 {
@@ -1693,6 +1694,12 @@ public:
         };
         addAndMakeVisible (pianoRollInput);
 
+        menuBar.setModel (this);
+        menuBar.setComponentID ("shell.menubar");
+        menuBar.setName ("Menu bar");
+        menuBar.setTitle ("Menu bar");
+        addAndMakeVisible (menuBar);
+
         // Real audio device chooser (usable-DAW P1): lists the machine's output devices and switches
         // the live device on selection. The harness injects deterministic device seams; the native
         // shell enumerates and switches through the JUCE device manager.
@@ -1778,6 +1785,7 @@ public:
 
     ~MainComponent() override
     {
+        menuBar.setModel (nullptr);
         stopTimer();
         if (desktopAudioCallbackRegistered)
             audioDeviceManager.removeAudioCallback (this);
@@ -2083,6 +2091,7 @@ public:
         exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
         exportBitDepthChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportBitDepthChooserBounds());
         exportRangeChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportRangeChooserBounds());
+        menuBar.setBounds (yesdaw::ui::UiTheme::Layout::headerMenuBarBounds());
         masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
@@ -2960,6 +2969,70 @@ private:
         resumeDesktopAudioCallback();
     }
 
+    // Real menu bar (usable-DAW P1): the painted FILE/EDIT/VIEW text is gone; a juce::MenuBarComponent
+    // over the same header spot dispatches registered actions through the SAME handleAction path the
+    // toolbar and keymap use. The model is mechanically testable without opening popups.
+    juce::StringArray getMenuBarNames() override
+    {
+        return { "File", "Edit", "View", "Options", "Help" };
+    }
+
+    [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex)
+    {
+        using yesdaw::ui::UiActionId;
+        static constexpr std::array<UiActionId, 6> kFileMenu {
+            UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
+            UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
+        };
+        static constexpr std::array<UiActionId, 6> kEditMenu {
+            UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCopy,
+            UiActionId::TimelineClipPaste, UiActionId::TimelineClipDuplicate, UiActionId::TimelineClipDelete,
+        };
+        static constexpr std::array<UiActionId, 3> kViewMenu {
+            UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
+        };
+        static constexpr std::array<UiActionId, 6> kOptionsMenu {
+            UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
+            UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
+            UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
+        };
+        static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
+
+        switch (topLevelMenuIndex)
+        {
+            case 0: return kFileMenu;
+            case 1: return kEditMenu;
+            case 2: return kViewMenu;
+            case 3: return kOptionsMenu;
+            case 4: return kHelpMenu;
+            default: return {};
+        }
+    }
+
+    juce::PopupMenu getMenuForIndex (int topLevelMenuIndex, const juce::String&) override
+    {
+        juce::PopupMenu menu;
+        for (const yesdaw::ui::UiActionId action : menuActionsForIndex (topLevelMenuIndex))
+        {
+            const auto& descriptor =
+                yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)];
+            menu.addItem (static_cast<int> (action) + 1,
+                          descriptor.label,
+                          appModel.registry().stateFor (action, appModel.context()).enabled);
+        }
+        return menu;
+    }
+
+    void menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/) override
+    {
+        if (menuItemID <= 0 || menuItemID > static_cast<int> (yesdaw::ui::kUiActionCount))
+            return;
+
+        handleAction (static_cast<yesdaw::ui::UiActionId> (menuItemID - 1));
+        refreshActionState();
+        repaint();
+    }
+
     // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
     // talks to the JUCE device manager.
     [[nodiscard]] std::vector<std::string> enumerateAudioOutputDeviceNames()
@@ -3827,23 +3900,6 @@ private:
                     yesdaw::ui::UiTheme::Layout::panelOutlineInset),
                 yesdaw::ui::UiTheme::Radius::panel,
                 yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
-        }
-
-        g.setColour (kText);
-        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
-        int menuX = yesdaw::ui::UiTheme::Layout::headerMenuStartX;
-        for (const auto* menu : { "FILE", "EDIT", "VIEW", "OPTIONS", "HELP" })
-        {
-            g.drawText (menu,
-                        menuX,
-                        yesdaw::ui::UiTheme::Layout::headerMenuY,
-                        yesdaw::ui::UiTheme::Layout::headerMenuWidth,
-                        yesdaw::ui::UiTheme::Layout::headerMenuHeight,
-                        juce::Justification::centredLeft,
-                        false);
-            menuX += menu == std::string ("OPTIONS")
-                         ? yesdaw::ui::UiTheme::Layout::headerOptionsMenuStep
-                         : yesdaw::ui::UiTheme::Layout::headerMenuStep;
         }
 
         drawTransportReadouts (g);
@@ -5204,6 +5260,7 @@ private:
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
     juce::AudioDeviceManager audioDeviceManager;
+    juce::MenuBarComponent menuBar;
     juce::ComboBox audioDeviceChooser;
     std::vector<std::string> audioDeviceChooserNames;
     bool refreshingAudioDeviceChooser = false;
