@@ -114,6 +114,8 @@ so same-millisecond allocations collided and silently dropped the second edit (n
 engine's authoritative scan; 15/15-failing repro now 0/15).
 
 Timeline zoom + horizontal scroll landed (Ctrl+wheel anchored zoom 1x-64x, wheel scroll, clamped).
+Trim-left landed: plain left-edge drag trims the clip head (source window advances, end fixed);
+Alt+left-edge stays fade-in.
 
 **Next:** the rest of the P1 sweep (markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
