@@ -31,8 +31,9 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
 
 ## A. Everyday editing (highest value)
 
-1. **Ctrl+X cut clip** — copy to clipboard + delete, one undo group. Gate: cut → paste at
-   playhead reproduces the clip; single undo restores.
+1. [x] **Ctrl+X cut clip** — landed in `b8544f2` (exact-head run `31422183559`, nine jobs green).
+   Copy to clipboard + delete is one undoable edit; cut → paste at playhead reproduces the clip,
+   and the shipped-boundary gate proves the playback result is bit-identical.
 2. **Multi-select clips** — Shift+click adds/removes from selection; Ctrl+A selects all clips
    on the selected track; Ctrl+Shift+A selects all clips in the project. Delete/copy/move act
    on the whole selection as one undo group.

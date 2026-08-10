@@ -13,7 +13,7 @@ worklog.
 Canonical list: `docs/goals/2026-08-10-shortcut-and-workflow-parity-backlog.md`. Work is strictly
 top-to-bottom, one independently green item at a time.
 
-**Done locally for A1 — Ctrl+X cut clip:** audited the existing action descriptor table, live JUCE
+**Done and remote-green for A1 — Ctrl+X cut clip (`b8544f2`):** audited the existing action descriptor table, live JUCE
 key translation, clipboard copy/paste, DeleteClip command, persistence, playback rebuild, and undo
 path before adding anything. Added the unique `Ctrl+X` `TimelineClipCut` action at the end of the
 descriptor table and to both exhaustive action switches. The real chord now snapshots the selected
@@ -22,11 +22,11 @@ Edit > Cut uses the same action. The shipped-boundary `[cut]` UI-input gate prov
 silence after cut, one-step undo restoration, and redo-cut + paste reproducing bit-identical audio.
 Full local `ctest --preset ci` is green **340/340**. The native-shell test was run with the real
 last-project record temporarily isolated and restored because that test otherwise reopens the owner's
-current project by design.
+current project by design. Exact-head GitHub Actions run `31422183559` is green across all nine jobs:
+Linux, Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the A1 implementation, then require the exact-head GitHub Actions run green
-across all nine jobs. Once green, tick A1 in the canonical backlog with the implementation SHA in a
-small handoff commit and require that exact head remote-green too.
+**Now:** commit and push this small A1 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A2.
 
 **Next:** after the A1 checkpoint is fully recorded and remote-green, start A2 multi-select clips with
 a fresh `git pull --rebase` and another audit-first shipped-boundary slice.
