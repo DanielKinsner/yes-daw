@@ -88,6 +88,8 @@ enum class UiActionId : std::uint8_t
     MixerFxInsertAdd,
     MixerFxInsertRemove,
     MixerFxInsertToggle,
+    TransportSetTempo,
+    TransportSetMeter,
     Count
 };
 
@@ -400,7 +402,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerFxInsertRemove, "mixer.fx.insert.remove", "Remove FX", "Alt+Shift+X", "Remove FX insert from selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "Alt+B", "Toggle FX insert bypass on selected strip",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportSetMeter, "transport.set_meter", "Set Time Signature", "Ctrl+Alt+N", "Set project time signature",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -884,6 +890,13 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.mixerEditCount;
+                break;
+
+            case UiActionId::TransportSetTempo:
+            case UiActionId::TransportSetMeter:
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
                 break;
 
             case UiActionId::Count:

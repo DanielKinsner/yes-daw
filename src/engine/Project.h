@@ -626,7 +626,9 @@ enum class ProjectEditStatus : std::uint8_t
     TrackNotFound,
     TrackNotEmpty,
     InvalidTrackPosition,
-    InvalidTrackName
+    InvalidTrackName,
+    InvalidTempo,
+    InvalidMeter
 };
 
 struct Project
@@ -2107,6 +2109,46 @@ namespace detail {
             return ProjectEditStatus::TrackNotEmpty;
 
     project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (trackIndex));
+    return ProjectEditStatus::Applied;
+}
+
+// Alpha time-map editing (usable-DAW P0): a single Project-wide tempo and meter — the head of each
+// map. Multi-segment tempo/meter editing arrives with the tempo-map UI later.
+[[nodiscard]] inline ProjectEditStatus setProjectTempo (Project& project, double bpm)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! std::isfinite (bpm) || bpm < 20.0 || bpm > 400.0)
+        return ProjectEditStatus::InvalidTempo;
+
+    if (project.tempoMap.empty())
+        project.tempoMap.push_back (TempoChange { 0, bpm, TempoCurve::Jump });
+    else
+        project.tempoMap.front().bpm = bpm;
+
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setProjectMeter (Project& project,
+                                                        std::uint16_t numerator,
+                                                        std::uint16_t denominator)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    const bool denominatorIsPowerOfTwo = denominator > 0 && (denominator & (denominator - 1u)) == 0u;
+    if (numerator == 0 || numerator > 32 || ! denominatorIsPowerOfTwo || denominator > 32)
+        return ProjectEditStatus::InvalidMeter;
+
+    if (project.meterMap.empty())
+        project.meterMap.push_back (MeterChange { 0, numerator, denominator });
+    else
+    {
+        project.meterMap.front().numerator = numerator;
+        project.meterMap.front().denominator = denominator;
+    }
+
     return ProjectEditStatus::Applied;
 }
 

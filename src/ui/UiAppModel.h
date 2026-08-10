@@ -1192,6 +1192,47 @@ public:
         return strip != nullptr ? strip->fxChain : std::vector<engine::FxInsert> {};
     }
 
+    [[nodiscard]] UiActionDispatchResult setProjectTempoBpm (double bpm)
+    {
+        const UiActionId id = UiActionId::TransportSetTempo;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setProjectTempo (bpm)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "tempo edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult setProjectMeterSignature (std::uint16_t numerator,
+                                                                   std::uint16_t denominator)
+    {
+        const UiActionId id = UiActionId::TransportSetMeter;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setProjectMeter (numerator, denominator)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "meter edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleFirstTrackFxSlotEnabled()
     {
         const UiActionId id = UiActionId::MixerToggleFirstFxSlotEnabled;
@@ -1935,6 +1976,16 @@ public:
                     return { id, currentState, false };
 
                 return { id, { false, "FX slot payload required" }, false };
+            }
+
+            case UiActionId::TransportSetTempo:
+            case UiActionId::TransportSetMeter:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "time map payload required" }, false };
             }
 
             case UiActionId::MixerSetFirstSendLevel:

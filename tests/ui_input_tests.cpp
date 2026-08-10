@@ -743,7 +743,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 46u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 48u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2810,4 +2810,48 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",
+           "[ui][input][shell][timemap]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("time-map");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    auto* tempo = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    auto* meter = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "transport.set_meter"));
+    REQUIRE (tempo != nullptr);
+    REQUIRE (meter != nullptr);
+    REQUIRE_FALSE (tempo->isEnabled());   // disabled before a project exists
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (tempo->isEnabled());
+    REQUIRE (meter->isEnabled());
+
+    tempo->setValue (140.0, juce::sendNotificationSync);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tempoMap.empty());
+    REQUIRE (project.tempoMap.front().bpm == 140.0);
+
+    meter->setSelectedId (3, juce::sendNotificationSync);   // 6/8 in kHeaderMeterChoices order
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.meterMap.empty());
+    REQUIRE (project.meterMap.front().numerator == 6);
+    REQUIRE (project.meterMap.front().denominator == 8);
+
+    // Both edits are on the undo stack.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE ((project.meterMap.empty() || project.meterMap.front().numerator != 6));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE ((project.tempoMap.empty() || project.tempoMap.front().bpm != 140.0));
 }

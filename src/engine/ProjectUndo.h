@@ -50,7 +50,9 @@ enum class ProjectEditVerb : std::uint8_t
     AddTrack,
     RenameTrack,
     ReorderTrack,
-    RemoveTrack
+    RemoveTrack,
+    SetProjectTempo,
+    SetProjectMeter
 };
 
 struct ProjectEditCommand
@@ -107,6 +109,10 @@ struct ProjectEditCommand
     double noteVelocity = 1.0;
     std::int16_t notePort = -1;
     std::int16_t noteChannel = -1;
+
+    double tempoBpm = 120.0;
+    std::uint16_t meterNumerator = 4;
+    std::uint16_t meterDenominator = 4;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
 
@@ -500,6 +506,24 @@ struct ProjectEditCommand
         command.trackId = trackId;
         return command;
     }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setProjectTempo (double bpm) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetProjectTempo;
+        command.tempoBpm = bpm;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setProjectMeter (std::uint16_t numerator,
+                                                                       std::uint16_t denominator) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetProjectMeter;
+        command.meterNumerator = numerator;
+        command.meterDenominator = denominator;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -539,6 +563,15 @@ struct ProjectAutomationLaneRowsDiff
     std::vector<AutomationLaneData> after;
 };
 
+// Time-map diffs snapshot both maps whole: head edits are tiny and undo stays bit-exact.
+struct ProjectTimeMapRowsDiff
+{
+    std::vector<TempoChange> tempoBefore;
+    std::vector<TempoChange> tempoAfter;
+    std::vector<MeterChange> meterBefore;
+    std::vector<MeterChange> meterAfter;
+};
+
 // Track lifecycle diffs snapshot the WHOLE tracks vector: add/remove/reorder move rows across
 // indices, and track counts are small, so whole-vector before/after keeps undo bit-exact and simple.
 struct ProjectTrackRowsDiff
@@ -556,6 +589,7 @@ struct ProjectEditTransaction
     ProjectFxChainRowsDiff fxDiff;
     ProjectAutomationLaneRowsDiff automationDiff;
     ProjectTrackRowsDiff trackDiff;
+    ProjectTimeMapRowsDiff timeMapDiff;
 };
 
 struct ProjectEditApplyResult
@@ -625,6 +659,12 @@ namespace detail {
            || verb == ProjectEditVerb::RenameTrack
            || verb == ProjectEditVerb::ReorderTrack
            || verb == ProjectEditVerb::RemoveTrack;
+}
+
+[[nodiscard]] constexpr bool isTimeMapEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::SetProjectTempo
+           || verb == ProjectEditVerb::SetProjectMeter;
 }
 
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
@@ -790,6 +830,12 @@ namespace detail {
 
         case ProjectEditVerb::RemoveTrack:
             return removeTrack (project, command.trackId);
+
+        case ProjectEditVerb::SetProjectTempo:
+            return setProjectTempo (project, command.tempoBpm);
+
+        case ProjectEditVerb::SetProjectMeter:
+            return setProjectMeter (project, command.meterNumerator, command.meterDenominator);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -922,6 +968,40 @@ namespace detail {
 
     out.after = { after.automationLanes[afterIndex] };
     return out.before != out.after;
+}
+
+[[nodiscard]] inline bool buildProjectTimeMapRowsDiff (const Project& before,
+                                                       const Project& after,
+                                                       ProjectTimeMapRowsDiff& out)
+{
+    if (before.tempoMap == after.tempoMap && before.meterMap == after.meterMap)
+        return false;
+
+    out = {};
+    out.tempoBefore = before.tempoMap;
+    out.tempoAfter = after.tempoMap;
+    out.meterBefore = before.meterMap;
+    out.meterAfter = after.meterMap;
+    return true;
+}
+
+[[nodiscard]] inline bool applyTimeMapRowsDiff (Project& project,
+                                                const std::vector<TempoChange>& expectedTempo,
+                                                const std::vector<TempoChange>& replacementTempo,
+                                                const std::vector<MeterChange>& expectedMeter,
+                                                const std::vector<MeterChange>& replacementMeter)
+{
+    if (! (project.tempoMap == expectedTempo) || ! (project.meterMap == expectedMeter))
+        return false;
+
+    Project edited = project;
+    edited.tempoMap = replacementTempo;
+    edited.meterMap = replacementMeter;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
 }
 
 [[nodiscard]] inline bool buildProjectTrackRowsDiff (const Project& before,
@@ -1177,6 +1257,13 @@ namespace detail {
                     : applyTrackRowsDiff (project, transaction.trackDiff.after, transaction.trackDiff.before);
     }
 
+    if (isTimeMapEditVerb (transaction.command.verb))
+    {
+        const ProjectTimeMapRowsDiff& diff = transaction.timeMapDiff;
+        return redo ? applyTimeMapRowsDiff (project, diff.tempoBefore, diff.tempoAfter, diff.meterBefore, diff.meterAfter)
+                    : applyTimeMapRowsDiff (project, diff.tempoAfter, diff.tempoBefore, diff.meterAfter, diff.meterBefore);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -1206,6 +1293,8 @@ namespace detail {
         diffBuilt = detail::buildProjectAutomationLaneRowsDiff (before, project, command, transaction.automationDiff);
     else if (detail::isTrackEditVerb (command.verb))
         diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff);
+    else if (detail::isTimeMapEditVerb (command.verb))
+        diffBuilt = detail::buildProjectTimeMapRowsDiff (before, project, transaction.timeMapDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

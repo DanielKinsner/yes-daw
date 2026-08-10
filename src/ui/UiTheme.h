@@ -487,6 +487,12 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int headerTempoTextWidth = 52;
+        static constexpr int headerTempoTextHeight = 18;
+        static constexpr double headerTempoMinBpm = 20.0;
+        static constexpr double headerTempoMaxBpm = 400.0;
+        static constexpr double headerTempoStepBpm = 0.5;
+        static constexpr double headerTempoDefaultBpm = 120.0;
         static constexpr int mixerFxChooserHeight = 22;
         static constexpr int mixerFxSlotHeight = 20;
         static constexpr int mixerFxSlotGap = 2;

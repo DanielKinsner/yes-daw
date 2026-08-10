@@ -44,6 +44,9 @@ constexpr yesdaw::engine::Tick kTimelineSnapGridTicks =
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
+constexpr std::array<std::pair<std::uint16_t, std::uint16_t>, 6> kHeaderMeterChoices {{
+    { 4, 4 }, { 3, 4 }, { 6, 8 }, { 2, 4 }, { 5, 4 }, { 7, 8 }
+}};
 constexpr const char* kPianoRollComponentId = "piano-roll.canvas";
 constexpr const char* kInspectorStartComponentId = "clip.inspector.start";
 constexpr const char* kInspectorEndComponentId = "clip.inspector.end";
@@ -1162,6 +1165,51 @@ public:
         };
         addAndMakeVisible (trackListInput);
 
+        // Header tempo + time-signature editing (usable-DAW P0): the painted readouts become real
+        // undoable controls. Tempo is a drag/scrub bar over the TEMPO cell; meter picks common signatures.
+        configureActionComponent (headerTempoControl, yesdaw::ui::UiActionId::TransportSetTempo, "Set tempo");
+        headerTempoControl.setSliderStyle (juce::Slider::LinearBar);
+        headerTempoControl.setTextBoxStyle (juce::Slider::TextBoxLeft,
+                                            false,
+                                            yesdaw::ui::UiTheme::Layout::headerTempoTextWidth,
+                                            yesdaw::ui::UiTheme::Layout::headerTempoTextHeight);
+        headerTempoControl.setRange (yesdaw::ui::UiTheme::Layout::headerTempoMinBpm,
+                                     yesdaw::ui::UiTheme::Layout::headerTempoMaxBpm,
+                                     yesdaw::ui::UiTheme::Layout::headerTempoStepBpm);
+        headerTempoControl.setValue (yesdaw::ui::UiTheme::Layout::headerTempoDefaultBpm,
+                                     juce::dontSendNotification);
+        headerTempoControl.setColour (juce::Slider::trackColourId, yesdaw::ui::UiTheme::Color::darkControl());
+        headerTempoControl.setColour (juce::Slider::textBoxTextColourId, kText);
+        headerTempoControl.onValueChange = [this] {
+            if (refreshingTimeMapControls || ! headerTempoControl.isEnabled())
+                return;
+
+            (void) appModel.setProjectTempoBpm (headerTempoControl.getValue());
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (headerTempoControl);
+
+        configureActionComponent (headerMeterChooser, yesdaw::ui::UiActionId::TransportSetMeter, "Set time signature");
+        for (std::size_t i = 0; i < kHeaderMeterChoices.size(); ++i)
+            headerMeterChooser.addItem (juce::String (kHeaderMeterChoices[i].first)
+                                            + "/" + juce::String (kHeaderMeterChoices[i].second),
+                                        static_cast<int> (i) + 1);
+        headerMeterChooser.onChange = [this] {
+            if (refreshingTimeMapControls)
+                return;
+
+            const int selected = headerMeterChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            const auto& choice = kHeaderMeterChoices[static_cast<std::size_t> (selected - 1)];
+            (void) appModel.setProjectMeterSignature (choice.first, choice.second);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (headerMeterChooser);
+
         configureActionComponent (trackAddButton, yesdaw::ui::UiActionId::TrackAdd, "Add audio track");
         trackAddButton.setButtonText ("+ Track");
         trackAddButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
@@ -1558,6 +1606,23 @@ public:
             auto strips = mixerPanelBounds();
             strips.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
             mixerStripsInput.setBounds (strips);
+        }
+        {
+            auto box = juce::Rectangle<int> (
+                yesdaw::ui::UiTheme::Layout::headerTransportBoxX,
+                yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
+                yesdaw::ui::UiTheme::Layout::headerTransportBoxWidth,
+                yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
+            auto tempoCell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
+            headerTempoControl.setBounds (
+                tempoCell.reduced (yesdaw::ui::UiTheme::Layout::headerTransportCellInsetX,
+                                   yesdaw::ui::UiTheme::Layout::headerTransportValueInsetY)
+                    .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportValueHeight));
+            auto meterCell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
+            headerMeterChooser.setBounds (
+                meterCell.reduced (yesdaw::ui::UiTheme::Layout::headerTransportCellInsetX,
+                                   yesdaw::ui::UiTheme::Layout::headerTransportValueInsetY)
+                    .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportValueHeight));
         }
         {
             const auto rail = leftRailPanelBounds();
@@ -2478,6 +2543,25 @@ private:
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        {
+            refreshingTimeMapControls = true;
+            const bool tempoEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::TransportSetTempo, appModel.context()).enabled;
+            headerTempoControl.setEnabled (tempoEnabled);
+            headerMeterChooser.setEnabled (
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::TransportSetMeter, appModel.context()).enabled);
+            if (appModel.context().projectLoaded && ! appModel.project().tempoMap.empty())
+                headerTempoControl.setValue (appModel.project().tempoMap.front().bpm, juce::dontSendNotification);
+            if (appModel.context().projectLoaded && ! appModel.project().meterMap.empty())
+            {
+                const auto& head = appModel.project().meterMap.front();
+                for (std::size_t i = 0; i < kHeaderMeterChoices.size(); ++i)
+                    if (kHeaderMeterChoices[i].first == head.numerator
+                        && kHeaderMeterChoices[i].second == head.denominator)
+                        headerMeterChooser.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
+            }
+            refreshingTimeMapControls = false;
+        }
         {
             const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
             const bool chooserEnabled =
@@ -4368,6 +4452,8 @@ private:
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
+    juce::Slider headerTempoControl;
+    juce::ComboBox headerMeterChooser;
     juce::ComboBox mixerFxAddChooser;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
@@ -4405,6 +4491,7 @@ private:
     juce::ComboBox inspectorFadeCurve;
     std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
+    bool refreshingTimeMapControls = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
 
