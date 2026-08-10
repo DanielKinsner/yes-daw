@@ -1,13 +1,22 @@
-// YES DAW — PanNode: equal-power mono->stereo placement behind the Node contract (ADR-0008).
+// YES DAW — PanNode: equal-power stereo placement behind the Node contract (ADR-0008 / ADR-0042).
 //
-// Reads one mono input channel and writes a stereo pair using a constant-power pan law (gL = cos t,
-// gR = sin t, with t sweeping 0..pi/2 as pan goes -1..+1, so gL^2 + gR^2 == 1 at every position). The
-// pan position is ramped per frame (no zipper, Block-size-independent), and the cos/sin are taken from a
-// lookup table built once in prepare() — never std::cos/std::sin in the per-frame read path (the ADR-0008
-// per-Block-evaluation rule). The LUT is a per-instance member, so it is ready before any audio-thread
-// call with no static-init-order or first-use-on-audio-thread hazard.
+// Widen mode (the original behavior): reads one mono input channel and writes a stereo pair using a
+// constant-power pan law (gL = cos t, gR = sin t, with t sweeping 0..pi/2 as pan goes -1..+1, so
+// gL^2 + gR^2 == 1 at every position).
 //
-// Pure C++ — no JUCE — so RTSan/TSan cover process(). NOT in-place eligible: it widens 1 channel to 2.
+// Balance mode (ADR-0042, for stereo strips): reads a stereo pair and attenuates only the FAR channel
+// along the same quarter-cosine taper (gFar = cos(|p| * pi/2)); the near channel stays at unity and the
+// channels are never blended. Centre passes both channels bit-exactly (gain 1.0).
+//
+// In both modes the pan position is ramped per frame (no zipper, Block-size-independent), and the
+// cos/sin are taken from a lookup table built once in prepare() — never std::cos/std::sin in the
+// per-frame read path (the ADR-0008 per-Block-evaluation rule). The LUT is a per-instance member, so it
+// is ready before any audio-thread call with no static-init-order or first-use-on-audio-thread hazard.
+// Both modes share the parameter id, normalized mapping, and event machinery, so automation and
+// applySetPan work identically regardless of strip width.
+//
+// Pure C++ — no JUCE — so RTSan/TSan cover process(). NOT in-place eligible: widen mode grows 1
+// channel to 2 (balance mode simply keeps the same non-aliased buffer contract).
 
 #pragma once
 
@@ -28,10 +37,18 @@ class PanNode final : public Node
 public:
     static constexpr ParameterId kPanParameterId = 1;
 
+    // How the node interprets its input width (ADR-0042). Widen: mono in channel 0 -> equal-power
+    // stereo. Balance: stereo in channels 0/1 -> far-channel equal-power-taper attenuation, unity centre.
+    enum class Mode
+    {
+        Widen,
+        Balance
+    };
+
     static_assert (std::atomic<std::uint64_t>::is_always_lock_free,
                    "PanNode command revision must stay lock-free on the audio thread");
 
-    explicit PanNode (NodeId id = 0) noexcept : id_ (id) {}
+    explicit PanNode (NodeId id = 0, Mode mode = Mode::Widen) noexcept : id_ (id), mode_ (mode) {}
 
     NodeProperties properties() const noexcept override
     {
@@ -122,6 +139,8 @@ public:
     }
     void setInput (Node* in) noexcept { input_ = in; }
 
+    [[nodiscard]] Mode mode() const noexcept { return mode_; }
+
     [[nodiscard]] static float panForNormalizedEvent (double normalizedValue) noexcept
     {
         if (! std::isfinite (normalizedValue))
@@ -159,27 +178,47 @@ private:
         if (beginFrame >= endFrame)
             return;
 
-        float* const L   = args.audio.channels[0];   // mono input arrives here; becomes the left output
+        float* const L   = args.audio.channels[0];   // widen: mono input arrives here; balance: left input
         float* const R   = args.audio.channels[1];
         const float* lut = cosTable_.data();
         const int    last = kTableSize - 1;
 
-        for (int i = beginFrame; i < endFrame; ++i)
+        if (mode_ == Mode::Widen)
         {
-            const float p   = pan_.next();                                   // per-frame ramp -> Block-invariant
-            const float t   = (p + 1.0f) * 0.5f;                             // [-1,+1] -> [0,1]
-            int         j   = static_cast<int> (t * static_cast<float> (last) + 0.5f);
-            j               = j < 0 ? 0 : (j > last ? last : j);
-            const float gL  = lut[j];
-            const float gR  = lut[last - j];
+            for (int i = beginFrame; i < endFrame; ++i)
+            {
+                const float p   = pan_.next();                               // per-frame ramp -> Block-invariant
+                const float t   = (p + 1.0f) * 0.5f;                         // [-1,+1] -> [0,1]
+                int         j   = static_cast<int> (t * static_cast<float> (last) + 0.5f);
+                j               = j < 0 ? 0 : (j > last ? last : j);
+                const float gL  = lut[j];
+                const float gR  = lut[last - j];
 
-            const float in  = L[i];                                          // capture mono input first
-            L[i] = in * gL;
-            R[i] = in * gR;
+                const float in  = L[i];                                      // capture mono input first
+                L[i] = in * gL;
+                R[i] = in * gR;
+            }
+        }
+        else
+        {
+            for (int i = beginFrame; i < endFrame; ++i)
+            {
+                const float p = pan_.next();                                 // per-frame ramp -> Block-invariant
+                const float a = p < 0.0f ? -p : p;                           // |p| in [0,1]
+                int         j = static_cast<int> (a * static_cast<float> (last) + 0.5f);
+                j             = j < 0 ? 0 : (j > last ? last : j);
+                const float far = lut[j];                                    // cos(|p| * pi/2); j==0 -> exactly 1
+
+                if (p > 0.0f)
+                    L[i] *= far;                                             // panned right: attenuate left
+                else if (p < 0.0f)
+                    R[i] *= far;                                             // panned left: attenuate right
+            }
         }
     }
 
     NodeId             id_;
+    Mode               mode_ = Mode::Widen;
     Node*              input_ = nullptr;
     std::atomic<float> requestedPan_ { 0.0f };     // centre by default
     std::atomic<std::uint64_t> requestedPanVersion_ { 0 };

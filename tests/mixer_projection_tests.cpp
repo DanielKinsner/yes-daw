@@ -316,7 +316,7 @@ MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [mutation] (const Project& sourceProject, const Clip& clip, const Asset& asset, NodeId expectedSourceId)
+        [mutation] (const Project& sourceProject, const Clip& clip, const Asset& asset, NodeId expectedSourceId, int)
             -> std::unique_ptr<Node>
         {
             return makeDecodedProjectSource (sourceProject, clip, asset, expectedSourceId, mutation);
@@ -761,7 +761,7 @@ TEST_CASE ("Project projector rejects automation lanes whose target is not proje
     REQUIRE_FALSE (projectToMixerProjectionInputs (
         project,
         config,
-        [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId)
+        [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
             -> std::unique_ptr<Node>
         {
             return std::make_unique<IdentityDcNode> (expectedSourceId, 1.0f, 1);
@@ -816,7 +816,7 @@ TEST_CASE ("Project projector rejects invalid Project and invalid clip gain befo
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
                 -> std::unique_ptr<Node>
             {
                 factoryCalled = true;
@@ -839,7 +839,7 @@ TEST_CASE ("Project projector rejects invalid Project and invalid clip gain befo
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
                 -> std::unique_ptr<Node>
             {
                 factoryCalled = true;
@@ -870,7 +870,7 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId)
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
                 -> std::unique_ptr<Node>
             {
                 factoryCalled = true;
@@ -894,7 +894,7 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [] (const Project&, const Clip&, const Asset&, NodeId)
+            [] (const Project&, const Clip&, const Asset&, NodeId, int)
                 -> std::unique_ptr<Node>
             {
                 return nullptr;
@@ -916,7 +916,7 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId)
+            [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
                 -> std::unique_ptr<Node>
             {
                 return std::make_unique<IdentityDcNode> (expectedSourceId + 1u, 1.0f, 1);
@@ -1196,12 +1196,13 @@ TEST_CASE ("Mixer projection exposes fader and pan nodes to existing scalar rout
     REQUIRE (out.right.back() == Approx (0.0f).margin (1.0e-4f));
 }
 
-TEST_CASE ("Mixer projection rejects non-mono track sources before graph build", "[mixer][projection][invalid]")
+TEST_CASE ("Mixer projection rejects wider-than-stereo track sources before graph build", "[mixer][projection][invalid]")
 {
+    // ADR-0042: mono and stereo sources are both valid strip widths; anything wider is rejected.
     MixerProjectionInputs inputs = baseProjection (4);
 
     MixerTrackProjection track;
-    track.source = std::make_unique<IdentityDcNode> (130, 0.5f, 2);
+    track.source = std::make_unique<IdentityDcNode> (130, 0.5f, 3);
     track.faderNodeId = 230;
     track.panNodeId = 330;
     track.meterNodeId = 430;
@@ -1213,6 +1214,43 @@ TEST_CASE ("Mixer projection rejects non-mono track sources before graph build",
     REQUIRE (graph == nullptr);
     REQUIRE (error.code == MixerProjectionError::Code::UnsupportedTrackSource);
     REQUIRE (error.trackIndex == 0u);
+}
+
+TEST_CASE ("Mixer projection accepts a stereo track source and balances it (ADR-0042)",
+           "[mixer][projection][stereo]")
+{
+    // A stereo source runs the strip at width 2: centre passes both channels at unity; full right
+    // zeroes the left channel and leaves the right at unity (balance law, never blended).
+    const auto renderStereoDc = [] (float pan) -> StereoCapture
+    {
+        MixerProjectionInputs inputs = baseProjection (4);
+
+        MixerTrackProjection track;
+        track.source = std::make_unique<IdentityDcNode> (130, 0.5f, 2);
+        track.faderNodeId = 230;
+        track.panNodeId = 330;
+        track.meterNodeId = 430;
+        track.pan = pan;
+        inputs.tracks.push_back (std::move (track));
+
+        MixerProjectionError error;
+        std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+        REQUIRE (graph != nullptr);
+        REQUIRE (error.code == MixerProjectionError::Code::None);
+        return render (*graph, kMaxBlock);
+    };
+
+    const StereoCapture centre = renderStereoDc (0.0f);
+    REQUIRE (centre.left.back() == Approx (0.5f).margin (1.0e-5f));
+    REQUIRE (centre.right.back() == Approx (0.5f).margin (1.0e-5f));
+
+    const StereoCapture right = renderStereoDc (1.0f);
+    REQUIRE (right.left.back() == Approx (0.0f).margin (1.0e-5f));
+    REQUIRE (right.right.back() == Approx (0.5f).margin (1.0e-5f));
+
+    const StereoCapture left = renderStereoDc (-1.0f);
+    REQUIRE (left.left.back() == Approx (0.5f).margin (1.0e-5f));
+    REQUIRE (left.right.back() == Approx (0.0f).margin (1.0e-5f));
 }
 
 TEST_CASE ("Mixer projection rejects invalid scalar values before graph build", "[mixer][projection][invalid]")

@@ -112,7 +112,7 @@ std::unique_ptr<CompiledGraph> buildProjectMixerGraph (GraphId graphId)
     REQUIRE (projectToMixerProjectionInputs (
         project,
         config,
-        [] (const Project&, const Clip& clip, const Asset&, NodeId expectedSourceId)
+        [] (const Project&, const Clip& clip, const Asset&, NodeId expectedSourceId, int)
             -> std::unique_ptr<Node>
         {
             return std::make_unique<IdentityDcNode> (expectedSourceId, clip.gain, 1);

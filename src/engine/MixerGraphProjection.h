@@ -140,6 +140,25 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     return h == 0u ? 1u : h;
 }
 
+// ADR-0042: a mono tap feeding a stereo Bus passes through a fixed centre widen stage so its centred
+// loudness matches what the mono-bus return path produces. The widen node's id is derived from the tap
+// and the bus, like the hashed send-level ids.
+[[nodiscard]] inline NodeId mixerBusMonoWidenNodeId (NodeId tapNodeId, NodeId busSumNodeId) noexcept
+{
+    std::uint32_t h = 2166136261u;
+    const auto mix = [&h] (std::uint32_t value) noexcept
+    {
+        h ^= value;
+        h *= 16777619u;
+    };
+
+    mix (tapNodeId);
+    mix (busSumNodeId);
+    mix (0xB05713D0u);
+
+    return h == 0u ? 1u : h;
+}
+
 [[nodiscard]] inline NodeId mixerBusFaderNodeId (NodeId busSumNodeId) noexcept
 {
     std::uint32_t h = 2166136261u;
@@ -231,8 +250,10 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             return nullptr;
         }
 
+        // ADR-0042: a Track source is mono or stereo. The strip runs at the source's width; the pan
+        // slot widens a mono strip (equal-power Pan) or balances a stereo strip.
         const NodeProperties sourceProps = track.source->properties();
-        if (! sourceProps.producesAudio || sourceProps.channels != 1)
+        if (! sourceProps.producesAudio || sourceProps.channels < 1 || sourceProps.channels > 2)
         {
             if (error != nullptr)
             {
@@ -241,6 +262,9 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             }
             return nullptr;
         }
+
+        const int stripWidth = sourceProps.channels;
+        const PanNode::Mode stripPanMode = stripWidth == 2 ? PanNode::Mode::Balance : PanNode::Mode::Widen;
 
         if (! mixerGainIsValid (track.linearGain))
         {
@@ -283,7 +307,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
                 return nullptr;
             }
 
-            sidechain = std::make_unique<SidechainGainNode> (track.sidechainNodeId, 1);
+            sidechain = std::make_unique<SidechainGainNode> (track.sidechainNodeId, stripWidth);
             sidechain->setMainInput (sourcePtr);
             sidechain->setSidechainInput (track.sidechainSource.get());
             chainHead = sidechain.get();
@@ -295,7 +319,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 
         if (! track.insertNodes.empty())
         {
-            pan = std::make_unique<PanNode> (track.panNodeId);
+            pan = std::make_unique<PanNode> (track.panNodeId, stripPanMode);
             panPtr = pan.get();
             panPtr->setInput (chainHead);
             panPtr->setPan (track.pan);
@@ -410,7 +434,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 
         if (pan == nullptr)
         {
-            pan = std::make_unique<PanNode> (track.panNodeId);
+            pan = std::make_unique<PanNode> (track.panNodeId, stripPanMode);
             panPtr = pan.get();
             panPtr->setInput (faderPtr);
             panPtr->setPan (track.pan);
@@ -476,11 +500,35 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
             return nullptr;
         }
 
-        // The Bus sums its (mono) Send taps in mono; the Return then widens to centred stereo through its
-        // own Pan -> Meter, mirroring the Track chain (ADR-0014). A mono Return summed straight into the
-        // stereo master is audible in the left channel only — a mono signal into a stereo master must be
-        // centred, the way a mono Track centres via its Pan node.
-        auto busSum = std::make_unique<SumNode> (bus.sumNodeId, 1);
+        // Bus width derives from its taps (ADR-0042): all-mono taps keep the original mono Sum whose
+        // Return widens to centred stereo through its own Pan -> Meter (ADR-0014) — that path is
+        // untouched and bit-identical. Any stereo tap makes the Bus stereo: the Sum runs at width 2,
+        // mono taps pass through a fixed centre widen stage, and the Return's pan slot runs in Balance
+        // mode. A mono Return summed straight into the stereo master would be audible in the left
+        // channel only — a mono signal into a stereo master must be centred.
+        int busWidth = 1;
+        for (Node* const tap : busInputs[i])
+            if (tap != nullptr && tap->properties().channels >= 2)
+                busWidth = 2;
+
+        std::vector<std::unique_ptr<PanNode>> monoTapWideners;
+        if (busWidth == 2)
+        {
+            for (Node*& tap : busInputs[i])
+            {
+                if (tap == nullptr || tap->properties().channels >= 2)
+                    continue;
+
+                auto widen = std::make_unique<PanNode> (
+                    mixerBusMonoWidenNodeId (tap->properties().id, bus.sumNodeId), PanNode::Mode::Widen);
+                widen->setInput (tap);
+                widen->setPan (0.0f);
+                tap = widen.get();
+                monoTapWideners.push_back (std::move (widen));
+            }
+        }
+
+        auto busSum = std::make_unique<SumNode> (bus.sumNodeId, busWidth);
         SumNode* const busSumPtr = busSum.get();
         busSum->setInputNodes (std::move (busInputs[i]));
 
@@ -518,7 +566,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         busFaderPtr->setInput (busChainHead);
         busFaderPtr->setTargetGain (bus.linearGain);
 
-        auto busPan = std::make_unique<PanNode> (bus.panNodeId);
+        auto busPan = std::make_unique<PanNode> (bus.panNodeId,
+                                                 busWidth == 2 ? PanNode::Mode::Balance : PanNode::Mode::Widen);
         PanNode* const busPanPtr = busPan.get();
         busPanPtr->setInput (busFaderPtr);
         busPanPtr->setPan (bus.pan);
@@ -527,6 +576,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         MeterNode* const busMeterPtr = busMeter.get();
         busMeterPtr->setInput (busPanPtr);
 
+        for (std::unique_ptr<PanNode>& widen : monoTapWideners)
+            inputs.nodes.push_back (std::move (widen));
         inputs.nodes.push_back (std::move (busSum));
         for (std::unique_ptr<Node>& insertNode : bus.insertNodes)
             inputs.nodes.push_back (std::move (insertNode));

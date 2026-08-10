@@ -525,3 +525,66 @@ TEST_CASE ("Equal-power clip crossfade keeps constant-signal energy flat and mat
     REQUIRE (maxEnergyDeviationDb <= 0.1);
     REQUIRE (oldLinearCrossfadeEnergyDbDeviation() > 0.1);
 }
+
+// ---------------------------------------------------------------------------------------------------
+// Width-aware DecodedClipNode (ADR-0042): interleaved stereo sources play their channels through
+// unchanged; a mono source widened onto a stereo strip carries the equal-power centre gain on both
+// channels so its centred loudness matches the mono strip's centre pan.
+
+TEST_CASE ("DecodedClipNode plays an interleaved stereo source with channels preserved", "[render][stereo][clip]")
+{
+    using yesdaw::engine::AudioBlock;
+    using yesdaw::engine::EventStream;
+    using yesdaw::engine::ProcessArgs;
+    using yesdaw::engine::Transport;
+
+    // Interleaved [L0,R0, L1,R1, ...] with distinct, sign-split channels so a swap or blend is loud.
+    const std::vector<float> interleaved { 0.1f, -0.9f,  0.2f, -0.8f,  0.3f, -0.7f,  0.4f, -0.6f };
+    DecodedClipNode node (77, interleaved, /*channels*/ 2, /*timelineStart*/ 2, 0, 0, /*gain*/ 2.0f,
+                          /*sourceChannels*/ 2);
+    node.prepare (48000.0, 16);
+
+    EventStream events;
+    Transport   transport;
+    std::vector<float> L (16, -123.0f), R (16, -123.0f);
+    float* const ch[2] = { L.data(), R.data() };
+    node.process (ProcessArgs { AudioBlock { ch, 2 }, events, transport, 16 });
+
+    for (int f = 0; f < 16; ++f)
+    {
+        const std::int64_t local = static_cast<std::int64_t> (f) - 2;
+        const bool inClip = local >= 0 && local < 4;
+        const float expL = inClip ? interleaved[static_cast<std::size_t> (local * 2)] * 2.0f : 0.0f;
+        const float expR = inClip ? interleaved[static_cast<std::size_t> (local * 2 + 1)] * 2.0f : 0.0f;
+        INFO ("frame " << f);
+        REQUIRE (L[static_cast<std::size_t> (f)] == expL);
+        REQUIRE (R[static_cast<std::size_t> (f)] == expR);
+    }
+}
+
+TEST_CASE ("DecodedClipNode widens a mono source onto a stereo strip centre-compensated", "[render][stereo][widen]")
+{
+    using yesdaw::engine::AudioBlock;
+    using yesdaw::engine::EventStream;
+    using yesdaw::engine::ProcessArgs;
+    using yesdaw::engine::Transport;
+
+    const std::vector<float> mono { 1.0f, -0.5f, 0.25f };
+    DecodedClipNode node (78, mono, /*channels*/ 2, 0, 0, 0, 1.0f, /*sourceChannels*/ 1);
+    node.prepare (48000.0, 8);
+
+    EventStream events;
+    Transport   transport;
+    std::vector<float> L (8, -123.0f), R (8, -123.0f);
+    float* const ch[2] = { L.data(), R.data() };
+    node.process (ProcessArgs { AudioBlock { ch, 2 }, events, transport, 8 });
+
+    const float g = std::sqrt (0.5f);   // equal-power centre
+    for (int f = 0; f < 8; ++f)
+    {
+        const float exp = f < 3 ? mono[static_cast<std::size_t> (f)] * g : 0.0f;
+        INFO ("frame " << f);
+        REQUIRE (std::fabs (static_cast<double> (L[static_cast<std::size_t> (f)] - exp)) <= 1.0e-6);
+        REQUIRE (L[static_cast<std::size_t> (f)] == R[static_cast<std::size_t> (f)]);
+    }
+}

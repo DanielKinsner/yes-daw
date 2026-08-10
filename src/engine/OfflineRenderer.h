@@ -319,7 +319,8 @@ struct ResolvedClipWindow
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [&decodedAssets, &resolved, &factoryStatus] (const Project&, const Clip& clip, const Asset& asset, NodeId expectedSourceId)
+        [&decodedAssets, &resolved, &factoryStatus] (const Project&, const Clip& clip, const Asset& asset, NodeId expectedSourceId,
+                                                     int stripChannels)
             -> std::unique_ptr<Node>
         {
             const DecodedAssetAudio* const decoded = detail::findDecodedAsset (decodedAssets, asset.id);
@@ -333,7 +334,7 @@ struct ResolvedClipWindow
                 factoryStatus = OfflineRenderStatus::AssetMetadataMismatch;
                 return nullptr;
             }
-            if (asset.channels != 1u)
+            if (asset.channels == 0u || asset.channels > 2u || stripChannels < static_cast<int> (asset.channels))
             {
                 factoryStatus = OfflineRenderStatus::UnsupportedAssetChannels;
                 return nullptr;
@@ -352,7 +353,8 @@ struct ResolvedClipWindow
             }
 
             std::vector<float> samples;
-            if (window->sourceFrames > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max()))
+            const std::uint64_t assetChannels = asset.channels;
+            if (window->sourceFrames > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max()) / assetChannels)
             {
                 factoryStatus = OfflineRenderStatus::OutputTooLarge;
                 return nullptr;
@@ -370,27 +372,34 @@ struct ResolvedClipWindow
                 return nullptr;
             }
 
-            samples.resize (static_cast<std::size_t> (window->sourceFrames));
+            // The window copy is interleaved by the ASSET's channel count; DecodedClipNode widens a mono
+            // source onto a stereo strip itself (centre-compensated, ADR-0042).
+            samples.resize (static_cast<std::size_t> (window->sourceFrames * assetChannels));
             for (std::uint64_t frame = 0; frame < window->sourceFrames; ++frame)
             {
                 const std::uint64_t sourceFrame = clip.srcOffset + frame;
-                const float source = decoded->interleavedSamples[static_cast<std::size_t> (sourceFrame)];
-                if (! std::isfinite (source))
+                for (std::uint64_t channel = 0; channel < assetChannels; ++channel)
                 {
-                    factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
-                    return nullptr;
-                }
+                    const float source =
+                        decoded->interleavedSamples[static_cast<std::size_t> (sourceFrame * assetChannels + channel)];
+                    if (! std::isfinite (source))
+                    {
+                        factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
+                        return nullptr;
+                    }
 
-                samples[static_cast<std::size_t> (frame)] = source;
+                    samples[static_cast<std::size_t> (frame * assetChannels + channel)] = source;
+                }
             }
 
             return std::make_unique<DecodedClipNode> (expectedSourceId,
                                                       std::move (samples),
-                                                      1,
+                                                      stripChannels,
                                                       static_cast<std::int64_t> (window->startFrame),
                                                       static_cast<std::int64_t> (clip.fadeIn),
                                                       static_cast<std::int64_t> (clip.fadeOut),
-                                                      clip.gain);
+                                                      clip.gain,
+                                                      static_cast<int> (asset.channels));
         },
         projection,
         &result.projectError);

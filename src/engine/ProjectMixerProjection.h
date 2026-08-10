@@ -317,7 +317,10 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
 } // namespace detail
 
 // SourceFactory signature:
-//   std::unique_ptr<Node> factory(const Project&, const Clip&, const Asset&, NodeId expectedSourceNodeId)
+//   std::unique_ptr<Node> factory(const Project&, const Clip&, const Asset&, NodeId expectedSourceNodeId,
+//                                 int stripChannels)
+// stripChannels is the owning Track's derived width (ADR-0042): 2 if any Clip on the Track references a
+// stereo Asset, else 1. The factory must return a source Node that EMITS stripChannels channels.
 template <typename SourceFactory>
 [[nodiscard]] inline bool projectToMixerProjectionInputs (const Project& project,
                                                           const ProjectMixerProjectionConfig& config,
@@ -384,6 +387,26 @@ template <typename SourceFactory>
         if (! ownsAudioClip)
             continue;
 
+        // Track width derives from the Track's Clips (ADR-0042): any stereo Asset makes the strip
+        // stereo. Assets beyond stereo are rejected before the factory runs.
+        int stripChannels = 1;
+        for (const Clip& clip : project.clips)
+        {
+            if (! (clip.trackId == owningTrack.id))
+                continue;
+
+            const Asset* const clipAsset = project.findAsset (clip.assetId);
+            if (clipAsset == nullptr || clipAsset->channels == 0 || clipAsset->channels > 2)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, trackIndex, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            if (clipAsset->channels == 2u)
+                stripChannels = 2;
+        }
+
         if (! mixerGainIsValid (owningTrack.strip.linearGain))
         {
             if (error != nullptr)
@@ -430,7 +453,7 @@ template <typename SourceFactory>
             if (! detail::registerProjectMixerNodeId (usedIds, clipSourceId, i, ProjectMixerNodeRole::Source, error))
                 return false;
 
-            std::unique_ptr<Node> source = sourceFactory (project, clip, *asset, clipSourceId);
+            std::unique_ptr<Node> source = sourceFactory (project, clip, *asset, clipSourceId, stripChannels);
             if (source == nullptr)
             {
                 if (error != nullptr)
@@ -449,7 +472,7 @@ template <typename SourceFactory>
             clipSources.push_back (std::move (source));
         }
 
-        auto sum = std::make_unique<SumNode> (sourceId, 1);
+        auto sum = std::make_unique<SumNode> (sourceId, stripChannels);
         sum->setInputNodes (std::move (sumInputs));
 
         MixerTrackProjection track;

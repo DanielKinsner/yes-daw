@@ -45,12 +45,14 @@ else 1. Derivation is a projection-time fact, not stored state.
 **The pan slot.**
 - Mono strip: the existing `PanNode` (equal-power, gL=cos t, gR=sin t, t=(p+1)·π/4), unchanged and
   bit-identical.
-- Stereo strip: a new `StereoBalanceNode`. At centre both channels pass at unity. Off-centre, the
-  far channel is attenuated along the same quarter-cosine taper (gFar = cos(|p|·π/2)); the near
-  channel stays at unity. Channels are never blended into each other. This is the Logic-style
-  balance control.
-- `StereoBalanceNode` reuses `PanNode`'s parameter id and normalized mapping, so pan automation
-  lanes and the mixer pan control target the same parameter regardless of width.
+- Stereo strip: the same `PanNode` in a new **Balance mode**. At centre both channels pass at
+  unity. Off-centre, the far channel is attenuated along the same quarter-cosine taper
+  (gFar = cos(|p|·π/2)); the near channel stays at unity. Channels are never blended into each
+  other. This is the Logic-style balance control.
+- Balance mode is a construction-time mode of `PanNode`, not a new Node class: it shares the
+  parameter id, normalized mapping, LUT, ramp, and event machinery, so pan automation lanes,
+  `applySetPan`, and the mixer pan control target the same parameter regardless of width, and the
+  compiled-graph Pan node kind stays a single type.
 
 **Mono Clips on a stereo strip.** `DecodedClipNode` becomes width-aware: it stores interleaved
 samples and emits its Track's width. A mono Asset on a stereo strip is widened with equal-power
@@ -63,10 +65,10 @@ unchanged.
 Fader, Meter, and Sum nodes are already channel-generic.
 
 **Sends and buses.** A Bus's width is derived the same way: 2 if any tap feeding it is stereo, else
-1 (the existing mono bus path stays bit-identical). `SumNode` inputs gain a per-input scalar gain
-(default 1.0 — bit-identical for existing graphs). A mono tap into a stereo Bus is bound to both
-accumulator channels at ×cos(π/4), matching what the mono bus + centre `PanNode` return path
-produces today. A stereo Bus's return chain uses `StereoBalanceNode` in its pan slot.
+1 (the existing mono bus path stays bit-identical, wiring untouched). A mono tap into a stereo Bus
+passes through a fixed centre widen stage (`PanNode` widen mode at centre, ×cos(π/4) both sides)
+before the Bus sum, matching what the mono bus + centre return `PanNode` produces today. A stereo
+Bus's return chain uses Balance mode in its pan slot.
 
 **Export.** Unchanged: the master bus is already stereo and exports stereo float32 WAV.
 

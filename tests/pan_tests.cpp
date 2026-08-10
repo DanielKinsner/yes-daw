@@ -246,3 +246,137 @@ TEST_CASE ("PanNode clamps a pathological automation event and never emits NaN/i
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------------
+// Balance mode (ADR-0042): the stereo-strip law. Centre passes both channels bit-exactly; off-centre
+// attenuates ONLY the far channel along the quarter-cosine taper; channels are never blended.
+
+namespace {
+
+// Render a settled balance (snapped before prepare) over distinct L/R content; returns {L, R}.
+std::pair<std::vector<float>, std::vector<float>> renderSettledBalance (float pan, int frames,
+                                                                        float inL = 0.5f, float inR = -0.25f)
+{
+    PanNode node (1, PanNode::Mode::Balance);
+    node.setPan (pan);
+    Node& iface = node;
+    iface.prepare (kSr, frames);
+
+    EventStream events;
+    Transport   transport;
+
+    std::vector<float> left  (static_cast<std::size_t> (frames), inL);
+    std::vector<float> right (static_cast<std::size_t> (frames), inR);
+    float* const channels[2] = { left.data(), right.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, frames });
+    return { left, right };
+}
+
+} // namespace
+
+TEST_CASE ("Balance centre passes both channels bit-exactly at unity", "[pan][balance][centre]")
+{
+    auto [L, R] = renderSettledBalance (0.0f, 256);
+    for (std::size_t i = 0; i < L.size(); ++i)
+    {
+        REQUIRE (L[i] == 0.5f);      // exact: centre must not colour a stereo mix
+        REQUIRE (R[i] == -0.25f);
+    }
+}
+
+TEST_CASE ("Balance extremes silence only the far channel and never blend", "[pan][balance][extremes]")
+{
+    {
+        auto [L, R] = renderSettledBalance (1.0f, 64);   // full right: left silent, right untouched
+        REQUIRE (L[0] == Approx (0.0f).margin (1.0e-4));
+        REQUIRE (R[0] == -0.25f);
+    }
+    {
+        auto [L, R] = renderSettledBalance (-1.0f, 64);  // full left: right silent, left untouched
+        REQUIRE (L[0] == 0.5f);
+        REQUIRE (R[0] == Approx (0.0f).margin (1.0e-4));
+    }
+
+    // Never blended: right-only content stays out of the left channel at every position.
+    for (const float p : { -1.0f, -0.4f, 0.0f, 0.4f, 1.0f })
+    {
+        auto [L, R] = renderSettledBalance (p, 8, 0.0f, 1.0f);
+        REQUIRE (L[0] == Approx (0.0f).margin (1.0e-6));
+    }
+}
+
+TEST_CASE ("Balance taper matches cos(|p| * pi/2) on the far channel", "[pan][balance][taper]")
+{
+    for (const float p : { -0.75f, -0.5f, -0.25f, 0.25f, 0.5f, 0.75f })
+    {
+        auto [L, R] = renderSettledBalance (p, 8, 1.0f, 1.0f);
+        const float far  = std::cos (std::fabs (p) * 1.5707963f);
+        const float gotFar  = p > 0.0f ? L[0] : R[0];
+        const float gotNear = p > 0.0f ? R[0] : L[0];
+        INFO ("balance " << p);
+        REQUIRE (gotFar == Approx (far).margin (1.0e-3));
+        REQUIRE (gotNear == 1.0f);   // near channel exactly unity
+    }
+}
+
+TEST_CASE ("Balance output is identical across Block sizes during a sweep", "[pan][balance][blocksize]")
+{
+    const int total = 4096;
+
+    auto render = [] (int blockSize)
+    {
+        PanNode node (1, PanNode::Mode::Balance);
+        Node& iface = node;
+        iface.prepare (kSr, blockSize);
+        node.setPan (-1.0f);            // ramp from centre toward hard left
+
+        EventStream events;
+        Transport   transport;
+
+        std::vector<float> L (static_cast<std::size_t> (total), 0.8f);
+        std::vector<float> R (static_cast<std::size_t> (total), -0.6f);
+        int done = 0;
+        while (done < total)
+        {
+            const int n = std::min (blockSize, total - done);
+            float* const ch[2] = { L.data() + done, R.data() + done };
+            iface.process (ProcessArgs { AudioBlock { ch, 2 }, events, transport, n });
+            done += n;
+        }
+        return std::pair { L, R };
+    };
+
+    auto [refL, refR] = render (512);
+    for (const int blockSize : { 1, 31, 113, 128, 9000 })
+    {
+        auto [gotL, gotR] = render (blockSize);
+        double maxDiff = 0.0;
+        for (std::size_t i = 0; i < refL.size(); ++i)
+        {
+            maxDiff = std::max (maxDiff, std::fabs (static_cast<double> (gotL[i] - refL[i])));
+            maxDiff = std::max (maxDiff, std::fabs (static_cast<double> (gotR[i] - refR[i])));
+        }
+        INFO ("block size " << blockSize << " max diff " << maxDiff);
+        REQUIRE (maxDiff == 0.0);
+    }
+}
+
+TEST_CASE ("Balance responds to the same pan parameter events as widen mode", "[pan][balance][automation]")
+{
+    PanNode node (1, PanNode::Mode::Balance);
+    Node& iface = node;
+    iface.prepare (kSr, 512);
+
+    const Event evs[1] = { makeParameterChangeEvent (/*timeInBlock*/ 0, /*targetNode*/ 1,
+                                                     PanNode::kPanParameterId, 1.0) };
+    EventStream events (std::span<const Event> (evs, 1));
+    Transport   transport;
+
+    std::vector<float> L (512, 1.0f);
+    std::vector<float> R (512, 1.0f);
+    float* const channels[2] = { L.data(), R.data() };
+    iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, 512 });
+
+    REQUIRE (L.back() == Approx (0.0f).margin (1.0e-4));   // far channel ramped to silence
+    REQUIRE (R.back() == 1.0f);                            // near channel exactly unity throughout
+}
