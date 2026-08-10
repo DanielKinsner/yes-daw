@@ -94,6 +94,8 @@ enum class UiActionId : std::uint8_t
     TimelineClipPaste,
     TimelineClipDuplicate,
     TransportToggleMetronome,
+    TimelineMarkerAdd,
+    TimelineMarkerRemove,
     Count
 };
 
@@ -420,7 +422,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipDuplicate, "timeline.clip.duplicate", "Duplicate Clip", "Ctrl+D", "Duplicate selected timeline clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::TransportToggleMetronome, "transport.toggle_metronome", "Metronome", "C", "Toggle metronome click",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::TimelineMarkerAdd, "timeline.marker.add", "Add Marker", "M", "Add marker at playhead",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Shift+M", "Remove nearest marker",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -929,6 +935,14 @@ public:
 
             case UiActionId::TransportToggleMetronome:
                 context.metronomeEnabled = ! context.metronomeEnabled;
+                break;
+
+            case UiActionId::TimelineMarkerAdd:
+            case UiActionId::TimelineMarkerRemove:
+                context.activePanel = UiPanel::Timeline;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
                 break;
 
             case UiActionId::Count:

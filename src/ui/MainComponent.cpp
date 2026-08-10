@@ -330,6 +330,8 @@ public:
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
+    std::function<void (double)> onRulerDoubleClicked;           // seconds: add a marker
+    std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
 
     void paint (juce::Graphics& g) override
@@ -395,7 +397,15 @@ public:
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (geometry.rulerArea.contains (event.getPosition()))
         {
-            // Shift-drag on the ruler defines a loop region (usable-DAW P1); plain drag locates.
+            // Alt+click removes the nearest marker; Shift-drag defines a loop region; plain drag locates.
+            if (event.mods.isAltDown())
+            {
+                if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                    if (onRulerAltClicked)
+                        onRulerAltClicked (*seconds);
+                return;
+            }
+
             if (event.mods.isShiftDown())
             {
                 loopDragActive = true;
@@ -589,7 +599,15 @@ public:
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
         if (! hit.hit)
+        {
+            const yesdaw::ui::TimelineCanvasGeometry geometry =
+                yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            if (geometry.rulerArea.contains (event.getPosition()))
+                if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                    if (onRulerDoubleClicked)
+                        onRulerDoubleClicked (*seconds);
             return;
+        }
 
         if (onClipClicked)
             onClipClicked (hit.id);
@@ -1244,6 +1262,22 @@ public:
             timelineScrollSeconds -= wheelDelta * visibleSeconds
                                    * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction;
             repaint();
+        };
+        timelineInput.onRulerDoubleClicked = [this] (double seconds) {
+            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds))
+            {
+                (void) appModel.addTimelineMarkerAtTick (*tick);
+                refreshActionState();
+                repaint();
+            }
+        };
+        timelineInput.onRulerAltClicked = [this] (double seconds) {
+            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds))
+            {
+                (void) appModel.removeTimelineMarkerNearestTick (*tick);
+                refreshActionState();
+                repaint();
+            }
         };
         timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds) {
             const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
@@ -3708,8 +3742,22 @@ private:
                                         : yesdaw::ui::UiTheme::Layout::timelineInitialPlayheadSeconds;
         }
 
-        state.markers = nullptr;
-        state.markerCount = 0;
+        timelineMarkerLabels.clear();
+        timelineMarkerViews.clear();
+        if (appModel.context().projectLoaded && appModel.project().sampleRate.isValid())
+        {
+            const double sampleRateHz = appModel.project().sampleRate.hz;
+            timelineMarkerLabels.reserve (appModel.project().markers.size());
+            timelineMarkerViews.reserve (appModel.project().markers.size());
+            for (const yesdaw::engine::Marker& marker : appModel.project().markers)
+            {
+                timelineMarkerLabels.push_back (marker.name);
+                timelineMarkerViews.push_back ({ static_cast<double> (marker.tick) / sampleRateHz,
+                                                 timelineMarkerLabels.back().c_str() });
+            }
+        }
+        state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
+        state.markerCount = static_cast<int> (timelineMarkerViews.size());
 
         // Live zoom + horizontal scroll (usable-DAW P1): zoom scales the fit-to-window density and
         // the scroll offset is clamped so the view never runs past the timeline end.
@@ -4687,6 +4735,8 @@ private:
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     std::vector<yesdaw::engine::AssetContentHash> timelineClipAssetHashes;
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
+    std::vector<std::string> timelineMarkerLabels;
+    std::vector<yesdaw::ui::TimelineMarker> timelineMarkerViews;
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
     mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
     TimelineInputComponent timelineInput;

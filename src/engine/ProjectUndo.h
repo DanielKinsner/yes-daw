@@ -53,7 +53,9 @@ enum class ProjectEditVerb : std::uint8_t
     ReorderTrack,
     RemoveTrack,
     SetProjectTempo,
-    SetProjectMeter
+    SetProjectMeter,
+    AddMarker,
+    RemoveMarker
 };
 
 struct ProjectEditCommand
@@ -116,6 +118,8 @@ struct ProjectEditCommand
     std::uint16_t meterDenominator = 4;
     EntityId clipAssetId;
     TimeBase clipTimeBase = TimeBase::SampleLocked;
+    EntityId markerId;
+    Tick markerTick = 0;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
 
@@ -528,6 +532,27 @@ struct ProjectEditCommand
         return command;
     }
 
+    // Marker name rides the trackName array (same trivially-copyable command constraint).
+    [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
+                                                                 Tick tick,
+                                                                 std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddMarker;
+        command.markerId = markerId;
+        command.markerTick = tick;
+        (void) copyTrackName (command, name);
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeMarker (EntityId markerId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveMarker;
+        command.markerId = markerId;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setProjectTempo (double bpm) noexcept
     {
         ProjectEditCommand command;
@@ -584,6 +609,13 @@ struct ProjectAutomationLaneRowsDiff
     std::vector<AutomationLaneData> after;
 };
 
+// Marker diffs snapshot the whole marker vector (ordered inserts move rows; counts are small).
+struct ProjectMarkerRowsDiff
+{
+    std::vector<Marker> before;
+    std::vector<Marker> after;
+};
+
 // Time-map diffs snapshot both maps whole: head edits are tiny and undo stays bit-exact.
 struct ProjectTimeMapRowsDiff
 {
@@ -611,6 +643,7 @@ struct ProjectEditTransaction
     ProjectAutomationLaneRowsDiff automationDiff;
     ProjectTrackRowsDiff trackDiff;
     ProjectTimeMapRowsDiff timeMapDiff;
+    ProjectMarkerRowsDiff markerDiff;
 };
 
 struct ProjectEditApplyResult
@@ -686,6 +719,12 @@ namespace detail {
 {
     return verb == ProjectEditVerb::SetProjectTempo
            || verb == ProjectEditVerb::SetProjectMeter;
+}
+
+[[nodiscard]] constexpr bool isMarkerEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddMarker
+           || verb == ProjectEditVerb::RemoveMarker;
 }
 
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
@@ -874,6 +913,18 @@ namespace detail {
 
         case ProjectEditVerb::SetProjectMeter:
             return setProjectMeter (project, command.meterNumerator, command.meterDenominator);
+
+        case ProjectEditVerb::AddMarker:
+        {
+            Marker marker;
+            marker.id = command.markerId;
+            marker.tick = command.markerTick;
+            marker.name = std::string { command.trackName };
+            return addMarker (project, marker);
+        }
+
+        case ProjectEditVerb::RemoveMarker:
+            return removeMarker (project, command.markerId);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -1020,6 +1071,35 @@ namespace detail {
 
     out.after = { after.automationLanes[afterIndex] };
     return out.before != out.after;
+}
+
+[[nodiscard]] inline bool buildProjectMarkerRowsDiff (const Project& before,
+                                                      const Project& after,
+                                                      ProjectMarkerRowsDiff& out)
+{
+    if (before.markers == after.markers)
+        return false;
+
+    out = {};
+    out.before = before.markers;
+    out.after = after.markers;
+    return true;
+}
+
+[[nodiscard]] inline bool applyMarkerRowsDiff (Project& project,
+                                               const std::vector<Marker>& expected,
+                                               const std::vector<Marker>& replacement)
+{
+    if (! (project.markers == expected))
+        return false;
+
+    Project edited = project;
+    edited.markers = replacement;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
 }
 
 [[nodiscard]] inline bool buildProjectTimeMapRowsDiff (const Project& before,
@@ -1316,6 +1396,13 @@ namespace detail {
                     : applyTimeMapRowsDiff (project, diff.tempoAfter, diff.tempoBefore, diff.meterAfter, diff.meterBefore);
     }
 
+    if (isMarkerEditVerb (transaction.command.verb))
+    {
+        const ProjectMarkerRowsDiff& diff = transaction.markerDiff;
+        return redo ? applyMarkerRowsDiff (project, diff.before, diff.after)
+                    : applyMarkerRowsDiff (project, diff.after, diff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -1347,6 +1434,8 @@ namespace detail {
         diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff);
     else if (detail::isTimeMapEditVerb (command.verb))
         diffBuilt = detail::buildProjectTimeMapRowsDiff (before, project, transaction.timeMapDiff);
+    else if (detail::isMarkerEditVerb (command.verb))
+        diffBuilt = detail::buildProjectMarkerRowsDiff (before, project, transaction.markerDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

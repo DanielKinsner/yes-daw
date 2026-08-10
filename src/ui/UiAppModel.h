@@ -2010,6 +2010,62 @@ public:
         refreshSnapGrid();
     }
 
+    // Timeline markers (usable-DAW P1): add at an arbitrary tick (ruler double-click or M at the
+    // playhead), remove the nearest marker to a tick (Alt+click or Shift+M). Undoable, persisted.
+    [[nodiscard]] UiActionDispatchResult addTimelineMarkerAtTick (engine::Tick tick)
+    {
+        const UiActionId id = UiActionId::TimelineMarkerAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (tick < 0)
+            return { id, { false, "marker tick must be non-negative" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId markerId = allocateSessionEntityId (0xE1u, nextProject);
+        const std::string name = "Marker " + std::to_string (nextProject.markers.size() + 1u);
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMarker (markerId, tick, name)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "marker edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeTimelineMarkerNearestTick (engine::Tick tick)
+    {
+        const UiActionId id = UiActionId::TimelineMarkerRemove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (project_.markers.empty())
+            return { id, { false, "no markers to remove" }, false };
+
+        const engine::Marker* nearest = &project_.markers.front();
+        for (const engine::Marker& marker : project_.markers)
+            if (std::llabs (marker.tick - tick) < std::llabs (nearest->tick - tick))
+                nearest = &marker;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::removeMarker (nearest->id)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "marker edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleMetronome()
     {
         const UiActionId id = UiActionId::TransportToggleMetronome;
@@ -2462,6 +2518,14 @@ public:
 
             case UiActionId::TransportToggleMetronome:
                 return toggleMetronome();
+
+            case UiActionId::TimelineMarkerAdd:
+                return addTimelineMarkerAtTick (
+                    static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
+
+            case UiActionId::TimelineMarkerRemove:
+                return removeTimelineMarkerNearestTick (
+                    static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();

@@ -628,7 +628,9 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidTrackPosition,
     InvalidTrackName,
     InvalidTempo,
-    InvalidMeter
+    InvalidMeter,
+    InvalidMarkerId,
+    MarkerNotFound
 };
 
 struct Project
@@ -1435,6 +1437,10 @@ namespace detail {
         if (lane.id == id)
             return true;
 
+    for (const Marker& marker : project.markers)
+        if (marker.id == id)
+            return true;
+
     for (const Track& track : project.tracks)
         for (const FxInsert& insert : track.strip.fxChain)
             if (insert.id == id)
@@ -2142,6 +2148,47 @@ namespace detail {
 
     project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (trackIndex));
     return ProjectEditStatus::Applied;
+}
+
+// Timeline markers (usable-DAW P1): named positions on the ruler, stored in canonical tick order.
+[[nodiscard]] inline ProjectEditStatus addMarker (Project& project, const Marker& marker)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! marker.id.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (detail::projectContainsEntityId (project, marker.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (marker.tick < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    const auto insertAt = std::find_if (project.markers.begin(), project.markers.end(),
+                                        [&marker] (const Marker& existing) { return existing.tick > marker.tick; });
+    project.markers.insert (insertAt, marker);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMarker (Project& project, EntityId markerId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    for (std::size_t i = 0; i < project.markers.size(); ++i)
+    {
+        if (project.markers[i].id == markerId)
+        {
+            project.markers.erase (project.markers.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
 }
 
 // Alpha time-map editing (usable-DAW P0): a single Project-wide tempo and meter — the head of each

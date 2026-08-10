@@ -62,6 +62,11 @@ not sufficient proof of cross-platform or sanitizer-gate health.
 
 **Done in the current repair checkpoint:**
 
+- GitHub Actions run `31357933998` is now fully green for exact repair SHA `b193ee4` across
+  Linux, Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
+- The later `ea43235` run exposed another cross-platform gate defect in the clip clipboard test:
+  it retained references into a `Project::clips` vector, reassigned the owning `Project`, then read
+  the dangling reference. The gate now snapshots those Clips by value before the reload.
 - Fixed the mixer-strip selected-index comparison that GCC and AppleClang reject under
   warnings-as-errors. The comparison now rejects the negative sentinel before converting the
   selected Track index to `std::size_t`; the shipped app and focused `YesDawUiInputCheck` rebuild

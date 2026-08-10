@@ -418,9 +418,10 @@ juce::MouseEvent makeMouseEvent (juce::Component& component,
         mouseWasDragged);
 }
 
-void mouseDownAt (juce::Component& component, juce::Point<int> position)
+void mouseDownAt (juce::Component& component, juce::Point<int> position,
+                  juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
 {
-    juce::MouseEvent event = makeMouseEvent (component, position, position, false);
+    juce::MouseEvent event = makeMouseEvent (component, position, position, false, 1, modifiers);
     component.mouseDown (event);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
@@ -3016,8 +3017,8 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 2u);
-    const yesdaw::engine::Clip& source = project.clips[0];
-    const yesdaw::engine::Clip& duplicate = project.clips[1];
+    const yesdaw::engine::Clip source = project.clips[0];
+    const yesdaw::engine::Clip duplicate = project.clips[1];
     REQUIRE (duplicate.trackId == source.trackId);
     REQUIRE (duplicate.assetId == source.assetId);
     REQUIRE (duplicate.timelineStart == source.timelineStart + source.timelineLength);
@@ -3089,4 +3090,49 @@ TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[u
     chooser->setSelectedId (1, juce::sendNotificationSync);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.snapEnabled);
+}
+
+TEST_CASE ("markers add on ruler double-click and M, remove on Alt+click, and paint on the ruler",
+           "[ui][input][shell][markers]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("markers");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // M adds a marker at the playhead (0).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 1u);
+    REQUIRE (project.markers.front().tick == 0);
+    REQUIRE (project.markers.front().name == "Marker 1");
+
+    // Double-click on the ruler adds one at the clicked time.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const juce::Point<int> rulerMid { timeline.getWidth() / 2, rulerGeometry.rulerArea.getCentreY() };
+    doubleClickAt (timeline, rulerMid);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 2u);
+    REQUIRE (project.markers.back().tick > 0);
+
+    // Alt+click near the second marker removes it.
+    mouseDownAt (timeline, rulerMid, juce::ModifierKeys (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 1u);
+    REQUIRE (project.markers.front().tick == 0);
+
+    // Undo restores it; both operations are on the stack.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 2u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
 }
