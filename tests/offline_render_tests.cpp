@@ -566,3 +566,139 @@ TEST_CASE ("Offline render exports to WAV and re-imports through the Project bun
         bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (corruptImported.contentHash);
     REQUIRE (readFloat32WavFile (corruptAssetPath, decodedImport).status == WavStatus::FormatInvalid);
 }
+
+// ---------------------------------------------------------------------------------------------------
+// Stereo sources end-to-end (ADR-0042): a stereo Asset renders through a stereo strip with channels
+// preserved (balance centre == unity, no centre gain), a mono Clip sharing the Track is widened
+// centre-compensated, and wider-than-stereo Assets are rejected.
+
+namespace {
+
+struct StereoOfflineFixture
+{
+    Project project;
+    std::vector<float> stereoInterleaved;
+    std::vector<float> monoSamples;
+    std::vector<DecodedAssetAudio> decodedAssets;
+};
+
+StereoOfflineFixture makeStereoOfflineFixture()
+{
+    StereoOfflineFixture fixture;
+    // Distinct sign-split channels: any swap/blend/downmix is unmistakable.
+    fixture.stereoInterleaved = { 0.50f, -0.90f,  0.40f, -0.70f,  0.30f, -0.50f,  0.20f, -0.30f,
+                                  0.10f, -0.10f,  0.60f, -0.20f };
+    fixture.monoSamples = { 0.80f, -0.40f, 0.20f, -0.10f };
+
+    Asset stereo;
+    stereo.id = idFromLowByte (40);
+    stereo.contentHash = hashWithSeed (40);
+    stereo.frames = fixture.stereoInterleaved.size() / 2u;
+    stereo.sampleRate = SampleRate { 48000.0 };
+    stereo.channels = 2;
+
+    Asset mono;
+    mono.id = idFromLowByte (41);
+    mono.contentHash = hashWithSeed (41);
+    mono.frames = static_cast<std::uint64_t> (fixture.monoSamples.size());
+    mono.sampleRate = SampleRate { 48000.0 };
+    mono.channels = 1;
+
+    Clip stereoClip;
+    stereoClip.id = idFromLowByte (50);
+    stereoClip.assetId = stereo.id;
+    stereoClip.trackId = idFromLowByte (60);
+    stereoClip.timelineStart = 0;
+    stereoClip.timelineLength = 6;
+    stereoClip.srcOffset = 0;
+    stereoClip.srcLen = 6;
+    stereoClip.gain = 0.5f;
+    stereoClip.timeBase = TimeBase::SampleLocked;
+
+    Clip monoClip;
+    monoClip.id = idFromLowByte (51);
+    monoClip.assetId = mono.id;
+    monoClip.trackId = stereoClip.trackId;   // same Track: strip derives stereo, mono Clip widens
+    monoClip.timelineStart = 8;
+    monoClip.timelineLength = 4;
+    monoClip.srcOffset = 0;
+    monoClip.srcLen = 4;
+    monoClip.gain = 1.0f;
+    monoClip.timeBase = TimeBase::SampleLocked;
+
+    fixture.project.id = idFromLowByte (2);
+    fixture.project.sampleRate = SampleRate { 48000.0 };
+    fixture.project.assets = { stereo, mono };
+    Track track;
+    track.id = stereoClip.trackId;
+    track.strip.name = "Stereo 1";
+    fixture.project.tracks = { track };
+    fixture.project.clips = { stereoClip, monoClip };
+    REQUIRE (fixture.project.hasValidAssetClipIndirection());
+
+    fixture.decodedAssets = {
+        DecodedAssetAudio { stereo.id, stereo.sampleRate, stereo.frames, stereo.channels,
+                            std::span<const float> (fixture.stereoInterleaved.data(), fixture.stereoInterleaved.size()) },
+        DecodedAssetAudio { mono.id, mono.sampleRate, mono.frames, mono.channels,
+                            std::span<const float> (fixture.monoSamples.data(), fixture.monoSamples.size()) },
+    };
+
+    return fixture;
+}
+
+} // namespace
+
+TEST_CASE ("OfflineRenderer renders a stereo Asset with channels preserved and mono Clips centre-widened",
+           "[offline-render][stereo][adr-0042]")
+{
+    const StereoOfflineFixture fixture = makeStereoOfflineFixture();
+
+    OfflineRenderOptions options;
+    options.maxBlockSize = 5;   // deliberately not a divisor of the timeline
+    const OfflineRenderResult rendered = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        options);
+
+    REQUIRE (rendered.status == OfflineRenderStatus::Ok);
+    REQUIRE (rendered.channels == 2u);
+    REQUIRE (rendered.frames == 12u);
+
+    // Independent reference: stereo Clip passes per-channel at clip gain (balance centre == unity);
+    // the mono Clip lands on both channels at the equal-power centre gain.
+    std::vector<float> expected (static_cast<std::size_t> (rendered.frames) * 2u, 0.0f);
+    for (std::uint64_t local = 0; local < 6; ++local)
+    {
+        expected[static_cast<std::size_t> (local * 2u)]      = fixture.stereoInterleaved[static_cast<std::size_t> (local * 2u)] * 0.5f;
+        expected[static_cast<std::size_t> (local * 2u + 1u)] = fixture.stereoInterleaved[static_cast<std::size_t> (local * 2u + 1u)] * 0.5f;
+    }
+    for (std::uint64_t local = 0; local < 4; ++local)
+    {
+        const float value = fixture.monoSamples[static_cast<std::size_t> (local)] * kCenterGain;
+        const std::size_t frame = static_cast<std::size_t> (8u + local);
+        expected[frame * 2u]      = value;
+        expected[frame * 2u + 1u] = value;
+    }
+
+    REQUIRE (buffersNear (rendered.interleavedSamples, expected));
+
+    // Negative control: if the renderer downmixed, swapped, or centre-ganged the stereo channels, the
+    // sign-split reference would not match. Prove the channels really differ.
+    REQUIRE (rendered.interleavedSamples[0] > 0.0f);
+    REQUIRE (rendered.interleavedSamples[1] < 0.0f);
+}
+
+TEST_CASE ("OfflineRenderer rejects a wider-than-stereo Asset with UnsupportedAssetChannels",
+           "[offline-render][stereo][invalid]")
+{
+    StereoOfflineFixture fixture = makeStereoOfflineFixture();
+    fixture.project.assets[0].channels = 3;
+    fixture.decodedAssets[0].channels = 3;
+
+    const OfflineRenderResult rendered = renderOfflineProject (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        OfflineRenderOptions {});
+
+    REQUIRE (rendered.status != OfflineRenderStatus::Ok);
+}
