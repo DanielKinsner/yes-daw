@@ -25,7 +25,7 @@ last-project record temporarily isolated and restored because that test otherwis
 current project by design. Exact-head GitHub Actions run `31422183559` is green across all nine jobs:
 Linux, Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**A2 implementation locally green — multi-select clips:** audited the existing single-Clip selection,
+**Done and remote-green for A2 — multi-select clips (`12b1d1f`):** audited the existing single-Clip selection,
 descriptor/keymap, clipboard, move/delete verbs, persistence adoption path, and undo transaction groups
 before adding anything. Shift+click now toggles a real Clip selection; Ctrl+A selects the chosen Track's
 Clips; unique Ctrl+Shift+A selects the Project. Copy/paste, horizontal or cross-Track move, cut, and
@@ -34,13 +34,14 @@ gate drives the real rail, timeline gestures, and key chords; proves persisted g
 one-step undo, and playback becoming exact silence after Project-wide Delete. The underlying undo stack
 now applies a group atomically through a scratch Project. Full local `ctest --preset ci` is green
 **341/341**; the real last-project record was temporarily isolated and restored for the native-shell
-gate.
+gate. Exact-head GitHub Actions run `31428021616` is green across all nine jobs: Linux, Windows,
+macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the A2 implementation, then require its exact-head GitHub Actions run green
-across all nine jobs before recording A2 complete.
+**Now:** commit and push this small A2 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A3.
 
-**Next:** after the A2 implementation run is green, tick A2 with its implementation SHA, commit/push
-that evidence update, and require the docs exact-head run green before opening A3 marquee selection.
+**Next:** after the A2 checkpoint is fully recorded and remote-green, start A3 marquee selection with
+a fresh `git pull --rebase` and another audit-first shipped-boundary slice.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

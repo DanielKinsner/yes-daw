@@ -34,9 +34,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
 1. [x] **Ctrl+X cut clip** — landed in `b8544f2` (exact-head run `31422183559`, nine jobs green).
    Copy to clipboard + delete is one undoable edit; cut → paste at playhead reproduces the clip,
    and the shipped-boundary gate proves the playback result is bit-identical.
-2. **Multi-select clips** — Shift+click adds/removes from selection; Ctrl+A selects all clips
-   on the selected track; Ctrl+Shift+A selects all clips in the project. Delete/copy/move act
-   on the whole selection as one undo group.
+2. [x] **Multi-select clips** — landed in `12b1d1f` (exact-head run `31428021616`, nine jobs green).
+   Shift+click adds/removes from selection; Ctrl+A selects all clips on the selected track;
+   Ctrl+Shift+A selects all clips in the project. Delete/copy/move act on the whole selection as
+   one atomic undo group, with persisted playback-affecting coverage at the shipped boundary.
 3. **Marquee (rubber-band) selection** — pointer-tool drag on empty timeline selects every
    clip it touches. Gate: drag rectangle over two of three clips → exactly those selected.
 4. **Split at playhead** — `B` splits the selected clip (or all selected clips) at the
