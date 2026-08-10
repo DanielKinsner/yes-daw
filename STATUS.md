@@ -52,6 +52,29 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-10 professional-DAW Phase 0 adversarial verification (in progress)
+
+The 2026-08-09/10 handoff was **not remote-green as claimed**. GitHub Actions run `31355158307`,
+cited below as the real-recording green run, was cancelled; `ba3d86b` run `31355181857` failed;
+and the later `a3597a8` run `31356598268` repeated the failures. Fresh MSVC Developer PowerShell
+configure/build plus the full local suite passed **337/337**, so the Windows baseline was real but
+not sufficient proof of cross-platform or sanitizer-gate health.
+
+**Done in the current repair checkpoint:** fixed the mixer-strip selected-index comparison that GCC
+and AppleClang reject under warnings-as-errors. The comparison now rejects the negative sentinel
+before converting the selected Track index to `std::size_t`; the shipped app and focused
+`YesDawUiInputCheck` rebuild and pass locally.
+
+**Now:** run the full local gate, commit the cross-platform compile repair, then repair the separate
+randomized Project undo-gate flake exposed in both TSan and RTSan jobs (`undoDepth()` was exactly 10
+while the test demanded greater than 10).
+
+**Next:** push the independently green CI-truth repairs and require the exact head run to pass every
+job before resuming the shipped-boundary feature audit. Save As accepting a target inside its own
+source bundle is the first confirmed product defect queued after CI truth is restored.
+
+---
+
 ## 2026-08-10 usable-DAW P0 sweep (in progress)
 
 Standing goal (Dan, 2026-08-09): fully usable professional-grade DAW, functional and visual, no cut

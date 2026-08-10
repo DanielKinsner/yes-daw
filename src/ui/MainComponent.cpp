@@ -4217,8 +4217,10 @@ private:
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
             const juce::Colour stripColour = stripColourForIndex (stripIndex);
+            const int selectedTrackStrip = appModel.selectedMixerTrackStripIndex();
             const bool selected = appModel.context().mixerTargetSelected
-                               && stripIndex == appModel.selectedMixerTrackStripIndex();
+                               && selectedTrackStrip >= 0
+                               && stripIndex == static_cast<std::size_t> (selectedTrackStrip);
             const bool interactiveStrip = selected;
 
             auto lane = area.removeFromLeft (stripWidth)
