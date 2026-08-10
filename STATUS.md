@@ -166,7 +166,10 @@ the fully-tested ADR-0014 mute policy was never wired to the Project. buildProje
 the effective mask (playback AND export); gates pin mute-halves, muted-solo-engages-nothing, and
 solo-isolates.
 
-**Next:** the rest of the P1 sweep (markers, automation lane canvas,
+Markers landed: M at playhead / ruler double-click to add, Alt+click to remove, painted on the ruler,
+undoable, persisted; marker ids joined the duplicate-id scan.
+
+**Next:** the rest of the P1 sweep (automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
