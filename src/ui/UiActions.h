@@ -104,6 +104,8 @@ enum class UiActionId : std::uint8_t
     MixerSendRemove,
     MixerSendSetLevel,
     TimelineClipCut,
+    TimelineClipSelectAllTrack,
+    TimelineClipSelectAllProject,
     Count
 };
 
@@ -448,7 +450,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerSendSetLevel, "mixer.send.set_level", "Send Level", "Alt+Shift+G", "Set send level on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TimelineClipCut, "timeline.clip.cut", "Cut Clip", "Ctrl+X", "Cut selected timeline clip",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipSelectAllTrack, "timeline.clip.select_all_track", "Select Track Clips", "Ctrl+A", "Select all clips on selected track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipSelectAllProject, "timeline.clip.select_all_project", "Select Project Clips", "Ctrl+Shift+A", "Select all clips in project",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -950,6 +956,11 @@ public:
 
             case UiActionId::TimelineClipCopy:
                 context.clipboardHasClip = true;
+                break;
+
+            case UiActionId::TimelineClipSelectAllTrack:
+            case UiActionId::TimelineClipSelectAllProject:
+                context.activePanel = UiPanel::Timeline;
                 break;
 
             case UiActionId::TimelineClipCut:

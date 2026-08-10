@@ -48,6 +48,7 @@ struct MainComponentSnapshot
     double timelineScrollSeconds = 0.0;
     int visibleTimelineTrackCount = 0;
     int visibleTimelineClipCount = 0;
+    int selectedTimelineClipCount = 0;
     double visibleTimelineTotalSeconds = 0.0;
     int visibleMixerTrackCount = 0;
     int visibleMixerBusCount = 0;

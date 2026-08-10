@@ -2977,7 +2977,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model != nullptr);
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "View", "Options", "Help" }));
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 6);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 7);
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 9);
     REQUIRE (model->getMenuForIndex (4, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -3422,6 +3422,102 @@ TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edi
     const std::vector<float> afterPaste = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
     REQUIRE (afterPaste == beforeCut);
+}
+
+TEST_CASE ("timeline multi-select edits the shipped project and playback as one undo step",
+           "[ui][input][shell][timeline][multi-select]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-multi-select");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 2);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[0].trackId == project.tracks[0].id);
+    REQUIRE (project.clips[1].trackId == project.tracks[0].id);
+    REQUIRE (project.clips[2].trackId == project.tracks[1].id);
+
+    // Shift+click adds and removes without replacing the rest of the selection.
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, project, 0u));
+    mouseDownAt (timeline,
+                 timelineClipCenterPoint (timeline, project, 1u),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                     | juce::ModifierKeys::shiftModifier));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    mouseDownAt (timeline,
+                 timelineClipCenterPoint (timeline, project, 1u),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                     | juce::ModifierKeys::shiftModifier));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    // Ctrl+A targets only the selected track. Copy/paste preserves the selected clips as one group.
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 3u);
+
+    // Dragging any member moves the whole track selection by the same snapped delta.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Tick firstStart = project.clips[0].timelineStart;
+    const yesdaw::engine::Tick secondStart = project.clips[1].timelineStart;
+    const juce::Point<int> firstCentre = timelineClipCenterPoint (timeline, project, 0u);
+    dragFromTo (timeline, firstCentre, { firstCentre.x + timeline.getWidth() / 4, firstCentre.y });
+    yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Tick firstDelta = moved.clips[0].timelineStart - firstStart;
+    REQUIRE (firstDelta > 0);
+    REQUIRE (moved.clips[1].timelineStart - secondStart == firstDelta);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips[0].timelineStart == firstStart);
+    REQUIRE (project.clips[1].timelineStart == secondStart);
+
+    // Ctrl+Shift+A selects the project; Delete persists silence, and one undo restores every clip.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
 }
 
 TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")

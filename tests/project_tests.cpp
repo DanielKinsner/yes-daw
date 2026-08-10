@@ -1488,15 +1488,13 @@ TEST_CASE ("Project undo stack groups compatible headless clip edit transactions
     const Project edited = project;
     REQUIRE (edited.hasValidAssetClipIndirection());
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, original);
     REQUIRE_FALSE (undo.canUndo());
     REQUIRE (undo.redoDepth() == 4u);
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, edited);
     REQUIRE (undo.canUndo());
@@ -1557,13 +1555,11 @@ TEST_CASE ("Project undo stack groups compatible MIDI Note move and length edits
     const Project edited = project;
     REQUIRE (edited.hasValidAssetClipIndirection());
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, original);
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, edited);
 }
@@ -1634,15 +1630,36 @@ TEST_CASE ("Project undo stack separates targets and groups trim and fade edits"
     const Project edited = project;
     REQUIRE (edited.hasValidAssetClipIndirection());
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, original);
 
-    for (int i = 0; i < 4; ++i)
-        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
 
     requireProjectValueUnchanged (project, edited);
+}
+
+TEST_CASE ("Project transaction group is one atomic undo and redo step", "[project][undo][group][atomic]")
+{
+    Project project = makeTwoClipEditableProject();
+    const Project original = project;
+    const EntityId firstId = project.clips[0].id;
+    const EntityId secondId = project.clips[1].id;
+
+    ProjectUndoStack undo;
+    REQUIRE (undo.beginTransactionGroup());
+    REQUIRE (undo.apply (project, ProjectEditCommand::moveClip (firstId, 1'000)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::moveClip (secondId, 2'000)).applied());
+    REQUIRE (undo.endTransactionGroup());
+    const Project edited = project;
+
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE_FALSE (undo.canUndo());
+
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
+    REQUIRE_FALSE (undo.canRedo());
 }
 
 TEST_CASE ("Project undo stack keeps compatible edits separate outside transaction groups", "[project][clip-edit][undo][group]")
@@ -1763,7 +1780,7 @@ TEST_CASE ("Project generated edit sequence undo redo returns bit-identical Proj
         ++undoCount;
     }
 
-    REQUIRE (undoCount == 8u);
+    REQUIRE (undoCount == 4u);
     requireProjectValueUnchanged (project, original);
     REQUIRE_FALSE (undo.canUndo());
     REQUIRE (undo.canRedo());

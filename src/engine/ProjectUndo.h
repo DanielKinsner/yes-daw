@@ -1696,13 +1696,21 @@ public:
         if (undo_.empty())
             return ProjectUndoStatus::NothingToUndo;
 
-        const UndoEntry entry = undo_.back();
-        const ProjectEditTransaction& transaction = entry.transaction;
-        if (! detail::applyProjectEditTransactionDiff (project, transaction, false))
-            return ProjectUndoStatus::ProjectMismatch;
+        const std::size_t entryCount = trailingGroupEntryCount (undo_);
+        Project next = project;
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            const UndoEntry& entry = undo_[undo_.size() - 1 - index];
+            if (! detail::applyProjectEditTransactionDiff (next, entry.transaction, false))
+                return ProjectUndoStatus::ProjectMismatch;
+        }
 
-        redo_.push_back (entry);
-        undo_.pop_back();
+        project = std::move (next);
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            redo_.push_back (std::move (undo_.back()));
+            undo_.pop_back();
+        }
         return ProjectUndoStatus::Applied;
     }
 
@@ -1711,13 +1719,21 @@ public:
         if (redo_.empty())
             return ProjectUndoStatus::NothingToRedo;
 
-        const UndoEntry entry = redo_.back();
-        const ProjectEditTransaction& transaction = entry.transaction;
-        if (! detail::applyProjectEditTransactionDiff (project, transaction, true))
-            return ProjectUndoStatus::ProjectMismatch;
+        const std::size_t entryCount = trailingGroupEntryCount (redo_);
+        Project next = project;
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            const UndoEntry& entry = redo_[redo_.size() - 1 - index];
+            if (! detail::applyProjectEditTransactionDiff (next, entry.transaction, true))
+                return ProjectUndoStatus::ProjectMismatch;
+        }
 
-        undo_.push_back (entry);
-        redo_.pop_back();
+        project = std::move (next);
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            undo_.push_back (std::move (redo_.back()));
+            redo_.pop_back();
+        }
         return ProjectUndoStatus::Applied;
     }
 
@@ -1743,6 +1759,18 @@ private:
         ProjectEditTransaction transaction;
         std::uint64_t groupId = 0;
     };
+
+    [[nodiscard]] static std::size_t trailingGroupEntryCount (const std::vector<UndoEntry>& entries) noexcept
+    {
+        if (entries.empty() || entries.back().groupId == 0)
+            return entries.empty() ? 0 : 1;
+
+        const std::uint64_t groupId = entries.back().groupId;
+        std::size_t count = 1;
+        while (count < entries.size() && entries[entries.size() - 1 - count].groupId == groupId)
+            ++count;
+        return count;
+    }
 
     std::vector<UndoEntry> undo_;
     std::vector<UndoEntry> redo_;

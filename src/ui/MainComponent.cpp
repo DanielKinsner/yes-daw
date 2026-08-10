@@ -316,7 +316,7 @@ class TimelineInputComponent final : public juce::Component
 {
 public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
-    std::function<void (int)> onClipClicked;
+    std::function<void (int, bool)> onClipClicked;
     std::function<void()> onEmptyClicked;
     std::function<void (int, double, bool)> onClipMoved;
     std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
@@ -375,7 +375,7 @@ public:
         if (hit.hit)
         {
             if (onClipClicked)
-                onClipClicked (hit.id);
+                onClipClicked (hit.id, event.mods.isShiftDown());
 
             dragState = {};
             dragState.active = true;
@@ -608,7 +608,7 @@ public:
         }
 
         if (onClipClicked)
-            onClipClicked (hit.id);
+            onClipClicked (hit.id, false);
 
         if (const std::optional<double> splitSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
             if (onClipSplit)
@@ -1523,8 +1523,8 @@ public:
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
         timelineInput.stateProvider = [this] { return makeTimelineState(); };
-        timelineInput.onClipClicked = [this] (int timelineClipId) {
-            selectTimelineClipByLayoutId (timelineClipId);
+        timelineInput.onClipClicked = [this] (int timelineClipId, bool toggle) {
+            selectTimelineClipByLayoutId (timelineClipId, toggle);
         };
         timelineInput.onEmptyClicked = [this] {
             appModel.clearTimelineClipSelection();
@@ -2109,6 +2109,10 @@ public:
     [[nodiscard]] int harnessVisibleTimelineClipCount() const
     {
         return appModel.context().projectLoaded ? static_cast<int> (timelineClips.size()) : 0;
+    }
+    [[nodiscard]] int harnessSelectedTimelineClipCount() const
+    {
+        return static_cast<int> (appModel.selectedTimelineClipCount());
     }
     [[nodiscard]] double harnessVisibleTimelineTotalSeconds() const noexcept
     {
@@ -3279,10 +3283,11 @@ private:
             UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
         };
-        static constexpr std::array<UiActionId, 7> kEditMenu {
+        static constexpr std::array<UiActionId, 9> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
-            UiActionId::TimelineClipDelete,
+            UiActionId::TimelineClipDelete, UiActionId::TimelineClipSelectAllTrack,
+            UiActionId::TimelineClipSelectAllProject,
         };
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
@@ -4697,7 +4702,10 @@ private:
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
             timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds });
-            timelineClipStyles.push_back ({ kPurple, yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
+            timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (clip.id)
+                                                ? yesdaw::ui::UiTheme::Color::accentBlue()
+                                                : kPurple,
+                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
@@ -4709,7 +4717,7 @@ private:
                         endSeconds * yesdaw::ui::UiTheme::Layout::timelineProjectEndPaddingScale);
     }
 
-    void selectTimelineClipByLayoutId (int layoutClipId)
+    void selectTimelineClipByLayoutId (int layoutClipId, bool toggle)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
         {
@@ -4717,7 +4725,8 @@ private:
         }
         else
         {
-            (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+            (void) appModel.selectTimelineClipForGesture (
+                timelineClipIds[static_cast<std::size_t> (layoutClipId)], toggle);
         }
 
         refreshActionState();
@@ -4781,7 +4790,11 @@ private:
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
             return;
 
-        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        const yesdaw::engine::EntityId draggedClipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        if (! appModel.isTimelineClipSelected (draggedClipId))
+            (void) appModel.selectTimelineClip (draggedClipId);
+        else
+            (void) appModel.selectTimelineClipForGesture (draggedClipId, false);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
             (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTick (*tick, snapToGrid));
 
@@ -4814,7 +4827,11 @@ private:
         if (targetLane < 0 || targetLane >= static_cast<int> (project.tracks.size()))
             return;
 
-        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        const yesdaw::engine::EntityId draggedClipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        if (! appModel.isTimelineClipSelected (draggedClipId))
+            (void) appModel.selectTimelineClip (draggedClipId);
+        else
+            (void) appModel.selectTimelineClipForGesture (draggedClipId, false);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
             (void) appModel.moveSelectedTimelineClipToTrack (
                 project.tracks[static_cast<std::size_t> (targetLane)].id,
@@ -5872,6 +5889,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
+        snapshot.selectedTimelineClipCount = mainComponent->harnessSelectedTimelineClipCount();
         snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();
         snapshot.visibleMixerTrackCount = mainComponent->harnessVisibleMixerTrackCount();
         snapshot.visibleMixerBusCount = mainComponent->harnessVisibleMixerBusCount();
