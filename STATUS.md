@@ -83,16 +83,21 @@ each remote-green or pushed (small commits, ctest 337/337 at every step):
 - **Tempo + time-signature editing**: header TEMPO drag bar (20–400) and TIME SIG chooser drive new
   setProjectTempo/setProjectMeter commands (head-of-map alpha scope, whole-map diffs, undoable).
 
-**Now:** P0-1 — real device recording. Record currently commits a synthetic sawtooth
-(`UiAppModel::makeDeterministicRecordedAudio`) and desktop audio opens ZERO input channels
-(`MainComponent.cpp initialiseWithDefaultDevices (0, 2)`). Plan: open inputs, feed the shipped
-callback's input buffers through the proven H5 pipeline (engine/Recording.h FIFO → writer →
-app/RecordingAssetCommit.h — the same path tools/hardware/RecordingCheckMain.cpp exercises on real
-hardware), latency-compensated placement, deterministic injected path stays for the harness. Then:
-package + installed-app proof (stereo playback via scratchpad fixture stereo-proof-10s.wav + a real
-mic record pass), and the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane
-canvas, piano-roll pencil, real device chooser, send/bus UI, metronome, launch-time recovery,
-import-at-playhead, export options, menu bar, track-rail mini controls).
+- **Real device recording (P0-1)**: desktop audio opens stereo input (output-only fallback); the
+  callback's input channels run through the H5 FIFO pipeline while a capture session is live; Record
+  starts a rolling session (auto-arm) and Record again commits the REAL captured audio as
+  Asset + Take + Clip at the latency-compensated frame via the shared commit service (which now
+  honors explicit placement). Nothing captured = honest failure. Synthetic path remains only for the
+  injected harness / inputless devices.
+
+**ALL NINE P0s from the audit are now implemented and locally green (ctest 337/337).**
+
+**Now:** CI on the cumulative push, then package + install + owner-machine proof: stereo playback
+(scratchpad fixture stereo-proof-10s.wav — arpeggio L / bass R), and a real mic record pass in the
+installed app. Then the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane canvas,
+piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
+import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
+trim-left, copy/paste/duplicate clip, FX param editing).
 
 ---
 
