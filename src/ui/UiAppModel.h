@@ -1933,6 +1933,22 @@ public:
     // Clip clipboard (usable-DAW P1): Copy captures the selected Clip's non-identity fields; Paste
     // creates a fresh Clip at the playhead on the selected (or owning/first) Track; Duplicate appends
     // a copy right after the source. All paste/duplicate paths run the undoable AddClip command.
+    // Metronome toggle (usable-DAW P1): a monitoring click overlay in the playback engine, following
+    // the project's head tempo and meter. Never part of offline Render/export. Reapplied whenever the
+    // engine is replaced (edits rebuild playback) so the click survives every edit.
+    [[nodiscard]] UiActionDispatchResult toggleMetronome()
+    {
+        const UiActionId id = UiActionId::TransportToggleMetronome;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        context_.metronomeEnabled = ! context_.metronomeEnabled;
+        applyMetronomeToPlayback();
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult copySelectedTimelineClip()
     {
         const UiActionId id = UiActionId::TimelineClipCopy;
@@ -2354,6 +2370,9 @@ public:
 
             case UiActionId::TimelineClipDuplicate:
                 return duplicateSelectedTimelineClip();
+
+            case UiActionId::TransportToggleMetronome:
+                return toggleMetronome();
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();
@@ -3440,9 +3459,22 @@ private:
         audioPlayback_.store (nullptr, std::memory_order_release);
         playback_ = std::move (replacement);
         audioPlayback_.store (playback_.get(), std::memory_order_release);
+        applyMetronomeToPlayback();
 
         if (playbackReplacementDidEnd_)
             playbackReplacementDidEnd_();
+    }
+
+    void applyMetronomeToPlayback() noexcept
+    {
+        if (playback_ == nullptr)
+            return;
+
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        const int beatsPerBar = ! project_.meterMap.empty()
+            ? static_cast<int> (project_.meterMap.front().numerator)
+            : 4;
+        playback_->setMetronome (context_.metronomeEnabled, bpm, beatsPerBar);
     }
 
     static void zeroAudioOutputs (float* const* outputChannels,

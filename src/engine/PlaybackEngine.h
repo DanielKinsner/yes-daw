@@ -17,12 +17,14 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <span>
 #include <type_traits>
+#include <vector>
 
 namespace yesdaw::engine {
 
@@ -126,6 +128,7 @@ public:
             }
 
             processTransportSegment (outChannels, numOutputChannels, offset, segment);
+            overlayMetronome (outChannels, numOutputChannels, offset, segment, playheadFrame_);
             playheadFrame_ += static_cast<std::int64_t> (segment);
             offset += segment;
 
@@ -158,6 +161,27 @@ public:
     }
 
     bool clearLoop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::ClearLoop }); }
+
+    // CONTROL THREAD: metronome click overlay (usable-DAW P1). The click tables are precomputed at
+    // construction for this engine's sample rate; only the beat grid parameters travel through
+    // atomics, so the audio thread never allocates or computes trig. The click is a MONITORING
+    // overlay summed after the graph — offline Render/export never contains it. Head-tempo grid
+    // (constant BPM) is the alpha scope, matching the header tempo control.
+    void setMetronome (bool enabled, double bpm, int beatsPerBar) noexcept
+    {
+        const double sampleRateHz = sampleRate_.isValid() ? sampleRate_.hz : 48000.0;
+        const double clampedBpm = std::isfinite (bpm) ? std::clamp (bpm, 20.0, 400.0) : 120.0;
+        const std::int64_t framesPerBeat =
+            std::max<std::int64_t> (1, static_cast<std::int64_t> (sampleRateHz * 60.0 / clampedBpm + 0.5));
+        metronomeFramesPerBeat_.store (framesPerBeat, std::memory_order_relaxed);
+        metronomeBeatsPerBar_.store (std::clamp (beatsPerBar, 1, 32), std::memory_order_relaxed);
+        metronomeEnabled_.store (enabled, std::memory_order_release);
+    }
+
+    [[nodiscard]] bool metronomeEnabled() const noexcept
+    {
+        return metronomeEnabled_.load (std::memory_order_acquire);
+    }
 
     [[nodiscard]] RecordingCaptureResult captureRecordingInputBlock (
         RecordingChunkFifo& fifo,
@@ -242,6 +266,64 @@ private:
         : sampleRate_ (sampleRate), channels_ (channels), frames_ (frames), maxBlockSize_ (maxBlockSize)
     {
         transportCommands_.reset (kTransportCommandCapacity);
+        buildMetronomeClickTables();
+    }
+
+    // CONTROL THREAD (constructor): two short decaying sine bursts — beat and accented downbeat. The
+    // audio thread only indexes these; it never computes trig or allocates.
+    void buildMetronomeClickTables()
+    {
+        const double sampleRateHz = sampleRate_.isValid() ? sampleRate_.hz : 48000.0;
+        const std::size_t clickFrames =
+            std::max<std::size_t> (8, static_cast<std::size_t> (sampleRateHz * kMetronomeClickSeconds));
+        metronomeBeatClick_.resize (clickFrames);
+        metronomeDownbeatClick_.resize (clickFrames);
+        constexpr double kTwoPi = 6.283185307179586;
+        for (std::size_t i = 0; i < clickFrames; ++i)
+        {
+            const double t = static_cast<double> (i) / sampleRateHz;
+            const double envelope = std::exp (-t * kMetronomeDecayPerSecond);
+            metronomeBeatClick_[i] = static_cast<float> (
+                std::sin (kTwoPi * kMetronomeBeatHz * t) * envelope * kMetronomeGain);
+            metronomeDownbeatClick_[i] = static_cast<float> (
+                std::sin (kTwoPi * kMetronomeDownbeatHz * t) * envelope * kMetronomeGain);
+        }
+    }
+
+    // AUDIO THREAD: overlay clicks onto the rendered segment. Integer beat-grid math per frame only.
+    void overlayMetronome (float* const* outChannels,
+                           int numOutputChannels,
+                           int blockOffset,
+                           int segmentFrames,
+                           std::int64_t segmentStartFrame) noexcept YESDAW_RT_HOT
+    {
+        if (! metronomeEnabled_.load (std::memory_order_acquire)
+            || outChannels == nullptr || numOutputChannels <= 0)
+            return;
+
+        const std::int64_t framesPerBeat = metronomeFramesPerBeat_.load (std::memory_order_relaxed);
+        const std::int64_t beatsPerBar =
+            std::max<std::int64_t> (1, metronomeBeatsPerBar_.load (std::memory_order_relaxed));
+        if (framesPerBeat <= 0 || metronomeBeatClick_.empty())
+            return;
+
+        const std::int64_t clickFrames = static_cast<std::int64_t> (metronomeBeatClick_.size());
+        for (int i = 0; i < segmentFrames; ++i)
+        {
+            const std::int64_t timelineFrame = segmentStartFrame + static_cast<std::int64_t> (i);
+            const std::int64_t phase = timelineFrame % framesPerBeat;
+            if (phase >= clickFrames)
+                continue;
+
+            const std::int64_t beatIndex = timelineFrame / framesPerBeat;
+            const float click = (beatIndex % beatsPerBar) == 0
+                ? metronomeDownbeatClick_[static_cast<std::size_t> (phase)]
+                : metronomeBeatClick_[static_cast<std::size_t> (phase)];
+
+            for (int channel = 0; channel < numOutputChannels; ++channel)
+                if (outChannels[channel] != nullptr)
+                    outChannels[channel][blockOffset + i] += click;
+        }
     }
 
     [[nodiscard]] bool postTransportCommand (TransportCommand command) noexcept
@@ -337,6 +419,18 @@ private:
 
     RuntimeAudioDriver driver_;
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
+    static constexpr double kMetronomeClickSeconds = 0.005;
+    static constexpr double kMetronomeDecayPerSecond = 600.0;
+    static constexpr double kMetronomeBeatHz = 1000.0;
+    static constexpr double kMetronomeDownbeatHz = 1500.0;
+    static constexpr double kMetronomeGain = 0.5;
+
+    std::atomic<bool>          metronomeEnabled_ { false };
+    std::atomic<std::int64_t>  metronomeFramesPerBeat_ { 24000 };
+    std::atomic<std::int64_t>  metronomeBeatsPerBar_ { 4 };
+    std::vector<float>         metronomeBeatClick_;
+    std::vector<float>         metronomeDownbeatClick_;
+
     SampleRate         sampleRate_ {};
     std::uint16_t      channels_ = 0;
     std::uint64_t      frames_ = 0;

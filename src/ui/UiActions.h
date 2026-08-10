@@ -93,6 +93,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipCopy,
     TimelineClipPaste,
     TimelineClipDuplicate,
+    TransportToggleMetronome,
     Count
 };
 
@@ -185,6 +186,7 @@ struct UiActionContext
     bool snapEnabled = true;
     std::int64_t snapGridTicks = 512;
     bool clipboardHasClip = false;
+    bool metronomeEnabled = false;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
@@ -416,7 +418,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipPaste, "timeline.clip.paste", "Paste Clip", "Ctrl+V", "Paste clip at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipDuplicate, "timeline.clip.duplicate", "Duplicate Clip", "Ctrl+D", "Duplicate selected timeline clip",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TransportToggleMetronome, "transport.toggle_metronome", "Metronome", "C", "Toggle metronome click",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -921,6 +925,10 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineEditCount;
+                break;
+
+            case UiActionId::TransportToggleMetronome:
+                context.metronomeEnabled = ! context.metronomeEnabled;
                 break;
 
             case UiActionId::Count:

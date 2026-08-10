@@ -451,3 +451,81 @@ TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx]
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("metronome clicks land on the beat grid, survive edits, and never reach the export",
+           "[ui][app][metronome]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("metronome");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    REQUIRE_FALSE (app.context().metronomeEnabled);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+    REQUIRE (app.context().metronomeEnabled);
+
+    // 120 BPM at 48 kHz -> a beat every 24000 frames. The project's clip is 8 frames long, so any
+    // energy at frame 24000+ can only be the click.
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> rendered = app.renderPlaybackFrames (30'000, 128);
+    REQUIRE_FALSE (rendered.empty());
+    const std::size_t channels = 2;
+
+    const auto peakAround = [&] (std::size_t frame, std::size_t span) {
+        float peak = 0.0f;
+        for (std::size_t f = frame; f < frame + span && f * channels < rendered.size(); ++f)
+            peak = std::max (peak, std::abs (rendered[f * channels]));
+        return peak;
+    };
+
+    REQUIRE (peakAround (24'000, 240) > 0.1f);    // beat 2 click present
+    REQUIRE (peakAround (12'000, 240) < 1.0e-6f); // mid-beat silence (clip long gone)
+
+    // The click survives an edit that rebuilds the playback engine.
+    REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+    REQUIRE (app.addAudioTrack().dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> renderedAfterEdit = app.renderPlaybackFrames (30'000, 128);
+    float editPeak = 0.0f;
+    for (std::size_t f = 24'000; f < 24'240; ++f)
+        editPeak = std::max (editPeak, std::abs (renderedAfterEdit[f * channels]));
+    REQUIRE (editPeak > 0.1f);
+
+    // Offline export NEVER contains the click: the monitoring overlay is playback-only.
+    REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+    std::filesystem::path exportPath = bundlePath;
+    exportPath += "-metro-export.wav";
+    REQUIRE (app.exportAudioFile (exportPath).dispatched);
+    yesdaw::io::Float32Wav exported;
+    REQUIRE (yesdaw::io::readFloat32WavFile (exportPath, exported).ok());
+    // The export is timeline-bounded (the 8-frame clip plus tail) — it can never even REACH the
+    // 24000-frame beat grid, and everything after the clip is exact digital silence.
+    REQUIRE (exported.frames < 20'000u);
+    float postClipPeak = 0.0f;
+    for (std::size_t f = 16; f < exported.frames; ++f)
+        postClipPeak = std::max (postClipPeak, std::abs (exported.interleavedSamples[f * exported.channels]));
+    REQUIRE (postClipPeak == 0.0f);
+
+    // Toggle off silences the click again.
+    REQUIRE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+    REQUIRE_FALSE (app.context().metronomeEnabled);
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> renderedOff = app.renderPlaybackFrames (30'000, 128);
+    float offPeak = 0.0f;
+    for (std::size_t f = 23'900; f < 24'400; ++f)
+        offPeak = std::max (offPeak, std::abs (renderedOff[f * channels]));
+    REQUIRE (offPeak < 1.0e-6f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (exportPath, ec);
+}
