@@ -269,6 +269,15 @@ already gate-covered there; rail meter liveliness itself is visual.)
 
 **The parity audit's P0, P1, and P2 backlog is now fully landed.**
 
+**Installed proof (2026-08-10, owner machine, full-stack build):** packaged
+`dist/YesDaw-323d7d6-win64-portable.zip` via tools/package.ps1, installed at
+`%LOCALAPPDATA%/YES DAW/323d7d6`, and mechanically proven on the INSTALLED binaries:
+`YesDawSelfCheck --version` reports 323d7d6; `--make-demo` + `--selfcheck` PASS (demo bundle
+renders 146,539 stereo frames, integrated -12.29 LUFS, export+reimport bit-exact); the GUI
+launches and stays up as "YES DAW 323d7d6". The Desktop "YES DAW" shortcut now targets this
+build. The interactive feel pass (ADR-0037's sanctioned human exception) is Dan's:
+double-click the shortcut — everything else is CI-gated.
+
 **REMOTE-GREEN CERTIFICATION (2026-08-10):** GitHub Actions run `31372922569` on exact head
 `dd49ee9` passed ALL NINE jobs (Linux, Windows, macOS, RTSan, TSan, both package jobs, both
 alpha-verifier self-tests). That head contains the complete P1 stack. Three warnings-as-errors
