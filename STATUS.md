@@ -258,6 +258,16 @@ persists 0.5 undoably, remove empties the sends.
 **With sends/bus done, ALL P1s from the parity audit are landed.** Remaining polish:
 track-rail mini pan/VOL/meter interactivity (P2).
 
+**REMOTE-GREEN CERTIFICATION (2026-08-10):** GitHub Actions run `31372922569` on exact head
+`dd49ee9` passed ALL NINE jobs (Linux, Windows, macOS, RTSan, TSan, both package jobs, both
+alpha-verifier self-tests). That head contains the complete P1 stack. Three warnings-as-errors
+red rounds were found and fixed on the way (all invisible to MSVC locally): the exhaustive
+UiActionId dispatch switch missing the five new actions (-Werror=switch, `162c44f`), an
+orphaned scheduler-test helper + UI constant (-Wunused-function/-Wunused-const-variable,
+`da0080c`), and AppleClang-only unused `kCenterGain` (`dd49ee9`). Lesson: rapid pushes cancel
+each other's CI runs (concurrency), so cross-platform warnings hide until pushes pause —
+require the exact-head run green before calling a stack done.
+
 **Next (after sends):** track-rail mini pan/VOL/meter interactivity.
 
 ---
