@@ -239,10 +239,14 @@ View-Mixer mutate the real project and panel.
 Track (`SendRow { id, busId, tap, linearGain }`); buses removable only while unrouted. Engine
 slice LANDED: five undoable verbs (AddBus/RemoveBus/AddSend/RemoveSend/SetSendLevel), bus rows
 diff family, send edits ride the track family, duplicate-id scan covers sends; focused gate +
-randomized property test extended to all five (bit-identical undo/redo). NEXT SLICES: schema
-v9 `sends` table (persistence round-trip + v8-opens-empty gate), model derives
-`config.sendRoutes` from the project (audibility gate: pre/post-fader tap law), then the
-mixer UI (+ Bus button, per-strip send rows) and shell gates.
+randomized property test extended to all five (bit-identical undo/redo). Persistence slice
+LANDED: schema v9 `sends` table (id/track/bus/position/tap/linear_gain, FK-restricted,
+additive migration), write/read round-trip gate, frozen-v8-fixture gate extended to assert
+empty sends after migration. Routing derivation LANDED: buildProjectGraph appends
+project-derived routes after the options seam, so playback, export, and selfcheck all honor
+persisted sends with zero call-site changes; tap-law render gate bites (zero-fader track:
+post-fader send silent, pre-fader audible, half level = half energy). NEXT SLICE: the mixer
+UI (+ Bus button, per-strip send rows: destination/level/remove) and shell gates.
 
 **Next (after sends):** track-rail mini pan/VOL/meter interactivity.
 

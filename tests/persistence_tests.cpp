@@ -683,6 +683,46 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     REQUIRE_FALSE (readback.tracks == mutatedStrip.tracks);
 }
 
+TEST_CASE ("Project send routes round-trip through schema v9", "[persistence][project][round-trip][sends]")
+{
+    const auto path = makeTempBundlePath ("sends-round-trip");
+
+    Project project = makeProject();
+    project.buses = { makeBus (idFromLowByte (11), "Return"), makeBus (idFromLowByte (12), "Verb") };
+    project.tracks[0].sends = {
+        yesdaw::engine::SendRow { idFromLowByte (80), idFromLowByte (11),
+                                  yesdaw::engine::SendTap::PostFader, 0.5f },
+        yesdaw::engine::SendRow { idFromLowByte (81), idFromLowByte (12),
+                                  yesdaw::engine::SendTap::PreFader, 0.25f },
+    };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+
+        sqlite3_int64 count = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sends;", count).ok());
+        REQUIRE (count == 2);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.tracks[0].sends == project.tracks[0].sends);
+    REQUIRE (readback.tracks[0].sends[0].tap == yesdaw::engine::SendTap::PostFader);
+    REQUIRE (readback.tracks[0].sends[1].tap == yesdaw::engine::SendTap::PreFader);
+    REQUIRE (readback.tracks[0].sends[1].linearGain == 0.25f);
+
+    Project mutatedSend = project;
+    mutatedSend.tracks[0].sends[0].linearGain = 0.75f;
+    REQUIRE_FALSE (readback.tracks == mutatedSend.tracks);
+}
+
 TEST_CASE ("Project automation lanes round-trip through schema v8", "[persistence][project][round-trip][automation][h15]")
 {
     const auto path = makeTempBundlePath ("automation-round-trip");
@@ -752,6 +792,11 @@ TEST_CASE ("frozen H15 automation schema-v8 fixture bundle opens on HEAD forever
     REQUIRE (db.readProjectSnapshot (project).ok());
     REQUIRE (project.automationLanes.size() == 2u);
     REQUIRE (project.automationLanes[0].ownerEntity == project.tracks[0].id);
+    // ADR-0044 additive migration: a pre-v9 bundle opens with the sends table present and empty.
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sends;", value).ok());
+    REQUIRE (value == 0);
+    for (const auto& track : project.tracks)
+        REQUIRE (track.sends.empty());
     REQUIRE (project.automationLanes[0].role == AutomationTargetRole::TrackFader);
     REQUIRE (project.automationLanes[0].paramId == 1u);
     REQUIRE (project.automationLanes[0].points.size() == 2u);

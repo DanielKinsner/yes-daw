@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 8;
+inline constexpr int          kCodeSchemaVersion = 9;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1180,13 +1180,31 @@ CREATE TABLE automation_breakpoints (
 );
 )SQL";
 
+// ADR-0044: persisted send routing. Send rows live on the owning Track; a v8 bundle migrates by
+// gaining the empty table (old projects simply have no sends).
+inline constexpr std::string_view kSchemaV9Sql = R"SQL(
+CREATE TABLE sends (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  track_id BLOB NOT NULL CHECK (length(track_id) = 16),
+  bus_id BLOB NOT NULL CHECK (length(bus_id) = 16),
+  position INTEGER NOT NULL CHECK (position >= 0),
+  tap INTEGER NOT NULL CHECK (tap IN (0, 1)),
+  linear_gain REAL NOT NULL CHECK (linear_gain >= 0 AND linear_gain <= 1000.0),
+  UNIQUE(track_id, position),
+  UNIQUE(track_id, bus_id),
+  FOREIGN KEY (track_id) REFERENCES tracks(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  FOREIGN KEY (bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+CREATE INDEX sends_track_id_idx ON sends(track_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 8> kMigrations {
+inline constexpr std::array<SchemaMigration, 9> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1195,6 +1213,7 @@ inline constexpr std::array<SchemaMigration, 8> kMigrations {
     SchemaMigration { 6, kSchemaV6Sql },
     SchemaMigration { 7, kSchemaV7Sql },
     SchemaMigration { 8, kSchemaV8Sql },
+    SchemaMigration { 9, kSchemaV9Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1798,7 +1817,7 @@ public:
                 "DELETE FROM automation_breakpoints; DELETE FROM automation_lanes; "
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
-                "DELETE FROM buses; DELETE FROM tracks; "
+                "DELETE FROM sends; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
@@ -1904,6 +1923,26 @@ public:
             if (auto result = busStmt.bindInt64 (6, bus.strip.soloed ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = busStmt.bindInt64 (7, bus.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, busStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        detail::Statement sendStmt (
+            db_,
+            "INSERT INTO sends(id, track_id, bus_id, position, tap, linear_gain) "
+            "VALUES (?, ?, ?, ?, ?, ?);");
+        for (const engine::Track& track : project.tracks)
+        {
+            for (std::size_t position = 0; position < track.sends.size(); ++position)
+            {
+                const engine::SendRow& send = track.sends[position];
+                sendStmt.reset();
+                if (auto result = sendStmt.bindBlob (1, send.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = sendStmt.bindBlob (2, track.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = sendStmt.bindBlob (3, send.busId.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = sendStmt.bindInt64 (4, static_cast<sqlite3_int64> (position)); ! result.ok()) { rollback(); return result; }
+                if (auto result = sendStmt.bindInt64 (5, static_cast<sqlite3_int64> (send.tap)); ! result.ok()) { rollback(); return result; }
+                if (auto result = sendStmt.bindDouble (6, send.linearGain); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, sendStmt); ! result.ok()) { rollback(); return result; }
+            }
         }
 
         {
@@ -2317,6 +2356,54 @@ public:
                 bus.strip.soloed = sqlite3_column_int64 (stmt.get(), 5) != 0;
                 bus.strip.soloSafe = sqlite3_column_int64 (stmt.get(), 6) != 0;
                 project.buses.push_back (std::move (bus));
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, track_id, bus_id, tap, linear_gain FROM sends ORDER BY track_id, position, rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::SendRow send;
+                engine::EntityId trackId;
+                if (auto result = detail::columnBlob (stmt.get(), 0, send.id.bytes, "sends.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, trackId.bytes, "sends.track_id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 2, send.busId.bytes, "sends.bus_id"); ! result.ok())
+                    return result;
+
+                const sqlite3_int64 tap = sqlite3_column_int64 (stmt.get(), 3);
+                if (tap < static_cast<sqlite3_int64> (engine::SendTap::PreFader)
+                    || tap > static_cast<sqlite3_int64> (engine::SendTap::PostFader))
+                    return detail::semanticInvalid ("sends.tap is outside the Project value range");
+                send.tap = static_cast<engine::SendTap> (tap);
+                send.linearGain = static_cast<float> (sqlite3_column_double (stmt.get(), 4));
+
+                engine::Track* owner = nullptr;
+                for (engine::Track& track : project.tracks)
+                    if (track.id == trackId)
+                    {
+                        owner = &track;
+                        break;
+                    }
+                if (owner == nullptr)
+                    return detail::semanticInvalid ("sends.track_id does not reference a Track row");
+                if (project.findBus (send.busId) == nullptr)
+                    return detail::semanticInvalid ("sends.bus_id does not reference a Bus row");
+
+                owner->sends.push_back (send);
             }
         }
 

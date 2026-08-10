@@ -383,6 +383,48 @@ TEST_CASE ("OfflineRenderer output tracks a Project mutation (the renderer is ex
     REQUIRE (buffersNear (mutated.interleavedSamples, independentProjectReference (mutatedFixture)));
 }
 
+TEST_CASE ("Persisted Track sends route audio to buses under the pre/post-fader tap law (ADR-0044)",
+           "[h7][offline-render][sends]")
+{
+    OfflineFixture fixture = makeOfflineFixture();
+    yesdaw::engine::Bus bus;
+    bus.id = idFromLowByte (60);
+    bus.strip.name = "Return";
+    fixture.project.buses = { bus };
+
+    // The track's own fader is silent, so ONLY the send path can reach the master.
+    fixture.project.tracks[0].strip.linearGain = 0.0f;
+
+    const auto renderEnergy = [&fixture]
+    {
+        const OfflineRenderResult rendered = renderOfflineProject (
+            fixture.project,
+            std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()));
+        REQUIRE (rendered.ok());
+        double energy = 0.0;
+        for (const float sample : rendered.interleavedSamples)
+            energy += std::fabs (static_cast<double> (sample));
+        return energy;
+    };
+
+    // Post-fader send taps AFTER the zeroed fader: the bus receives silence.
+    fixture.project.tracks[0].sends = {
+        yesdaw::engine::SendRow { idFromLowByte (61), bus.id, yesdaw::engine::SendTap::PostFader, 1.0f },
+    };
+    REQUIRE (renderEnergy() <= 1.0e-9);
+
+    // Pre-fader send taps BEFORE the fader: audio reaches the master through the bus.
+    fixture.project.tracks[0].sends[0].tap = yesdaw::engine::SendTap::PreFader;
+    REQUIRE (renderEnergy() > 0.01);
+
+    // The persisted send level scales the routed audio (half level = half energy, linear path).
+    const double fullEnergy = renderEnergy();
+    fixture.project.tracks[0].sends[0].linearGain = 0.5f;
+    const double halfEnergy = renderEnergy();
+    REQUIRE (halfEnergy > 0.0);
+    REQUIRE (std::fabs (halfEnergy - fullEnergy * 0.5) <= fullEnergy * 1.0e-6);
+}
+
 TEST_CASE ("Canonical float32 WAV writes and reads bit-exact samples", "[h7][wav][float32]")
 {
     const std::filesystem::path path = makeTempPath ("roundtrip", ".wav");

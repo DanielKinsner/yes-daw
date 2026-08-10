@@ -315,6 +315,15 @@ struct ResolvedClipWindow
     config.masterNodeId = options.masterNodeId;
     config.maxBlockSize = options.maxBlockSize;
     config.sendRoutes = options.sendRoutes;
+    // ADR-0044: persisted send rows on the Track are the product's routing source of truth; the
+    // options seam stays for engine tests and is concatenated in front (no overlap in practice).
+    for (const Track& track : project.tracks)
+        for (const SendRow& send : track.sends)
+            config.sendRoutes.push_back (ProjectMixerSendRoute {
+                track.id,
+                send.busId,
+                send.tap == SendTap::PreFader ? MixerSendTap::PreFader : MixerSendTap::PostFader,
+                send.linearGain });
 
     MixerProjectionInputs projection;
     OfflineRenderStatus factoryStatus = OfflineRenderStatus::Ok;
