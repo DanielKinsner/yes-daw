@@ -113,7 +113,9 @@ UiAppModel's stale private projectContainsEntityId copy never scanned FX-insert/
 so same-millisecond allocations collided and silently dropped the second edit (now delegates to the
 engine's authoritative scan; 15/15-failing repro now 0/15).
 
-**Next:** the rest of the P1 sweep (zoom/scroll, markers, snap UI, automation lane canvas,
+Timeline zoom + horizontal scroll landed (Ctrl+wheel anchored zoom 1x-64x, wheel scroll, clamped).
+
+**Next:** the rest of the P1 sweep (markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
