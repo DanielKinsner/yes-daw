@@ -77,10 +77,22 @@ each remote-green or pushed (small commits, ctest 337/337 at every step):
 - **Mixer strips all selectable**: overlay click on any Track strip retargets and repositions the
   shared fader/pan/mute/solo controls; strip-0 hard-coding removed.
 
-**Now:** P0-7 (FX insert UI — engine fully ready, shell has only a bypass stub) is next; then P0-9
-(tempo/time-sig editing) and P0-1 (real device recording — Record still commits a synthetic take;
-desktop audio opens 0 input channels). Owner-machine stereo install proof still owed (scratchpad
-fixture ready).
+- **FX inserts on the selected strip**: '+ FX' chooser adds EQ/Comp/Delay/Reverb/Limiter (undoable
+  AddFxInsert on the selected Track/Bus), slot rows toggle bypass and remove, all persisted and
+  graph-rebuilding. (Param editing UI is the follow-up slice.)
+- **Tempo + time-signature editing**: header TEMPO drag bar (20–400) and TIME SIG chooser drive new
+  setProjectTempo/setProjectMeter commands (head-of-map alpha scope, whole-map diffs, undoable).
+
+**Now:** P0-1 — real device recording. Record currently commits a synthetic sawtooth
+(`UiAppModel::makeDeterministicRecordedAudio`) and desktop audio opens ZERO input channels
+(`MainComponent.cpp initialiseWithDefaultDevices (0, 2)`). Plan: open inputs, feed the shipped
+callback's input buffers through the proven H5 pipeline (engine/Recording.h FIFO → writer →
+app/RecordingAssetCommit.h — the same path tools/hardware/RecordingCheckMain.cpp exercises on real
+hardware), latency-compensated placement, deterministic injected path stays for the harness. Then:
+package + installed-app proof (stereo playback via scratchpad fixture stereo-proof-10s.wav + a real
+mic record pass), and the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane
+canvas, piano-roll pencil, real device chooser, send/bus UI, metronome, launch-time recovery,
+import-at-playhead, export options, menu bar, track-rail mini controls).
 
 ---
 
