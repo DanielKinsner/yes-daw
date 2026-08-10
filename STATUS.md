@@ -155,7 +155,13 @@ Launch-time recovery landed: the native shell records the last bundle in the use
 reopens it at launch (autosave Restore/Discard prompt now reachable after a crash with zero clicks);
 harness stays deterministic (no session dir set).
 
-**Next:** the rest of the P1 sweep (markers, snap UI, automation lane canvas,
+Snap grid landed: real Grid chooser (Off/Bar/Beat/1-16), frame grids derived from head tempo/meter,
+unmodified drags snap, Ctrl inverts. **And a P0-class find:** mute/solo were persisted but INAUDIBLE —
+the fully-tested ADR-0014 mute policy was never wired to the Project. buildProjectGraph now publishes
+the effective mask (playback AND export); gates pin mute-halves, muted-solo-engages-nothing, and
+solo-isolates.
+
+**Next:** the rest of the P1 sweep (markers, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
