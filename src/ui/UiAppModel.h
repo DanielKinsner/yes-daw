@@ -22,6 +22,7 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -498,6 +499,35 @@ public:
         return result;
     }
 
+    // Last-project record (usable-DAW P1): a one-line UTF-8 file in the shell-supplied session-state
+    // directory remembering the most recently opened/created bundle. The native shell reopens it at
+    // launch so a crash-then-relaunch reaches the autosave recovery prompt without manual navigation.
+    // The injected-choices harness never sets a directory, so tests stay deterministic by default.
+    void setSessionStateDirectory (const std::filesystem::path& directory)
+    {
+        sessionStateDirectory_ = directory;
+    }
+
+    [[nodiscard]] std::filesystem::path readLastProjectRecord() const
+    {
+        if (sessionStateDirectory_.empty())
+            return {};
+
+        std::ifstream input (sessionStateDirectory_ / kLastProjectRecordFileName);
+        if (! input.good())
+            return {};
+
+        std::string line;
+        std::getline (input, line);
+        if (line.empty())
+            return {};
+
+        const auto* bytes = reinterpret_cast<const char8_t*> (line.data());
+        std::filesystem::path recorded { std::u8string (bytes, bytes + line.size()) };
+        std::error_code existsError;
+        return std::filesystem::exists (recorded, existsError) ? recorded : std::filesystem::path {};
+    }
+
     [[nodiscard]] persistence::BundleResult saveProjectBundle()
     {
         if (! bundleDb_.isOpen())
@@ -559,6 +589,7 @@ public:
             return { id, { false, "bundle copy failed" }, false };
 
         bundlePath_ = newBundlePath;
+        writeLastProjectRecord();
         waveformService_.start (bundlePath_);
         enqueueWaveformBuildsForDecodedAssets();
         ++context_.saveCount;
@@ -3378,6 +3409,23 @@ private:
         }
     }
 
+    void writeLastProjectRecord()
+    {
+        if (sessionStateDirectory_.empty() || bundlePath_.empty())
+            return;
+
+        std::error_code directoryError;
+        std::filesystem::create_directories (sessionStateDirectory_, directoryError);
+        std::ofstream output (sessionStateDirectory_ / kLastProjectRecordFileName,
+                              std::ios::binary | std::ios::trunc);
+        if (! output.good())
+            return;
+
+        const std::u8string utf8 = bundlePath_.u8string();
+        output.write (reinterpret_cast<const char*> (utf8.data()),
+                      static_cast<std::streamsize> (utf8.size()));
+    }
+
     void attachProjectBundle (
         persistence::ProjectBundleDb opened,
         const std::filesystem::path& bundlePath,
@@ -3385,6 +3433,7 @@ private:
     {
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
+        writeLastProjectRecord();
         project_ = std::move (project);
         waveformService_.start (bundlePath_);
         selectedTimelineClipId_ = {};
@@ -3523,6 +3572,8 @@ private:
         engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
     };
     UiClipClipboard clipClipboard_;
+    std::filesystem::path sessionStateDirectory_;
+    static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
 
     [[nodiscard]] UiActionDispatchResult addClipFromClipboard (UiActionId id,
                                                                const UiActionState& state,

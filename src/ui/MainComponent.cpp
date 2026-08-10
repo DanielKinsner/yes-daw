@@ -1404,6 +1404,29 @@ public:
 
         if (desktopAudioRequested)
         {
+            // Native shell only: remember and reopen the last project so a crash-then-relaunch reaches
+            // the autosave recovery prompt with no manual navigation (usable-DAW P1). The harness never
+            // takes this path, so injected-choice tests stay deterministic.
+            {
+                const std::string sessionUtf8 =
+                    juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                        .getChildFile ("YES DAW").getFullPathName().toStdString();
+                const auto* sessionBytes = reinterpret_cast<const char8_t*> (sessionUtf8.data());
+                appModel.setSessionStateDirectory (
+                    std::filesystem::path { std::u8string (sessionBytes, sessionBytes + sessionUtf8.size()) });
+            }
+            const std::filesystem::path lastProject = appModel.readLastProjectRecord();
+            if (! lastProject.empty())
+            {
+                if (auto decodedAssets = decodeStoredProjectAssets (lastProject); decodedAssets && ! decodedAssets->empty())
+                    (void) appModel.loadProjectBundle (
+                        lastProject,
+                        std::span<const yesdaw::ui::UiDecodedAsset> (
+                            decodedAssets->data(), decodedAssets->size()));
+                else if (decodedAssets)
+                    (void) appModel.openProjectBundle (lastProject);
+            }
+
             // Request stereo input so the shipped Record button can capture real audio (P0-1); fall
             // back to output-only when no input device exists so playback never regresses.
             juce::String error = audioDeviceManager.initialiseWithDefaultDevices (2, 2);

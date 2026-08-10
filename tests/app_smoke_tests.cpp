@@ -568,3 +568,51 @@ TEST_CASE ("import places the new clip at the playhead", "[ui][app][import][play
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("last-project record round-trips through the session-state directory", "[ui][app][lastproject]")
+{
+    const std::filesystem::path sessionDir = makeTempBundlePath ("session-state");
+    const std::filesystem::path bundlePath = makeTempBundlePath ("last-project");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    {
+        UiAppModel app;
+        app.setSessionStateDirectory (sessionDir);
+        REQUIRE (app.readLastProjectRecord().empty());   // nothing recorded yet
+
+        UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.readLastProjectRecord() == bundlePath);
+    }
+
+    // A fresh model (a relaunch) reads the same record back.
+    {
+        UiAppModel relaunched;
+        relaunched.setSessionStateDirectory (sessionDir);
+        REQUIRE (relaunched.readLastProjectRecord() == bundlePath);
+    }
+
+    // A record pointing at a deleted bundle reads as empty — the shell never chases ghosts.
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    {
+        UiAppModel afterDelete;
+        afterDelete.setSessionStateDirectory (sessionDir);
+        REQUIRE (afterDelete.readLastProjectRecord().empty());
+    }
+
+    // No session directory set -> record functions are inert (the harness default).
+    {
+        UiAppModel inert;
+        REQUIRE (inert.readLastProjectRecord().empty());
+    }
+
+    std::filesystem::remove_all (sessionDir, ec);
+}
