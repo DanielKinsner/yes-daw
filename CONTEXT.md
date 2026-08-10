@@ -210,6 +210,18 @@ _Avoid_: channel-strip object, transient UI control state
 The loudness a meter shows.
 _Avoid_: volume
 
+**Track width**:
+Whether a Track's strip runs mono or stereo. Derived from the Track's Clips: any stereo Asset makes
+the strip stereo (ADR-0042). Not stored state; explicit user-chosen width arrives with recording-width
+UX.
+_Avoid_: channel count (for the strip), track format
+
+**Balance**:
+The stereo-strip counterpart of Pan (ADR-0042): centre passes both channels at unity; off-centre
+attenuates only the far channel along the equal-power taper. Channels are never blended. Same
+parameter target as Pan, so automation and the mixer control carry across widths.
+_Avoid_: stereo pan, dual pan
+
 **Loudness meter**:
 The BS.1770/libebur128-aligned meter used for integrated, short-term, and momentary loudness checks.
 It is a measurement surface, not an automatic gain change.
