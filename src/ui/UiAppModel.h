@@ -977,6 +977,16 @@ public:
         return { id, state, true };
     }
 
+    // Which Track strip (surface order) the mixer target currently points at; -1 when the target is
+    // unset or a Bus. The shell positions its interactive strip controls from this.
+    [[nodiscard]] int selectedMixerTrackStripIndex() const noexcept
+    {
+        if (! context_.mixerTargetSelected || selectedMixerTarget_.kind != MixerTargetKind::Track)
+            return -1;
+
+        return static_cast<int> (selectedMixerTarget_.index);
+    }
+
     // showMixerPanel=false selects the strip target without stealing the active panel — the Track
     // rail uses it so arrangement clicks keep the Timeline in front while mixer controls retarget.
     [[nodiscard]] bool selectMixerTrack (std::size_t index, bool showMixerPanel = true) noexcept

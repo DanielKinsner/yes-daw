@@ -743,7 +743,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 34u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 35u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2707,4 +2707,50 @@ TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][
     auto reopened = makeShell (std::move (openChoices));
     clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
     REQUIRE (snapshotMainComponent (*reopened).playbackReady);
+}
+
+TEST_CASE ("every mixer track strip is selectable and retargets the shared controls",
+           "[ui][input][shell][mixer][strips]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-strips");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Second track via keymap, second clip onto it through the rail selection.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (railComponent->getHeight() - headerHeight) / 2);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    // Click the SECOND strip through the overlay, then drive the shared mute control: the mute must
+    // land on track 2 in the persisted project — proof the controls retargeted.
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    REQUIRE (strips->isVisible());
+
+    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                       strips->getWidth() / 4);   // 2 tracks + master column headroom
+    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+
+    auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    REQUIRE (mute != nullptr);
+    clickButton (*mute);
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 2u);
+    REQUIRE_FALSE (project.tracks.front().strip.muted);
+    REQUIRE (project.tracks.back().strip.muted);
 }

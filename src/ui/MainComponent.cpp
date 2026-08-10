@@ -994,6 +994,25 @@ private:
     }
 };
 
+// Transparent overlay across the mixer strip region: forwards a click to the strip index under the
+// pointer (geometry owned by MainComponent so paint and hits share one source of truth).
+class MixerStripsInputComponent final : public juce::Component
+{
+public:
+    std::function<int (juce::Point<int>)> stripAtPosition;   // position in SHELL coordinates
+    std::function<void (int)> onStripClicked;
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (! stripAtPosition || ! onStripClicked)
+            return;
+
+        const int strip = stripAtPosition (event.getEventRelativeTo (getParentComponent()).getPosition());
+        if (strip >= 0)
+            onStripClicked (strip);
+    }
+};
+
 class MainComponent : public juce::Component,
                       private juce::Timer,
                       private juce::AudioIODeviceCallback
@@ -1536,6 +1555,11 @@ public:
         pianoRollInput.setBounds (timelineBounds());
         trackListInput.setBounds (leftRailPanelBounds());
         {
+            auto strips = mixerPanelBounds();
+            strips.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
+            mixerStripsInput.setBounds (strips);
+        }
+        {
             const auto rail = leftRailPanelBounds();
             trackAddButton.setBounds (
                 rail.getRight() - yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth
@@ -1779,10 +1803,42 @@ private:
         mixerTrackSelect.setColour (juce::TextButton::textColourOffId, kText);
         mixerTrackSelect.onClick = [this] {
             (void) appModel.selectMixerTrack (0);
+            layoutMixerControls();
             refreshActionState();
             repaint();
         };
         addAndMakeVisible (mixerTrackSelect);
+
+        // Every mixer strip is selectable (usable-DAW P0): clicking a Track strip retargets the shared
+        // fader/pan/mute/solo controls and moves them onto that strip.
+        mixerStripsInput.setComponentID ("shell.mixer.strips.input");
+        mixerStripsInput.setName ("Mixer Strips");
+        mixerStripsInput.setTitle ("Mixer Strips");
+        mixerStripsInput.onStripClicked = [this] (int stripIndex) {
+            const int trackCount = static_cast<int> (currentMixerSurface().tracks.size());
+            if (stripIndex < 0 || stripIndex >= trackCount)
+                return;
+
+            (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+            selectedTrackLane = stripIndex;   // rail selection follows the mixer strip
+            layoutMixerControls();
+            refreshActionState();
+            repaint();
+        };
+        mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
+            auto mixer = mixerPanelBounds();
+            mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
+            if (! mixer.contains (positionInShell))
+                return -1;
+
+            const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                               mixer.getWidth() / (stripCount + 1));
+            return (positionInShell.x - mixer.getX()) / stripWidth;
+        };
+        addAndMakeVisible (mixerStripsInput);
+        mixerStripsInput.toBack();   // the shared strip controls stay on top and keep their own clicks
 
         configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
         mixerFader.setSliderStyle (juce::Slider::LinearVertical);
@@ -2038,7 +2094,7 @@ private:
                               yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
     }
 
-    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const
+    [[nodiscard]] juce::Rectangle<int> mixerStripBounds (int stripIndex) const
     {
         auto mixer = mixerPanelBounds();
         mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
@@ -2048,9 +2104,12 @@ private:
         const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
                                            mixer.getWidth() / (stripCount + 1));
         return mixer.withWidth (stripWidth)
+            .translated (stripWidth * juce::jmax (0, stripIndex), 0)
             .reduced (yesdaw::ui::UiTheme::Layout::mixerStripHorizontalInset,
                       yesdaw::ui::UiTheme::Layout::mixerStripVerticalInset);
     }
+
+    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const { return mixerStripBounds (0); }
 
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
     {
@@ -2128,7 +2187,8 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
         }
 
-        auto lane = mixerFirstStripBounds()
+        const int selectedStrip = appModel.selectedMixerTrackStripIndex();
+        auto lane = mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
                                   yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
         mixerTrackSelect.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
@@ -3812,7 +3872,8 @@ private:
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
             const juce::Colour stripColour = stripColourForIndex (stripIndex);
-            const bool selected = appModel.context().mixerTargetSelected && stripIndex == 0;
+            const bool selected = appModel.context().mixerTargetSelected
+                               && stripIndex == appModel.selectedMixerTrackStripIndex();
             const bool interactiveStrip = selected;
 
             auto lane = area.removeFromLeft (stripWidth)
@@ -4220,6 +4281,7 @@ private:
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
+    MixerStripsInputComponent mixerStripsInput;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     int selectedTrackLane = -1;
