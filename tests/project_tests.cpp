@@ -2027,7 +2027,12 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
         const Project original = project;
 
         ProjectUndoStack undo;
-        for (int step = 0; step < 80; ++step)
+        constexpr int kBaseRandomAttempts = 80;
+        constexpr int kMaxRandomAttempts = 800;
+        for (int step = 0;
+             step < kMaxRandomAttempts
+                 && (step < kBaseRandomAttempts || undo.undoDepth() <= 10u);
+             ++step)
         {
             const EntityId clip = clipIds[static_cast<std::size_t> (pick (2))];
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
@@ -2091,6 +2096,9 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
         }
 
         const Project edited = project;
+        // Keep drawing after the original 80 attempts when destructive edits have made later random
+        // commands no-ops. The property still requires more than ten REAL mutations, and the hard
+        // attempt cap makes a generator that can no longer find valid edits fail instead of hanging.
         REQUIRE (undo.undoDepth() > 10u);            // the sequence did meaningful work, not a no-op stack
 
         while (undo.canUndo())

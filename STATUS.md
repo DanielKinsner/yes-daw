@@ -60,14 +60,19 @@ and the later `a3597a8` run `31356598268` repeated the failures. Fresh MSVC Deve
 configure/build plus the full local suite passed **337/337**, so the Windows baseline was real but
 not sufficient proof of cross-platform or sanitizer-gate health.
 
-**Done in the current repair checkpoint:** fixed the mixer-strip selected-index comparison that GCC
-and AppleClang reject under warnings-as-errors. The comparison now rejects the negative sentinel
-before converting the selected Track index to `std::size_t`; the shipped app and focused
-`YesDawUiInputCheck` rebuild and pass locally.
+**Done in the current repair checkpoint:**
 
-**Now:** run the full local gate, commit the cross-platform compile repair, then repair the separate
-randomized Project undo-gate flake exposed in both TSan and RTSan jobs (`undoDepth()` was exactly 10
-while the test demanded greater than 10).
+- Fixed the mixer-strip selected-index comparison that GCC and AppleClang reject under
+  warnings-as-errors. The comparison now rejects the negative sentinel before converting the
+  selected Track index to `std::size_t`; the shipped app and focused `YesDawUiInputCheck` rebuild
+  and pass locally.
+- Strengthened the randomized Project undo/redo property gate without lowering its `> 10` real-edit
+  threshold: after the original 80 draws it keeps drawing, up to a hard cap, until the evolving
+  Project has more than ten applied mutations. This fixes the cross-platform depth-10 flake while
+  still failing a generator that cannot produce meaningful work. The focused gate passed **20/20**.
+
+**Now:** run the full local gate, commit the randomized-gate repair, push both small commits, and
+require the exact head GitHub Actions run to pass every job.
 
 **Next:** push the independently green CI-truth repairs and require the exact head run to pass every
 job before resuming the shipped-boundary feature audit. Save As accepting a target inside its own
