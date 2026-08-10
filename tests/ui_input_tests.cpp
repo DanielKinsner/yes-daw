@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <array>
 #include <fstream>
 #include <memory>
 #include <span>
@@ -744,7 +745,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 72u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 74u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2822,6 +2823,48 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("export bit-depth chooser drives a 16-bit PCM export through the real button",
+           "[ui][input][shell][exportopts]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("export-opts");
+    std::filesystem::path exportPath = bundlePath;
+    exportPath += ".wav";
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    std::error_code removeError;
+    std::filesystem::remove (exportPath, removeError);
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = [exportPath] { return exportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* bitDepth = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.bitdepth"));
+    auto* range = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.range"));
+    REQUIRE (bitDepth != nullptr);
+    REQUIRE (range != nullptr);
+    bitDepth->setSelectedId (3, juce::sendNotificationSync);   // 16-bit PCM
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    REQUIRE (std::filesystem::exists (exportPath));
+
+    // fmt tag 1 (integer PCM) at offset 20, 16 bits per sample at offset 34.
+    std::ifstream in (exportPath, std::ios::binary);
+    REQUIRE (in.good());
+    std::array<unsigned char, 36> header {};
+    in.read (reinterpret_cast<char*> (header.data()), static_cast<std::streamsize> (header.size()));
+    REQUIRE (in.good());
+    REQUIRE ((header[20] | (header[21] << 8)) == 1);
+    REQUIRE ((header[34] | (header[35] << 8)) == 16);
+
+    std::filesystem::remove (exportPath, removeError);
+    std::filesystem::remove_all (bundlePath, removeError);
 }
 
 TEST_CASE ("audio device chooser lists devices and switches the output device", "[ui][input][shell][device]")

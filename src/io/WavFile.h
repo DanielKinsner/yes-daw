@@ -6,6 +6,7 @@
 
 #include "engine/Time.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -235,6 +236,109 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
     detail::writeLe32 (out, static_cast<std::uint32_t> (dataBytes64));
     for (const float sample : interleavedSamples)
         detail::writeFloat32Le (out, sample);
+
+    out.close();
+    if (! out)
+        return detail::filesystemError ("failed to flush WAV file");
+
+    return {};
+}
+
+// Integer-PCM export (usable-DAW P1 export options): 16- or 24-bit little-endian PCM, symmetric
+// round-to-nearest with hard clamp at full scale. No dither — deterministic output the golden
+// gates can pin byte-for-byte.
+[[nodiscard]] inline WavResult writePcmWavFile (const std::filesystem::path& path,
+                                                engine::SampleRate sampleRate,
+                                                std::uint16_t channels,
+                                                std::uint64_t frames,
+                                                std::span<const float> interleavedSamples,
+                                                std::uint16_t bitsPerSample)
+{
+    if (bitsPerSample != 16u && bitsPerSample != 24u)
+        return detail::invalidArgument ("PCM WAV bit depth must be 16 or 24");
+
+    if (channels == 0)
+        return detail::invalidArgument ("WAV channel count must be positive");
+
+    const std::uint32_t bytesPerSample = bitsPerSample / 8u;
+    if (static_cast<std::uint32_t> (channels) * bytesPerSample
+        > static_cast<std::uint32_t> (std::numeric_limits<std::uint16_t>::max()))
+        return detail::invalidArgument ("WAV channel count overflows 16-bit block alignment");
+
+    std::uint32_t sampleRateHz = 0;
+    if (! detail::sampleRateToUint32 (sampleRate, sampleRateHz))
+        return detail::invalidArgument ("WAV sample rate must be a finite positive integer");
+
+    if (frames > std::numeric_limits<std::uint64_t>::max() / static_cast<std::uint64_t> (channels))
+        return detail::invalidArgument ("WAV frame/channel count overflows");
+
+    const std::uint64_t expectedSamples = frames * static_cast<std::uint64_t> (channels);
+    if (expectedSamples > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max())
+        || interleavedSamples.size() != static_cast<std::size_t> (expectedSamples))
+        return detail::invalidArgument ("WAV sample span does not match frames * channels");
+
+    for (const float sample : interleavedSamples)
+        if (! std::isfinite (sample))
+            return detail::invalidArgument ("WAV sample payload must be finite");
+
+    constexpr std::uint16_t kAudioFormatPcm = 1;
+    constexpr std::uint32_t kFmtChunkSize = 16;
+    const std::uint32_t blockAlign = static_cast<std::uint32_t> (channels) * bytesPerSample;
+    const std::uint64_t dataBytes64 = expectedSamples * bytesPerSample;
+    const std::uint64_t riffSize64 = 4u + (8u + kFmtChunkSize) + (8u + dataBytes64);
+    if (dataBytes64 > std::numeric_limits<std::uint32_t>::max()
+        || riffSize64 > std::numeric_limits<std::uint32_t>::max())
+        return detail::invalidArgument ("WAV file exceeds RIFF32 size limit");
+
+    std::error_code ec;
+    if (path.has_parent_path())
+    {
+        std::filesystem::create_directories (path.parent_path(), ec);
+        if (ec)
+            return detail::filesystemError (ec.message());
+    }
+
+    std::ofstream out (path, std::ios::binary | std::ios::trunc);
+    if (! out)
+        return detail::filesystemError ("failed to open WAV for writing");
+
+    out.write ("RIFF", 4);
+    detail::writeLe32 (out, static_cast<std::uint32_t> (riffSize64));
+    out.write ("WAVE", 4);
+
+    out.write ("fmt ", 4);
+    detail::writeLe32 (out, kFmtChunkSize);
+    detail::writeLe16 (out, kAudioFormatPcm);
+    detail::writeLe16 (out, channels);
+    detail::writeLe32 (out, sampleRateHz);
+    detail::writeLe32 (out, sampleRateHz * blockAlign);
+    detail::writeLe16 (out, static_cast<std::uint16_t> (blockAlign));
+    detail::writeLe16 (out, bitsPerSample);
+
+    out.write ("data", 4);
+    detail::writeLe32 (out, static_cast<std::uint32_t> (dataBytes64));
+
+    const double fullScale = bitsPerSample == 16u ? 32767.0 : 8388607.0;
+    for (const float sample : interleavedSamples)
+    {
+        const double scaled = std::round (static_cast<double> (sample) * fullScale);
+        const double clamped = std::clamp (scaled, -fullScale - 1.0, fullScale);
+        const std::int32_t quantized = static_cast<std::int32_t> (clamped);
+        if (bitsPerSample == 16u)
+        {
+            detail::writeLe16 (out, static_cast<std::uint16_t> (static_cast<std::int16_t> (quantized)));
+        }
+        else
+        {
+            const std::uint32_t bits = static_cast<std::uint32_t> (quantized);
+            const std::array<char, 3> bytes {
+                static_cast<char> (bits & 0xFFu),
+                static_cast<char> ((bits >> 8u) & 0xFFu),
+                static_cast<char> ((bits >> 16u) & 0xFFu),
+            };
+            out.write (bytes.data(), static_cast<std::streamsize> (bytes.size()));
+        }
+    }
 
     out.close();
     if (! out)

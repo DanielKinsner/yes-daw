@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -682,6 +683,93 @@ TEST_CASE ("mute and solo are audible: the strip state drives the playback mute 
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+namespace {
+
+struct WavHeaderFields
+{
+    std::uint16_t format = 0;
+    std::uint16_t channels = 0;
+    std::uint16_t bitsPerSample = 0;
+    std::uint32_t dataBytes = 0;
+};
+
+WavHeaderFields readWavHeaderFields (const std::filesystem::path& path)
+{
+    WavHeaderFields fields;
+    std::ifstream in (path, std::ios::binary);
+    REQUIRE (in.good());
+    std::array<unsigned char, 44> header {};
+    in.read (reinterpret_cast<char*> (header.data()), static_cast<std::streamsize> (header.size()));
+    REQUIRE (in.good());
+    const auto le16 = [&header] (std::size_t offset) {
+        return static_cast<std::uint16_t> (header[offset]
+                                           | (static_cast<std::uint16_t> (header[offset + 1]) << 8u));
+    };
+    const auto le32 = [&header] (std::size_t offset) {
+        return static_cast<std::uint32_t> (header[offset])
+             | (static_cast<std::uint32_t> (header[offset + 1]) << 8u)
+             | (static_cast<std::uint32_t> (header[offset + 2]) << 16u)
+             | (static_cast<std::uint32_t> (header[offset + 3]) << 24u);
+    };
+    fields.format = le16 (20);
+    fields.channels = le16 (22);
+    fields.bitsPerSample = le16 (34);
+    fields.dataBytes = le32 (40);
+    return fields;
+}
+
+} // namespace
+
+TEST_CASE ("export options write PCM bit depths and slice the loop range", "[ui][app][export-options]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("export-options");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // 16-bit PCM export carries the PCM format tag and the full 8-frame project.
+    std::filesystem::path wav16 = bundlePath;
+    wav16 += "-16.wav";
+    app.setExportBitDepth (UiAppModel::UiExportBitDepth::Int16);
+    REQUIRE (app.exportAudioFile (wav16).dispatched);
+    const WavHeaderFields fields16 = readWavHeaderFields (wav16);
+    REQUIRE (fields16.format == 1u);
+    REQUIRE (fields16.bitsPerSample == 16u);
+    REQUIRE (fields16.channels > 0u);
+    REQUIRE (fields16.dataBytes == 8u * fields16.channels * 2u);
+
+    // Loop-range export without a loop region is an honest failure, not a silent full export.
+    std::filesystem::path wavLoop = bundlePath;
+    wavLoop += "-loop.wav";
+    app.setExportLoopRangeOnly (true);
+    REQUIRE_FALSE (app.exportAudioFile (wavLoop).dispatched);
+    REQUIRE_FALSE (std::filesystem::exists (wavLoop));
+
+    // With a loop region set, the export is exactly the loop's frames at 24-bit PCM.
+    REQUIRE (app.setPlaybackLoopRegion (2, 6).dispatched);
+    app.setExportBitDepth (UiAppModel::UiExportBitDepth::Int24);
+    REQUIRE (app.exportAudioFile (wavLoop).dispatched);
+    const WavHeaderFields fieldsLoop = readWavHeaderFields (wavLoop);
+    REQUIRE (fieldsLoop.format == 1u);
+    REQUIRE (fieldsLoop.bitsPerSample == 24u);
+    REQUIRE (fieldsLoop.channels == fields16.channels);
+    REQUIRE (fieldsLoop.dataBytes == 4u * fieldsLoop.channels * 3u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (wav16, ec);
+    std::filesystem::remove (wavLoop, ec);
 }
 
 TEST_CASE ("midi-only project pencils a note and renders it audibly", "[ui][app][midi-only]")

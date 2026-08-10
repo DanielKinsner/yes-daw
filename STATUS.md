@@ -218,8 +218,17 @@ deterministic under test; without a backend the chooser is present, empty, disab
 [device] pair — injected two-device list drives the switch seam with the chosen name; harness
 shell shows the empty/disabled state.
 
-**Next:** send/bus UI, export options (bit depth / sample rate / range), menu bar or remove
-painted one, track-rail mini pan/VOL/meter interactivity.
+**DONE: export options** — bit depth (32-bit float / 24-bit / 16-bit PCM) and range (whole
+project / loop region) choosers next to Export WAV. New `writePcmWavFile` (integer PCM,
+round-to-nearest, hard clamp, NO dither — deterministic for golden gates); loop-only export
+slices the rendered frames to the transport loop and fails honestly when no loop region exists.
+Sample-rate choice deliberately deferred: exports stay at the project rate until a real SRC
+lands (no resample hacks). Gates: [export-options] app gate (16-bit full project, loop-slice
+frame count at 24-bit, honest no-loop failure) + [exportopts] shell gate (real chooser + real
+Export button → PCM/16 header on disk).
+
+**Next:** send/bus UI, menu bar or remove painted one, track-rail mini pan/VOL/meter
+interactivity.
 
 ---
 

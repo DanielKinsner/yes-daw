@@ -612,6 +612,15 @@ public:
         return persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
     }
 
+    // Export options (usable-DAW P1): bit depth and range are user-chosen; the sample rate stays the
+    // project rate (honest scope — a real sample-rate converter is its own slice, not a resample hack).
+    enum class UiExportBitDepth : std::uint8_t { Float32, Int24, Int16 };
+
+    void setExportBitDepth (UiExportBitDepth depth) noexcept { exportBitDepth_ = depth; }
+    [[nodiscard]] UiExportBitDepth exportBitDepth() const noexcept { return exportBitDepth_; }
+    void setExportLoopRangeOnly (bool loopOnly) noexcept { exportLoopRangeOnly_ = loopOnly; }
+    [[nodiscard]] bool exportLoopRangeOnly() const noexcept { return exportLoopRangeOnly_; }
+
     [[nodiscard]] UiActionDispatchResult exportAudioFile (const std::filesystem::path& destinationPath)
     {
         const UiActionId id = UiActionId::ProjectExportAudio;
@@ -636,12 +645,43 @@ public:
             return { id, { false, "audio export render failed" }, false };
         }
 
-        const io::WavResult written = io::writeFloat32WavFile (
-            destinationPath,
-            rendered.sampleRate,
-            rendered.channels,
-            rendered.frames,
-            std::span<const float> (rendered.interleavedSamples.data(), rendered.interleavedSamples.size()));
+        // Range selection: loop-only slices the rendered frames to the transport loop region.
+        std::uint64_t exportFrames = rendered.frames;
+        std::span<const float> exportSamples (rendered.interleavedSamples.data(),
+                                              rendered.interleavedSamples.size());
+        if (exportLoopRangeOnly_)
+        {
+            const std::int64_t loopStart = playbackLoopStartFrame();
+            const std::int64_t loopEnd = playbackLoopEndFrame();
+            if (loopStart < 0 || loopEnd <= loopStart)
+            {
+                context_.audioExportInProgress = false;
+                return { id, { false, "loop range export requires a loop region" }, false };
+            }
+
+            const std::uint64_t start = std::min<std::uint64_t> (
+                static_cast<std::uint64_t> (loopStart), rendered.frames);
+            const std::uint64_t end = std::min<std::uint64_t> (
+                static_cast<std::uint64_t> (loopEnd), rendered.frames);
+            if (end <= start)
+            {
+                context_.audioExportInProgress = false;
+                return { id, { false, "loop range is outside the rendered project" }, false };
+            }
+
+            exportFrames = end - start;
+            exportSamples = exportSamples.subspan (
+                static_cast<std::size_t> (start) * rendered.channels,
+                static_cast<std::size_t> (exportFrames) * rendered.channels);
+        }
+
+        const io::WavResult written =
+            exportBitDepth_ == UiExportBitDepth::Float32
+                ? io::writeFloat32WavFile (destinationPath, rendered.sampleRate, rendered.channels,
+                                           exportFrames, exportSamples)
+                : io::writePcmWavFile (destinationPath, rendered.sampleRate, rendered.channels,
+                                       exportFrames, exportSamples,
+                                       exportBitDepth_ == UiExportBitDepth::Int24 ? 24u : 16u);
         if (! written.ok())
         {
             context_.audioExportInProgress = false;
@@ -3993,6 +4033,8 @@ private:
     std::unique_ptr<engine::PlaybackEngine> playback_;
     std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };
     int playbackMaxBlockSize_ = 128;
+    UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;
+    bool exportLoopRangeOnly_ = false;
     std::function<void()> playbackReplacementWillBegin_;
     std::function<void()> playbackReplacementDidEnd_;
     WaveformPeakService waveformService_;

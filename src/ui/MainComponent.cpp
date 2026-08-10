@@ -1308,6 +1308,33 @@ public:
         };
         addAndMakeVisible (exportAudioButton);
 
+        // Export options (usable-DAW P1): bit depth and range feed the model before Export runs.
+        exportBitDepthChooser.setComponentID ("shell.export.bitdepth");
+        exportBitDepthChooser.setName ("Export bit depth");
+        exportBitDepthChooser.setTitle ("Export bit depth");
+        exportBitDepthChooser.addItem ("32-bit float", 1);
+        exportBitDepthChooser.addItem ("24-bit PCM", 2);
+        exportBitDepthChooser.addItem ("16-bit PCM", 3);
+        exportBitDepthChooser.setSelectedId (1, juce::dontSendNotification);
+        exportBitDepthChooser.onChange = [this] {
+            const int selected = exportBitDepthChooser.getSelectedId();
+            appModel.setExportBitDepth (selected == 2 ? yesdaw::ui::UiAppModel::UiExportBitDepth::Int24
+                                        : selected == 3 ? yesdaw::ui::UiAppModel::UiExportBitDepth::Int16
+                                                        : yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
+        };
+        addAndMakeVisible (exportBitDepthChooser);
+
+        exportRangeChooser.setComponentID ("shell.export.range");
+        exportRangeChooser.setName ("Export range");
+        exportRangeChooser.setTitle ("Export range");
+        exportRangeChooser.addItem ("Whole Project", 1);
+        exportRangeChooser.addItem ("Loop Region", 2);
+        exportRangeChooser.setSelectedId (1, juce::dontSendNotification);
+        exportRangeChooser.onChange = [this] {
+            appModel.setExportLoopRangeOnly (exportRangeChooser.getSelectedId() == 2);
+        };
+        addAndMakeVisible (exportRangeChooser);
+
         exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
         exportAudioProgress.setName ("Export audio progress");
         exportAudioProgress.setText ("Export --", juce::dontSendNotification);
@@ -2054,6 +2081,8 @@ public:
         exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
         exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
         exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
+        exportBitDepthChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportBitDepthChooserBounds());
+        exportRangeChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportRangeChooserBounds());
         masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
@@ -5216,6 +5245,8 @@ private:
     juce::TextEditor trackRenameEditor;
     int selectedTrackLane = -1;
     juce::TextButton exportAudioButton;
+    juce::ComboBox exportBitDepthChooser;
+    juce::ComboBox exportRangeChooser;
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;
     juce::TextButton mixerTrackSelect;

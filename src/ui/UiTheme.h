@@ -282,6 +282,8 @@ struct UiTheme
         static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 156, 50, 88, 26 }; }
         static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 156, 50, 60, 26 }; }
         static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 218, 50, 30, 26 }; }
+        static juce::Rectangle<int> exportBitDepthChooserBounds() noexcept { return { 156, 80, 108, 22 }; }
+        static juce::Rectangle<int> exportRangeChooserBounds() noexcept { return { 268, 80, 112, 22 }; }
         static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 126, 78, 26 }; }
         static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 126, 104, 26 }; }
         static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 126, 68, 26 }; }
