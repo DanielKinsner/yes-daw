@@ -2949,6 +2949,17 @@ public:
             case UiActionId::TimelineMidiClipAdd:
                 return addMidiClipAtPlayhead();
 
+            case UiActionId::MixerFxInsertParamSet:
+                return { id, { false, "FX param payload required" }, false };
+
+            case UiActionId::MixerBusAdd:
+                return addBusToMixer();
+
+            case UiActionId::MixerSendAdd:
+            case UiActionId::MixerSendRemove:
+            case UiActionId::MixerSendSetLevel:
+                return { id, { false, "send payload required" }, false };
+
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();
 
