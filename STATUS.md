@@ -235,7 +235,16 @@ handleAction path as the toolbar and keymap, with enable state from the action r
 [menubar] — model lists the five menus with correct item counts, and menu-driven New/Import/
 View-Mixer mutate the real project and panel.
 
-**Next:** send/bus UI, track-rail mini pan/VOL/meter interactivity.
+**IN PROGRESS: persisted send routing (ADR-0044, accepted)** — sends are rows on the owning
+Track (`SendRow { id, busId, tap, linearGain }`); buses removable only while unrouted. Engine
+slice LANDED: five undoable verbs (AddBus/RemoveBus/AddSend/RemoveSend/SetSendLevel), bus rows
+diff family, send edits ride the track family, duplicate-id scan covers sends; focused gate +
+randomized property test extended to all five (bit-identical undo/redo). NEXT SLICES: schema
+v9 `sends` table (persistence round-trip + v8-opens-empty gate), model derives
+`config.sendRoutes` from the project (audibility gate: pre/post-fader tap law), then the
+mixer UI (+ Bus button, per-strip send rows) and shell gates.
+
+**Next (after sends):** track-rail mini pan/VOL/meter interactivity.
 
 ---
 

@@ -308,14 +308,50 @@ struct MixerStripState
     friend bool operator== (const MixerStripState&, const MixerStripState&) = default;
 };
 
+// ADR-0044: persisted send routing. Sends are rows on the owning Track; the mixer projection's
+// runtime routes derive from these (tap maps 1:1 onto MixerSendTap at the projection boundary).
+enum class SendTap : std::uint8_t
+{
+    PreFader = 0,
+    PostFader
+};
+
+[[nodiscard]] constexpr bool sendTapIsKnown (SendTap tap) noexcept
+{
+    return tap == SendTap::PreFader || tap == SendTap::PostFader;
+}
+
+struct SendRow
+{
+    EntityId id;
+    EntityId busId;
+    SendTap tap = SendTap::PostFader;
+    float linearGain = 1.0f;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid() && busId.isValid() && sendTapIsKnown (tap) && mixerGainIsValid (linearGain);
+    }
+
+    friend bool operator== (const SendRow&, const SendRow&) = default;
+};
+
 struct Track
 {
     EntityId id;
     MixerStripState strip;
+    std::vector<SendRow> sends;   // ordered; ordinal = index (ADR-0039 SendLevel paramId)
 
     [[nodiscard]] bool isValid() const noexcept
     {
-        return id.isValid() && strip.isValid();
+        if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        for (const SendRow& send : sends)
+            if (! send.isValid())
+                return false;
+
+        return true;
     }
 
     friend bool operator== (const Track&, const Track&) = default;
@@ -630,7 +666,14 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidTempo,
     InvalidMeter,
     InvalidMarkerId,
-    MarkerNotFound
+    MarkerNotFound,
+    InvalidBusId,
+    BusNotFound,
+    BusInUse,
+    InvalidSendId,
+    SendNotFound,
+    DuplicateSendRoute,
+    InvalidSendLevel
 };
 
 struct Project
@@ -1451,6 +1494,11 @@ namespace detail {
             if (insert.id == id)
                 return true;
 
+    for (const Track& track : project.tracks)
+        for (const SendRow& send : track.sends)
+            if (send.id == id)
+                return true;
+
     return false;
 }
 
@@ -2171,6 +2219,165 @@ namespace detail {
 
     project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (trackIndex));
     return ProjectEditStatus::Applied;
+}
+
+// ADR-0044: persisted send routing verbs. Sends are rows on the owning Track; Buses are removable
+// only while nothing routes to or targets them (mirror of empty-only Track removal).
+[[nodiscard]] inline ProjectEditStatus addBus (Project& project, const Bus& bus)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! bus.id.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (detail::projectContainsEntityId (project, bus.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! bus.isValid() || bus.strip.name.empty())
+        return ProjectEditStatus::InvalidBusId;
+
+    project.buses.push_back (bus);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeBus (Project& project, EntityId busId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    std::size_t busIndex = project.buses.size();
+    for (std::size_t i = 0; i < project.buses.size(); ++i)
+    {
+        if (project.buses[i].id == busId)
+        {
+            busIndex = i;
+            break;
+        }
+    }
+
+    if (busIndex >= project.buses.size())
+        return ProjectEditStatus::BusNotFound;
+
+    for (const Track& track : project.tracks)
+        for (const SendRow& send : track.sends)
+            if (send.busId == busId)
+                return ProjectEditStatus::BusInUse;
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.ownerEntity == busId)
+            return ProjectEditStatus::BusInUse;
+
+    project.buses.erase (project.buses.begin() + static_cast<std::ptrdiff_t> (busIndex));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addSend (Project& project,
+                                                EntityId trackId,
+                                                const SendRow& send)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! send.id.isValid() || ! send.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    if (detail::projectContainsEntityId (project, send.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findBus (send.busId) == nullptr)
+        return ProjectEditStatus::BusNotFound;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        for (const SendRow& existing : track.sends)
+            if (existing.busId == send.busId)
+                return ProjectEditStatus::DuplicateSendRoute;
+
+        track.sends.push_back (send);
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeSend (Project& project,
+                                                   EntityId trackId,
+                                                   EntityId sendId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        for (std::size_t i = 0; i < track.sends.size(); ++i)
+        {
+            if (track.sends[i].id == sendId)
+            {
+                track.sends.erase (track.sends.begin() + static_cast<std::ptrdiff_t> (i));
+                return ProjectEditStatus::Applied;
+            }
+        }
+
+        return ProjectEditStatus::SendNotFound;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus setSendLevel (Project& project,
+                                                     EntityId trackId,
+                                                     EntityId sendId,
+                                                     float linearGain)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    if (! mixerGainIsValid (linearGain))
+        return ProjectEditStatus::InvalidSendLevel;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        for (SendRow& send : track.sends)
+        {
+            if (send.id == sendId)
+            {
+                send.linearGain = linearGain;
+                return ProjectEditStatus::Applied;
+            }
+        }
+
+        return ProjectEditStatus::SendNotFound;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
 }
 
 // Timeline markers (usable-DAW P1): named positions on the ruler, stored in canonical tick order.

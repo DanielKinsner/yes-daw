@@ -56,7 +56,13 @@ enum class ProjectEditVerb : std::uint8_t
     SetProjectMeter,
     AddMarker,
     RemoveMarker,
-    AddMidiClip
+    AddMidiClip,
+    // ADR-0044 persisted send routing verbs
+    AddBus,
+    RemoveBus,
+    AddSend,
+    RemoveSend,
+    SetSendLevel
 };
 
 struct ProjectEditCommand
@@ -121,6 +127,11 @@ struct ProjectEditCommand
     TimeBase clipTimeBase = TimeBase::SampleLocked;
     EntityId markerId;
     Tick markerTick = 0;
+    // ADR-0044 send routing payloads
+    EntityId busId;
+    EntityId sendId;
+    SendTap sendTap = SendTap::PostFader;
+    float sendLinearGain = 1.0f;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
 
@@ -550,6 +561,61 @@ struct ProjectEditCommand
         return command;
     }
 
+    // ADR-0044 send routing factories
+    [[nodiscard]] static constexpr ProjectEditCommand addBus (EntityId busId, std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddBus;
+        command.busId = busId;
+        (void) copyTrackName (command, name);   // invalid names leave trackName empty -> apply rejects
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeBus (EntityId busId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveBus;
+        command.busId = busId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addSend (EntityId trackId,
+                                                               EntityId sendId,
+                                                               EntityId busId,
+                                                               SendTap tap,
+                                                               float linearGain) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddSend;
+        command.trackId = trackId;
+        command.sendId = sendId;
+        command.busId = busId;
+        command.sendTap = tap;
+        command.sendLinearGain = linearGain;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeSend (EntityId trackId, EntityId sendId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveSend;
+        command.trackId = trackId;
+        command.sendId = sendId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setSendLevel (EntityId trackId,
+                                                                    EntityId sendId,
+                                                                    float linearGain) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetSendLevel;
+        command.trackId = trackId;
+        command.sendId = sendId;
+        command.sendLinearGain = linearGain;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -650,6 +716,13 @@ struct ProjectTrackRowsDiff
     std::vector<Track> after;
 };
 
+// Bus lifecycle diffs snapshot the whole buses vector (ADR-0044; same law as tracks).
+struct ProjectBusRowsDiff
+{
+    std::vector<Bus> before;
+    std::vector<Bus> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -659,6 +732,7 @@ struct ProjectEditTransaction
     ProjectFxChainRowsDiff fxDiff;
     ProjectAutomationLaneRowsDiff automationDiff;
     ProjectTrackRowsDiff trackDiff;
+    ProjectBusRowsDiff busDiff;
     ProjectTimeMapRowsDiff timeMapDiff;
     ProjectMarkerRowsDiff markerDiff;
 };
@@ -727,10 +801,20 @@ namespace detail {
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
 {
+    // ADR-0044: send rows live on the Track, so send edits ride the whole-vector track diff.
     return verb == ProjectEditVerb::AddTrack
            || verb == ProjectEditVerb::RenameTrack
            || verb == ProjectEditVerb::ReorderTrack
-           || verb == ProjectEditVerb::RemoveTrack;
+           || verb == ProjectEditVerb::RemoveTrack
+           || verb == ProjectEditVerb::AddSend
+           || verb == ProjectEditVerb::RemoveSend
+           || verb == ProjectEditVerb::SetSendLevel;
+}
+
+[[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddBus
+           || verb == ProjectEditVerb::RemoveBus;
 }
 
 [[nodiscard]] constexpr bool isTimeMapEditVerb (ProjectEditVerb verb) noexcept
@@ -954,6 +1038,33 @@ namespace detail {
             midiClip.timeBase = command.clipTimeBase;
             return addMidiClip (project, midiClip);
         }
+
+        case ProjectEditVerb::AddBus:
+        {
+            Bus bus;
+            bus.id = command.busId;
+            bus.strip.name = std::string { command.trackName };
+            return addBus (project, bus);
+        }
+
+        case ProjectEditVerb::RemoveBus:
+            return removeBus (project, command.busId);
+
+        case ProjectEditVerb::AddSend:
+        {
+            SendRow send;
+            send.id = command.sendId;
+            send.busId = command.busId;
+            send.tap = command.sendTap;
+            send.linearGain = command.sendLinearGain;
+            return addSend (project, command.trackId, send);
+        }
+
+        case ProjectEditVerb::RemoveSend:
+            return removeSend (project, command.trackId, command.sendId);
+
+        case ProjectEditVerb::SetSendLevel:
+            return setSendLevel (project, command.trackId, command.sendId, command.sendLinearGain);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -1208,6 +1319,35 @@ namespace detail {
     return true;
 }
 
+[[nodiscard]] inline bool buildProjectBusRowsDiff (const Project& before,
+                                                   const Project& after,
+                                                   ProjectBusRowsDiff& out)
+{
+    if (before.buses == after.buses)
+        return false;
+
+    out = {};
+    out.before = before.buses;
+    out.after = after.buses;
+    return true;
+}
+
+[[nodiscard]] inline bool applyBusRowsDiff (Project& project,
+                                            const std::vector<Bus>& expected,
+                                            const std::vector<Bus>& replacement)
+{
+    if (! (project.buses == expected))
+        return false;
+
+    Project edited = project;
+    edited.buses = replacement;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
+}
+
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
                                            std::size_t firstClipIndex,
                                            const std::vector<Clip>& expected) noexcept
@@ -1432,6 +1572,12 @@ namespace detail {
                     : applyTrackRowsDiff (project, transaction.trackDiff.after, transaction.trackDiff.before);
     }
 
+    if (isBusEditVerb (transaction.command.verb))
+    {
+        return redo ? applyBusRowsDiff (project, transaction.busDiff.before, transaction.busDiff.after)
+                    : applyBusRowsDiff (project, transaction.busDiff.after, transaction.busDiff.before);
+    }
+
     if (isTimeMapEditVerb (transaction.command.verb))
     {
         const ProjectTimeMapRowsDiff& diff = transaction.timeMapDiff;
@@ -1475,6 +1621,8 @@ namespace detail {
         diffBuilt = detail::buildProjectAutomationLaneRowsDiff (before, project, command, transaction.automationDiff);
     else if (detail::isTrackEditVerb (command.verb))
         diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff);
+    else if (detail::isBusEditVerb (command.verb))
+        diffBuilt = detail::buildProjectBusRowsDiff (before, project, transaction.busDiff);
     else if (detail::isTimeMapEditVerb (command.verb))
         diffBuilt = detail::buildProjectTimeMapRowsDiff (before, project, transaction.timeMapDiff);
     else if (detail::isMarkerEditVerb (command.verb))

@@ -2008,6 +2008,12 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
     Project project = makeTwoClipEditableProject();
     project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+    {
+        Bus bus;
+        bus.id = idFromLowByte (44);
+        bus.strip.name = "FX Bus";
+        project.buses.push_back (bus);
+    }
 
     const std::array<EntityId, 2> clipIds { idFromLowByte (31), idFromLowByte (33) };
     const EntityId                midiClipId = idFromLowByte (40);
@@ -2038,7 +2044,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (16))
+            switch (pick (18))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2088,6 +2094,42 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                     else
                         command = ProjectEditCommand::removeTrack (
                             idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                    break;
+                // ADR-0044 send routing verbs: rejected commands (duplicate route, routed bus,
+                // unknown send) are no-ops by contract, same as the arrangement verbs above.
+                case 16:
+                    if (pick (2) == 0 && freshLowByte < 250)
+                        command = ProjectEditCommand::addBus (
+                            idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)), "Added Bus");
+                    else
+                        command = ProjectEditCommand::removeBus (
+                            idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                    break;
+                case 17:
+                    switch (pick (3))
+                    {
+                        case 0:
+                            if (freshLowByte < 250)
+                                command = ProjectEditCommand::addSend (
+                                    idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                    idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                    idFromLowByte (44),
+                                    pick (2) == 0 ? yesdaw::engine::SendTap::PreFader
+                                                  : yesdaw::engine::SendTap::PostFader,
+                                    static_cast<float> (pick (200)) / 100.0f);
+                            break;
+                        case 1:
+                            command = ProjectEditCommand::removeSend (
+                                idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                            break;
+                        default:
+                            command = ProjectEditCommand::setSendLevel (
+                                idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))),
+                                static_cast<float> (pick (200)) / 100.0f);
+                            break;
+                    }
                     break;
                 default: break;
             }
@@ -2163,6 +2205,61 @@ TEST_CASE ("Arrangement verbs edit, undo, and redo tracks, clips, and notes bit-
                                                                       12'345)).applied());
     REQUIRE (undo.apply (project, ProjectEditCommand::removeTrack (idFromLowByte (60))).applied());
     REQUIRE (project.tracks.size() == 2u);
+
+    const Project edited = project;
+    while (undo.canUndo())
+        REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+
+    while (undo.canRedo())
+        REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
+}
+
+TEST_CASE ("Send routing verbs edit, undo, and redo buses and sends bit-identically",
+           "[project][sends][undo]")
+{
+    Project project = makeTwoClipEditableProject();
+    const Project original = project;
+    const EntityId trackId = idFromLowByte (36);
+    const EntityId busId = idFromLowByte (70);
+    const EntityId sendId = idFromLowByte (71);
+
+    ProjectUndoStack undo;
+
+    // Bus lifecycle through commands.
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busId, "FX Bus")).applied());
+    REQUIRE (project.buses.size() == 1u);
+    REQUIRE (project.buses.front().strip.name == "FX Bus");
+
+    // Send lifecycle: add targets an existing bus; duplicates and unknown targets are refused.
+    REQUIRE (undo.apply (project, ProjectEditCommand::addSend (
+                             trackId, sendId, busId,
+                             yesdaw::engine::SendTap::PostFader, 0.5f)).applied());
+    REQUIRE (project.tracks.front().sends.size() == 1u);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+
+    REQUIRE (yesdaw::engine::addSend (project, trackId,
+                                      yesdaw::engine::SendRow { idFromLowByte (72), busId })
+             == ProjectEditStatus::DuplicateSendRoute);
+    REQUIRE (yesdaw::engine::addSend (project, trackId,
+                                      yesdaw::engine::SendRow { idFromLowByte (72), idFromLowByte (99) })
+             == ProjectEditStatus::BusNotFound);
+
+    // A routed bus refuses removal (ADR-0044 mirror of empty-only track removal).
+    REQUIRE (yesdaw::engine::removeBus (project, busId) == ProjectEditStatus::BusInUse);
+
+    // Level edits persist; unknown sends are refused.
+    REQUIRE (undo.apply (project, ProjectEditCommand::setSendLevel (trackId, sendId, 0.25f)).applied());
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.25f);
+    REQUIRE (yesdaw::engine::setSendLevel (project, trackId, idFromLowByte (99), 1.0f)
+             == ProjectEditStatus::SendNotFound);
+
+    // Removing the send unblocks bus removal.
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeSend (trackId, sendId)).applied());
+    REQUIRE (project.tracks.front().sends.empty());
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeBus (busId)).applied());
+    REQUIRE (project.buses.empty());
 
     const Project edited = project;
     while (undo.canUndo())
