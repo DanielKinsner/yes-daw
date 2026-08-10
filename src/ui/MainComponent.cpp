@@ -1064,16 +1064,84 @@ public:
     std::function<int()> rowCountProvider;
     std::function<void (int)> onRowClicked;
     std::function<void (int)> onRowDoubleClicked;
+    // Mini controls (usable-DAW P2): the painted PAN knob, VOL slider, and M/S cells become live.
+    std::function<void (int, float)> onPanEdited;      // row, pan in [-1, 1]
+    std::function<void (int, float)> onVolumeEdited;   // row, linear gain in [0, 1]
+    std::function<void (int)> onMuteToggled;
+    std::function<void (int)> onSoloToggled;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
-        if (const int row = rowAt (event.getPosition()); row >= 0 && onRowClicked)
+        dragRow = -1;
+        dragZone = MiniZone::None;
+        const int row = rowAt (event.getPosition());
+        if (row < 0)
+            return;
+
+        switch (zoneAt (row, event.getPosition()))
+        {
+            case MiniZone::Pan:
+                dragRow = row;
+                dragZone = MiniZone::Pan;
+                applyPan (row, event.getPosition());
+                return;
+
+            case MiniZone::Volume:
+                dragRow = row;
+                dragZone = MiniZone::Volume;
+                applyVolume (row, event.getPosition());
+                return;
+
+            case MiniZone::Mute:
+                if (onMuteToggled)
+                    onMuteToggled (row);
+                return;
+
+            case MiniZone::Solo:
+                if (onSoloToggled)
+                    onSoloToggled (row);
+                return;
+
+            case MiniZone::None:
+                break;
+        }
+
+        if (onRowClicked)
             onRowClicked (row);
+    }
+
+    void mouseDrag (const juce::MouseEvent& event) override
+    {
+        if (dragRow < 0)
+            return;
+
+        if (dragZone == MiniZone::Pan)
+            applyPan (dragRow, event.getPosition());
+        else if (dragZone == MiniZone::Volume)
+            applyVolume (dragRow, event.getPosition());
+    }
+
+    void mouseUp (const juce::MouseEvent&) override
+    {
+        dragRow = -1;
+        dragZone = MiniZone::None;
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
     {
-        if (const int row = rowAt (event.getPosition()); row >= 0 && onRowDoubleClicked)
+        const int row = rowAt (event.getPosition());
+        if (row < 0)
+            return;
+
+        // Double-click on the pan knob recentres; elsewhere the row rename applies.
+        if (zoneAt (row, event.getPosition()) == MiniZone::Pan)
+        {
+            if (onPanEdited)
+                onPanEdited (row, 0.0f);
+            return;
+        }
+
+        if (onRowDoubleClicked)
             onRowDoubleClicked (row);
     }
 
@@ -1090,7 +1158,92 @@ public:
         return { area.getX(), area.getY() + row * rowHeight, area.getWidth(), rowHeight };
     }
 
+    // Shared row-geometry law: these mirror drawTrackList's control rectangles exactly, so
+    // hit-testing and paint cannot drift. The paint code trims the separator first.
+    [[nodiscard]] juce::Rectangle<int> panKnobBounds (int row) const
+    {
+        auto bounds = rowBounds (row);
+        bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
+        return bounds.withRight (bounds.getRight() - yesdaw::ui::UiTheme::Layout::trackListPanRightInset)
+                     .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListPanDiameter)
+                     .withY (bounds.getY() + yesdaw::ui::UiTheme::Layout::trackListPanTopInset)
+                     .withHeight (yesdaw::ui::UiTheme::Layout::trackListPanDiameter);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> volumeSliderBounds (int row) const
+    {
+        auto bounds = rowBounds (row);
+        bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
+        return bounds.withRight (bounds.getRight() - yesdaw::ui::UiTheme::Layout::trackListLevelRightInset)
+                     .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListLevelWidth)
+                     .withBottom (bounds.getBottom() - yesdaw::ui::UiTheme::Layout::trackListLevelBottomInset)
+                     .withHeight (yesdaw::ui::UiTheme::Layout::trackListLevelHeight);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> muteCellBounds (int row) const { return buttonCellBounds (row, 0); }
+    [[nodiscard]] juce::Rectangle<int> soloCellBounds (int row) const { return buttonCellBounds (row, 1); }
+
 private:
+    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo };
+
+    [[nodiscard]] juce::Rectangle<int> buttonCellBounds (int row, int cellIndex) const
+    {
+        auto bounds = rowBounds (row);
+        bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
+        auto buttonsArea = bounds.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
+                               .withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListButtonsTop)
+                               .withHeight (yesdaw::ui::UiTheme::Layout::trackListButtonsHeight);
+        for (int cell = 0; cell < cellIndex; ++cell)
+            buttonsArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::trackListButtonWidth);
+        return buttonsArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::trackListButtonWidth);
+    }
+
+    [[nodiscard]] MiniZone zoneAt (int row, juce::Point<int> position) const
+    {
+        if (panKnobBounds (row).contains (position))
+            return MiniZone::Pan;
+        if (volumeSliderBounds (row).expanded (yesdaw::ui::UiTheme::Space::none,
+                                               yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset)
+                .contains (position))
+            return MiniZone::Volume;
+        if (muteCellBounds (row).contains (position))
+            return MiniZone::Mute;
+        if (soloCellBounds (row).contains (position))
+            return MiniZone::Solo;
+        return MiniZone::None;
+    }
+
+    void applyPan (int row, juce::Point<int> position)
+    {
+        if (! onPanEdited)
+            return;
+
+        const auto knob = panKnobBounds (row);
+        if (knob.getWidth() <= 0)
+            return;
+
+        const float normalized = static_cast<float> (position.x - knob.getX())
+                               / static_cast<float> (knob.getWidth());
+        onPanEdited (row, juce::jlimit (-1.0f, 1.0f, normalized + normalized - 1.0f));
+    }
+
+    void applyVolume (int row, juce::Point<int> position)
+    {
+        if (! onVolumeEdited)
+            return;
+
+        const auto slider = volumeSliderBounds (row);
+        if (slider.getWidth() <= 0)
+            return;
+
+        const float normalized = static_cast<float> (position.x - slider.getX())
+                               / static_cast<float> (slider.getWidth());
+        onVolumeEdited (row, juce::jlimit (0.0f, 1.0f, normalized));
+    }
+
+    int dragRow = -1;
+    MiniZone dragZone = MiniZone::None;
+
     [[nodiscard]] int rowAt (juce::Point<int> position) const
     {
         const int rows = rowCountProvider ? rowCountProvider() : 0;
@@ -1479,6 +1632,36 @@ public:
         trackListInput.onRowDoubleClicked = [this] (int row) {
             selectTrackLane (row);
             openTrackRenameEditor();
+        };
+        // Rail mini controls (usable-DAW P2): the painted PAN/VOL/M/S become live per-track edits
+        // through the same selected-strip verbs the mixer uses (rail selection stays on the rail).
+        trackListInput.onPanEdited = [this] (int row, float pan) {
+            selectTrackLane (row);
+            if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
+                (void) appModel.setSelectedMixerPan (pan);
+            refreshActionState();
+            repaint();
+        };
+        trackListInput.onVolumeEdited = [this] (int row, float linearGain) {
+            selectTrackLane (row);
+            if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
+                (void) appModel.setSelectedMixerFader (linearGain);
+            refreshActionState();
+            repaint();
+        };
+        trackListInput.onMuteToggled = [this] (int row) {
+            selectTrackLane (row);
+            if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
+                (void) appModel.toggleSelectedMixerMute();
+            refreshActionState();
+            repaint();
+        };
+        trackListInput.onSoloToggled = [this] (int row) {
+            selectTrackLane (row);
+            if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
+                (void) appModel.toggleSelectedMixerSolo();
+            refreshActionState();
+            repaint();
         };
         addAndMakeVisible (trackListInput);
 
@@ -4193,6 +4376,7 @@ private:
             return;
         }
 
+        const yesdaw::ui::UiMixerSurfaceSnapshot railMixerSurface = currentMixerSurface();
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / static_cast<int> (appModel.project().tracks.size()));
         for (std::size_t i = 0; i < appModel.project().tracks.size(); ++i)
@@ -4292,17 +4476,30 @@ private:
             g.setColour (yesdaw::ui::UiTheme::Color::knobArc());
             g.drawEllipse (pan.toFloat().reduced (yesdaw::ui::UiTheme::Layout::controlOutlineInset),
                            yesdaw::ui::UiTheme::Layout::iconFineStrokeWidth);
+            // Live pan (usable-DAW P2): the knob indicator swings with strip.pan and the readout
+            // shows C / L% / R%.
+            const float panValue = juce::jlimit (-1.0f, 1.0f, projectTrack.strip.pan);
+            const float panAngle = panValue * yesdaw::ui::UiTheme::Layout::trackListPanArcRadians;
+            const float panRadius =
+                static_cast<float> (pan.getCentreY()
+                                    - pan.getY()
+                                    - yesdaw::ui::UiTheme::Layout::trackListPanIndicatorInset);
+            const juce::Point<float> panCentre = pan.toFloat().getCentre();
             g.setColour (trackColour);
-            g.drawLine (static_cast<float> (pan.getCentreX()),
-                        static_cast<float> (pan.getY()
-                                            + yesdaw::ui::UiTheme::Layout::trackListPanIndicatorInset),
-                        static_cast<float> (pan.getCentreX()),
-                        static_cast<float> (pan.getCentreY()),
+            g.drawLine (panCentre.x,
+                        panCentre.y,
+                        panCentre.x + panRadius * std::sin (panAngle),
+                        panCentre.y - panRadius * std::cos (panAngle),
                         yesdaw::ui::UiTheme::Layout::iconBoldStrokeWidth);
+            const int panPercent = juce::roundToInt (std::abs (panValue) * 100.0f);
+            const juce::String panText =
+                panPercent == 0 ? juce::String ("C")
+                                : (panValue < 0.0f ? juce::String ("L") : juce::String ("R"))
+                                      + juce::String (panPercent);
             g.setColour (kMutedText);
             g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
                 yesdaw::ui::UiTheme::Type::tiny));
-            g.drawText ("C",
+            g.drawText (panText,
                         pan.withY (
                                row.getY()
                                + yesdaw::ui::UiTheme::Layout::trackListPanValueTopInset)
@@ -4348,28 +4545,40 @@ private:
                         juce::Justification::centred,
                         false);
 
+            // Live M/S cells (usable-DAW P2): the painted cells reflect the strip state; the rail
+            // input layer toggles them through the same verbs as the mixer.
             auto buttonsArea = row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
                                    .withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListButtonsTop)
                                    .withHeight (yesdaw::ui::UiTheme::Layout::trackListButtonsHeight);
-            for (const auto* label : { "M", "S", "O" })
+            const std::array<std::pair<const char*, bool>, 3> railCells {{
+                { "M", projectTrack.strip.muted },
+                { "S", projectTrack.strip.soloed },
+                { "O", false },
+            }};
+            for (const auto& [label, active] : railCells)
             {
                 auto cell = buttonsArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::trackListButtonWidth)
                                 .reduced (yesdaw::ui::UiTheme::Layout::trackListButtonInsetX,
                                           yesdaw::ui::UiTheme::Layout::trackListButtonInsetY);
-                g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
+                g.setColour (active ? trackColour : yesdaw::ui::UiTheme::Color::mixerBack());
                 g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
-                g.setColour (label == std::string ("O") ? kRed : kMutedText);
+                g.setColour (active ? kText
+                                    : (label == std::string ("O") ? kRed : kMutedText));
                 g.setFont (yesdaw::ui::UiTheme::Type::font (
                     yesdaw::ui::UiTheme::Type::caption,
                     juce::Font::bold));
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
+            // Live meter (usable-DAW P2): the rail meter follows the same per-track readout the
+            // mixer strips render.
             auto meter = row.withRight (row.getRight() - yesdaw::ui::UiTheme::Layout::trackListMeterRightInset)
                              .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
                              .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
-            drawMeter (g, meter, 0.0f);
+            const bool railMeterValid = i < railMixerSurface.tracks.size()
+                                     && railMixerSurface.tracks[i].meter.valid;
+            drawMeter (g, meter, railMeterValid ? railMixerSurface.tracks[i].meter.peakLeft : 0.0f);
         }
     }
 

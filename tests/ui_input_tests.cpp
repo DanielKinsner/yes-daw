@@ -2825,6 +2825,76 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
 }
 
+TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip through real gestures",
+           "[ui][input][shell][railmini]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("rail-mini");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    // Row 0 geometry mirrors the shared rail row law (one track fills the rail below the header).
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+
+    // VOL: clicking the middle of the mini slider sets the track gain to ~0.5, persisted.
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain > 0.4f);
+    REQUIRE (project.tracks.front().strip.linearGain < 0.6f);
+
+    // PAN: clicking the knob's left edge pans hard left; double-click recentres.
+    const juce::Rectangle<int> pan =
+        row.withRight (row.getRight() - L::trackListPanRightInset)
+            .removeFromRight (L::trackListPanDiameter)
+            .withY (row.getY() + L::trackListPanTopInset)
+            .withHeight (L::trackListPanDiameter);
+    mouseDownAt (*rail, { pan.getX() + 1, pan.getCentreY() });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan < -0.8f);
+    doubleClickAt (*rail, { pan.getCentreX(), pan.getCentreY() });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan == 0.0f);
+
+    // M and S cells toggle the persisted strip state.
+    juce::Rectangle<int> buttonsArea =
+        row.withTrimmedLeft (L::trackListNameLeftInset)
+            .withTrimmedTop (L::trackListButtonsTop)
+            .withHeight (L::trackListButtonsHeight);
+    const juce::Rectangle<int> muteCell = buttonsArea.removeFromLeft (L::trackListButtonWidth);
+    const juce::Rectangle<int> soloCell = buttonsArea.removeFromLeft (L::trackListButtonWidth);
+    mouseDownAt (*rail, muteCell.getCentre());
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.muted);
+    mouseDownAt (*rail, muteCell.getCentre());
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tracks.front().strip.muted);
+    mouseDownAt (*rail, soloCell.getCentre());
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.soloed);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("bus and send controls route the selected track undoably through real controls",
            "[ui][input][shell][mixer][sendsui]")
 {

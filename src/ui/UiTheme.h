@@ -517,6 +517,7 @@ struct UiTheme
         static constexpr std::uint32_t mixerFxParamProbeLimit = 32;
         static constexpr int mixerSendRowHeight = 18;
         static constexpr std::size_t mixerSendVisibleRowCount = 4;
+        static constexpr float trackListPanArcRadians = 2.35619449f;   // +/-135 degrees full throw
         static constexpr int trackListAddButtonWidth = 72;
         static constexpr int trackListAddButtonHeight = 24;
         static constexpr int trackListAddButtonInset = 12;

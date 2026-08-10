@@ -255,8 +255,19 @@ non-mixer-view budget) and relayouts when row counts change. Gate: [sendsui] she
 rail-select, open mixer view, + Bus persists "Bus 1", chooser adds the send at unity, slider
 persists 0.5 undoably, remove empties the sends.
 
-**With sends/bus done, ALL P1s from the parity audit are landed.** Remaining polish:
-track-rail mini pan/VOL/meter interactivity (P2).
+**With sends/bus done, ALL P1s from the parity audit are landed.**
+
+**DONE: track-rail mini controls (P2)** — the rail's painted PAN knob, VOL slider, and M/S
+cells are live: drag the mini VOL sets track gain, drag/click the knob sets pan (double-click
+recentres), M/S toggle mute/solo — all through the same selected-strip verbs as the mixer
+(persisted, undoable, audible). Paint now shows the real pan angle + C/L%/R% readout, lit M/S
+state, and the rail meter follows the same per-track readout the mixer strips render.
+TrackListInputComponent owns the shared row-geometry law so hit-testing and paint cannot
+drift. Gate: [railmini] — real gestures on the rail persist gain ~0.5, hard-left pan,
+recentre, and both toggles. (The live meter's data path is the mixer-strip meter readout,
+already gate-covered there; rail meter liveliness itself is visual.)
+
+**The parity audit's P0, P1, and P2 backlog is now fully landed.**
 
 **REMOTE-GREEN CERTIFICATION (2026-08-10):** GitHub Actions run `31372922569` on exact head
 `dd49ee9` passed ALL NINE jobs (Linux, Windows, macOS, RTSan, TSan, both package jobs, both
