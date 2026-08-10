@@ -12,6 +12,7 @@
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/MixerMutePolicy.h"
+#include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
@@ -431,7 +432,9 @@ struct ResolvedClipWindow
         const NodeId midiSourceId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::MidiSource);
         const NodeId instrumentId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument);
         auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
-        auto instrument = std::make_unique<ImpulseInstrumentNode> (instrumentId, 0, 1);
+        // ADR-0043: MIDI is MUSICAL — the built-in SimpleSynth replaces the impulse timing stub in the
+        // production projection (the impulse node remains the H4 timing-gate instrument).
+        auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, 1);
         instrument->setEventInput (midiSource.get());
 
         MixerTrackProjection track;

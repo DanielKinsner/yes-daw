@@ -21,6 +21,7 @@
 #include "engine/nodes/MidiEffectNode.h"
 #include "engine/nodes/OscillatorNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/PlaceholderNode.h"
 #include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SidechainGainNode.h"
@@ -372,6 +373,8 @@ private:
         if (dynamic_cast<IdentityDcNode*> (&node) != nullptr)
             return CompiledNodeKind::IdentityDc;
         if (dynamic_cast<ImpulseInstrumentNode*> (&node) != nullptr)
+            return CompiledNodeKind::Source;
+        if (dynamic_cast<SimpleSynthNode*> (&node) != nullptr)
             return CompiledNodeKind::Source;
         if (dynamic_cast<OscillatorNode*> (&node) != nullptr)
             return CompiledNodeKind::Oscillator;

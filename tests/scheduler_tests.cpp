@@ -344,12 +344,17 @@ ProjectBundleDb openFreshBundle (const std::filesystem::path& path)
 TEST_CASE ("YesDawSchedulerCheck: scheduled workers are bit-identical to serial offline render",
            "[h9][scheduler][determinism]")
 {
+    // ADR-0043: the musical SimpleSynth carries cross-Block voice state, so a MIDI-bearing project
+    // is no longer block-parallel-safe — the determinism claim holds over the parallel-SAFE audio
+    // surface, and the guard (next test) refuses the stateful one.
     const SchedulerFixture fixture = makeSchedulerFixture();
+    Project audioOnly = fixture.project;
+    audioOnly.midiClips.clear();
     OfflineRenderOptions options;
     options.maxBlockSize = kBlockSize;
 
     const auto serial = renderOfflineProject (
-        fixture.project,
+        audioOnly,
         std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
         options);
     REQUIRE (serial.ok());
@@ -357,7 +362,7 @@ TEST_CASE ("YesDawSchedulerCheck: scheduled workers are bit-identical to serial 
     for (const std::uint32_t workers : { 1u, 2u, 4u, 8u })
     {
         const ScheduledRenderResult scheduled = renderProjectWithScheduler (
-            fixture.project,
+            audioOnly,
             std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
             workers,
             options);
@@ -435,14 +440,24 @@ TEST_CASE ("YesDawSchedulerCheck refuses graphs that are not block-parallel-safe
     OfflineRenderOptions options;
     options.maxBlockSize = kBlockSize;
 
-    // The current Project surface compiles to an all-order-independent graph, so the scheduler accepts it.
+    // The audio-only Project surface compiles to an all-order-independent graph; the MIDI-bearing
+    // one carries SimpleSynth voice state (ADR-0043) and must be refused like any stateful node.
     const SchedulerFixture fixture = makeSchedulerFixture();
+    Project audioOnlyProject = fixture.project;
+    audioOnlyProject.midiClips.clear();
     auto safe = yesdaw::engine::buildProjectGraph (
-        fixture.project,
+        audioOnlyProject,
         std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
         options);
     REQUIRE (safe.ok());
     REQUIRE (safe.graph->isBlockParallelSafe());
+
+    auto statefulSynth = yesdaw::engine::buildProjectGraph (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        options);
+    REQUIRE (statefulSynth.ok());
+    REQUIRE_FALSE (statefulSynth.graph->isBlockParallelSafe());
 
     // A graph with a DelayNode carries cross-Block ring state, so it must NOT be marked safe — the scheduler
     // would otherwise scramble the ring when workers steal Blocks out of order. The default-false node
@@ -633,9 +648,23 @@ TEST_CASE ("Project MIDI auto-wire follows transport locate and loop through Pla
     REQUIRE (bitIdentical (
         located,
         std::span<const float> (offline.interleavedSamples.data() + 4u * 2u, located.size())));
-    REQUIRE (std::fabs ((located[0] - audioReference.interleavedSamples[4u * 2u]) - kCenterGain) < 0.000001f);
-    REQUIRE (std::fabs ((located[1] - audioReference.interleavedSamples[4u * 2u + 1u]) - kCenterGain) < 0.000001f);
+    // Instrument-agnostic MIDI audibility (ADR-0043): the full render must differ audibly from the
+    // audio-only reference SOMEWHERE — the synth's note energy, wherever its envelope places it.
+    REQUIRE (offline.interleavedSamples.size() >= audioReference.interleavedSamples.size());
+    double midiEnergy = 0.0;
+    for (std::size_t i = 0; i < audioReference.interleavedSamples.size(); ++i)
+        midiEnergy += std::fabs (static_cast<double> (offline.interleavedSamples[i]
+                                                      - audioReference.interleavedSamples[i]));
+    for (std::size_t i = audioReference.interleavedSamples.size(); i < offline.interleavedSamples.size(); ++i)
+        midiEnergy += std::fabs (static_cast<double> (offline.interleavedSamples[i]));
+    REQUIRE (midiEnergy > 0.01);
 
+    // Loop-splice bit-identity is a STATELESS-graph law: the musical SimpleSynth (ADR-0043)
+    // legitimately carries voice state across the wrap (a ringing note keeps ringing, notes
+    // re-trigger each pass), so the splice comparison pins the audio-only project, while the MIDI
+    // project pins first-pass identity plus re-triggered energy after the wrap.
+    // (The stateless loop-splice law itself is pinned by the H8 playback gates over audio projects;
+    // the audio-only reference here is shorter than the loop window, so no splice against it.)
     PlaybackEngine::Result loopedEngine = PlaybackEngine::create (
         fixture.project,
         std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
@@ -645,8 +674,14 @@ TEST_CASE ("Project MIDI auto-wire follows transport locate and loop through Pla
     REQUIRE (loopedEngine.engine->locate (4));
 
     const std::vector<float> looped = drainPlayback (*loopedEngine.engine, 56, 5);
-    const std::vector<float> expected = loopSlice (offline.interleavedSamples, offline.channels, 4, 28, 56);
-    REQUIRE (bitIdentical (looped, expected));
+    const std::size_t firstPassSamples = static_cast<std::size_t> ((28 - 4) * offline.channels);
+    REQUIRE (bitIdentical (
+        std::span<const float> (looped.data(), firstPassSamples),
+        std::span<const float> (offline.interleavedSamples.data() + 4u * offline.channels, firstPassSamples)));
+    double wrappedEnergy = 0.0;
+    for (std::size_t i = firstPassSamples; i < looped.size(); ++i)
+        wrappedEnergy += std::fabs (static_cast<double> (looped[i]));
+    REQUIRE (wrappedEnergy > 0.0);
 }
 
 TEST_CASE ("Parallel scheduler soak feeds the H6 deadline oracle with measured scheduled Blocks",

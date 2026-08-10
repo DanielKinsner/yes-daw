@@ -11,16 +11,21 @@
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/OscillatorNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <algorithm>
+#include <array>
+#include <span>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
@@ -587,4 +592,113 @@ TEST_CASE ("DecodedClipNode widens a mono source onto a stereo strip centre-comp
         REQUIRE (std::fabs (static_cast<double> (L[static_cast<std::size_t> (f)] - exp)) <= 1.0e-6);
         REQUIRE (L[static_cast<std::size_t> (f)] == R[static_cast<std::size_t> (f)]);
     }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// SimpleSynth — the built-in musical Instrument (ADR-0043).
+
+TEST_CASE ("SimpleSynth renders musical notes: pitch, attack, release, and block-size invariance",
+           "[synth][adr-0043]")
+{
+    using yesdaw::engine::AudioBlock;
+    using yesdaw::engine::Event;
+    using yesdaw::engine::EventStream;
+    using yesdaw::engine::EventType;
+    using yesdaw::engine::ProcessArgs;
+    using yesdaw::engine::SimpleSynthNode;
+    using yesdaw::engine::Transport;
+
+    constexpr double kSr = 48000.0;
+
+    const auto renderWithEvents = [&] (std::span<const Event> events, int totalFrames, int blockSize)
+    {
+        SimpleSynthNode synth (55);
+        synth.prepare (kSr, blockSize);
+        std::vector<float> out (static_cast<std::size_t> (totalFrames), 0.0f);
+        Transport transport;
+        int done = 0;
+        std::size_t eventIndex = 0;
+        while (done < totalFrames)
+        {
+            const int n = std::min (blockSize, totalFrames - done);
+            std::vector<Event> blockEvents;
+            while (eventIndex < events.size()
+                   && events[eventIndex].timeInBlock >= static_cast<std::uint32_t> (done)
+                   && events[eventIndex].timeInBlock < static_cast<std::uint32_t> (done + n))
+            {
+                Event sliced = events[eventIndex];
+                sliced.timeInBlock -= static_cast<std::uint32_t> (done);
+                blockEvents.push_back (sliced);
+                ++eventIndex;
+            }
+
+            EventStream stream (std::span<const Event> (blockEvents.data(), blockEvents.size()));
+            float* channel = out.data() + done;
+            float* const channels[1] = { channel };
+            synth.process (ProcessArgs { AudioBlock { channels, 1 }, stream, transport, n });
+            done += n;
+        }
+        return out;
+    };
+
+    const auto makeNoteEvent = [] (EventType type, std::uint32_t frame, int key, double velocity)
+    {
+        Event event {};
+        event.type = type;
+        event.timeInBlock = frame;
+        event.voice.key = static_cast<std::int16_t> (key);
+        event.payload.note.normalizedVelocity = velocity;
+        return event;
+    };
+
+    // A4 for 4800 frames, then off; render 12000 frames total.
+    const std::array<Event, 2> song {
+        makeNoteEvent (EventType::NoteOn, 0, 69, 1.0),
+        makeNoteEvent (EventType::NoteOff, 4'800, 69, 0.0),
+    };
+
+    const std::vector<float> rendered = renderWithEvents (song, 12'000, 128);
+
+    // Attack reaches audible level within ~5 ms and the sustain is periodic at ~440 Hz: count
+    // positive-going zero crossings over one second's worth of sustain window.
+    float attackPeak = 0.0f;
+    for (int i = 0; i < 480; ++i)
+        attackPeak = std::max (attackPeak, std::abs (rendered[static_cast<std::size_t> (i)]));
+    REQUIRE (attackPeak > 0.1f);
+
+    int crossings = 0;
+    for (int i = 481; i < 4'700; ++i)
+        if (rendered[static_cast<std::size_t> (i - 1)] <= 0.0f && rendered[static_cast<std::size_t> (i)] > 0.0f)
+            ++crossings;
+    const double measuredHz = static_cast<double> (crossings) * kSr / (4'700.0 - 481.0);
+    REQUIRE (measuredHz == Approx (440.0).margin (6.0));
+
+    // Release decays to exact zero well before the render ends.
+    float tailPeak = 0.0f;
+    for (int i = 11'000; i < 12'000; ++i)
+        tailPeak = std::max (tailPeak, std::abs (rendered[static_cast<std::size_t> (i)]));
+    REQUIRE (tailPeak == 0.0f);
+
+    // Bit-identical across block sizes (block-sliced events, deterministic voices).
+    const std::vector<float> tiny = renderWithEvents (song, 12'000, 1);
+    const std::vector<float> big = renderWithEvents (song, 12'000, 512);
+    for (std::size_t i = 0; i < rendered.size(); ++i)
+    {
+        REQUIRE (rendered[i] == tiny[i]);
+        REQUIRE (rendered[i] == big[i]);
+    }
+
+    // Two simultaneous notes sum louder than one.
+    const std::array<Event, 2> chord {
+        makeNoteEvent (EventType::NoteOn, 0, 69, 1.0),
+        makeNoteEvent (EventType::NoteOn, 0, 76, 1.0),
+    };
+    const std::vector<float> chordRender = renderWithEvents (chord, 4'800, 128);
+    float chordPeak = 0.0f, notePeak = 0.0f;
+    for (int i = 480; i < 4'800; ++i)
+    {
+        chordPeak = std::max (chordPeak, std::abs (chordRender[static_cast<std::size_t> (i)]));
+        notePeak = std::max (notePeak, std::abs (rendered[static_cast<std::size_t> (i)]));
+    }
+    REQUIRE (chordPeak > notePeak);
 }
