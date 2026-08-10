@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -41,7 +42,15 @@ enum class ProjectEditVerb : std::uint8_t
     MoveAutomationBreakpoint,
     SetAutomationBreakpointValue,
     SetAutomationBreakpointCurve,
-    RemoveAutomationBreakpoint
+    RemoveAutomationBreakpoint,
+    // Arrangement verbs (usable-DAW P0, 2026-08-09)
+    DeleteClip,
+    MoveClipToTrack,
+    AddNote,
+    AddTrack,
+    RenameTrack,
+    ReorderTrack,
+    RemoveTrack
 };
 
 struct ProjectEditCommand
@@ -88,6 +97,18 @@ struct ProjectEditCommand
     Tick automationNewTick = 0;
     double automationValue = 0.0;
     AutomationCurveType automationCurveType = AutomationCurveType::Linear;
+    // Arrangement verb payloads. trackName is a fixed array so the command stays trivially copyable;
+    // names longer than the array are rejected at the factory, never silently truncated.
+    EntityId trackId;
+    std::size_t trackPosition = 0;
+    char trackName[128] = {};
+    std::int16_t noteKey = 60;
+    double notePitch = 60.0;
+    double noteVelocity = 1.0;
+    std::int16_t notePort = -1;
+    std::int16_t noteChannel = -1;
+
+    static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -390,6 +411,95 @@ struct ProjectEditCommand
         command.automationTick = tick;
         return command;
     }
+
+    // --- Arrangement verbs (usable-DAW P0, 2026-08-09) ---
+
+    [[nodiscard]] static constexpr ProjectEditCommand deleteClip (EntityId clipId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::DeleteClip;
+        command.clipId = clipId;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand moveClipToTrack (EntityId clipId,
+                                                                       EntityId targetTrackId,
+                                                                       Tick newTimelineStart) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveClipToTrack;
+        command.clipId = clipId;
+        command.trackId = targetTrackId;
+        command.timelineStart = newTimelineStart;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addNote (EntityId midiClipId,
+                                                               EntityId noteId,
+                                                               Tick startTick,
+                                                               Tick lengthTicks,
+                                                               std::int16_t key,
+                                                               double normalizedVelocity = 1.0) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddNote;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.noteStartTick = startTick;
+        command.noteLengthTicks = lengthTicks;
+        command.noteKey = key;
+        command.notePitch = static_cast<double> (key);
+        command.noteVelocity = normalizedVelocity;
+        return command;
+    }
+
+    // Returns a command whose verb is only valid when `name` fits kMaxTrackNameLength; oversized or
+    // empty names yield a command that the apply path rejects (never silent truncation).
+    [[nodiscard]] static constexpr bool copyTrackName (ProjectEditCommand& command, std::string_view name) noexcept
+    {
+        if (name.empty() || name.size() > kMaxTrackNameLength)
+            return false;
+
+        for (std::size_t i = 0; i < name.size(); ++i)
+            command.trackName[i] = name[i];
+        command.trackName[name.size()] = '\0';
+        return true;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addTrack (EntityId trackId, std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddTrack;
+        command.trackId = trackId;
+        (void) copyTrackName (command, name);   // invalid names leave trackName empty -> apply rejects
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand renameTrack (EntityId trackId, std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RenameTrack;
+        command.trackId = trackId;
+        (void) copyTrackName (command, name);
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand reorderTrack (EntityId trackId, std::size_t newIndex) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::ReorderTrack;
+        command.trackId = trackId;
+        command.trackPosition = newIndex;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeTrack (EntityId trackId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveTrack;
+        command.trackId = trackId;
+        return command;
+    }
 };
 
 static_assert (std::is_trivially_copyable_v<ProjectEditCommand>,
@@ -429,6 +539,14 @@ struct ProjectAutomationLaneRowsDiff
     std::vector<AutomationLaneData> after;
 };
 
+// Track lifecycle diffs snapshot the WHOLE tracks vector: add/remove/reorder move rows across
+// indices, and track counts are small, so whole-vector before/after keeps undo bit-exact and simple.
+struct ProjectTrackRowsDiff
+{
+    std::vector<Track> before;
+    std::vector<Track> after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -437,6 +555,7 @@ struct ProjectEditTransaction
     ProjectRecordingCompRowsDiff recordingCompDiff;
     ProjectFxChainRowsDiff fxDiff;
     ProjectAutomationLaneRowsDiff automationDiff;
+    ProjectTrackRowsDiff trackDiff;
 };
 
 struct ProjectEditApplyResult
@@ -496,7 +615,16 @@ namespace detail {
            || verb == ProjectEditVerb::SplitNote
            || verb == ProjectEditVerb::CutNote
            || verb == ProjectEditVerb::QuantizeNote
-           || verb == ProjectEditVerb::TransposeNote;
+           || verb == ProjectEditVerb::TransposeNote
+           || verb == ProjectEditVerb::AddNote;
+}
+
+[[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddTrack
+           || verb == ProjectEditVerb::RenameTrack
+           || verb == ProjectEditVerb::ReorderTrack
+           || verb == ProjectEditVerb::RemoveTrack;
 }
 
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
@@ -620,6 +748,48 @@ namespace detail {
 
         case ProjectEditVerb::RemoveAutomationBreakpoint:
             return removeAutomationBreakpoint (project, command.automationLaneId, command.automationTick);
+
+        case ProjectEditVerb::DeleteClip:
+            return deleteClip (project, command.clipId);
+
+        case ProjectEditVerb::MoveClipToTrack:
+            return moveClipToTrack (project, command.clipId, command.trackId, command.timelineStart);
+
+        case ProjectEditVerb::AddNote:
+        {
+            Note note;
+            note.id = command.noteId;
+            note.startTick = command.noteStartTick;
+            note.lengthTicks = command.noteLengthTicks;
+            note.key = command.noteKey;
+            note.pitchNote = command.notePitch;
+            note.normalizedVelocity = command.noteVelocity;
+            note.portIndex = command.notePort;
+            note.channel = command.noteChannel;
+            return addNote (project, command.midiClipId, note);
+        }
+
+        case ProjectEditVerb::AddTrack:
+        {
+            if (command.trackName[0] == '\0')
+                return ProjectEditStatus::InvalidTrackName;
+
+            Track track;
+            track.id = command.trackId;
+            track.strip.name = std::string { command.trackName };
+            return addTrack (project, track);
+        }
+
+        case ProjectEditVerb::RenameTrack:
+            if (command.trackName[0] == '\0')
+                return ProjectEditStatus::InvalidTrackName;
+            return renameTrack (project, command.trackId, std::string { command.trackName });
+
+        case ProjectEditVerb::ReorderTrack:
+            return reorderTrack (project, command.trackId, command.trackPosition);
+
+        case ProjectEditVerb::RemoveTrack:
+            return removeTrack (project, command.trackId);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -647,6 +817,15 @@ namespace detail {
             return false;
 
         out.after = { after.clips[index], after.clips[index + 1u] };
+        return true;
+    }
+
+    if (command.verb == ProjectEditVerb::DeleteClip)
+    {
+        if (after.clips.size() + 1u != before.clips.size())
+            return false;
+
+        out.after = {};
         return true;
     }
 
@@ -743,6 +922,35 @@ namespace detail {
 
     out.after = { after.automationLanes[afterIndex] };
     return out.before != out.after;
+}
+
+[[nodiscard]] inline bool buildProjectTrackRowsDiff (const Project& before,
+                                                     const Project& after,
+                                                     ProjectTrackRowsDiff& out)
+{
+    if (before.tracks == after.tracks)
+        return false;
+
+    out = {};
+    out.before = before.tracks;
+    out.after = after.tracks;
+    return true;
+}
+
+[[nodiscard]] inline bool applyTrackRowsDiff (Project& project,
+                                              const std::vector<Track>& expected,
+                                              const std::vector<Track>& replacement)
+{
+    if (! (project.tracks == expected))
+        return false;
+
+    Project edited = project;
+    edited.tracks = replacement;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
 }
 
 [[nodiscard]] inline bool clipRowsEqualAt (const Project& project,
@@ -963,6 +1171,12 @@ namespace detail {
                     : applyAutomationLaneRowsDiff (project, transaction.automationDiff, transaction.automationDiff.after, transaction.automationDiff.before);
     }
 
+    if (isTrackEditVerb (transaction.command.verb))
+    {
+        return redo ? applyTrackRowsDiff (project, transaction.trackDiff.before, transaction.trackDiff.after)
+                    : applyTrackRowsDiff (project, transaction.trackDiff.after, transaction.trackDiff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -990,6 +1204,8 @@ namespace detail {
         diffBuilt = detail::buildProjectFxChainRowsDiff (before, project, command, transaction.fxDiff);
     else if (detail::isAutomationEditVerb (command.verb))
         diffBuilt = detail::buildProjectAutomationLaneRowsDiff (before, project, command, transaction.automationDiff);
+    else if (detail::isTrackEditVerb (command.verb))
+        diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

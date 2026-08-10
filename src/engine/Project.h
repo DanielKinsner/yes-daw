@@ -621,7 +621,12 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidAutomationLaneId,
     AutomationLaneNotFound,
     InvalidAutomationTarget,
-    InvalidAutomationBreakpoint
+    InvalidAutomationBreakpoint,
+    InvalidTrackId,
+    TrackNotFound,
+    TrackNotEmpty,
+    InvalidTrackPosition,
+    InvalidTrackName
 };
 
 struct Project
@@ -1895,6 +1900,213 @@ namespace detail {
         return ProjectEditStatus::InvalidNoteValue;
 
     *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// --- Arrangement verbs (usable-DAW P0, 2026-08-09): clip delete / cross-track move, note add, and
+// --- the Track lifecycle. Same contract as every edit helper above: validate, mutate, Applied.
+
+[[nodiscard]] inline ProjectEditStatus deleteClip (Project& project, EntityId clipId)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        if (project.clips[i].id == clipId)
+        {
+            project.clips.erase (project.clips.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::ClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveClipToTrack (Project& project,
+                                                        EntityId clipId,
+                                                        EntityId targetTrackId,
+                                                        Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (! targetTrackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (project.findTrack (targetTrackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    clip->trackId = targetTrackId;
+    clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addNote (Project& project,
+                                                EntityId midiClipId,
+                                                const Note& note)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! note.id.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    if (detail::projectContainsEntityId (project, note.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! note.isValid())
+        return ProjectEditStatus::InvalidNoteValue;
+
+    if (! detail::noteFitsMidiClip (*midiClip, note))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    midiClip->notes.push_back (note);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addTrack (Project& project, const Track& track)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! track.id.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (detail::projectContainsEntityId (project, track.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! track.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (track.strip.name.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    project.tracks.push_back (track);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus renameTrack (Project& project,
+                                                    EntityId trackId,
+                                                    const std::string& newName)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (newName.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id == trackId)
+        {
+            track.strip.name = newName;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus reorderTrack (Project& project,
+                                                     EntityId trackId,
+                                                     std::size_t newIndex)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (newIndex >= project.tracks.size())
+        return ProjectEditStatus::InvalidTrackPosition;
+
+    std::size_t currentIndex = project.tracks.size();
+    for (std::size_t i = 0; i < project.tracks.size(); ++i)
+    {
+        if (project.tracks[i].id == trackId)
+        {
+            currentIndex = i;
+            break;
+        }
+    }
+
+    if (currentIndex >= project.tracks.size())
+        return ProjectEditStatus::TrackNotFound;
+
+    if (currentIndex == newIndex)
+        return ProjectEditStatus::Applied;
+
+    Track moved = project.tracks[currentIndex];
+    project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (currentIndex));
+    project.tracks.insert (project.tracks.begin() + static_cast<std::ptrdiff_t> (newIndex), std::move (moved));
+    return ProjectEditStatus::Applied;
+}
+
+// Removing a Track requires it to be empty: no Clip, MIDI Clip, recording Take, or automation lane may
+// still reference it. Callers that want Pro Tools-style delete-with-contents issue the owned deletions
+// first (each its own undoable command), then remove the Track.
+[[nodiscard]] inline ProjectEditStatus removeTrack (Project& project, EntityId trackId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    std::size_t trackIndex = project.tracks.size();
+    for (std::size_t i = 0; i < project.tracks.size(); ++i)
+    {
+        if (project.tracks[i].id == trackId)
+        {
+            trackIndex = i;
+            break;
+        }
+    }
+
+    if (trackIndex >= project.tracks.size())
+        return ProjectEditStatus::TrackNotFound;
+
+    for (const Clip& clip : project.clips)
+        if (clip.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const MidiClip& midiClip : project.midiClips)
+        if (midiClip.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.ownerEntity == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (trackIndex));
     return ProjectEditStatus::Applied;
 }
 

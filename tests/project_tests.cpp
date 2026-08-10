@@ -30,7 +30,14 @@ using yesdaw::engine::addAutomationLane;
 using yesdaw::engine::addFxInsert;
 using yesdaw::engine::Bus;
 using yesdaw::engine::Clip;
+using yesdaw::engine::addNote;
+using yesdaw::engine::addTrack;
 using yesdaw::engine::cutNote;
+using yesdaw::engine::deleteClip;
+using yesdaw::engine::moveClipToTrack;
+using yesdaw::engine::removeTrack;
+using yesdaw::engine::renameTrack;
+using yesdaw::engine::reorderTrack;
 using yesdaw::engine::evaluateClipGainEnvelope;
 using yesdaw::engine::EntityId;
 using yesdaw::engine::EntityIdAllocator;
@@ -2020,13 +2027,13 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
         const Project original = project;
 
         ProjectUndoStack undo;
-        for (int step = 0; step < 60; ++step)
+        for (int step = 0; step < 80; ++step)
         {
             const EntityId clip = clipIds[static_cast<std::size_t> (pick (2))];
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (10))
+            switch (pick (16))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2049,6 +2056,34 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                                                                  idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
                                                                  tick (1, 1'000));
                     break;
+                // Arrangement verbs (usable-DAW P0): rejected commands (deleted clip, occupied track,
+                // unknown id) are no-ops by contract, so random interleavings stay valid.
+                case 10: command = ProjectEditCommand::deleteClip (clip); break;
+                case 11: command = ProjectEditCommand::moveClipToTrack (clip,
+                                                                        idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                                                        tick (0, 40'000)); break;
+                case 12:
+                    if (freshLowByte < 250)
+                        command = ProjectEditCommand::addNote (midiClipId,
+                                                               idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                                               tick (0, 7'000), tick (0, 1'000),
+                                                               static_cast<std::int16_t> (pick (128)));
+                    break;
+                case 13:
+                    if (freshLowByte < 250)
+                        command = ProjectEditCommand::addTrack (
+                            idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)), "Added Track");
+                    break;
+                case 14: command = ProjectEditCommand::renameTrack (idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                                                    pick (2) == 0 ? "Renamed A" : "Renamed B"); break;
+                case 15:
+                    if (pick (2) == 0)
+                        command = ProjectEditCommand::reorderTrack (idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                                                    static_cast<std::size_t> (pick (3)));
+                    else
+                        command = ProjectEditCommand::removeTrack (
+                            idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                    break;
                 default: break;
             }
 
@@ -2066,6 +2101,69 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
         requireProjectValueUnchanged (project, edited);     // full redo -> bit-identical edited
     }
+}
+
+TEST_CASE ("Arrangement verbs edit, undo, and redo tracks, clips, and notes bit-identically",
+           "[project][arrangement][undo]")
+{
+    Project project = makeTwoClipEditableProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
+    project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+    const Project original = project;
+
+    ProjectUndoStack undo;
+
+    // Add a Track, rename it, move a clip onto it, reorder it to the front, then delete the other clip
+    // and add a note — every step through the command/undo surface.
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTrack (idFromLowByte (60), "Guitar")).applied());
+    REQUIRE (project.tracks.size() == 3u);
+    REQUIRE (project.tracks.back().strip.name == "Guitar");
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::renameTrack (idFromLowByte (60), "Lead Guitar")).applied());
+    REQUIRE (project.tracks.back().strip.name == "Lead Guitar");
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::moveClipToTrack (idFromLowByte (33),
+                                                                      idFromLowByte (60),
+                                                                      12'345)).applied());
+    REQUIRE (project.clips[1].trackId == idFromLowByte (60));
+    REQUIRE (project.clips[1].timelineStart == 12'345);
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::reorderTrack (idFromLowByte (60), 0)).applied());
+    REQUIRE (project.tracks.front().id == idFromLowByte (60));
+
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::deleteClip (idFromLowByte (31))).applied());
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().id == idFromLowByte (33));
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::addNote (idFromLowByte (40), idFromLowByte (61),
+                                                               480, 240, 64, 0.75)).applied());
+    REQUIRE (project.midiClips.front().notes.size() == 3u);
+    REQUIRE (project.midiClips.front().notes.back().key == 64);
+
+    // Guards bite: occupied Track cannot be removed; duplicate ids, unknown targets, empty names reject.
+    REQUIRE (removeTrack (project, idFromLowByte (60)) == ProjectEditStatus::TrackNotEmpty);
+    REQUIRE (addTrack (project, makeTrack (idFromLowByte (60), "Dup")) == ProjectEditStatus::DuplicateEntityId);
+    REQUIRE (renameTrack (project, idFromLowByte (99), "X") == ProjectEditStatus::TrackNotFound);
+    REQUIRE (renameTrack (project, idFromLowByte (60), "") == ProjectEditStatus::InvalidTrackName);
+    REQUIRE (moveClipToTrack (project, idFromLowByte (33), idFromLowByte (99), 0) == ProjectEditStatus::TrackNotFound);
+    REQUIRE (reorderTrack (project, idFromLowByte (60), 9) == ProjectEditStatus::InvalidTrackPosition);
+
+    // Empty-track removal works and undoes.
+    REQUIRE (undo.apply (project, ProjectEditCommand::moveClipToTrack (idFromLowByte (33),
+                                                                      idFromLowByte (36),
+                                                                      12'345)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeTrack (idFromLowByte (60))).applied());
+    REQUIRE (project.tracks.size() == 2u);
+
+    const Project edited = project;
+    while (undo.canUndo())
+        REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+
+    while (undo.canRedo())
+        REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
 }
 
 TEST_CASE ("Randomized FX edit sequences fully undo to a bit-identical Project and redo back", "[project][fx][undo][property]")
