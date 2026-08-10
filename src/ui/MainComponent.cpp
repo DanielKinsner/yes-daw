@@ -206,7 +206,9 @@ juce::File juceFileFromPath (const std::filesystem::path& path)
         static_cast<int> (utf8.size())) };
 }
 
-std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWav (const std::filesystem::path& sourcePath)
+// Decode a mono or stereo WAV into an interleaved UiDecodedAsset (ADR-0042). Wider-than-stereo files
+// are rejected — never silently downmixed.
+std::optional<yesdaw::ui::UiDecodedAsset> decodeProjectWav (const std::filesystem::path& sourcePath)
 {
     juce::WavAudioFormat wav;
     const juce::File file = juceFileFromPath (sourcePath);
@@ -216,22 +218,30 @@ std::optional<yesdaw::ui::UiDecodedAsset> decodeMonoWav (const std::filesystem::
         return std::nullopt;
 
     if (reader->sampleRate <= 0.0
-        || reader->numChannels != 1u
+        || reader->numChannels < 1u
+        || reader->numChannels > 2u
         || reader->lengthInSamples <= 0
         || reader->lengthInSamples > static_cast<juce::int64> (std::numeric_limits<int>::max()))
         return std::nullopt;
 
     const int frames = static_cast<int> (reader->lengthInSamples);
-    juce::AudioBuffer<float> decodedBuffer (1, frames);
-    if (! reader->read (&decodedBuffer, 0, frames, 0, true, false))
+    const int channels = static_cast<int> (reader->numChannels);
+    juce::AudioBuffer<float> decodedBuffer (channels, frames);
+    if (! reader->read (&decodedBuffer, 0, frames, 0, true, channels > 1))
         return std::nullopt;
 
-    const float* const channel = decodedBuffer.getReadPointer (0);
     yesdaw::ui::UiDecodedAsset decoded;
     decoded.sampleRate = yesdaw::engine::SampleRate { reader->sampleRate };
     decoded.frames = static_cast<std::uint64_t> (frames);
-    decoded.channels = 1;
-    decoded.interleavedSamples.assign (channel, channel + frames);
+    decoded.channels = static_cast<std::uint16_t> (channels);
+    decoded.interleavedSamples.resize (static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels));
+    for (int channel = 0; channel < channels; ++channel)
+    {
+        const float* const source = decodedBuffer.getReadPointer (channel);
+        for (int frame = 0; frame < frames; ++frame)
+            decoded.interleavedSamples[static_cast<std::size_t> (frame) * static_cast<std::size_t> (channels)
+                                       + static_cast<std::size_t> (channel)] = source[frame];
+    }
     return decoded;
 }
 
@@ -250,7 +260,7 @@ std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> decodeStoredProjectAssets
     decodedAssets.reserve (project.assets.size());
     for (const yesdaw::engine::Asset& asset : project.assets)
     {
-        auto decoded = decodeMonoWav (
+        auto decoded = decodeProjectWav (
             yesdaw::persistence::storedAssetPathForHash (bundlePath, asset.contentHash));
         if (! decoded
             || decoded->frames != asset.frames
@@ -1998,7 +2008,7 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseImportAudioFile();
                     if (! path.empty())
-                        if (auto decoded = decodeMonoWav (path))
+                        if (auto decoded = decodeProjectWav (path))
                             (void) appModel.importAudioFile (path, std::move (*decoded));
                 }
                 return;

@@ -47,8 +47,9 @@ struct SelfCheckResult
 
 namespace detail {
 
-// Decode every (mono) Asset into DecodedAssetAudio. The decoded samples live in `storage`, which is
-// reserved up front (no reallocation) so the std::span each DecodedAssetAudio holds stays valid.
+// Decode every mono or stereo Asset into DecodedAssetAudio (interleaved, ADR-0042). The decoded
+// samples live in `storage`, which is reserved up front (no reallocation) so the std::span each
+// DecodedAssetAudio holds stays valid.
 [[nodiscard]] inline bool decodeBundleAssets (const engine::Project& project,
                                               const std::filesystem::path& bundlePath,
                                               std::vector<std::vector<float>>& storage,
@@ -62,9 +63,9 @@ namespace detail {
 
     for (const engine::Asset& asset : project.assets)
     {
-        if (asset.channels != 1u)
+        if (asset.channels == 0u || asset.channels > 2u)
         {
-            err = "asset is not mono (offline render requires mono assets)";
+            err = "asset channel count unsupported (mono or stereo required, ADR-0042)";
             return false;
         }
         if (asset.frames == 0
@@ -97,15 +98,23 @@ namespace detail {
         }
 
         const int frames = static_cast<int> (asset.frames);
-        juce::AudioBuffer<float> buffer (1, frames);
-        if (! reader->read (&buffer, 0, frames, 0, true, false))
+        const int channels = static_cast<int> (asset.channels);
+        juce::AudioBuffer<float> buffer (channels, frames);
+        if (! reader->read (&buffer, 0, frames, 0, true, channels > 1))
         {
             err = "asset audio decode failed";
             return false;
         }
 
-        const float* const channel = buffer.getReadPointer (0);
-        storage.emplace_back (channel, channel + frames);
+        std::vector<float> interleaved (static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels));
+        for (int channel = 0; channel < channels; ++channel)
+        {
+            const float* const source = buffer.getReadPointer (channel);
+            for (int frame = 0; frame < frames; ++frame)
+                interleaved[static_cast<std::size_t> (frame) * static_cast<std::size_t> (channels)
+                            + static_cast<std::size_t> (channel)] = source[frame];
+        }
+        storage.push_back (std::move (interleaved));
 
         engine::DecodedAssetAudio decoded;
         decoded.assetId = asset.id;

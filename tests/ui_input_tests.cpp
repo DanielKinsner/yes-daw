@@ -817,6 +817,93 @@ TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",
     REQUIRE (peakAbs (right) > 0.01);
 }
 
+TEST_CASE ("shipped MainComponent imports, reopens, plays, and exports a stereo WAV (ADR-0042)",
+           "[ui][input][shell][stereo][playback][device]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("stereo-roundtrip");
+    std::filesystem::path stereoWavPath = bundlePath;
+    stereoWavPath += "-source.wav";
+    std::filesystem::path exportPath = bundlePath;
+    exportPath += "-export.wav";
+
+    std::error_code removeError;
+    std::filesystem::remove (stereoWavPath, removeError);
+    std::filesystem::remove (exportPath, removeError);
+
+    // Sign-split stereo source: left strictly positive, right strictly negative, so a swap, blend, or
+    // downmix anywhere in import -> bundle -> decode -> strip -> device callback is unmistakable.
+    constexpr std::uint64_t kFrames = 4800;
+    std::vector<float> interleaved (static_cast<std::size_t> (kFrames) * 2u);
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        interleaved[static_cast<std::size_t> (frame * 2u)]      = 0.5f;
+        interleaved[static_cast<std::size_t> (frame * 2u + 1u)] = -0.25f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (stereoWavPath,
+                                              yesdaw::engine::SampleRate { 48000.0 },
+                                              2,
+                                              kFrames,
+                                              std::span<const float> (interleaved.data(), interleaved.size())).ok());
+
+    const auto requireSignSplitDeviceBlock = [] (juce::Component& shell)
+    {
+        std::array<float, 128> left {};
+        std::array<float, 128> right {};
+        std::array<float*, 2> outputs { left.data(), right.data() };
+        REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (shell, outputs.data(), 2, 128));
+        for (const float sample : left)
+            REQUIRE (sample > 0.4f);      // left channel arrives intact (no blend, no swap)
+        for (const float sample : right)
+            REQUIRE (sample < -0.2f);     // right channel arrives intact and distinct
+    };
+
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.chooseImportAudioFile = [stereoWavPath] { return stereoWavPath; };
+
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.context.projectLoaded);
+        REQUIRE (snapshot.context.importCount == 1);
+        REQUIRE (snapshot.playbackReady);
+
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+        requireSignSplitDeviceBlock (*shell);
+    }
+
+    // Reopen from the bundle: the stereo Asset must decode back to playable stereo, not silence or mono.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        openChoices.chooseExportAudioFile = [exportPath] { return exportPath; };
+        auto reopened = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        REQUIRE (snapshotMainComponent (*reopened).playbackReady);
+
+        clickButton (requireButtonForAction (*reopened, UiActionId::TransportPlay));
+        requireSignSplitDeviceBlock (*reopened);
+        clickButton (requireButtonForAction (*reopened, UiActionId::TransportStop));
+
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectExportAudio));
+        REQUIRE (std::filesystem::exists (exportPath));
+
+        yesdaw::io::Float32Wav exported;
+        REQUIRE (yesdaw::io::readFloat32WavFile (exportPath, exported).ok());
+        REQUIRE (exported.channels == 2u);
+        REQUIRE (exported.frames >= kFrames);
+        // Balance centre is unity, track fader defaults to unity: the export IS the source, per channel.
+        for (std::uint64_t frame = 0; frame < kFrames; frame += 480)
+        {
+            REQUIRE (exported.interleavedSamples[static_cast<std::size_t> (frame * 2u)] == 0.5f);
+            REQUIRE (exported.interleavedSamples[static_cast<std::size_t> (frame * 2u + 1u)] == -0.25f);
+        }
+    }
+}
+
 TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id", "[ui][input][shell]")
 {
     auto shell = makeShell();
