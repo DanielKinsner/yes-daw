@@ -169,7 +169,11 @@ solo-isolates.
 Markers landed: M at playhead / ruler double-click to add, Alt+click to remove, painted on the ruler,
 undoable, persisted; marker ids joined the duplicate-id scan.
 
-**Now (in progress): automation lane canvas.** Design: a real AutomationLaneCanvasComponent replaces
+**DONE: automation lane canvas** — click-to-add at (time, value) with zoom/scroll-aware mapping,
+drag moves (grouped one-undo), double-click deletes, selected-track fader lane auto-created on first
+use. The design note below is retained for the record:
+
+**(design note)** Design: a real AutomationLaneCanvasComponent replaces
 the Add/Delete Point stubs — click empty lane = add breakpoint at (tick from x via the SAME timeline
 viewport math [scroll/zoom], normalized value from y, top=1), drag handle = move (Move + SetValue
 commands in one undo transaction group), double-click handle = delete. Lane targets the SELECTED
