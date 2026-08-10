@@ -18,6 +18,7 @@ enum class UiActionId : std::uint8_t
     ProjectNew = 0,
     ProjectOpen,
     ProjectSave,
+    ProjectSaveAs,
     ProjectImportAudio,
     ProjectExportAudio,
     ProjectExportAudioCancel,
@@ -258,6 +259,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::ProjectOpen, "project.open", "Open", "Ctrl+O", "Open project",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::ProjectSave, "project.save", "Save", "Ctrl+S", "Save project",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectSaveAs, "project.save_as", "Save As", "Ctrl+Shift+S", "Save project as",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectImportAudio, "project.import_audio", "Import WAV", "Ctrl+I", "Import audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -596,6 +599,7 @@ public:
                 break;
 
             case UiActionId::ProjectSave:
+            case UiActionId::ProjectSaveAs:
                 ++context.saveCount;
                 break;
 

@@ -2281,6 +2281,15 @@ private:
                 }
                 return;
 
+            case yesdaw::ui::UiActionId::ProjectSaveAs:
+                if (fileChoices.chooseSaveAsProjectBundle)
+                {
+                    const std::filesystem::path path = fileChoices.chooseSaveAsProjectBundle();
+                    if (! path.empty())
+                        (void) appModel.saveProjectBundleAs (path);
+                }
+                return;
+
             case yesdaw::ui::UiActionId::TrackRename:
                 if (selectedTrackLane >= 0)
                     openTrackRenameEditor();
@@ -4324,6 +4333,18 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
             return std::filesystem::path {};
 
         return pathFromJuceFile (chooser.getResult());
+    };
+
+    choices.chooseSaveAsProjectBundle = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Save YES DAW Project As",
+                                   documents.getChildFile ("Untitled.yesdaw"),
+                                   "*.yesdaw",
+                                   true);
+        if (! chooser.browseForFileToSave (true))
+            return std::filesystem::path {};
+
+        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
     };
 
     choices.chooseImportAudioFile = [] {

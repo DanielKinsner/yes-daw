@@ -324,6 +324,54 @@ public:
         return result;
     }
 
+    // Save-As (usable-DAW P0): persist the current Project, copy the whole bundle (SQLite + immutable
+    // Assets) to the chosen path, and continue working in the copy. The original bundle stays intact
+    // on disk. On any failure the model reopens the ORIGINAL bundle and reports the error.
+    [[nodiscard]] UiActionDispatchResult saveProjectBundleAs (const std::filesystem::path& newBundlePath)
+    {
+        const UiActionId id = UiActionId::ProjectSaveAs;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (newBundlePath.empty())
+            return { id, { false, "save-as path required" }, false };
+
+        std::error_code equivalence;
+        if (bundlePath_ == newBundlePath
+            || (std::filesystem::exists (newBundlePath, equivalence)
+                && std::filesystem::equivalent (bundlePath_, newBundlePath, equivalence)))
+            return { id, { false, "save-as target is the current bundle" }, false };
+
+        if (! saveProjectBundle().ok())
+            return { id, { false, "save before copy failed" }, false };
+
+        // Release the SQLite handle so Windows lets the file copy; reopen (old or new) below.
+        bundleDb_ = persistence::ProjectBundleDb {};
+
+        std::error_code copyError;
+        std::filesystem::remove_all (newBundlePath, copyError);
+        copyError.clear();
+        std::filesystem::copy (bundlePath_, newBundlePath,
+                               std::filesystem::copy_options::recursive, copyError);
+
+        const std::filesystem::path reopenPath = copyError ? bundlePath_ : newBundlePath;
+        persistence::ProjectBundleDb reopened;
+        if (! persistence::ProjectBundleDb::openExistingBundle (reopenPath, reopened).ok())
+            return { id, { false, "bundle reopen failed after save-as" }, false };
+
+        bundleDb_ = std::move (reopened);
+        if (copyError)
+            return { id, { false, "bundle copy failed" }, false };
+
+        bundlePath_ = newBundlePath;
+        waveformService_.start (bundlePath_);
+        enqueueWaveformBuildsForDecodedAssets();
+        ++context_.saveCount;
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
     // H17 CP4: the shipped shell's autosave-scheduling policy (ON by default). The GUI shell drives a
     // juce::Timer off this; keeping it here means the shell never reaches into the engine/bundle itself.
     [[nodiscard]] const AutosaveSchedulePolicy& autosaveSchedule() const noexcept { return autosaveSchedule_; }
@@ -1640,6 +1688,9 @@ public:
 
             case UiActionId::ProjectExportDawproject:
                 return { id, { false, "DAWproject export path required" }, false };
+
+            case UiActionId::ProjectSaveAs:
+                return { id, { false, "save-as path required" }, false };
 
             case UiActionId::ProjectSave:
             {

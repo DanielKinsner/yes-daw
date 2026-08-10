@@ -2670,3 +2670,41 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     REQUIRE (project.tracks.front().strip.name == "Drums");
     REQUIRE (project.clips.size() == 2u);   // both clips live on the surviving track; nothing was lost
 }
+
+TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][input][shell][saveas]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("save-as-original");
+    const std::filesystem::path saveAsPath = makeTempBundlePath ("save-as-copy");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseSaveAsProjectBundle = [saveAsPath] { return saveAsPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Ctrl+Shift+S copies the bundle; subsequent edits land in the COPY, not the original.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (std::filesystem::exists (saveAsPath));
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == saveAsPath);
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Project copied = readProjectSnapshot (saveAsPath);
+    REQUIRE (copied.clips.size() == original.clips.size());
+    REQUIRE (copied.assets.size() == original.assets.size());
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (saveAsPath).tracks.size() == 2u);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);   // original untouched
+
+    // The copy reopens playable in a fresh shell.
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [saveAsPath] { return saveAsPath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    REQUIRE (snapshotMainComponent (*reopened).playbackReady);
+}
