@@ -225,6 +225,18 @@ public:
                                                 int numOutputChannels,
                                                 int numFrames) noexcept YESDAW_RT_HOT
     {
+        return processDeviceAudioBlock (nullptr, 0, outputChannels, numOutputChannels, numFrames);
+    }
+
+    // Input-aware device block (usable-DAW P0-1): while a capture session is live, the callback's
+    // input channels run through the proven H5 capture pipeline (bounded FIFO, latency-compensated
+    // placement) BEFORE playback renders — same RT contract as the hardware recording checker.
+    [[nodiscard]] bool processDeviceAudioBlock (const float* const* inputChannels,
+                                                int numInputChannels,
+                                                float* const* outputChannels,
+                                                int numOutputChannels,
+                                                int numFrames) noexcept YESDAW_RT_HOT
+    {
         engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
         if (playback == nullptr || numFrames < 0 || numFrames > playback->maxBlockSize())
         {
@@ -232,8 +244,190 @@ public:
             return false;
         }
 
+        if (captureActive_.load (std::memory_order_acquire)
+            && inputChannels != nullptr
+            && numInputChannels > 0)
+        {
+            (void) playback->captureRecordingInputBlock (
+                captureFifo_, captureConfig_, inputChannels, numInputChannels, numFrames);
+        }
+
         playback->processBlock (outputChannels, numOutputChannels, numFrames);
         return true;
+    }
+
+    // CONTROL THREAD: arm-and-roll a real capture session. The config is published before the active
+    // flag so the audio thread never reads a torn config.
+    [[nodiscard]] bool startRealRecordingCapture (int deviceInputChannels,
+                                                  double deviceSampleRateHz,
+                                                  std::int64_t inputLatencyFrames,
+                                                  std::int64_t outputLatencyFrames)
+    {
+        if (! context_.projectLoaded || playback_ == nullptr
+            || captureActive_.load (std::memory_order_acquire)
+            || deviceInputChannels <= 0 || deviceSampleRateHz <= 0.0
+            || inputLatencyFrames < 0 || outputLatencyFrames < 0)
+            return false;
+
+        captureConfig_ = {};
+        captureConfig_.sampleRateHz = deviceSampleRateHz;
+        captureConfig_.channels = std::min (deviceInputChannels, engine::kMaxRecordingChannels);
+        captureConfig_.latency.inputLatencyFrames = inputLatencyFrames;
+        captureConfig_.latency.outputLatencyFrames = outputLatencyFrames;
+        if (! captureConfig_.isValid())
+            return false;
+
+        captureInterleaved_.clear();
+        captureTimelineStartFrame_ = -1;
+        captureChannels_ = static_cast<std::uint16_t> (captureConfig_.channels);
+        captureActive_.store (true, std::memory_order_release);
+        (void) playback_->play();
+        context_.isRecording = true;
+        context_.isPlaying = true;
+        ++context_.recordingCommandCount;
+        ++context_.commandDispatchCount;
+        return true;
+    }
+
+    // CONTROL THREAD (shell timer): drain captured chunks out of the RT FIFO into the session buffer.
+    void drainRealRecordingCapture()
+    {
+        engine::RecordingChunk chunk;
+        while (captureFifo_.pop (chunk))
+        {
+            if (chunk.frameCount == 0 || chunk.channels == 0)
+                continue;
+
+            if (captureTimelineStartFrame_ < 0)
+                captureTimelineStartFrame_ = chunk.timelineStartFrame;
+
+            const std::size_t samples = static_cast<std::size_t> (chunk.frameCount)
+                                      * static_cast<std::size_t> (chunk.channels);
+            captureInterleaved_.insert (captureInterleaved_.end(),
+                                        chunk.samples.begin(),
+                                        chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+        }
+    }
+
+    [[nodiscard]] bool realRecordingCaptureActive() const noexcept
+    {
+        return captureActive_.load (std::memory_order_acquire);
+    }
+
+    // CONTROL THREAD: end the capture session and commit the recorded audio as a real Asset + Take +
+    // Clip at the latency-compensated Project frame, through the same shared commit service as the
+    // packaged hardware checker. Honest failure when nothing was captured — silent/unrouted input is
+    // never masked with a synthetic take.
+    [[nodiscard]] UiAppRecordResult stopRealRecordingCaptureAndCommit()
+    {
+        UiAppRecordResult result;
+        result.actionState = registry_.stateFor (UiActionId::TransportRecord, context_);
+
+        if (! captureActive_.load (std::memory_order_acquire))
+        {
+            result.status = UiAppRecordStatus::PreconditionsNotMet;
+            return result;
+        }
+
+        captureActive_.store (false, std::memory_order_release);
+        if (playback_ != nullptr)
+        {
+            (void) playback_->stop();
+            drainTransport (*playback_);
+        }
+        drainRealRecordingCapture();
+        context_.isRecording = false;
+        context_.isPlaying = false;
+        ++context_.recordingCommandCount;
+        ++context_.commandDispatchCount;
+
+        const std::uint16_t channels = captureChannels_ > 0 ? captureChannels_ : 1;
+        const std::uint64_t frames = captureInterleaved_.size() / channels;
+        if (frames == 0 || captureTimelineStartFrame_ < 0)
+        {
+            result.status = UiAppRecordStatus::PreconditionsNotMet;
+            return result;
+        }
+
+        app::RecordedAudioTakeRequest request;
+        request.sampleRate = engine::SampleRate { captureConfig_.sampleRateHz };
+        request.frames = frames;
+        request.channels = channels;
+        request.interleavedSamples = std::span<const float> (
+            captureInterleaved_.data(), static_cast<std::size_t> (frames) * channels);
+        request.targetTrackId = recordingTrackInput_.trackId;
+        request.timelineStart = static_cast<engine::Tick> (captureTimelineStartFrame_);
+        request.deviceStableId = recordingDevice_.stableDeviceId;
+        request.inputChannel = recordingTrackInput_.inputChannel;
+        request.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
+        request.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
+
+        app::RecordedTakeCommitResult commit = app::commitRecordedAudioTake (
+            bundleDb_,
+            project_,
+            request,
+            [this] (std::uint8_t seedByte, const engine::Project& project)
+            { return allocateSessionEntityId (seedByte, project); },
+            [this] (engine::Project& project) -> engine::Track&
+            { return ensureDefaultAudioTrack (project); });
+
+        result.importResult.bundleResult = commit.bundleResult;
+        if (! commit.ok())
+        {
+            result.status = UiAppRecordStatus::AssetImportFailed;
+            return result;
+        }
+
+        // Adopt the committed project exactly like the deterministic take path (no synthetic MIDI).
+        UiDecodedAsset decoded;
+        decoded.assetId = commit.importedAsset.id;
+        decoded.sampleRate = commit.importedAsset.sampleRate;
+        decoded.frames = commit.importedAsset.frames;
+        decoded.channels = commit.importedAsset.channels;
+        decoded.interleavedSamples.assign (captureInterleaved_.begin(), captureInterleaved_.end());
+
+        std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
+        upsertDecodedAsset (nextDecoded, std::move (decoded));
+
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
+        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
+            commit.project,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+            playbackBuildOptions());
+
+        if (! built.ok())
+        {
+            result.status = UiAppRecordStatus::PlaybackBuildFailed;
+            return result;
+        }
+
+        (void) built.engine->stop();
+        drainTransport (*built.engine);
+
+        project_ = std::move (commit.project);
+        decodedAssets_ = std::move (nextDecoded);
+        decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        replacePlayback (std::move (built.engine));
+        selectedTimelineClipId_ = commit.clipId;
+        context_.timelineClipSelected = true;
+        context_.canUndo = false;
+        context_.canRedo = false;
+        syncProjectEditContext();
+        resetContextForFreshPlayback();
+
+        lastRecordedAudioTake_ = {
+            commit.importedAsset.id,
+            commit.clipId,
+            commit.trackId,
+            commit.takeId,
+            commit.timelineStart,
+            commit.importedAsset.frames,
+            commit.importedAsset.channels
+        };
+        result.take = lastRecordedAudioTake_;
+        enqueueWaveformBuildsForDecodedAssets();
+        result.status = UiAppRecordStatus::Ok;
+        return result;
     }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
@@ -3147,6 +3341,14 @@ private:
     UiAutosaveRecoveryPrompt autosaveRecovery_;
     AutosaveSchedulePolicy autosaveSchedule_ {};
     std::vector<UiDecodedAsset> decodedAssets_;
+    // RT capture session state (P0-1). Config is published before the active flag; the FIFO is
+    // drained on the shell's control timer, never the audio thread.
+    engine::RecordingChunkFifo captureFifo_;
+    engine::RecordingConfig captureConfig_ {};
+    std::atomic<bool> captureActive_ { false };
+    std::vector<float> captureInterleaved_;
+    std::int64_t captureTimelineStartFrame_ = -1;
+    std::uint16_t captureChannels_ = 0;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
     std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };

@@ -353,3 +353,71 @@ TEST_CASE ("Deleting the selected timeline clip is undoable and clears selection
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("real capture session records device input into a persisted take at the compensated frame",
+           "[ui][app][recording][capture]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("real-capture");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // Select a device, arm, then start a capture session with zero-latency device parameters.
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE_FALSE (app.realRecordingCaptureActive());
+    REQUIRE (app.startRealRecordingCapture (1, 48000.0, 0, 0));
+    REQUIRE (app.realRecordingCaptureActive());
+    REQUIRE (app.context().isRecording);
+
+    // Drive the device callback with a recognizable mono input ramp for 4 blocks of 128 frames.
+    std::array<float, 128> input {};
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    const float* inputs[1] = { input.data() };
+    for (int block = 0; block < 4; ++block)
+    {
+        for (int i = 0; i < 128; ++i)
+            input[static_cast<std::size_t> (i)] = static_cast<float> (block) + static_cast<float> (i) * 0.001f;
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+
+    const yesdaw::ui::UiAppRecordResult committed = app.stopRealRecordingCaptureAndCommit();
+    INFO ("record status " << static_cast<int> (committed.status));
+    REQUIRE (committed.ok());
+    REQUIRE_FALSE (app.realRecordingCaptureActive());
+    REQUIRE_FALSE (app.context().isRecording);
+
+    // The committed take is a REAL captured asset: 512 frames at the compensated start (0 with zero
+    // latency), placed on the armed track, persisted in the bundle, and selected for editing.
+    const yesdaw::ui::UiRecordedAudioTake take = app.lastRecordedAudioTake();
+    REQUIRE (take.frames == 512u);
+    REQUIRE (take.channels == 1u);
+    REQUIRE (take.timelineStart == 0);
+
+    ProjectBundleDb verify;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+    Project persisted;
+    REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    REQUIRE (persisted.recordingTakes.size() == 1u);
+    REQUIRE (persisted.clips.size() == 2u);   // original + recorded
+    REQUIRE (persisted.assets.size() == 2u);
+    REQUIRE (app.context().timelineClipSelected);
+
+    // Stopping with no captured audio reports an honest failure, never a synthetic take.
+    REQUIRE_FALSE (app.stopRealRecordingCaptureAndCommit().ok());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

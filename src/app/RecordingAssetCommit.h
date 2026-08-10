@@ -62,6 +62,9 @@ struct RecordedAudioTakeRequest
     std::span<const float> interleavedSamples;
 
     std::optional<engine::EntityId> targetTrackId;
+    // When set, the recorded Clip is placed at this latency-compensated Project frame instead of
+    // appending at the timeline end (real capture passes the H5 pipeline's compensated start).
+    std::optional<engine::Tick> timelineStart;
     std::uint32_t deviceStableId = 0;
     std::uint16_t inputChannel = 0;
     std::uint32_t takeOrdinal = 0;
@@ -207,7 +210,7 @@ namespace commit_detail {
     clip.id = allocateId (0xC3u, nextProject);
     clip.assetId = imported.id;
     clip.trackId = placedTrackId;
-    clip.timelineStart = projectTimelineEnd (nextProject);
+    clip.timelineStart = request.timelineStart.value_or (projectTimelineEnd (nextProject));
     clip.timelineLength = static_cast<engine::Tick> (request.frames);
     clip.srcOffset = 0;
     clip.srcLen = request.frames;

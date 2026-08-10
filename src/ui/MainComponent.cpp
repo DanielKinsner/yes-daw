@@ -1288,7 +1288,11 @@ public:
 
         if (desktopAudioRequested)
         {
-            const juce::String error = audioDeviceManager.initialiseWithDefaultDevices (0, 2);
+            // Request stereo input so the shipped Record button can capture real audio (P0-1); fall
+            // back to output-only when no input device exists so playback never regresses.
+            juce::String error = audioDeviceManager.initialiseWithDefaultDevices (2, 2);
+            if (! error.isEmpty() || audioDeviceManager.getCurrentAudioDevice() == nullptr)
+                error = audioDeviceManager.initialiseWithDefaultDevices (0, 2);
             if (error.isEmpty())
             {
                 if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
@@ -1319,6 +1323,8 @@ public:
     void timerCallback() override
     {
         appModel.refreshTransportSnapshot();
+        if (appModel.realRecordingCaptureActive())
+            appModel.drainRealRecordingCapture();
         refreshActionState();
         repaint();
 
@@ -1340,14 +1346,16 @@ public:
         desktopAudioOpen.store (device != nullptr, std::memory_order_release);
     }
 
-    void audioDeviceIOCallbackWithContext (const float* const*,
-                                           int,
+    void audioDeviceIOCallbackWithContext (const float* const* inputChannels,
+                                           int numInputChannels,
                                            float* const* outputChannels,
                                            int numOutputChannels,
                                            int numFrames,
                                            const juce::AudioIODeviceCallbackContext&) override
     {
-        (void) processDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+        (void) appModel.processDeviceAudioBlock (
+            inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
+        accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
     }
 
     void audioDeviceStopped() override
@@ -1366,7 +1374,14 @@ public:
     {
         const bool processed = appModel.processDeviceAudioBlock (
             outputChannels, numOutputChannels, numFrames);
+        accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+        return processed;
+    }
 
+    void accountDeviceBlockPeaks (float* const* outputChannels,
+                                  int numOutputChannels,
+                                  int numFrames) noexcept
+    {
         float peak = 0.0f;
         float leftPeak = 0.0f;
         float rightPeak = 0.0f;
@@ -1391,7 +1406,6 @@ public:
         deviceAudioCallbackBlockCount.fetch_add (1u, std::memory_order_relaxed);
         if (peak > 0.000001f)
             deviceAudioNonSilentBlockCount.fetch_add (1u, std::memory_order_relaxed);
-        return processed;
     }
 
     [[nodiscard]] yesdaw::ui::UiActionContext harnessContext() const noexcept { return appModel.contextSnapshot(); }
@@ -2474,6 +2488,39 @@ private:
                         (void) appModel.saveProjectBundleAs (path);
                 }
                 return;
+
+            case yesdaw::ui::UiActionId::TransportRecord:
+            {
+                // Real capture when the desktop device has live inputs (P0-1); the deterministic
+                // synthetic-take path remains for the injected-choices harness and inputless devices.
+                if (appModel.realRecordingCaptureActive())
+                {
+                    (void) appModel.stopRealRecordingCaptureAndCommit();
+                    return;
+                }
+
+                juce::AudioIODevice* const device = audioDeviceManager.getCurrentAudioDevice();
+                const int activeInputs = device != nullptr
+                    ? device->getActiveInputChannels().countNumberOfSetBits()
+                    : 0;
+                if (desktopAudioCallbackRegistered && device != nullptr && activeInputs > 0)
+                {
+                    const bool armed = appModel.context().recordingTrackArmed
+                                    && appModel.context().recordingInputSelected;
+                    if (! armed)
+                        (void) appModel.dispatch (yesdaw::ui::UiActionId::RecordingArmTrack);
+
+                    (void) appModel.startRealRecordingCapture (
+                        activeInputs,
+                        device->getCurrentSampleRate(),
+                        static_cast<std::int64_t> (device->getInputLatencyInSamples()),
+                        static_cast<std::int64_t> (device->getOutputLatencyInSamples()));
+                    return;
+                }
+
+                (void) appModel.dispatch (action);
+                return;
+            }
 
             case yesdaw::ui::UiActionId::TrackRename:
                 if (selectedTrackLane >= 0)
