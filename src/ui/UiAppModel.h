@@ -929,7 +929,9 @@ public:
         return { id, state, true };
     }
 
-    [[nodiscard]] bool selectMixerTrack (std::size_t index) noexcept
+    // showMixerPanel=false selects the strip target without stealing the active panel — the Track
+    // rail uses it so arrangement clicks keep the Timeline in front while mixer controls retarget.
+    [[nodiscard]] bool selectMixerTrack (std::size_t index, bool showMixerPanel = true) noexcept
     {
         if (! context_.projectLoaded || index >= project_.tracks.size())
         {
@@ -939,7 +941,8 @@ public:
 
         selectedMixerTarget_ = { MixerTargetKind::Track, index };
         context_.mixerTargetSelected = true;
-        context_.activePanel = UiPanel::Mixer;
+        if (showMixerPanel)
+            context_.activePanel = UiPanel::Mixer;
         return true;
     }
 

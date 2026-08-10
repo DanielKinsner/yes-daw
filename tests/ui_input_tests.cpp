@@ -743,7 +743,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 31u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 34u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2600,4 +2600,73 @@ TEST_CASE ("shipped MainComponent dispatches keymap chords through keyPressed",
 
     // An unmapped key is not consumed.
     REQUIRE_FALSE (shell->keyPressed (juce::KeyPress (juce::KeyPress::pageUpKey)));
+}
+
+TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-track, vertical clip drag",
+           "[ui][input][shell][tracks]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-rail");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    // The Add Track button is a real component driving the undoable verb.
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    REQUIRE (addTrack->isVisible());
+    REQUIRE (addTrack->isEnabled());
+    clickButton (*addTrack);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 2u);
+    REQUIRE (project.tracks.back().strip.name == "Audio 2");
+
+    // Row click selects; import then lands on the SELECTED track.
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    REQUIRE (railComponent->isVisible());
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (railComponent->getHeight() - headerHeight) / 2);
+    const juce::Point<int> secondRowCentre { railComponent->getWidth() / 2,
+                                             headerHeight + rowHeight + rowHeight / 2 };
+    mouseDownAt (*railComponent, secondRowCentre);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    REQUIRE (project.clips.back().trackId == project.tracks.back().id);
+
+    // Vertical drag moves the FIRST clip (lane 0) down onto the second track's lane.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Point<int> clipCentre = timelineClipCenterPoint (timeline, project, 0u);
+    dragFromTo (timeline, clipCentre, { clipCentre.x, clipCentre.y + 200 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.front().trackId == project.tracks.back().id);
+
+    // F2 opens the inline rename editor for the selected row; Enter commits through the verb.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
+    auto* rename = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
+    REQUIRE (rename != nullptr);
+    REQUIRE (rename->isVisible());
+    rename->setText ("Drums", juce::dontSendNotification);
+    rename->onReturnKey();
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.back().strip.name == "Drums");
+    REQUIRE_FALSE (rename->isVisible());
+
+    // Select the now-empty first row and Ctrl+Shift+T removes that track; no clip is lost.
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2, headerHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 1u);
+    REQUIRE (project.tracks.front().strip.name == "Drums");
+    REQUIRE (project.clips.size() == 2u);   // both clips live on the surviving track; nothing was lost
 }

@@ -318,6 +318,7 @@ public:
     std::function<void (int)> onClipClicked;
     std::function<void()> onEmptyClicked;
     std::function<void (int, double, bool)> onClipMoved;
+    std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
     std::function<void (int, int)> onClipGainAdjusted;
@@ -473,17 +474,39 @@ public:
             return;
         }
 
-        if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
-            return;
-
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+
+        // A Move drag is two-dimensional: horizontal drag repositions in time, and a vertical drag past
+        // the dead zone drops the Clip on another Track lane (the Pro Tools/Logic cross-track move).
+        int targetLane = -1;
+        if (state.trackCount > 0 && geometry.laneHeight > 0
+            && std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+        {
+            const int lane = (event.getPosition().y - geometry.clipArea.getY()) / geometry.laneHeight;
+            targetLane = std::clamp (lane, 0, state.trackCount - 1);
+            if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, drag.layoutClipId))
+                if (clip->lane == targetLane)
+                    targetLane = -1;   // dropped back on its own lane: a plain horizontal move
+        }
+
+        if (targetLane < 0 && std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+            return;
+
         const double pixelsPerSecond = std::max (
             yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
             geometry.viewport.pixelsPerSecond);
         const double nextStartSeconds = std::max (
             yesdaw::ui::UiTheme::Layout::timelineCoordinateSecondsFloor,
             drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
+
+        if (targetLane >= 0)
+        {
+            if (onClipMovedToLane)
+                onClipMovedToLane (drag.layoutClipId, targetLane, nextStartSeconds,
+                                   drag.mode == TimelineDragMode::SnapMove);
+            return;
+        }
 
         if (onClipMoved)
             onClipMoved (drag.layoutClipId, nextStartSeconds, drag.mode == TimelineDragMode::SnapMove);
@@ -918,6 +941,59 @@ private:
     yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::ProjectNew;
 };
 
+// Transparent overlay across the left Track rail. Shares drawTrackList's exact row math (header
+// strip, then equal rows floored at trackListRowMinHeight) so hit-testing and paint cannot drift.
+class TrackListInputComponent final : public juce::Component
+{
+public:
+    std::function<int()> rowCountProvider;
+    std::function<void (int)> onRowClicked;
+    std::function<void (int)> onRowDoubleClicked;
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (const int row = rowAt (event.getPosition()); row >= 0 && onRowClicked)
+            onRowClicked (row);
+    }
+
+    void mouseDoubleClick (const juce::MouseEvent& event) override
+    {
+        if (const int row = rowAt (event.getPosition()); row >= 0 && onRowDoubleClicked)
+            onRowDoubleClicked (row);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> rowBounds (int row) const
+    {
+        const int rows = rowCountProvider ? rowCountProvider() : 0;
+        if (rows <= 0 || row < 0 || row >= rows)
+            return {};
+
+        auto area = getLocalBounds();
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          area.getHeight() / rows);
+        return { area.getX(), area.getY() + row * rowHeight, area.getWidth(), rowHeight };
+    }
+
+private:
+    [[nodiscard]] int rowAt (juce::Point<int> position) const
+    {
+        const int rows = rowCountProvider ? rowCountProvider() : 0;
+        if (rows <= 0)
+            return -1;
+
+        auto area = getLocalBounds();
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        if (! area.contains (position))
+            return -1;
+
+        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          area.getHeight() / rows);
+        const int row = (position.y - area.getY()) / rowHeight;
+        return row >= 0 && row < rows ? row : -1;
+    }
+};
+
 class MainComponent : public juce::Component,
                       private juce::Timer,
                       private juce::AudioIODeviceCallback
@@ -1026,6 +1102,9 @@ public:
         timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds, bool snapToGrid) {
             moveTimelineClipByLayoutId (timelineClipId, startSeconds, snapToGrid);
         };
+        timelineInput.onClipMovedToLane = [this] (int timelineClipId, int targetLane, double startSeconds, bool snapToGrid) {
+            moveTimelineClipToLaneByLayoutId (timelineClipId, targetLane, startSeconds, snapToGrid);
+        };
         timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
             splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
         };
@@ -1047,6 +1126,42 @@ public:
             }
         };
         addAndMakeVisible (timelineInput);
+
+        // Interactive Track rail (usable-DAW P0): row click selects the Track for import/mixer/remove
+        // targeting, double-click (or F2) opens the inline rename editor, and the Add Track button
+        // drives the same undoable verb as Ctrl+T.
+        trackListInput.setComponentID ("shell.tracklist.input");
+        trackListInput.setName ("Track List");
+        trackListInput.setTitle ("Track List");
+        trackListInput.rowCountProvider = [this] {
+            return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
+        };
+        trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
+        trackListInput.onRowDoubleClicked = [this] (int row) {
+            selectTrackLane (row);
+            openTrackRenameEditor();
+        };
+        addAndMakeVisible (trackListInput);
+
+        configureActionComponent (trackAddButton, yesdaw::ui::UiActionId::TrackAdd, "Add audio track");
+        trackAddButton.setButtonText ("+ Track");
+        trackAddButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        trackAddButton.setColour (juce::TextButton::textColourOffId, kText);
+        trackAddButton.onClick = [this] {
+            if (appModel.addAudioTrack().dispatched)
+                selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (trackAddButton);
+
+        trackRenameEditor.setComponentID ("shell.tracklist.rename");
+        trackRenameEditor.setName ("Rename track");
+        trackRenameEditor.setSelectAllWhenFocused (true);
+        trackRenameEditor.onReturnKey = [this] { commitTrackRenameEditor(); };
+        trackRenameEditor.onEscapeKey = [this] { dismissTrackRenameEditor(); };
+        trackRenameEditor.onFocusLost = [this] { dismissTrackRenameEditor(); };
+        addChildComponent (trackRenameEditor);
 
         configureAutomationLaneControls();
 
@@ -1419,6 +1534,16 @@ public:
                                                                yesdaw::ui::UiTheme::Layout::headerMasterLufsHeight));
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
+        trackListInput.setBounds (leftRailPanelBounds());
+        {
+            const auto rail = leftRailPanelBounds();
+            trackAddButton.setBounds (
+                rail.getRight() - yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth
+                    - yesdaw::ui::UiTheme::Layout::trackListAddButtonInset,
+                rail.getY() + yesdaw::ui::UiTheme::Layout::trackListAddButtonInset,
+                yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth,
+                yesdaw::ui::UiTheme::Layout::trackListAddButtonHeight);
+        }
         layoutAutomationLaneControls();
         layoutInspectorControls();
         layoutMixerControls();
@@ -1825,6 +1950,84 @@ private:
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
 
+    // The exact rect drawTrackList paints into; the rail input overlay shares it so hits match paint.
+    [[nodiscard]] juce::Rectangle<int> leftRailPanelBounds() const
+    {
+        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        work.removeFromBottom (kMixerHeight);
+        return work.removeFromLeft (kLeftRailWidth)
+                   .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
+                             yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
+    }
+
+    void selectTrackLane (int lane)
+    {
+        const int trackCount = static_cast<int> (appModel.project().tracks.size());
+        if (! appModel.context().projectLoaded || lane < 0 || lane >= trackCount)
+            return;
+
+        dismissTrackRenameEditor();
+        selectedTrackLane = lane;
+        (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
+        refreshActionState();
+        repaint();
+    }
+
+    void openTrackRenameEditor()
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (selectedTrackLane < 0 || selectedTrackLane >= static_cast<int> (tracks.size()))
+            return;
+
+        const juce::Rectangle<int> row = trackListInput.rowBounds (selectedTrackLane);
+        if (row.isEmpty())
+            return;
+
+        trackRenameEditor.setBounds (row.translated (trackListInput.getX(), trackListInput.getY())
+                                        .reduced (yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
+                                                  yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset)
+                                        .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListIconLeftInset)
+                                        .withHeight (yesdaw::ui::UiTheme::Layout::trackListRenameEditorHeight));
+        trackRenameEditor.setText (juce::String (tracks[static_cast<std::size_t> (selectedTrackLane)].strip.name),
+                                   juce::dontSendNotification);
+        trackRenameEditor.setVisible (true);
+        trackRenameEditor.grabKeyboardFocus();
+    }
+
+    void commitTrackRenameEditor()
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size()))
+        {
+            const std::string newName = trackRenameEditor.getText().toStdString();
+            (void) appModel.renameProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id, newName);
+        }
+
+        dismissTrackRenameEditor();
+        refreshActionState();
+        repaint();
+    }
+
+    void dismissTrackRenameEditor()
+    {
+        trackRenameEditor.setVisible (false);
+    }
+
+    void removeSelectedTrack()
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (selectedTrackLane < 0 || selectedTrackLane >= static_cast<int> (tracks.size()))
+            return;
+
+        dismissTrackRenameEditor();
+        if (appModel.removeProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id).dispatched)
+            selectedTrackLane = std::min (selectedTrackLane,
+                                          static_cast<int> (appModel.project().tracks.size()) - 1);
+
+        refreshActionState();
+        repaint();
+    }
+
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
@@ -2062,9 +2265,29 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseImportAudioFile();
                     if (! path.empty())
+                    {
                         if (auto decoded = decodeProjectWav (path))
-                            (void) appModel.importAudioFile (path, std::move (*decoded));
+                        {
+                            // Import lands on the SELECTED Track when the rail has a selection.
+                            const auto& tracks = appModel.project().tracks;
+                            if (selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size()))
+                                (void) appModel.importAudioFileToTrack (
+                                    path, std::move (*decoded),
+                                    tracks[static_cast<std::size_t> (selectedTrackLane)].id);
+                            else
+                                (void) appModel.importAudioFile (path, std::move (*decoded));
+                        }
+                    }
                 }
+                return;
+
+            case yesdaw::ui::UiActionId::TrackRename:
+                if (selectedTrackLane >= 0)
+                    openTrackRenameEditor();
+                return;
+
+            case yesdaw::ui::UiActionId::TrackRemove:
+                removeSelectedTrack();
                 return;
 
             case yesdaw::ui::UiActionId::ViewPianoRoll:
@@ -2126,6 +2349,15 @@ private:
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        trackListInput.setVisible (railVisible);
+        trackAddButton.setVisible (railVisible);
+        trackAddButton.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::TrackAdd, appModel.context()).enabled);
+        if (! railVisible)
+            dismissTrackRenameEditor();
+        if (selectedTrackLane >= static_cast<int> (appModel.project().tracks.size()))
+            selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
         const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer
                                    && appModel.context().timelineClipSelected;
         inspectorStart.setVisible (inspectorVisible);
@@ -2799,8 +3031,9 @@ private:
                 yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
                 yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset);
             juce::ColourGradient rowGradient (
-                i == 3 ? yesdaw::ui::UiTheme::Color::selectedLane()
-                       : yesdaw::ui::UiTheme::Color::panelRaised(),
+                static_cast<int> (i) == selectedTrackLane
+                    ? yesdaw::ui::UiTheme::Color::selectedLane()
+                    : yesdaw::ui::UiTheme::Color::panelRaised(),
                 static_cast<float> (rowSurface.getX()),
                 static_cast<float> (rowSurface.getCentreY()),
                 yesdaw::ui::UiTheme::Color::darkControl(),
@@ -3117,6 +3350,36 @@ private:
             }
 
             (void) appModel.moveSelectedTimelineClipTo (moveTick);
+        }
+
+        refreshActionState();
+        repaint();
+    }
+
+    void moveTimelineClipToLaneByLayoutId (int layoutClipId, int targetLane, double startSeconds, bool snapToGrid)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        const yesdaw::engine::Project& project = appModel.project();
+        if (targetLane < 0 || targetLane >= static_cast<int> (project.tracks.size()))
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        if (const auto tick = timelineTickFromSeconds (startSeconds))
+        {
+            yesdaw::engine::Tick moveTick = *tick;
+            if (snapToGrid)
+            {
+                yesdaw::engine::Tick snapped = 0;
+                if (! yesdaw::engine::snapTick (moveTick, yesdaw::engine::SnapGrid { kTimelineSnapGridTicks }, snapped))
+                    return;
+
+                moveTick = std::max<yesdaw::engine::Tick> (0, snapped);
+            }
+
+            (void) appModel.moveSelectedTimelineClipToTrack (
+                project.tracks[static_cast<std::size_t> (targetLane)].id, moveTick);
         }
 
         refreshActionState();
@@ -3947,6 +4210,10 @@ private:
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
+    TrackListInputComponent trackListInput;
+    juce::TextButton trackAddButton;
+    juce::TextEditor trackRenameEditor;
+    int selectedTrackLane = -1;
     juce::TextButton exportAudioButton;
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;

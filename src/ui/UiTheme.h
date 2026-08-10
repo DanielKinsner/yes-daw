@@ -487,6 +487,10 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int trackListAddButtonWidth = 72;
+        static constexpr int trackListAddButtonHeight = 24;
+        static constexpr int trackListAddButtonInset = 12;
+        static constexpr int trackListRenameEditorHeight = 24;
         static constexpr int trackListEmptyLabelInset = 24;
         static constexpr int trackListRowMinHeight = 56;
         static constexpr int trackListRowHorizontalInset = 1;
