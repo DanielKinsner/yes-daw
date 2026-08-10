@@ -62,7 +62,6 @@ namespace {
 
 constexpr double kSampleRate = 30720.0; // 120 BPM => one tick == one frame.
 constexpr int    kBlockSize = 16;
-constexpr float  kCenterGain = 0.70710677f;
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
 {
