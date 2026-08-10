@@ -28,6 +28,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -316,8 +317,10 @@ class TimelineInputComponent final : public juce::Component
 {
 public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
+    std::function<bool()> pointerToolActiveProvider;
     std::function<void (int, bool)> onClipClicked;
     std::function<void()> onEmptyClicked;
+    std::function<void (std::span<const int>)> onMarqueeSelection;
     std::function<void (int, double, bool)> onClipMoved;
     std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
     std::function<void (int, double)> onClipSplit;
@@ -359,6 +362,18 @@ public:
                             juce::Justification::centred,
                             false);
             }
+
+            if (marqueeState.active)
+            {
+                const auto marquee = marqueeBounds().getIntersection (
+                    yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state).clipArea);
+                g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+                    yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+                g.fillRect (marquee);
+                g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+                    yesdaw::ui::UiTheme::Tone::focusRingAlpha));
+                g.drawRect (marquee.toFloat(), yesdaw::ui::UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+            }
         }
     }
 
@@ -368,6 +383,7 @@ public:
             return;
 
         playheadLocateActive = false;
+        marqueeState = {};
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
@@ -420,12 +436,37 @@ public:
         }
 
         playheadLocateActive = false;
+        if (geometry.clipArea.contains (event.getPosition())
+            && (! pointerToolActiveProvider || pointerToolActiveProvider()))
+        {
+            marqueeState.active = true;
+            marqueeState.downPosition = event.getPosition();
+            marqueeState.currentPosition = event.getPosition();
+            if (onEmptyClicked)
+                onEmptyClicked();
+            repaint();
+            return;
+        }
+
         if (onEmptyClicked)
             onEmptyClicked();
     }
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (marqueeState.active && stateProvider)
+        {
+            const yesdaw::ui::TimelineCanvasGeometry geometry =
+                yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), stateProvider());
+            marqueeState.currentPosition = geometry.clipArea.getConstrainedPoint (event.getPosition());
+            const int deltaX = marqueeState.currentPosition.x - marqueeState.downPosition.x;
+            const int deltaY = marqueeState.currentPosition.y - marqueeState.downPosition.y;
+            marqueeState.moved = std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
+                              || std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
+            repaint();
+            return;
+        }
+
         if (playheadLocateActive && stateProvider)
         {
             const yesdaw::ui::TimelineCanvasState state = stateProvider();
@@ -441,6 +482,25 @@ public:
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (marqueeState.active)
+        {
+            const TimelineMarqueeState marquee = marqueeState;
+            marqueeState = {};
+            repaint();
+
+            if (marquee.moved && stateProvider && onMarqueeSelection)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                std::array<int, yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> selectedIds {};
+                const int selectedCount = clipIdsIntersectingMarquee (
+                    getLocalBounds(), state, marqueeBounds (marquee), selectedIds.data(),
+                    static_cast<int> (selectedIds.size()));
+                onMarqueeSelection (std::span<const int> (selectedIds.data(),
+                                                         static_cast<std::size_t> (selectedCount)));
+            }
+            return;
+        }
+
         if (loopDragActive)
         {
             loopDragActive = false;
@@ -638,6 +698,66 @@ private:
         juce::Point<int> downPosition;
     };
 
+    struct TimelineMarqueeState
+    {
+        bool active = false;
+        bool moved = false;
+        juce::Point<int> downPosition;
+        juce::Point<int> currentPosition;
+    };
+
+    [[nodiscard]] static juce::Rectangle<int> marqueeBounds (const TimelineMarqueeState& marquee) noexcept
+    {
+        return juce::Rectangle<int>::leftTopRightBottom (
+            std::min (marquee.downPosition.x, marquee.currentPosition.x),
+            std::min (marquee.downPosition.y, marquee.currentPosition.y),
+            std::max (marquee.downPosition.x, marquee.currentPosition.x),
+            std::max (marquee.downPosition.y, marquee.currentPosition.y));
+    }
+
+    [[nodiscard]] juce::Rectangle<int> marqueeBounds() const noexcept
+    {
+        return marqueeBounds (marqueeState);
+    }
+
+    [[nodiscard]] static int clipIdsIntersectingMarquee (juce::Rectangle<int> area,
+                                                         const yesdaw::ui::TimelineCanvasState& state,
+                                                         juce::Rectangle<int> marquee,
+                                                         int* outIds,
+                                                         int outCapacity)
+    {
+        if (state.clips == nullptr || state.clipCount <= 0 || outIds == nullptr || outCapacity <= 0)
+            return 0;
+
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (area, state);
+        marquee = marquee.getIntersection (geometry.clipArea);
+        if (marquee.isEmpty())
+            return 0;
+
+        std::array<yesdaw::ui::ElementRect,
+                   yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> visible {};
+        const int visibleCount = yesdaw::ui::layoutVisible (
+            state.clips, state.clipCount, geometry.viewport,
+            visible.data(), static_cast<int> (visible.size()));
+
+        int count = 0;
+        for (int i = 0; i < visibleCount && count < outCapacity; ++i)
+        {
+            const yesdaw::ui::ElementRect& rect = visible[static_cast<std::size_t> (i)];
+            const auto hitBounds = juce::Rectangle<int> (
+                                       geometry.clipArea.getX() + juce::roundToInt (rect.x),
+                                       geometry.clipArea.getY() + juce::roundToInt (rect.y),
+                                       juce::roundToInt (rect.w),
+                                       juce::roundToInt (rect.h))
+                                       .getIntersection (geometry.clipArea);
+            if (hitBounds.intersects (marquee))
+                outIds[count++] = rect.id;
+        }
+
+        return count;
+    }
+
     [[nodiscard]] static const yesdaw::ui::Clip* findClipByLayoutId (const yesdaw::ui::TimelineCanvasState& state,
                                                                      int layoutClipId) noexcept
     {
@@ -717,6 +837,7 @@ private:
     }
 
     TimelineDragState dragState;
+    TimelineMarqueeState marqueeState;
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
@@ -1523,11 +1644,30 @@ public:
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
         timelineInput.stateProvider = [this] { return makeTimelineState(); };
+        timelineInput.pointerToolActiveProvider = [this] {
+            return appModel.context().activeTimelineTool == yesdaw::ui::TimelineTool::Pointer;
+        };
         timelineInput.onClipClicked = [this] (int timelineClipId, bool toggle) {
             selectTimelineClipByLayoutId (timelineClipId, toggle);
         };
         timelineInput.onEmptyClicked = [this] {
             appModel.clearTimelineClipSelection();
+            refreshActionState();
+            repaint();
+        };
+        timelineInput.onMarqueeSelection = [this] (std::span<const int> timelineClipLayoutIds) {
+            std::vector<yesdaw::engine::EntityId> selectedClipIds;
+            selectedClipIds.reserve (timelineClipLayoutIds.size());
+            for (const int timelineClipLayoutId : timelineClipLayoutIds)
+            {
+                if (timelineClipLayoutId < 0
+                    || timelineClipLayoutId >= static_cast<int> (timelineClipIds.size()))
+                    return;
+                selectedClipIds.push_back (timelineClipIds[static_cast<std::size_t> (timelineClipLayoutId)]);
+            }
+
+            (void) appModel.selectTimelineClips (
+                std::span<const yesdaw::engine::EntityId> (selectedClipIds.data(), selectedClipIds.size()));
             refreshActionState();
             repaint();
         };

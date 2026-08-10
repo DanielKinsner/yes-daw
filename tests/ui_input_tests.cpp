@@ -620,6 +620,56 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
     return { x, y };
 }
 
+juce::Rectangle<int> timelineClipHitBounds (juce::Component& timeline,
+                                             const yesdaw::engine::Project& project,
+                                             std::size_t clipIndex)
+{
+    REQUIRE (project.sampleRate.isValid());
+    REQUIRE (clipIndex < project.clips.size());
+
+    std::vector<yesdaw::ui::Clip> clips;
+    clips.reserve (project.clips.size());
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = static_cast<int> (project.tracks.size());
+    state.clips = clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                   endSeconds * yesdaw::ui::UiTheme::Layout::timelineProjectEndPaddingScale);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (
+                                         yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                         timeline.getWidth()
+                                             - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                   / state.totalSeconds;
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    std::vector<yesdaw::ui::ElementRect> visible (project.clips.size());
+    const int visibleCount = yesdaw::ui::layoutVisible (
+        clips.data(), static_cast<int> (clips.size()), geometry.viewport,
+        visible.data(), static_cast<int> (visible.size()));
+    const auto match = std::find_if (visible.begin(), visible.begin() + visibleCount, [clipIndex] (const auto& rect) {
+        return rect.id == static_cast<int> (clipIndex);
+    });
+    REQUIRE (match != visible.begin() + visibleCount);
+    return {
+        geometry.clipArea.getX() + juce::roundToInt (match->x),
+        geometry.clipArea.getY() + juce::roundToInt (match->y),
+        juce::roundToInt (match->w),
+        juce::roundToInt (match->h),
+    };
+}
+
 juce::Point<int> emptyProjectRulerPointAtSeconds (juce::Component& timeline, double seconds)
 {
     yesdaw::ui::TimelineCanvasState state;
@@ -3510,6 +3560,65 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
+}
+
+TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persisted playback edit",
+           "[ui][input][shell][timeline][marquee]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-marquee");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 2u);
+    REQUIRE (project.clips.size() == 3u);
+    const yesdaw::engine::Clip untouched = project.clips[2];
+    const juce::Rectangle<int> firstBounds = timelineClipHitBounds (timeline, project, 0u);
+    const juce::Rectangle<int> thirdBounds = timelineClipHitBounds (timeline, project, 2u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // Start in the empty second lane at the third Clip's left edge, then drag back across lane 0.
+    // Rectangle-edge contact includes Clip 2 but excludes Clip 3.
+    dragFromTo (timeline,
+                { thirdBounds.getX(), thirdBounds.getCentreY() + thirdBounds.getHeight() },
+                { firstBounds.getX(), firstBounds.getCentreY() });
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    const yesdaw::engine::Project deleted = readProjectSnapshot (bundlePath);
+    REQUIRE (deleted.clips.size() == 1u);
+    REQUIRE (deleted.clips.front() == untouched);
+
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);

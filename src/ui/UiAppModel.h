@@ -1173,6 +1173,27 @@ public:
         return true;
     }
 
+    [[nodiscard]] bool selectTimelineClips (std::span<const engine::EntityId> clipIds) noexcept
+    {
+        std::vector<engine::EntityId> nextSelection;
+        nextSelection.reserve (clipIds.size());
+        for (engine::EntityId clipId : clipIds)
+        {
+            if (findClip (clipId) == nullptr)
+                return false;
+            if (std::find (nextSelection.begin(), nextSelection.end(), clipId) == nextSelection.end())
+                nextSelection.push_back (clipId);
+        }
+
+        selectedTimelineClipIds_ = std::move (nextSelection);
+        selectedTimelineClipId_ = selectedTimelineClipIds_.empty()
+            ? engine::EntityId {}
+            : selectedTimelineClipIds_.back();
+        context_.timelineClipSelected = ! selectedTimelineClipIds_.empty();
+        context_.activePanel = UiPanel::Timeline;
+        return true;
+    }
+
     void clearTimelineClipSelection() noexcept
     {
         selectedTimelineClipIds_.clear();
