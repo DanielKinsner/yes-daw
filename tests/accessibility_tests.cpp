@@ -42,6 +42,7 @@ UiActionContext fullyReachableContext()
     context.recordingCompTakesAvailable = true;
     context.autosaveRecoveryPending = true;
     context.audioExportInProgress = true;
+    context.clipboardHasClip = true;
     return context;
 }
 

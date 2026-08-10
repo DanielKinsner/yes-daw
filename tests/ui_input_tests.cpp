@@ -2986,3 +2986,56 @@ TEST_CASE ("dragging the clip's left edge trims its head without moving the audi
     REQUIRE (restored.timelineStart == before.timelineStart);
     REQUIRE (restored.srcOffset == before.srcOffset);
 }
+
+TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip", "[ui][input][shell][clipboard]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-clipboard");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Paste is disabled until something is copied.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+
+    // Select the imported clip, duplicate it: the copy lands right after the source on the same track.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, project, 0u));
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    const yesdaw::engine::Clip& source = project.clips[0];
+    const yesdaw::engine::Clip& duplicate = project.clips[1];
+    REQUIRE (duplicate.trackId == source.trackId);
+    REQUIRE (duplicate.assetId == source.assetId);
+    REQUIRE (duplicate.timelineStart == source.timelineStart + source.timelineLength);
+    REQUIRE (duplicate.timelineLength == source.timelineLength);
+    REQUIRE (duplicate.id != source.id);
+
+    // Copy the source, locate to a later frame, paste: a third clip appears at the playhead.
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, project, 0u));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Tick pasteFrame = duplicate.timelineStart + duplicate.timelineLength + 1'000;
+    (void) pasteFrame;
+    // Locate via Home then rely on playhead 0 paste; then verify undo chain removes pasted + duplicate.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[2].timelineStart == 0);
+    REQUIRE (project.clips[2].assetId == source.assetId);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+}

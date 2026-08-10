@@ -1930,6 +1930,90 @@ public:
         return { id, state, true };
     }
 
+    // Clip clipboard (usable-DAW P1): Copy captures the selected Clip's non-identity fields; Paste
+    // creates a fresh Clip at the playhead on the selected (or owning/first) Track; Duplicate appends
+    // a copy right after the source. All paste/duplicate paths run the undoable AddClip command.
+    [[nodiscard]] UiActionDispatchResult copySelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipCopy;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        clipClipboard_.valid = true;
+        clipClipboard_.assetId = clip->assetId;
+        clipClipboard_.timelineLength = clip->timelineLength;
+        clipClipboard_.srcOffset = clip->srcOffset;
+        clipClipboard_.srcLen = clip->srcLen;
+        clipClipboard_.gain = clip->gain;
+        clipClipboard_.fadeIn = clip->fadeIn;
+        clipClipboard_.fadeOut = clip->fadeOut;
+        clipClipboard_.timeBase = clip->timeBase;
+        context_.clipboardHasClip = true;
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult pasteClipboardClipAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineClipPaste;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! clipClipboard_.valid)
+            return { id, { false, "clipboard has no clip" }, false };
+
+        // Target: the selected mixer/rail Track, else the copied Clip's own Track family, else first.
+        engine::EntityId targetTrackId;
+        const int selectedStrip = selectedMixerTrackStripIndex();
+        if (selectedStrip >= 0 && selectedStrip < static_cast<int> (project_.tracks.size()))
+            targetTrackId = project_.tracks[static_cast<std::size_t> (selectedStrip)].id;
+        else if (const engine::Clip* const sourceClip = findClip (selectedTimelineClipId_))
+            targetTrackId = sourceClip->trackId;
+        else if (! project_.tracks.empty())
+            targetTrackId = project_.tracks.front().id;
+        else
+            return { id, { false, "no track to paste onto" }, false };
+
+        return addClipFromClipboard (id, state, targetTrackId,
+                                     static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
+    }
+
+    [[nodiscard]] UiActionDispatchResult duplicateSelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipDuplicate;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        UiClipClipboard duplicate;
+        duplicate.valid = true;
+        duplicate.assetId = clip->assetId;
+        duplicate.timelineLength = clip->timelineLength;
+        duplicate.srcOffset = clip->srcOffset;
+        duplicate.srcLen = clip->srcLen;
+        duplicate.gain = clip->gain;
+        duplicate.fadeIn = clip->fadeIn;
+        duplicate.fadeOut = clip->fadeOut;
+        duplicate.timeBase = clip->timeBase;
+
+        const UiClipClipboard savedClipboard = clipClipboard_;
+        clipClipboard_ = duplicate;
+        const UiActionDispatchResult result = addClipFromClipboard (
+            id, state, clip->trackId, clip->timelineStart + clip->timelineLength);
+        clipClipboard_ = savedClipboard;
+        return result;
+    }
+
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipGain (float newGain)
     {
         const UiActionId id = UiActionId::TimelineClipSetGain;
@@ -2261,6 +2345,15 @@ public:
 
                 return { id, { false, "time map payload required" }, false };
             }
+
+            case UiActionId::TimelineClipCopy:
+                return copySelectedTimelineClip();
+
+            case UiActionId::TimelineClipPaste:
+                return pasteClipboardClipAtPlayhead();
+
+            case UiActionId::TimelineClipDuplicate:
+                return duplicateSelectedTimelineClip();
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();
@@ -3383,6 +3476,53 @@ private:
     UiRecordingCompSelection recordingCompSelection_;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
     AutosaveSchedulePolicy autosaveSchedule_ {};
+    struct UiClipClipboard
+    {
+        bool valid = false;
+        engine::EntityId assetId;
+        engine::Tick timelineLength = 0;
+        std::uint64_t srcOffset = 0;
+        std::uint64_t srcLen = 0;
+        float gain = 1.0f;
+        engine::Tick fadeIn = 0;
+        engine::Tick fadeOut = 0;
+        engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
+    };
+    UiClipClipboard clipClipboard_;
+
+    [[nodiscard]] UiActionDispatchResult addClipFromClipboard (UiActionId id,
+                                                               const UiActionState& state,
+                                                               engine::EntityId targetTrackId,
+                                                               engine::Tick timelineStart)
+    {
+        engine::Project nextProject = project_;
+        engine::Clip clip;
+        clip.id = allocateSessionEntityId (0xC3u, nextProject);
+        clip.assetId = clipClipboard_.assetId;
+        clip.trackId = targetTrackId;
+        clip.timelineStart = timelineStart;
+        clip.timelineLength = clipClipboard_.timelineLength;
+        clip.srcOffset = clipClipboard_.srcOffset;
+        clip.srcLen = clipClipboard_.srcLen;
+        clip.gain = clipClipboard_.gain;
+        clip.fadeIn = clipClipboard_.fadeIn;
+        clip.fadeOut = clipClipboard_.fadeOut;
+        clip.timeBase = clipClipboard_.timeBase;
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        selectedTimelineClipId_ = clip.id;
+        context_.timelineClipSelected = true;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     std::vector<UiDecodedAsset> decodedAssets_;
     // RT capture session state (P0-1). Config is published before the active flag; the FIFO is
     // drained on the shell's control timer, never the audio thread.

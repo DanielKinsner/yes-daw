@@ -1908,6 +1908,38 @@ namespace detail {
 // --- Arrangement verbs (usable-DAW P0, 2026-08-09): clip delete / cross-track move, note add, and
 // --- the Track lifecycle. Same contract as every edit helper above: validate, mutate, Applied.
 
+// Insert a fully-specified Clip row referencing an EXISTING Asset and Track (paste/duplicate,
+// usable-DAW P1). The same storage-safety rules as import apply; identity must be fresh.
+[[nodiscard]] inline ProjectEditStatus addClip (Project& project, const Clip& clip)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clip.id.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (detail::projectContainsEntityId (project, clip.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findAsset (clip.assetId) == nullptr)
+        return ProjectEditStatus::InvalidProject;
+
+    if (project.findTrack (clip.trackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (clip.timelineStart < 0 || clip.timelineLength <= 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    if (! detail::clipEditMetadataIsStorageSafe (clip))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    if (! detail::clipSourceWindowFitsProject (project, clip))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    project.clips.push_back (clip);
+    return ProjectEditStatus::Applied;
+}
+
 [[nodiscard]] inline ProjectEditStatus deleteClip (Project& project, EntityId clipId)
 {
     if (! detail::projectCanApplyClipEdit (project))

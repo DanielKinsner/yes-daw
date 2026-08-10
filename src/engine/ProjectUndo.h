@@ -44,6 +44,7 @@ enum class ProjectEditVerb : std::uint8_t
     SetAutomationBreakpointCurve,
     RemoveAutomationBreakpoint,
     // Arrangement verbs (usable-DAW P0, 2026-08-09)
+    AddClip,
     DeleteClip,
     MoveClipToTrack,
     AddNote,
@@ -113,6 +114,8 @@ struct ProjectEditCommand
     double tempoBpm = 120.0;
     std::uint16_t meterNumerator = 4;
     std::uint16_t meterDenominator = 4;
+    EntityId clipAssetId;
+    TimeBase clipTimeBase = TimeBase::SampleLocked;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
 
@@ -419,6 +422,24 @@ struct ProjectEditCommand
     }
 
     // --- Arrangement verbs (usable-DAW P0, 2026-08-09) ---
+
+    [[nodiscard]] static constexpr ProjectEditCommand addClip (const Clip& clip) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddClip;
+        command.clipId = clip.id;
+        command.clipAssetId = clip.assetId;
+        command.trackId = clip.trackId;
+        command.timelineStart = clip.timelineStart;
+        command.timelineLength = clip.timelineLength;
+        command.srcOffset = clip.srcOffset;
+        command.srcLen = clip.srcLen;
+        command.gain = clip.gain;
+        command.fadeIn = clip.fadeIn;
+        command.fadeOut = clip.fadeOut;
+        command.clipTimeBase = clip.timeBase;
+        return command;
+    }
 
     [[nodiscard]] static constexpr ProjectEditCommand deleteClip (EntityId clipId) noexcept
     {
@@ -789,6 +810,23 @@ namespace detail {
         case ProjectEditVerb::RemoveAutomationBreakpoint:
             return removeAutomationBreakpoint (project, command.automationLaneId, command.automationTick);
 
+        case ProjectEditVerb::AddClip:
+        {
+            Clip clip;
+            clip.id = command.clipId;
+            clip.assetId = command.clipAssetId;
+            clip.trackId = command.trackId;
+            clip.timelineStart = command.timelineStart;
+            clip.timelineLength = command.timelineLength;
+            clip.srcOffset = command.srcOffset;
+            clip.srcLen = command.srcLen;
+            clip.gain = command.gain;
+            clip.fadeIn = command.fadeIn;
+            clip.fadeOut = command.fadeOut;
+            clip.timeBase = command.clipTimeBase;
+            return addClip (project, clip);
+        }
+
         case ProjectEditVerb::DeleteClip:
             return deleteClip (project, command.clipId);
 
@@ -846,6 +884,20 @@ namespace detail {
                                                     const ProjectEditCommand& command,
                                                     ProjectClipRowsDiff& out)
 {
+    if (command.verb == ProjectEditVerb::AddClip)
+    {
+        std::size_t addedIndex = 0;
+        if (! findClipIndex (after, command.clipId, addedIndex)
+            || after.clips.size() != before.clips.size() + 1u)
+            return false;
+
+        out = {};
+        out.firstClipIndex = addedIndex;
+        out.before = {};
+        out.after = { after.clips[addedIndex] };
+        return true;
+    }
+
     std::size_t index = 0;
     if (! findClipIndex (before, command.clipId, index))
         return false;

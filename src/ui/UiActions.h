@@ -90,6 +90,9 @@ enum class UiActionId : std::uint8_t
     MixerFxInsertToggle,
     TransportSetTempo,
     TransportSetMeter,
+    TimelineClipCopy,
+    TimelineClipPaste,
+    TimelineClipDuplicate,
     Count
 };
 
@@ -181,6 +184,7 @@ struct UiActionContext
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     bool snapEnabled = true;
     std::int64_t snapGridTicks = 512;
+    bool clipboardHasClip = false;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
@@ -406,7 +410,13 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportSetMeter, "transport.set_meter", "Set Time Signature", "Ctrl+Alt+N", "Set project time signature",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipCopy, "timeline.clip.copy", "Copy Clip", "Ctrl+C", "Copy selected timeline clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipPaste, "timeline.clip.paste", "Paste Clip", "Ctrl+V", "Paste clip at playhead",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipDuplicate, "timeline.clip.duplicate", "Duplicate Clip", "Ctrl+D", "Duplicate selected timeline clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -588,6 +598,8 @@ public:
             return { false, "no autosave recovery snapshot" };
         if (id == UiActionId::ProjectExportAudioCancel && ! context.audioExportInProgress)
             return { false, "no audio export in progress" };
+        if (id == UiActionId::TimelineClipPaste && ! context.clipboardHasClip)
+            return { false, "clipboard has no clip" };
 
         return { true, "" };
     }
@@ -894,6 +906,18 @@ public:
 
             case UiActionId::TransportSetTempo:
             case UiActionId::TransportSetMeter:
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
+                break;
+
+            case UiActionId::TimelineClipCopy:
+                context.clipboardHasClip = true;
+                break;
+
+            case UiActionId::TimelineClipPaste:
+            case UiActionId::TimelineClipDuplicate:
+                context.timelineClipSelected = true;
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineEditCount;
