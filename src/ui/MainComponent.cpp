@@ -39,8 +39,6 @@ constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
 constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
 constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr int kUiRefreshIntervalMs = 33;
-constexpr yesdaw::engine::Tick kTimelineSnapGridTicks =
-    yesdaw::ui::UiTheme::Layout::timelineSnapGridTicks;
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";

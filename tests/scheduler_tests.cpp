@@ -301,24 +301,6 @@ std::vector<float> drainPlayback (PlaybackEngine& engine, std::uint64_t frames, 
     return out;
 }
 
-std::vector<float> loopSlice (std::span<const float> full,
-                              std::uint16_t channels,
-                              std::int64_t loopStart,
-                              std::int64_t loopEnd,
-                              std::uint64_t frames)
-{
-    const std::int64_t loopLen = loopEnd - loopStart;
-    std::vector<float> out (static_cast<std::size_t> (frames) * channels, 0.0f);
-    for (std::uint64_t frame = 0; frame < frames; ++frame)
-    {
-        const std::int64_t srcFrame = loopStart + (static_cast<std::int64_t> (frame) % loopLen);
-        for (std::uint16_t channel = 0; channel < channels; ++channel)
-            out[static_cast<std::size_t> (frame) * channels + channel] =
-                full[static_cast<std::size_t> (srcFrame) * channels + channel];
-    }
-    return out;
-}
-
 std::string blobLiteral (EntityId id)
 {
     static constexpr char kHex[] = "0123456789ABCDEF";
