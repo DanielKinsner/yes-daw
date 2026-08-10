@@ -52,6 +52,39 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-09 stereo audio end-to-end (ADR-0042)
+
+Dan set the standing goal: a genuinely usable, professional-grade DAW — "it HAS to have stereo." The
+mono-only limitation named as Next in the previous entry is removed, with the pan/balance decision made
+explicitly (never a downmix):
+
+- ADR-0042 accepted: Assets are mono or stereo (interleaved; wider-than-stereo rejected with a clear
+  error); strip width derives from a Track's Clips; mono strips keep the bit-identical equal-power
+  `PanNode`; stereo strips run stereo end-to-end with the pan slot in the new **Balance mode** (unity
+  centre, far-channel equal-power taper, channels never blended — same parameter target, so pan
+  automation and applySetPan work across widths); mono Clips on a stereo strip widen centre-compensated
+  (x0.7071) so loudness matches the mono path; Bus width derives from its taps, mono taps into a stereo
+  Bus centre-widen, stereo Bus returns balance. Recording width stays mono (future explicit-width UX).
+- `DecodedClipNode` stores interleaved sources and emits strip width; the shared offline/live source
+  factory carries the owning Track's width, so `OfflineRenderer` and `PlaybackEngine` render stereo
+  through one path. Mono projects are wiring- and bit-identical (all pre-existing gates unchanged-green).
+- The shipped shell decodes mono or stereo WAV (`decodeProjectWav`), and `YesDawSelfCheck` decodes
+  stereo bundle Assets.
+- Gates that bite: balance law/taper/block-size invariance/automation events; stereo clip channel
+  preservation + mono widen gain; stereo strip acceptance + wider-than-stereo rejection at projection
+  and render; an offline render of a sign-split stereo Project against an independent reference; a
+  shell gate that imports a sign-split stereo WAV, proves both channels arrive intact through the real
+  device callback, reopens the bundle to the same playback, and exports per-channel bit-exact; a
+  packaged self-check stereo bundle render. Local ctest 336/336.
+
+**Now:** stereo is engine-, app-, and verifier-complete locally; pushing for remote CI.
+
+**Next:** installed-app stereo proof on the owner machine (package, install, import a real stereo song
+excerpt, play through the Focusrite, export), then the honest Pro Tools/Logic-parity gap audit at the
+shipped-executable boundary to build the ranked usable-DAW backlog.
+
+---
+
 ## 2026-08-08 honest DAW state + real empty-Project transport
 
 Dan reported that the installed UI still behaved like a fake shell: meters moved without audio, the
