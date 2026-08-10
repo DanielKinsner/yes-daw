@@ -38,8 +38,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    Shift+click adds/removes from selection; Ctrl+A selects all clips on the selected track;
    Ctrl+Shift+A selects all clips in the project. Delete/copy/move act on the whole selection as
    one atomic undo group, with persisted playback-affecting coverage at the shipped boundary.
-3. **Marquee (rubber-band) selection** — pointer-tool drag on empty timeline selects every
-   clip it touches. Gate: drag rectangle over two of three clips → exactly those selected.
+3. [x] **Marquee (rubber-band) selection** — landed in `ce263e2` (exact-head run `31441353769`,
+   nine jobs green). Pointer-tool drag on empty timeline paints a marquee and selects every Clip
+   whose hit rectangle it touches. The shipped-boundary gate selects exactly two of three Clips,
+   persists a grouped Delete, proves the resulting playback is silent, and undoes the group.
 4. **Split at playhead** — `B` splits the selected clip (or all selected clips) at the
    playhead. Gate: split → two clips, sample-accurate boundary, undo rejoins.
 5. **Heal/join** — Ctrl+J merges two adjacent clips that reference the same asset with

@@ -37,7 +37,7 @@ now applies a group atomically through a scratch Project. Full local `ctest --pr
 gate. Exact-head GitHub Actions run `31428021616` is green across all nine jobs: Linux, Windows,
 macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**A3 implemented and locally green — marquee selection (implementation SHA pending):** audited the
+**Done and remote-green for A3 — marquee selection (`ce263e2`):** audited the
 existing Pointer tool action (`V`), descriptor/keymap, timeline hit geometry, and A2 selection model
 before adding anything. Pointer-tool drag from empty timeline space now paints a token-backed marquee
 and selects exactly the Clips whose hit rectangles it intersects; no action or chord was added. The
@@ -46,13 +46,15 @@ playback, and Undo: two of three Clips are selected and persisted away, the unto
 playback becomes exact silence, and one Undo restores all three. Fresh Visual Studio Developer Shell
 build plus full local `ctest --preset ci` is green **341/341**, including action uniqueness, theme
 audit, screenshots, the native input gate, and the idle-machine GPU frame-budget gate; the real
-last-project record was temporarily isolated and restored.
+last-project record was temporarily isolated and restored. Exact-head GitHub Actions run
+`31441353769` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
+and both alpha-verifier jobs.
 
-**Now:** commit and push the small A3 implementation checkpoint, then require its exact-head GitHub
-Actions run green across all nine jobs.
+**Now:** commit and push this small A3 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A4.
 
-**Next:** after A3 is exact-head remote-green and recorded in the canonical backlog, start A4 clip
-rename with a fresh `git pull --rebase` and another audit-first shipped-boundary slice.
+**Next:** after the A3 checkpoint is fully recorded and remote-green, start A4 split at playhead with
+a fresh `git pull --rebase` and another audit-first shipped-boundary slice.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
