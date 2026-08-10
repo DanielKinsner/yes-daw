@@ -745,7 +745,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 75u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 89u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2823,6 +2823,70 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("bus and send controls route the selected track undoably through real controls",
+           "[ui][input][shell][mixer][sendsui]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-sends");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Select the first track strip through the rail so send actions have a target, then open the
+    // full mixer view — the routing tools live in the mixer tools column.
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    // + Bus creates a persisted Bus.
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.size() == 1u);
+    REQUIRE (project.buses.front().strip.name == "Bus 1");
+
+    // The send chooser routes the selected track to that bus at unity.
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    REQUIRE (sendChooser->isEnabled());
+    REQUIRE (sendChooser->getNumItems() == 1);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.size() == 1u);
+    REQUIRE (project.tracks.front().sends.front().busId == project.buses.front().id);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 1.0f);
+
+    // The send row's level slider persists an undoable SetSendLevel.
+    auto* level0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (level0 != nullptr);
+    REQUIRE (level0->isVisible());
+    level0->setValue (0.5, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 1.0f);
+
+    // The row's remove control drops the send.
+    auto* remove0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
+    REQUIRE (remove0 != nullptr);
+    clickButton (*remove0);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.empty());
+    REQUIRE (project.buses.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("menu bar model lists real menus and dispatches actions through the shell",

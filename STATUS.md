@@ -245,8 +245,18 @@ additive migration), write/read round-trip gate, frozen-v8-fixture gate extended
 empty sends after migration. Routing derivation LANDED: buildProjectGraph appends
 project-derived routes after the options seam, so playback, export, and selfcheck all honor
 persisted sends with zero call-site changes; tap-law render gate bites (zero-fader track:
-post-fader send silent, pre-fader audible, half level = half energy). NEXT SLICE: the mixer
-UI (+ Bus button, per-strip send rows: destination/level/remove) and shell gates.
+post-fader send silent, pre-fader audible, half level = half energy). UI slice LANDED —
+**sends/bus routing is now COMPLETE end-to-end**: "+ Bus" button (undoable AddBus, auto-named),
+"+ Send" chooser routes the selected track to any bus at unity (PostFader default), per-send
+rows show destination/level slider/remove — all undoable, persisted, graph-rebuilding. Four
+new actions (MixerBusAdd Alt+U, MixerSendAdd Alt+D, MixerSendRemove, MixerSendSetLevel). The
+mixer tools column now gives layout space only to VISIBLE rows (it overflowed its 260px
+non-mixer-view budget) and relayouts when row counts change. Gate: [sendsui] shell test —
+rail-select, open mixer view, + Bus persists "Bus 1", chooser adds the send at unity, slider
+persists 0.5 undoably, remove empties the sends.
+
+**With sends/bus done, ALL P1s from the parity audit are landed.** Remaining polish:
+track-rail mini pan/VOL/meter interactivity (P2).
 
 **Next (after sends):** track-rail mini pan/VOL/meter interactivity.
 

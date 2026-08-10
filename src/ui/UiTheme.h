@@ -515,6 +515,8 @@ struct UiTheme
         static constexpr int mixerFxParamLabelWidth = 64;
         static constexpr std::size_t mixerFxParamSliderCount = 8;
         static constexpr std::uint32_t mixerFxParamProbeLimit = 32;
+        static constexpr int mixerSendRowHeight = 18;
+        static constexpr std::size_t mixerSendVisibleRowCount = 4;
         static constexpr int trackListAddButtonWidth = 72;
         static constexpr int trackListAddButtonHeight = 24;
         static constexpr int trackListAddButtonInset = 12;

@@ -98,6 +98,11 @@ enum class UiActionId : std::uint8_t
     TimelineMarkerRemove,
     TimelineMidiClipAdd,
     MixerFxInsertParamSet,
+    // ADR-0044 send routing actions
+    MixerBusAdd,
+    MixerSendAdd,
+    MixerSendRemove,
+    MixerSendSetLevel,
     Count
 };
 
@@ -432,6 +437,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "Ctrl+M", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::MixerFxInsertParamSet, "mixer.fx.insert.param.set", "Set FX Param", "Alt+P", "Set FX insert parameter on selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerBusAdd, "mixer.bus.add", "Add Bus", "Alt+U", "Add a mixer bus",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::MixerSendAdd, "mixer.send.add", "Add Send", "Alt+D", "Add send from selected track to a bus",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerSendRemove, "mixer.send.remove", "Remove Send", "Alt+Shift+O", "Remove send from selected track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerSendSetLevel, "mixer.send.set_level", "Send Level", "Alt+Shift+G", "Set send level on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
@@ -915,6 +928,10 @@ public:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
             case UiActionId::MixerFxInsertParamSet:
+            case UiActionId::MixerBusAdd:
+            case UiActionId::MixerSendAdd:
+            case UiActionId::MixerSendRemove:
+            case UiActionId::MixerSendSetLevel:
                 context.activePanel = UiPanel::Mixer;
                 context.canUndo = true;
                 context.canRedo = false;

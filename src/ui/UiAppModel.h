@@ -1454,6 +1454,142 @@ public:
         return { id, state, true };
     }
 
+    // Send routing on the SELECTED Track (ADR-0044): bus creation and per-track send rows are
+    // undoable engine commands through the same adopt path as every other edit.
+    [[nodiscard]] UiActionDispatchResult addBusToMixer()
+    {
+        const UiActionId id = UiActionId::MixerBusAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId busId = allocateSessionEntityId (0xE1u, nextProject);
+        const std::string name = "Bus " + std::to_string (nextProject.buses.size() + 1u);
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addBus (busId, name)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "bus edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] bool selectedTrackIdForSends (engine::EntityId& out) const noexcept
+    {
+        if (! context_.mixerTargetSelected
+            || selectedMixerTarget_.kind != MixerTargetKind::Track
+            || selectedMixerTarget_.index >= project_.tracks.size())
+            return false;
+
+        out = project_.tracks[selectedMixerTarget_.index].id;
+        return true;
+    }
+
+    [[nodiscard]] std::vector<engine::SendRow> selectedTrackSends() const
+    {
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return {};
+
+        const engine::Track* const track = findTrack (trackId);
+        return track != nullptr ? track->sends : std::vector<engine::SendRow> {};
+    }
+
+    [[nodiscard]] UiActionDispatchResult addSendOnSelectedTrack (std::size_t busIndex)
+    {
+        const UiActionId id = UiActionId::MixerSendAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        if (busIndex >= project_.buses.size())
+            return { id, { false, "no bus at index" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId sendId = allocateSessionEntityId (0xE2u, nextProject);
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::addSend (
+                                  trackId, sendId, project_.buses[busIndex].id,
+                                  engine::SendTap::PostFader, 1.0f)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeSendOnSelectedTrack (std::size_t sendIndex)
+    {
+        const UiActionId id = UiActionId::MixerSendRemove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        const engine::Track* const track = findTrack (trackId);
+        if (track == nullptr || sendIndex >= track->sends.size())
+            return { id, { false, "no send at index" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::removeSend (
+                                  trackId, track->sends[sendIndex].id)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSendLevelOnSelectedTrack (std::size_t sendIndex, float linearGain)
+    {
+        const UiActionId id = UiActionId::MixerSendSetLevel;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        const engine::Track* const track = findTrack (trackId);
+        if (track == nullptr || sendIndex >= track->sends.size())
+            return { id, { false, "no send at index" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setSendLevel (
+                                  trackId, track->sends[sendIndex].id, linearGain)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     // FX parameter editing (usable-DAW P1): one undoable SetFxInsertParam per committed gesture.
     [[nodiscard]] UiActionDispatchResult setFxInsertParamOnSelectedStrip (std::size_t slotIndex,
                                                                           std::uint32_t paramId,

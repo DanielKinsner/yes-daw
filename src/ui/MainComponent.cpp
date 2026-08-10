@@ -2476,6 +2476,80 @@ private:
             addChildComponent (edit);
         }
 
+        // Send routing (ADR-0044): + Bus creates a persisted Bus; the send chooser routes the
+        // selected track to a bus; each visible send row edits its level and removes undoably.
+        configureActionComponent (mixerBusAddButton, yesdaw::ui::UiActionId::MixerBusAdd, "Add bus");
+        mixerBusAddButton.setButtonText ("+ Bus");
+        mixerBusAddButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        mixerBusAddButton.setColour (juce::TextButton::textColourOffId, kText);
+        mixerBusAddButton.onClick = [this] {
+            (void) appModel.addBusToMixer();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerBusAddButton);
+
+        configureActionComponent (mixerSendAddChooser, yesdaw::ui::UiActionId::MixerSendAdd, "Add send");
+        mixerSendAddChooser.setTextWhenNothingSelected ("+ Send");
+        mixerSendAddChooser.setTextWhenNoChoicesAvailable ("No Buses");
+        mixerSendAddChooser.onChange = [this] {
+            if (refreshingSendControls)
+                return;
+
+            const int selected = mixerSendAddChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            mixerSendAddChooser.setSelectedId (0, juce::dontSendNotification);
+            (void) appModel.addSendOnSelectedTrack (static_cast<std::size_t> (selected - 1));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerSendAddChooser);
+
+        for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
+        {
+            auto& label = mixerSendLabels[row];
+            label.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".label");
+            label.setColour (juce::Label::textColourId, kText);
+            label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+            label.setInterceptsMouseClicks (false, false);
+            addChildComponent (label);
+
+            auto& slider = mixerSendLevelSliders[row];
+            configureActionComponent (slider, yesdaw::ui::UiActionId::MixerSendSetLevel, "Send level");
+            slider.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)));
+            slider.setSliderStyle (juce::Slider::LinearHorizontal);
+            slider.setTextBoxStyle (juce::Slider::NoTextBox,
+                                    false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+            slider.setRange (0.0, 1.0, 0.0);
+            slider.onValueChange = [this, row] {
+                if (refreshingSendControls)
+                    return;
+
+                (void) appModel.setSendLevelOnSelectedTrack (
+                    row, static_cast<float> (mixerSendLevelSliders[row].getValue()));
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (slider);
+
+            auto& remove = mixerSendRemoves[row];
+            remove.setButtonText ("x");
+            remove.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".remove");
+            remove.setName ("Remove send " + juce::String (static_cast<int> (row + 1)));
+            remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            remove.setColour (juce::TextButton::textColourOffId, kText);
+            remove.onClick = [this, row] {
+                (void) appModel.removeSendOnSelectedTrack (row);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (remove);
+        }
+
         // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;
         // every committed value is one undoable SetFxInsertParam through the model.
         for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
@@ -2861,6 +2935,14 @@ private:
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
         {
+            if (! mixerFxSlotToggles[slot].isVisible())
+            {
+                mixerFxSlotToggles[slot].setBounds ({});
+                mixerFxSlotEdits[slot].setBounds ({});
+                mixerFxSlotRemoves[slot].setBounds ({});
+                continue;
+            }
+
             auto slotRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotHeight);
             mixerFxSlotRemoves[slot].setBounds (
                 slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
@@ -2870,8 +2952,40 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
+        // Hidden rows take no column space — the tools column would otherwise overflow. The refresh
+        // path calls resized() whenever a row-visibility count changes.
+        mixerBusAddButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        mixerSendAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
+        {
+            if (! mixerSendLevelSliders[row].isVisible())
+            {
+                mixerSendLevelSliders[row].setBounds ({});
+                mixerSendLabels[row].setBounds ({});
+                mixerSendRemoves[row].setBounds ({});
+                continue;
+            }
+
+            auto sendRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerSendRowHeight);
+            mixerSendRemoves[row].setBounds (
+                sendRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
+            mixerSendLabels[row].setBounds (
+                sendRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
+            mixerSendLevelSliders[row].setBounds (sendRow);
+            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        }
+
         for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
         {
+            if (! mixerFxParamSliders[index].isVisible())
+            {
+                mixerFxParamSliders[index].setBounds ({});
+                mixerFxParamLabels[index].setBounds ({});
+                continue;
+            }
+
             auto paramRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxParamRowHeight);
             mixerFxParamLabels[index].setBounds (
                 paramRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
@@ -3322,6 +3436,13 @@ private:
             if (selectedFxParamSlot >= 0 && static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
                 selectedFxParamSlot = -1;
 
+            const std::size_t visibleFxSlotRows = std::min (chain.size(), mixerFxSlotToggles.size());
+            if (visibleFxSlotRows != lastVisibleFxSlotRows)
+            {
+                lastVisibleFxSlotRows = visibleFxSlotRows;
+                resized();
+            }
+
             refreshingFxParamControls = true;
             std::size_t used = 0;
             if (selectedFxParamSlot >= 0)
@@ -3361,6 +3482,55 @@ private:
                 mixerFxParamLabels[index].setVisible (false);
             }
             refreshingFxParamControls = false;
+            if (used != lastVisibleFxParamRows)
+            {
+                lastVisibleFxParamRows = used;
+                resized();
+            }
+        }
+        {
+            refreshingSendControls = true;
+            const auto& project = appModel.project();
+            mixerBusAddButton.setEnabled (
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerBusAdd, appModel.context()).enabled);
+
+            mixerSendAddChooser.clear (juce::dontSendNotification);
+            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+                mixerSendAddChooser.addItem (juce::String (project.buses[busIndex].strip.name),
+                                             static_cast<int> (busIndex) + 1);
+            const bool sendAddEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendAdd, appModel.context()).enabled
+                && ! project.buses.empty();
+            mixerSendAddChooser.setEnabled (sendAddEnabled);
+
+            const std::vector<yesdaw::engine::SendRow> sends = appModel.selectedTrackSends();
+            const bool sendEditEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetLevel,
+                                              appModel.context()).enabled;
+            for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
+            {
+                const bool present = row < sends.size();
+                mixerSendLevelSliders[row].setVisible (present);
+                mixerSendLabels[row].setVisible (present);
+                mixerSendRemoves[row].setVisible (present);
+                if (! present)
+                    continue;
+
+                juce::String busName ("Bus?");
+                for (const auto& bus : project.buses)
+                    if (bus.id == sends[row].busId)
+                        busName = juce::String (bus.strip.name);
+                mixerSendLabels[row].setText (busName, juce::dontSendNotification);
+                mixerSendLevelSliders[row].setValue (sends[row].linearGain, juce::dontSendNotification);
+                mixerSendLevelSliders[row].setEnabled (sendEditEnabled);
+            }
+            refreshingSendControls = false;
+            const std::size_t visibleSendRows = std::min (sends.size(), mixerSendLevelSliders.size());
+            if (visibleSendRows != lastVisibleSendRows)
+            {
+                lastVisibleSendRows = visibleSendRows;
+                resized();
+            }
         }
         {
             refreshingSnapChooser = true;
@@ -5298,6 +5468,15 @@ private:
     std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
+    juce::TextButton mixerBusAddButton;
+    juce::ComboBox mixerSendAddChooser;
+    std::array<juce::Slider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
+    std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;
+    bool refreshingSendControls = false;
+    std::size_t lastVisibleFxParamRows = 0;
+    std::size_t lastVisibleSendRows = 0;
+    std::size_t lastVisibleFxSlotRows = 0;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     int selectedTrackLane = -1;
