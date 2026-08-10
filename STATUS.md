@@ -269,6 +269,11 @@ already gate-covered there; rail meter liveliness itself is visual.)
 
 **The parity audit's P0, P1, and P2 backlog is now fully landed.**
 
+**FINAL CERTIFICATION (2026-08-10):** GitHub Actions run `31375791333` on exact head `e5119f2`
+— which contains the ENTIRE P0+P1+P2 parity stack — passed ALL NINE jobs (Linux, Windows,
+macOS, RTSan, TSan, both package jobs, both alpha-verifier self-tests). The usable-DAW push's
+mechanical scope is complete; the only remaining check is the sanctioned human feel pass.
+
 **Installed proof (2026-08-10, owner machine, full-stack build):** packaged
 `dist/YesDaw-323d7d6-win64-portable.zip` via tools/package.ps1, installed at
 `%LOCALAPPDATA%/YES DAW/323d7d6`, and mechanically proven on the INSTALLED binaries:
