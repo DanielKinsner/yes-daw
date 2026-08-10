@@ -914,7 +914,9 @@ private:
         clip.id = allocateSessionEntityId (clipSeed, nextProject);
         clip.assetId = imported.id;
         clip.trackId = placedTrackId;
-        clip.timelineStart = timelineEnd (nextProject);
+        // Import lands at the PLAYHEAD (usable-DAW P1), the Pro Tools insertion-point model; the
+        // playhead starts at zero, so a fresh project's first import still begins the timeline.
+        clip.timelineStart = static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
         clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
         clip.srcOffset = 0;
         clip.srcLen = decoded.frames;

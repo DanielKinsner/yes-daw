@@ -529,3 +529,42 @@ TEST_CASE ("metronome clicks land on the beat grid, survive edits, and never rea
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (exportPath, ec);
 }
+
+TEST_CASE ("import places the new clip at the playhead", "[ui][app][import][playhead]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("import-at-playhead");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // Locate mid-timeline, then import: the clip starts exactly at the playhead frame.
+    REQUIRE (app.locatePlaybackFrame (4'321));
+    UiDecodedAsset imported = makeDecodedAsset (project.assets.front());
+    imported.assetId = {};
+    const std::filesystem::path storedAssetPath =
+        bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (project.assets.front().contentHash);
+    const auto result = app.importAudioFile (storedAssetPath, std::move (imported));
+    REQUIRE (result.ok());
+
+    const Project after = [&] {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        Project loaded;
+        REQUIRE (verify.readProjectSnapshot (loaded).ok());
+        return loaded;
+    }();
+    REQUIRE (after.clips.size() == 2u);
+    REQUIRE (after.clips.back().timelineStart == 4'321);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
