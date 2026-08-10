@@ -3279,9 +3279,10 @@ private:
             UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
         };
-        static constexpr std::array<UiActionId, 6> kEditMenu {
-            UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCopy,
-            UiActionId::TimelineClipPaste, UiActionId::TimelineClipDuplicate, UiActionId::TimelineClipDelete,
+        static constexpr std::array<UiActionId, 7> kEditMenu {
+            UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
+            UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
+            UiActionId::TimelineClipDelete,
         };
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,

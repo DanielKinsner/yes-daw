@@ -103,6 +103,7 @@ enum class UiActionId : std::uint8_t
     MixerSendAdd,
     MixerSendRemove,
     MixerSendSetLevel,
+    TimelineClipCut,
     Count
 };
 
@@ -445,7 +446,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerSendRemove, "mixer.send.remove", "Remove Send", "Alt+Shift+O", "Remove send from selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerSendSetLevel, "mixer.send.set_level", "Send Level", "Alt+Shift+G", "Set send level on selected track",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::TimelineClipCut, "timeline.clip.cut", "Cut Clip", "Ctrl+X", "Cut selected timeline clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -947,6 +950,14 @@ public:
 
             case UiActionId::TimelineClipCopy:
                 context.clipboardHasClip = true;
+                break;
+
+            case UiActionId::TimelineClipCut:
+                context.clipboardHasClip = true;
+                context.timelineClipSelected = false;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
                 break;
 
             case UiActionId::TimelineClipPaste:

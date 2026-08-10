@@ -8,6 +8,29 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-08-10 shortcut & workflow parity backlog (in progress)
+
+Canonical list: `docs/goals/2026-08-10-shortcut-and-workflow-parity-backlog.md`. Work is strictly
+top-to-bottom, one independently green item at a time.
+
+**Done locally for A1 — Ctrl+X cut clip:** audited the existing action descriptor table, live JUCE
+key translation, clipboard copy/paste, DeleteClip command, persistence, playback rebuild, and undo
+path before adding anything. Added the unique `Ctrl+X` `TimelineClipCut` action at the end of the
+descriptor table and to both exhaustive action switches. The real chord now snapshots the selected
+Clip into the existing clipboard and applies one persisted DeleteClip edit, so one undo restores it;
+Edit > Cut uses the same action. The shipped-boundary `[cut]` UI-input gate proves persisted removal,
+silence after cut, one-step undo restoration, and redo-cut + paste reproducing bit-identical audio.
+Full local `ctest --preset ci` is green **340/340**. The native-shell test was run with the real
+last-project record temporarily isolated and restored because that test otherwise reopens the owner's
+current project by design.
+
+**Now:** commit and push the A1 implementation, then require the exact-head GitHub Actions run green
+across all nine jobs. Once green, tick A1 in the canonical backlog with the implementation SHA in a
+small handoff commit and require that exact head remote-green too.
+
+**Next:** after the A1 checkpoint is fully recorded and remote-green, start A2 multi-select clips with
+a fresh `git pull --rebase` and another audit-first shipped-boundary slice.
+
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
 **What landed (docs only, no implementation code):** ADR-0037 (alpha target + H14–H19 re-carve),

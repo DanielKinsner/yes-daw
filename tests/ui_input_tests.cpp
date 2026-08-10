@@ -2977,7 +2977,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model != nullptr);
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "View", "Options", "Help" }));
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 6);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 6);
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 7);
     REQUIRE (model->getMenuForIndex (4, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -3352,6 +3352,76 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+}
+
+TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edit",
+           "[ui][input][shell][clipboard][cut]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-cut");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    const yesdaw::engine::Clip source = project.clips.front();
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, project, 0u));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCut = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeCut.data(), beforeCut.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('x', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.empty());
+    REQUIRE (snapshotMainComponent (*shell).context.clipboardHasClip);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCut = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
+    REQUIRE (peakAbs (std::span<const float> (afterCut.data(), afterCut.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // Cut itself is exactly one undo step.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().id == source.id);
+    REQUIRE (project.clips.front().timelineStart == source.timelineStart);
+    REQUIRE (project.clips.front().srcOffset == source.srcOffset);
+    REQUIRE (project.clips.front().srcLen == source.srcLen);
+
+    // Redo the cut, then paste the clipboard at the playhead: the audible clip is reproduced.
+    REQUIRE (shell->keyPressed (
+        juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().id != source.id);
+    REQUIRE (project.clips.front().timelineStart == source.timelineStart);
+    REQUIRE (project.clips.front().assetId == source.assetId);
+    REQUIRE (project.clips.front().timelineLength == source.timelineLength);
+    REQUIRE (project.clips.front().srcOffset == source.srcOffset);
+    REQUIRE (project.clips.front().srcLen == source.srcLen);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterPaste = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
+    REQUIRE (afterPaste == beforeCut);
 }
 
 TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")

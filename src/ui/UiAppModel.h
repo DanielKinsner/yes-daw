@@ -2392,6 +2392,47 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult cutSelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipCut;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        UiClipClipboard clipboard;
+        clipboard.valid = true;
+        clipboard.assetId = clip->assetId;
+        clipboard.timelineLength = clip->timelineLength;
+        clipboard.srcOffset = clip->srcOffset;
+        clipboard.srcLen = clip->srcLen;
+        clipboard.gain = clip->gain;
+        clipboard.fadeIn = clip->fadeIn;
+        clipboard.fadeOut = clip->fadeOut;
+        clipboard.timeBase = clip->timeBase;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (selectedTimelineClipId_));
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        clipClipboard_ = clipboard;
+        selectedTimelineClipId_ = {};
+        context_.clipboardHasClip = true;
+        context_.timelineClipSelected = false;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult pasteClipboardClipAtPlayhead()
     {
         const UiActionId id = UiActionId::TimelineClipPaste;
@@ -2928,6 +2969,9 @@ public:
 
             case UiActionId::TimelineClipCopy:
                 return copySelectedTimelineClip();
+
+            case UiActionId::TimelineClipCut:
+                return cutSelectedTimelineClip();
 
             case UiActionId::TimelineClipPaste:
                 return pasteClipboardClipAtPlayhead();
