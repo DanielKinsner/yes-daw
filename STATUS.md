@@ -169,7 +169,19 @@ solo-isolates.
 Markers landed: M at playhead / ruler double-click to add, Alt+click to remove, painted on the ruler,
 undoable, persisted; marker ids joined the duplicate-id scan.
 
-**Next:** the rest of the P1 sweep (automation lane canvas,
+**Now (in progress): automation lane canvas.** Design: a real AutomationLaneCanvasComponent replaces
+the Add/Delete Point stubs — click empty lane = add breakpoint at (tick from x via the SAME timeline
+viewport math [scroll/zoom], normalized value from y, top=1), drag handle = move (Move + SetValue
+commands in one undo transaction group), double-click handle = delete. Lane targets the SELECTED
+track's fader lane (falls back to track 0); if the track has no lane, the first click creates it
+(AddAutomationLane) grouped with the first breakpoint. All engine commands already exist
+(AddAutomationLane/Add/Move/SetValue/RemoveAutomationBreakpoint). Model verbs to add:
+addAutomationBreakpointToLane(ownerTrackId, tick, value), moveAutomationBreakpointTo(laneId, oldTick,
+newTick, newValue), removeAutomationBreakpointAt(laneId, tick). Keep the lane toggle; the row Label
+becomes the canvas. Gate: click-to-add at computed tick/value, drag moves, double-click deletes,
+undo unwinds, and the RENDER audibly follows the drawn curve (fader lane at 0.0 start silences).
+
+**Next after that:** piano-roll pencil + real synth node (ADR),
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
