@@ -401,6 +401,28 @@ public:
         return result;
     }
 
+    // Multi-track import (usable-DAW P0): place the imported Clip on a chosen Track instead of the
+    // default. An invalid/unknown target falls back to the default-track path inside the shared verb.
+    [[nodiscard]] UiAppImportResult importAudioFileToTrack (const std::filesystem::path& sourcePath,
+                                                            UiDecodedAsset decoded,
+                                                            engine::EntityId targetTrackId)
+    {
+        UiAppImportResult result = addAudioAssetClipFromSource (
+            sourcePath,
+            std::move (decoded),
+            targetTrackId,
+            0xA1u,
+            0xC1u);
+
+        if (result.ok())
+        {
+            ++context_.importCount;
+            ++context_.commandDispatchCount;
+        }
+
+        return result;
+    }
+
     [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake()
     {
         UiAppRecordResult result;
@@ -1077,6 +1099,251 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult deleteSelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipDelete;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (selectedTimelineClipId_));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        selectedTimelineClipId_ = {};
+        context_.timelineClipSelected = false;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipToTrack (engine::EntityId targetTrackId,
+                                                                          engine::Tick timelineStart)
+    {
+        const UiActionId id = UiActionId::TimelineClipMove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::moveClipToTrack (selectedTimelineClipId_, targetTrackId, timelineStart));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult addAudioTrack()
+    {
+        const UiActionId id = UiActionId::TrackAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId trackId = allocateSessionEntityId (0xB1u, nextProject);
+        const std::string name = "Audio " + std::to_string (nextProject.tracks.size() + 1u);
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (trackId, name));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult renameProjectTrack (engine::EntityId trackId, const std::string& newName)
+    {
+        const UiActionId id = UiActionId::TrackRename;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (newName.empty() || newName.size() > engine::ProjectEditCommand::kMaxTrackNameLength)
+            return { id, { false, "track name must be 1-127 characters" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::renameTrack (trackId, newName));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult reorderProjectTrack (engine::EntityId trackId, std::size_t newIndex)
+    {
+        const UiActionId id = UiActionId::TrackReorder;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::reorderTrack (trackId, newIndex));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
+    // Pro Tools-style remove-with-contents: deletes the Track's audio Clips and automation lanes as
+    // their own undoable commands inside one transaction group, then removes the Track. Tracks that
+    // still own MIDI Clips or recording Takes are refused (no delete verbs exist for those yet).
+    [[nodiscard]] UiActionDispatchResult removeProjectTrack (engine::EntityId trackId)
+    {
+        const UiActionId id = UiActionId::TrackRemove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        for (const engine::MidiClip& midiClip : project_.midiClips)
+            if (midiClip.trackId == trackId)
+                return { id, { false, "track still owns MIDI clips" }, false };
+
+        for (const engine::RecordingTake& take : project_.recordingTakes)
+            if (take.trackId == trackId)
+                return { id, { false, "track still owns recorded takes" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+
+        std::vector<engine::EntityId> ownedClipIds;
+        for (const engine::Clip& clip : nextProject.clips)
+            if (clip.trackId == trackId)
+                ownedClipIds.push_back (clip.id);
+        for (const engine::EntityId clipId : ownedClipIds)
+        {
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (clipId)).applied())
+                return { id, { false, "track clip delete failed" }, false };
+        }
+
+        std::vector<engine::EntityId> ownedLaneIds;
+        for (const engine::AutomationLaneData& lane : nextProject.automationLanes)
+            if (lane.ownerEntity == trackId)
+                ownedLaneIds.push_back (lane.id);
+        for (const engine::EntityId laneId : ownedLaneIds)
+        {
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::removeAutomationLane (laneId)).applied())
+                return { id, { false, "track lane delete failed" }, false };
+        }
+
+        const engine::ProjectEditApplyResult removed =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::removeTrack (trackId));
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+
+        if (! removed.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track edit did not persist" }, false };
+
+        if (selectedTimelineClipId_.isValid() && findClip (selectedTimelineClipId_) == nullptr)
+        {
+            selectedTimelineClipId_ = {};
+            context_.timelineClipSelected = false;
+        }
+
+        ++context_.commandDispatchCount;
+        ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult addPianoRollNoteAt (engine::Tick startTick,
+                                                             engine::Tick lengthTicks,
+                                                             std::int16_t key)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId noteId = allocateSessionEntityId (0xB2u, nextProject);
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::addNote (selectedMidiClipId_, noteId, startTick, lengthTicks, key));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        selectedMidiNoteId_ = noteId;
+        context_.midiNoteSelected = true;
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult deleteSelectedPianoRollNote()
+    {
+        const UiActionId id = UiActionId::PianoRollNoteDelete;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::cutNote (selectedMidiClipId_, selectedMidiNoteId_));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        selectedMidiNoteId_ = {};
+        context_.midiNoteSelected = false;
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult splitSelectedTimelineClipAt (engine::Tick timelineTick)
     {
         const UiActionId id = UiActionId::TimelineClipSplit;
@@ -1469,6 +1736,35 @@ public:
 
             case UiActionId::TimelineAutomationDeleteBreakpoint:
                 return deleteLastFirstTrackAutomationBreakpoint();
+
+            case UiActionId::TimelineClipDelete:
+                return deleteSelectedTimelineClip();
+
+            case UiActionId::TrackAdd:
+                return addAudioTrack();
+
+            case UiActionId::TrackRename:
+            case UiActionId::TrackRemove:
+            case UiActionId::TrackReorder:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "track edit payload required" }, false };
+            }
+
+            case UiActionId::PianoRollNoteAdd:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "note payload required" }, false };
+            }
+
+            case UiActionId::PianoRollNoteDelete:
+                return deleteSelectedPianoRollNote();
 
             case UiActionId::ViewPianoRoll:
             {
@@ -2095,7 +2391,20 @@ private:
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
-        if (! built.ok())
+        std::unique_ptr<engine::PlaybackEngine> nextEngine;
+        if (built.ok())
+        {
+            nextEngine = std::move (built.engine);
+        }
+        else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
+        {
+            // ADR-0041: an edit that empties the timeline (deleting the last Clip) still leaves the
+            // Project with a real transport rendering exact silence.
+            nextEngine = engine::PlaybackEngine::createTransportOnly (nextProject.sampleRate,
+                                                                      playbackMaxBlockSize_);
+        }
+
+        if (nextEngine == nullptr)
             return false;
 
         if (bundleDb_.isOpen())
@@ -2105,13 +2414,13 @@ private:
                 return false;
         }
 
-        (void) built.engine->stop();
-        drainTransport (*built.engine);
+        (void) nextEngine->stop();
+        drainTransport (*nextEngine);
 
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        replacePlayback (std::move (built.engine));
+        replacePlayback (std::move (nextEngine));
         syncProjectEditContext();
         resetContextForFreshPlayback();
         return true;

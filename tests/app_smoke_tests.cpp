@@ -229,3 +229,127 @@ TEST_CASE ("H17 CP4 autosave scheduling default is on and writeAutosaveTick is a
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Arrangement verbs drive track lifecycle, cross-track move, deletes, and notes through the app model",
+           "[ui][app][arrangement]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("arrangement-verbs");
+    Project project = makeSmokeProject();
+
+    yesdaw::engine::MidiClip midiClip;
+    midiClip.id = idFromLowByte (5);
+    midiClip.trackId = idFromLowByte (4);
+    midiClip.timelineStart = 0;
+    midiClip.timelineLength = 1024;
+    midiClip.timeBase = TimeBase::TempoLocked;
+    project.midiClips = { midiClip };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // Track lifecycle: add + rename, both undoable and persisted.
+    REQUIRE (app.addAudioTrack().dispatched);
+    REQUIRE (app.project().tracks.size() == 2u);
+    const EntityId newTrackId = app.project().tracks.back().id;
+    REQUIRE (app.project().tracks.back().strip.name == "Audio 2");
+
+    REQUIRE (app.renameProjectTrack (newTrackId, "Vox").dispatched);
+    REQUIRE (app.project().tracks.back().strip.name == "Vox");
+
+    // Cross-track move through selection.
+    REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
+    REQUIRE (app.moveSelectedTimelineClipToTrack (newTrackId, 4).dispatched);
+    REQUIRE (app.project().clips.front().trackId == newTrackId);
+    REQUIRE (app.project().clips.front().timelineStart == 4);
+
+    // Reorder the new track to the front.
+    REQUIRE (app.reorderProjectTrack (newTrackId, 0).dispatched);
+    REQUIRE (app.project().tracks.front().id == newTrackId);
+
+    // Remove-with-contents: the moved clip dies with its track; selection is cleared.
+    REQUIRE (app.removeProjectTrack (newTrackId).dispatched);
+    REQUIRE (app.project().tracks.size() == 1u);
+    REQUIRE (app.project().clips.empty());
+    REQUIRE_FALSE (app.context().timelineClipSelected);
+
+    // A track with MIDI clips refuses removal (no MIDI-clip delete verb yet).
+    REQUIRE_FALSE (app.removeProjectTrack (idFromLowByte (4)).dispatched);
+    REQUIRE (app.project().tracks.size() == 1u);
+
+    // Note add + delete on the selected MIDI clip.
+    REQUIRE (app.selectFirstMidiClip());
+    REQUIRE (app.addPianoRollNoteAt (16, 256, 64).dispatched);
+    REQUIRE (app.project().midiClips.front().notes.size() == 1u);
+    REQUIRE (app.project().midiClips.front().notes.front().key == 64);
+    REQUIRE (app.context().midiNoteSelected);
+
+    REQUIRE (app.deleteSelectedPianoRollNote().dispatched);
+    REQUIRE (app.project().midiClips.front().notes.empty());
+    REQUIRE_FALSE (app.context().midiNoteSelected);
+
+    // Clip delete via the dedicated verb, then the full undo chain restores everything.
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);   // undo note delete
+    REQUIRE (app.project().midiClips.front().notes.size() == 1u);
+
+    while (app.context().canUndo)
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+
+    REQUIRE (app.project().tracks.size() == 1u);
+    REQUIRE (app.project().tracks.front().strip.name == "Audio 1");
+    REQUIRE (app.project().clips.size() == 1u);
+    REQUIRE (app.project().clips.front().trackId == idFromLowByte (4));
+    REQUIRE (app.project().clips.front().timelineStart == 0);
+    REQUIRE (app.project().midiClips.front().notes.empty());
+
+    // Persistence: reopen the bundle cold and confirm the undone state was saved.
+    UiAppModel reopened;
+    UiDecodedAsset decodedAgain = makeDecodedAsset (project.assets.front());
+    REQUIRE (reopened.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decodedAgain, 1)).ok());
+    REQUIRE (reopened.project().tracks.size() == 1u);
+    REQUIRE (reopened.project().clips.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("Deleting the selected timeline clip is undoable and clears selection",
+           "[ui][app][arrangement][delete]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-delete");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // Disabled without a selection.
+    REQUIRE_FALSE (app.deleteSelectedTimelineClip().dispatched);
+
+    REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
+    REQUIRE (app.deleteSelectedTimelineClip().dispatched);
+    REQUIRE (app.project().clips.empty());
+    REQUIRE_FALSE (app.context().timelineClipSelected);
+
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips.size() == 1u);
+    REQUIRE (app.project().clips.front().id == idFromLowByte (3));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

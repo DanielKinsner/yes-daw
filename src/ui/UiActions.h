@@ -76,6 +76,14 @@ enum class UiActionId : std::uint8_t
     TimelineAutomationToggleTrackLane,
     TimelineAutomationAddBreakpoint,
     TimelineAutomationDeleteBreakpoint,
+    // Arrangement actions (usable-DAW P0, 2026-08-09)
+    TimelineClipDelete,
+    TrackAdd,
+    TrackRename,
+    TrackRemove,
+    TrackReorder,
+    PianoRollNoteAdd,
+    PianoRollNoteDelete,
     Count
 };
 
@@ -201,6 +209,7 @@ struct UiActionContext
     int undoCount = 0;
     int redoCount = 0;
     int timelineEditCount = 0;
+    int trackEditCount = 0;
     int mixerEditCount = 0;
     int mixerReadCount = 0;
     int midiEditCount = 0;
@@ -365,7 +374,21 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineAutomationAddBreakpoint, "timeline.automation.breakpoint.add", "Add Point", "Shift+A", "Add breakpoint to first Track automation lane",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineAutomationDeleteBreakpoint, "timeline.automation.breakpoint.delete", "Delete Point", "Shift+D", "Delete breakpoint from first Track automation lane",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipDelete, "timeline.clip.delete", "Delete Clip", "Del", "Delete selected timeline clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TrackAdd, "track.add", "Add Track", "Ctrl+T", "Add audio track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackRename, "track.rename", "Rename Track", "F2", "Rename track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackRemove, "track.remove", "Remove Track", "Ctrl+Shift+T", "Remove track and its clips",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackReorder, "track.reorder", "Reorder Track", "Ctrl+Shift+R", "Reorder track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::PianoRollNoteAdd, "pianoroll.note.add", "Add Note", "Ctrl+Shift+N", "Add note to selected MIDI clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollNoteDelete, "pianoroll.note.delete", "Delete Note", "Backspace", "Delete selected note",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -807,6 +830,38 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineAutomationBreakpointEditCount;
+                break;
+
+            case UiActionId::TimelineClipDelete:
+                context.timelineClipSelected = false;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.timelineEditCount;
+                break;
+
+            case UiActionId::TrackAdd:
+            case UiActionId::TrackRename:
+            case UiActionId::TrackRemove:
+            case UiActionId::TrackReorder:
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.trackEditCount;
+                break;
+
+            case UiActionId::PianoRollNoteAdd:
+                context.activePanel = UiPanel::PianoRoll;
+                context.midiNoteSelected = true;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.midiEditCount;
+                break;
+
+            case UiActionId::PianoRollNoteDelete:
+                context.activePanel = UiPanel::PianoRoll;
+                context.midiNoteSelected = false;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.midiEditCount;
                 break;
 
             case UiActionId::Count:
