@@ -52,6 +52,38 @@ Codex thread instruction; H16 now runs one tiny green slice per thread.
 
 ---
 
+## 2026-08-10 usable-DAW P0 sweep (in progress)
+
+Standing goal (Dan, 2026-08-09): fully usable professional-grade DAW, functional and visual, no cut
+corners. The canonical backlog is `docs/reviews/2026-08-09-shipped-parity-gap-audit.md`. Landed so far,
+each remote-green or pushed (small commits, ctest 337/337 at every step):
+
+- **Arrangement verbs (engine)**: undoable addTrack/renameTrack/reorderTrack/removeTrack (empty-only;
+  whole-vector track diffs), deleteClip, moveClipToTrack, addNote; randomized property test extended
+  to all seven and stays bit-identical through full undo/redo.
+- **Model verbs + actions**: TimelineClipDelete (Del), TrackAdd (Ctrl+T), TrackRename (F2), TrackRemove
+  (Ctrl+Shift+T), TrackReorder, PianoRollNoteAdd, PianoRollNoteDelete (Backspace); Pro Tools-style
+  remove-with-contents in one undo group; importAudioFileToTrack; deleting the last Clip now falls back
+  to the ADR-0041 transport-only engine.
+- **Keyboard is live**: MainComponent::keyPressed dispatches every registered keymap chord through the
+  toolbar's handleAction path (Space/K/Home/Ctrl+N/O/S/I/Z/Shift+Z/T/Del/F2/…).
+- **Interactive track rail**: row click selects (real highlight — the fake row-3 lie is gone), retargets
+  mixer controls without stealing the panel, double-click/F2 inline rename, + Track button, Ctrl+Shift+T
+  remove-with-contents, import lands on the selected Track.
+- **Cross-track clip drag**: timeline Move drags are two-dimensional; vertical drop moves the Clip to
+  another Track through moveClipToTrack.
+- **Save As** (Ctrl+Shift+S): copies the whole bundle, continues in the copy, original untouched;
+  failure reopens the original.
+- **Mixer strips all selectable**: overlay click on any Track strip retargets and repositions the
+  shared fader/pan/mute/solo controls; strip-0 hard-coding removed.
+
+**Now:** P0-7 (FX insert UI — engine fully ready, shell has only a bypass stub) is next; then P0-9
+(tempo/time-sig editing) and P0-1 (real device recording — Record still commits a synthetic take;
+desktop audio opens 0 input channels). Owner-machine stereo install proof still owed (scratchpad
+fixture ready).
+
+---
+
 ## 2026-08-09 stereo audio end-to-end (ADR-0042)
 
 Dan set the standing goal: a genuinely usable, professional-grade DAW — "it HAS to have stereo." The
