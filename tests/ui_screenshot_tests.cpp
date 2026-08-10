@@ -298,6 +298,8 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::TransportToggleLoop
         },
         juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
+    // The device + recording cluster lives in header row 3 (it used to float over the track rail
+    // and collide with the TRACKS strip — the layout law moved it inside the header).
     requireDisjointActionBounds (
         *shell,
         std::array {
@@ -307,11 +309,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::RecordingSetMonitoringPolicy,
             UiActionId::RecordingAssembleComp
         },
-        juce::Rectangle<int> { 0,
-                               yesdaw::ui::UiTheme::Layout::headerHeight,
-                               yesdaw::ui::UiTheme::Layout::leftRailWidth,
-                               yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
-                                   + yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset });
+        juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
 
     const juce::Image timelineImage = renderShell (*shell);
     requireHonestEmptyArrangementCoverage (timelineImage);

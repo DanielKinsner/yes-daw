@@ -193,7 +193,7 @@ struct UiTheme
 
     struct Layout
     {
-        static constexpr int headerHeight = 88;
+        static constexpr int headerHeight = 118;   // three control rows; row 3 hosts export/device/recording
         static constexpr int defaultWindowWidth = 1536;
         static constexpr int defaultWindowHeight = 960;
         static constexpr int leftRailWidth = 318;
@@ -283,15 +283,17 @@ struct UiTheme
         static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 156, 50, 88, 26 }; }
         static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 156, 50, 60, 26 }; }
         static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 218, 50, 30, 26 }; }
-        static juce::Rectangle<int> exportBitDepthChooserBounds() noexcept { return { 156, 80, 108, 22 }; }
-        static juce::Rectangle<int> exportRangeChooserBounds() noexcept { return { 268, 80, 112, 22 }; }
-        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 22, 126, 78, 26 }; }
-        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 104, 126, 104, 26 }; }
-        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 212, 126, 68, 26 }; }
-        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 22, 156, 96, 26 }; }
-        static juce::Rectangle<int> audioDeviceChooserBounds() noexcept { return { 284, 126, 176, 26 }; }
+        // Header row 3 (y = 84): export options, the audio device chooser, and the recording
+        // cluster live INSIDE the header instead of floating over the track rail and timeline.
+        static juce::Rectangle<int> exportBitDepthChooserBounds() noexcept { return { 156, 84, 108, 26 }; }
+        static juce::Rectangle<int> exportRangeChooserBounds() noexcept { return { 268, 84, 112, 26 }; }
+        static juce::Rectangle<int> audioDeviceChooserBounds() noexcept { return { 388, 84, 220, 26 }; }
+        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 616, 84, 78, 26 }; }
+        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 698, 84, 104, 26 }; }
+        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 806, 84, 68, 26 }; }
+        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 878, 84, 96, 26 }; }
+        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 978, 84, 72, 26 }; }
         static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 504, 16, 56, 56 }; }
-        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 202, 156, 72, 26 }; }
         static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 256, 50, 28, 26 }; }
         static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 288, 50, 28, 26 }; }
         static juce::Rectangle<int> transportLocateStartButtonBounds() noexcept { return { 336, 16, 56, 56 }; }

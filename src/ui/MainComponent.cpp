@@ -3524,13 +3524,9 @@ private:
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const auto action = toolbarActions[i];
-            const bool arrangementVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
-            const bool arrangementOnlyAction = action == yesdaw::ui::UiActionId::DeviceRefreshAudio
-                                            || action == yesdaw::ui::UiActionId::DeviceSelectTestAudio
-                                            || action == yesdaw::ui::UiActionId::RecordingArmTrack
-                                            || action == yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy
-                                            || action == yesdaw::ui::UiActionId::RecordingAssembleComp;
-            buttons[i].setVisible (! arrangementOnlyAction || arrangementVisible);
+            // The device + recording cluster is header chrome (row 3) and stays visible in every
+            // view — the old hide-in-mixer rule existed only because it used to float over the rail.
+            buttons[i].setVisible (true);
             const auto state = appModel.registry().stateFor (action, appModel.context());
             const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
             buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
