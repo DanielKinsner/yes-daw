@@ -201,8 +201,16 @@ PlaybackEngine RT_FATAL frame-count invariant; it now renders in engine-sized ch
 [midi-only] end-to-end (create clip → pencil note → play → audible energy) and the [pencil] shell
 gate.
 
-**Next:** real device chooser, send/bus UI, FX param editing panel, export options (bit depth /
-sample rate / range), menu bar or remove painted one, track-rail mini pan/VOL/meter interactivity.
+**DONE: FX parameter editing** — each visible FX slot gained an "e" edit button; selecting a slot
+reveals its ParamSpec sliders (up to 8, probed from the insert's kind) with live name/value/unit
+labels. Every slider move commits one undoable SetFxInsertParam (new MixerFxInsertParamSet action,
+Alt+P) through the standard adopt path, so edits persist and rebuild playback. Gate: [fxparam]
+shell test — add Compressor, edit threshold via the real slider, persisted value asserted, undo
+reverts, edit toggle hides the rows. (Lesson re-learned: the UiActionDescriptor table is indexed by
+enum value — a new action's descriptor goes at the END of the table, matching the enum.)
+
+**Next:** real device chooser, send/bus UI, export options (bit depth / sample rate / range),
+menu bar or remove painted one, track-rail mini pan/VOL/meter interactivity.
 
 ---
 

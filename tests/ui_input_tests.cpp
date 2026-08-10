@@ -744,7 +744,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 50u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 71u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2822,6 +2822,63 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("FX parameter sliders edit the selected insert undoably through real controls",
+           "[ui][input][shell][mixer][fxparam]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-fx-param");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   headerHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (chooser != nullptr);
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                            juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.size() == 1u);
+
+    // Param sliders are hidden until a slot's edit button selects it.
+    auto* param0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (param0 != nullptr);
+    REQUIRE_FALSE (param0->isVisible());
+
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    REQUIRE (edit0->isVisible());
+    clickButton (*edit0);
+    REQUIRE (param0->isVisible());
+    REQUIRE (param0->isEnabled());
+
+    // Slider 0 is the compressor threshold; moving it persists one undoable SetFxInsertParam.
+    param0->setValue (0.25, juce::sendNotificationSync);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const auto& params = project.tracks.front().strip.fxChain.front().normalizedParams;
+    REQUIRE (params.size() == 1u);
+    REQUIRE (params.front().first == 0u);
+    REQUIRE (params.front().second == Catch::Approx (0.25));
+
+    // Undo reverts the param edit; the insert itself stays.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain.front().normalizedParams.empty());
+
+    // Toggling the edit button off hides the param rows again.
+    clickButton (*edit0);
+    REQUIRE_FALSE (param0->isVisible());
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",

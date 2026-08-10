@@ -1414,6 +1414,61 @@ public:
         return { id, state, true };
     }
 
+    // FX parameter editing (usable-DAW P1): one undoable SetFxInsertParam per committed gesture.
+    [[nodiscard]] UiActionDispatchResult setFxInsertParamOnSelectedStrip (std::size_t slotIndex,
+                                                                          std::uint32_t paramId,
+                                                                          double normalizedValue)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertParamSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        if (! engine::fxKindAcceptsParameterId (strip->fxChain[slotIndex].kind, paramId))
+            return { id, { false, "FX kind does not accept parameter" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditCommand command = engine::ProjectEditCommand::setFxInsertParam (
+            ownerId, strip->fxChain[slotIndex].id, paramId, normalizedValue);
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // Current normalized value of an FX param on the selected strip (spec default when unset).
+    [[nodiscard]] double fxInsertParamValueOnSelectedStrip (std::size_t slotIndex, std::uint32_t paramId) const
+    {
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return 0.0;
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return 0.0;
+
+        const engine::FxInsert& insert = strip->fxChain[slotIndex];
+        for (const auto& [id_, value] : insert.normalizedParams)
+            if (id_ == paramId)
+                return value;
+
+        return engine::normalizedDefault (engine::fxParamSpecForKind (insert.kind, paramId));
+    }
+
     // The selected strip's FX chain for UI display (empty when no selection).
     [[nodiscard]] std::vector<engine::FxInsert> selectedStripFxChain() const
     {

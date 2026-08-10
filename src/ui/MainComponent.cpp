@@ -2388,6 +2388,55 @@ private:
                 repaint();
             };
             addChildComponent (remove);
+
+            auto& edit = mixerFxSlotEdits[slot];
+            edit.setButtonText ("e");
+            edit.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".edit");
+            edit.setName ("Edit FX slot " + juce::String (static_cast<int> (slot + 1)) + " parameters");
+            edit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            edit.setColour (juce::TextButton::textColourOffId, kText);
+            edit.onClick = [this, slot] {
+                selectedFxParamSlot = selectedFxParamSlot == static_cast<int> (slot) ? -1
+                                                                                     : static_cast<int> (slot);
+                refreshActionState();
+                resized();
+                repaint();
+            };
+            addChildComponent (edit);
+        }
+
+        // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;
+        // every committed value is one undoable SetFxInsertParam through the model.
+        for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
+        {
+            auto& label = mixerFxParamLabels[index];
+            label.setComponentID ("mixer.fx.param." + juce::String (static_cast<int> (index)) + ".label");
+            label.setColour (juce::Label::textColourId, kText);
+            label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+            label.setInterceptsMouseClicks (false, false);
+            addChildComponent (label);
+
+            auto& slider = mixerFxParamSliders[index];
+            configureActionComponent (slider, yesdaw::ui::UiActionId::MixerFxInsertParamSet, "FX parameter");
+            slider.setComponentID ("mixer.fx.param." + juce::String (static_cast<int> (index)));
+            slider.setSliderStyle (juce::Slider::LinearHorizontal);
+            slider.setTextBoxStyle (juce::Slider::NoTextBox,
+                                    false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+            slider.setRange (0.0, 1.0, 0.0);
+            slider.onValueChange = [this, index] {
+                if (refreshingFxParamControls || selectedFxParamSlot < 0)
+                    return;
+
+                (void) appModel.setFxInsertParamOnSelectedStrip (
+                    static_cast<std::size_t> (selectedFxParamSlot),
+                    mixerFxParamSliderIds[index],
+                    mixerFxParamSliders[index].getValue());
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (slider);
         }
 
         configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
@@ -2744,7 +2793,18 @@ private:
             auto slotRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotHeight);
             mixerFxSlotRemoves[slot].setBounds (
                 slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
+            mixerFxSlotEdits[slot].setBounds (
+                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
             mixerFxSlotToggles[slot].setBounds (slotRow);
+            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        }
+
+        for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
+        {
+            auto paramRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxParamRowHeight);
+            mixerFxParamLabels[index].setBounds (
+                paramRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
+            mixerFxParamSliders[index].setBounds (paramRow);
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
@@ -3042,6 +3102,7 @@ private:
                 const bool present = slot < chain.size();
                 mixerFxSlotToggles[slot].setVisible (present);
                 mixerFxSlotRemoves[slot].setVisible (present);
+                mixerFxSlotEdits[slot].setVisible (present);
                 if (! present)
                     continue;
 
@@ -3056,7 +3117,52 @@ private:
                     case yesdaw::engine::FxKind::Limiter:    label = "Limiter"; break;
                 }
                 mixerFxSlotToggles[slot].setButtonText (insert.enabled ? label : label + " (byp)");
+                mixerFxSlotEdits[slot].setToggleState (selectedFxParamSlot == static_cast<int> (slot),
+                                                       juce::dontSendNotification);
             }
+
+            if (selectedFxParamSlot >= 0 && static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
+                selectedFxParamSlot = -1;
+
+            refreshingFxParamControls = true;
+            std::size_t used = 0;
+            if (selectedFxParamSlot >= 0)
+            {
+                const yesdaw::engine::FxKind kind =
+                    chain[static_cast<std::size_t> (selectedFxParamSlot)].kind;
+                const bool paramEditEnabled =
+                    appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerFxInsertParamSet,
+                                                  appModel.context()).enabled;
+                for (std::uint32_t paramId = 0;
+                     paramId < yesdaw::ui::UiTheme::Layout::mixerFxParamProbeLimit
+                     && used < mixerFxParamSliders.size();
+                     ++paramId)
+                {
+                    if (! yesdaw::engine::fxKindAcceptsParameterId (kind, paramId))
+                        continue;
+
+                    const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (kind, paramId);
+                    const double normalized = appModel.fxInsertParamValueOnSelectedStrip (
+                        static_cast<std::size_t> (selectedFxParamSlot), paramId);
+                    mixerFxParamSliderIds[used] = paramId;
+                    mixerFxParamSliders[used].setValue (normalized, juce::dontSendNotification);
+                    mixerFxParamSliders[used].setEnabled (paramEditEnabled);
+                    mixerFxParamSliders[used].setVisible (true);
+                    mixerFxParamLabels[used].setText (
+                        juce::String (spec.name)
+                            + " " + juce::String (yesdaw::engine::mapNormalized (spec, normalized), 1)
+                            + spec.unit,
+                        juce::dontSendNotification);
+                    mixerFxParamLabels[used].setVisible (true);
+                    ++used;
+                }
+            }
+            for (std::size_t index = used; index < mixerFxParamSliders.size(); ++index)
+            {
+                mixerFxParamSliders[index].setVisible (false);
+                mixerFxParamLabels[index].setVisible (false);
+            }
+            refreshingFxParamControls = false;
         }
         {
             refreshingSnapChooser = true;
@@ -5001,6 +5107,12 @@ private:
     juce::ComboBox mixerFxAddChooser;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotEdits;
+    std::array<juce::Slider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
+    std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;
+    std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};
+    int selectedFxParamSlot = -1;
+    bool refreshingFxParamControls = false;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     int selectedTrackLane = -1;

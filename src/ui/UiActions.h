@@ -97,6 +97,7 @@ enum class UiActionId : std::uint8_t
     TimelineMarkerAdd,
     TimelineMarkerRemove,
     TimelineMidiClipAdd,
+    MixerFxInsertParamSet,
     Count
 };
 
@@ -429,7 +430,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Shift+M", "Remove nearest marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "Ctrl+M", "Add MIDI clip on selected track",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::MixerFxInsertParamSet, "mixer.fx.insert.param.set", "Set FX Param", "Alt+P", "Set FX insert parameter on selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -911,6 +914,7 @@ public:
             case UiActionId::MixerFxInsertAdd:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
+            case UiActionId::MixerFxInsertParamSet:
                 context.activePanel = UiPanel::Mixer;
                 context.canUndo = true;
                 context.canRedo = false;
