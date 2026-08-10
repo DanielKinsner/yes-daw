@@ -185,7 +185,13 @@ newTick, newValue), removeAutomationBreakpointAt(laneId, tick). Keep the lane to
 becomes the canvas. Gate: click-to-add at computed tick/value, drag moves, double-click deletes,
 undo unwinds, and the RENDER audibly follows the drawn curve (fader lane at 0.0 start silences).
 
-**Next after that:** piano-roll pencil + real synth node (ADR),
+**DONE: SimpleSynth (ADR-0043)** — MIDI is musical: 8-voice deterministic wavetable instrument in
+the production projection (playback + export), scheduler gates re-pinned (MIDI graphs correctly
+refused by the parallel guard; loop first-pass identity + wrap energy), pitch/attack/release/
+block-size-invariance ADR gate green.
+
+**Next:** piano-roll pencil add (model verb exists — addPianoRollNoteAt) + MIDI clip creation
+without recording (needs AddMidiClip engine command),
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
