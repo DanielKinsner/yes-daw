@@ -151,6 +151,10 @@ export path; action transport.toggle_metronome, key C). Clip clipboard landed (C
 undoable AddClip command; paste at playhead on the selected track; duplicate appends after the source).
 Import now lands at the playhead (insertion-point model).
 
+Launch-time recovery landed: the native shell records the last bundle in the user app-data dir and
+reopens it at launch (autosave Restore/Discard prompt now reachable after a crash with zero clicks);
+harness stays deterministic (no session dir set).
+
 **Next:** the rest of the P1 sweep (markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
