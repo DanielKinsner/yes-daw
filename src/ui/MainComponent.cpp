@@ -324,6 +324,7 @@ public:
     std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
+    std::function<void (int, double)> onClipTrimmedLeft;
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
@@ -480,6 +481,17 @@ public:
             return;
         }
 
+        if (drag.mode == TimelineDragMode::TrimLeft)
+        {
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                return;
+
+            if (eventSeconds)
+                if (onClipTrimmedLeft)
+                    onClipTrimmedLeft (drag.layoutClipId, *eventSeconds);
+            return;
+        }
+
         if (drag.mode == TimelineDragMode::Gain)
         {
             if (std::abs (deltaY) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
@@ -592,6 +604,7 @@ private:
     {
         Move,
         SnapMove,
+        TrimLeft,
         TrimRight,
         Gain,
         FadeIn,
@@ -673,6 +686,10 @@ private:
         if (std::fabs (static_cast<double> (position.x) - clipRightX)
             <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
             return TimelineDragMode::TrimRight;
+
+        if (std::fabs (static_cast<double> (position.x) - clipLeftX)
+            <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+            return TimelineDragMode::TrimLeft;
 
         if (modifiers.isShiftDown())
             return TimelineDragMode::Gain;
@@ -1187,6 +1204,17 @@ public:
         };
         timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds) {
             trimTimelineClipRightByLayoutId (timelineClipId, endSeconds);
+        };
+        timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds) {
+            if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
+                return;
+
+            (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (timelineClipId)]);
+            if (const auto tick = timelineTickFromSeconds (startSeconds))
+                (void) appModel.trimSelectedTimelineClipLeftTo (*tick);
+
+            refreshActionState();
+            repaint();
         };
         timelineInput.onClipGainAdjusted = [this] (int timelineClipId, int deltaPixels) {
             adjustTimelineClipGainByLayoutId (timelineClipId, deltaPixels);

@@ -2944,3 +2944,45 @@ TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][inp
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.timelineZoomFactor == 1.0);   // clamped at fit-to-window
 }
+
+TEST_CASE ("dragging the clip's left edge trims its head without moving the audio under it",
+           "[ui][input][shell][trimleft]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("trim-left");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    const yesdaw::engine::Clip before = imported.clips.front();
+
+    const juce::Point<int> leftEdge = timelineClipLeftEdgeDragPoint (timeline, imported, 0u);
+    const int quarterClipPixels = juce::jmax (
+        yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels + 2,
+        juce::roundToInt (timelinePixelsPerSecond (timeline, imported)
+                          * (static_cast<double> (before.timelineLength) / 48'000.0) * 0.25));
+    dragFromTo (timeline, leftEdge, { leftEdge.x + quarterClipPixels, leftEdge.y });
+
+    const yesdaw::engine::Project trimmed = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Clip after = trimmed.clips.front();
+    REQUIRE (after.timelineStart > before.timelineStart);
+    REQUIRE (after.timelineLength < before.timelineLength);
+    REQUIRE (after.srcOffset > before.srcOffset);
+    REQUIRE (after.srcLen < before.srcLen);
+    // The clip END never moved: only the head was consumed.
+    REQUIRE (after.timelineStart + after.timelineLength == before.timelineStart + before.timelineLength);
+
+    // Undo restores the original head.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Clip restored = readProjectSnapshot (bundlePath).clips.front();
+    REQUIRE (restored.timelineStart == before.timelineStart);
+    REQUIRE (restored.srcOffset == before.srcOffset);
+}

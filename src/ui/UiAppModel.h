@@ -1882,6 +1882,54 @@ public:
         return { id, state, true };
     }
 
+    // Trim the selected Clip's LEFT edge inward (usable-DAW P1): the head moves later on the
+    // timeline while the source window advances proportionally, so the audio under the playhead
+    // never shifts. Extending the head earlier than the recorded window is out of alpha scope.
+    [[nodiscard]] UiActionDispatchResult trimSelectedTimelineClipLeftTo (engine::Tick timelineStart)
+    {
+        const UiActionId id = UiActionId::TimelineClipTrim;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        if (timelineStart <= clip->timelineStart
+            || timelineStart >= clip->timelineStart + clip->timelineLength)
+            return { id, { false, "left trim must stay inside the clip" }, false };
+
+        const engine::Tick trimmedTicks = timelineStart - clip->timelineStart;
+        const engine::Tick nextTimelineLength = clip->timelineLength - trimmedTicks;
+        const std::optional<std::uint64_t> keptSourceLength =
+            sourceLengthForShortenedRightEdge (*clip, nextTimelineLength);
+        if (! keptSourceLength)
+            return { id, { false, "left trim must keep a positive source window" }, false };
+
+        const std::uint64_t consumedSource = clip->srcLen - *keptSourceLength;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::trimClip (
+                selectedTimelineClipId_,
+                timelineStart,
+                nextTimelineLength,
+                clip->srcOffset + consumedSource,
+                *keptSourceLength));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipGain (float newGain)
     {
         const UiActionId id = UiActionId::TimelineClipSetGain;
