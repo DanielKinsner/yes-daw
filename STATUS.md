@@ -92,9 +92,22 @@ each remote-green or pushed (small commits, ctest 337/337 at every step):
 
 **ALL NINE P0s from the audit are now implemented and locally green (ctest 337/337).**
 
-**Now:** CI on the cumulative push, then package + install + owner-machine proof: stereo playback
-(scratchpad fixture stereo-proof-10s.wav — arpeggio L / bass R), and a real mic record pass in the
-installed app. Then the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane canvas,
+**Installed proof (2026-08-10, owner machine):** the P0 stack is remote-green (real-recording run
+`31355158307`), packaged clean as `dist/YesDaw-ba3d86b-win64-portable.zip`, and installed at
+`%LOCALAPPDATA%/YES DAW/ba3d86b`. Mechanical results on the INSTALLED binaries: packaged verifier
+self-test PASS (16/16 fixtures + every mutation/timeout control, exit 0); `--make-demo` +
+`--selfcheck` PASS (demo bundle renders 146,539 stereo frames, integrated -13.28 LUFS,
+export+reimport bit-exact); `YesDawHardwarePlaybackCheck` played real non-silent audio through
+`Speakers (Focusrite USB Audio)` (output_rms 0.0900, worst callback 0.071 ms vs 10 ms budget) and
+honestly failed only the locked `playback_block_exceeds_target` policy — Windows Audio grants
+480-frame blocks; the 128-frame target remains ASIO-gated on Dan's Steinberg agreement (U6,
+owner-only). The installed GUI launched as `YES DAW ba3d86b` (PID 29236); the Desktop shortcut
+targets it and a stereo test WAV (arpeggio L / bass R) is staged at `Documents/stereo-proof-10s.wav`
+for Dan's hands-on pass. Screen-control for an agent-driven GUI proof was declined this session, so
+the interactive stereo/record pass is Dan's to click through — everything it exercises is already
+covered by the shipped-boundary gates in CI.
+
+**Next:** the P1 sweep (loop region, zoom/scroll, markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
 trim-left, copy/paste/duplicate clip, FX param editing).
