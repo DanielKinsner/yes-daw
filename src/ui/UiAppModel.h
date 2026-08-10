@@ -1466,6 +1466,8 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "tempo edit did not persist" }, false };
 
+        refreshSnapGrid();
+        applyMetronomeToPlayback();
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
@@ -1487,6 +1489,8 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "meter edit did not persist" }, false };
 
+        refreshSnapGrid();
+        applyMetronomeToPlayback();
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
@@ -1969,6 +1973,43 @@ public:
     // Metronome toggle (usable-DAW P1): a monitoring click overlay in the playback engine, following
     // the project's head tempo and meter. Never part of offline Render/export. Reapplied whenever the
     // engine is replaced (edits rebuild playback) so the click survives every edit.
+    // Tempo-derived snap grid (usable-DAW P1). The registry keeps abstract placeholder tick values;
+    // the model overwrites snapGridTicks with REAL frame counts from the head tempo/meter so a "bar"
+    // is a bar at the current BPM. Re-derived whenever tempo, meter, or the unit changes.
+    enum class UiSnapUnit : std::uint8_t { Off, Bar, Beat, Sixteenth };
+
+    [[nodiscard]] UiSnapUnit snapUnit() const noexcept { return snapUnit_; }
+
+    void refreshSnapGrid() noexcept
+    {
+        if (snapUnit_ == UiSnapUnit::Off)
+        {
+            context_.snapEnabled = false;
+            return;
+        }
+
+        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        const double beatsPerBar = ! project_.meterMap.empty()
+            ? static_cast<double> (project_.meterMap.front().numerator)
+            : 4.0;
+        const double beatFrames = sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
+        double gridFrames = beatFrames;
+        if (snapUnit_ == UiSnapUnit::Bar)
+            gridFrames = beatFrames * beatsPerBar;
+        else if (snapUnit_ == UiSnapUnit::Sixteenth)
+            gridFrames = beatFrames / 4.0;
+
+        context_.snapEnabled = true;
+        context_.snapGridTicks = std::max<std::int64_t> (1, static_cast<std::int64_t> (gridFrames + 0.5));
+    }
+
+    void setSnapUnit (UiSnapUnit unit) noexcept
+    {
+        snapUnit_ = unit;
+        refreshSnapGrid();
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleMetronome()
     {
         const UiActionId id = UiActionId::TransportToggleMetronome;
@@ -2362,13 +2403,28 @@ public:
             case UiActionId::TimelineToolSelectScissors:
             case UiActionId::TimelineToolSelectHand:
             case UiActionId::TimelineToolSelectZoom:
+            case UiActionId::TimelineAutomationToggleTrackLane:
+            {
+                return registry_.dispatch (id, context_);
+            }
+
             case UiActionId::TimelineSnapDisable:
             case UiActionId::TimelineSnapSetBar:
             case UiActionId::TimelineSnapSetBeat:
             case UiActionId::TimelineSnapSetSixteenth:
-            case UiActionId::TimelineAutomationToggleTrackLane:
             {
-                return registry_.dispatch (id, context_);
+                // The registry flips the abstract snap state; the model then overwrites the grid with
+                // REAL frame counts derived from the head tempo/meter (a bar is a bar at this BPM).
+                UiActionDispatchResult snapResult = registry_.dispatch (id, context_);
+                if (snapResult.dispatched)
+                {
+                    snapUnit_ = id == UiActionId::TimelineSnapDisable ? UiSnapUnit::Off
+                              : id == UiActionId::TimelineSnapSetBar ? UiSnapUnit::Bar
+                              : id == UiActionId::TimelineSnapSetBeat ? UiSnapUnit::Beat
+                              : UiSnapUnit::Sixteenth;
+                    refreshSnapGrid();
+                }
+                return snapResult;
             }
 
             case UiActionId::MixerToggleFirstFxSlotEnabled:
@@ -3039,6 +3095,7 @@ private:
             && findNote (*midiClip, selectedMidiNoteId_) != nullptr;
         syncRecordingContext();
         syncRecordingCompContext();
+        refreshSnapGrid();
     }
 
     [[nodiscard]] UiActionDispatchResult editSelectedMidiNote (UiActionId id,
@@ -3573,6 +3630,7 @@ private:
     };
     UiClipClipboard clipClipboard_;
     std::filesystem::path sessionStateDirectory_;
+    UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
 
     [[nodiscard]] UiActionDispatchResult addClipFromClipboard (UiActionId id,

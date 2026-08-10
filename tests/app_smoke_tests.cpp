@@ -3,6 +3,7 @@
 #include "ui/UiAppModel.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -13,6 +14,7 @@
 #include <string_view>
 #include <vector>
 
+using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
 using yesdaw::engine::Clip;
@@ -615,4 +617,69 @@ TEST_CASE ("last-project record round-trips through the session-state directory"
     }
 
     std::filesystem::remove_all (sessionDir, ec);
+}
+
+TEST_CASE ("mute and solo are audible: the strip state drives the playback mute mask",
+           "[ui][app][mixer][mute-solo]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mute-solo-audible");
+    Project project = makeSmokeProject();
+
+    // Second track with its own clip referencing the same asset, offset later on the timeline.
+    Track second;
+    second.id = idFromLowByte (7);
+    second.strip.name = "Audio 2";
+    project.tracks.push_back (second);
+    Clip clip2 = project.clips.front();
+    clip2.id = idFromLowByte (8);
+    clip2.trackId = second.id;
+    project.clips.push_back (clip2);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    const auto renderPeak = [&] {
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        const std::vector<float> rendered = app.renderPlaybackFrames (64, 32);
+        REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+        float peak = 0.0f;
+        for (const float sample : rendered)
+            peak = std::max (peak, std::abs (sample));
+        return peak;
+    };
+
+    const float bothAudible = renderPeak();
+    REQUIRE (bothAudible > 0.1f);
+
+    // Mute track 1: the output drops (half the summed signal is gone), never rises.
+    REQUIRE (app.selectMixerTrack (0));
+    REQUIRE (app.toggleSelectedMixerMute().dispatched);
+    const float mutedPeak = renderPeak();
+    REQUIRE (mutedPeak < bothAudible);
+    REQUIRE (mutedPeak > 0.0f);   // track 2 still plays
+
+    // Solo the MUTED track 1: per ADR-0014 a muted target's solo does NOT engage solo for the
+    // others, so track 2 keeps playing exactly as before.
+    REQUIRE (app.toggleSelectedMixerSolo().dispatched);
+    const float mutedSoloPeak = renderPeak();
+    REQUIRE (mutedSoloPeak == Approx (mutedPeak).margin (1.0e-6));
+
+    // Unmute: solo isolates track 1 alone -> audible again, and quieter than both together.
+    REQUIRE (app.toggleSelectedMixerMute().dispatched);
+    const float soloPeak = renderPeak();
+    REQUIRE (soloPeak > 0.1f);
+    REQUIRE (soloPeak < bothAudible + 1.0e-6f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }

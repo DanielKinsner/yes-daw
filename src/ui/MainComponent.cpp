@@ -1346,6 +1346,31 @@ public:
         trackRenameEditor.onFocusLost = [this] { dismissTrackRenameEditor(); };
         addChildComponent (trackRenameEditor);
 
+        // Snap grid picker (usable-DAW P1): the four registered snap actions surfaced as one control;
+        // the model derives real frame grids from the head tempo/meter.
+        configureActionComponent (timelineSnapChooser, yesdaw::ui::UiActionId::TimelineSnapSetBeat, "Snap grid");
+        timelineSnapChooser.setComponentID ("timeline.snap.chooser");
+        timelineSnapChooser.addItem ("Snap Off", 1);
+        timelineSnapChooser.addItem ("Bar", 2);
+        timelineSnapChooser.addItem ("Beat", 3);
+        timelineSnapChooser.addItem ("1/16", 4);
+        timelineSnapChooser.setSelectedId (3, juce::dontSendNotification);
+        timelineSnapChooser.onChange = [this] {
+            if (refreshingSnapChooser)
+                return;
+
+            const int selected = timelineSnapChooser.getSelectedId();
+            const yesdaw::ui::UiActionId action =
+                selected == 1 ? yesdaw::ui::UiActionId::TimelineSnapDisable
+                : selected == 2 ? yesdaw::ui::UiActionId::TimelineSnapSetBar
+                : selected == 4 ? yesdaw::ui::UiActionId::TimelineSnapSetSixteenth
+                : yesdaw::ui::UiActionId::TimelineSnapSetBeat;
+            (void) appModel.dispatch (action);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (timelineSnapChooser);
+
         configureAutomationLaneControls();
 
         pianoRollInput.setComponentID (kPianoRollComponentId);
@@ -1789,6 +1814,16 @@ public:
                 rail.getY() + yesdaw::ui::UiTheme::Layout::trackListAddButtonInset,
                 yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth,
                 yesdaw::ui::UiTheme::Layout::trackListAddButtonHeight);
+        }
+        {
+            const auto automationBounds =
+                yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timelineBounds());
+            timelineSnapChooser.setBounds (
+                automationBounds.getX() - yesdaw::ui::UiTheme::Layout::timelineSnapChooserWidth
+                    - yesdaw::ui::UiTheme::Layout::timelineSnapChooserGap,
+                automationBounds.getY(),
+                yesdaw::ui::UiTheme::Layout::timelineSnapChooserWidth,
+                automationBounds.getHeight());
         }
         layoutAutomationLaneControls();
         layoutInspectorControls();
@@ -2777,6 +2812,17 @@ private:
                 }
                 mixerFxSlotToggles[slot].setButtonText (insert.enabled ? label : label + " (byp)");
             }
+        }
+        {
+            refreshingSnapChooser = true;
+            timelineSnapChooser.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
+            timelineSnapChooser.setEnabled (appModel.context().projectLoaded);
+            const int snapId = appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Off ? 1
+                             : appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Bar ? 2
+                             : appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Sixteenth ? 4
+                             : 3;
+            timelineSnapChooser.setSelectedId (snapId, juce::dontSendNotification);
+            refreshingSnapChooser = false;
         }
         const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
         trackListInput.setVisible (railVisible);
@@ -3775,22 +3821,26 @@ private:
 
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
-        {
-            yesdaw::engine::Tick moveTick = *tick;
-            if (snapToGrid)
-            {
-                yesdaw::engine::Tick snapped = 0;
-                if (! yesdaw::engine::snapTick (moveTick, yesdaw::engine::SnapGrid { kTimelineSnapGridTicks }, snapped))
-                    return;
-
-                moveTick = std::max<yesdaw::engine::Tick> (0, snapped);
-            }
-
-            (void) appModel.moveSelectedTimelineClipTo (moveTick);
-        }
+            (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
         repaint();
+    }
+
+    // The active snap grid applied to a gesture tick. The gesture's Ctrl flag INVERTS the global
+    // grid: grid on -> Ctrl drags fine; grid off -> Ctrl snaps one-shot.
+    [[nodiscard]] yesdaw::engine::Tick snappedTimelineTick (yesdaw::engine::Tick tick, bool invertSnap) const
+    {
+        const bool shouldSnap = appModel.context().snapEnabled != invertSnap;
+        const std::int64_t gridTicks = appModel.context().snapGridTicks;
+        if (! shouldSnap || gridTicks <= 0)
+            return tick;
+
+        yesdaw::engine::Tick snapped = 0;
+        if (! yesdaw::engine::snapTick (tick, yesdaw::engine::SnapGrid { gridTicks }, snapped))
+            return tick;
+
+        return std::max<yesdaw::engine::Tick> (0, snapped);
     }
 
     void moveTimelineClipToLaneByLayoutId (int layoutClipId, int targetLane, double startSeconds, bool snapToGrid)
@@ -3804,20 +3854,9 @@ private:
 
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
-        {
-            yesdaw::engine::Tick moveTick = *tick;
-            if (snapToGrid)
-            {
-                yesdaw::engine::Tick snapped = 0;
-                if (! yesdaw::engine::snapTick (moveTick, yesdaw::engine::SnapGrid { kTimelineSnapGridTicks }, snapped))
-                    return;
-
-                moveTick = std::max<yesdaw::engine::Tick> (0, snapped);
-            }
-
             (void) appModel.moveSelectedTimelineClipToTrack (
-                project.tracks[static_cast<std::size_t> (targetLane)].id, moveTick);
-        }
+                project.tracks[static_cast<std::size_t> (targetLane)].id,
+                snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
         repaint();
@@ -4680,6 +4719,7 @@ private:
     juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
+    juce::ComboBox timelineSnapChooser;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;
@@ -4694,6 +4734,7 @@ private:
     std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
     bool refreshingTimeMapControls = false;
+    bool refreshingSnapChooser = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
 

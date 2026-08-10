@@ -743,7 +743,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 48u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 49u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1926,7 +1926,9 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.commandDispatchCount == 2);
     REQUIRE (snapshot.context.timelineEditCount == 0);
 
-    dragFromTo (timeline, { 30, 100 }, { 34, 100 });
+    // The default Beat grid is live, so a fine 4-pixel move needs Ctrl (the grid INVERT).
+    dragFromTo (timeline, { 30, 100 }, { 34, 100 },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
 
     const yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
     REQUIRE (moved.clips.size() == 1u);
@@ -2208,19 +2210,16 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 20);
 
+    // The snap semantics changed with the tempo-derived grid (usable-DAW P1): the grid is ON by
+    // default, so an UNMODIFIED drag snaps and Ctrl now means a FINE (unsnapped) move.
     const juce::Point<int> snapStart = timelineClipCenterPoint (timeline, fadeOutRedone, 0u);
     constexpr int kSnapDeltaPixels = 9;
-    constexpr yesdaw::engine::SnapGrid kSnapGrid { 512 };
     const double unsnappedSeconds = static_cast<double> (fadeOutRedone.clips[0].timelineStart)
                                       / fadeOutRedone.sampleRate.hz
                                   + static_cast<double> (kSnapDeltaPixels)
                                       / timelinePixelsPerSecond (timeline, fadeOutRedone);
     const yesdaw::engine::Tick unsnappedTick =
         static_cast<yesdaw::engine::Tick> (std::llround (unsnappedSeconds * fadeOutRedone.sampleRate.hz));
-    yesdaw::engine::Tick expectedSnappedStart = 0;
-    REQUIRE (yesdaw::engine::snapTick (unsnappedTick, kSnapGrid, expectedSnappedStart));
-    expectedSnappedStart = std::max<yesdaw::engine::Tick> (0, expectedSnappedStart);
-    REQUIRE (expectedSnappedStart != fadeOutRedone.clips[0].timelineStart);
 
     const juce::ModifierKeys ctrlDrag {
         juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
@@ -2231,8 +2230,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapped.clips.size() == 2u);
     REQUIRE (snapped.clips[1] == fadeOutRedone.clips[1]);
     REQUIRE (snapped.clips[0].id == fadeOutRedone.clips[0].id);
-    REQUIRE (snapped.clips[0].timelineStart == expectedSnappedStart);
-    REQUIRE (snapped.clips[0].timelineStart % kSnapGrid.intervalTicks == 0);
+    REQUIRE (snapped.clips[0].timelineStart == unsnappedTick);
     REQUIRE (snapped.clips[0].timelineLength == fadeOutRedone.clips[0].timelineLength);
     REQUIRE (snapped.clips[0].srcOffset == fadeOutRedone.clips[0].srcOffset);
     REQUIRE (snapped.clips[0].srcLen == fadeOutRedone.clips[0].srcLen);
@@ -2395,9 +2393,14 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
         std::span<const float> (afterMixRender.data(), afterMixRender.size()), 0u, 2u);
     const double afterMixRightPeak = channelPeakAbs (
         std::span<const float> (afterMixRender.data(), afterMixRender.size()), 1u, 2u);
-    REQUIRE (afterMixLeftPeak < beforeMixLeftPeak);
-    REQUIRE (afterMixRightPeak < beforeMixRightPeak);
-    REQUIRE (afterMixLeftPeak > afterMixRightPeak);
+    // Track 1 is muted (and its own solo does not engage while muted, ADR-0014), so this render is
+    // the OTHER content alone — audibly different from the two-track mix in both channels. The
+    // precise mute/solo audibility law is pinned by the dedicated app-model mute-solo gate; here the
+    // claim is that the mixer edits changed the real output at all (they were inaudible before the
+    // mute mask was wired to strip state).
+    REQUIRE (afterMixLeftPeak != beforeMixLeftPeak);
+    REQUIRE (afterMixRightPeak != beforeMixRightPeak);
+    REQUIRE (afterMixLeftPeak > 0.01);
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerEditCount >= 4);
@@ -3038,4 +3041,52 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+}
+
+TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("snap-grid");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Default: Beat grid at 120 BPM / 48 kHz -> 24000 frames.
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.snapEnabled);
+    REQUIRE (snapshot.context.snapGridTicks == 24'000);
+
+    // An unmodified drag lands ON the grid.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const juce::Point<int> clipCentre = timelineClipCenterPoint (timeline, project, 0u);
+    dragFromTo (timeline, clipCentre, { clipCentre.x + timeline.getWidth() / 3, clipCentre.y });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.front().timelineStart > 0);
+    REQUIRE (project.clips.front().timelineStart % 24'000 == 0);
+
+    // The chooser switches to Bar: the grid becomes 4 beats at the current meter.
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->isVisible());
+    chooser->setSelectedId (2, juce::sendNotificationSync);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.snapGridTicks == 96'000);
+
+    // Tempo edits re-derive the grid.
+    auto* tempo = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    REQUIRE (tempo != nullptr);
+    tempo->setValue (60.0, juce::sendNotificationSync);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.snapGridTicks == 192'000);
+
+    // Snap Off disables the grid entirely.
+    chooser->setSelectedId (1, juce::sendNotificationSync);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.snapEnabled);
 }

@@ -11,6 +11,7 @@
 #include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
+#include "engine/MixerMutePolicy.h"
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/ImpulseInstrumentNode.h"
@@ -476,6 +477,42 @@ struct ResolvedClipWindow
     {
         result.status = OfflineRenderStatus::MixerProjectionFailed;
         return result;
+    }
+
+    // ADR-0014 mute/solo policy, finally WIRED to the Project's strip state: explicit Mute wins,
+    // active solo mutes every non-soloed non-solo-safe strip, and the mask applies identically to
+    // playback and offline render (export == playback). An audio Track's contribution node is its
+    // per-Track source Sum; a MIDI Clip strip contributes through its per-Clip instrument and
+    // inherits the OWNING Track's mute/solo; a Bus contributes through its Sum.
+    {
+        bool anyActiveSolo = false;
+        for (const Track& track : project.tracks)
+            if (track.strip.soloed && ! track.strip.muted)
+                anyActiveSolo = true;
+        for (const Bus& bus : project.buses)
+            if (bus.strip.soloed && ! bus.strip.muted)
+                anyActiveSolo = true;
+
+        const auto applyStripMute = [&graph, anyActiveSolo] (const MixerStripState& strip, NodeId contributionNodeId)
+        {
+            if (! graph->isMuteCapable (contributionNodeId))
+                return;
+
+            const MixerMuteTarget target { contributionNodeId, strip.muted, strip.soloed, strip.soloSafe };
+            (void) graph->setMuted (contributionNodeId,
+                                    mixerTargetIsEffectivelyMuted (target, anyActiveSolo));
+        };
+
+        for (const Track& track : project.tracks)
+            applyStripMute (track.strip, projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Source));
+
+        for (const MidiClip& midiClip : project.midiClips)
+            if (const Track* const owner = project.findTrack (midiClip.trackId))
+                applyStripMute (owner->strip,
+                                projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument));
+
+        for (const Bus& bus : project.buses)
+            applyStripMute (bus.strip, projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source));
     }
 
     result.graph = std::move (graph);
