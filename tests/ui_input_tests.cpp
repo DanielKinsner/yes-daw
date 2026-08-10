@@ -2540,3 +2540,64 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (mute.getToggleState());
     REQUIRE (solo.getToggleState());
 }
+
+TEST_CASE ("shipped MainComponent dispatches keymap chords through keyPressed",
+           "[ui][input][shell][keyboard]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("keyboard-chords");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    // Ctrl+N news, Ctrl+I imports — the same native-choice path as the toolbar buttons.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('i', juce::ModifierKeys::ctrlModifier, 0)));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE (snapshot.context.importCount == 1);
+
+    // Space plays, K stops.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+
+    // Ctrl+T adds a track through the arrangement verb.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.trackEditCount == 1);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+
+    // Ctrl+Z undoes it; Ctrl+Shift+Z redoes it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+
+    // Select the imported clip with the mouse, then Del removes it and Ctrl+Z restores it.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineClipSelected);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineClipSelected);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+
+    // An unmapped key is not consumed.
+    REQUIRE_FALSE (shell->keyPressed (juce::KeyPress (juce::KeyPress::pageUpKey)));
+}

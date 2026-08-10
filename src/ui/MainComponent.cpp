@@ -198,6 +198,40 @@ juce::Colour stripColourForIndex (std::size_t index)
     return colours[index % colours.size()];
 }
 
+// Translate a JUCE KeyPress into the keymap's chord vocabulary ("Ctrl+Alt+Shift+B", "Space", "Del",
+// "F2", "Ctrl+/"). Modifier order matches the descriptor table: Ctrl, Alt, Shift.
+std::string chordForKeyPress (const juce::KeyPress& key)
+{
+    std::string chord;
+    const juce::ModifierKeys mods = key.getModifiers();
+    if (mods.isCtrlDown() || mods.isCommandDown())
+        chord += "Ctrl+";
+    if (mods.isAltDown())
+        chord += "Alt+";
+    if (mods.isShiftDown())
+        chord += "Shift+";
+
+    const int code = key.getKeyCode();
+    if (code == juce::KeyPress::spaceKey)
+        chord += "Space";
+    else if (code == juce::KeyPress::homeKey)
+        chord += "Home";
+    else if (code == juce::KeyPress::escapeKey)
+        chord += "Esc";
+    else if (code == juce::KeyPress::deleteKey)
+        chord += "Del";
+    else if (code == juce::KeyPress::backspaceKey)
+        chord += "Backspace";
+    else if (code >= juce::KeyPress::F1Key && code <= juce::KeyPress::F12Key)
+        chord += "F" + std::to_string (1 + code - juce::KeyPress::F1Key);
+    else if (code > 32 && code < 127)
+        chord += static_cast<char> (juce::CharacterFunctions::toUpperCase (static_cast<juce::juce_wchar> (code)));
+    else
+        return {};   // unmapped key: no chord, no dispatch
+
+    return chord;
+}
+
 juce::File juceFileFromPath (const std::filesystem::path& path)
 {
     const std::u8string utf8 = path.u8string();
@@ -898,6 +932,7 @@ public:
 
         setOpaque (true);
         setLookAndFeel (&lookAndFeel);
+        setWantsKeyboardFocus (true);   // the declared keymap chords dispatch through keyPressed
         setSize (yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
                  yesdaw::ui::UiTheme::Layout::defaultWindowHeight);
 
@@ -1950,6 +1985,25 @@ private:
             desktopAudioCallbackRegistered = true;
         }
         resumeDesktopAudioAfterSuspend = false;
+    }
+
+    // The keymap's declared chords are live application shortcuts: any KeyPress whose chord matches a
+    // registered action dispatches through the SAME handleAction path the toolbar uses, so Space plays,
+    // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
+    bool keyPressed (const juce::KeyPress& key) override
+    {
+        const std::string chord = chordForKeyPress (key);
+        if (chord.empty())
+            return false;
+
+        const yesdaw::ui::UiActionId action = appModel.registry().keymap().actionForChord (chord);
+        if (action == yesdaw::ui::UiActionId::Count)
+            return false;
+
+        handleAction (action);
+        refreshActionState();
+        repaint();
+        return true;
     }
 
     void handleAction (yesdaw::ui::UiActionId action)
