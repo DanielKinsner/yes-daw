@@ -487,6 +487,11 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int mixerFxChooserHeight = 22;
+        static constexpr int mixerFxSlotHeight = 20;
+        static constexpr int mixerFxSlotGap = 2;
+        static constexpr int mixerFxSlotRemoveWidth = 20;
+        static constexpr std::size_t mixerFxVisibleSlotCount = 5;
         static constexpr int trackListAddButtonWidth = 72;
         static constexpr int trackListAddButtonHeight = 24;
         static constexpr int trackListAddButtonInset = 12;

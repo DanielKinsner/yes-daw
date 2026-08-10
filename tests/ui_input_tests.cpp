@@ -743,7 +743,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 35u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 46u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2753,4 +2753,61 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     REQUIRE (project.tracks.size() == 2u);
     REQUIRE_FALSE (project.tracks.front().strip.muted);
     REQUIRE (project.tracks.back().strip.muted);
+}
+
+TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through real controls",
+           "[ui][input][shell][mixer][fx]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-fx");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Select strip 0 through the rail, then add an EQ and a Reverb from the chooser.
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   headerHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->isEnabled());
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1, juce::sendNotificationSync);
+
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Eq);
+    REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Reverb);
+    REQUIRE (project.tracks.front().strip.fxChain[0].enabled);
+
+    // Slot 0 toggle bypasses the EQ; the persisted chain reflects it.
+    auto* slot0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle"));
+    REQUIRE (slot0 != nullptr);
+    REQUIRE (slot0->isVisible());
+    clickButton (*slot0);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tracks.front().strip.fxChain[0].enabled);
+    REQUIRE (project.tracks.front().strip.fxChain[1].enabled);
+
+    // Removing slot 0 leaves only the Reverb; playback still runs (adopt path rebuilt the graph).
+    auto* remove0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.remove"));
+    REQUIRE (remove0 != nullptr);
+    clickButton (*remove0);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Reverb);
+    REQUIRE (snapshotMainComponent (*shell).playbackReady);
+
+    // Undo restores the removed EQ.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
 }

@@ -1058,6 +1058,140 @@ public:
         });
     }
 
+    // FX insert chain on the SELECTED strip (usable-DAW P0): add/remove/bypass are undoable engine
+    // commands; the audible graph rebuilds through the same adopt path as every other edit.
+    [[nodiscard]] bool selectedMixerOwnerId (engine::EntityId& out) const noexcept
+    {
+        if (! context_.mixerTargetSelected)
+            return false;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Track)
+        {
+            if (selectedMixerTarget_.index >= project_.tracks.size())
+                return false;
+            out = project_.tracks[selectedMixerTarget_.index].id;
+            return true;
+        }
+
+        if (selectedMixerTarget_.index >= project_.buses.size())
+            return false;
+        out = project_.buses[selectedMixerTarget_.index].id;
+        return true;
+    }
+
+    [[nodiscard]] UiActionDispatchResult addFxInsertToSelectedStrip (engine::FxKind kind)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr)
+            return { id, { false, "selected strip missing" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId insertId = allocateSessionEntityId (0xF1u, nextProject);
+        engine::ProjectEditCommand command;
+        command.verb = engine::ProjectEditVerb::AddFxInsert;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxKind = kind;
+        command.fxEnabled = true;
+        command.fxPosition = strip->fxChain.size();
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeFxInsertFromSelectedStrip (std::size_t slotIndex)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertRemove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        engine::ProjectEditCommand command;
+        command.verb = engine::ProjectEditVerb::RemoveFxInsert;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = strip->fxChain[slotIndex].id;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleFxInsertEnabledOnSelectedStrip (std::size_t slotIndex)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertToggle;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        engine::ProjectEditCommand command;
+        command.verb = engine::ProjectEditVerb::SetFxInsertEnabled;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = strip->fxChain[slotIndex].id;
+        command.fxEnabled = ! strip->fxChain[slotIndex].enabled;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // The selected strip's FX chain for UI display (empty when no selection).
+    [[nodiscard]] std::vector<engine::FxInsert> selectedStripFxChain() const
+    {
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return {};
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        return strip != nullptr ? strip->fxChain : std::vector<engine::FxInsert> {};
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleFirstTrackFxSlotEnabled()
     {
         const UiActionId id = UiActionId::MixerToggleFirstFxSlotEnabled;
@@ -1791,6 +1925,17 @@ public:
 
             case UiActionId::MixerToggleFirstFxSlotEnabled:
                 return toggleFirstTrackFxSlotEnabled();
+
+            case UiActionId::MixerFxInsertAdd:
+            case UiActionId::MixerFxInsertRemove:
+            case UiActionId::MixerFxInsertToggle:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "FX slot payload required" }, false };
+            }
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();

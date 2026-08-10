@@ -1840,6 +1840,55 @@ private:
         addAndMakeVisible (mixerStripsInput);
         mixerStripsInput.toBack();   // the shared strip controls stay on top and keep their own clicks
 
+        // FX insert chain on the selected strip (usable-DAW P0): the chooser adds one of the five
+        // built-in FX; each visible slot row toggles bypass or removes the insert — all undoable.
+        configureActionComponent (mixerFxAddChooser, yesdaw::ui::UiActionId::MixerFxInsertAdd, "Add FX insert");
+        mixerFxAddChooser.setTextWhenNothingSelected ("+ FX");
+        mixerFxAddChooser.addItem ("EQ", static_cast<int> (yesdaw::engine::FxKind::Eq) + 1);
+        mixerFxAddChooser.addItem ("Compressor", static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1);
+        mixerFxAddChooser.addItem ("Delay", static_cast<int> (yesdaw::engine::FxKind::Delay) + 1);
+        mixerFxAddChooser.addItem ("Reverb", static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1);
+        mixerFxAddChooser.addItem ("Limiter", static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1);
+        mixerFxAddChooser.onChange = [this] {
+            const int selected = mixerFxAddChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            mixerFxAddChooser.setSelectedId (0, juce::dontSendNotification);
+            (void) appModel.addFxInsertToSelectedStrip (static_cast<yesdaw::engine::FxKind> (selected - 1));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerFxAddChooser);
+
+        for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
+        {
+            auto& toggle = mixerFxSlotToggles[slot];
+            toggle.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".toggle");
+            toggle.setName ("Toggle FX slot " + juce::String (static_cast<int> (slot + 1)) + " bypass");
+            toggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+            toggle.setColour (juce::TextButton::textColourOffId, kText);
+            toggle.onClick = [this, slot] {
+                (void) appModel.toggleFxInsertEnabledOnSelectedStrip (slot);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (toggle);
+
+            auto& remove = mixerFxSlotRemoves[slot];
+            remove.setButtonText ("x");
+            remove.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".remove");
+            remove.setName ("Remove FX slot " + juce::String (static_cast<int> (slot + 1)));
+            remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            remove.setColour (juce::TextButton::textColourOffId, kText);
+            remove.onClick = [this, slot] {
+                (void) appModel.removeFxInsertFromSelectedStrip (slot);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (remove);
+        }
+
         configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
         mixerFader.setSliderStyle (juce::Slider::LinearVertical);
         mixerFader.setTextBoxStyle (juce::Slider::NoTextBox,
@@ -2187,6 +2236,17 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
         }
 
+        mixerFxAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
+        {
+            auto slotRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotHeight);
+            mixerFxSlotRemoves[slot].setBounds (
+                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
+            mixerFxSlotToggles[slot].setBounds (slotRow);
+            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        }
+
         const int selectedStrip = appModel.selectedMixerTrackStripIndex();
         auto lane = mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
@@ -2418,6 +2478,32 @@ private:
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        {
+            const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+            const bool chooserEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerFxInsertAdd, appModel.context()).enabled;
+            mixerFxAddChooser.setEnabled (chooserEnabled);
+            for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
+            {
+                const bool present = slot < chain.size();
+                mixerFxSlotToggles[slot].setVisible (present);
+                mixerFxSlotRemoves[slot].setVisible (present);
+                if (! present)
+                    continue;
+
+                const yesdaw::engine::FxInsert& insert = chain[slot];
+                juce::String label;
+                switch (insert.kind)
+                {
+                    case yesdaw::engine::FxKind::Eq:         label = "EQ"; break;
+                    case yesdaw::engine::FxKind::Compressor: label = "Comp"; break;
+                    case yesdaw::engine::FxKind::Delay:      label = "Delay"; break;
+                    case yesdaw::engine::FxKind::Reverb:     label = "Reverb"; break;
+                    case yesdaw::engine::FxKind::Limiter:    label = "Limiter"; break;
+                }
+                mixerFxSlotToggles[slot].setButtonText (insert.enabled ? label : label + " (byp)");
+            }
+        }
         const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
         trackListInput.setVisible (railVisible);
         trackAddButton.setVisible (railVisible);
@@ -4282,6 +4368,9 @@ private:
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
+    juce::ComboBox mixerFxAddChooser;
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     int selectedTrackLane = -1;

@@ -85,6 +85,9 @@ enum class UiActionId : std::uint8_t
     TrackReorder,
     PianoRollNoteAdd,
     PianoRollNoteDelete,
+    MixerFxInsertAdd,
+    MixerFxInsertRemove,
+    MixerFxInsertToggle,
     Count
 };
 
@@ -391,7 +394,13 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollNoteAdd, "pianoroll.note.add", "Add Note", "Ctrl+Shift+N", "Add note to selected MIDI clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
     { UiActionId::PianoRollNoteDelete, "pianoroll.note.delete", "Delete Note", "Backspace", "Delete selected note",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::MixerFxInsertAdd, "mixer.fx.insert.add", "Add FX", "I", "Add FX insert to selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerFxInsertRemove, "mixer.fx.insert.remove", "Remove FX", "Alt+Shift+X", "Remove FX insert from selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "Alt+B", "Toggle FX insert bypass on selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -866,6 +875,15 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.midiEditCount;
+                break;
+
+            case UiActionId::MixerFxInsertAdd:
+            case UiActionId::MixerFxInsertRemove:
+            case UiActionId::MixerFxInsertToggle:
+                context.activePanel = UiPanel::Mixer;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.mixerEditCount;
                 break;
 
             case UiActionId::Count:
