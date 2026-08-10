@@ -145,6 +145,12 @@ Timeline zoom + horizontal scroll landed (Ctrl+wheel anchored zoom 1x-64x, wheel
 Trim-left landed: plain left-edge drag trims the clip head (source window advances, end fixed);
 Alt+left-edge stays fade-in.
 
+Metronome landed: RT-safe click overlay in PlaybackEngine (precomputed beat/downbeat bursts, integer
+grid math on the audio thread, head-tempo/meter aware, reapplied across engine rebuilds, never in the
+export path; action transport.toggle_metronome, key C). Clip clipboard landed (Ctrl+C/V/D over a new
+undoable AddClip command; paste at playhead on the selected track; duplicate appends after the source).
+Import now lands at the playhead (insertion-point model).
+
 **Next:** the rest of the P1 sweep (markers, snap UI, automation lane canvas,
 piano-roll pencil add/delete, real device chooser, send/bus UI, metronome, launch-time recovery,
 import-at-playhead, export options, menu bar or remove painted one, track-rail mini controls,
