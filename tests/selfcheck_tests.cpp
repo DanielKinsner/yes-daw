@@ -300,3 +300,66 @@ TEST_CASE ("make-demo produces a bundle+mix that satisfies every alpha-verify as
 
     std::filesystem::remove_all (outDir, ec);
 }
+
+TEST_CASE ("selfcheck renders a generated stereo bundle (ADR-0042)", "[selfcheck][render][stereo]")
+{
+    const auto bundlePath = makeTempBundlePath ("selfcheck-stereo");
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::filesystem::path stereoWavPath =
+        std::filesystem::temp_directory_path() / ("yesdaw-selfcheck-stereo-src-" + std::to_string (ticks) + ".wav");
+
+    // Sign-split stereo source so a downmix/swap in the packaged verifier's decode path would misrender.
+    constexpr std::uint64_t kFrames = 512;
+    std::vector<float> interleaved (static_cast<std::size_t> (kFrames) * 2u);
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        interleaved[static_cast<std::size_t> (frame * 2u)]      = 0.5f;
+        interleaved[static_cast<std::size_t> (frame * 2u + 1u)] = -0.25f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+                 stereoWavPath, SampleRate { 48000.0 }, 2, kFrames,
+                 std::span<const float> (interleaved.data(), interleaved.size())).ok());
+
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+
+    Asset imported;
+    const AssetImportRequest import { stereoWavPath, idFromLowByte (11), kFrames, SampleRate { 48000.0 }, 2 };
+    REQUIRE (db.importAssetBytes (import, imported).ok());
+
+    Clip clip;
+    clip.id = idFromLowByte (21);
+    clip.assetId = imported.id;
+    clip.trackId = idFromLowByte (31);
+    clip.timelineStart = 0;
+    clip.timelineLength = static_cast<yesdaw::engine::Tick> (kFrames);
+    clip.srcOffset = 0;
+    clip.srcLen = kFrames;
+    clip.gain = 1.0f;
+    clip.timeBase = TimeBase::SampleLocked;
+
+    Project project;
+    project.id = idFromLowByte (2);
+    project.sampleRate = SampleRate { 48000.0 };
+    project.assets.push_back (imported);
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Stereo 1";
+    project.tracks.push_back (track);
+    project.clips.push_back (clip);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+
+    const yesdaw::app::SelfCheckResult result = yesdaw::app::runSelfCheck (bundlePath);
+    INFO ("selfcheck message: " << result.message);
+    REQUIRE (result.ok);
+    CHECK (result.assetCount == 1u);
+    CHECK (result.clipCount == 1u);
+    CHECK (result.renderedChannels == 2u);
+    CHECK (result.renderedFrames >= kFrames);
+    CHECK (result.exportedFrames == result.renderedFrames);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (stereoWavPath, ec);
+}
