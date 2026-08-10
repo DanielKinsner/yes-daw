@@ -1087,6 +1087,123 @@ private:
     }
 };
 
+// The automation lane canvas (usable-DAW P1): paints the target lane's breakpoints against the SAME
+// timeline viewport math as the arrangement, and turns clicks into real breakpoint edits. Click empty
+// lane = add at (time, value); drag a handle = move; double-click a handle = delete.
+class AutomationLaneCanvasComponent final : public juce::Component
+{
+public:
+    std::function<std::vector<std::pair<double, double>>()> pointsProvider;   // (seconds, normalized value)
+    std::function<double (int)> secondsForLocalX;
+    std::function<int (double)> localXForSeconds;
+    std::function<void (double, double)> onAddPoint;
+    std::function<void (double, double, double)> onMovePoint;   // oldSeconds, newSeconds, newValue
+    std::function<void (double)> onDeletePoint;
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (yesdaw::ui::UiTheme::Color::controlInset());
+        if (! pointsProvider || ! localXForSeconds)
+            return;
+
+        const std::vector<std::pair<double, double>> points = pointsProvider();
+        g.setColour (yesdaw::ui::UiTheme::Color::accentPurple());
+        juce::Path line;
+        bool started = false;
+        for (const auto& [seconds, value] : points)
+        {
+            const juce::Point<float> at { static_cast<float> (localXForSeconds (seconds)),
+                                          yForValue (value) };
+            if (! started)
+            {
+                line.startNewSubPath (at);
+                started = true;
+            }
+            else
+            {
+                line.lineTo (at);
+            }
+        }
+        g.strokePath (line, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::automationCanvasLineWidth));
+
+        for (const auto& [seconds, value] : points)
+        {
+            const float radius = static_cast<float> (yesdaw::ui::UiTheme::Layout::automationCanvasHandleRadius);
+            g.fillEllipse (static_cast<float> (localXForSeconds (seconds)) - radius,
+                           yForValue (value) - radius,
+                           radius + radius,
+                           radius + radius);
+        }
+    }
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        dragOldSeconds.reset();
+        if (const std::optional<double> hit = handleSecondsAt (event.getPosition()))
+        {
+            dragOldSeconds = hit;
+            return;
+        }
+
+        if (onAddPoint && secondsForLocalX)
+            onAddPoint (secondsForLocalX (event.getPosition().x), valueForY (event.getPosition().y));
+    }
+
+    void mouseUp (const juce::MouseEvent& event) override
+    {
+        if (! dragOldSeconds)
+            return;
+
+        const double oldSeconds = *dragOldSeconds;
+        dragOldSeconds.reset();
+        if (! event.mouseWasDraggedSinceMouseDown() || ! onMovePoint || ! secondsForLocalX)
+            return;
+
+        onMovePoint (oldSeconds,
+                     secondsForLocalX (event.getPosition().x),
+                     valueForY (event.getPosition().y));
+    }
+
+    void mouseDoubleClick (const juce::MouseEvent& event) override
+    {
+        if (const std::optional<double> hit = handleSecondsAt (event.getPosition()))
+            if (onDeletePoint)
+                onDeletePoint (*hit);
+    }
+
+private:
+    [[nodiscard]] float yForValue (double value) const
+    {
+        const float height = static_cast<float> (juce::jmax (1, getHeight()));
+        return height * static_cast<float> (1.0 - std::clamp (value, 0.0, 1.0));
+    }
+
+    [[nodiscard]] double valueForY (int y) const
+    {
+        const double height = static_cast<double> (juce::jmax (1, getHeight()));
+        return std::clamp (1.0 - static_cast<double> (y) / height, 0.0, 1.0);
+    }
+
+    [[nodiscard]] std::optional<double> handleSecondsAt (juce::Point<int> position) const
+    {
+        if (! pointsProvider || ! localXForSeconds)
+            return std::nullopt;
+
+        const int hitRadius = yesdaw::ui::UiTheme::Layout::automationCanvasHandleHitRadius;
+        for (const auto& [seconds, value] : pointsProvider())
+        {
+            const juce::Point<int> at { localXForSeconds (seconds),
+                                        static_cast<int> (yForValue (value)) };
+            if (position.getDistanceFrom (at) <= hitRadius)
+                return seconds;
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<double> dragOldSeconds;
+};
+
 // Transparent overlay across the mixer strip region: forwards a click to the strip index under the
 // pointer (geometry owned by MainComponent so paint and hits share one source of truth).
 class MixerStripsInputComponent final : public juce::Component
@@ -1406,6 +1523,69 @@ public:
         addAndMakeVisible (timelineSnapChooser);
 
         configureAutomationLaneControls();
+
+        // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
+        // timeline viewport math as the arrangement; targets the selected track's fader lane.
+        automationLaneCanvas.setComponentID ("timeline.automation.canvas");
+        automationLaneCanvas.setName ("Automation Lane");
+        automationLaneCanvas.setTitle ("Automation Lane");
+        automationLaneCanvas.pointsProvider = [this] {
+            std::vector<std::pair<double, double>> points;
+            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+            if (! trackId.isValid() || ! appModel.project().sampleRate.isValid())
+                return points;
+
+            if (const yesdaw::engine::AutomationLaneData* const lane = appModel.trackFaderAutomationLane (trackId))
+            {
+                const double sampleRateHz = appModel.project().sampleRate.hz;
+                points.reserve (lane->points.size());
+                for (const yesdaw::engine::AutomationBreakpoint& point : lane->points)
+                    points.emplace_back (static_cast<double> (point.tick) / sampleRateHz, point.value);
+            }
+            return points;
+        };
+        automationLaneCanvas.secondsForLocalX = [this] (int localX) {
+            return automationCanvasSecondsForLocalX (localX);
+        };
+        automationLaneCanvas.localXForSeconds = [this] (double seconds) {
+            return automationCanvasLocalXForSeconds (seconds);
+        };
+        automationLaneCanvas.onAddPoint = [this] (double seconds, double value) {
+            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+                tick && trackId.isValid())
+            {
+                (void) appModel.addAutomationBreakpointToTrackLane (trackId, *tick, value);
+                refreshActionState();
+                repaint();
+            }
+        };
+        automationLaneCanvas.onMovePoint = [this] (double oldSeconds, double newSeconds, double newValue) {
+            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+            const yesdaw::engine::AutomationLaneData* const lane =
+                trackId.isValid() ? appModel.trackFaderAutomationLane (trackId) : nullptr;
+            const std::optional<yesdaw::engine::Tick> oldTick = timelineTickFromSeconds (oldSeconds);
+            const std::optional<yesdaw::engine::Tick> newTick = timelineTickFromSeconds (newSeconds);
+            if (lane != nullptr && oldTick && newTick)
+            {
+                (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick, *newTick, newValue);
+                refreshActionState();
+                repaint();
+            }
+        };
+        automationLaneCanvas.onDeletePoint = [this] (double seconds) {
+            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+            const yesdaw::engine::AutomationLaneData* const lane =
+                trackId.isValid() ? appModel.trackFaderAutomationLane (trackId) : nullptr;
+            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+                lane != nullptr && tick)
+            {
+                (void) appModel.removeAutomationBreakpointAtTick (lane->id, *tick);
+                refreshActionState();
+                repaint();
+            }
+        };
+        addChildComponent (automationLaneCanvas);
 
         pianoRollInput.setComponentID (kPianoRollComponentId);
         pianoRollInput.setName ("Piano Roll");
@@ -2569,6 +2749,7 @@ private:
         const auto timeline = timelineBounds();
         automationLaneToggle.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timeline));
         automationLaneRow.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
+        automationLaneCanvas.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
         automationBreakpointAddButton.setBounds (
             yesdaw::ui::UiTheme::Layout::automationBreakpointAddButtonBounds (timeline));
         automationBreakpointDeleteButton.setBounds (
@@ -2894,6 +3075,9 @@ private:
         automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
         const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
         automationLaneRow.setVisible (laneVisible);
+        automationLaneCanvas.setVisible (laneVisible);
+        if (laneVisible)
+            automationLaneCanvas.repaint();
 
         const auto addState = appModel.registry().stateFor (
             yesdaw::ui::UiActionId::TimelineAutomationAddBreakpoint,
@@ -3849,6 +4033,45 @@ private:
         repaint();
     }
 
+    [[nodiscard]] yesdaw::engine::EntityId automationTargetTrackId() const noexcept
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (tracks.empty())
+            return {};
+
+        const int lane = selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size())
+            ? selectedTrackLane
+            : int {};
+        return tracks[static_cast<std::size_t> (lane)].id;
+    }
+
+    [[nodiscard]] double automationCanvasSecondsForLocalX (int localX)
+    {
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        const int timelineLocalX = localX + automationLaneCanvas.getX() - timelineInput.getX();
+        return std::max (0.0,
+                         state.viewport.scrollSeconds
+                             + static_cast<double> (timelineLocalX - geometry.clipArea.getX()) / pixelsPerSecond);
+    }
+
+    [[nodiscard]] int automationCanvasLocalXForSeconds (double seconds)
+    {
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        const int timelineLocalX = geometry.clipArea.getX()
+            + juce::roundToInt ((seconds - state.viewport.scrollSeconds) * pixelsPerSecond);
+        return timelineLocalX - (automationLaneCanvas.getX() - timelineInput.getX());
+    }
+
     [[nodiscard]] std::optional<yesdaw::engine::Tick> timelineTickFromSeconds (double seconds) const noexcept
     {
         const yesdaw::engine::Project& project = appModel.project();
@@ -4770,6 +4993,7 @@ private:
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;
+    AutomationLaneCanvasComponent automationLaneCanvas;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;

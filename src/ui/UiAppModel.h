@@ -2207,6 +2207,137 @@ public:
         return { id, state, true };
     }
 
+    // Automation lane canvas verbs (usable-DAW P1): target ANY track's fader lane by owner id,
+    // creating the lane on first use (grouped with the first breakpoint into one undo step).
+    [[nodiscard]] const engine::AutomationLaneData* trackFaderAutomationLane (engine::EntityId trackId) const noexcept
+    {
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+            if (lane.ownerEntity == trackId
+                && lane.role == engine::AutomationTargetRole::TrackFader
+                && lane.paramId == engine::FaderNode::kGainParameterId)
+                return &lane;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] UiActionDispatchResult addAutomationBreakpointToTrackLane (engine::EntityId trackId,
+                                                                             engine::Tick tick,
+                                                                             double value)
+    {
+        const UiActionId id = UiActionId::TimelineAutomationAddBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (tick < 0 || ! std::isfinite (value))
+            return { id, { false, "breakpoint payload invalid" }, false };
+
+        const double clampedValue = std::clamp (value, 0.0, 1.0);
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+
+        engine::EntityId laneId;
+        if (const engine::AutomationLaneData* const lane = trackFaderAutomationLane (trackId))
+        {
+            laneId = lane->id;
+        }
+        else
+        {
+            laneId = allocateSessionEntityId (0xE2u, nextProject);
+            engine::ProjectEditCommand createLane;
+            createLane.verb = engine::ProjectEditVerb::AddAutomationLane;
+            createLane.automationLaneId = laneId;
+            createLane.automationOwnerId = trackId;
+            createLane.automationRole = engine::AutomationTargetRole::TrackFader;
+            createLane.automationParamId = engine::FaderNode::kGainParameterId;
+            if (! nextUndo.apply (nextProject, createLane).applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, { false, "automation lane create failed" }, false };
+            }
+        }
+
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::addAutomationBreakpoint (laneId, tick, clampedValue,
+                                                                 engine::AutomationCurveType::Linear));
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult moveAutomationBreakpointTo (engine::EntityId laneId,
+                                                                     engine::Tick oldTick,
+                                                                     engine::Tick newTick,
+                                                                     double newValue)
+    {
+        const UiActionId id = UiActionId::TimelineAutomationAddBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (oldTick < 0 || newTick < 0 || ! std::isfinite (newValue))
+            return { id, { false, "breakpoint payload invalid" }, false };
+
+        const double clampedValue = std::clamp (newValue, 0.0, 1.0);
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+
+        bool ok = true;
+        if (newTick != oldTick)
+            ok = nextUndo.apply (nextProject,
+                                 engine::ProjectEditCommand::moveAutomationBreakpoint (laneId, oldTick, newTick))
+                     .applied();
+        if (ok)
+            ok = nextUndo.apply (nextProject,
+                                 engine::ProjectEditCommand::setAutomationBreakpointValue (laneId, newTick, clampedValue))
+                     .applied();
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+        if (! ok)
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeAutomationBreakpointAtTick (engine::EntityId laneId,
+                                                                           engine::Tick tick)
+    {
+        const UiActionId id = UiActionId::TimelineAutomationDeleteBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::removeAutomationBreakpoint (laneId, tick)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult addFirstTrackAutomationBreakpoint (
         engine::Tick tick = kFirstTrackAutomationBreakpointAddTick,
         double value = kFirstTrackAutomationBreakpointAddValue,

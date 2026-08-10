@@ -487,6 +487,9 @@ struct UiTheme
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
+        static constexpr int automationCanvasHandleRadius = 4;
+        static constexpr int automationCanvasHandleHitRadius = 7;
+        static constexpr float automationCanvasLineWidth = 1.6f;
         static constexpr int timelineSnapChooserWidth = 96;
         static constexpr int timelineSnapChooserGap = 8;
         static constexpr double timelineZoomWheelStep = 1.25;

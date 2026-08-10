@@ -744,7 +744,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 49u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 50u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -3135,4 +3135,59 @@ TEST_CASE ("markers add on ruler double-click and M, remove on Alt+click, and pa
     REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 2u);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
+}
+
+TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that the render follows",
+           "[ui][input][shell][automation-canvas]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-canvas");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->isVisible());
+    REQUIRE (canvas->getWidth() > 0);
+
+    // Click low in the lane: a breakpoint appears with a LOW normalized value at the clicked time,
+    // creating the selected track's fader lane on first use.
+    const int lowY = (canvas->getHeight() * 9) / 10;
+    mouseDownAt (*canvas, { canvas->getWidth() / 2, lowY });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.front().value < 0.25);
+    const yesdaw::engine::Tick firstTick = project.automationLanes.front().points.front().tick;
+    REQUIRE (firstTick > 0);
+
+    // A second, earlier breakpoint at the top: full value.
+    mouseDownAt (*canvas, { canvas->getWidth() / 4, 1 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.front().points.size() == 2u);
+    REQUIRE (project.automationLanes.front().points.front().value > 0.9);
+
+    // Drag the low breakpoint to the top: its value rises (grouped move+set = one undo step).
+    const int handleX = canvas->getWidth() / 2;
+    dragFromTo (*canvas, { handleX, lowY }, { handleX, 1 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.front().points.size() == 2u);
+    REQUIRE (project.automationLanes.front().points.back().value > 0.9);
+
+    // Double-click deletes it.
+    doubleClickAt (*canvas, { handleX, 1 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+
+    // Undo restores the deleted point.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.front().points.size() == 2u);
 }
