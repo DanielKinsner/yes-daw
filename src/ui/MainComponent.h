@@ -14,6 +14,7 @@
 #include <functional>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace yesdaw::ui {
@@ -26,6 +27,10 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseImportAudioFile;
     std::function<std::filesystem::path()> chooseExportAudioFile;
     std::function<engine::Project()> makeNewProject;
+    // Audio device seams (usable-DAW P1 real device chooser): the native shell defaults these to the
+    // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
+    std::function<std::vector<std::string>()> listAudioOutputDevices;
+    std::function<bool (const std::string&)> selectAudioOutputDevice;
 };
 
 struct MainComponentSnapshot

@@ -1666,6 +1666,37 @@ public:
         };
         addAndMakeVisible (pianoRollInput);
 
+        // Real audio device chooser (usable-DAW P1): lists the machine's output devices and switches
+        // the live device on selection. The harness injects deterministic device seams; the native
+        // shell enumerates and switches through the JUCE device manager.
+        audioDeviceChooser.setComponentID ("shell.device.chooser");
+        audioDeviceChooser.setName ("Audio output device");
+        audioDeviceChooser.setTitle ("Audio output device");
+        audioDeviceChooser.setTextWhenNothingSelected ("Audio Device");
+        audioDeviceChooser.setTextWhenNoChoicesAvailable ("No Devices");
+        audioDeviceChooser.onChange = [this] {
+            if (refreshingAudioDeviceChooser)
+                return;
+
+            const int selected = audioDeviceChooser.getSelectedId();
+            if (selected <= 0
+                || static_cast<std::size_t> (selected - 1) >= audioDeviceChooserNames.size())
+                return;
+
+            suspendDesktopAudioCallback();
+            const bool switched =
+                selectAudioOutputDeviceByName (audioDeviceChooserNames[static_cast<std::size_t> (selected - 1)]);
+            resumeDesktopAudioCallback();
+            if (switched)
+                if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
+                    appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
+            refreshAudioDeviceChooser();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (audioDeviceChooser);
+        refreshAudioDeviceChooser();
+
         configureInspectorControls();
         configureMixerControls();
         resized();
@@ -1708,6 +1739,7 @@ public:
                 audioDeviceManager.addAudioCallback (this);
                 desktopAudioCallbackRegistered = true;
                 desktopAudioOpen.store (true, std::memory_order_release);
+                refreshAudioDeviceChooser();   // now the current device can be marked selected
             }
         }
 
@@ -2018,6 +2050,7 @@ public:
 
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
+        audioDeviceChooser.setBounds (yesdaw::ui::UiTheme::Layout::audioDeviceChooserBounds());
         exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
         exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
         exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
@@ -2898,6 +2931,64 @@ private:
         resumeDesktopAudioCallback();
     }
 
+    // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
+    // talks to the JUCE device manager.
+    [[nodiscard]] std::vector<std::string> enumerateAudioOutputDeviceNames()
+    {
+        if (fileChoices.listAudioOutputDevices)
+            return fileChoices.listAudioOutputDevices();
+
+        std::vector<std::string> names;
+        if (! desktopAudioRequested)
+            return names;
+
+        for (juce::AudioIODeviceType* type : audioDeviceManager.getAvailableDeviceTypes())
+        {
+            if (type == nullptr)
+                continue;
+
+            type->scanForDevices();
+            for (const juce::String& name : type->getDeviceNames (false))
+                names.push_back (name.toStdString());
+        }
+        return names;
+    }
+
+    [[nodiscard]] bool selectAudioOutputDeviceByName (const std::string& name)
+    {
+        if (fileChoices.selectAudioOutputDevice)
+            return fileChoices.selectAudioOutputDevice (name);
+
+        if (! desktopAudioRequested)
+            return false;
+
+        juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
+        setup.outputDeviceName = juce::String (name);
+        return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+    }
+
+    void refreshAudioDeviceChooser()
+    {
+        refreshingAudioDeviceChooser = true;
+        audioDeviceChooserNames = enumerateAudioOutputDeviceNames();
+        audioDeviceChooser.clear (juce::dontSendNotification);
+
+        juce::String current;
+        if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
+            current = device->getName();
+
+        for (std::size_t index = 0; index < audioDeviceChooserNames.size(); ++index)
+        {
+            audioDeviceChooser.addItem (juce::String (audioDeviceChooserNames[index]),
+                                        static_cast<int> (index) + 1);
+            if (current.isNotEmpty() && current == juce::String (audioDeviceChooserNames[index]))
+                audioDeviceChooser.setSelectedId (static_cast<int> (index) + 1, juce::dontSendNotification);
+        }
+
+        audioDeviceChooser.setEnabled (! audioDeviceChooserNames.empty());
+        refreshingAudioDeviceChooser = false;
+    }
+
     void handleActionWhileAudioStopped (yesdaw::ui::UiActionId action)
     {
         switch (action)
@@ -3004,6 +3095,11 @@ private:
                 (void) appModel.dispatch (action);
                 return;
             }
+
+            case yesdaw::ui::UiActionId::DeviceRefreshAudio:
+                refreshAudioDeviceChooser();
+                (void) appModel.dispatch (action);
+                return;
 
             case yesdaw::ui::UiActionId::TrackRename:
                 if (selectedTrackLane >= 0)
@@ -5079,6 +5175,9 @@ private:
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
     juce::AudioDeviceManager audioDeviceManager;
+    juce::ComboBox audioDeviceChooser;
+    std::vector<std::string> audioDeviceChooserNames;
+    bool refreshingAudioDeviceChooser = false;
     const bool desktopAudioRequested = false;
     bool desktopAudioCallbackRegistered = false;
     int desktopAudioCallbackSuspendDepth = 0;

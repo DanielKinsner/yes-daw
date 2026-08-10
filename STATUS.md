@@ -209,8 +209,17 @@ shell test — add Compressor, edit threshold via the real slider, persisted val
 reverts, edit toggle hides the rows. (Lesson re-learned: the UiActionDescriptor table is indexed by
 enum value — a new action's descriptor goes at the END of the table, matching the enum.)
 
-**Next:** real device chooser, send/bus UI, export options (bit depth / sample rate / range),
-menu bar or remove painted one, track-rail mini pan/VOL/meter interactivity.
+**DONE: real audio device chooser** — a header ComboBox (`shell.device.chooser`) lists the
+machine's output devices and switches the live device on selection (JUCE device-manager setup
+swap, callback suspended around the switch, playback max block size re-synced from the new
+device). The Refresh toolbar button now also re-enumerates. Harness seams
+(listAudioOutputDevices / selectAudioOutputDevice on MainComponentFileChoices) keep it
+deterministic under test; without a backend the chooser is present, empty, disabled. Gates:
+[device] pair — injected two-device list drives the switch seam with the chosen name; harness
+shell shows the empty/disabled state.
+
+**Next:** send/bus UI, export options (bit depth / sample rate / range), menu bar or remove
+painted one, track-rail mini pan/VOL/meter interactivity.
 
 ---
 

@@ -744,7 +744,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 71u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 72u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2822,6 +2822,45 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+}
+
+TEST_CASE ("audio device chooser lists devices and switches the output device", "[ui][input][shell][device]")
+{
+    std::vector<std::string> selectedNames;
+
+    MainComponentFileChoices choices;
+    choices.listAudioOutputDevices = [] {
+        return std::vector<std::string> { "Alpha Out", "Beta Out" };
+    };
+    choices.selectAudioOutputDevice = [&selectedNames] (const std::string& name) {
+        selectedNames.push_back (name);
+        return true;
+    };
+
+    auto shell = makeShell (std::move (choices));
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->isEnabled());
+    REQUIRE (chooser->getNumItems() == 2);
+    REQUIRE (chooser->getItemText (0) == "Alpha Out");
+    REQUIRE (chooser->getItemText (1) == "Beta Out");
+
+    // Selecting an entry drives the device-switch seam with the chosen name.
+    chooser->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (selectedNames.size() == 1u);
+    REQUIRE (selectedNames.front() == "Beta Out");
+}
+
+TEST_CASE ("audio device chooser is present but empty without a device backend", "[ui][input][shell][device]")
+{
+    // Harness shell: no desktop audio and no injected seams, so enumeration is deterministically empty.
+    auto shell = makeShell();
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getNumItems() == 0);
+    REQUIRE_FALSE (chooser->isEnabled());
 }
 
 TEST_CASE ("FX parameter sliders edit the selected insert undoably through real controls",
