@@ -327,6 +327,7 @@ public:
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
+    std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
 
     void paint (juce::Graphics& g) override
     {
@@ -391,6 +392,15 @@ public:
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (geometry.rulerArea.contains (event.getPosition()))
         {
+            // Shift-drag on the ruler defines a loop region (usable-DAW P1); plain drag locates.
+            if (event.mods.isShiftDown())
+            {
+                loopDragActive = true;
+                loopDragStartSeconds =
+                    timelineSecondsAt (state, getLocalBounds(), event.getPosition()).value_or (0.0);
+                return;
+            }
+
             playheadLocateActive = true;
             if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                 if (onTimelineLocated)
@@ -420,6 +430,24 @@ public:
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (loopDragActive)
+        {
+            loopDragActive = false;
+            if (stateProvider && onLoopRegionDragged)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                if (const std::optional<double> endSeconds =
+                        timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                {
+                    const double first = std::min (loopDragStartSeconds, *endSeconds);
+                    const double second = std::max (loopDragStartSeconds, *endSeconds);
+                    if (second > first)
+                        onLoopRegionDragged (first, second);
+                }
+            }
+            return;
+        }
+
         if (playheadLocateActive)
         {
             playheadLocateActive = false;
@@ -632,6 +660,8 @@ private:
 
     TimelineDragState dragState;
     bool playheadLocateActive = false;
+    bool loopDragActive = false;
+    double loopDragStartSeconds = 0.0;
 };
 
 struct PianoRollCanvasGeometry
@@ -1139,6 +1169,16 @@ public:
         timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds) {
             adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds);
         };
+        timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds) {
+            const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
+            const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
+            if (startFrame && endFrame && *endFrame > *startFrame)
+            {
+                (void) appModel.setPlaybackLoopRegion (*startFrame, *endFrame);
+                refreshActionState();
+                repaint();
+            }
+        };
         timelineInput.onTimelineLocated = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
             {
@@ -1442,6 +1482,8 @@ public:
             && static_cast<bool> (fileChoices.chooseExportAudioFile);
     }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
+    [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
+    [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
     [[nodiscard]] int harnessVisibleTimelineTrackCount() const
     {
         return appModel.context().projectLoaded ? static_cast<int> (projectTimelineTracks.size()) : 0;
@@ -4684,6 +4726,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.deviceAudioCallbackBlockCount = mainComponent->harnessDeviceAudioCallbackBlockCount();
         snapshot.deviceAudioNonSilentBlockCount = mainComponent->harnessDeviceAudioNonSilentBlockCount();
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
+        snapshot.playbackLoopStartFrame = mainComponent->harnessPlaybackLoopStartFrame();
+        snapshot.playbackLoopEndFrame = mainComponent->harnessPlaybackLoopEndFrame();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
         snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();

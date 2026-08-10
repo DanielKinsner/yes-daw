@@ -2780,9 +2780,17 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     REQUIRE (chooser != nullptr);
     REQUIRE (chooser->isEnabled());
     chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project afterFirst = readProjectSnapshot (bundlePath);
+        INFO ("after first add: chain size " << afterFirst.tracks.front().strip.fxChain.size()
+              << " mixerEditCount " << snapshotMainComponent (*shell).context.mixerEditCount);
+        REQUIRE (afterFirst.tracks.front().strip.fxChain.size() == 1u);
+    }
     chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1, juce::sendNotificationSync);
 
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    INFO ("after second add: chain size " << project.tracks.front().strip.fxChain.size()
+          << " mixerEditCount " << snapshotMainComponent (*shell).context.mixerEditCount);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
     REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Eq);
     REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Reverb);
@@ -2854,4 +2862,41 @@ TEST_CASE ("header tempo and time-signature controls edit the project time map u
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE ((project.tempoMap.empty() || project.tempoMap.front().bpm != 140.0));
+}
+
+TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][shell][loop]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("loop-region");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.loopEnabled);
+
+    // Shift-drag across the ruler strip: a loop region between two distinct positions.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const int rulerY = rulerGeometry.rulerArea.getCentreY();
+    const juce::Point<int> from { timeline.getWidth() / 4, rulerY };
+    const juce::Point<int> to { (timeline.getWidth() * 3) / 4, rulerY };
+    dragFromTo (timeline, from, to,
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier));
+
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.playbackLoopEndFrame > snapshot.playbackLoopStartFrame);
+    REQUIRE (snapshot.playbackLoopStartFrame >= 0);
+
+    // The loop toggle still clears it.
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportToggleLoop));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.loopEnabled);
 }

@@ -421,3 +421,33 @@ TEST_CASE ("real capture session records device input into a persisted take at t
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.selectMixerTrack (0));
+
+    for (int i = 0; i < 10; ++i)
+    {
+        const auto result = app.addFxInsertToSelectedStrip (yesdaw::engine::FxKind::Eq);
+        INFO ("add " << i << " dispatched " << result.dispatched
+              << " reason '" << result.state.disabledReason << "'");
+        REQUIRE (result.dispatched);
+        REQUIRE (app.project().tracks.front().strip.fxChain.size() == static_cast<std::size_t> (i + 1));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

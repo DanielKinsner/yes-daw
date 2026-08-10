@@ -37,6 +37,8 @@ struct MainComponentSnapshot
     std::uint64_t deviceAudioCallbackBlockCount = 0;
     std::uint64_t deviceAudioNonSilentBlockCount = 0;
     bool playbackReady = false;
+    long long playbackLoopStartFrame = 0;
+    long long playbackLoopEndFrame = 0;
     int visibleTimelineTrackCount = 0;
     int visibleTimelineClipCount = 0;
     double visibleTimelineTotalSeconds = 0.0;

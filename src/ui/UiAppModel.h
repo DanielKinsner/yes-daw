@@ -1386,6 +1386,38 @@ public:
         return strip != nullptr ? strip->fxChain : std::vector<engine::FxInsert> {};
     }
 
+    // User-defined loop region (usable-DAW P1): shift-drag on the ruler sets the transport loop to an
+    // arbitrary frame range; the loop toggle then clears/re-enables it.
+    [[nodiscard]] UiActionDispatchResult setPlaybackLoopRegion (std::int64_t startFrame, std::int64_t endFrame)
+    {
+        const UiActionId id = UiActionId::TransportToggleLoop;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (playback_ == nullptr || startFrame < 0 || endFrame <= startFrame)
+            return { id, { false, "loop region must be a positive range" }, false };
+
+        if (! playback_->setLoop (startFrame, endFrame))
+            return { id, { false, "loop region rejected" }, false };
+
+        drainTransport (*playback_);
+        refreshTransportSnapshot();
+        context_.loopEnabled = true;
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] std::int64_t playbackLoopStartFrame() const noexcept
+    {
+        return playback_ != nullptr ? playback_->loopStartFrame() : 0;
+    }
+
+    [[nodiscard]] std::int64_t playbackLoopEndFrame() const noexcept
+    {
+        return playback_ != nullptr ? playback_->loopEndFrame() : 0;
+    }
+
     [[nodiscard]] UiActionDispatchResult setProjectTempoBpm (double bpm)
     {
         const UiActionId id = UiActionId::TransportSetTempo;
@@ -3042,50 +3074,13 @@ private:
         return engine::EntityId::fromBigEndianParts (0x5945534441570000ull, 1ull);
     }
 
+    // Delegates to the engine's authoritative scan. A private near-copy used to live here and had
+    // drifted stale — it never scanned FX-insert or automation-lane ids, so two same-millisecond FX
+    // adds could collide and the second was silently rejected as DuplicateEntityId.
     [[nodiscard]] static bool projectContainsEntityId (const engine::Project& project,
                                                        engine::EntityId id) noexcept
     {
-        if (! id.isValid())
-            return false;
-
-        if (project.id == id)
-            return true;
-
-        for (const engine::Asset& asset : project.assets)
-            if (asset.id == id)
-                return true;
-
-        for (const engine::Track& track : project.tracks)
-            if (track.id == id)
-                return true;
-
-        for (const engine::Bus& bus : project.buses)
-            if (bus.id == id)
-                return true;
-
-        for (const engine::Clip& clip : project.clips)
-            if (clip.id == id)
-                return true;
-
-        for (const engine::RecordingTake& take : project.recordingTakes)
-            if (take.id == id)
-                return true;
-
-        for (const engine::ProjectRecordingCompSegment& segment : project.recordingCompSegments)
-            if (segment.id == id)
-                return true;
-
-        for (const engine::MidiClip& midiClip : project.midiClips)
-        {
-            if (midiClip.id == id)
-                return true;
-
-            for (const engine::Note& note : midiClip.notes)
-                if (note.id == id)
-                    return true;
-        }
-
-        return false;
+        return engine::detail::projectContainsEntityId (project, id);
     }
 
     [[nodiscard]] engine::EntityId allocateSessionEntityId (std::uint8_t seedByte) const
