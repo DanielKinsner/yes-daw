@@ -133,8 +133,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     return-to-start-on-Stop option. The shipped-boundary gates prove exact locate, no accidental
     Marker persistence, sample-identical replay, audible playback, unique chords, and a byte-identical
     `project.db` because the remembered locate is honestly transient transport state.
-21. **Count-in for record** — Options toggle: Record waits one bar of metronome before
-    capture starts (head tempo/meter). Gate: captured take's first frame aligns to bar 2.
+21. [x] **Count-in for record** — landed in `255a960`; deterministic macOS gate repair
+    `404ecbd` (exact-head run `31537060191`, nine jobs green). The default-off Options toggle
+    makes `R` roll one audible head-tempo/meter bar before deterministic or real-device capture;
+    `K` cancels pending count-in. In 150 BPM 7/8 at 48 kHz, the shipped-boundary gates prove no
+    pre-roll input persists and the real Take/Clip/MIDI playback mutation starts at bar 2, frame
+    67,200, with unique chords and denominator-correct click spacing.
 22. **Tool keys** — single-key tool switching that doesn't collide with existing chords
     (audit first; e.g. F1–F5 or `A`=pointer, `D`=pencil, `G`=scissors — grep for free keys).
     Esc also returns to pointer.

@@ -433,7 +433,7 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B20 evidence handoff `40d479c` is exact-head green across all nine jobs in run `31530699729`.
 
-**Implementation-ready for B21 — Count-in for record:** audited the existing `R` Record descriptor and
+**Done and remote-green for B21 — Count-in for record (`255a960`; gate repair `404ecbd`):** audited the existing `R` Record descriptor and
 keymap, real Options-menu toggle pattern, deterministic test-device recording commit, desktop-input
 capture FIFO, punch-window compensation, Project Take/Clip/MIDI persistence, playback rebuild, and
 head tempo/meter state before adding anything. Appended the unique `Ctrl+Alt+Shift+R`
@@ -470,11 +470,16 @@ follow-enabled assertions invoke one callback deterministically; the focused gat
 A second clean Release rebuild plus full local `ctest --preset ci` is green **344/344**, and both
 protected files are byte-identical.
 
-**Now:** commit and push only the B21 macOS playhead-follow gate repair.
+Exact repaired-head GitHub Actions run `31537060191` is green across all nine jobs: Linux, Windows,
+macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the repaired exact B21 head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then land the separate B21 backlog-tick/evidence
-checkpoint and stop before B22.
+The B21 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B21 backlog-tick/evidence checkpoint.
+
+**Next:** require the exact B21 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Then stop at the checkpoint; B22 is the next backlog item.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
