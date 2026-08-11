@@ -95,7 +95,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     Ctrl+0 fits the whole project horizontally; Ctrl+Shift+0 zooms to the current loop region.
     The shipped-boundary gate proves exact viewport scroll+zoom snapshots while persisted Clips and
     the playback loop remain unchanged; this is honestly view-only.
-15. **Keyboard zoom** — `+`/`-` zoom in/out anchored at the playhead.
+15. [x] **Keyboard zoom** — landed in `330b90d` (exact-head run `31494171745`, nine jobs
+    green). `+`/`-` zoom in/out through the same exact viewport math as Ctrl-wheel while keeping
+    the playhead at the same pixel. The shipped-boundary gate proves the physical shifted-plus key,
+    unique chords, exact zoom/scroll snapshots, whole-Project clamp, unchanged persisted Clips, and
+    bit-identical playback; this is honestly view-only.
 16. **Arrow navigation** — Up/Down select previous/next track (rail highlight follows);
     Left/Right move the playhead by one grid unit; Shift+Left/Right by one bar.
 17. **Playhead follow (auto-scroll)** — during playback the viewport pages so the playhead
