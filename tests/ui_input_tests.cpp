@@ -3066,6 +3066,168 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     REQUIRE (project.clips.size() == 2u);   // both clips live on the surviving track; nothing was lost
 }
 
+TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted mixer edits",
+           "[ui][input][shell][tracks][arrow-navigation]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("arrow-track-navigation");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 2u);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.clips.front().trackId == original.tracks.front().id);
+
+    const auto renderShell = [&shell]
+    {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto changedPixelsIn = [] (const juce::Image& first,
+                                     const juce::Image& second,
+                                     juce::Rectangle<int> area)
+    {
+        int changed = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                if (first.getPixelAt (x, y) != second.getPixelAt (x, y))
+                    ++changed;
+        return changed;
+    };
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 2);
+    const juce::Rectangle<int> firstRow {
+        rail->getX(), rail->getY() + headerHeight, rail->getWidth(), rowHeight
+    };
+    const juce::Rectangle<int> secondRow = firstRow.translated (0, rowHeight);
+
+    // From no rail selection, Down starts at Track 1 and the next Down reaches Track 2. Up must
+    // then move the real painted highlight back to row one; both row surfaces must visibly change.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    const juce::Image secondSelected = renderShell();
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+    const juce::Image firstSelected = renderShell();
+    REQUIRE (changedPixelsIn (secondSelected, firstSelected, firstRow) > 0);
+    REQUIRE (changedPixelsIn (secondSelected, firstSelected, secondRow) > 0);
+
+    // The same selection retargets the shared strip controls. Persisting Mute must land on Track 1
+    // and make its only Clip inaudible through the real rebuilt playback graph.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> audible = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (audible.data(), audible.size())) > 0.01);
+
+    auto* mute = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    REQUIRE (mute != nullptr);
+    clickButton (*mute);
+    const yesdaw::engine::Project muted = readProjectSnapshot (bundlePath);
+    REQUIRE (muted.tracks.front().strip.muted);
+    REQUIRE_FALSE (muted.tracks.back().strip.muted);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> silent = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (silent.data(), silent.size())) == 0.0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    clickButton (*mute);
+    const yesdaw::engine::Project secondMuted = readProjectSnapshot (bundlePath);
+    REQUIRE (secondMuted.tracks.front().strip.muted);
+    REQUIRE (secondMuted.tracks.back().strip.muted);
+}
+
+TEST_CASE ("Left and Right locate the playhead by one current grid unit without editing the Project",
+           "[ui][input][shell][transport][arrow-navigation]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("arrow-grid-navigation");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-stepped.wav";
+    std::error_code removeError;
+    std::filesystem::remove (sourcePath, removeError);
+
+    constexpr std::uint64_t kFrames = 120'000;
+    constexpr std::uint64_t kBeatFrames = 24'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+        samples[static_cast<std::size_t> (frame)] = 0.1f * static_cast<float> (1u + frame / kBeatFrames);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == static_cast<std::int64_t> (kBeatFrames));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> atStart = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    const double startPeak = peakAbs (std::span<const float> (atStart.data(), atStart.size()));
+    REQUIRE (startPeak > 0.05);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == static_cast<std::int64_t> (kBeatFrames));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> atNextBeat = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (atNextBeat.data(), atNextBeat.size()))
+             == Catch::Approx (startPeak * 2.0));
+    REQUIRE (atNextBeat != atStart);
+
+    constexpr std::int64_t kBarFrames = 96'000;
+    const juce::ModifierKeys shift = juce::ModifierKeys::shiftModifier;
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == kBarFrames);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, shift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, shift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> atNextBar = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (atNextBar.data(), atNextBar.size()))
+             == Catch::Approx (startPeak * 5.0));
+    REQUIRE (atNextBar != atNextBeat);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+}
+
 TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][input][shell][saveas]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("save-as-original");

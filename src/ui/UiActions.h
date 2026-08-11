@@ -121,6 +121,12 @@ enum class UiActionId : std::uint8_t
     TimelineZoomFitLoop,
     TimelineZoomIn,
     TimelineZoomOut,
+    TrackSelectPrevious,
+    TrackSelectNext,
+    TransportLocatePreviousGrid,
+    TransportLocateNextGrid,
+    TransportLocatePreviousBar,
+    TransportLocateNextBar,
     Count
 };
 
@@ -499,6 +505,18 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineZoomIn, "timeline.zoom.in", "Zoom In", "+", "Zoom the Timeline in at the playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineZoomOut, "timeline.zoom.out", "Zoom Out", "-", "Zoom the Timeline out at the playhead",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackSelectPrevious, "track.select_previous", "Previous Track", "Up", "Select previous Track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackSelectNext, "track.select_next", "Next Track", "Down", "Select next Track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocatePreviousGrid, "transport.locate_previous_grid", "Previous Grid", "Left", "Move playhead left by one grid unit",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocateNextGrid, "transport.locate_next_grid", "Next Grid", "Right", "Move playhead right by one grid unit",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocatePreviousBar, "transport.locate_previous_bar", "Previous Bar", "Shift+Left", "Move playhead left by one bar",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocateNextBar, "transport.locate_next_bar", "Next Bar", "Shift+Right", "Move playhead right by one bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -934,6 +952,14 @@ public:
             case UiActionId::TimelineZoomIn:
             case UiActionId::TimelineZoomOut:
                 context.activePanel = UiPanel::Timeline;
+                break;
+
+            case UiActionId::TrackSelectPrevious:
+            case UiActionId::TrackSelectNext:
+            case UiActionId::TransportLocatePreviousGrid:
+            case UiActionId::TransportLocateNextGrid:
+            case UiActionId::TransportLocatePreviousBar:
+            case UiActionId::TransportLocateNextBar:
                 break;
 
             case UiActionId::TimelineSnapDisable:

@@ -273,11 +273,34 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B15 backlog-tick/evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
 Shell. The protected owner last-project record and committed v8 schema fixture were restored
 byte-identically after the run.
+The B15 evidence handoff `f5aa627` is exact-head green across all nine jobs in run `31496660561`.
 
-**Now:** commit and push only the locally green B15 backlog and STATUS evidence updates.
+**B16 — Arrow navigation implementation is locally green, pending commit and remote CI:** audited
+the descriptor table, JUCE key translation, Track selection/mixer retargeting, selected-rail paint,
+live Snap grid, tempo/meter bar conversion, and transport locate path before adding anything. Six
+actions are appended in enum/descriptor order with unique `Up`, `Down`, `Left`, `Right`,
+`Shift+Left`, and `Shift+Right` chords and coverage in both exhaustive switches. Up/Down clamp at
+the first/last Track and run through the existing selection path, so the painted rail gradient and
+shared mixer target move together. Left/Right locate by the live Snap grid; Shift+Left/Right use the
+same tempo/meter-derived Bar frame helper as Snap Bar, with leftward navigation clamped at frame 0.
+The shipped-boundary `[arrow-navigation]` tracers first failed at the unmapped `Up`, `Right`, and
+`Shift+Right` keys, then passed **91 assertions**. They prove both rail rows repaint, arrow-selected
+Track retargeting drives a persisted mute that makes real playback silent, grid/bar locations select
+mechanically distinct rendered source regions, and transport-only navigation leaves `project.db`
+byte-identical. Track selection and playhead position are honestly transient navigation state; no
+fake Project persistence is claimed. The complete action/keymap gate passes **1,889 assertions**
+with unique chords.
 
-**Next:** require the B15 evidence commit's exact-head GitHub Actions run green across all nine jobs;
-cancelled runs do not count. Only then start B16 — Arrow navigation.
+The full B16 gate is green **344/344** after a clean Release rebuild in a fresh Visual Studio
+Developer Shell, including action uniqueness, accessibility, theme audit, screenshots, native input,
+and GPU gates. The protected owner last-project record and committed v8 schema fixture were restored
+byte-identically after the run.
+
+**Now:** commit and push only the independently green B16 implementation checkpoint.
+
+**Next:** commit and push only the independently green B16 implementation checkpoint, then require
+its exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count. Only after
+that may the backlog be ticked with the implementation SHA.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

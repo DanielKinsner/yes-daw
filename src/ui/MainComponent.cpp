@@ -225,6 +225,10 @@ std::string chordForKeyPress (const juce::KeyPress& key)
         chord += "Up";
     else if (code == juce::KeyPress::downKey)
         chord += "Down";
+    else if (code == juce::KeyPress::leftKey)
+        chord += "Left";
+    else if (code == juce::KeyPress::rightKey)
+        chord += "Right";
     else if (code == juce::KeyPress::escapeKey)
         chord += "Esc";
     else if (code == juce::KeyPress::deleteKey)
@@ -3166,6 +3170,20 @@ private:
         repaint();
     }
 
+    void selectAdjacentTrackLane (yesdaw::ui::UiActionId action)
+    {
+        const int trackCount = static_cast<int> (appModel.project().tracks.size());
+        if (trackCount <= 0 || ! appModel.dispatch (action).dispatched)
+            return;
+
+        const int delta = action == yesdaw::ui::UiActionId::TrackSelectPrevious ? -1 : 1;
+        const int initialLane = delta < 0 ? trackCount - 1 : 0;
+        const int nextLane = selectedTrackLane < 0 || selectedTrackLane >= trackCount
+            ? initialLane
+            : std::clamp (selectedTrackLane + delta, 0, trackCount - 1);
+        selectTrackLane (nextLane);
+    }
+
     void openTrackRenameEditor()
     {
         dismissClipRenameEditor();
@@ -3813,6 +3831,11 @@ private:
 
             case yesdaw::ui::UiActionId::TrackRemove:
                 removeSelectedTrack();
+                return;
+
+            case yesdaw::ui::UiActionId::TrackSelectPrevious:
+            case yesdaw::ui::UiActionId::TrackSelectNext:
+                selectAdjacentTrackLane (action);
                 return;
 
             case yesdaw::ui::UiActionId::TimelineClipSplit:

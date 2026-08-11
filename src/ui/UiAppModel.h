@@ -2760,20 +2760,8 @@ public:
             return;
         }
 
-        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
-        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
-        const double beatsPerBar = ! project_.meterMap.empty()
-            ? static_cast<double> (project_.meterMap.front().numerator)
-            : 4.0;
-        const double beatFrames = sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
-        double gridFrames = beatFrames;
-        if (snapUnit_ == UiSnapUnit::Bar)
-            gridFrames = beatFrames * beatsPerBar;
-        else if (snapUnit_ == UiSnapUnit::Sixteenth)
-            gridFrames = beatFrames / 4.0;
-
         context_.snapEnabled = true;
-        context_.snapGridTicks = std::max<std::int64_t> (1, static_cast<std::int64_t> (gridFrames + 0.5));
+        context_.snapGridTicks = snapFramesForUnit (snapUnit_);
     }
 
     void setSnapUnit (UiSnapUnit unit) noexcept
@@ -3348,6 +3336,18 @@ public:
             case UiActionId::TransportLocateStart:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->locate (0); });
 
+            case UiActionId::TransportLocatePreviousGrid:
+                return locatePlaybackRelative (id, -context_.snapGridTicks);
+
+            case UiActionId::TransportLocateNextGrid:
+                return locatePlaybackRelative (id, context_.snapGridTicks);
+
+            case UiActionId::TransportLocatePreviousBar:
+                return locatePlaybackRelative (id, -snapFramesForUnit (UiSnapUnit::Bar));
+
+            case UiActionId::TransportLocateNextBar:
+                return locatePlaybackRelative (id, snapFramesForUnit (UiSnapUnit::Bar));
+
             case UiActionId::TransportToggleLoop:
                 return dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
@@ -3415,6 +3415,8 @@ public:
             case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineZoomIn:
             case UiActionId::TimelineZoomOut:
+            case UiActionId::TrackSelectPrevious:
+            case UiActionId::TrackSelectNext:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);
@@ -4666,6 +4668,44 @@ private:
         syncContextFromPlayback();
         ++context_.commandDispatchCount;
         return { id, { true, "" }, true };
+    }
+
+    UiActionDispatchResult locatePlaybackRelative (UiActionId id, std::int64_t deltaFrames)
+    {
+        const std::int64_t currentFrame = std::max<std::int64_t> (0, context_.playheadFrame);
+        std::int64_t targetFrame = 0;
+        if (deltaFrames < 0)
+        {
+            const std::int64_t magnitude = -deltaFrames;
+            targetFrame = currentFrame > magnitude ? currentFrame - magnitude : 0;
+        }
+        else
+        {
+            if (currentFrame > std::numeric_limits<std::int64_t>::max() - deltaFrames)
+                return { id, { true, "" }, false };
+            targetFrame = currentFrame + deltaFrames;
+        }
+
+        return dispatchTransport (id, [this, targetFrame] {
+            return playback_ != nullptr && playback_->locate (targetFrame);
+        });
+    }
+
+    [[nodiscard]] std::int64_t snapFramesForUnit (UiSnapUnit unit) const noexcept
+    {
+        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        const double beatsPerBar = ! project_.meterMap.empty()
+            ? static_cast<double> (project_.meterMap.front().numerator)
+            : 4.0;
+        const double beatFrames = sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
+        double gridFrames = beatFrames;
+        if (unit == UiSnapUnit::Bar)
+            gridFrames = beatFrames * beatsPerBar;
+        else if (unit == UiSnapUnit::Sixteenth)
+            gridFrames = beatFrames / 4.0;
+
+        return std::max<std::int64_t> (1, static_cast<std::int64_t> (gridFrames + 0.5));
     }
 
     void syncContextFromPlayback() noexcept

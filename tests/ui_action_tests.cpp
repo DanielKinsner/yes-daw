@@ -202,6 +202,16 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TimelineZoomFitLoop);
     REQUIRE (descriptorForStableId ("timeline.zoom.in")->id == UiActionId::TimelineZoomIn);
     REQUIRE (descriptorForStableId ("timeline.zoom.out")->id == UiActionId::TimelineZoomOut);
+    REQUIRE (descriptorForStableId ("track.select_previous")->id == UiActionId::TrackSelectPrevious);
+    REQUIRE (descriptorForStableId ("track.select_next")->id == UiActionId::TrackSelectNext);
+    REQUIRE (descriptorForStableId ("transport.locate_previous_grid")->id
+             == UiActionId::TransportLocatePreviousGrid);
+    REQUIRE (descriptorForStableId ("transport.locate_next_grid")->id
+             == UiActionId::TransportLocateNextGrid);
+    REQUIRE (descriptorForStableId ("transport.locate_previous_bar")->id
+             == UiActionId::TransportLocatePreviousBar);
+    REQUIRE (descriptorForStableId ("transport.locate_next_bar")->id
+             == UiActionId::TransportLocateNextBar);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
