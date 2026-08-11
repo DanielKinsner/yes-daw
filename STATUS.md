@@ -396,10 +396,40 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B19 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B19 backlog-tick/evidence checkpoint.
+The B19 evidence handoff `296cb98` is exact-head green across all nine jobs in run `31524666422`.
 
-**Next:** require the exact B19 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Then stop at the checkpoint; B20 is the next backlog item.
+**Implementation-ready for B20 — Play from click:** audited the action descriptor table, keymap,
+JUCE key translation, ruler input, Marker persistence, real PlaybackEngine Locate/Play queue, B19
+playback-start capture, and Project persistence boundary before adding anything. The existing ruler
+double-click persisted a new Marker; it now performs the requested real transport locate through the
+same shipped path as ruler click/drag. `M` remains the explicit persisted Marker-add action. Appended
+the unique `Shift+Space` `TransportPlayFromLastLocate` action at the descriptor-table end and covered
+both exhaustive switches. The last explicit locate is kept separately from B19's playback start, so a
+later plain Space start cannot replace the Shift+Space target. Shift+Space queues a real Locate then
+Play, and B19's optional Stop return correctly returns to that new playback start.
+
+Two shipped-boundary tracers were landed vertically. The ruler tracer first passed **28 assertions**
+then failed at frame zero because double-click still added a Marker; it now proves exact real locate,
+no Marker creation, audible playback from the clicked frame distinct from frame-zero playback, and a
+byte-identical `project.db`. The existing Marker gate was repinned to the new semantics and proves `M`
+adds at the located playhead while Alt+click still removes. The Shift+Space tracer first passed **31
+assertions** then failed because the real shell rejected the chord; it now proves sample-identical
+replay from the remembered locate after intervening playback, compatibility with B19's Stop option,
+and unchanged Project persistence. The three focused gates pass **133 assertions**. The action/keymap
+gate passes **1,961 assertions** with unique chords, and theme audit passes **88 assertions**. The
+remembered locate is honestly transient transport state; no Project schema or fake persistence was
+added.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, playback, accessibility, theme
+audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
+committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B20 implementation checkpoint.
+
+**Next:** require the exact B20 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then tick B20 in the canonical backlog in its own
+evidence checkpoint.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

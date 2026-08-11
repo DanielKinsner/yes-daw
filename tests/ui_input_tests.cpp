@@ -5201,7 +5201,7 @@ TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[u
     REQUIRE_FALSE (snapshot.context.snapEnabled);
 }
 
-TEST_CASE ("markers add on ruler double-click and M, remove on Alt+click, and paint on the ruler",
+TEST_CASE ("markers add with M at the playhead, remove on Alt+click, and paint on the ruler",
            "[ui][input][shell][markers]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("markers");
@@ -5222,12 +5222,17 @@ TEST_CASE ("markers add on ruler double-click and M, remove on Alt+click, and pa
     REQUIRE (project.markers.front().tick == 0);
     REQUIRE (project.markers.front().name == "Marker 1");
 
-    // Double-click on the ruler adds one at the clicked time.
+    // B20 assigns ruler double-click to transport locate. M remains the explicit persisted
+    // Marker-add action and places the Marker at that located playhead.
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
         yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
     const juce::Point<int> rulerMid { timeline.getWidth() / 2, rulerGeometry.rulerArea.getCentreY() };
     doubleClickAt (timeline, rulerMid);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame > 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.markers.size() == 2u);
     REQUIRE (project.markers.back().tick > 0);
@@ -5806,6 +5811,162 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}
+
+TEST_CASE ("ruler double-click locates the real transport without creating a Marker",
+           "[ui][input][shell][transport][play-from-click]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("ruler-double-click-locate");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 103u) - 51;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+    REQUIRE (project.markers.empty());
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Tick requestedTick = project.clips.front().timelineLength / 3;
+    const juce::Point<int> rulerPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, requestedTick);
+    REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
+
+    mouseDownAt (timeline, rulerPoint);
+    const std::int64_t expectedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (expectedFrame > 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    const int dispatchBeforeDoubleClick = snapshotMainComponent (*shell).context.commandDispatchCount;
+
+    doubleClickAt (timeline, rulerPoint);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.commandDispatchCount == dispatchBeforeDoubleClick + 1);
+    REQUIRE (snapshot.context.playheadFrame == expectedFrame);
+    REQUIRE (readProjectSnapshot (bundlePath).markers.empty());
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> clickedAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (peakAbs (std::span<const float> (clickedAudio.data(), clickedAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> zeroAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (clickedAudio != zeroAudio);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}
+
+TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
+           "[ui][input][shell][transport][play-from-click]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("play-from-last-locate");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 103u) - 51;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Point<int> rulerPoint = projectRulerPointAtTick (
+        timeline,
+        snapshotMainComponent (*shell),
+        project,
+        project.clips.front().timelineLength / 3);
+    doubleClickAt (timeline, rulerPoint);
+    const std::int64_t lastLocateFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (lastLocateFrame > 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> locatedAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (peakAbs (std::span<const float> (locatedAudio.data(), locatedAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame + 128);
+
+    // A later plain Play start must not replace the explicit locate remembered by Shift+Space.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 64, 64);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame + 192);
+
+    const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey, shift, 0)));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == lastLocateFrame);
+    const std::vector<float> replayed = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (replayed == locatedAudio);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (
+        findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+    juce::PopupMenu::MenuItemIterator iterator (options);
+    int returnItemId = 0;
+    while (iterator.next())
+    {
+        const juce::PopupMenu::Item& item = iterator.getItem();
+        if (item.text == "Return to Start on Stop")
+            returnItemId = item.itemID;
+    }
+    REQUIRE (returnItemId > 0);
+    model->menuItemSelected (returnItemId, 3);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey, shift, 0)));
+    (void) renderMainComponentPlayback (*shell, 64, 64);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame);
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
 
     std::error_code ec;

@@ -133,6 +133,7 @@ enum class UiActionId : std::uint8_t
     TransportShuttleSlower,
     TransportToggleReturnToStartOnStop,
     TransportReturnToZero,
+    TransportPlayFromLastLocate,
     Count
 };
 
@@ -234,6 +235,7 @@ struct UiActionContext
     int timelineAutomationBreakpointEditCount = 0;
     std::int64_t playheadFrame = 0;
     std::int64_t playbackStartFrame = 0;
+    std::int64_t lastLocateFrame = 0;
     int shuttlePlaybackRate = 1;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -537,6 +539,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportToggleReturnToStartOnStop, "transport.toggle_return_to_start_on_stop", "Return to Start on Stop", "Ctrl+Alt+Shift+K", "Toggle return to playback start on stop",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::TransportReturnToZero, "transport.return_to_zero", "Return to Zero", "Enter", "Return transport to timeline zero",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportPlayFromLastLocate, "transport.play_from_last_locate", "Play from Last Locate", "Shift+Space", "Play from last locate point",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -756,6 +760,7 @@ public:
                 context.loopEnabled = false;
                 context.playheadFrame = 0;
                 context.playbackStartFrame = 0;
+                context.lastLocateFrame = 0;
                 context.shuttlePlaybackRate = 1;
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = false;
@@ -804,6 +809,14 @@ public:
             case UiActionId::TransportLocateStart:
             case UiActionId::TransportReturnToZero:
                 context.playheadFrame = 0;
+                context.lastLocateFrame = 0;
+                break;
+
+            case UiActionId::TransportPlayFromLastLocate:
+                context.playheadFrame = context.lastLocateFrame;
+                context.playbackStartFrame = context.lastLocateFrame;
+                context.isPlaying = true;
+                context.shuttlePlaybackRate = 1;
                 break;
 
             case UiActionId::TransportToggleLoop:

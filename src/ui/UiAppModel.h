@@ -227,6 +227,7 @@ public:
 
         drainTransport (*playback_);
         syncContextFromPlayback();
+        context_.lastLocateFrame = context_.playheadFrame;
         ++context_.commandDispatchCount;
         return true;
     }
@@ -3339,6 +3340,19 @@ public:
                 return result;
             }
 
+            case UiActionId::TransportPlayFromLastLocate:
+            {
+                const std::int64_t targetFrame = context_.lastLocateFrame;
+                UiActionDispatchResult result = dispatchTransport (id, [this, targetFrame] {
+                    return playback_ != nullptr
+                        && playback_->locate (targetFrame)
+                        && playback_->play();
+                });
+                if (result.dispatched)
+                    context_.playbackStartFrame = targetFrame;
+                return result;
+            }
+
             case UiActionId::TransportShuttleFaster:
             {
                 const bool startingPlayback = ! context_.isPlaying;
@@ -3374,7 +3388,7 @@ public:
 
             case UiActionId::TransportLocateStart:
             case UiActionId::TransportReturnToZero:
-                return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->locate (0); });
+                return locatePlaybackAbsolute (id, 0);
 
             case UiActionId::TransportLocatePreviousGrid:
                 return locatePlaybackRelative (id, -context_.snapGridTicks);
@@ -4737,9 +4751,17 @@ private:
             targetFrame = currentFrame + deltaFrames;
         }
 
-        return dispatchTransport (id, [this, targetFrame] {
+        return locatePlaybackAbsolute (id, targetFrame);
+    }
+
+    UiActionDispatchResult locatePlaybackAbsolute (UiActionId id, std::int64_t targetFrame)
+    {
+        UiActionDispatchResult result = dispatchTransport (id, [this, targetFrame] {
             return playback_ != nullptr && playback_->locate (targetFrame);
         });
+        if (result.dispatched)
+            context_.lastLocateFrame = context_.playheadFrame;
+        return result;
     }
 
     [[nodiscard]] std::int64_t snapFramesForUnit (UiSnapUnit unit) const noexcept
@@ -4776,6 +4798,7 @@ private:
         context_.loopEnabled = false;
         context_.playheadFrame = 0;
         context_.playbackStartFrame = 0;
+        context_.lastLocateFrame = 0;
         context_.shuttlePlaybackRate = 1;
     }
 

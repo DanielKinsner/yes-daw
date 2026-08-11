@@ -345,7 +345,6 @@ public:
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
-    std::function<void (double)> onRulerDoubleClicked;           // seconds: add a marker
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
 
@@ -698,8 +697,8 @@ public:
                 yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
             if (geometry.rulerArea.contains (event.getPosition()))
                 if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
-                    if (onRulerDoubleClicked)
-                        onRulerDoubleClicked (*seconds);
+                    if (onTimelineLocated)
+                        onTimelineLocated (*seconds);
             return;
         }
 
@@ -1753,14 +1752,6 @@ public:
             timelineScrollSeconds -= wheelDelta * visibleSeconds
                                    * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction;
             repaint();
-        };
-        timelineInput.onRulerDoubleClicked = [this] (double seconds) {
-            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds))
-            {
-                (void) appModel.addTimelineMarkerAtTick (*tick);
-                refreshActionState();
-                repaint();
-            }
         };
         timelineInput.onRulerAltClicked = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds))
