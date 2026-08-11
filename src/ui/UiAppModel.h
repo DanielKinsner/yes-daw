@@ -2741,6 +2741,17 @@ public:
 
     [[nodiscard]] UiSnapUnit snapUnit() const noexcept { return snapUnit_; }
 
+    static constexpr int kMinRepeatPasteCount = 2;
+    static constexpr int kMaxRepeatPasteCount = 8;
+    static constexpr int kDefaultRepeatPasteCount = 2;
+
+    [[nodiscard]] int repeatPasteCount() const noexcept { return repeatPasteCount_; }
+
+    void setRepeatPasteCount (int count) noexcept
+    {
+        repeatPasteCount_ = std::clamp (count, kMinRepeatPasteCount, kMaxRepeatPasteCount);
+    }
+
     void refreshSnapGrid() noexcept
     {
         if (snapUnit_ == UiSnapUnit::Off)
@@ -2914,7 +2925,37 @@ public:
             return { id, { false, "no track to paste onto" }, false };
 
         return addClipsFromClipboard (id, state, targetTrackId,
-                                      static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
+                                      static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+                                      1);
+    }
+
+    [[nodiscard]] UiActionDispatchResult repeatPasteClipboardAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineClipRepeatPaste;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (clipClipboard_.clips.empty())
+            return { id, { false, "clipboard has no clip" }, false };
+
+        engine::EntityId targetTrackId;
+        const int selectedStrip = selectedMixerTrackStripIndex();
+        if (selectedStrip >= 0 && selectedStrip < static_cast<int> (project_.tracks.size()))
+            targetTrackId = project_.tracks[static_cast<std::size_t> (selectedStrip)].id;
+        else if (const engine::Clip* const sourceClip = findClip (selectedTimelineClipId_))
+            targetTrackId = sourceClip->trackId;
+        else if (! project_.tracks.empty())
+            targetTrackId = project_.tracks.front().id;
+        else
+            return { id, { false, "no track to paste onto" }, false };
+
+        return addClipsFromClipboard (
+            id,
+            state,
+            targetTrackId,
+            static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+            repeatPasteCount_);
     }
 
     [[nodiscard]] UiActionDispatchResult duplicateSelectedTimelineClip()
@@ -2934,7 +2975,7 @@ public:
         const UiClipClipboard savedClipboard = clipClipboard_;
         clipClipboard_ = duplicate;
         const UiActionDispatchResult result = addClipsFromClipboard (
-            id, state, clip->trackId, clip->timelineStart + clip->timelineLength);
+            id, state, clip->trackId, clip->timelineStart + clip->timelineLength, 1);
         clipClipboard_ = savedClipboard;
         return result;
     }
@@ -3426,6 +3467,9 @@ public:
 
             case UiActionId::TimelineClipPaste:
                 return pasteClipboardClipAtPlayhead();
+
+            case UiActionId::TimelineClipRepeatPaste:
+                return repeatPasteClipboardAtPlayhead();
 
             case UiActionId::TimelineClipDuplicate:
                 return duplicateSelectedTimelineClip();
@@ -4723,6 +4767,7 @@ private:
     UiClipClipboard clipClipboard_;
     std::filesystem::path sessionStateDirectory_;
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
+    int repeatPasteCount_ = kDefaultRepeatPasteCount;
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
 
     [[nodiscard]] static UiClipClipboardEntry clipboardEntryForClip (const engine::Clip& clip,
@@ -4764,9 +4809,26 @@ private:
     [[nodiscard]] UiActionDispatchResult addClipsFromClipboard (UiActionId id,
                                                                 const UiActionState& state,
                                                                 engine::EntityId targetTrackId,
-                                                                engine::Tick timelineStart)
+                                                                engine::Tick timelineStart,
+                                                                int repeatCount)
     {
-        if (clipClipboard_.clips.empty())
+        if (clipClipboard_.clips.empty()
+            || repeatCount < 1
+            || timelineStart < 0)
+            return { id, state, false };
+
+        engine::Tick clipboardSpan = 0;
+        constexpr engine::Tick tickMax = std::numeric_limits<engine::Tick>::max();
+        for (const UiClipClipboardEntry& entry : clipClipboard_.clips)
+        {
+            if (entry.timelineOffset < 0
+                || entry.timelineLength <= 0
+                || entry.timelineOffset > tickMax - entry.timelineLength)
+                return { id, state, false };
+            clipboardSpan = std::max (clipboardSpan, entry.timelineOffset + entry.timelineLength);
+        }
+        const engine::Tick repeatCountTicks = static_cast<engine::Tick> (repeatCount);
+        if (clipboardSpan <= 0 || clipboardSpan > (tickMax - timelineStart) / repeatCountTicks)
             return { id, state, false };
 
         engine::Project nextProject = project_;
@@ -4775,32 +4837,39 @@ private:
             return { id, state, false };
 
         std::vector<engine::EntityId> pastedClipIds;
-        pastedClipIds.reserve (clipClipboard_.clips.size());
-        for (const UiClipClipboardEntry& entry : clipClipboard_.clips)
+        const std::size_t repeatCountSize = static_cast<std::size_t> (repeatCount);
+        if (clipClipboard_.clips.size() > pastedClipIds.max_size() / repeatCountSize)
+            return { id, state, false };
+        pastedClipIds.reserve (clipClipboard_.clips.size() * repeatCountSize);
+        for (int repeatIndex = 0; repeatIndex < repeatCount; ++repeatIndex)
         {
-            const bool sourceTrackExists = std::any_of (
-                project_.tracks.begin(), project_.tracks.end(), [&entry] (const engine::Track& track) {
-                    return track.id == entry.trackId;
-                });
-            engine::Clip clip;
-            clip.id = allocateSessionEntityId (0xC3u, nextProject);
-            clip.assetId = entry.assetId;
-            clip.trackId = clipClipboard_.clips.size() > 1u && sourceTrackExists
-                ? entry.trackId
-                : targetTrackId;
-            clip.timelineStart = timelineStart + entry.timelineOffset;
-            clip.timelineLength = entry.timelineLength;
-            clip.srcOffset = entry.srcOffset;
-            clip.srcLen = entry.srcLen;
-            clip.gain = entry.gain;
-            clip.fadeIn = entry.fadeIn;
-            clip.fadeOut = entry.fadeOut;
-            clip.timeBase = entry.timeBase;
-            clip.name = entry.name;
+            const engine::Tick repeatOffset = clipboardSpan * static_cast<engine::Tick> (repeatIndex);
+            for (const UiClipClipboardEntry& entry : clipClipboard_.clips)
+            {
+                const bool sourceTrackExists = std::any_of (
+                    project_.tracks.begin(), project_.tracks.end(), [&entry] (const engine::Track& track) {
+                        return track.id == entry.trackId;
+                    });
+                engine::Clip clip;
+                clip.id = allocateSessionEntityId (0xC3u, nextProject);
+                clip.assetId = entry.assetId;
+                clip.trackId = clipClipboard_.clips.size() > 1u && sourceTrackExists
+                    ? entry.trackId
+                    : targetTrackId;
+                clip.timelineStart = timelineStart + repeatOffset + entry.timelineOffset;
+                clip.timelineLength = entry.timelineLength;
+                clip.srcOffset = entry.srcOffset;
+                clip.srcLen = entry.srcLen;
+                clip.gain = entry.gain;
+                clip.fadeIn = entry.fadeIn;
+                clip.fadeOut = entry.fadeOut;
+                clip.timeBase = entry.timeBase;
+                clip.name = entry.name;
 
-            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
-                return { id, state, false };
-            pastedClipIds.push_back (clip.id);
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
+                    return { id, state, false };
+                pastedClipIds.push_back (clip.id);
+            }
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };

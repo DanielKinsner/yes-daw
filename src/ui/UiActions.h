@@ -116,6 +116,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipApplyDefaultFades,
     TimelineClipCrossfade,
     EditRenameSelection,
+    TimelineClipRepeatPaste,
     Count
 };
 
@@ -484,6 +485,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipCrossfade, "timeline.clip.crossfade", "Crossfade Clips", "X", "Crossfade two overlapping clips",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::EditRenameSelection, "edit.rename_selection", "Rename", "F2", "Rename selected clip or track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipRepeatPaste, "timeline.clip.repeat_paste", "Repeat Paste", "Ctrl+R", "Repeat clipboard clips at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -666,7 +669,8 @@ public:
             return { false, "no autosave recovery snapshot" };
         if (id == UiActionId::ProjectExportAudioCancel && ! context.audioExportInProgress)
             return { false, "no audio export in progress" };
-        if (id == UiActionId::TimelineClipPaste && ! context.clipboardHasClip)
+        if ((id == UiActionId::TimelineClipPaste || id == UiActionId::TimelineClipRepeatPaste)
+            && ! context.clipboardHasClip)
             return { false, "clipboard has no clip" };
 
         if (id == UiActionId::EditNudgeLeft
@@ -1029,6 +1033,7 @@ public:
                 break;
 
             case UiActionId::TimelineClipPaste:
+            case UiActionId::TimelineClipRepeatPaste:
             case UiActionId::TimelineClipDuplicate:
                 context.timelineClipSelected = true;
                 context.canUndo = true;

@@ -840,7 +840,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 90u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 91u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -3742,6 +3742,107 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+}
+
+TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo group",
+           "[ui][input][shell][clipboard][repeat-paste]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-repeat-paste");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    const yesdaw::engine::Clip source = original.clips.front();
+    REQUIRE (source.timelineLength > 0);
+
+    auto* repeatChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.repeat-paste.chooser"));
+    REQUIRE (repeatChooser != nullptr);
+    REQUIRE (repeatChooser->isVisible());
+    REQUIRE_FALSE (repeatChooser->isEnabled());
+    REQUIRE (repeatChooser->getSelectedId() == 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (repeatChooser->isEnabled());
+
+    const juce::Point<int> pastePoint = projectRulerPointAtTick (
+        timeline,
+        snapshotMainComponent (*shell),
+        original,
+        source.timelineStart + source.timelineLength);
+    mouseDownAt (timeline, pastePoint);
+    const yesdaw::engine::Tick pasteStart = snapshotMainComponent (*shell).context.playheadFrame;
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (source.timelineLength * 3);
+    const std::vector<float> beforeRepeat = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    mouseDownAt (timeline, pastePoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project repeated = readProjectSnapshot (bundlePath);
+    REQUIRE (repeated.clips.size() == 3u);
+    REQUIRE (repeated.clips[0] == source);
+    for (std::size_t i = 1; i < repeated.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& copy = repeated.clips[i];
+        REQUIRE (copy.id != source.id);
+        REQUIRE (copy.trackId == source.trackId);
+        REQUIRE (copy.assetId == source.assetId);
+        REQUIRE (copy.timelineStart
+                 == pasteStart + static_cast<yesdaw::engine::Tick> (i - 1) * source.timelineLength);
+        REQUIRE (copy.timelineLength == source.timelineLength);
+        REQUIRE (copy.srcOffset == source.srcOffset);
+        REQUIRE (copy.srcLen == source.srcLen);
+        REQUIRE (copy.gain == source.gain);
+        REQUIRE (copy.fadeIn == source.fadeIn);
+        REQUIRE (copy.fadeOut == source.fadeOut);
+        REQUIRE (copy.timeBase == source.timeBase);
+        REQUIRE (copy.name == source.name);
+    }
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterRepeat = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterRepeat != beforeRepeat);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == beforeRepeat);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    repeatChooser->setSelectedId (4, juce::sendNotificationSync);
+    REQUIRE (repeatChooser->getSelectedId() == 4);
+    mouseDownAt (timeline, pastePoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project repeatedFourTimes = readProjectSnapshot (bundlePath);
+    REQUIRE (repeatedFourTimes.clips.size() == 5u);
+    REQUIRE (repeatedFourTimes.clips.front() == source);
+    for (std::size_t i = 1; i < repeatedFourTimes.clips.size(); ++i)
+        REQUIRE (repeatedFourTimes.clips[i].timelineStart
+                 == pasteStart + static_cast<yesdaw::engine::Tick> (i - 1) * source.timelineLength);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
 }
 
 TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audible edit",

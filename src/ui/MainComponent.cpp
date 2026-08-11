@@ -1934,6 +1934,27 @@ public:
         };
         addAndMakeVisible (timelineSnapChooser);
 
+        configureActionComponent (
+            timelineRepeatPasteChooser,
+            yesdaw::ui::UiActionId::TimelineClipRepeatPaste,
+            "Repeat paste count");
+        timelineRepeatPasteChooser.setComponentID ("timeline.repeat-paste.chooser");
+        timelineRepeatPasteChooser.addItem ("2x", 2);
+        timelineRepeatPasteChooser.addItem ("3x", 3);
+        timelineRepeatPasteChooser.addItem ("4x", 4);
+        timelineRepeatPasteChooser.addItem ("8x", 8);
+        timelineRepeatPasteChooser.setSelectedId (
+            yesdaw::ui::UiAppModel::kDefaultRepeatPasteCount,
+            juce::dontSendNotification);
+        timelineRepeatPasteChooser.onChange = [this] {
+            if (refreshingRepeatPasteChooser)
+                return;
+
+            appModel.setRepeatPasteCount (timelineRepeatPasteChooser.getSelectedId());
+            refreshActionState();
+        };
+        addAndMakeVisible (timelineRepeatPasteChooser);
+
         configureAutomationLaneControls();
 
         // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
@@ -2503,12 +2524,20 @@ public:
         {
             const auto automationBounds =
                 yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timelineBounds());
-            timelineSnapChooser.setBounds (
+            const juce::Rectangle<int> snapBounds {
                 automationBounds.getX() - yesdaw::ui::UiTheme::Layout::timelineSnapChooserWidth
                     - yesdaw::ui::UiTheme::Layout::timelineSnapChooserGap,
                 automationBounds.getY(),
                 yesdaw::ui::UiTheme::Layout::timelineSnapChooserWidth,
-                automationBounds.getHeight());
+                automationBounds.getHeight()
+            };
+            timelineSnapChooser.setBounds (snapBounds);
+            timelineRepeatPasteChooser.setBounds (
+                snapBounds.getX() - yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserWidth
+                    - yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserGap,
+                snapBounds.getY(),
+                yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserWidth,
+                snapBounds.getHeight());
         }
         layoutAutomationLaneControls();
         layoutInspectorControls();
@@ -3996,6 +4025,18 @@ private:
                              : 3;
             timelineSnapChooser.setSelectedId (snapId, juce::dontSendNotification);
             refreshingSnapChooser = false;
+        }
+        {
+            refreshingRepeatPasteChooser = true;
+            const bool timelineVisible = appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline;
+            const auto repeatState = appModel.registry().stateFor (
+                yesdaw::ui::UiActionId::TimelineClipRepeatPaste,
+                appModel.context());
+            timelineRepeatPasteChooser.setVisible (timelineVisible);
+            timelineRepeatPasteChooser.setEnabled (repeatState.enabled);
+            timelineRepeatPasteChooser.setSelectedId (
+                appModel.repeatPasteCount(), juce::dontSendNotification);
+            refreshingRepeatPasteChooser = false;
         }
         const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
         trackListInput.setVisible (railVisible);
@@ -6024,6 +6065,7 @@ private:
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;
+    juce::ComboBox timelineRepeatPasteChooser;
     AutomationLaneCanvasComponent automationLaneCanvas;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
@@ -6040,6 +6082,7 @@ private:
     bool refreshingInspectorControls = false;
     bool refreshingTimeMapControls = false;
     bool refreshingSnapChooser = false;
+    bool refreshingRepeatPasteChooser = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
 

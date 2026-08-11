@@ -194,6 +194,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
     REQUIRE (descriptorForStableId ("timeline.clip.crossfade")->id == UiActionId::TimelineClipCrossfade);
     REQUIRE (descriptorForStableId ("edit.rename_selection")->id == UiActionId::EditRenameSelection);
+    REQUIRE (descriptorForStableId ("timeline.clip.repeat_paste")->id
+             == UiActionId::TimelineClipRepeatPaste);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
@@ -247,6 +249,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     }
 
     REQUIRE (descriptorForStableId ("transport.toggle_loop")->id == UiActionId::TransportToggleLoop);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+R")
+             == UiActionId::TimelineClipRepeatPaste);
     REQUIRE (descriptorForStableId ("missing.action") == nullptr);
 }
 

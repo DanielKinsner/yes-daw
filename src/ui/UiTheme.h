@@ -498,6 +498,8 @@ struct UiTheme
         static constexpr float automationCanvasLineWidth = 1.6f;
         static constexpr int timelineSnapChooserWidth = 96;
         static constexpr int timelineSnapChooserGap = 8;
+        static constexpr int timelineRepeatPasteChooserWidth = 72;
+        static constexpr int timelineRepeatPasteChooserGap = 8;
         static constexpr double timelineZoomWheelStep = 1.25;
         static constexpr double timelineZoomMin = 1.0;
         static constexpr double timelineZoomMax = 64.0;
