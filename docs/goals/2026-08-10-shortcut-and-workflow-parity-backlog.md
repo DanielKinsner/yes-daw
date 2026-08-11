@@ -70,8 +70,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    persisted edit. The shipped-boundary gate starts from non-default fades, proves bundle readback
    and the full equal-power rendered envelope at both edges, then proves one-step Undo restores the
    prior fades and bit-identical playback.
-10. **Crossfade** — `X` on two overlapping clips on one track creates equal-power
-    complementary fades across the overlap. Gate: render sums to unity through the overlap.
+10. [x] **Crossfade** — landed in `51b0f39` (exact-head run `31468250237`, nine jobs green).
+    `X` on exactly two staggered, overlapping Clips on one Track creates one persisted equal-power
+    crossfade across the exact overlap. The shipped-boundary gate proves constant-power unity,
+    independently matches every rendered overlap sample, and proves one-step Undo.
 11. **Clip rename** — F2 with a clip selected edits a clip display name (needs `Clip::name`,
     schema bump + migration gate; name shows on the painted clip).
 12. **Esc cancels** — any in-progress drag (move/trim/fade/marquee) and any inline editor

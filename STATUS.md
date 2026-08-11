@@ -145,7 +145,7 @@ record was temporarily isolated and restored with an identical SHA-256. Exact-he
 `31463488384` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
 and both alpha-verifier jobs.
 
-**A10 — Crossfade is locally green, pending its exact-head remote gate:** audited the descriptor/keymap
+**Done and remote-green for A10 — Crossfade (`51b0f39`):** audited the descriptor/keymap
 table, JUCE chord translation, multi-Clip selection, existing persisted `SetClipFades` command,
 transaction groups, bundle adoption, playback rebuild, and accepted equal-power fade law before adding
 anything. Appended the unique `X` `TimelineClipCrossfade` action and both exhaustive switch cases. The
@@ -160,13 +160,15 @@ proves one Undo restores the unfaded bundle and bit-identical audio. The action/
 **1,720 assertions** with unique chords. A fresh Visual Studio Developer Shell `/W4 /WX` build plus
 full local `ctest --preset ci` is green **341/341**, including theme audit, screenshots, native input,
 and the GPU gate. The owner's real last-project record was temporarily isolated and restored with an
-identical SHA-256.
+identical SHA-256. Exact-head GitHub Actions run `31468250237` is green across all nine jobs: Linux,
+Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the small A10 implementation, then require its exact-head GitHub Actions run
-green across all nine jobs; cancelled runs do not count.
+**Now:** commit and push this small A10 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs; cancelled runs do not count.
 
-**Next:** after the A10 implementation run is green, tick backlog item 10 with its implementation SHA,
-commit/push that evidence handoff, require the evidence exact-head run green, and stop before A11.
+**Next:** after A10 is fully recorded and remote-green, start A11 Clip rename with a fresh
+`git pull --rebase` and an audit of existing Clip schema/persistence/paint/editor paths before changing
+the schema.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
