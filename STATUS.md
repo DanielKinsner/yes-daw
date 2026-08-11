@@ -331,10 +331,37 @@ The B17 backlog-tick/evidence handoff is locally green **344/344** in a fresh Vi
 Shell. The protected owner last-project record and committed v8 schema fixture were restored
 byte-identically after the run.
 
-**Now:** commit and push only the locally green B17 backlog and STATUS evidence updates.
+The B17 evidence handoff `74f7f29` is exact-head green across all nine jobs in run `31512045198`.
 
-**Next:** require the exact B17 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Only then start B18 — JKL shuttle.
+**Implementation-ready for B18 — JKL shuttle:** audited the descriptor/keymap, JUCE key translation,
+transport command queue, PlaybackEngine block/loop path, live transport snapshot, offline shell render,
+and Project persistence boundary before adding anything. Appended unique `L`
+`TransportShuttleFaster` and `J` `TransportShuttleSlower` actions in enum/descriptor order and covered
+both exhaustive switches; the existing `K` Stop action remains unchanged. Loop moved from conflicting
+`L` to unique `Ctrl+Alt+Shift+L`, and the real replacement chord is gated. `L` starts at 1x, then
+advances to 2x and 4x with a 4x cap; `J` halves 4x → 2x → 1x, then stops at the current playhead.
+Reverse playback is honestly outside the engine contract and is not faked. `K`, Space/Play, and a fresh
+Project reset rate to 1x.
+
+The audio-thread shuttle path renders the skipped source frames through the real graph into a
+control-thread-preallocated scratch buffer, then emits every second or fourth sample. It adds no audio-
+thread allocation, lock, log, or I/O; transport and metronome advance at the same source-frame rate.
+Three shipped-boundary `[jkl-shuttle]` tracers first failed because `L` still toggled Loop, then because
+2x advanced only 64 rather than 128 frames, then because `J` was unmapped. They now prove 1x is bit-
+identical to Space, 2x/4x output equals exact stride-2/stride-4 source samples, playhead movement scales
+with rate, J/K stop semantics and rate reset, the Loop chord replacement, audible output, and a byte-
+identical `project.db`. Shuttle rate is honestly transient transport state, not fake persistence.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, playback, accessibility, theme
+audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
+committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the independently green B18 implementation checkpoint.
+
+**Next:** require the exact B18 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then tick B18 with its implementation SHA, update this
+handoff, rerun the full local gate, and land the B18 evidence checkpoint.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

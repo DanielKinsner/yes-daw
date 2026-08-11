@@ -5448,3 +5448,185 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (sourcePath, ec);
 }
+
+TEST_CASE ("L starts forward shuttle playback at one-times speed without toggling Loop",
+           "[ui][input][shell][transport][jkl-shuttle]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("jkl-shuttle-play");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> spacePlayback = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (spacePlayback.data(), spacePlayback.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    const std::vector<float> shuttlePlayback = renderMainComponentPlayback (*shell, 512, 128);
+    const MainComponentSnapshot shuttling = snapshotMainComponent (*shell);
+    REQUIRE (shuttling.context.isPlaying);
+    REQUIRE_FALSE (shuttling.context.loopEnabled);
+    REQUIRE (shuttling.context.playheadFrame == 512);
+    REQUIRE (shuttlePlayback == spacePlayback);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    const juce::ModifierKeys ctrlAltShift {
+        juce::ModifierKeys::ctrlModifier
+            | juce::ModifierKeys::altModifier
+            | juce::ModifierKeys::shiftModifier
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l', ctrlAltShift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.loopEnabled);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l', ctrlAltShift, 0)));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.loopEnabled);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("repeated L shuttles real playback at two-times then four-times speed",
+           "[ui][input][shell][transport][jkl-shuttle]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("jkl-shuttle-rates");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 4096;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 97u) - 48;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    const auto stopAndLocateStart = [&shell]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    };
+
+    stopAndLocateStart();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    const std::vector<float> oneTimes = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
+
+    stopAndLocateStart();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    const std::vector<float> twoTimes = renderMainComponentPlayback (*shell, 64, 64);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
+
+    stopAndLocateStart();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    const std::vector<float> fourTimes = renderMainComponentPlayback (*shell, 32, 32);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
+
+    REQUIRE (oneTimes.size() == 256u);
+    REQUIRE (twoTimes.size() == 128u);
+    REQUIRE (fourTimes.size() == 64u);
+    for (std::size_t frame = 0; frame < 64u; ++frame)
+    {
+        for (std::size_t channel = 0; channel < 2u; ++channel)
+        {
+            REQUIRE (twoTimes[frame * 2u + channel] == oneTimes[frame * 4u + channel]);
+            if (frame < 32u)
+                REQUIRE (fourTimes[frame * 2u + channel] == oneTimes[frame * 8u + channel]);
+        }
+    }
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}
+
+TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times speed",
+           "[ui][input][shell][transport][jkl-shuttle]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("jkl-shuttle-slower-stop");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    for (int press = 0; press < 4; ++press)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.shuttlePlaybackRate == 4);
+
+    const std::vector<float> atFourTimes = renderMainComponentPlayback (*shell, 32, 32);
+    REQUIRE (peakAbs (std::span<const float> (atFourTimes.data(), atFourTimes.size())) > 0.01);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.shuttlePlaybackRate == 2);
+    (void) renderMainComponentPlayback (*shell, 32, 32);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 192);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
+    (void) renderMainComponentPlayback (*shell, 32, 32);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 224);
+
+    // A further J would enter reverse on a full JKL transport. Reverse is not supported by this
+    // engine, so the honest boundary is Stop at the current playhead, never fake reverse audio.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
+    const std::vector<float> stoppedByJ = renderMainComponentPlayback (*shell, 32, 32);
+    REQUIRE (peakAbs (std::span<const float> (stoppedByJ.data(), stoppedByJ.size())) == 0.0);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 224);
+
+    for (int press = 0; press < 3; ++press)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    REQUIRE (snapshotMainComponent (*shell).context.shuttlePlaybackRate == 4);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

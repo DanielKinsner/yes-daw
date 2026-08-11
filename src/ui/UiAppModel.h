@@ -189,6 +189,7 @@ public:
             snapshot.isPlaying = playback_->isPlaying();
             snapshot.loopEnabled = playback_->loopEnabled();
             snapshot.playheadFrame = playback_->playheadFrame();
+            snapshot.shuttlePlaybackRate = playback_->playbackRate();
         }
         return snapshot;
     }
@@ -3330,6 +3331,29 @@ public:
             case UiActionId::TransportPlay:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
 
+            case UiActionId::TransportShuttleFaster:
+                return dispatchTransport (id, [this] {
+                    if (playback_ == nullptr)
+                        return false;
+                    if (! context_.isPlaying)
+                        return playback_->play();
+
+                    const int nextRate = std::min (4, context_.shuttlePlaybackRate * 2);
+                    return playback_->setPlaybackRate (nextRate);
+                });
+
+            case UiActionId::TransportShuttleSlower:
+                return dispatchTransport (id, [this] {
+                    if (playback_ == nullptr || ! context_.isPlaying)
+                        return false;
+                    if (context_.shuttlePlaybackRate > 1)
+                        return playback_->setPlaybackRate (context_.shuttlePlaybackRate / 2);
+
+                    // Reverse playback is outside the engine contract. At 1x, J reaches the honest
+                    // zero-speed boundary and stops at the current playhead.
+                    return playback_->stop();
+                });
+
             case UiActionId::TransportStop:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->stop(); });
 
@@ -4717,6 +4741,7 @@ private:
         context_.isPlaying = playback_->isPlaying();
         context_.loopEnabled = playback_->loopEnabled();
         context_.playheadFrame = playback_->playheadFrame();
+        context_.shuttlePlaybackRate = playback_->playbackRate();
     }
 
     void resetContextForFreshPlayback() noexcept
@@ -4724,6 +4749,7 @@ private:
         context_.isPlaying = false;
         context_.loopEnabled = false;
         context_.playheadFrame = 0;
+        context_.shuttlePlaybackRate = 1;
     }
 
     [[nodiscard]] engine::OfflineRenderOptions playbackBuildOptions() const

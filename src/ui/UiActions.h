@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -128,6 +129,8 @@ enum class UiActionId : std::uint8_t
     TransportLocatePreviousBar,
     TransportLocateNextBar,
     TimelineTogglePlayheadFollow,
+    TransportShuttleFaster,
+    TransportShuttleSlower,
     Count
 };
 
@@ -227,6 +230,7 @@ struct UiActionContext
     int timelineAutomationShowHideCount = 0;
     int timelineAutomationBreakpointEditCount = 0;
     std::int64_t playheadFrame = 0;
+    int shuttlePlaybackRate = 1;
     int commandDispatchCount = 0;
     int saveCount = 0;
     int importCount = 0;
@@ -322,7 +326,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateStart, "transport.locate_start", "Locate", "Home", "Locate start",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "L", "Toggle loop",
+    { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "Ctrl+Alt+Shift+L", "Toggle loop",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -521,7 +525,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportLocateNextBar, "transport.locate_next_bar", "Next Bar", "Shift+Right", "Move playhead right by one bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineTogglePlayheadFollow, "timeline.toggle_playhead_follow", "Playhead Follow", "Ctrl+Alt+Shift+F", "Toggle playhead follow",
-      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TransportShuttleFaster, "transport.shuttle_faster", "Shuttle Faster", "L", "Play or increase shuttle speed",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportShuttleSlower, "transport.shuttle_slower", "Shuttle Slower", "J", "Reduce shuttle speed or stop",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -739,6 +747,7 @@ public:
                 context.isPlaying = false;
                 context.loopEnabled = false;
                 context.playheadFrame = 0;
+                context.shuttlePlaybackRate = 1;
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = false;
                 context.canRedo = false;
@@ -771,10 +780,12 @@ public:
 
             case UiActionId::TransportPlay:
                 context.isPlaying = true;
+                context.shuttlePlaybackRate = 1;
                 break;
 
             case UiActionId::TransportStop:
                 context.isPlaying = false;
+                context.shuttlePlaybackRate = 1;
                 break;
 
             case UiActionId::TransportLocateStart:
@@ -968,6 +979,28 @@ public:
 
             case UiActionId::TimelineTogglePlayheadFollow:
                 context.playheadFollowEnabled = ! context.playheadFollowEnabled;
+                break;
+
+            case UiActionId::TransportShuttleFaster:
+                if (! context.isPlaying)
+                {
+                    context.isPlaying = true;
+                    context.shuttlePlaybackRate = 1;
+                }
+                else
+                {
+                    context.shuttlePlaybackRate = std::min (4, context.shuttlePlaybackRate * 2);
+                }
+                break;
+
+            case UiActionId::TransportShuttleSlower:
+                if (context.isPlaying && context.shuttlePlaybackRate > 1)
+                    context.shuttlePlaybackRate /= 2;
+                else
+                {
+                    context.isPlaying = false;
+                    context.shuttlePlaybackRate = 1;
+                }
                 break;
 
             case UiActionId::TimelineSnapDisable:

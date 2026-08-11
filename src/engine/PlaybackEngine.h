@@ -109,6 +109,13 @@ public:
             return;
         }
 
+        if (playbackRate_ > 1)
+        {
+            processForwardShuttleBlock (outChannels, numOutputChannels, numFrames);
+            publishTransportSnapshot();
+            return;
+        }
+
         int offset = 0;
         while (offset < numFrames)
         {
@@ -161,6 +168,15 @@ public:
     }
 
     bool clearLoop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::ClearLoop }); }
+
+    [[nodiscard]] bool setPlaybackRate (int rate) noexcept
+    {
+        if (rate != 1 && rate != 2 && rate != 4)
+            return false;
+
+        return postTransportCommand (
+            TransportCommand { TransportCommandType::SetPlaybackRate, static_cast<std::int64_t> (rate) });
+    }
 
     // CONTROL THREAD: metronome click overlay (usable-DAW P1). The click tables are precomputed at
     // construction for this engine's sample rate; only the beat grid parameters travel through
@@ -221,6 +237,10 @@ public:
     {
         return publishedLoopEndFrame_.load (std::memory_order_acquire);
     }
+    [[nodiscard]] int playbackRate() const noexcept
+    {
+        return publishedPlaybackRate_.load (std::memory_order_acquire);
+    }
     [[nodiscard]] bool          needsAutosave() const noexcept { return editRevision_ != autosavedRevision_; }
 
     // CONTROL THREAD ONLY (like reclaim()): needsAutosave / markProjectEdited / markAutosaved are plain
@@ -250,7 +270,8 @@ private:
         Stop,
         Locate,
         SetLoop,
-        ClearLoop
+        ClearLoop,
+        SetPlaybackRate
     };
 
     struct TransportCommand
@@ -263,7 +284,14 @@ private:
                    "TransportCommand must pass through the SPSC queue losslessly");
 
     PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize)
-        : sampleRate_ (sampleRate), channels_ (channels), frames_ (frames), maxBlockSize_ (maxBlockSize)
+        : sampleRate_ (sampleRate),
+          channels_ (channels),
+          frames_ (frames),
+          maxBlockSize_ (maxBlockSize),
+          shuttleScratchStorage_ (
+              static_cast<std::size_t> (kMaxDeviceOutputChannels)
+                  * static_cast<std::size_t> (maxBlockSize),
+              0.0f)
     {
         transportCommands_.reset (kTransportCommandCapacity);
         buildMetronomeClickTables();
@@ -349,10 +377,12 @@ private:
         {
             case TransportCommandType::Play:
                 playing_ = true;
+                playbackRate_ = 1;
                 break;
 
             case TransportCommandType::Stop:
                 playing_ = false;
+                playbackRate_ = 1;
                 break;
 
             case TransportCommandType::Locate:
@@ -370,6 +400,10 @@ private:
             case TransportCommandType::ClearLoop:
                 loopEnabled_ = false;
                 break;
+
+            case TransportCommandType::SetPlaybackRate:
+                playbackRate_ = static_cast<int> (command.a);
+                break;
         }
     }
 
@@ -380,6 +414,7 @@ private:
         publishedPlayheadFrame_.store (playheadFrame_, std::memory_order_release);
         publishedLoopStartFrame_.store (loopStartFrame_, std::memory_order_release);
         publishedLoopEndFrame_.store (loopEndFrame_, std::memory_order_release);
+        publishedPlaybackRate_.store (playbackRate_, std::memory_order_release);
     }
 
     static void zeroOutputChannels (float* const* outChannels,
@@ -417,6 +452,67 @@ private:
         driver_.processDeviceBlock (segmentChannels.data(), numOutputChannels, numFrames, transport);
     }
 
+    void processForwardShuttleBlock (float* const* outChannels,
+                                     int numOutputChannels,
+                                     int numFrames) noexcept YESDAW_RT_HOT
+    {
+        std::array<float*, kMaxDeviceOutputChannels> scratchChannels {};
+        for (int channel = 0; channel < numOutputChannels; ++channel)
+        {
+            scratchChannels[static_cast<std::size_t> (channel)] = shuttleScratchStorage_.data()
+                + static_cast<std::size_t> (channel) * static_cast<std::size_t> (maxBlockSize_);
+        }
+
+        const int rate = playbackRate_;
+        std::int64_t sourceFramesRemaining = static_cast<std::int64_t> (numFrames)
+                                           * static_cast<std::int64_t> (rate);
+        int sourcePhase = 0;
+        int outputOffset = 0;
+        while (sourceFramesRemaining > 0)
+        {
+            if (loopEnabled_ && playheadFrame_ >= loopEndFrame_)
+                playheadFrame_ = loopStartFrame_;
+
+            int segment = static_cast<int> (std::min<std::int64_t> (
+                sourceFramesRemaining, static_cast<std::int64_t> (maxBlockSize_)));
+            if (loopEnabled_)
+            {
+                const std::int64_t untilLoopEnd = loopEndFrame_ - playheadFrame_;
+                YESDAW_RT_FATAL (untilLoopEnd > 0);
+                segment = static_cast<int> (std::min<std::int64_t> (
+                    static_cast<std::int64_t> (segment), untilLoopEnd));
+            }
+            YESDAW_RT_FATAL (segment >= 1);
+
+            processTransportSegment (scratchChannels.data(), numOutputChannels, 0, segment);
+            overlayMetronome (scratchChannels.data(), numOutputChannels, 0, segment, playheadFrame_);
+            for (int sourceOffset = 0; sourceOffset < segment; ++sourceOffset)
+            {
+                if (sourcePhase == 0)
+                {
+                    YESDAW_RT_FATAL (outputOffset < numFrames);
+                    for (int channel = 0; channel < numOutputChannels; ++channel)
+                    {
+                        outChannels[channel][outputOffset] =
+                            scratchChannels[static_cast<std::size_t> (channel)][sourceOffset];
+                    }
+                    ++outputOffset;
+                }
+
+                if (++sourcePhase == rate)
+                    sourcePhase = 0;
+            }
+
+            playheadFrame_ += static_cast<std::int64_t> (segment);
+            sourceFramesRemaining -= static_cast<std::int64_t> (segment);
+            if (loopEnabled_ && playheadFrame_ >= loopEndFrame_)
+                playheadFrame_ = loopStartFrame_;
+        }
+
+        YESDAW_RT_FATAL (outputOffset == numFrames);
+        YESDAW_RT_FATAL (sourcePhase == 0);
+    }
+
     RuntimeAudioDriver driver_;
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     static constexpr double kMetronomeClickSeconds = 0.005;
@@ -435,6 +531,7 @@ private:
     std::uint16_t      channels_ = 0;
     std::uint64_t      frames_ = 0;
     int                maxBlockSize_ = 128;
+    std::vector<float> shuttleScratchStorage_;
     std::int64_t       playheadFrame_ = 0;
     std::int64_t       loopStartFrame_ = 0;
     std::int64_t       loopEndFrame_ = 0;
@@ -442,14 +539,18 @@ private:
     std::uint64_t      autosavedRevision_ = 0;
     bool               playing_ = true;
     bool               loopEnabled_ = false;
+    int                playbackRate_ = 1;
     std::atomic<bool> publishedPlaying_ { true };
     std::atomic<bool> publishedLoopEnabled_ { false };
     std::atomic<std::int64_t> publishedPlayheadFrame_ { 0 };
     std::atomic<std::int64_t> publishedLoopStartFrame_ { 0 };
     std::atomic<std::int64_t> publishedLoopEndFrame_ { 0 };
+    std::atomic<int> publishedPlaybackRate_ { 1 };
 };
 
 static_assert (std::atomic<std::int64_t>::is_always_lock_free,
                "published transport frames must stay lock-free on the audio thread");
+static_assert (std::atomic<int>::is_always_lock_free,
+               "published playback rate must stay lock-free on the audio thread");
 
 } // namespace yesdaw::engine
