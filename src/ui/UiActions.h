@@ -106,6 +106,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipCut,
     TimelineClipSelectAllTrack,
     TimelineClipSelectAllProject,
+    TimelineClipHeal,
     Count
 };
 
@@ -454,7 +455,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipSelectAllTrack, "timeline.clip.select_all_track", "Select Track Clips", "Ctrl+A", "Select all clips on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipSelectAllProject, "timeline.clip.select_all_project", "Select Project Clips", "Ctrl+Shift+A", "Select all clips in project",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipHeal, "timeline.clip.heal", "Heal Clips", "Ctrl+J", "Heal selected clips",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -773,6 +776,7 @@ public:
             case UiActionId::TimelineClipMove:
             case UiActionId::TimelineClipTrim:
             case UiActionId::TimelineClipSplit:
+            case UiActionId::TimelineClipHeal:
             case UiActionId::TimelineClipSetGain:
             case UiActionId::TimelineClipSetFades:
             case UiActionId::TimelineClipTimeStretch:

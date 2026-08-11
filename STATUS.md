@@ -65,11 +65,27 @@ startup test.
 Exact-head GitHub Actions run `31446312029` is green across all nine jobs: Linux, Windows, macOS,
 RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push this small A4 evidence/handoff update, then require its exact-head GitHub
-Actions run green across all nine jobs before opening A5.
+**Implemented and local-green for A5 — heal/join (commit pending):** audited the descriptor table,
+keymap, JUCE chord translation, selected-Clip model, split/trim/delete commands, undo transaction
+groups, bundle adoption, and playback rebuild before adding anything. Appended the unique `Ctrl+J`
+`TimelineClipHeal` action and both exhaustive switch cases. The real chord joins exactly two adjacent
+Clips only when they share a Track and Asset, their source windows are contiguous, and their playback
+settings match; every ineligible selection is an honest no-op. A valid heal expands the left Clip and
+deletes the right Clip in one persisted undo transaction, then keeps the healed Clip selected. The
+shipped-boundary `[heal-clips]` gate first proves a timeline-adjacent duplicate with a restarted source
+window is refused without changing persistence, counters, or undo state; it then drives a real `B`
+split and `Ctrl+J`, proves the original persisted Clip and bit-identical full playback are restored,
+and proves one Undo restores the split pair. Fresh Visual Studio Developer Shell build plus full local
+`ctest --preset ci` is green **341/341**, including the action/keymap uniqueness, theme audit,
+screenshots, native input, and GPU gates. The owner's real last-project record was temporarily isolated
+and hash-verified after restoration.
 
-**Next:** after the A4 checkpoint is fully recorded and remote-green, start A5 heal/join with a fresh
-`git pull --rebase` and another audit-first shipped-boundary slice.
+**Now:** commit and push the small A5 implementation checkpoint, then require its exact-head GitHub
+Actions run green across all nine jobs; cancelled runs do not count.
+
+**Next:** after the A5 implementation run is nine-job green, tick A5 in the canonical backlog with its
+implementation commit SHA, commit/push that evidence update, and certify the evidence commit's own
+exact-head nine-job run before opening A6.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

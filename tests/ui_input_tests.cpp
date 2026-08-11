@@ -3763,6 +3763,89 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     REQUIRE (undone.clips == original.clips);
 }
 
+TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
+           "[ui][input][shell][timeline][heal-clips]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("heal-clips");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeHeal = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeHeal.data(), beforeHeal.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // Duplicate is timeline-adjacent but restarts the same source window, so heal must refuse it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project ineligible = readProjectSnapshot (bundlePath);
+    const MainComponentSnapshot beforeRefusal = snapshotMainComponent (*shell);
+    REQUIRE (ineligible.clips.size() == 2u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('j', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == ineligible.clips);
+    const MainComponentSnapshot afterRefusal = snapshotMainComponent (*shell);
+    REQUIRE (afterRefusal.context.commandDispatchCount == beforeRefusal.context.commandDispatchCount);
+    REQUIRE (afterRefusal.context.timelineEditCount == beforeRefusal.context.timelineEditCount);
+    REQUIRE (afterRefusal.context.canUndo == beforeRefusal.context.canUndo);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> zoomAnchor =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, 0);
+    juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline, zoomAnchor, zoomAnchor, false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 10; ++i)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+
+    const yesdaw::engine::Tick requestedSplitTick = original.clips.front().timelineLength / 2;
+    const juce::Point<int> rulerPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), original, requestedSplitTick);
+    REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
+    mouseDownAt (timeline, rulerPoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+
+    const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+    REQUIRE (split.clips.size() == 2u);
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('j', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project healed = readProjectSnapshot (bundlePath);
+    REQUIRE (healed.clips == original.clips);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterHeal = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
+    REQUIRE (afterHeal == beforeHeal);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == split.clips);
+}
+
 TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("snap-grid");
