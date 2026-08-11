@@ -2845,25 +2845,24 @@ public:
 
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipGain (float newGain)
     {
-        const UiActionId id = UiActionId::TimelineClipSetGain;
+        return applySelectedTimelineClipGain (UiActionId::TimelineClipSetGain, newGain);
+    }
+
+    [[nodiscard]] UiActionDispatchResult stepSelectedTimelineClipGain (UiActionId id)
+    {
         const UiActionState state = registry_.stateFor (id, context_);
         if (! state.enabled)
             return { id, state, false };
 
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        const engine::ProjectEditApplyResult applied =
-            nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipGain (selectedTimelineClipId_, newGain));
-
-        if (! applied.applied())
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline edit did not persist" }, false };
-
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
-        return { id, state, true };
+        constexpr float oneDecibelRatio = 1.1220184543f;
+        const float nextGain = id == UiActionId::TimelineClipGainIncrease
+                                 ? clip->gain * oneDecibelRatio
+                                 : clip->gain / oneDecibelRatio;
+        return applySelectedTimelineClipGain (id, nextGain);
     }
 
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFades (engine::Tick fadeIn, engine::Tick fadeOut)
@@ -3348,6 +3347,10 @@ public:
             case UiActionId::EditNudgeRightFine:
                 return nudgeSelection (id);
 
+            case UiActionId::TimelineClipGainIncrease:
+            case UiActionId::TimelineClipGainDecrease:
+                return stepSelectedTimelineClipGain (id);
+
             case UiActionId::TransportToggleMetronome:
                 return toggleMetronome();
 
@@ -3478,6 +3481,28 @@ private:
         MixerTargetKind kind = MixerTargetKind::Track;
         std::size_t index = 0;
     };
+
+    [[nodiscard]] UiActionDispatchResult applySelectedTimelineClipGain (UiActionId id, float newGain)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipGain (selectedTimelineClipId_, newGain));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
 
     [[nodiscard]] const engine::Clip* findClip (engine::EntityId clipId) const noexcept
     {

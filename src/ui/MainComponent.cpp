@@ -218,6 +218,10 @@ std::string chordForKeyPress (const juce::KeyPress& key)
         chord += "Space";
     else if (code == juce::KeyPress::homeKey)
         chord += "Home";
+    else if (code == juce::KeyPress::upKey)
+        chord += "Up";
+    else if (code == juce::KeyPress::downKey)
+        chord += "Down";
     else if (code == juce::KeyPress::escapeKey)
         chord += "Esc";
     else if (code == juce::KeyPress::deleteKey)

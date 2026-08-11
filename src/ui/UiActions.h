@@ -111,6 +111,8 @@ enum class UiActionId : std::uint8_t
     EditNudgeRight,
     EditNudgeLeftFine,
     EditNudgeRightFine,
+    TimelineClipGainIncrease,
+    TimelineClipGainDecrease,
     Count
 };
 
@@ -469,7 +471,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::EditNudgeLeftFine, "edit.nudge_left_fine", "Fine Nudge Left", "Shift+,", "Fine nudge selection left",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::EditNudgeRightFine, "edit.nudge_right_fine", "Fine Nudge Right", "Shift+.", "Fine nudge selection right",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineClipGainIncrease, "timeline.clip.gain_increase", "Clip Gain +1 dB", "Alt+Up", "Increase selected clip gain by one decibel",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipGainDecrease, "timeline.clip.gain_decrease", "Clip Gain -1 dB", "Alt+Down", "Decrease selected clip gain by one decibel",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -803,6 +809,8 @@ public:
             case UiActionId::TimelineClipSplit:
             case UiActionId::TimelineClipHeal:
             case UiActionId::TimelineClipSetGain:
+            case UiActionId::TimelineClipGainIncrease:
+            case UiActionId::TimelineClipGainDecrease:
             case UiActionId::TimelineClipSetFades:
             case UiActionId::TimelineClipTimeStretch:
                 context.activePanel = UiPanel::Timeline;

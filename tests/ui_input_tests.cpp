@@ -3506,6 +3506,68 @@ TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audib
     REQUIRE (afterUndo == beforeCopy);
 }
 
+TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
+           "[ui][input][shell][timeline][clip-gain-keys]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-gain-keys");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.clips.front().gain == 1.0f);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> baseline = renderMainComponentPlayback (*shell, 512, 128);
+    const double baselinePeak = peakAbs (std::span<const float> (baseline.data(), baseline.size()));
+    REQUIRE (baselinePeak > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const double oneDecibelRatio = std::pow (10.0, 1.0 / 20.0);
+    const juce::ModifierKeys alt { juce::ModifierKeys::altModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey, alt, 0)));
+    yesdaw::engine::Project stepped = readProjectSnapshot (bundlePath);
+    REQUIRE (std::fabs (static_cast<double> (stepped.clips.front().gain) - oneDecibelRatio) < 0.000001);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> raised = renderMainComponentPlayback (*shell, 512, 128);
+    const double raisedPeak = peakAbs (std::span<const float> (raised.data(), raised.size()));
+    REQUIRE (std::fabs ((raisedPeak / baselinePeak) - oneDecibelRatio) < 0.000001);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey, alt, 0)));
+    stepped = readProjectSnapshot (bundlePath);
+    REQUIRE (std::fabs (stepped.clips.front().gain - original.clips.front().gain) < 0.000001f);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey, alt, 0)));
+    const yesdaw::engine::Project lowered = readProjectSnapshot (bundlePath);
+    REQUIRE (std::fabs (static_cast<double> (lowered.clips.front().gain) - (1.0 / oneDecibelRatio)) < 0.000001);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> reduced = renderMainComponentPlayback (*shell, 512, 128);
+    const double reducedPeak = peakAbs (std::span<const float> (reduced.data(), reduced.size()));
+    REQUIRE (std::fabs ((reducedPeak / baselinePeak) - (1.0 / oneDecibelRatio)) < 0.000001);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (afterUndo == baseline);
+}
+
 TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edit",
            "[ui][input][shell][clipboard][cut]")
 {
