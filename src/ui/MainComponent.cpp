@@ -1890,6 +1890,14 @@ public:
         trackRenameEditor.onFocusLost = [this] { dismissTrackRenameEditor(); };
         addChildComponent (trackRenameEditor);
 
+        clipRenameEditor.setComponentID ("shell.timeline.clip.rename");
+        clipRenameEditor.setName ("Rename clip");
+        clipRenameEditor.setSelectAllWhenFocused (true);
+        clipRenameEditor.onReturnKey = [this] { commitClipRenameEditor(); };
+        clipRenameEditor.onEscapeKey = [this] { dismissClipRenameEditor(); };
+        clipRenameEditor.onFocusLost = [this] { dismissClipRenameEditor(); };
+        addChildComponent (clipRenameEditor);
+
         // Snap grid picker (usable-DAW P1): the four registered snap actions surfaced as one control;
         // the model derives real frame grids from the head tempo/meter.
         configureActionComponent (timelineSnapChooser, yesdaw::ui::UiActionId::TimelineSnapSetBeat, "Snap grid");
@@ -2269,6 +2277,12 @@ public:
     [[nodiscard]] int harnessVisibleTimelineClipCount() const
     {
         return appModel.context().projectLoaded ? static_cast<int> (timelineClips.size()) : 0;
+    }
+    [[nodiscard]] std::string harnessVisibleFirstTimelineClipName() const
+    {
+        if (! appModel.context().projectLoaded || timelineClips.empty() || timelineClips.front().name == nullptr)
+            return {};
+        return timelineClips.front().name;
     }
     [[nodiscard]] int harnessSelectedTimelineClipCount() const
     {
@@ -3120,6 +3134,7 @@ private:
 
     void openTrackRenameEditor()
     {
+        dismissClipRenameEditor();
         const auto& tracks = appModel.project().tracks;
         if (selectedTrackLane < 0 || selectedTrackLane >= static_cast<int> (tracks.size()))
             return;
@@ -3156,6 +3171,52 @@ private:
     void dismissTrackRenameEditor()
     {
         trackRenameEditor.setVisible (false);
+    }
+
+    void openClipRenameEditor()
+    {
+        const yesdaw::engine::EntityId selectedId = appModel.selectedTimelineClipId();
+        const yesdaw::engine::Clip* const selectedClip = findProjectClipById (selectedId);
+        const auto view = std::find (timelineClipIds.begin(), timelineClipIds.end(), selectedId);
+        if (selectedClip == nullptr || view == timelineClipIds.end())
+            return;
+
+        dismissTrackRenameEditor();
+        const std::size_t viewIndex = static_cast<std::size_t> (std::distance (timelineClipIds.begin(), view));
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+        const yesdaw::ui::Clip& clip = timelineClips[viewIndex];
+        const int left = geometry.clipArea.getX()
+                       + juce::roundToInt ((clip.startSeconds - geometry.viewport.scrollSeconds)
+                                           * geometry.viewport.pixelsPerSecond);
+        const int top = geometry.clipArea.getY() + clip.lane * geometry.laneHeight;
+        const int width = juce::roundToInt (clip.lengthSeconds * geometry.viewport.pixelsPerSecond);
+        juce::Rectangle<int> bounds { left, top, width, geometry.laneHeight };
+        bounds = bounds.getIntersection (geometry.clipArea)
+                       .reduced (yesdaw::ui::UiTheme::Space::sm)
+                       .withHeight (yesdaw::ui::UiTheme::Layout::trackListRenameEditorHeight)
+                       .translated (timelineInput.getX(), timelineInput.getY());
+        if (bounds.isEmpty())
+            return;
+
+        clipRenameEditor.setBounds (bounds);
+        clipRenameEditor.setText (juce::String (selectedClip->name.c_str()), juce::dontSendNotification);
+        clipRenameEditor.setVisible (true);
+        clipRenameEditor.grabKeyboardFocus();
+    }
+
+    void commitClipRenameEditor()
+    {
+        (void) appModel.renameSelectedTimelineClip (clipRenameEditor.getText().toStdString());
+        dismissClipRenameEditor();
+        refreshActionState();
+        repaint();
+    }
+
+    void dismissClipRenameEditor()
+    {
+        clipRenameEditor.setVisible (false);
     }
 
     void removeSelectedTrack()
@@ -3669,6 +3730,13 @@ private:
                     openTrackRenameEditor();
                 return;
 
+            case yesdaw::ui::UiActionId::EditRenameSelection:
+                if (appModel.context().timelineClipSelected)
+                    openClipRenameEditor();
+                else if (selectedTrackLane >= 0)
+                    openTrackRenameEditor();
+                return;
+
             case yesdaw::ui::UiActionId::TrackRemove:
                 removeSelectedTrack();
                 return;
@@ -3692,6 +3760,7 @@ private:
 
     void refreshActionState()
     {
+        rebuildTimelineClipViews();
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
@@ -3899,6 +3968,8 @@ private:
             appModel.registry().stateFor (yesdaw::ui::UiActionId::TrackAdd, appModel.context()).enabled);
         if (! railVisible)
             dismissTrackRenameEditor();
+        if (! appModel.context().timelineClipSelected)
+            dismissClipRenameEditor();
         if (selectedTrackLane >= static_cast<int> (appModel.project().tracks.size()))
             selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
         const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer
@@ -4867,7 +4938,7 @@ private:
             const double startSeconds = static_cast<double> (clip.timelineStart) / sampleRate;
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
-            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds });
+            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, clip.name.c_str() });
             timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (clip.id)
                                                 ? yesdaw::ui::UiTheme::Color::accentBlue()
                                                 : kPurple,
@@ -4885,6 +4956,7 @@ private:
 
     void selectTimelineClipByLayoutId (int layoutClipId, bool toggle)
     {
+        dismissClipRenameEditor();
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
         {
             appModel.clearTimelineClipSelection();
@@ -5298,7 +5370,7 @@ private:
         g.setFont (yesdaw::ui::UiTheme::Type::font (
             yesdaw::ui::UiTheme::Type::title,
             juce::Font::bold));
-        g.drawText ("Audio Clip",
+        g.drawText (selectedClip->name.c_str(),
                     area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
                     juce::Justification::centredLeft,
@@ -5893,6 +5965,7 @@ private:
     std::size_t lastVisibleFxSlotRows = 0;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
+    juce::TextEditor clipRenameEditor;
     int selectedTrackLane = -1;
     juce::TextButton exportAudioButton;
     juce::ComboBox exportBitDepthChooser;
@@ -6082,6 +6155,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
+        snapshot.visibleFirstTimelineClipName = mainComponent->harnessVisibleFirstTimelineClipName();
         snapshot.selectedTimelineClipCount = mainComponent->harnessSelectedTimelineClipCount();
         snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();
         snapshot.visibleMixerTrackCount = mainComponent->harnessVisibleMixerTrackCount();

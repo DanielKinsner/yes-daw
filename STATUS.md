@@ -163,12 +163,29 @@ and the GPU gate. The owner's real last-project record was temporarily isolated 
 identical SHA-256. Exact-head GitHub Actions run `31468250237` is green across all nine jobs: Linux,
 Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push this small A10 evidence/handoff update, then require its exact-head GitHub
+**A11 implementation is locally green — Clip rename:** audited the existing F2 Track rename,
+descriptor/keymap table, JUCE function-key translation, Clip command/undo surface, clipboard AddClip
+path, bundle schema/migrations, Timeline painter, and playback rebuild before adding anything. Schema
+v10 adds a checked Clip display name with an additive v9 migration default and custom-name round trip;
+the control-side `ClipName` stays fixed-size and trivially copyable. Appended the contextual
+`EditRenameSelection` action at the descriptor-table end: F2 renames a selected Clip, otherwise the
+selected Track, while explicit Track rename moves to unique Ctrl+F2. The real inline Clip editor
+applies one persisted undoable rename, names are painted on Clips and in the inspector, and AddClip
+copy/duplicate/paste preserves them. The shipped-boundary `[clip-name]` gate proves F2, bundle
+readback, painted-view mapping, undo/redo, duplicate preservation, fresh reopen, and bit-identical
+audio before/after the display-only edit. Schema migration/round-trip, action uniqueness, theme audit,
+and engine undo gates also bite. A fresh Visual Studio Developer Shell Release build plus full local
+`ctest --preset ci` is green **344/344**. The schema self-check now migrates a build-tree copy, and the
+committed v8 fixture stayed byte-identical across the full run. The owner's real last-project record
+was temporarily isolated
+and restored with SHA-256 `25334FA938CAF98E1FB1191A80B8C36EED03E1301CB537090717C448D99C5673`.
+
+**Now:** commit and push the small A11 implementation checkpoint, then require its exact-head GitHub
 Actions run green across all nine jobs; cancelled runs do not count.
 
-**Next:** after A10 is fully recorded and remote-green, start A11 Clip rename with a fresh
-`git pull --rebase` and an audit of existing Clip schema/persistence/paint/editor paths before changing
-the schema.
+**Next:** after the A11 implementation run is green, tick item 11 with the implementation commit SHA,
+commit/push that evidence handoff, and require the evidence commit's exact-head nine-job run green
+before starting A12.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

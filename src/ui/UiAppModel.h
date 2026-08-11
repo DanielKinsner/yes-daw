@@ -2163,6 +2163,33 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult renameSelectedTimelineClip (std::string_view newName)
+    {
+        const UiActionId id = UiActionId::EditRenameSelection;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled || ! context_.timelineClipSelected)
+            return { id, state, false };
+
+        if (newName.empty() || newName.size() > engine::ProjectEditCommand::kMaxClipNameLength)
+            return { id, { false, "clip name must be 1-127 characters" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::renameClip (selectedTimelineClipId_, newName));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "clip rename did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult reorderProjectTrack (engine::EntityId trackId, std::size_t newIndex)
     {
         const UiActionId id = UiActionId::TrackReorder;
@@ -3479,6 +3506,15 @@ public:
                 return { id, { false, "track edit payload required" }, false };
             }
 
+            case UiActionId::EditRenameSelection:
+            {
+                const UiActionState currentState = registry_.stateFor (id, context_);
+                if (! currentState.enabled)
+                    return { id, currentState, false };
+
+                return { id, { false, "rename payload required" }, false };
+            }
+
             case UiActionId::PianoRollNoteAdd:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
@@ -4678,6 +4714,7 @@ private:
         engine::Tick fadeIn = 0;
         engine::Tick fadeOut = 0;
         engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
+        engine::ClipName name;
     };
     struct UiClipClipboard
     {
@@ -4702,6 +4739,7 @@ private:
             clip.fadeIn,
             clip.fadeOut,
             clip.timeBase,
+            clip.name,
         };
     }
 
@@ -4758,6 +4796,7 @@ private:
             clip.fadeIn = entry.fadeIn;
             clip.fadeOut = entry.fadeOut;
             clip.timeBase = entry.timeBase;
+            clip.name = entry.name;
 
             if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
                 return { id, state, false };

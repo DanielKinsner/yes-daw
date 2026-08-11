@@ -824,7 +824,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 89u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 90u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -836,6 +836,103 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.visibleMasterPeakLeft == 0.0f);
     REQUIRE (snapshot.visibleMasterPeakRight == 0.0f);
     REQUIRE (snapshot.visiblePianoRollNoteCount == 0);
+}
+
+TEST_CASE ("timeline canvas paints each Clip display name", "[ui][input][timeline][clip-name][paint]")
+{
+    const auto renderNamedClip = [] (const char* name)
+    {
+        juce::Image image (juce::Image::ARGB, 640, 240, true);
+        juce::Graphics graphics (image);
+        const yesdaw::ui::Clip clip { 1, 0, 0.0, 4.0, name };
+        const yesdaw::ui::TimelineCanvasClipStyle style {
+            yesdaw::ui::UiTheme::Color::accentPurple(), 0.75f
+        };
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = &clip;
+        state.clipStyles = &style;
+        state.clipCount = 1;
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+        return image;
+    };
+
+    const juce::Image first = renderNamedClip ("Audio Clip");
+    const juce::Image renamed = renderNamedClip ("Lead Vocal Comp");
+    int changedPixels = 0;
+    for (int y = 0; y < first.getHeight(); ++y)
+        for (int x = 0; x < first.getWidth(); ++x)
+            if (first.getPixelAt (x, y) != renamed.getPixelAt (x, y))
+                ++changedPixels;
+
+    REQUIRE (changedPixels > 0);
+}
+
+TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves playback",
+           "[ui][input][shell][timeline][clip-name]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-name-shell");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeRename = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeRename.data(), beforeRename.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
+    auto* rename = dynamic_cast<juce::TextEditor*> (
+        findChildWithComponentId (*shell, "shell.timeline.clip.rename"));
+    REQUIRE (rename != nullptr);
+    REQUIRE (rename->isVisible());
+    rename->setText ("Lead Vocal Comp", juce::dontSendNotification);
+    rename->onReturnKey();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+
+    yesdaw::engine::Project renamed = readProjectSnapshot (bundlePath);
+    REQUIRE (renamed.clips.front().name == "Lead Vocal Comp");
+    REQUIRE (snapshotMainComponent (*shell).visibleFirstTimelineClipName == "Lead Vocal Comp");
+    REQUIRE_FALSE (rename->isVisible());
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterRename = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (afterRename == beforeRename);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Audio Clip");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Lead Vocal Comp");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    renamed = readProjectSnapshot (bundlePath);
+    REQUIRE (renamed.clips.size() == 2u);
+    REQUIRE (renamed.clips.back().name == "Lead Vocal Comp");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+
+    shell.reset();
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Lead Vocal Comp");
+    REQUIRE (snapshotMainComponent (*reopened).visibleFirstTimelineClipName == "Lead Vocal Comp");
 }
 
 TEST_CASE ("shipped MainComponent device callback renders playing Project audio",
@@ -2734,8 +2831,9 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.front().trackId == project.tracks.back().id);
 
-    // F2 opens the inline rename editor for the selected row; Enter commits through the verb.
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
+    // Ctrl+F2 is the explicit Track rename chord; F2 is the contextual Clip-or-Track rename action.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key,
+                                                juce::ModifierKeys::ctrlModifier, 0)));
     auto* rename = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
     REQUIRE (rename != nullptr);
     REQUIRE (rename->isVisible());

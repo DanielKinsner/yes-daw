@@ -595,6 +595,17 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
             }
             drawClip (g, clipRect, style, rect.id);
         }
+
+        const Clip* const clip = clipForId (state, rect.id);
+        if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0')
+        {
+            g.setColour (kText);
+            g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
+            g.drawText (clip->name,
+                        clipRect.reduced (UiTheme::Space::sm),
+                        juce::Justification::topLeft,
+                        true);
+        }
     }
 
     drawPlayhead (g, ruler, clipArea, state, vp);

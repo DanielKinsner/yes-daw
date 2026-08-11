@@ -223,7 +223,13 @@ if (YESDAW_BUILD_APPS)
   # Prove the self-check actually loads + validates a real bundle and exits 0 (PASS), that --version
   # exits 0, and — the implementer-brief #8 negative control landing in the same change — that a path
   # which is NOT a valid bundle is rejected (non-zero). Uses the committed schema-v8 fixture; pure
-  # load/validate, so no audio device or display is needed and it runs on every desktop CI leg.
+  # load/validate, so no audio device or display is needed and it runs on every desktop CI leg. Opening
+  # an older schema migrates it, so self-check a build-tree copy and never mutate the committed fixture.
+  set(YESDAW_SELFCHECK_STUB_FIXTURE_ROOT "${CMAKE_CURRENT_BINARY_DIR}/selfcheck-fixtures")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw"
+       DESTINATION "${YESDAW_SELFCHECK_STUB_FIXTURE_ROOT}")
+  set(YESDAW_SELFCHECK_STUB_FIXTURE
+      "${YESDAW_SELFCHECK_STUB_FIXTURE_ROOT}/h15_cp1_automation_schema_v8.yesdaw")
   add_test(NAME YesDawSelfCheckVersion COMMAND $<TARGET_FILE:YesDawSelfCheck> --version)
   # The committed schema fixtures ship STUB (9-byte) asset files, not audio, so a full --selfcheck
   # (which renders) correctly REJECTS them at asset-decode: a schema-valid bundle whose audio is
@@ -231,7 +237,7 @@ if (YESDAW_BUILD_APPS)
   # target below, which generates a real bundle from the sine WAV fixture.
   add_test(NAME YesDawSelfCheckStubAssetRejected
            COMMAND $<TARGET_FILE:YesDawSelfCheck> --selfcheck
-                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw)
+                   ${YESDAW_SELFCHECK_STUB_FIXTURE})
   set_tests_properties(YesDawSelfCheckStubAssetRejected PROPERTIES WILL_FAIL TRUE)
   # Negative control: an existing directory that is NOT a .yesdaw bundle (no project.db) must be
   # rejected by openExistingBundle -> exit non-zero. Guards the "corrupted/invalid bundle is caught"

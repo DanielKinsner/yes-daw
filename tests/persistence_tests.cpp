@@ -1013,6 +1013,27 @@ TEST_CASE ("Project clip edit metadata round-trips through a reopened bundle", "
     REQUIRE (readback.clips[1].srcOffset == readback.clips[0].srcOffset + readback.clips[0].srcLen);
 }
 
+TEST_CASE ("Clip display names round-trip through schema v10", "[persistence][project][round-trip][clip-name]")
+{
+    const auto path = makeTempBundlePath ("clip-name-round-trip");
+    Project project = makeProject();
+    project.clips[0].name = "Lead Vocal Comp";
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.clips[0].name == "Lead Vocal Comp");
+}
+
 TEST_CASE ("Interrupted save transaction reopens the last committed Project", "[persistence][recovery][save]")
 {
     const auto path = makeTempBundlePath ("save-recovery");
@@ -1239,6 +1260,68 @@ TEST_CASE ("Schema v8 migration adds empty automation lane tables to a v7 bundle
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     REQUIRE (readback.automationLanes.empty());
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "[persistence][migration][clip-name]")
+{
+    const auto path = makeTempBundlePath ("clip-name-v9-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const Asset asset = makeAsset (idFromLowByte (2), 1000);
+    const EntityId trackId = idFromLowByte (10);
+    const EntityId clipId = idFromLowByte (4);
+
+    const std::vector<std::uint8_t> assetBytes = assetBytesForId (asset.id);
+    writeBytes (path / yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash),
+                std::span<const std::uint8_t> (assetBytes.data(), assetBytes.size()));
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV9 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 9);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV9).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO assets(id, content_hash, frames, sample_rate_hz, channels, relative_path) VALUES ("
+        + blobLiteral (asset.id) + ", " + blobLiteral (asset.contentHash) + ", 1000, 48000.0, 2, '"
+        + yesdaw::persistence::detail::assetRelativePathForHash (asset.contentHash) + "');");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) VALUES ("
+        + blobLiteral (trackId) + ", 'Audio 1', 1.0, 0.0, 0, 0, 0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) VALUES ("
+        + blobLiteral (clipId) + ", " + blobLiteral (asset.id) + ", " + blobLiteral (trackId)
+        + ", 0, 15360, 100, 900, 0.75, 16, 32, 1);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == 10);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
+    REQUIRE (value == 1);
+
+    std::string storedName;
+    REQUIRE (reopened.queryText ("SELECT name FROM clips WHERE id = X'00000000000000000000000000000004';", storedName).ok());
+    REQUIRE (storedName == "Audio Clip");
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.clips.size() == 1u);
+    REQUIRE (readback.clips[0].name == "Audio Clip");
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 

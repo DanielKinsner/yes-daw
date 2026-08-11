@@ -193,6 +193,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("timeline.clip.move")->id == UiActionId::TimelineClipMove);
     REQUIRE (descriptorForStableId ("timeline.clip.time_stretch")->id == UiActionId::TimelineClipTimeStretch);
     REQUIRE (descriptorForStableId ("timeline.clip.crossfade")->id == UiActionId::TimelineClipCrossfade);
+    REQUIRE (descriptorForStableId ("edit.rename_selection")->id == UiActionId::EditRenameSelection);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
@@ -270,6 +271,8 @@ TEST_CASE ("H11 keymap remapping is stable and rejects duplicate or empty chords
     UiActionRegistry registry;
 
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::TransportPlay);
+    REQUIRE (registry.keymap().actionForChord ("F2") == UiActionId::EditRenameSelection);
+    REQUIRE (registry.keymap().actionForChord ("Ctrl+F2") == UiActionId::TrackRename);
     REQUIRE (registry.keymap().rebind (UiActionId::TransportPlay, "Shift+P") == KeymapRebindStatus::Ok);
     REQUIRE (registry.keymap().actionForChord ("Shift+P") == UiActionId::TransportPlay);
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::Count);

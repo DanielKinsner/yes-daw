@@ -62,7 +62,8 @@ enum class ProjectEditVerb : std::uint8_t
     RemoveBus,
     AddSend,
     RemoveSend,
-    SetSendLevel
+    SetSendLevel,
+    RenameClip
 };
 
 struct ProjectEditCommand
@@ -114,6 +115,7 @@ struct ProjectEditCommand
     EntityId trackId;
     std::size_t trackPosition = 0;
     char trackName[128] = {};
+    char clipName[128] = {};
     std::int16_t noteKey = 60;
     double notePitch = 60.0;
     double noteVelocity = 1.0;
@@ -134,6 +136,18 @@ struct ProjectEditCommand
     float sendLinearGain = 1.0f;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
+    static constexpr std::size_t kMaxClipNameLength = ClipName::kMaxLength;
+
+    [[nodiscard]] static constexpr bool copyClipName (ProjectEditCommand& command, std::string_view name) noexcept
+    {
+        if (name.empty() || name.size() > kMaxClipNameLength)
+            return false;
+
+        for (std::size_t i = 0; i < name.size(); ++i)
+            command.clipName[i] = name[i];
+        command.clipName[name.size()] = '\0';
+        return true;
+    }
 
     [[nodiscard]] static constexpr ProjectEditCommand moveClip (EntityId clipId, Tick newTimelineStart) noexcept
     {
@@ -454,6 +468,7 @@ struct ProjectEditCommand
         command.fadeIn = clip.fadeIn;
         command.fadeOut = clip.fadeOut;
         command.clipTimeBase = clip.timeBase;
+        (void) copyClipName (command, clip.name.asView());
         return command;
     }
 
@@ -524,6 +539,15 @@ struct ProjectEditCommand
         command.verb = ProjectEditVerb::RenameTrack;
         command.trackId = trackId;
         (void) copyTrackName (command, name);
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand renameClip (EntityId clipId, std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RenameClip;
+        command.clipId = clipId;
+        (void) copyClipName (command, name);
         return command;
     }
 
@@ -965,6 +989,9 @@ namespace detail {
             clip.fadeIn = command.fadeIn;
             clip.fadeOut = command.fadeOut;
             clip.timeBase = command.clipTimeBase;
+            if (command.clipName[0] == '\0')
+                return ProjectEditStatus::InvalidClipName;
+            (void) clip.name.assign (std::string_view { command.clipName });
             return addClip (project, clip);
         }
 
@@ -1065,6 +1092,11 @@ namespace detail {
 
         case ProjectEditVerb::SetSendLevel:
             return setSendLevel (project, command.trackId, command.sendId, command.sendLinearGain);
+
+        case ProjectEditVerb::RenameClip:
+            if (command.clipName[0] == '\0')
+                return ProjectEditStatus::InvalidClipName;
+            return renameClip (project, command.clipId, std::string_view { command.clipName });
     }
 
     return ProjectEditStatus::InvalidProject;

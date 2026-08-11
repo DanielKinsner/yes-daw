@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 9;
+inline constexpr int          kCodeSchemaVersion = 10;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -851,6 +851,9 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
 
     for (const engine::Clip& clip : project.clips)
     {
+        if (clip.name.empty() || clip.name.size() > engine::ClipName::kMaxLength)
+            return false;
+
         if (! fitsSqliteInteger (clip.srcOffset) || ! fitsSqliteInteger (clip.srcLen))
             return false;
 
@@ -1198,13 +1201,18 @@ CREATE TABLE sends (
 CREATE INDEX sends_track_id_idx ON sends(track_id);
 )SQL";
 
+inline constexpr std::string_view kSchemaV10Sql = R"SQL(
+ALTER TABLE clips ADD COLUMN name TEXT NOT NULL DEFAULT 'Audio Clip'
+  CHECK (length(name) > 0 AND length(name) <= 127);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 9> kMigrations {
+inline constexpr std::array<SchemaMigration, 10> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1214,6 +1222,7 @@ inline constexpr std::array<SchemaMigration, 9> kMigrations {
     SchemaMigration { 7, kSchemaV7Sql },
     SchemaMigration { 8, kSchemaV8Sql },
     SchemaMigration { 9, kSchemaV9Sql },
+    SchemaMigration { 10, kSchemaV10Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2033,8 +2042,8 @@ public:
 
         detail::Statement clipStmt (
             db_,
-            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
         for (const engine::Clip& clip : project.clips)
         {
@@ -2090,6 +2099,11 @@ public:
                 return result;
             }
             if (auto result = clipStmt.bindInt64 (11, static_cast<sqlite3_int64> (clip.timeBase)); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindText (12, clip.name); ! result.ok())
             {
                 rollback();
                 return result;
@@ -2555,7 +2569,7 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base "
+                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name "
                     "FROM clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
@@ -2596,7 +2610,12 @@ public:
                     return detail::semanticInvalid ("clips.time_base is outside the Project value range");
                 clip.timeBase = static_cast<engine::TimeBase> (timeBase);
 
-                project.clips.push_back (clip);
+                const unsigned char* const name = sqlite3_column_text (stmt.get(), 11);
+                if (name == nullptr)
+                    return detail::semanticInvalid ("clips.name is NULL");
+                clip.name = reinterpret_cast<const char*> (name);
+
+                project.clips.push_back (std::move (clip));
             }
         }
 

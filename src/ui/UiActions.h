@@ -115,6 +115,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipGainDecrease,
     TimelineClipApplyDefaultFades,
     TimelineClipCrossfade,
+    EditRenameSelection,
     Count
 };
 
@@ -414,7 +415,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::TrackAdd, "track.add", "Add Track", "Ctrl+T", "Add audio track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackRename, "track.rename", "Rename Track", "F2", "Rename track",
+    { UiActionId::TrackRename, "track.rename", "Rename Track", "Ctrl+F2", "Rename track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackRemove, "track.remove", "Remove Track", "Ctrl+Shift+T", "Remove track and its clips",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -481,7 +482,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipApplyDefaultFades, "timeline.clip.apply_default_fades", "Apply Default Fades", "Ctrl+F", "Apply default fades to selected clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipCrossfade, "timeline.clip.crossfade", "Crossfade Clips", "X", "Crossfade two overlapping clips",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::EditRenameSelection, "edit.rename_selection", "Rename", "F2", "Rename selected clip or track",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -960,6 +963,15 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.trackEditCount;
+                break;
+
+            case UiActionId::EditRenameSelection:
+                context.canUndo = true;
+                context.canRedo = false;
+                if (context.timelineClipSelected)
+                    ++context.timelineEditCount;
+                else
+                    ++context.trackEditCount;
                 break;
 
             case UiActionId::PianoRollNoteAdd:

@@ -24,6 +24,7 @@ struct Clip
     int    lane;
     double startSeconds;
     double lengthSeconds;
+    const char* name = nullptr;
 };
 
 // The visible window onto the timeline.

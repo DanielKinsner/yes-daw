@@ -375,6 +375,50 @@ inline constexpr EntityId kDefaultAudioTrackId = EntityId::fromBytes ({
     0x55u, 0x44u, 0x49u, 0x4Fu, 0x5Fu, 0x30u, 0x30u, 0x31u,
 });
 
+struct ClipName
+{
+    static constexpr std::size_t kMaxLength = 127;
+
+    constexpr ClipName() noexcept = default;
+    constexpr ClipName (std::string_view text) noexcept : value {} { (void) assign (text); }
+
+    [[nodiscard]] constexpr bool assign (std::string_view text) noexcept
+    {
+        if (text.empty() || text.size() > kMaxLength)
+            return false;
+
+        value = {};
+        for (std::size_t i = 0; i < text.size(); ++i)
+            value[i] = text[i];
+        return true;
+    }
+
+    constexpr ClipName& operator= (std::string_view text) noexcept
+    {
+        (void) assign (text);
+        return *this;
+    }
+
+    [[nodiscard]] constexpr std::string_view asView() const noexcept
+    {
+        std::size_t length = 0;
+        while (length < value.size() && value[length] != '\0')
+            ++length;
+        return { value.data(), length };
+    }
+
+    [[nodiscard]] constexpr bool empty() const noexcept { return asView().empty(); }
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return asView().size(); }
+    [[nodiscard]] constexpr const char* c_str() const noexcept { return value.data(); }
+    [[nodiscard]] constexpr operator std::string_view() const noexcept { return asView(); }
+
+    friend constexpr bool operator== (const ClipName&, const ClipName&) noexcept = default;
+    friend constexpr bool operator== (const ClipName& name, std::string_view text) noexcept { return name.asView() == text; }
+    friend constexpr bool operator== (std::string_view text, const ClipName& name) noexcept { return text == name.asView(); }
+
+    std::array<char, kMaxLength + 1u> value { 'A', 'u', 'd', 'i', 'o', ' ', 'C', 'l', 'i', 'p' };
+};
+
 struct Clip
 {
     EntityId id;
@@ -388,6 +432,7 @@ struct Clip
     Tick fadeIn = 0;
     Tick fadeOut = 0;
     TimeBase timeBase = TimeBase::SampleLocked;
+    ClipName name;
 
     [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
     {
@@ -673,7 +718,8 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidSendId,
     SendNotFound,
     DuplicateSendRoute,
-    InvalidSendLevel
+    InvalidSendLevel,
+    InvalidClipName
 };
 
 struct Project
@@ -1525,7 +1571,9 @@ namespace detail {
 
 [[nodiscard]] inline bool clipEditMetadataIsStorageSafe (const Clip& clip) noexcept
 {
-    return clip.timelineLength >= 0
+    return ! clip.name.empty()
+           && clip.name.size() <= ClipName::kMaxLength
+           && clip.timelineLength >= 0
            && clipGainIsStorageSafe (clip.gain)
            && clipFadesAreStorageSafe (clip.fadeIn, clip.fadeOut)
            && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
@@ -1603,6 +1651,27 @@ namespace detail {
         return ProjectEditStatus::ClipNotFound;
 
     clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus renameClip (Project& project,
+                                                    EntityId clipId,
+                                                    std::string_view newName) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (newName.empty() || newName.size() > ClipName::kMaxLength)
+        return ProjectEditStatus::InvalidClipName;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    (void) clip->name.assign (newName);
     return ProjectEditStatus::Applied;
 }
 
@@ -2006,6 +2075,9 @@ namespace detail {
 
     if (clip.timelineStart < 0 || clip.timelineLength <= 0)
         return ProjectEditStatus::InvalidTimelineWindow;
+
+    if (clip.name.empty() || clip.name.size() > ClipName::kMaxLength)
+        return ProjectEditStatus::InvalidClipName;
 
     if (! detail::clipEditMetadataIsStorageSafe (clip))
         return ProjectEditStatus::InvalidClipEnvelope;

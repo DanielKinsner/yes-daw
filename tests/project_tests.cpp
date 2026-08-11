@@ -2233,6 +2233,26 @@ TEST_CASE ("Arrangement verbs edit, undo, and redo tracks, clips, and notes bit-
     requireProjectValueUnchanged (project, edited);
 }
 
+TEST_CASE ("Clip rename edits, undoes, and redoes through the Project command surface",
+           "[project][arrangement][clip-name][undo]")
+{
+    Project project = makeTwoClipEditableProject();
+    const EntityId clipId = project.clips.front().id;
+    const Project original = project;
+    ProjectUndoStack undo;
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::renameClip (clipId, "Verse Lead")).applied());
+    REQUIRE (project.clips.front().name == "Verse Lead");
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.clips.front().name == "Verse Lead");
+
+    REQUIRE (yesdaw::engine::renameClip (project, idFromLowByte (99), "Unknown") == ProjectEditStatus::ClipNotFound);
+    REQUIRE (yesdaw::engine::renameClip (project, clipId, "") == ProjectEditStatus::InvalidClipName);
+    REQUIRE (yesdaw::engine::renameClip (project, clipId, std::string (128u, 'x')) == ProjectEditStatus::InvalidClipName);
+}
+
 TEST_CASE ("Send routing verbs edit, undo, and redo buses and sends bit-identically",
            "[project][sends][undo]")
 {
