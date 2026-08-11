@@ -129,7 +129,7 @@ last-project record was temporarily isolated and restored with an identical SHA-
 GitHub Actions run `31460002977` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan,
 both package jobs, and both alpha-verifier jobs.
 
-**A9 — Default fades (local implementation ready for certification):** audited the existing
+**Done and remote-green for A9 — Default fades (`b4dc4bc`):** audited the existing
 `TimelineClipSetFades` action, unique descriptor/keymap table, JUCE chord translation, inspector fade
 controls, persisted SetClipFades command, equal-power playback envelope, and Undo path before adding
 anything. Appended the unique `Ctrl+F` `TimelineClipApplyDefaultFades` action and both exhaustive switch
@@ -141,10 +141,12 @@ matches the equal-power default envelope at both edges, and proves one Undo rest
 bit-identical audio. The action/keymap gate is green with **1,707 assertions** and theme audit is green.
 A fresh Visual Studio Developer Shell `/W4 /WX` build plus full local `ctest --preset ci` is green
 **341/341**, including screenshots, native input, and the GPU gate. The owner's real last-project
-record was temporarily isolated and restored with an identical SHA-256.
+record was temporarily isolated and restored with an identical SHA-256. Exact-head GitHub Actions run
+`31463488384` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
+and both alpha-verifier jobs.
 
-**Now:** run the complete local gate, commit and push the small A9 implementation, then require its
-exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count.
+**Now:** commit and push this small A9 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A10; cancelled runs do not count.
 
 **Next:** after A9 is fully recorded and remote-green, start A10 Crossfade with a fresh
 `git pull --rebase` and another audit-first shipped-boundary slice.

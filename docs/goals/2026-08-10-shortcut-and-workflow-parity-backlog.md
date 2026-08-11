@@ -65,8 +65,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    green). Alt+Up/Alt+Down adjust the selected Clip gain by exactly ±1 dB through one persisted
    edit. The shipped-boundary gate proves bundle readback, matching rendered-amplitude ratios, and
    one-step Undo restoring bit-identical playback.
-9. **Default fades** — Ctrl+F applies the default fade in+out (token length) to the selected
-   clip; applying to a clip with fades replaces them. Undoable.
+9. [x] **Default fades** — landed in `b4dc4bc` (exact-head run `31463488384`, nine jobs
+   green). Ctrl+F replaces both selected-Clip fades with the named 10 ms UI token through one
+   persisted edit. The shipped-boundary gate starts from non-default fades, proves bundle readback
+   and the full equal-power rendered envelope at both edges, then proves one-step Undo restores the
+   prior fades and bit-identical playback.
 10. **Crossfade** — `X` on two overlapping clips on one track creates equal-power
     complementary fades across the overlap. Gate: render sums to unity through the overlap.
 11. **Clip rename** — F2 with a clip selected edits a clip display name (needs `Clip::name`,
