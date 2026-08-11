@@ -306,7 +306,7 @@ The B16 evidence handoff `d0b430e` is exact-head green across all nine jobs in r
 attempt 2. Attempt 1 was not accepted because one job record remained in progress even though its
 steps had succeeded.
 
-**Implementation-ready for B17 — Playhead follow (auto-scroll):** audited the descriptor/keymap,
+**Done and remote-green for B17 — Playhead follow (auto-scroll) (`aa6e1f0`):** audited the descriptor/keymap,
 JUCE key translation, real Options menu model, playback transport snapshot, UI refresh timer, Timeline
 zoom/scroll math, and public viewport snapshot before adding anything. Appended the unique
 `Ctrl+Alt+Shift+F` `TimelineTogglePlayheadFollow` action at the end of the descriptor table and covered
@@ -324,11 +324,17 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 screenshots, native input, and the GPU gate. The protected owner last-project record and committed v8
 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the independently green B17 implementation checkpoint.
+Exact-head GitHub Actions run `31509481842` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B17 implementation head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then tick B17 with its implementation SHA, update this
-handoff, rerun the full local gate, and land the B17 evidence checkpoint.
+The B17 backlog-tick/evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
+Shell. The protected owner last-project record and committed v8 schema fixture were restored
+byte-identically after the run.
+
+**Now:** commit and push only the locally green B17 backlog and STATUS evidence updates.
+
+**Next:** require the exact B17 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Only then start B18 — JKL shuttle.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

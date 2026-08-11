@@ -106,9 +106,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     Shift+Left/Right locate by one tempo/meter-derived Bar. The shipped-boundary gate proves
     persisted, playback-silencing mixer retargeting, distinct rendered audio at grid/bar locations,
     frame-zero clamping, and unchanged Project persistence for transient navigation state.
-17. **Playhead follow (auto-scroll)** — during playback the viewport pages so the playhead
-    stays visible; Options-menu toggle, default on. Gate: transport past right edge →
-    scrollSeconds advanced.
+17. [x] **Playhead follow (auto-scroll)** — landed in `aa6e1f0` (exact-head run `31509481842`,
+    nine jobs green). The default-on, ticked Options toggle controls Timeline paging from the real
+    playback clock; after the playhead crosses a viewport edge, the 33 ms UI refresh advances
+    `scrollSeconds` by whole pages. The shipped-boundary gate proves off suppresses paging, on restores
+    it, rendered audio stays bit-identical, and `project.db` stays byte-identical because this is
+    honestly transient view state rather than fake Project persistence.
 18. **JKL shuttle** — K stops, L plays, L again = 2x, J plays reverse... reverse playback is
     NOT in the engine: implement L=play/2x/4x cycle and J=halve, K=stop, and document that
     reverse is out of scope (no fake).
