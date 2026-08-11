@@ -225,8 +225,8 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The A13 evidence handoff `ad120e6` is also exact-head green across all nine jobs in run
 `31485920017`.
 
-**B14 implementation ready — Zoom to fit:** audited the existing descriptor/keymap, JUCE key
-translation, Ctrl-wheel zoom, horizontal scroll, Timeline extent math, user loop gesture, playback
+**Done and remote-green for B14 — Zoom to fit (`eb1c2fc`):** audited the existing descriptor/keymap,
+JUCE key translation, Ctrl-wheel zoom, horizontal scroll, Timeline extent math, user loop gesture, playback
 loop frames, and public viewport snapshot before adding anything. The prior `Ctrl+0` Snap Off binding
 moves to unique `Alt+0`; the appended `TimelineZoomFitProject` and `TimelineZoomFitLoop` actions use
 unique `Ctrl+0` and `Ctrl+Shift+0` and are covered by both exhaustive switches. Ctrl+0 now resets the
@@ -241,11 +241,17 @@ action/keymap gate passes **1,781 assertions** with unique chords.
 The full B14 gate is green **344/344** in a fresh Visual Studio Developer Shell, including action
 uniqueness, accessibility, theme audit, screenshots, native input, and GPU gates. The protected owner
 last-project record and committed v8 schema fixture were restored byte-identically after the run.
+Exact-head GitHub Actions run `31488913430` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the locally green B14 implementation.
+The B14 backlog-tick/evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
+Shell. The protected owner last-project record and committed v8 schema fixture were restored
+byte-identically after the run.
 
-**Next:** require the B14 implementation commit's exact-head GitHub Actions run green across all nine
-jobs; cancelled runs do not count. Only then may the backlog tick and evidence handoff land.
+**Now:** commit and push only the locally green B14 backlog and STATUS evidence updates.
+
+**Next:** require the B14 evidence commit's exact-head GitHub Actions run green across all nine jobs;
+cancelled runs do not count. Only then start B15 — Keyboard zoom.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

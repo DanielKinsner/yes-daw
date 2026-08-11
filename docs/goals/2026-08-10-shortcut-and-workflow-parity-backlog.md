@@ -91,8 +91,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
 
 ## B. Navigation, view, transport
 
-14. **Zoom to fit** — Ctrl+0 fits the whole project horizontally; Ctrl+Shift+0 zooms to the
-    current loop region. Gate: viewport math (scroll+zoom snapshot) exact.
+14. [x] **Zoom to fit** — landed in `eb1c2fc` (exact-head run `31488913430`, nine jobs green).
+    Ctrl+0 fits the whole project horizontally; Ctrl+Shift+0 zooms to the current loop region.
+    The shipped-boundary gate proves exact viewport scroll+zoom snapshots while persisted Clips and
+    the playback loop remain unchanged; this is honestly view-only.
 15. **Keyboard zoom** — `+`/`-` zoom in/out anchored at the playhead.
 16. **Arrow navigation** — Up/Down select previous/next track (rail highlight follows);
     Left/Right move the playhead by one grid unit; Shift+Left/Right by one bar.
