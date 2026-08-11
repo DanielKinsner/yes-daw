@@ -460,9 +460,19 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 audit, screenshots, native input, recording UX, real capture, and the GPU gate. The protected owner
 last-project record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B21 count-in implementation checkpoint.
+The first exact implementation-head run `31535038873` is **not accepted**: B21's new recording UX and
+real-capture gates passed on macOS, but the existing playhead-follow UI test relied on a 50 ms wall-
+clock wait to happen to deliver the 33 ms JUCE UI timer. On the loaded macOS runner, the transport had
+crossed the visible edge but the timer callback had not run, leaving scroll at zero. A scratch negative
+control reproduced the exact isolated failure locally after **67/68 assertions**. The repair exposes a
+narrow test service for the real `MainComponent::timerCallback` and makes both follow-disabled and
+follow-enabled assertions invoke one callback deterministically; the focused gate passes **74/74**.
+A second clean Release rebuild plus full local `ctest --preset ci` is green **344/344**, and both
+protected files are byte-identical.
 
-**Next:** require the exact B21 implementation head green across all nine GitHub Actions jobs;
+**Now:** commit and push only the B21 macOS playhead-follow gate repair.
+
+**Next:** require the repaired exact B21 head green across all nine GitHub Actions jobs;
 cancelled or incomplete runs do not count. Only then land the separate B21 backlog-tick/evidence
 checkpoint and stop before B22.
 

@@ -34,6 +34,7 @@ using yesdaw::ui::UiPanel;
 using yesdaw::ui::findMainComponentChildForAction;
 using yesdaw::ui::mainShellToolbarActions;
 using yesdaw::ui::renderMainComponentPlayback;
+using yesdaw::ui::serviceMainComponentUiTimer;
 using yesdaw::ui::snapshotMainComponent;
 using yesdaw::engine::AutomationBreakpoint;
 using yesdaw::engine::AutomationCurveType;
@@ -5431,7 +5432,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
         renderMainComponentPlayback (*shell, framesPastRightEdge, 512);
     REQUIRE (peakAbs (std::span<const float> (
                  followDisabledAudio.data(), followDisabledAudio.size())) > 0.15);
-    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
     REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == before.timelineScrollSeconds);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
@@ -5441,7 +5442,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> followEnabledAudio =
         renderMainComponentPlayback (*shell, framesPastRightEdge, 512);
-    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
 
     const MainComponentSnapshot followed = snapshotMainComponent (*shell);
     REQUIRE (followed.context.playheadFrame > static_cast<std::int64_t> (visibleSeconds * 48'000.0));

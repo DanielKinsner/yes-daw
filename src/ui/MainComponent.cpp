@@ -6394,6 +6394,17 @@ std::vector<float> renderMainComponentPlayback (juce::Component& component,
     return {};
 }
 
+bool serviceMainComponentUiTimer (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        mainComponent->timerCallback();
+        return true;
+    }
+
+    return false;
+}
+
 bool processMainComponentDeviceAudioBlock (juce::Component& component,
                                            float* const* outputChannels,
                                            int numOutputChannels,

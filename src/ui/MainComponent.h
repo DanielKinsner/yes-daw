@@ -76,6 +76,7 @@ struct MainComponentSnapshot
 [[nodiscard]] std::vector<float> renderMainComponentPlayback (juce::Component& component,
                                                               std::uint64_t frames,
                                                               int blockSize);
+[[nodiscard]] bool serviceMainComponentUiTimer (juce::Component& component);
 [[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
                                                          float* const* outputChannels,
                                                          int numOutputChannels,
