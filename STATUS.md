@@ -333,7 +333,7 @@ byte-identically after the run.
 
 The B17 evidence handoff `74f7f29` is exact-head green across all nine jobs in run `31512045198`.
 
-**Implementation-ready for B18 — JKL shuttle:** audited the descriptor/keymap, JUCE key translation,
+**Done and remote-green for B18 — JKL shuttle (`827e86b`):** audited the descriptor/keymap, JUCE key translation,
 transport command queue, PlaybackEngine block/loop path, live transport snapshot, offline shell render,
 and Project persistence boundary before adding anything. Appended unique `L`
 `TransportShuttleFaster` and `J` `TransportShuttleSlower` actions in enum/descriptor order and covered
@@ -357,11 +357,16 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
 committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the independently green B18 implementation checkpoint.
+Exact-head GitHub Actions run `31515933335` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B18 implementation head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then tick B18 with its implementation SHA, update this
-handoff, rerun the full local gate, and land the B18 evidence checkpoint.
+The B18 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B18 backlog-tick/evidence checkpoint.
+
+**Next:** require the exact B18 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Then stop at the checkpoint; B19 is the next backlog item.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

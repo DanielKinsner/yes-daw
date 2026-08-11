@@ -112,9 +112,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     `scrollSeconds` by whole pages. The shipped-boundary gate proves off suppresses paging, on restores
     it, rendered audio stays bit-identical, and `project.db` stays byte-identical because this is
     honestly transient view state rather than fake Project persistence.
-18. **JKL shuttle** — K stops, L plays, L again = 2x, J plays reverse... reverse playback is
-    NOT in the engine: implement L=play/2x/4x cycle and J=halve, K=stop, and document that
-    reverse is out of scope (no fake).
+18. [x] **JKL shuttle** — landed in `827e86b` (exact-head run `31515933335`, nine jobs
+    green). `L` starts real forward playback at 1x and advances to true 2x/4x sample-striding
+    playback; `J` halves 4x → 2x → 1x, then stops, and `K` stops/reset. Loop moved to unique
+    Ctrl+Alt+Shift+L. Reverse playback remains honestly out of scope because the engine does not
+    support it; no reverse behavior or persistence is faked. The shipped-boundary gate proves
+    rendered samples, proportional playhead movement, stop/reset behavior, unique chords, audible
+    output, and byte-identical Project persistence for the transient shuttle rate.
 19. **Return-to-zero on stop option** — Options toggle: stop returns playhead to start
     position vs stays. Enter = RTZ always.
 20. **Play from click** — double-click on the ruler locates the playhead there (exists?
