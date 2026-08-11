@@ -129,10 +129,24 @@ last-project record was temporarily isolated and restored with an identical SHA-
 GitHub Actions run `31460002977` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan,
 both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push this small A8 evidence/handoff update, then require its exact-head GitHub
-Actions run green across all nine jobs before opening A9; cancelled runs do not count.
+**A9 — Default fades (local implementation ready for certification):** audited the existing
+`TimelineClipSetFades` action, unique descriptor/keymap table, JUCE chord translation, inspector fade
+controls, persisted SetClipFades command, equal-power playback envelope, and Undo path before adding
+anything. Appended the unique `Ctrl+F` `TimelineClipApplyDefaultFades` action and both exhaustive switch
+cases. The real chord replaces both selected-Clip fades with the named 10 ms UI token through one
+persisted edit, clamped symmetrically only when a Clip is shorter than two defaults. The shipped-boundary
+`[default-fades]` gate first failed at the unregistered Ctrl+F chord, then passed **66 assertions**; it
+starts from non-default persisted fades, proves exact bundle readback, proves the full rendered waveform
+matches the equal-power default envelope at both edges, and proves one Undo restores the prior fades and
+bit-identical audio. The action/keymap gate is green with **1,707 assertions** and theme audit is green.
+A fresh Visual Studio Developer Shell `/W4 /WX` build plus full local `ctest --preset ci` is green
+**341/341**, including screenshots, native input, and the GPU gate. The owner's real last-project
+record was temporarily isolated and restored with an identical SHA-256.
 
-**Next:** after A8 is fully recorded and remote-green, start A9 Default fades with a fresh
+**Now:** run the complete local gate, commit and push the small A9 implementation, then require its
+exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count.
+
+**Next:** after A9 is fully recorded and remote-green, start A10 Crossfade with a fresh
 `git pull --rebase` and another audit-first shipped-boundary slice.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve

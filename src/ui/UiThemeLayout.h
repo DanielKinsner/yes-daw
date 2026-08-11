@@ -10,6 +10,7 @@ struct UiThemeLayout
     static constexpr double timelineLayoutDefaultWidthPixels = 1280.0;
     static constexpr double timelineLayoutDefaultLaneHeightPixels = 64.0;
     static constexpr double timelineLayoutZeroFloor = 0.0;
+    static constexpr double timelineClipDefaultFadeSeconds = 0.01;
 };
 
 } // namespace yesdaw::ui

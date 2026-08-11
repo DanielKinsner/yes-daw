@@ -3568,6 +3568,97 @@ TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
     REQUIRE (afterUndo == baseline);
 }
 
+TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one audible edit",
+           "[ui][input][shell][timeline][default-fades]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("default-fades");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.sampleRate == yesdaw::engine::SampleRate { 48'000.0 });
+    REQUIRE (original.clips.front().fadeIn == 0);
+    REQUIRE (original.clips.front().fadeOut == 0);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (original.clips.front().timelineLength);
+    const std::vector<float> unfaded = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (peakAbs (std::span<const float> (unfaded.data(), unfaded.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
+    juce::Slider& fadeOut = requireSliderWithComponentId (*shell, kInspectorFadeOutComponentId);
+    setSliderValueThroughComponent (fadeIn, 0.05);
+    setSliderValueThroughComponent (fadeOut, 0.05);
+    const yesdaw::engine::Project preexisting = readProjectSnapshot (bundlePath);
+    constexpr yesdaw::engine::Tick expectedDefaultFadeTicks = 480;
+    REQUIRE (preexisting.clips.front().fadeIn > expectedDefaultFadeTicks);
+    REQUIRE (preexisting.clips.front().fadeOut > expectedDefaultFadeTicks);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> preexistingAudio = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('f', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project defaulted = readProjectSnapshot (bundlePath);
+    REQUIRE (defaulted.clips.front().fadeIn == expectedDefaultFadeTicks);
+    REQUIRE (defaulted.clips.front().fadeOut == expectedDefaultFadeTicks);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> defaultedAudio = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (defaultedAudio != unfaded);
+
+    constexpr double halfPi = 1.57079632679489661923;
+    double maximumEnvelopeDiff = 0.0;
+    const yesdaw::engine::Tick timelineLength = defaulted.clips.front().timelineLength;
+    for (yesdaw::engine::Tick frame = 0; frame < timelineLength; ++frame)
+    {
+        double expectedGain = 1.0;
+        if (frame < expectedDefaultFadeTicks)
+            expectedGain = std::sin (halfPi * static_cast<double> (frame)
+                                     / static_cast<double> (expectedDefaultFadeTicks));
+
+        const yesdaw::engine::Tick fadeOutStart = timelineLength - expectedDefaultFadeTicks;
+        if (frame >= fadeOutStart)
+        {
+            const double progress = static_cast<double> (frame - fadeOutStart)
+                                  / static_cast<double> (expectedDefaultFadeTicks);
+            expectedGain = std::min (expectedGain, std::sin (halfPi * (1.0 - progress)));
+        }
+
+        for (std::size_t channel = 0; channel < 2u; ++channel)
+        {
+            const std::size_t sample = static_cast<std::size_t> (frame) * 2u + channel;
+            maximumEnvelopeDiff = std::max (
+                maximumEnvelopeDiff,
+                std::fabs (static_cast<double> (defaultedAudio[sample])
+                           - static_cast<double> (unfaded[sample]) * expectedGain));
+        }
+    }
+    REQUIRE (maximumEnvelopeDiff < 0.000001);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == preexisting.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == preexistingAudio);
+}
+
 TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edit",
            "[ui][input][shell][clipboard][cut]")
 {

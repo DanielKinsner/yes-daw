@@ -585,6 +585,7 @@ struct UiTheme
         static constexpr int timelineClipEdgeHitWidth = 8;
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;
+        static constexpr double timelineClipDefaultFadeSeconds = UiThemeLayout::timelineClipDefaultFadeSeconds;
         static constexpr int automationLaneToggleLeftInset = 368;
         static constexpr int automationLaneToggleTopInset = 8;
         static constexpr int automationLaneToggleWidth = 116;

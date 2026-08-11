@@ -15,11 +15,13 @@
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
+#include "ui/UiThemeLayout.h"
 #include "ui/WaveformPeakService.h"
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -2867,26 +2869,28 @@ public:
 
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFades (engine::Tick fadeIn, engine::Tick fadeOut)
     {
-        const UiActionId id = UiActionId::TimelineClipSetFades;
+        return applySelectedTimelineClipFades (UiActionId::TimelineClipSetFades, fadeIn, fadeOut);
+    }
+
+    [[nodiscard]] UiActionDispatchResult applyDefaultTimelineClipFades()
+    {
+        const UiActionId id = UiActionId::TimelineClipApplyDefaultFades;
         const UiActionState state = registry_.stateFor (id, context_);
         if (! state.enabled)
             return { id, state, false };
 
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        const engine::ProjectEditApplyResult applied = nextUndo.apply (
-            nextProject,
-            engine::ProjectEditCommand::setClipFades (selectedTimelineClipId_, fadeIn, fadeOut));
-
-        if (! applied.applied())
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr || ! project_.sampleRate.isValid())
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline edit did not persist" }, false };
+        const double requestedTicks = UiThemeLayout::timelineClipDefaultFadeSeconds * project_.sampleRate.hz;
+        if (! std::isfinite (requestedTicks)
+            || requestedTicks > static_cast<double> (std::numeric_limits<engine::Tick>::max()))
+            return { id, { false, "default fade length is invalid" }, false };
 
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
-        return { id, state, true };
+        const engine::Tick defaultTicks = std::max<engine::Tick> (1, static_cast<engine::Tick> (std::llround (requestedTicks)));
+        const engine::Tick fadeTicks = std::min (defaultTicks, std::max<engine::Tick> (0, clip->timelineLength / 2));
+        return applySelectedTimelineClipFades (id, fadeTicks, fadeTicks);
     }
 
     // Automation lane canvas verbs (usable-DAW P1): target ANY track's fader lane by owner id,
@@ -3351,6 +3355,9 @@ public:
             case UiActionId::TimelineClipGainDecrease:
                 return stepSelectedTimelineClipGain (id);
 
+            case UiActionId::TimelineClipApplyDefaultFades:
+                return applyDefaultTimelineClipFades();
+
             case UiActionId::TransportToggleMetronome:
                 return toggleMetronome();
 
@@ -3492,6 +3499,31 @@ private:
         engine::ProjectUndoStack nextUndo = undo_;
         const engine::ProjectEditApplyResult applied =
             nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipGain (selectedTimelineClipId_, newGain));
+
+        if (! applied.applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult applySelectedTimelineClipFades (UiActionId id,
+                                                                         engine::Tick fadeIn,
+                                                                         engine::Tick fadeOut)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setClipFades (selectedTimelineClipId_, fadeIn, fadeOut));
 
         if (! applied.applied())
             return { id, state, false };

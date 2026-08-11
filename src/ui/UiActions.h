@@ -113,6 +113,7 @@ enum class UiActionId : std::uint8_t
     EditNudgeRightFine,
     TimelineClipGainIncrease,
     TimelineClipGainDecrease,
+    TimelineClipApplyDefaultFades,
     Count
 };
 
@@ -475,6 +476,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipGainIncrease, "timeline.clip.gain_increase", "Clip Gain +1 dB", "Alt+Up", "Increase selected clip gain by one decibel",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipGainDecrease, "timeline.clip.gain_decrease", "Clip Gain -1 dB", "Alt+Down", "Decrease selected clip gain by one decibel",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipApplyDefaultFades, "timeline.clip.apply_default_fades", "Apply Default Fades", "Ctrl+F", "Apply default fades to selected clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
 }};
 
@@ -812,6 +815,7 @@ public:
             case UiActionId::TimelineClipGainIncrease:
             case UiActionId::TimelineClipGainDecrease:
             case UiActionId::TimelineClipSetFades:
+            case UiActionId::TimelineClipApplyDefaultFades:
             case UiActionId::TimelineClipTimeStretch:
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
