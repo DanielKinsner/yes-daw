@@ -3329,10 +3329,21 @@ public:
             }
 
             case UiActionId::TransportPlay:
-                return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
+            {
+                const bool startingPlayback = ! context_.isPlaying;
+                const std::int64_t playbackStart = context_.playheadFrame;
+                UiActionDispatchResult result =
+                    dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
+                if (result.dispatched && startingPlayback)
+                    context_.playbackStartFrame = playbackStart;
+                return result;
+            }
 
             case UiActionId::TransportShuttleFaster:
-                return dispatchTransport (id, [this] {
+            {
+                const bool startingPlayback = ! context_.isPlaying;
+                const std::int64_t playbackStart = context_.playheadFrame;
+                UiActionDispatchResult result = dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
                         return false;
                     if (! context_.isPlaying)
@@ -3341,6 +3352,10 @@ public:
                     const int nextRate = std::min (4, context_.shuttlePlaybackRate * 2);
                     return playback_->setPlaybackRate (nextRate);
                 });
+                if (result.dispatched && startingPlayback)
+                    context_.playbackStartFrame = playbackStart;
+                return result;
+            }
 
             case UiActionId::TransportShuttleSlower:
                 return dispatchTransport (id, [this] {
@@ -3350,14 +3365,15 @@ public:
                         return playback_->setPlaybackRate (context_.shuttlePlaybackRate / 2);
 
                     // Reverse playback is outside the engine contract. At 1x, J reaches the honest
-                    // zero-speed boundary and stops at the current playhead.
-                    return playback_->stop();
+                    // zero-speed boundary; the configured Stop policy owns the resulting position.
+                    return stopPlaybackAtConfiguredPosition();
                 });
 
             case UiActionId::TransportStop:
-                return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->stop(); });
+                return dispatchTransport (id, [this] { return stopPlaybackAtConfiguredPosition(); });
 
             case UiActionId::TransportLocateStart:
+            case UiActionId::TransportReturnToZero:
                 return dispatchTransport (id, [this] { return playback_ != nullptr && playback_->locate (0); });
 
             case UiActionId::TransportLocatePreviousGrid:
@@ -3442,6 +3458,7 @@ public:
             case UiActionId::TrackSelectPrevious:
             case UiActionId::TrackSelectNext:
             case UiActionId::TimelineTogglePlayheadFollow:
+            case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);
@@ -4695,6 +4712,15 @@ private:
         return { id, { true, "" }, true };
     }
 
+    [[nodiscard]] bool stopPlaybackAtConfiguredPosition()
+    {
+        if (playback_ == nullptr || ! playback_->stop())
+            return false;
+
+        return ! context_.returnToStartOnStopEnabled
+            || playback_->locate (context_.playbackStartFrame);
+    }
+
     UiActionDispatchResult locatePlaybackRelative (UiActionId id, std::int64_t deltaFrames)
     {
         const std::int64_t currentFrame = std::max<std::int64_t> (0, context_.playheadFrame);
@@ -4749,6 +4775,7 @@ private:
         context_.isPlaying = false;
         context_.loopEnabled = false;
         context_.playheadFrame = 0;
+        context_.playbackStartFrame = 0;
         context_.shuttlePlaybackRate = 1;
     }
 

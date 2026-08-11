@@ -5630,3 +5630,185 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Options can return Stop to the captured playback start",
+           "[ui][input][shell][transport][return-to-start]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("return-to-start-stop");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 101u) - 50;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const std::int64_t playbackStart = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (playbackStart > 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> defaultAudio = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (peakAbs (std::span<const float> (defaultAudio.data(), defaultAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    MainComponentSnapshot stopped = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (stopped.context.isPlaying);
+    REQUIRE (stopped.context.playheadFrame == playbackStart + 256);
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (
+        findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    const auto returnToStartMenuState = [model]
+    {
+        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu::MenuItemIterator iterator (options);
+        while (iterator.next())
+        {
+            const juce::PopupMenu::Item& item = iterator.getItem();
+            if (item.text == "Return to Start on Stop")
+                return std::pair<int, bool> { item.itemID, item.isTicked };
+        }
+        return std::pair<int, bool> { 0, false };
+    };
+
+    const auto [returnItemId, defaultReturnEnabled] = returnToStartMenuState();
+    REQUIRE (returnItemId > 0);
+    REQUIRE_FALSE (defaultReturnEnabled);
+    model->menuItemSelected (returnItemId, 3);
+    REQUIRE (returnToStartMenuState().second);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == playbackStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> returnEnabledAudio = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (returnEnabledAudio == defaultAudio);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    stopped = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (stopped.context.isPlaying);
+    REQUIRE (stopped.context.playheadFrame == playbackStart);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> replayed = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (replayed == defaultAudio);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == playbackStart);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}
+
+TEST_CASE ("Enter always returns the transport to timeline zero",
+           "[ui][input][shell][transport][return-to-zero]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("return-to-zero-enter");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 101u) - 50;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> zeroAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (peakAbs (std::span<const float> (zeroAudio.data(), zeroAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const std::int64_t nonzeroStart = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (nonzeroStart > 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> offsetAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (offsetAudio != zeroAudio);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    const std::vector<float> returnedAudio = renderMainComponentPlayback (*shell, 128, 128);
+    REQUIRE (returnedAudio == zeroAudio);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (
+        findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+    juce::PopupMenu::MenuItemIterator iterator (options);
+    int returnItemId = 0;
+    while (iterator.next())
+    {
+        const juce::PopupMenu::Item& item = iterator.getItem();
+        if (item.text == "Return to Start on Stop")
+            returnItemId = item.itemID;
+    }
+    REQUIRE (returnItemId > 0);
+    model->menuItemSelected (returnItemId, 3);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == nonzeroStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 64, 64);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == nonzeroStart);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.playheadFrame == 0);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}

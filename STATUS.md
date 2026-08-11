@@ -363,10 +363,38 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B18 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B18 backlog-tick/evidence checkpoint.
+The B18 evidence handoff `195e433` is exact-head green across all nine jobs in run `31518404600`.
 
-**Next:** require the exact B18 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Then stop at the checkpoint; B19 is the next backlog item.
+**Implementation-ready for B19 — Return to start on Stop + Enter RTZ:** audited the descriptor/keymap,
+JUCE key translation, existing `K` Stop and `Home` Locate Start actions, real Options menu/tick model,
+PlaybackEngine Stop/Locate queue, live transport snapshot, and Project persistence boundary before
+adding anything. `Enter` and exact `Ctrl+Alt+Shift+K` were free. Appended
+`TransportToggleReturnToStartOnStop` and `TransportReturnToZero` at the descriptor-table end and
+covered both exhaustive switches. The default-off Options toggle captures the nonzero playhead only
+when Space or `L` starts playback; `K` and the `J` zero-speed boundary then either stay at the stopped
+frame or execute ordered Stop → Locate back to that captured start. `Enter` always locates timeline
+frame zero while preserving the current playing/stopped state; existing `Home` remains unchanged.
+
+Two shipped-boundary tracers were landed vertically. The Stop-option tracer first passed **26 setup
+and default-stay assertions**, then failed because the real Options item did not exist; it now proves
+the default-off/ticked menu states, nonzero start capture, Stop return, sample-identical replay, and a
+byte-identical `project.db`. The Enter tracer first passed **25 assertions** through live nonzero
+playback, then failed because the shell returned `false` for JUCE Return; it now proves live and stopped
+RTZ, exact frame-zero audio, independence from the Stop option, and unchanged Project persistence.
+Together the focused shipped-boundary gates pass **92 assertions**. The action/keymap gate passes
+**1,949 assertions** with unique chords, and theme audit passes **88 assertions**. The toggle and
+captured start are honestly transient transport state; no Project schema or fake persistence was added.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, playback, accessibility, theme
+audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
+committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the independently green B19 implementation checkpoint.
+
+**Next:** require the exact B19 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then tick B19 with its implementation SHA, update this
+handoff, rerun the full local gate, and land the B19 evidence checkpoint.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

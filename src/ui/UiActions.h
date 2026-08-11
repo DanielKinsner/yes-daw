@@ -131,6 +131,8 @@ enum class UiActionId : std::uint8_t
     TimelineTogglePlayheadFollow,
     TransportShuttleFaster,
     TransportShuttleSlower,
+    TransportToggleReturnToStartOnStop,
+    TransportReturnToZero,
     Count
 };
 
@@ -225,11 +227,13 @@ struct UiActionContext
     bool clipboardHasClip = false;
     bool metronomeEnabled = false;
     bool playheadFollowEnabled = true;
+    bool returnToStartOnStopEnabled = false;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
     int timelineAutomationBreakpointEditCount = 0;
     std::int64_t playheadFrame = 0;
+    std::int64_t playbackStartFrame = 0;
     int shuttlePlaybackRate = 1;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -529,6 +533,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportShuttleFaster, "transport.shuttle_faster", "Shuttle Faster", "L", "Play or increase shuttle speed",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportShuttleSlower, "transport.shuttle_slower", "Shuttle Slower", "J", "Reduce shuttle speed or stop",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportToggleReturnToStartOnStop, "transport.toggle_return_to_start_on_stop", "Return to Start on Stop", "Ctrl+Alt+Shift+K", "Toggle return to playback start on stop",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TransportReturnToZero, "transport.return_to_zero", "Return to Zero", "Enter", "Return transport to timeline zero",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -747,6 +755,7 @@ public:
                 context.isPlaying = false;
                 context.loopEnabled = false;
                 context.playheadFrame = 0;
+                context.playbackStartFrame = 0;
                 context.shuttlePlaybackRate = 1;
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = false;
@@ -779,16 +788,21 @@ public:
                 break;
 
             case UiActionId::TransportPlay:
+                if (! context.isPlaying)
+                    context.playbackStartFrame = context.playheadFrame;
                 context.isPlaying = true;
                 context.shuttlePlaybackRate = 1;
                 break;
 
             case UiActionId::TransportStop:
                 context.isPlaying = false;
+                if (context.returnToStartOnStopEnabled)
+                    context.playheadFrame = context.playbackStartFrame;
                 context.shuttlePlaybackRate = 1;
                 break;
 
             case UiActionId::TransportLocateStart:
+            case UiActionId::TransportReturnToZero:
                 context.playheadFrame = 0;
                 break;
 
@@ -984,6 +998,7 @@ public:
             case UiActionId::TransportShuttleFaster:
                 if (! context.isPlaying)
                 {
+                    context.playbackStartFrame = context.playheadFrame;
                     context.isPlaying = true;
                     context.shuttlePlaybackRate = 1;
                 }
@@ -999,8 +1014,14 @@ public:
                 else
                 {
                     context.isPlaying = false;
+                    if (context.returnToStartOnStopEnabled)
+                        context.playheadFrame = context.playbackStartFrame;
                     context.shuttlePlaybackRate = 1;
                 }
+                break;
+
+            case UiActionId::TransportToggleReturnToStartOnStop:
+                context.returnToStartOnStopEnabled = ! context.returnToStartOnStopEnabled;
                 break;
 
             case UiActionId::TimelineSnapDisable:

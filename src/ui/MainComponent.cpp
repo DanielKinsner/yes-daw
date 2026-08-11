@@ -221,6 +221,8 @@ std::string chordForKeyPress (const juce::KeyPress& key)
         chord += "Space";
     else if (code == juce::KeyPress::homeKey)
         chord += "Home";
+    else if (code == juce::KeyPress::returnKey)
+        chord += "Enter";
     else if (code == juce::KeyPress::upKey)
         chord += "Up";
     else if (code == juce::KeyPress::downKey)
@@ -3654,11 +3656,12 @@ private:
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
         };
-        static constexpr std::array<UiActionId, 7> kOptionsMenu {
+        static constexpr std::array<UiActionId, 8> kOptionsMenu {
             UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
             UiActionId::TimelineTogglePlayheadFollow,
+            UiActionId::TransportToggleReturnToStartOnStop,
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
 
@@ -3683,8 +3686,10 @@ private:
             menu.addItem (static_cast<int> (action) + 1,
                           descriptor.label,
                           appModel.registry().stateFor (action, appModel.context()).enabled,
-                          action == yesdaw::ui::UiActionId::TimelineTogglePlayheadFollow
-                              && appModel.context().playheadFollowEnabled);
+                          (action == yesdaw::ui::UiActionId::TimelineTogglePlayheadFollow
+                               && appModel.context().playheadFollowEnabled)
+                              || (action == yesdaw::ui::UiActionId::TransportToggleReturnToStartOnStop
+                                  && appModel.context().returnToStartOnStopEnabled));
         }
         return menu;
     }
