@@ -2071,6 +2071,44 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult copyTimelineClipTo (engine::EntityId sourceClipId,
+                                                              engine::EntityId targetTrackId,
+                                                              engine::Tick timelineStart)
+    {
+        const UiActionId id = UiActionId::TimelineClipDuplicate;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Clip* const sourceClip = findClip (sourceClipId);
+        if (sourceClip == nullptr || findTrack (targetTrackId) == nullptr)
+            return { id, state, false };
+
+        constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
+        if (timelineStart < 0 || sourceClip->timelineLength > maxTick - timelineStart)
+            return { id, { false, "copy-drag would overflow timeline" }, false };
+
+        engine::Project nextProject = project_;
+        engine::Clip copy = *sourceClip;
+        copy.id = allocateSessionEntityId (0xC3u, nextProject);
+        copy.trackId = targetTrackId;
+        copy.timelineStart = timelineStart;
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline copy-drag did not persist" }, false };
+
+        selectedTimelineClipIds_.assign (1, copy.id);
+        selectedTimelineClipId_ = copy.id;
+        context_.timelineClipSelected = true;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult addAudioTrack()
     {
         const UiActionId id = UiActionId::TrackAdd;

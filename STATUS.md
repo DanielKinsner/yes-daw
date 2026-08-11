@@ -99,11 +99,25 @@ was temporarily isolated and hash-verified after restoration. Exact-head GitHub 
 `31453353993` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
 and both alpha-verifier jobs.
 
-**Now:** commit and push this small A6 evidence/handoff update, then require its exact-head GitHub
-Actions run green across all nine jobs before opening A7; cancelled runs do not count.
+**A7 implemented locally — Alt+drag copy (certification pending):** audited the existing
+`TimelineClipDuplicate` action, unique descriptor/keymap table, JUCE modifier handling, two-dimensional
+Timeline Clip drag, single-Clip AddClip command, bundle adoption, playback rebuild, and Undo before
+adding anything. No new action ID or key chord is needed: a center Alt+drag now carries copy intent
+through the existing horizontal/cross-Track drop calculation, creates one fresh-ID Clip with exactly
+one persisted AddClip command, and selects the copy; Alt+drag on Clip edges remains the existing fade
+gesture. The shipped-boundary `[copy-drag]` gate first failed because persistence still held one Clip,
+then passed **62 assertions** after driving a real cross-Track Alt+drag, proving the original is
+unchanged, every playback field is preserved on the moved copy, playback changes, and one Undo restores
+both the bundle and bit-identical audio. The full UI-input target, action/keymap uniqueness gate, and
+theme audit are green; the owner's real last-project record was temporarily isolated and restored with
+an identical SHA-256. A fresh Visual Studio Developer Shell `/W4 /WX` build plus full local
+`ctest --preset ci` is green **341/341**, including screenshots, native input, and the GPU gate.
 
-**Next:** after the A6 checkpoint is fully recorded and remote-green, start A7 Alt+drag copy with a
-fresh `git pull --rebase` and another audit-first shipped-boundary slice.
+**Now:** commit and push the small A7 implementation checkpoint, then require its exact-head GitHub
+Actions run green across all nine jobs; cancelled runs do not count.
+
+**Next:** after A7 is fully recorded and remote-green, start A8 Clip gain keys with a fresh
+`git pull --rebase` and another audit-first shipped-boundary slice.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

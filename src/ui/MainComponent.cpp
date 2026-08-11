@@ -323,6 +323,7 @@ public:
     std::function<void (std::span<const int>)> onMarqueeSelection;
     std::function<void (int, double, bool)> onClipMoved;
     std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
+    std::function<void (int, int, double, bool)> onClipCopied;        // layoutClipId, targetLane (-1 = same), startSeconds, snap
     std::function<void (int, double)> onClipSplit;
     std::function<void (int, double)> onClipTrimmedRight;
     std::function<void (int, double)> onClipTrimmedLeft;
@@ -398,6 +399,9 @@ public:
             dragState.layoutClipId = hit.id;
             dragState.downPosition = event.getPosition();
             dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition(), event.mods);
+            dragState.copy = event.mods.isAltDown()
+                          && (dragState.mode == TimelineDragMode::Move
+                              || dragState.mode == TimelineDragMode::SnapMove);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
             {
                 dragState.startSeconds = clip->startSeconds;
@@ -613,6 +617,14 @@ public:
             yesdaw::ui::UiTheme::Layout::timelineCoordinateSecondsFloor,
             drag.startSeconds + static_cast<double> (deltaX) / pixelsPerSecond);
 
+        if (drag.copy)
+        {
+            if (onClipCopied)
+                onClipCopied (drag.layoutClipId, targetLane, nextStartSeconds,
+                              drag.mode == TimelineDragMode::SnapMove);
+            return;
+        }
+
         if (targetLane >= 0)
         {
             if (onClipMovedToLane)
@@ -691,6 +703,7 @@ private:
     {
         bool active = false;
         bool moved = false;
+        bool copy = false;
         int layoutClipId = -1;
         double startSeconds = 0.0;
         double lengthSeconds = 0.0;
@@ -1676,6 +1689,9 @@ public:
         };
         timelineInput.onClipMovedToLane = [this] (int timelineClipId, int targetLane, double startSeconds, bool snapToGrid) {
             moveTimelineClipToLaneByLayoutId (timelineClipId, targetLane, startSeconds, snapToGrid);
+        };
+        timelineInput.onClipCopied = [this] (int timelineClipId, int targetLane, double startSeconds, bool snapToGrid) {
+            copyTimelineClipByLayoutId (timelineClipId, targetLane, startSeconds, snapToGrid);
         };
         timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
             splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
@@ -4982,6 +4998,33 @@ private:
             (void) appModel.moveSelectedTimelineClipToTrack (
                 project.tracks[static_cast<std::size_t> (targetLane)].id,
                 snappedTimelineTick (*tick, snapToGrid));
+
+        refreshActionState();
+        repaint();
+    }
+
+    void copyTimelineClipByLayoutId (int layoutClipId, int targetLane, double startSeconds, bool snapToGrid)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        const yesdaw::engine::Project& project = appModel.project();
+        const yesdaw::engine::EntityId sourceClipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        const yesdaw::engine::Clip* const sourceClip = findProjectClipById (sourceClipId);
+        if (sourceClip == nullptr)
+            return;
+
+        yesdaw::engine::EntityId targetTrackId = sourceClip->trackId;
+        if (targetLane >= 0)
+        {
+            if (targetLane >= static_cast<int> (project.tracks.size()))
+                return;
+            targetTrackId = project.tracks[static_cast<std::size_t> (targetLane)].id;
+        }
+
+        if (const auto tick = timelineTickFromSeconds (startSeconds))
+            (void) appModel.copyTimelineClipTo (
+                sourceClipId, targetTrackId, snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
         repaint();

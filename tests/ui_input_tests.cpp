@@ -3433,6 +3433,79 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
 }
 
+TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audible edit",
+           "[ui][input][shell][timeline][copy-drag]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-copy-drag");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.tracks.size() == 2u);
+    const yesdaw::engine::Clip source = original.clips.front();
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCopy = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeCopy.data(), beforeCopy.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.snapEnabled);
+
+    const juce::Point<int> dragStart = timelineClipCenterPoint (timeline, original, 0u);
+    const juce::ModifierKeys altDrag {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier
+    };
+    dragFromTo (timeline,
+                dragStart,
+                dragStart.translated (timeline.getWidth() / 4, 200),
+                altDrag);
+
+    const yesdaw::engine::Project copied = readProjectSnapshot (bundlePath);
+    REQUIRE (copied.clips.size() == 2u);
+    REQUIRE (copied.clips.front() == source);
+    const yesdaw::engine::Clip& copy = copied.clips.back();
+    REQUIRE (copy.id != source.id);
+    REQUIRE (copy.trackId == original.tracks.back().id);
+    REQUIRE (copy.assetId == source.assetId);
+    REQUIRE (copy.timelineStart > source.timelineStart);
+    REQUIRE (copy.timelineLength == source.timelineLength);
+    REQUIRE (copy.srcOffset == source.srcOffset);
+    REQUIRE (copy.srcLen == source.srcLen);
+    REQUIRE (copy.gain == source.gain);
+    REQUIRE (copy.fadeIn == source.fadeIn);
+    REQUIRE (copy.fadeOut == source.fadeOut);
+    REQUIRE (copy.timeBase == source.timeBase);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCopy = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (afterCopy != beforeCopy);
+    REQUIRE (peakAbs (std::span<const float> (afterCopy.data(), afterCopy.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (afterUndo == beforeCopy);
+}
+
 TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edit",
            "[ui][input][shell][clipboard][cut]")
 {
