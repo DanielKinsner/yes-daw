@@ -83,8 +83,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     Escape clears any pending Timeline move/trim/fade/marquee before mouse-up can persist it and
     dismisses both inline rename editors without saving draft text. The shipped-boundary gate proves
     unchanged bundle state, selection, and playback; idle Escape retains audio-export cancellation.
-13. **Repeat paste** — Ctrl+R pastes the clipboard clip N times back-to-back at the playhead
-    (N from a small chooser next to the snap control; default 2). One undo group.
+13. [x] **Repeat paste** — landed in `8b534f1` (exact-head run `31483925623`, nine jobs
+    green). Ctrl+R pastes the Clipboard N times back-to-back at the playhead through one persisted
+    undo transaction; the adjacent chooser offers 2x/3x/4x/8x and defaults to 2x. The shipped-
+    boundary gate proves disabled empty-Clipboard behavior, default and selected counts, exact
+    placement and payload preservation, audible playback change, and one-step bit-identical Undo.
 
 ## B. Navigation, view, transport
 

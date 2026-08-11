@@ -204,7 +204,7 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The A12 evidence handoff `af5511f` is also exact-head green across all nine jobs in run
 `31481279118`.
 
-**A13 implementation ready — Repeat paste:** audited the existing descriptor/keymap table, JUCE key
+**Done and remote-green for A13 — Repeat paste (`8b534f1`):** audited the existing descriptor/keymap table, JUCE key
 translation, Clipboard payload, paste target selection, AddClip persistence path, playback rebuild,
 and undo transaction grouping before adding anything. Appended the unique `Ctrl+R`
 `TimelineClipRepeatPaste` action at the end of the descriptor table and updated both exhaustive
@@ -217,13 +217,17 @@ selected 4x placement, preservation of every playback field with fresh IDs, audi
 and one-step Undo restoring both the bundle and bit-identical audio. The action/keymap gate passes
 **1,749 assertions** with unique chords.
 
-**Now:** A13 is locally green **344/344** in a fresh Visual Studio Developer Shell Release build,
+Fresh local `ctest --preset ci` is green **344/344** in a Visual Studio Developer Shell Release build,
 including action uniqueness, theme audit, screenshots, native input, and GPU gates. The owner's real
 last-project record and committed v8 schema fixture were restored byte-identically after the run.
+Exact-head GitHub Actions run `31483925623` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** commit and push the A13 implementation, then require that exact head's GitHub Actions run
-green across all nine jobs; cancelled runs do not count. Only after that may the backlog tick and
-evidence handoff land.
+**Now:** the A13 evidence handoff is locally green **344/344**; commit and push only the backlog
+tick and this handoff.
+
+**Next:** require the A13 evidence commit's exact-head GitHub Actions run green across all nine jobs;
+cancelled runs do not count. Only then start B14 — Zoom to fit.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
