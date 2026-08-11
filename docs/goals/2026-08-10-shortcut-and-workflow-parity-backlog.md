@@ -56,8 +56,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    unit; Shift+`,`/`.` use exactly 1/8 grid. The shipped-boundary gates prove persisted group Clip
    movement, Note movement, playback timing changes, bit-identical round trips, and one-step Undo.
    Multi-Note selection remains owned by item 34; no unsupported selection behavior is faked here.
-7. **Alt+drag = copy-drag** — dragging a clip with Alt held leaves the original and moves a
-   copy (one undoable AddClip).
+7. [x] **Alt+drag = copy-drag** — landed in `29af223` (exact-head run `31456726490`, nine
+   jobs green). Center Alt+drag leaves the original unchanged and moves one fresh-ID copy in time
+   and across Tracks through exactly one persisted AddClip; edge Alt+drag remains the existing fade
+   gesture. The shipped-boundary gate proves persistence, every playback field, audible output, and
+   one-step Undo with a bit-identical playback round trip.
 8. **Clip gain keys** — Alt+Up/Alt+Down adjust selected clip gain ±1 dB. Gate: render
    amplitude follows.
 9. **Default fades** — Ctrl+F applies the default fade in+out (token length) to the selected
