@@ -709,6 +709,35 @@ std::int64_t emptyProjectFrameAtRulerPoint (juce::Component& timeline, juce::Poi
     return static_cast<std::int64_t> (std::llround (seconds * 48'000.0));
 }
 
+juce::Point<int> projectRulerPointAtTick (juce::Component& timeline,
+                                          const MainComponentSnapshot& snapshot,
+                                          const yesdaw::engine::Project& project,
+                                          yesdaw::engine::Tick tick)
+{
+    REQUIRE (project.sampleRate.isValid());
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = static_cast<int> (project.tracks.size());
+    state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+    const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                              yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                              timeline.getWidth()
+                                                  - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                    / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                state.totalSeconds);
+    state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+    state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const double seconds = static_cast<double> (tick) / project.sampleRate.hz;
+    return {
+        geometry.clipArea.getX() + juce::roundToInt (
+            (seconds - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond),
+        geometry.rulerArea.getCentreY()
+    };
+}
+
 double timelinePixelsPerSecond (juce::Component& timeline, const yesdaw::engine::Project& project)
 {
     REQUIRE (project.sampleRate.isValid());
@@ -3627,6 +3656,111 @@ TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persist
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
+}
+
+TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
+           "[ui][input][shell][timeline][split-at-playhead]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("split-at-playhead");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 2);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 2u);
+    REQUIRE (original.clips[0].timelineStart == 0);
+    REQUIRE (original.clips[1].timelineStart == 0);
+    REQUIRE (original.clips[0].timelineLength == original.clips[1].timelineLength);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeSplit = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeSplit.data(), beforeSplit.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Tick requestedSplitTick = original.clips.front().timelineLength / 2;
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> zoomAnchor =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, 0);
+    juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline, zoomAnchor, zoomAnchor, false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 10; ++i)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+
+    const MainComponentSnapshot beforeLocate = snapshotMainComponent (*shell);
+    REQUIRE (beforeLocate.timelineZoomFactor > 8.0);
+    const juce::Point<int> rulerPoint =
+        projectRulerPointAtTick (timeline, beforeLocate, original, requestedSplitTick);
+    REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
+    mouseDownAt (timeline, rulerPoint);
+    const MainComponentSnapshot afterLocate = snapshotMainComponent (*shell);
+    REQUIRE (afterLocate.context.commandDispatchCount == beforeLocate.context.commandDispatchCount + 1);
+    const yesdaw::engine::Tick splitTick =
+        static_cast<yesdaw::engine::Tick> (afterLocate.context.playheadFrame);
+    REQUIRE (splitTick > 0);
+    REQUIRE (splitTick < original.clips.front().timelineLength);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+    const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+    REQUIRE (split.clips.size() == 4u);
+
+    for (const yesdaw::engine::Clip& source : original.clips)
+    {
+        const auto left = std::find_if (split.clips.begin(), split.clips.end(), [&source] (const auto& clip) {
+            return clip.id == source.id;
+        });
+        REQUIRE (left != split.clips.end());
+        const auto right = std::find_if (split.clips.begin(), split.clips.end(), [&source, splitTick] (const auto& clip) {
+            return clip.id != source.id
+                && clip.trackId == source.trackId
+                && clip.assetId == source.assetId
+                && clip.timelineStart == splitTick;
+        });
+        REQUIRE (right != split.clips.end());
+        REQUIRE (left->timelineStart == source.timelineStart);
+        REQUIRE (left->timelineLength == splitTick - source.timelineStart);
+        REQUIRE (right->timelineStart == splitTick);
+        REQUIRE (left->timelineLength + right->timelineLength == source.timelineLength);
+        REQUIRE (left->srcOffset == source.srcOffset);
+        REQUIRE (right->srcOffset == left->srcOffset + left->srcLen);
+        REQUIRE (left->srcLen + right->srcLen == source.srcLen);
+    }
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterSplit = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
+    REQUIRE (afterSplit == beforeSplit);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.clips == original.clips);
 }
 
 TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")

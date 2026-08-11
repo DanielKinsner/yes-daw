@@ -2325,27 +2325,33 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
-        if (clip == nullptr)
-            return { id, { false, "timeline clip missing" }, false };
-
-        if (timelineTick <= clip->timelineStart)
-            return { id, { false, "split must be inside selected clip" }, false };
-
-        const engine::Tick leftTimelineLength = timelineTick - clip->timelineStart;
-        const std::optional<std::uint64_t> leftSourceLength = sourceLengthForSplit (*clip, leftTimelineLength);
-        if (! leftSourceLength)
-            return { id, { false, "split must be inside selected clip" }, false };
-
         engine::Project nextProject = project_;
-        const engine::EntityId rightClipId = allocateSessionEntityId (0xC2u, nextProject);
         engine::ProjectUndoStack nextUndo = undo_;
-        const engine::ProjectEditApplyResult applied = nextUndo.apply (
-            nextProject,
-            engine::ProjectEditCommand::splitClip (
-                selectedTimelineClipId_, rightClipId, leftTimelineLength, *leftSourceLength));
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
 
-        if (! applied.applied())
+        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
+            const engine::Clip* const clip = findClip (clipId);
+            if (clip == nullptr || timelineTick <= clip->timelineStart)
+                return { id, { false, "split must be inside every selected clip" }, false };
+
+            const engine::Tick leftTimelineLength = timelineTick - clip->timelineStart;
+            const std::optional<std::uint64_t> leftSourceLength =
+                sourceLengthForSplit (*clip, leftTimelineLength);
+            if (! leftSourceLength)
+                return { id, { false, "split must be inside every selected clip" }, false };
+
+            const engine::EntityId rightClipId = allocateSessionEntityId (0xC2u, nextProject);
+            const engine::ProjectEditApplyResult applied = nextUndo.apply (
+                nextProject,
+                engine::ProjectEditCommand::splitClip (
+                    clipId, rightClipId, leftTimelineLength, *leftSourceLength));
+            if (! applied.applied())
+                return { id, state, false };
+        }
+
+        if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))

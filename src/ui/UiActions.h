@@ -327,7 +327,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipTrim, "timeline.clip.trim", "Trim Clip", "Alt+T", "Trim selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipSplit, "timeline.clip.split", "Split Clip", "Ctrl+E", "Split selected clip",
+    { UiActionId::TimelineClipSplit, "timeline.clip.split", "Split Clip", "B", "Split selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipSetGain, "timeline.clip.set_gain", "Clip Gain", "Alt+G", "Set selected clip gain",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },

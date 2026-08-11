@@ -3653,6 +3653,12 @@ private:
                 removeSelectedTrack();
                 return;
 
+            case yesdaw::ui::UiActionId::TimelineClipSplit:
+                (void) appModel.splitSelectedTimelineClipAt (
+                    static_cast<yesdaw::engine::Tick> (
+                        std::max<std::int64_t> (0, appModel.context().playheadFrame)));
+                return;
+
             case yesdaw::ui::UiActionId::ViewPianoRoll:
                 (void) appModel.dispatch (action);
                 (void) appModel.selectFirstMidiClip();
