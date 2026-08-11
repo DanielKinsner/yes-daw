@@ -200,6 +200,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TimelineZoomFitProject);
     REQUIRE (descriptorForStableId ("timeline.zoom.fit_loop")->id
              == UiActionId::TimelineZoomFitLoop);
+    REQUIRE (descriptorForStableId ("timeline.zoom.in")->id == UiActionId::TimelineZoomIn);
+    REQUIRE (descriptorForStableId ("timeline.zoom.out")->id == UiActionId::TimelineZoomOut);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
@@ -261,6 +263,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TimelineZoomFitProject);
     REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Shift+0")
              == UiActionId::TimelineZoomFitLoop);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("+") == UiActionId::TimelineZoomIn);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("-") == UiActionId::TimelineZoomOut);
     REQUIRE (descriptorForStableId ("missing.action") == nullptr);
 }
 
@@ -324,6 +328,8 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     context.projectLoaded = true;
     REQUIRE (registry.stateFor (UiActionId::TransportPlay, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineZoomFitProject, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineZoomIn, context).enabled);
+    REQUIRE (registry.stateFor (UiActionId::TimelineZoomOut, context).enabled);
     REQUIRE_FALSE (registry.stateFor (UiActionId::TimelineZoomFitLoop, context).enabled);
     context.loopEnabled = true;
     REQUIRE (registry.stateFor (UiActionId::TimelineZoomFitLoop, context).enabled);

@@ -206,15 +206,18 @@ std::string chordForKeyPress (const juce::KeyPress& key)
 {
     std::string chord;
     const juce::ModifierKeys mods = key.getModifiers();
+    const bool isShiftedPlus = key.getTextCharacter() == '+';
     if (mods.isCtrlDown() || mods.isCommandDown())
         chord += "Ctrl+";
     if (mods.isAltDown())
         chord += "Alt+";
-    if (mods.isShiftDown())
+    if (mods.isShiftDown() && ! isShiftedPlus)
         chord += "Shift+";
 
     const int code = key.getKeyCode();
-    if (code == juce::KeyPress::spaceKey)
+    if (isShiftedPlus)
+        chord += "+";
+    else if (code == juce::KeyPress::spaceKey)
         chord += "Space";
     else if (code == juce::KeyPress::homeKey)
         chord += "Home";
@@ -1735,16 +1738,7 @@ public:
             const double factor = wheelDelta > 0.0
                 ? yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
                 : 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep;
-            const double previousZoom = timelineZoomFactor;
-            timelineZoomFactor = std::clamp (timelineZoomFactor * factor,
-                                             yesdaw::ui::UiTheme::Layout::timelineZoomMin,
-                                             yesdaw::ui::UiTheme::Layout::timelineZoomMax);
-            if (timelineZoomFactor != previousZoom)
-            {
-                // Keep the pointer's timeline position stationary while the density changes.
-                const double zoomRatio = previousZoom / timelineZoomFactor;
-                timelineScrollSeconds = anchorSeconds - (anchorSeconds - timelineScrollSeconds) * zoomRatio;
-            }
+            zoomTimelineAtAnchor (anchorSeconds, factor);
             repaint();
         };
         timelineInput.onScrollWheel = [this] (double wheelDelta) {
@@ -3554,6 +3548,21 @@ private:
         resumeDesktopAudioCallback();
     }
 
+    void zoomTimelineAtAnchor (double anchorSeconds, double factor)
+    {
+        const double previousZoom = timelineZoomFactor;
+        timelineZoomFactor = std::clamp (timelineZoomFactor * factor,
+                                         yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+                                         yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+        if (timelineZoomFactor != previousZoom)
+        {
+            const double zoomRatio = previousZoom / timelineZoomFactor;
+            timelineScrollSeconds = anchorSeconds - (anchorSeconds - timelineScrollSeconds) * zoomRatio;
+        }
+        if (timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMin)
+            timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+    }
+
     // Real menu bar (usable-DAW P1): the painted FILE/EDIT/VIEW text is gone; a juce::MenuBarComponent
     // over the same header spot dispatches registered actions through the SAME handleAction path the
     // toolbar and keymap use. The model is mechanically testable without opening popups.
@@ -3838,6 +3847,28 @@ private:
                             yesdaw::ui::UiTheme::Layout::timelineZoomMax);
                         timelineScrollSeconds = static_cast<double> (loopStart) / sampleRateHz;
                     }
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineZoomIn:
+                if (appModel.dispatch (action).dispatched && appModel.project().sampleRate.isValid())
+                {
+                    const double playheadSeconds = static_cast<double> (
+                        std::max<std::int64_t> (0, appModel.context().playheadFrame))
+                                                 / appModel.project().sampleRate.hz;
+                    zoomTimelineAtAnchor (
+                        playheadSeconds, yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep);
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineZoomOut:
+                if (appModel.dispatch (action).dispatched && appModel.project().sampleRate.isValid())
+                {
+                    const double playheadSeconds = static_cast<double> (
+                        std::max<std::int64_t> (0, appModel.context().playheadFrame))
+                                                 / appModel.project().sampleRate.hz;
+                    zoomTimelineAtAnchor (
+                        playheadSeconds, 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep);
                 }
                 return;
 

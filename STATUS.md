@@ -247,11 +247,30 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B14 backlog-tick/evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
 Shell. The protected owner last-project record and committed v8 schema fixture were restored
 byte-identically after the run.
+The B14 evidence handoff `93edf76` is exact-head green across all nine jobs in run `31491184916`.
 
-**Now:** commit and push only the locally green B14 backlog and STATUS evidence updates.
+**B15 implementation ready — Keyboard zoom:** audited the descriptor/keymap, JUCE key translation,
+Ctrl-wheel zoom, Timeline viewport state, real playhead locate, and public viewport snapshot before
+adding anything. Appended unique `+` and `-` `TimelineZoomIn`/`TimelineZoomOut` actions at the end of
+the descriptor table and covered both exhaustive switches. A physical plus key arrives as shifted
+`=` on Windows, so the real key path normalizes its `+` text character to the public unique chord.
+Both keys use the same anchor-preserving zoom helper as Ctrl-wheel, with the Project playhead as the
+anchor; zoom-out clamps whole-Project fit to exact zoom `1.0` and scroll `0.0`. The two shipped-boundary
+`[keyboard-zoom]` tracers first failed after **30** and **70** passing assertions because `+` and `-`
+were unregistered, then passed **82 assertions**. They drive real locate and key gestures, prove exact
+zoom/scroll math and invariant playhead pixels, preserve persisted Clips, and prove bit-identical
+playback. This is honestly view-only; it does not claim a Project or audio mutation. The complete
+action/keymap gate passes **1,811 assertions** with unique chords, and all five zoom cases pass
+**167 assertions**.
 
-**Next:** require the B14 evidence commit's exact-head GitHub Actions run green across all nine jobs;
-cancelled runs do not count. Only then start B15 — Keyboard zoom.
+The full B15 gate is green **344/344** in a fresh Visual Studio Developer Shell, including action
+uniqueness, accessibility, theme audit, screenshots, native input, and GPU gates. The protected owner
+last-project record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push the locally green B15 implementation.
+
+**Next:** require the B15 implementation commit's exact-head GitHub Actions run green across all nine
+jobs; cancelled runs do not count. Only then may the backlog tick and evidence handoff land.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

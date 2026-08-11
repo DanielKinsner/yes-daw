@@ -3780,6 +3780,143 @@ TEST_CASE ("Ctrl+Shift+0 fits the current loop region with exact viewport math",
     REQUIRE (readProjectSnapshot (bundlePath).clips == persisted.clips);
 }
 
+TEST_CASE ("plus zooms the Timeline in while keeping the playhead at the same pixel",
+           "[ui][input][shell][zoom][keyboard-zoom]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("keyboard-zoom-in");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project persisted = readProjectSnapshot (bundlePath);
+    REQUIRE (persisted.clips.size() == 1u);
+    REQUIRE (persisted.sampleRate.isValid());
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeZoom = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeZoom.data(), beforeZoom.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> zeroPoint =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), persisted, 0);
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline,
+        zeroPoint,
+        zeroPoint,
+        false,
+        1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int step = 0; step < 6; ++step)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+
+    const yesdaw::engine::Tick requestedPlayhead = persisted.clips.front().timelineLength / 2;
+    const MainComponentSnapshot beforeLocate = snapshotMainComponent (*shell);
+    const juce::Point<int> locatePoint =
+        projectRulerPointAtTick (timeline, beforeLocate, persisted, requestedPlayhead);
+    REQUIRE (timeline.getLocalBounds().contains (locatePoint));
+    mouseDownAt (timeline, locatePoint);
+
+    const MainComponentSnapshot before = snapshotMainComponent (*shell);
+    REQUIRE (before.context.playheadFrame > 0);
+    const juce::Point<int> playheadPixelBefore =
+        projectRulerPointAtTick (timeline, before, persisted, before.context.playheadFrame);
+    const double playheadSeconds = static_cast<double> (before.context.playheadFrame)
+                                 / persisted.sampleRate.hz;
+    const double expectedZoom = std::clamp (
+        before.timelineZoomFactor * yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+    const double expectedScroll = playheadSeconds
+                                - (playheadSeconds - before.timelineScrollSeconds)
+                                    * (before.timelineZoomFactor / expectedZoom);
+
+    const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('=', shift, '+')));
+
+    const MainComponentSnapshot after = snapshotMainComponent (*shell);
+    REQUIRE (after.timelineZoomFactor == expectedZoom);
+    REQUIRE (after.timelineScrollSeconds == Catch::Approx (expectedScroll).margin (1.0e-12));
+    REQUIRE (after.context.playheadFrame == before.context.playheadFrame);
+    REQUIRE (projectRulerPointAtTick (timeline, after, persisted, after.context.playheadFrame).x
+             == playheadPixelBefore.x);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == persisted.clips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterZoom = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (afterZoom == beforeZoom);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
+TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Project fit",
+           "[ui][input][shell][zoom][keyboard-zoom]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("keyboard-zoom-out");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project persisted = readProjectSnapshot (bundlePath);
+    REQUIRE (persisted.clips.size() == 1u);
+    REQUIRE (persisted.sampleRate.isValid());
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Tick requestedPlayhead = persisted.clips.front().timelineLength / 2;
+    const juce::Point<int> locatePoint =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), persisted, requestedPlayhead);
+    REQUIRE (timeline.getLocalBounds().contains (locatePoint));
+    mouseDownAt (timeline, locatePoint);
+
+    const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('=', shift, '+')));
+    const MainComponentSnapshot before = snapshotMainComponent (*shell);
+    REQUIRE (before.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep);
+    REQUIRE (before.timelineScrollSeconds > 0.0);
+
+    const juce::Point<int> playheadPixelBefore =
+        projectRulerPointAtTick (timeline, before, persisted, before.context.playheadFrame);
+    const double playheadSeconds = static_cast<double> (before.context.playheadFrame)
+                                 / persisted.sampleRate.hz;
+    const double expectedZoom = std::clamp (
+        before.timelineZoomFactor / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+    const double expectedScroll = playheadSeconds
+                                - (playheadSeconds - before.timelineScrollSeconds)
+                                    * (before.timelineZoomFactor / expectedZoom);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('-')));
+    const MainComponentSnapshot after = snapshotMainComponent (*shell);
+    REQUIRE (after.timelineZoomFactor == expectedZoom);
+    REQUIRE (after.timelineScrollSeconds == Catch::Approx (expectedScroll).margin (1.0e-12));
+    REQUIRE (after.context.playheadFrame == before.context.playheadFrame);
+    REQUIRE (projectRulerPointAtTick (timeline, after, persisted, after.context.playheadFrame).x
+             == playheadPixelBefore.x);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == persisted.clips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('-')));
+    const MainComponentSnapshot clamped = snapshotMainComponent (*shell);
+    REQUIRE (clamped.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMin);
+    REQUIRE (clamped.timelineScrollSeconds
+             == yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds);
+}
+
 TEST_CASE ("dragging the clip's left edge trims its head without moving the audio under it",
            "[ui][input][shell][trimleft]")
 {

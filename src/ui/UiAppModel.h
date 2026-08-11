@@ -3413,6 +3413,8 @@ public:
             case UiActionId::TimelineToolSelectZoom:
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
+            case UiActionId::TimelineZoomIn:
+            case UiActionId::TimelineZoomOut:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);

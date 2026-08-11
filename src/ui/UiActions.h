@@ -119,6 +119,8 @@ enum class UiActionId : std::uint8_t
     TimelineClipRepeatPaste,
     TimelineZoomFitProject,
     TimelineZoomFitLoop,
+    TimelineZoomIn,
+    TimelineZoomOut,
     Count
 };
 
@@ -493,6 +495,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineZoomFitProject, "timeline.zoom.fit_project", "Zoom to Fit Project", "Ctrl+0", "Fit the whole Project in the Timeline",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineZoomFitLoop, "timeline.zoom.fit_loop", "Zoom to Fit Loop", "Ctrl+Shift+0", "Fit the current loop region in the Timeline",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomIn, "timeline.zoom.in", "Zoom In", "+", "Zoom the Timeline in at the playhead",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomOut, "timeline.zoom.out", "Zoom Out", "-", "Zoom the Timeline out at the playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -925,6 +931,8 @@ public:
 
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
+            case UiActionId::TimelineZoomIn:
+            case UiActionId::TimelineZoomOut:
                 context.activePanel = UiPanel::Timeline;
                 break;
 
