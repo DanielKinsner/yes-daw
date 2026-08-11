@@ -46,8 +46,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    green). `B` splits every selected Clip crossed by the playhead in one atomic undo group.
    The shipped-boundary gate proves exact adjacent timeline/source windows for two selected
    Clips, bit-identical playback through the split boundary, and one Undo rejoins both.
-5. **Heal/join** — Ctrl+J merges two adjacent clips that reference the same asset with
-   contiguous source windows. Refuse otherwise (honest status).
+5. [x] **Heal/join** — landed in `8f0906c` (exact-head run `31450029917`, nine jobs green).
+   Ctrl+J joins exactly two adjacent Clips only when they share a Track and Asset, their source
+   windows are contiguous, and their playback settings match; every other case is an honest no-op.
+   The shipped-boundary gate proves refusal leaves persistence and undo untouched, then heals a real
+   split back to the original persisted Clip and bit-identical playback in one undoable transaction.
 6. **Nudge** — `,` / `.` move the selected clip(s) left/right by one snap-grid unit;
    Shift+`,`/`.` = fine nudge (1/8 grid). Works in the piano roll on selected notes too.
 7. **Alt+drag = copy-drag** — dragging a clip with Alt held leaves the original and moves a
