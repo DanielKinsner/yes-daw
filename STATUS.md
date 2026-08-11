@@ -478,7 +478,7 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B21 evidence handoff `16b41c8` is exact-head green across all nine jobs in run `31539459017`.
 
-**B22 implementation checkpoint ready — Tool keys:** audited `UiActions.h`, the complete default
+**Done and remote-green for B22 — Tool keys (`202eea9`):** audited `UiActions.h`, the complete default
 keymap, JUCE chord translation, Escape cancellation ordering, Pointer marquee behavior, Project
 persistence, playback rebuild, and the existing audio-export cancellation path before changing
 anything. The five existing tool actions were already uniquely bound to `V` Pointer, `P` Pencil, `S`
@@ -500,11 +500,17 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
 committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B22 implementation checkpoint.
+Exact-head GitHub Actions run `31542586504` is green for full SHA
+`202eea995f39811de14455169cadaf7e22e92ec4` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B22 implementation head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then tick B22 with its implementation SHA/run in a
-separate evidence checkpoint. B23 must not start before that evidence checkpoint is exact-head green.
+The B22 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** run the full local gate, then commit and push only the B22 backlog-tick/evidence checkpoint.
+
+**Next:** require the exact B22 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Then stop at the checkpoint; B23 is the next backlog item.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

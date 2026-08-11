@@ -139,9 +139,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     `K` cancels pending count-in. In 150 BPM 7/8 at 48 kHz, the shipped-boundary gates prove no
     pre-roll input persists and the real Take/Clip/MIDI playback mutation starts at bar 2, frame
     67,200, with unique chords and denominator-correct click spacing.
-22. **Tool keys** — single-key tool switching that doesn't collide with existing chords
-    (audit first; e.g. F1–F5 or `A`=pointer, `D`=pencil, `G`=scissors — grep for free keys).
-    Esc also returns to pointer.
+22. [x] **Tool keys** — landed in `202eea9` (exact-head run `31542586504`, nine jobs
+    green). The existing unique `V/P/S/H/Z` bindings select Pointer/Pencil/Scissors/Hand/Zoom;
+    no duplicate actions or replacement chords were added. The existing unique `Esc` action is
+    now honestly context-sensitive: it cancels an active audio export without changing tools, or
+    otherwise returns to Pointer. The shipped-boundary gate proves idle Escape enables a real
+    Pointer marquee, persisted Delete, silent playback, and one-step Undo restoration.
 23. **Locate points** — Ctrl+1..5 stores the playhead, 1..5 recalls it (if 1/2/3 view keys
     conflict, use Ctrl+Shift+1..5 store / Alt+1..5 recall; keep the keymap table honest).
 24. **Next/prev marker** — Ctrl+Right/Ctrl+Left jump the playhead to the next/previous
