@@ -100,8 +100,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     the playhead at the same pixel. The shipped-boundary gate proves the physical shifted-plus key,
     unique chords, exact zoom/scroll snapshots, whole-Project clamp, unchanged persisted Clips, and
     bit-identical playback; this is honestly view-only.
-16. **Arrow navigation** — Up/Down select previous/next track (rail highlight follows);
-    Left/Right move the playhead by one grid unit; Shift+Left/Right by one bar.
+16. [x] **Arrow navigation** — landed in `eb21550` (exact-head run `31500822063`, nine jobs
+    green). Up/Down select the previous/next Track through the shared rail/mixer target and the
+    painted highlight follows; Left/Right locate the real playhead by the current grid unit, while
+    Shift+Left/Right locate by one tempo/meter-derived Bar. The shipped-boundary gate proves
+    persisted, playback-silencing mixer retargeting, distinct rendered audio at grid/bar locations,
+    frame-zero clamping, and unchanged Project persistence for transient navigation state.
 17. **Playhead follow (auto-scroll)** — during playback the viewport pages so the playhead
     stays visible; Options-menu toggle, default on. Gate: transport past right edge →
     scrollSeconds advanced.

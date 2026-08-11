@@ -275,7 +275,7 @@ Shell. The protected owner last-project record and committed v8 schema fixture w
 byte-identically after the run.
 The B15 evidence handoff `f5aa627` is exact-head green across all nine jobs in run `31496660561`.
 
-**B16 — Arrow navigation implementation is locally green, pending commit and remote CI:** audited
+**Done and remote-green for B16 — Arrow navigation (`eb21550`):** audited
 the descriptor table, JUCE key translation, Track selection/mixer retargeting, selected-rail paint,
 live Snap grid, tempo/meter bar conversion, and transport locate path before adding anything. Six
 actions are appended in enum/descriptor order with unique `Up`, `Down`, `Left`, `Right`,
@@ -295,12 +295,18 @@ The full B16 gate is green **344/344** after a clean Release rebuild in a fresh 
 Developer Shell, including action uniqueness, accessibility, theme audit, screenshots, native input,
 and GPU gates. The protected owner last-project record and committed v8 schema fixture were restored
 byte-identically after the run.
+Exact-head GitHub Actions run `31500822063` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push only the independently green B16 implementation checkpoint.
+The B16 backlog-tick/evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
+Shell. The protected owner last-project record and committed v8 schema fixture were restored
+byte-identically after the run.
 
-**Next:** commit and push only the independently green B16 implementation checkpoint, then require
-its exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count. Only after
-that may the backlog be ticked with the implementation SHA.
+**Now:** commit and push only the locally green B16 backlog and STATUS evidence updates.
+
+**Next:** commit and push only the independently green B16 evidence checkpoint, then require its
+exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count. Only then
+start B17 — Playhead follow (auto-scroll).
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
