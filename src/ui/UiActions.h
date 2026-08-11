@@ -107,6 +107,10 @@ enum class UiActionId : std::uint8_t
     TimelineClipSelectAllTrack,
     TimelineClipSelectAllProject,
     TimelineClipHeal,
+    EditNudgeLeft,
+    EditNudgeRight,
+    EditNudgeLeftFine,
+    EditNudgeRightFine,
     Count
 };
 
@@ -457,7 +461,15 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipSelectAllProject, "timeline.clip.select_all_project", "Select Project Clips", "Ctrl+Shift+A", "Select all clips in project",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipHeal, "timeline.clip.heal", "Heal Clips", "Ctrl+J", "Heal selected clips",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::EditNudgeLeft, "edit.nudge_left", "Nudge Left", ",", "Nudge selection left",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::EditNudgeRight, "edit.nudge_right", "Nudge Right", ".", "Nudge selection right",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::EditNudgeLeftFine, "edit.nudge_left_fine", "Fine Nudge Left", "Shift+,", "Fine nudge selection left",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::EditNudgeRightFine, "edit.nudge_right_fine", "Fine Nudge Right", "Shift+.", "Fine nudge selection right",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -641,6 +653,19 @@ public:
             return { false, "no audio export in progress" };
         if (id == UiActionId::TimelineClipPaste && ! context.clipboardHasClip)
             return { false, "clipboard has no clip" };
+
+        if (id == UiActionId::EditNudgeLeft
+            || id == UiActionId::EditNudgeRight
+            || id == UiActionId::EditNudgeLeftFine
+            || id == UiActionId::EditNudgeRightFine)
+        {
+            if (context.activePanel == UiPanel::Timeline && ! context.timelineClipSelected)
+                return { false, "no clip selected" };
+            if (context.activePanel == UiPanel::PianoRoll && ! context.midiNoteSelected)
+                return { false, "no MIDI note selected" };
+            if (context.activePanel == UiPanel::Mixer)
+                return { false, "nudge unavailable in mixer" };
+        }
 
         return { true, "" };
     }
@@ -981,6 +1006,18 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.timelineEditCount;
+                break;
+
+            case UiActionId::EditNudgeLeft:
+            case UiActionId::EditNudgeRight:
+            case UiActionId::EditNudgeLeftFine:
+            case UiActionId::EditNudgeRightFine:
+                context.canUndo = true;
+                context.canRedo = false;
+                if (context.activePanel == UiPanel::PianoRoll)
+                    ++context.midiEditCount;
+                else
+                    ++context.timelineEditCount;
                 break;
 
             case UiActionId::TransportToggleMetronome:

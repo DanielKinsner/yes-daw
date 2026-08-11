@@ -2434,6 +2434,80 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult nudgeSelection (UiActionId id)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const bool right = id == UiActionId::EditNudgeRight
+                        || id == UiActionId::EditNudgeRightFine;
+        const bool fine = id == UiActionId::EditNudgeLeftFine
+                       || id == UiActionId::EditNudgeRightFine;
+        const engine::Tick grid = std::max<engine::Tick> (1, context_.snapGridTicks);
+        const engine::Tick amount = fine ? std::max<engine::Tick> (1, grid / 8) : grid;
+
+        if (context_.activePanel == UiPanel::PianoRoll)
+        {
+            const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+            const engine::Note* const note = midiClip != nullptr
+                ? findNote (*midiClip, selectedMidiNoteId_)
+                : nullptr;
+            if (midiClip == nullptr || note == nullptr)
+                return { id, { false, "MIDI note missing" }, false };
+
+            const engine::Tick maximumStart = midiClip->timelineLength - note->lengthTicks;
+            const engine::Tick target = right
+                ? note->startTick + std::min (amount, maximumStart - note->startTick)
+                : note->startTick - std::min (amount, note->startTick);
+            if (target == note->startTick)
+                return { id, { false, "MIDI note is at the nudge boundary" }, false };
+
+            UiActionDispatchResult result = moveSelectedPianoRollNoteTo (target);
+            result.action = id;
+            return result;
+        }
+
+        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
+        if (anchor == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+
+        engine::Tick earliestStart = anchor->timelineStart;
+        if (right)
+        {
+            constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
+            for (engine::EntityId clipId : selectedTimelineClipIds_)
+            {
+                const engine::Clip* const clip = findClip (clipId);
+                if (clip == nullptr
+                    || clip->timelineStart > maxTick - amount
+                    || clip->timelineLength > maxTick - (clip->timelineStart + amount))
+                {
+                    return { id, { false, "nudge would overflow timeline" }, false };
+                }
+            }
+        }
+        else
+        {
+            for (engine::EntityId clipId : selectedTimelineClipIds_)
+            {
+                const engine::Clip* const clip = findClip (clipId);
+                if (clip == nullptr)
+                    return { id, { false, "timeline clip missing" }, false };
+                earliestStart = std::min (earliestStart, clip->timelineStart);
+            }
+            if (earliestStart == 0)
+                return { id, { false, "selection is at the nudge boundary" }, false };
+        }
+
+        const engine::Tick target = right
+            ? anchor->timelineStart + amount
+            : anchor->timelineStart - std::min (earliestStart, amount);
+        UiActionDispatchResult result = moveSelectedTimelineClipTo (target);
+        result.action = id;
+        return result;
+    }
+
     [[nodiscard]] UiActionDispatchResult trimSelectedTimelineClipRightTo (engine::Tick timelineEnd)
     {
         const UiActionId id = UiActionId::TimelineClipTrim;
@@ -3229,6 +3303,12 @@ public:
 
             case UiActionId::TimelineClipHeal:
                 return healSelectedTimelineClips();
+
+            case UiActionId::EditNudgeLeft:
+            case UiActionId::EditNudgeRight:
+            case UiActionId::EditNudgeLeftFine:
+            case UiActionId::EditNudgeRightFine:
+                return nudgeSelection (id);
 
             case UiActionId::TransportToggleMetronome:
                 return toggleMetronome();

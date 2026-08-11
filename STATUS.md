@@ -81,11 +81,28 @@ screenshots, native input, and GPU gates. The owner's real last-project record w
 and hash-verified after restoration. Exact-head GitHub Actions run `31450029917` is green across all
 nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push this small A5 evidence/handoff update, then require its exact-head GitHub
-Actions run green across all nine jobs before opening A6; cancelled runs do not count.
+**Implemented and local-green for A6 — nudge (commit pending):** audited the descriptor table,
+keymap, JUCE chord translation, tempo-derived snap state, multi-Clip move transaction, Piano Roll
+selection, Note move command, bundle adoption, playback rebuild, and Undo before adding anything.
+Appended four unique context-sensitive actions: `,` / `.` move the active Timeline or Piano Roll
+selection left/right by the current snap-grid unit; `Shift+,` / `Shift+.` use exactly 1/8 grid. Timeline
+nudge moves every selected Clip as one persisted undo transaction, clamps the group at timeline zero,
+and refuses a right-edge overflow. Piano Roll nudge moves the currently selected Note through the real
+persisted Note command and clamps it inside its MIDI Clip; multi-Note selection remains the later item 34
+checkpoint. The shipped-boundary `[nudge-clips]` and `[nudge-note]` gates drive all four real chords,
+prove persisted full/fine movement and one-step Undo, prove Clip playback moves to silence and returns
+bit-identically, and prove the audible MIDI render moves in time and returns bit-identically. The two
+gates pass **111 assertions**; the action/keymap gate passes **1,671 assertions** with unique chords.
+Fresh Visual Studio Developer Shell build plus full local `ctest --preset ci` is green **341/341**,
+including theme audit, screenshots, native input, and GPU gates. The owner's real last-project record
+was temporarily isolated and hash-verified after restoration.
 
-**Next:** after the A5 checkpoint is fully recorded and remote-green, start A6 nudge with a fresh
-`git pull --rebase` and another audit-first shipped-boundary slice.
+**Now:** commit and push the small A6 implementation checkpoint, then require its exact-head GitHub
+Actions run green across all nine jobs; cancelled runs do not count.
+
+**Next:** after the A6 implementation run is nine-job green, tick A6 in the canonical backlog with its
+implementation commit SHA, commit/push that evidence update, and certify the evidence commit's own
+exact-head nine-job run before opening A7.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

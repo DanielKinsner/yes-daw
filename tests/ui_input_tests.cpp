@@ -3846,6 +3846,138 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
     REQUIRE (readProjectSnapshot (bundlePath).clips == split.clips);
 }
 
+TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
+           "[ui][input][shell][timeline][nudge-clips]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("nudge-clips");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 2u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    const yesdaw::engine::Tick grid = snapshotMainComponent (*shell).context.snapGridTicks;
+    REQUIRE (grid == 24'000);
+    REQUIRE (grid % 8 == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeNudge = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeNudge.data(), beforeNudge.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    REQUIRE (moved.clips[0].timelineStart == original.clips[0].timelineStart + grid);
+    REQUIRE (moved.clips[1].timelineStart == original.clips[1].timelineStart + grid);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterRightNudge = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (afterRightNudge.data(), afterRightNudge.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const yesdaw::engine::Tick fine = grid / 8;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::shiftModifier, 0)));
+    moved = readProjectSnapshot (bundlePath);
+    REQUIRE (moved.clips[0].timelineStart == original.clips[0].timelineStart + grid + fine);
+    REQUIRE (moved.clips[1].timelineStart == original.clips[1].timelineStart + grid + fine);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
+    const yesdaw::engine::Project fineRoundTrip = readProjectSnapshot (bundlePath);
+    REQUIRE (fineRoundTrip.clips[0].timelineStart == original.clips[0].timelineStart + grid);
+    REQUIRE (fineRoundTrip.clips[1].timelineStart == original.clips[1].timelineStart + grid);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    const yesdaw::engine::Project returned = readProjectSnapshot (bundlePath);
+    REQUIRE (returned.clips == original.clips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterReturn = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (afterReturn == beforeNudge);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == fineRoundTrip.clips);
+}
+
+TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid",
+           "[ui][input][shell][pianoroll][nudge-note]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("nudge-note");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.midiClips.size() == 1u);
+    REQUIRE (original.midiClips.front().notes.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
+    REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+
+    const yesdaw::engine::Note originalNote = original.midiClips.front().notes.front();
+    const yesdaw::engine::Tick grid = snapshotMainComponent (*shell).context.snapGridTicks;
+    REQUIRE (grid == 24'000);
+    REQUIRE (grid % 8 == 0);
+    REQUIRE (originalNote.startTick >= grid);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeNudge = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (peakAbs (std::span<const float> (beforeNudge.data(), beforeNudge.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    REQUIRE (moved.midiClips.front().notes.front().startTick == originalNote.startTick - grid);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterLeftNudge = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (afterLeftNudge != beforeNudge);
+    REQUIRE (peakAbs (std::span<const float> (afterLeftNudge.data(), afterLeftNudge.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const yesdaw::engine::Tick fine = grid / 8;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::shiftModifier, 0)));
+    moved = readProjectSnapshot (bundlePath);
+    REQUIRE (moved.midiClips.front().notes.front().startTick == originalNote.startTick - grid + fine);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
+    const yesdaw::engine::Project fineRoundTrip = readProjectSnapshot (bundlePath);
+    REQUIRE (fineRoundTrip.midiClips.front().notes.front().startTick == originalNote.startTick - grid);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    const yesdaw::engine::Project returned = readProjectSnapshot (bundlePath);
+    REQUIRE (returned.midiClips == original.midiClips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterReturn = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (afterReturn == beforeNudge);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips == fineRoundTrip.midiClips);
+}
+
 TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[ui][input][shell][snap]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("snap-grid");
