@@ -74,8 +74,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     `X` on exactly two staggered, overlapping Clips on one Track creates one persisted equal-power
     crossfade across the exact overlap. The shipped-boundary gate proves constant-power unity,
     independently matches every rendered overlap sample, and proves one-step Undo.
-11. **Clip rename** — F2 with a clip selected edits a clip display name (needs `Clip::name`,
-    schema bump + migration gate; name shows on the painted clip).
+11. [x] **Clip rename** — landed in `9de946c` (exact-head run `31474044198`, nine jobs green).
+    F2 with a selected Clip opens the real inline Clip-name editor; otherwise it retains Track
+    rename, with explicit Track rename on unique Ctrl+F2. Schema v10 additively migrates persisted
+    names, and the shipped-boundary gate proves bundle round-trip, painted name, undo/redo,
+    duplicate preservation, fresh reopen, and audio-invariant playback through the real rebuild.
 12. **Esc cancels** — any in-progress drag (move/trim/fade/marquee) and any inline editor
     reverts on Escape. Gate: drag, Esc, project unchanged.
 13. **Repeat paste** — Ctrl+R pastes the clipboard clip N times back-to-back at the playhead
