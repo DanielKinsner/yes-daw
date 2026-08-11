@@ -170,6 +170,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.tempoMap == expected.tempoMap);
     REQUIRE (actual.meterMap == expected.meterMap);
     REQUIRE (actual.markers == expected.markers);
+    REQUIRE (actual.locatePoints == expected.locatePoints);
     REQUIRE (actual.midiClips == expected.midiClips);
 }
 

@@ -212,6 +212,10 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TransportLocatePreviousBar);
     REQUIRE (descriptorForStableId ("transport.locate_next_bar")->id
              == UiActionId::TransportLocateNextBar);
+    REQUIRE (descriptorForStableId ("transport.locate_point.store.1")->id
+             == UiActionId::TransportStoreLocatePoint1);
+    REQUIRE (descriptorForStableId ("transport.locate_point.recall.5")->id
+             == UiActionId::TransportRecallLocatePoint5);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
@@ -506,6 +510,14 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE_FALSE (context.isPlaying);
 
     context.playheadFrame = 4096;
+    REQUIRE_FALSE (registry.stateFor (UiActionId::TransportRecallLocatePoint1, context).enabled);
+    REQUIRE (registry.dispatch (UiActionId::TransportStoreLocatePoint1, context).dispatched);
+    REQUIRE (context.locatePoints[0] == 4096);
+    context.playheadFrame = 2048;
+    REQUIRE (registry.dispatch (UiActionId::TransportRecallLocatePoint1, context).dispatched);
+    REQUIRE (context.playheadFrame == 4096);
+    REQUIRE (context.lastLocateFrame == 4096);
+
     REQUIRE (registry.dispatch (UiActionId::TransportLocateStart, context).dispatched);
     REQUIRE (context.playheadFrame == 0);
 
@@ -566,7 +578,7 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     context.timelineClipSelected = true;
     REQUIRE (registry.dispatch (UiActionId::TimelineClipMove, context).dispatched);
     REQUIRE (context.activePanel == UiPanel::Timeline);
-    REQUIRE (context.timelineEditCount == 1);
+    REQUIRE (context.timelineEditCount == 2);
     REQUIRE (context.canUndo);
     REQUIRE_FALSE (context.canRedo);
 

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <span>
 #include <string>
 #include <system_error>
@@ -435,6 +436,7 @@ void requireSameProjectSurface (const Project& actual, const Project& expected)
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
     REQUIRE (actual.automationLanes == expected.automationLanes);
+    REQUIRE (actual.locatePoints == expected.locatePoints);
     REQUIRE (actual.hasValidAssetClipIndirection());
 }
 
@@ -487,6 +489,12 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 8;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 9;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'pending_fs_ops';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'plugin_state_chunks';", value).ok());
@@ -496,6 +504,8 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_clips';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_notes';", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'locate_points';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'tracks';", value).ok());
     REQUIRE (value == 1);
@@ -1034,6 +1044,33 @@ TEST_CASE ("Clip display names round-trip through schema v10", "[persistence][pr
     REQUIRE (readback.clips[0].name == "Lead Vocal Comp");
 }
 
+TEST_CASE ("Locate points round-trip through schema v11", "[persistence][project][round-trip][locate-points]")
+{
+    const auto path = makeTempBundlePath ("locate-points-round-trip");
+    Project project = makeProject();
+    project.locatePoints[0] = 12'345;
+    project.locatePoints[4] = 67'890;
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
+    REQUIRE (value == 2);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.locatePoints[0] == 12'345);
+    REQUIRE_FALSE (readback.locatePoints[1].has_value());
+    REQUIRE (readback.locatePoints[4] == 67'890);
+}
+
 TEST_CASE ("Interrupted save transaction reopens the last committed Project", "[persistence][recovery][save]")
 {
     const auto path = makeTempBundlePath ("save-recovery");
@@ -1310,9 +1347,13 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    REQUIRE (value == 10);
+    REQUIRE (value == 11);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
+    REQUIRE (value == 0);
 
     std::string storedName;
     REQUIRE (reopened.queryText ("SELECT name FROM clips WHERE id = X'00000000000000000000000000000004';", storedName).ok());
@@ -1323,6 +1364,39 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
     REQUIRE (readback.clips.size() == 1u);
     REQUIRE (readback.clips[0].name == "Audio Clip");
     REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
+TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
+           "[persistence][migration][locate-points]")
+{
+    const auto path = makeTempBundlePath ("locate-points-v10-migration");
+    const Project project = makeProject();
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.executeSql (
+            "DROP TABLE locate_points; "
+            "DELETE FROM schema_migrations WHERE version = 11; "
+            "PRAGMA user_version = 10;").ok());
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == 11);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    for (const std::optional<Tick>& locatePoint : readback.locatePoints)
+        REQUIRE_FALSE (locatePoint.has_value());
 }
 
 TEST_CASE ("Layered semantic validation catches DB rows that SQLite integrity checks cannot", "[persistence][semantic]")

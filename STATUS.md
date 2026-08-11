@@ -507,10 +507,46 @@ TSan, both package jobs, and both alpha-verifier jobs.
 The B22 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** run the full local gate, then commit and push only the B22 backlog-tick/evidence checkpoint.
+The B22 evidence handoff `f0a3156` is exact-head green across all nine jobs in run `31544599900`.
 
-**Next:** require the exact B22 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Then stop at the checkpoint; B23 is the next backlog item.
+**B23 implementation candidate — Locate points:** audited the complete descriptor/keymap table,
+JUCE digit/modifier translation, every existing transport-locate path, Project value surface,
+SQLite migrations, bundle snapshot round-trip, fresh-reopen context synchronization, and playback
+locate/render behavior before adding anything. Plain `1`/`2`/`3` already select views and
+`Ctrl+1`/`2`/`3` already select snap units, so the conflict-free backlog fallback is used:
+`Ctrl+Shift+1` through `Ctrl+Shift+5` store and `Alt+1` through `Alt+5` recall. All ten actions are
+appended at the descriptor-table end and covered in both exhaustive action switches.
+
+Locate points are honestly separate persisted Project memory locations, not transient context and
+not hidden Timeline Markers. Schema v11 additively gives v10 bundles an empty five-slot
+`locate_points` table; populated slots round-trip by slot/tick, and both stored ranges and SQLite
+storage types are validated. Store writes the current playhead without rebuilding or relocating the
+live transport; recall uses the real playback locate path. Empty recall slots are disabled no-ops.
+
+The shipped-boundary tracer first failed at **22/23 assertions** because `Ctrl+Shift+1` was absent.
+It now passes **57/57 assertions**: real ruler gestures store slots 1 and 5, both recalls start two
+distinct audible render slices at the exact stored frames, destroying and reopening the real bundle
+reproduces slot 1 and its samples exactly, and empty slot 2 leaves zero unchanged. The action/keymap
+gate passes **2,105 assertions** with every chord unique. The schema v11 migration/round-trip gates
+pass **65 assertions**, and the complete persistence executable passes **1,178 assertions across 45
+cases**, including older migration and corruption coverage.
+
+The first clean full run is **not accepted**: it passed 345/346 but the accessibility harness's
+synthetic “all actions reachable” context left every new locate slot empty, so the first Recall action
+was correctly disabled. The harness now populates all five slots, preserving its original exhaustive
+dispatch purpose; its focused gate is green.
+
+A second clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **346/346**, including action/keymap uniqueness, schema migration,
+persistence, accessibility, theme audit, screenshots, native input, and the GPU gate. The protected
+owner last-project record and committed v8 schema fixture were restored byte-identically after both
+full runs.
+
+**Now:** commit and push only the B23 implementation checkpoint.
+
+**Next:** require the exact B23 implementation head green across all nine jobs; cancelled or
+incomplete runs do not count. Only then tick B23 in a separate evidence checkpoint; B24 must not
+start early.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

@@ -6042,3 +6042,94 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("locate-point keys persist two playheads and recall their exact playback after reopen",
+           "[ui][input][shell][transport][locate-points]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("locate-points");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    constexpr yesdaw::engine::Tick kFirstRequestedFrame = 16'000;
+    constexpr yesdaw::engine::Tick kFifthRequestedFrame = 64'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const std::uint64_t period = frame < kFrames / 2u ? 97u : 53u;
+        const int saw = static_cast<int> (frame % period) - static_cast<int> (period / 2u);
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (choices);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    juce::Component& timeline = requireTimelineComponent (*shell);
+
+    const juce::Point<int> firstPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, kFirstRequestedFrame);
+    mouseDownAt (timeline, firstPoint);
+    const std::int64_t firstStoredFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (firstStoredFrame > 0);
+    const juce::ModifierKeys ctrlShift {
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1', ctrlShift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstStoredFrame);
+
+    const juce::Point<int> fifthPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, kFifthRequestedFrame);
+    mouseDownAt (timeline, fifthPoint);
+    const std::int64_t fifthStoredFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (fifthStoredFrame > firstStoredFrame);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('5', ctrlShift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == fifthStoredFrame);
+
+    const juce::ModifierKeys alt { juce::ModifierKeys::altModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1', alt, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstStoredFrame);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> firstAudio = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (peakAbs (std::span<const float> (firstAudio.data(), firstAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('5', alt, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == fifthStoredFrame);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> fifthAudio = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (peakAbs (std::span<const float> (fifthAudio.data(), fifthAudio.size())) > 0.01);
+    REQUIRE (fifthAudio != firstAudio);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    shell.reset();
+    auto reopenedShell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*reopenedShell, UiActionId::ProjectOpen));
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('1', alt, 0)));
+    REQUIRE (snapshotMainComponent (*reopenedShell).context.playheadFrame == firstStoredFrame);
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> reopenedAudio = renderMainComponentPlayback (*reopenedShell, 256, 128);
+    REQUIRE (reopenedAudio == firstAudio);
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('2', alt, 0)));
+    REQUIRE (snapshotMainComponent (*reopenedShell).context.playheadFrame == 0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}

@@ -278,6 +278,7 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.tempoMap == expected.tempoMap);
     REQUIRE (actual.meterMap == expected.meterMap);
     REQUIRE (actual.markers == expected.markers);
+    REQUIRE (actual.locatePoints == expected.locatePoints);
     REQUIRE (actual.midiClips == expected.midiClips);
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);

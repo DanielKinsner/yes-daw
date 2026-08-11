@@ -3489,6 +3489,20 @@ public:
             case UiActionId::TransportLocateNextBar:
                 return locatePlaybackRelative (id, snapFramesForUnit (UiSnapUnit::Bar));
 
+            case UiActionId::TransportStoreLocatePoint1:
+            case UiActionId::TransportStoreLocatePoint2:
+            case UiActionId::TransportStoreLocatePoint3:
+            case UiActionId::TransportStoreLocatePoint4:
+            case UiActionId::TransportStoreLocatePoint5:
+                return storeLocatePoint (id, state);
+
+            case UiActionId::TransportRecallLocatePoint1:
+            case UiActionId::TransportRecallLocatePoint2:
+            case UiActionId::TransportRecallLocatePoint3:
+            case UiActionId::TransportRecallLocatePoint4:
+            case UiActionId::TransportRecallLocatePoint5:
+                return recallLocatePoint (id, state);
+
             case UiActionId::TransportToggleLoop:
                 return dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
@@ -4347,9 +4361,12 @@ private:
 
     void syncProjectEditContext() noexcept
     {
+        static_assert (engine::Project::kLocatePointCount == kTransportLocatePointCount);
         context_.projectLoaded = project_.hasValidAssetClipIndirection();
         context_.canUndo = undo_.canUndo();
         context_.canRedo = undo_.canRedo();
+        for (std::size_t index = 0; index < project_.locatePoints.size(); ++index)
+            context_.locatePoints[index] = project_.locatePoints[index];
         std::erase_if (selectedTimelineClipIds_, [this] (engine::EntityId clipId) {
             return findClip (clipId) == nullptr;
         });
@@ -4840,6 +4857,44 @@ private:
         }
 
         return locatePlaybackAbsolute (id, targetFrame);
+    }
+
+    UiActionDispatchResult storeLocatePoint (UiActionId id, UiActionState state)
+    {
+        const int index = storeLocatePointIndex (id);
+        if (index < 0)
+            return { id, { false, "unknown locate point" }, false };
+
+        engine::Project nextProject = project_;
+        nextProject.locatePoints[static_cast<std::size_t> (index)] =
+            static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
+
+        if (bundleDb_.isOpen())
+        {
+            const persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return { id, { false, "locate point did not persist" }, false };
+        }
+
+        project_ = std::move (nextProject);
+        context_.locatePoints[static_cast<std::size_t> (index)] = project_.locatePoints[static_cast<std::size_t> (index)];
+        context_.activePanel = UiPanel::Timeline;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    UiActionDispatchResult recallLocatePoint (UiActionId id, UiActionState state)
+    {
+        const int index = recallLocatePointIndex (id);
+        if (index < 0)
+            return { id, { false, "unknown locate point" }, false };
+
+        const std::optional<engine::Tick>& point = project_.locatePoints[static_cast<std::size_t> (index)];
+        if (! point.has_value())
+            return { id, state, false };
+
+        return locatePlaybackAbsolute (id, *point);
     }
 
     UiActionDispatchResult locatePlaybackAbsolute (UiActionId id, std::int64_t targetFrame)

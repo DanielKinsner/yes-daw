@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -724,6 +725,8 @@ enum class ProjectEditStatus : std::uint8_t
 
 struct Project
 {
+    static constexpr std::size_t kLocatePointCount = 5;
+
     EntityId id;
     SampleRate sampleRate;
     std::vector<Asset> assets;
@@ -735,6 +738,9 @@ struct Project
     std::vector<TempoChange> tempoMap;
     std::vector<MeterChange> meterMap;
     std::vector<Marker>      markers;
+    // Persisted memory locations for the transport. Empty slots migrate additively and do not appear
+    // as Timeline Markers; the UI stores/recalls them through the declared locate-point actions.
+    std::array<std::optional<Tick>, kLocatePointCount> locatePoints {};
     // H4 MIDI edit surface (ADR-0017): MIDI Clips own editable Notes. They flatten to Events only at the
     // render boundary; persistence keeps the stable Note IDs intact for piano-roll edits and MPE.
     std::vector<MidiClip>    midiClips;

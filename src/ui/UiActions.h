@@ -9,6 +9,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -135,10 +136,21 @@ enum class UiActionId : std::uint8_t
     TransportReturnToZero,
     TransportPlayFromLastLocate,
     TransportToggleRecordCountIn,
+    TransportStoreLocatePoint1,
+    TransportStoreLocatePoint2,
+    TransportStoreLocatePoint3,
+    TransportStoreLocatePoint4,
+    TransportStoreLocatePoint5,
+    TransportRecallLocatePoint1,
+    TransportRecallLocatePoint2,
+    TransportRecallLocatePoint3,
+    TransportRecallLocatePoint4,
+    TransportRecallLocatePoint5,
     Count
 };
 
 constexpr std::size_t kUiActionCount = static_cast<std::size_t> (UiActionId::Count);
+constexpr std::size_t kTransportLocatePointCount = 5;
 
 enum class UiActionKind : std::uint8_t
 {
@@ -239,6 +251,7 @@ struct UiActionContext
     std::int64_t playheadFrame = 0;
     std::int64_t playbackStartFrame = 0;
     std::int64_t lastLocateFrame = 0;
+    std::array<std::optional<std::int64_t>, kTransportLocatePointCount> locatePoints {};
     int shuttlePlaybackRate = 1;
     int commandDispatchCount = 0;
     int saveCount = 0;
@@ -310,6 +323,24 @@ enum class KeymapRebindStatus : std::uint8_t
 constexpr std::size_t actionIndex (UiActionId id)
 {
     return static_cast<std::size_t> (id);
+}
+
+constexpr int storeLocatePointIndex (UiActionId id) noexcept
+{
+    const std::size_t index = actionIndex (id);
+    const std::size_t first = actionIndex (UiActionId::TransportStoreLocatePoint1);
+    return index >= first && index < first + kTransportLocatePointCount
+        ? static_cast<int> (index - first)
+        : -1;
+}
+
+constexpr int recallLocatePointIndex (UiActionId id) noexcept
+{
+    const std::size_t index = actionIndex (id);
+    const std::size_t first = actionIndex (UiActionId::TransportRecallLocatePoint1);
+    return index >= first && index < first + kTransportLocatePointCount
+        ? static_cast<int> (index - first)
+        : -1;
 }
 
 inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescriptors {{
@@ -546,7 +577,27 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportPlayFromLastLocate, "transport.play_from_last_locate", "Play from Last Locate", "Shift+Space", "Play from last locate point",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportToggleRecordCountIn, "transport.toggle_record_count_in", "Count-in for Record", "Ctrl+Alt+Shift+R", "Toggle one-bar count-in before recording",
-      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TransportStoreLocatePoint1, "transport.locate_point.store.1", "Store Locate 1", "Ctrl+Shift+1", "Store playhead in locate point 1",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportStoreLocatePoint2, "transport.locate_point.store.2", "Store Locate 2", "Ctrl+Shift+2", "Store playhead in locate point 2",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportStoreLocatePoint3, "transport.locate_point.store.3", "Store Locate 3", "Ctrl+Shift+3", "Store playhead in locate point 3",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportStoreLocatePoint4, "transport.locate_point.store.4", "Store Locate 4", "Ctrl+Shift+4", "Store playhead in locate point 4",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportStoreLocatePoint5, "transport.locate_point.store.5", "Store Locate 5", "Ctrl+Shift+5", "Store playhead in locate point 5",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportRecallLocatePoint1, "transport.locate_point.recall.1", "Recall Locate 1", "Alt+1", "Recall playhead from locate point 1",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportRecallLocatePoint2, "transport.locate_point.recall.2", "Recall Locate 2", "Alt+2", "Recall playhead from locate point 2",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportRecallLocatePoint3, "transport.locate_point.recall.3", "Recall Locate 3", "Alt+3", "Recall playhead from locate point 3",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportRecallLocatePoint4, "transport.locate_point.recall.4", "Recall Locate 4", "Alt+4", "Recall playhead from locate point 4",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportRecallLocatePoint5, "transport.locate_point.recall.5", "Recall Locate 5", "Alt+5", "Recall playhead from locate point 5",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -731,6 +782,9 @@ public:
             return { false, "clipboard has no clip" };
         if (id == UiActionId::TimelineZoomFitLoop && ! context.loopEnabled)
             return { false, "no loop region" };
+        if (const int index = recallLocatePointIndex (id);
+            index >= 0 && ! context.locatePoints[static_cast<std::size_t> (index)].has_value())
+            return { false, "locate point is empty" };
 
         if (id == UiActionId::EditNudgeLeft
             || id == UiActionId::EditNudgeRight
@@ -1207,6 +1261,33 @@ public:
             case UiActionId::TransportToggleRecordCountIn:
                 context.recordCountInEnabled = ! context.recordCountInEnabled;
                 break;
+
+            case UiActionId::TransportStoreLocatePoint1:
+            case UiActionId::TransportStoreLocatePoint2:
+            case UiActionId::TransportStoreLocatePoint3:
+            case UiActionId::TransportStoreLocatePoint4:
+            case UiActionId::TransportStoreLocatePoint5:
+            {
+                const int index = storeLocatePointIndex (id);
+                context.locatePoints[static_cast<std::size_t> (index)] =
+                    std::max<std::int64_t> (0, context.playheadFrame);
+                context.activePanel = UiPanel::Timeline;
+                ++context.timelineEditCount;
+                break;
+            }
+
+            case UiActionId::TransportRecallLocatePoint1:
+            case UiActionId::TransportRecallLocatePoint2:
+            case UiActionId::TransportRecallLocatePoint3:
+            case UiActionId::TransportRecallLocatePoint4:
+            case UiActionId::TransportRecallLocatePoint5:
+            {
+                const int index = recallLocatePointIndex (id);
+                context.playheadFrame = *context.locatePoints[static_cast<std::size_t> (index)];
+                context.lastLocateFrame = context.playheadFrame;
+                context.activePanel = UiPanel::Timeline;
+                break;
+            }
 
             case UiActionId::TimelineMarkerAdd:
             case UiActionId::TimelineMarkerRemove:

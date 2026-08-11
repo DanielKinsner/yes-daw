@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 10;
+inline constexpr int          kCodeSchemaVersion = 11;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -882,6 +882,10 @@ inline bool projectFitsSchemaV1 (const engine::Project& project) noexcept
         if (! marker.id.isValid())
             return false;
 
+    for (const std::optional<engine::Tick>& locatePoint : project.locatePoints)
+        if (locatePoint.has_value() && *locatePoint < 0)
+            return false;
+
     for (const engine::MidiClip& midiClip : project.midiClips)
         if (! midiClip.isValid())
             return false;
@@ -1206,13 +1210,20 @@ ALTER TABLE clips ADD COLUMN name TEXT NOT NULL DEFAULT 'Audio Clip'
   CHECK (length(name) > 0 AND length(name) <= 127);
 )SQL";
 
+inline constexpr std::string_view kSchemaV11Sql = R"SQL(
+CREATE TABLE locate_points (
+  slot INTEGER PRIMARY KEY CHECK (slot >= 1 AND slot <= 5),
+  tick INTEGER NOT NULL CHECK (tick >= 0)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 10> kMigrations {
+inline constexpr std::array<SchemaMigration, 11> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1223,6 +1234,7 @@ inline constexpr std::array<SchemaMigration, 10> kMigrations {
     SchemaMigration { 8, kSchemaV8Sql },
     SchemaMigration { 9, kSchemaV9Sql },
     SchemaMigration { 10, kSchemaV10Sql },
+    SchemaMigration { 11, kSchemaV11Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1827,7 +1839,7 @@ public:
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM buses; DELETE FROM tracks; "
-                "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; "
+                "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2228,6 +2240,20 @@ public:
                 if (auto result = markerStmt.bindInt64 (2, marker.tick); ! result.ok()) { rollback(); return result; }
                 if (auto result = markerStmt.bindText (3, marker.name); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, markerStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        {
+            detail::Statement locateStmt (db_, "INSERT INTO locate_points(slot, tick) VALUES (?, ?);");
+            for (std::size_t index = 0; index < project.locatePoints.size(); ++index)
+            {
+                if (! project.locatePoints[index].has_value())
+                    continue;
+
+                locateStmt.reset();
+                if (auto result = locateStmt.bindInt64 (1, static_cast<sqlite3_int64> (index + 1u)); ! result.ok()) { rollback(); return result; }
+                if (auto result = locateStmt.bindInt64 (2, *project.locatePoints[index]); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, locateStmt); ! result.ok()) { rollback(); return result; }
             }
         }
 
@@ -2867,6 +2893,29 @@ public:
                     marker.name.assign (reinterpret_cast<const char*> (text), static_cast<std::size_t> (textBytes));
 
                 project.markers.push_back (marker);
+            }
+        }
+
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT slot, tick FROM locate_points ORDER BY slot;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                const sqlite3_int64 slot = sqlite3_column_int64 (stmt.get(), 0);
+                const sqlite3_int64 tick = sqlite3_column_int64 (stmt.get(), 1);
+                if (slot < 1 || slot > static_cast<sqlite3_int64> (engine::Project::kLocatePointCount)
+                    || tick < 0)
+                    return detail::semanticInvalid ("locate_points value is outside the Project value range");
+
+                project.locatePoints[static_cast<std::size_t> (slot - 1)] = tick;
             }
         }
 
@@ -3587,6 +3636,7 @@ private:
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM meter_changes WHERE numerator <= 0 OR denominator <= 0 "
+                "UNION ALL SELECT 1 FROM locate_points WHERE slot < 1 OR slot > 5 OR tick < 0 "
                 "UNION ALL SELECT 1 FROM automation_points WHERE target_node_id < 0 OR parameter_id < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1, 2, 3) "
                 "LIMIT 1;",
                 rangeProblem);
@@ -3617,6 +3667,7 @@ private:
                 "UNION ALL SELECT 1 FROM automation_breakpoints WHERE typeof(lane_id) != 'blob' OR typeof(tick) != 'integer' OR typeof(value) NOT IN ('integer', 'real') OR typeof(curve_type) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE typeof(id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE typeof(id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(start_tick) != 'integer' OR typeof(length_ticks) != 'integer' OR typeof(key) != 'integer' OR typeof(pitch_note) NOT IN ('integer', 'real') OR typeof(normalized_velocity) NOT IN ('integer', 'real') OR typeof(port_index) != 'integer' OR typeof(channel) != 'integer' "
+                "UNION ALL SELECT 1 FROM locate_points WHERE typeof(slot) != 'integer' OR typeof(tick) != 'integer' "
                 "LIMIT 1;",
                 typeProblem);
             ! result.ok())
