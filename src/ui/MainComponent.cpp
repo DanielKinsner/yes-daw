@@ -3812,6 +3812,35 @@ private:
                         std::max<std::int64_t> (0, appModel.context().playheadFrame)));
                 return;
 
+            case yesdaw::ui::UiActionId::TimelineZoomFitProject:
+                if (appModel.dispatch (action).dispatched)
+                {
+                    timelineZoomFactor = yesdaw::ui::UiTheme::Layout::timelineZoomMin;
+                    timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineZoomFitLoop:
+                if (appModel.dispatch (action).dispatched && appModel.project().sampleRate.isValid())
+                {
+                    const std::int64_t loopStart = appModel.playbackLoopStartFrame();
+                    const std::int64_t loopEnd = appModel.playbackLoopEndFrame();
+                    if (loopStart >= 0 && loopEnd > loopStart)
+                    {
+                        const double sampleRateHz = appModel.project().sampleRate.hz;
+                        const double loopDurationSeconds = static_cast<double> (loopEnd - loopStart)
+                                                         / sampleRateHz;
+                        timelineZoomFactor = std::clamp (
+                            std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                      timelineTotalSeconds)
+                                / loopDurationSeconds,
+                            yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+                            yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+                        timelineScrollSeconds = static_cast<double> (loopStart) / sampleRateHz;
+                    }
+                }
+                return;
+
             case yesdaw::ui::UiActionId::ViewPianoRoll:
                 (void) appModel.dispatch (action);
                 (void) appModel.selectFirstMidiClip();

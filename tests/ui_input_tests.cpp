@@ -3649,6 +3649,137 @@ TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][inp
     REQUIRE (snapshot.timelineZoomFactor == 1.0);   // clamped at fit-to-window
 }
 
+TEST_CASE ("Ctrl+0 fits the whole Project horizontally without changing Snap",
+           "[ui][input][shell][zoom][zoom-fit]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-fit-project");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline,
+        centre,
+        centre,
+        false,
+        1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int step = 0; step < 5; ++step)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    const juce::MouseEvent plainWheel = makeMouseEvent (
+        timeline, centre, centre, false, 1, juce::ModifierKeys {});
+    timeline.mouseWheelMove (plainWheel, wheelDown);
+
+    const MainComponentSnapshot zoomed = snapshotMainComponent (*shell);
+    REQUIRE (zoomed.timelineZoomFactor > 1.0);
+    REQUIRE (zoomed.timelineScrollSeconds > 0.0);
+    REQUIRE (zoomed.context.snapEnabled);
+    const std::vector<yesdaw::engine::Clip> persistedClipsBeforeFit =
+        readProjectSnapshot (bundlePath).clips;
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::ctrlModifier, 0)));
+    const MainComponentSnapshot fitted = snapshotMainComponent (*shell);
+    REQUIRE (fitted.timelineZoomFactor == 1.0);
+    REQUIRE (fitted.timelineScrollSeconds == 0.0);
+    REQUIRE (fitted.visibleTimelineTotalSeconds == zoomed.visibleTimelineTotalSeconds);
+    REQUIRE (fitted.context.snapEnabled);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == persistedClipsBeforeFit);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.snapEnabled);
+}
+
+TEST_CASE ("Ctrl+Shift+0 fits the current loop region with exact viewport math",
+           "[ui][input][shell][zoom][zoom-fit][loop]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-fit-loop");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const int rulerY = rulerGeometry.rulerArea.getCentreY();
+    dragFromTo (
+        timeline,
+        { timeline.getWidth() / 4, rulerY },
+        { (timeline.getWidth() * 3) / 4, rulerY },
+        juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                            | juce::ModifierKeys::shiftModifier));
+
+    const MainComponentSnapshot loopSet = snapshotMainComponent (*shell);
+    REQUIRE (loopSet.context.loopEnabled);
+    REQUIRE (loopSet.playbackLoopEndFrame > loopSet.playbackLoopStartFrame);
+    const yesdaw::engine::Project persisted = readProjectSnapshot (bundlePath);
+    REQUIRE (persisted.sampleRate.isValid());
+
+    const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline,
+        centre,
+        centre,
+        false,
+        1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int step = 0; step < 5; ++step)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    const juce::MouseEvent plainWheel = makeMouseEvent (
+        timeline, centre, centre, false, 1, juce::ModifierKeys {});
+    timeline.mouseWheelMove (plainWheel, wheelDown);
+    const MainComponentSnapshot beforeFit = snapshotMainComponent (*shell);
+
+    const double loopStartSeconds = static_cast<double> (loopSet.playbackLoopStartFrame)
+                                  / persisted.sampleRate.hz;
+    const double loopDurationSeconds = static_cast<double> (
+                                           loopSet.playbackLoopEndFrame - loopSet.playbackLoopStartFrame)
+                                     / persisted.sampleRate.hz;
+    const double expectedZoom = std::clamp (
+        std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                  loopSet.visibleTimelineTotalSeconds)
+            / loopDurationSeconds,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+        yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+    REQUIRE ((beforeFit.timelineZoomFactor != expectedZoom
+              || beforeFit.timelineScrollSeconds != loopStartSeconds));
+
+    const juce::ModifierKeys ctrlShift {
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', ctrlShift, 0)));
+    const MainComponentSnapshot fitted = snapshotMainComponent (*shell);
+    REQUIRE (fitted.timelineZoomFactor == expectedZoom);
+    REQUIRE (fitted.timelineScrollSeconds == loopStartSeconds);
+    REQUIRE (fitted.playbackLoopStartFrame == loopSet.playbackLoopStartFrame);
+    REQUIRE (fitted.playbackLoopEndFrame == loopSet.playbackLoopEndFrame);
+    REQUIRE (fitted.context.loopEnabled);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == persisted.clips);
+}
+
 TEST_CASE ("dragging the clip's left edge trims its head without moving the audio under it",
            "[ui][input][shell][trimleft]")
 {

@@ -3411,6 +3411,8 @@ public:
             case UiActionId::TimelineToolSelectScissors:
             case UiActionId::TimelineToolSelectHand:
             case UiActionId::TimelineToolSelectZoom:
+            case UiActionId::TimelineZoomFitProject:
+            case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);

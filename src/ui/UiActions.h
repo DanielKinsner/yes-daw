@@ -117,6 +117,8 @@ enum class UiActionId : std::uint8_t
     TimelineClipCrossfade,
     EditRenameSelection,
     TimelineClipRepeatPaste,
+    TimelineZoomFitProject,
+    TimelineZoomFitLoop,
     Count
 };
 
@@ -398,7 +400,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineToolSelectZoom, "timeline.tool.zoom", "Zoom", "Z", "Select zoom tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "Ctrl+0", "Disable timeline snap",
+    { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "Alt+0", "Disable timeline snap",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineSnapSetBar, "timeline.snap.bar", "Snap Bar", "Ctrl+1", "Set timeline snap to bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
@@ -487,6 +489,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::EditRenameSelection, "edit.rename_selection", "Rename", "F2", "Rename selected clip or track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipRepeatPaste, "timeline.clip.repeat_paste", "Repeat Paste", "Ctrl+R", "Repeat clipboard clips at playhead",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomFitProject, "timeline.zoom.fit_project", "Zoom to Fit Project", "Ctrl+0", "Fit the whole Project in the Timeline",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomFitLoop, "timeline.zoom.fit_loop", "Zoom to Fit Loop", "Ctrl+Shift+0", "Fit the current loop region in the Timeline",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -672,6 +678,8 @@ public:
         if ((id == UiActionId::TimelineClipPaste || id == UiActionId::TimelineClipRepeatPaste)
             && ! context.clipboardHasClip)
             return { false, "clipboard has no clip" };
+        if (id == UiActionId::TimelineZoomFitLoop && ! context.loopEnabled)
+            return { false, "no loop region" };
 
         if (id == UiActionId::EditNudgeLeft
             || id == UiActionId::EditNudgeRight
@@ -913,6 +921,11 @@ public:
             case UiActionId::TimelineToolSelectZoom:
                 context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Zoom;
+                break;
+
+            case UiActionId::TimelineZoomFitProject:
+            case UiActionId::TimelineZoomFitLoop:
+                context.activePanel = UiPanel::Timeline;
                 break;
 
             case UiActionId::TimelineSnapDisable:

@@ -43,6 +43,7 @@ UiActionContext fullyReachableContext()
     context.autosaveRecoveryPending = true;
     context.audioExportInProgress = true;
     context.clipboardHasClip = true;
+    context.loopEnabled = true;
     return context;
 }
 
