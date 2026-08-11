@@ -5352,3 +5352,99 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.empty());
 }
+
+TEST_CASE ("Options toggles default-on playhead paging without changing Project audio or data",
+           "[ui][input][shell][transport][playhead-follow]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("playhead-follow");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+
+    constexpr std::uint64_t kFrames = 240'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames), 0.25f);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    for (int step = 0; step < 32; ++step)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('=', juce::ModifierKeys::shiftModifier, '+')));
+
+    const MainComponentSnapshot before = snapshotMainComponent (*shell);
+    REQUIRE (before.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+    REQUIRE (before.timelineScrollSeconds == 0.0);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                          yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                          timeline.getWidth()
+                                              - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                    / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                before.visibleTimelineTotalSeconds);
+    const double visibleSeconds = static_cast<double> (juce::jmax (1, timeline.getWidth()))
+                                / (fitPixelsPerSecond * before.timelineZoomFactor);
+    const std::uint64_t framesPastRightEdge = static_cast<std::uint64_t> (
+        std::ceil ((visibleSeconds + 0.05) * 48'000.0));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (
+        findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    const auto playheadFollowMenuState = [model]
+    {
+        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu::MenuItemIterator iterator (options);
+        while (iterator.next())
+        {
+            const juce::PopupMenu::Item& item = iterator.getItem();
+            if (item.text == "Playhead Follow")
+                return std::pair<int, bool> { item.itemID, item.isTicked };
+        }
+        return std::pair<int, bool> { 0, false };
+    };
+
+    const auto [followItemId, defaultFollowEnabled] = playheadFollowMenuState();
+    REQUIRE (followItemId > 0);
+    REQUIRE (defaultFollowEnabled);
+
+    model->menuItemSelected (followItemId, 3);
+    REQUIRE_FALSE (playheadFollowMenuState().second);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> followDisabledAudio =
+        renderMainComponentPlayback (*shell, framesPastRightEdge, 512);
+    REQUIRE (peakAbs (std::span<const float> (
+                 followDisabledAudio.data(), followDisabledAudio.size())) > 0.15);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == before.timelineScrollSeconds);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    model->menuItemSelected (followItemId, 3);
+    REQUIRE (playheadFollowMenuState().second);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> followEnabledAudio =
+        renderMainComponentPlayback (*shell, framesPastRightEdge, 512);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+
+    const MainComponentSnapshot followed = snapshotMainComponent (*shell);
+    REQUIRE (followed.context.playheadFrame > static_cast<std::int64_t> (visibleSeconds * 48'000.0));
+    REQUIRE (followed.timelineScrollSeconds > before.timelineScrollSeconds);
+    REQUIRE (followEnabledAudio == followDisabledAudio);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}

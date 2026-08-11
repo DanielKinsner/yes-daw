@@ -2180,6 +2180,7 @@ public:
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
         refreshActionState();
+        followPlaybackPlayhead();
         repaint();
 
         if (! appModel.autosaveSchedule().enabled)
@@ -3581,6 +3582,54 @@ private:
             timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
     }
 
+    [[nodiscard]] double timelinePixelsPerSecondFor (double totalSeconds) const noexcept
+    {
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                              yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                              timelineInput.getWidth()
+                                                  - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    totalSeconds);
+        return fitPixelsPerSecond * timelineZoomFactor;
+    }
+
+    [[nodiscard]] double timelineVisibleSecondsFor (double totalSeconds) const noexcept
+    {
+        return static_cast<double> (juce::jmax (1, timelineInput.getWidth()))
+             / std::max (1.0, timelinePixelsPerSecondFor (totalSeconds));
+    }
+
+    void followPlaybackPlayhead()
+    {
+        if (! appModel.context().playheadFollowEnabled
+            || ! appModel.context().isPlaying
+            || ! appModel.project().sampleRate.isValid())
+            return;
+
+        const double visibleSeconds = timelineVisibleSecondsFor (timelineTotalSeconds);
+        if (visibleSeconds <= 0.0)
+            return;
+
+        const double playheadSeconds = static_cast<double> (
+                                           std::max<std::int64_t> (0, appModel.context().playheadFrame))
+                                     / appModel.project().sampleRate.hz;
+        if (playheadSeconds >= timelineScrollSeconds + visibleSeconds)
+        {
+            const double elapsedPages = std::floor (
+                (playheadSeconds - timelineScrollSeconds) / visibleSeconds);
+            timelineScrollSeconds += std::max (1.0, elapsedPages) * visibleSeconds;
+        }
+        else if (playheadSeconds < timelineScrollSeconds)
+        {
+            const double pagesBack = std::ceil (
+                (timelineScrollSeconds - playheadSeconds) / visibleSeconds);
+            timelineScrollSeconds -= std::max (1.0, pagesBack) * visibleSeconds;
+        }
+
+        const double maxScroll = std::max (0.0, timelineTotalSeconds - visibleSeconds);
+        timelineScrollSeconds = std::clamp (timelineScrollSeconds, 0.0, maxScroll);
+    }
+
     // Real menu bar (usable-DAW P1): the painted FILE/EDIT/VIEW text is gone; a juce::MenuBarComponent
     // over the same header spot dispatches registered actions through the SAME handleAction path the
     // toolbar and keymap use. The model is mechanically testable without opening popups.
@@ -3605,10 +3654,11 @@ private:
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
         };
-        static constexpr std::array<UiActionId, 6> kOptionsMenu {
+        static constexpr std::array<UiActionId, 7> kOptionsMenu {
             UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
+            UiActionId::TimelineTogglePlayheadFollow,
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
 
@@ -3632,7 +3682,9 @@ private:
                 yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)];
             menu.addItem (static_cast<int> (action) + 1,
                           descriptor.label,
-                          appModel.registry().stateFor (action, appModel.context()).enabled);
+                          appModel.registry().stateFor (action, appModel.context()).enabled,
+                          action == yesdaw::ui::UiActionId::TimelineTogglePlayheadFollow
+                              && appModel.context().playheadFollowEnabled);
         }
         return menu;
     }
@@ -5038,15 +5090,8 @@ private:
 
         // Live zoom + horizontal scroll (usable-DAW P1): zoom scales the fit-to-window density and
         // the scroll offset is clamped so the view never runs past the timeline end.
-        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
-                                              yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
-                                              timelineInput.getWidth()
-                                                  - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
-                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
-                                                    state.totalSeconds);
-        state.viewport.pixelsPerSecond = fitPixelsPerSecond * timelineZoomFactor;
-        const double visibleSeconds = static_cast<double> (juce::jmax (1, timelineInput.getWidth()))
-                                    / std::max (1.0, state.viewport.pixelsPerSecond);
+        state.viewport.pixelsPerSecond = timelinePixelsPerSecondFor (state.totalSeconds);
+        const double visibleSeconds = timelineVisibleSecondsFor (state.totalSeconds);
         const double maxScroll = std::max (0.0, state.totalSeconds - visibleSeconds);
         timelineScrollSeconds = std::clamp (timelineScrollSeconds, 0.0, maxScroll);
         state.viewport.scrollSeconds = timelineScrollSeconds;

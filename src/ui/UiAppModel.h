@@ -3417,6 +3417,7 @@ public:
             case UiActionId::TimelineZoomOut:
             case UiActionId::TrackSelectPrevious:
             case UiActionId::TrackSelectNext:
+            case UiActionId::TimelineTogglePlayheadFollow:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);

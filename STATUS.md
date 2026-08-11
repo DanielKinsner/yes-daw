@@ -302,11 +302,33 @@ The B16 backlog-tick/evidence handoff is locally green **344/344** in a fresh Vi
 Shell. The protected owner last-project record and committed v8 schema fixture were restored
 byte-identically after the run.
 
-**Now:** commit and push only the locally green B16 backlog and STATUS evidence updates.
+The B16 evidence handoff `d0b430e` is exact-head green across all nine jobs in run `31502994965`
+attempt 2. Attempt 1 was not accepted because one job record remained in progress even though its
+steps had succeeded.
 
-**Next:** commit and push only the independently green B16 evidence checkpoint, then require its
-exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count. Only then
-start B17 — Playhead follow (auto-scroll).
+**Implementation-ready for B17 — Playhead follow (auto-scroll):** audited the descriptor/keymap,
+JUCE key translation, real Options menu model, playback transport snapshot, UI refresh timer, Timeline
+zoom/scroll math, and public viewport snapshot before adding anything. Appended the unique
+`Ctrl+Alt+Shift+F` `TimelineTogglePlayheadFollow` action at the end of the descriptor table and covered
+both exhaustive switches. The Options-menu item is ticked and enabled by default; during real playback
+the existing 33 ms UI timer pages the Timeline when the playhead crosses either viewport edge, while
+turning Follow off leaves manual scroll untouched. The shipped-boundary `[playhead-follow]` tracer first
+failed with scroll fixed at `0.0`, then failed again because Options had no Follow item. It now drives
+the real menu model and playback engine, proves off suppresses paging and on restores it, compares the
+two rendered audio buffers bit-for-bit, and proves `project.db` stays byte-identical. This is honestly
+transient view state; it follows real playback but does not fake a Project or audio mutation. The
+descriptor uniqueness gate covers the new chord.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, accessibility, theme audit,
+screenshots, native input, and the GPU gate. The protected owner last-project record and committed v8
+schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the independently green B17 implementation checkpoint.
+
+**Next:** require the exact B17 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then tick B17 with its implementation SHA, update this
+handoff, rerun the full local gate, and land the B17 evidence checkpoint.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

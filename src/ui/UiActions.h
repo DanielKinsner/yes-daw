@@ -127,6 +127,7 @@ enum class UiActionId : std::uint8_t
     TransportLocateNextGrid,
     TransportLocatePreviousBar,
     TransportLocateNextBar,
+    TimelineTogglePlayheadFollow,
     Count
 };
 
@@ -220,6 +221,7 @@ struct UiActionContext
     std::int64_t snapGridTicks = 512;
     bool clipboardHasClip = false;
     bool metronomeEnabled = false;
+    bool playheadFollowEnabled = true;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
@@ -517,7 +519,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportLocatePreviousBar, "transport.locate_previous_bar", "Previous Bar", "Shift+Left", "Move playhead left by one bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateNextBar, "transport.locate_next_bar", "Next Bar", "Shift+Right", "Move playhead right by one bar",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineTogglePlayheadFollow, "timeline.toggle_playhead_follow", "Playhead Follow", "Ctrl+Alt+Shift+F", "Toggle playhead follow",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -960,6 +964,10 @@ public:
             case UiActionId::TransportLocateNextGrid:
             case UiActionId::TransportLocatePreviousBar:
             case UiActionId::TransportLocateNextBar:
+                break;
+
+            case UiActionId::TimelineTogglePlayheadFollow:
+                context.playheadFollowEnabled = ! context.playheadFollowEnabled;
                 break;
 
             case UiActionId::TimelineSnapDisable:
