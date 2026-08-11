@@ -325,7 +325,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+Shift+E", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::ProjectExportAudioCancel, "project.export_audio.cancel", "Cancel Audio Export", "Esc", "Cancel audio export",
+    { UiActionId::ProjectExportAudioCancel, "project.export_audio.cancel", "Cancel / Pointer", "Esc", "Cancel an active audio export or return to the Pointer tool",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "Ctrl+Shift+D", "Export DAWproject package",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -726,8 +726,6 @@ public:
             return { false, "not enough recording Takes" };
         if (descriptor->requiresAutosaveRecovery && ! context.autosaveRecoveryPending)
             return { false, "no autosave recovery snapshot" };
-        if (id == UiActionId::ProjectExportAudioCancel && ! context.audioExportInProgress)
-            return { false, "no audio export in progress" };
         if ((id == UiActionId::TimelineClipPaste || id == UiActionId::TimelineClipRepeatPaste)
             && ! context.clipboardHasClip)
             return { false, "clipboard has no clip" };
@@ -788,9 +786,17 @@ public:
                 break;
 
             case UiActionId::ProjectExportAudioCancel:
-                context.audioExportCancelRequested = true;
-                context.audioExportInProgress = false;
-                ++context.audioExportCancelCount;
+                if (context.audioExportInProgress)
+                {
+                    context.audioExportCancelRequested = true;
+                    context.audioExportInProgress = false;
+                    ++context.audioExportCancelCount;
+                }
+                else
+                {
+                    context.activePanel = UiPanel::Timeline;
+                    context.activeTimelineTool = TimelineTool::Pointer;
+                }
                 break;
 
             case UiActionId::ProjectExportDawproject:

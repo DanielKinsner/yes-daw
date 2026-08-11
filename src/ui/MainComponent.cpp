@@ -3994,8 +3994,9 @@ private:
             appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
                                           appModel.context()).enabled);
         exportAudioCancelButton.setEnabled (
-            appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudioCancel,
-                                          appModel.context()).enabled);
+            exportInProgress
+            && appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudioCancel,
+                                             appModel.context()).enabled);
         exportAudioProgress.setText (exportAudioProgressText(), juce::dontSendNotification);
         masterLoudnessReadout.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,

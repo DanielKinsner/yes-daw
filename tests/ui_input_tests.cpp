@@ -5974,3 +5974,71 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (sourcePath, ec);
 }
+
+TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a persisted playback edit",
+           "[ui][input][shell][timeline][tool-keys]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tool-keys");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('h')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Hand);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
+    REQUIRE (before.tracks.size() == 2u);
+    REQUIRE (before.clips.size() == 1u);
+    const juce::Rectangle<int> clipBounds = timelineClipHitBounds (timeline, before, 0u);
+    const juce::Point<int> emptyLanePoint {
+        clipBounds.getRight(), clipBounds.getCentreY() + clipBounds.getHeight()
+    };
+    const juce::Point<int> clipPoint { clipBounds.getCentreX(), clipBounds.getCentreY() };
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    dragFromTo (timeline, emptyLanePoint, clipPoint);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+    dragFromTo (timeline, emptyLanePoint, clipPoint);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == before.clips);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

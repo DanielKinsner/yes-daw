@@ -484,14 +484,21 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (context.audioExportCount == 1);
     REQUIRE (context.dawprojectExportCount == 1);
 
-    const auto idleCancel = registry.stateFor (UiActionId::ProjectExportAudioCancel, context);
-    REQUIRE_FALSE (idleCancel.enabled);
-    REQUIRE (std::string_view (idleCancel.disabledReason) == "no audio export in progress");
+    context.activeTimelineTool = TimelineTool::Pencil;
+    const auto idleEscape = registry.stateFor (UiActionId::ProjectExportAudioCancel, context);
+    REQUIRE (idleEscape.enabled);
+    REQUIRE (registry.dispatch (UiActionId::ProjectExportAudioCancel, context).dispatched);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Pointer);
+    REQUIRE_FALSE (context.audioExportCancelRequested);
+    REQUIRE (context.audioExportCancelCount == 0);
+
+    context.activeTimelineTool = TimelineTool::Pencil;
     context.audioExportInProgress = true;
     REQUIRE (registry.dispatch (UiActionId::ProjectExportAudioCancel, context).dispatched);
     REQUIRE (context.audioExportCancelRequested);
     REQUIRE_FALSE (context.audioExportInProgress);
     REQUIRE (context.audioExportCancelCount == 1);
+    REQUIRE (context.activeTimelineTool == TimelineTool::Pencil);
 
     REQUIRE (registry.dispatch (UiActionId::TransportPlay, context).dispatched);
     REQUIRE (context.isPlaying);

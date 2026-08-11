@@ -476,10 +476,35 @@ macOS, RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B21 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B21 backlog-tick/evidence checkpoint.
+The B21 evidence handoff `16b41c8` is exact-head green across all nine jobs in run `31539459017`.
 
-**Next:** require the exact B21 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Then stop at the checkpoint; B22 is the next backlog item.
+**B22 implementation checkpoint ready — Tool keys:** audited `UiActions.h`, the complete default
+keymap, JUCE chord translation, Escape cancellation ordering, Pointer marquee behavior, Project
+persistence, playback rebuild, and the existing audio-export cancellation path before changing
+anything. The five existing tool actions were already uniquely bound to `V` Pointer, `P` Pencil, `S`
+Scissors, `H` Hand, and `Z` Zoom, so no replacement chord or action ID was added. The existing unique
+`Esc` descriptor is now honestly context-sensitive and appears as `Cancel / Pointer` in the keymap:
+an active export still takes priority and is cancelled without changing tools; otherwise idle Escape
+returns to the Pointer tool. The hidden audio-export Cancel button remains disabled outside an export.
+
+The shipped-boundary `[tool-keys]` gate first failed at **39/40 assertions** because idle Escape left
+Pencil active. It now passes **57/57 assertions**: all five real single-key bindings dispatch, a
+Pencil-state empty-lane drag cannot marquee-select, idle Escape restores Pointer, the same real drag
+selects the Clip, Delete persists the removal and changes audible playback to exact silence, and one
+Undo restores the persisted Clip. The re-pinned action gate separately proves export-time Escape still
+cancels export and preserves the chosen tool; the descriptor-wide uniqueness assertion covers every
+chord.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, playback, accessibility, theme
+audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
+committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B22 implementation checkpoint.
+
+**Next:** require the exact B22 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then tick B22 with its implementation SHA/run in a
+separate evidence checkpoint. B23 must not start before that evidence checkpoint is exact-head green.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
