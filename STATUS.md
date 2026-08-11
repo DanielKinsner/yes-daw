@@ -50,7 +50,7 @@ last-project record was temporarily isolated and restored. Exact-head GitHub Act
 `31441353769` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
 and both alpha-verifier jobs.
 
-**Implemented locally for A4 — split at playhead:** audited the existing `TimelineClipSplit` action,
+**Done and remote-green for A4 — split at playhead (`93108f2`):** audited the existing `TimelineClipSplit` action,
 descriptor/keymap, JUCE key translation, pointer split path, selected-Clip model, `splitClip` command,
 transaction groups, bundle adoption, playback rebuild, and Undo before adding anything. The existing
 action is now uniquely bound to `B`; the real chord splits every selected Clip crossed by the playhead
@@ -62,12 +62,14 @@ Clips. Fresh Visual Studio Developer Shell build plus full local `ctest --preset
 including action uniqueness, theme audit, screenshots, native input, and GPU gates. The owner's real
 last-project record was temporarily isolated and hash-verified after restoration for the native-shell
 startup test.
+Exact-head GitHub Actions run `31446312029` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the A4 implementation, then require its exact-head GitHub Actions run green
-across all nine jobs before recording the backlog checkbox and implementation SHA.
+**Now:** commit and push this small A4 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A5.
 
-**Next:** after A4 implementation and its evidence-only backlog/status checkpoint are both exact-head
-remote-green, start A5 ripple delete with a fresh `git pull --rebase` and another audit-first slice.
+**Next:** after the A4 checkpoint is fully recorded and remote-green, start A5 heal/join with a fresh
+`git pull --rebase` and another audit-first shipped-boundary slice.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

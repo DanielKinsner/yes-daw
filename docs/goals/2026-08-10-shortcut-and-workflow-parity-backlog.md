@@ -42,8 +42,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    nine jobs green). Pointer-tool drag on empty timeline paints a marquee and selects every Clip
    whose hit rectangle it touches. The shipped-boundary gate selects exactly two of three Clips,
    persists a grouped Delete, proves the resulting playback is silent, and undoes the group.
-4. **Split at playhead** — `B` splits the selected clip (or all selected clips) at the
-   playhead. Gate: split → two clips, sample-accurate boundary, undo rejoins.
+4. [x] **Split at playhead** — landed in `93108f2` (exact-head run `31446312029`, nine jobs
+   green). `B` splits every selected Clip crossed by the playhead in one atomic undo group.
+   The shipped-boundary gate proves exact adjacent timeline/source windows for two selected
+   Clips, bit-identical playback through the split boundary, and one Undo rejoins both.
 5. **Heal/join** — Ctrl+J merges two adjacent clips that reference the same asset with
    contiguous source windows. Refuse otherwise (honest status).
 6. **Nudge** — `,` / `.` move the selected clip(s) left/right by one snap-grid unit;
