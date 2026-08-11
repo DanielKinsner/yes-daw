@@ -365,7 +365,7 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B18 evidence handoff `195e433` is exact-head green across all nine jobs in run `31518404600`.
 
-**Implementation-ready for B19 — Return to start on Stop + Enter RTZ:** audited the descriptor/keymap,
+**Done and remote-green for B19 — Return to start on Stop + Enter RTZ (`ae16f93`):** audited the descriptor/keymap,
 JUCE key translation, existing `K` Stop and `Home` Locate Start actions, real Options menu/tick model,
 PlaybackEngine Stop/Locate queue, live transport snapshot, and Project persistence boundary before
 adding anything. `Enter` and exact `Ctrl+Alt+Shift+K` were free. Appended
@@ -390,11 +390,16 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
 committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the independently green B19 implementation checkpoint.
+Exact-head GitHub Actions run `31522035255` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B19 implementation head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then tick B19 with its implementation SHA, update this
-handoff, rerun the full local gate, and land the B19 evidence checkpoint.
+The B19 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B19 backlog-tick/evidence checkpoint.
+
+**Next:** require the exact B19 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Then stop at the checkpoint; B20 is the next backlog item.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

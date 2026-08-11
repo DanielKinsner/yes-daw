@@ -119,8 +119,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     support it; no reverse behavior or persistence is faked. The shipped-boundary gate proves
     rendered samples, proportional playhead movement, stop/reset behavior, unique chords, audible
     output, and byte-identical Project persistence for the transient shuttle rate.
-19. **Return-to-zero on stop option** — Options toggle: stop returns playhead to start
-    position vs stays. Enter = RTZ always.
+19. [x] **Return-to-zero on stop option** — landed in `ae16f93` (exact-head run
+    `31522035255`, nine jobs green). The default-off Options toggle captures the playhead when
+    playback starts; `K`/the `J` stop boundary either stay at the stopped frame or return to that
+    captured start. Unique `Enter` always locates timeline zero while preserving playing/stopped
+    state; `Home` remains available. The shipped-boundary gates prove real menu state, nonzero
+    start capture, exact replay/RTZ audio, both Stop modes, unique chords, and byte-identical
+    Project persistence because the option is honestly transient transport state.
 20. **Play from click** — double-click on the ruler locates the playhead there (exists?
     audit); Shift+Space plays from the last locate point.
 21. **Count-in for record** — Options toggle: Record waits one bar of metronome before
