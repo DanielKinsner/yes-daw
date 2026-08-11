@@ -79,8 +79,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     rename, with explicit Track rename on unique Ctrl+F2. Schema v10 additively migrates persisted
     names, and the shipped-boundary gate proves bundle round-trip, painted name, undo/redo,
     duplicate preservation, fresh reopen, and audio-invariant playback through the real rebuild.
-12. **Esc cancels** — any in-progress drag (move/trim/fade/marquee) and any inline editor
-    reverts on Escape. Gate: drag, Esc, project unchanged.
+12. [x] **Esc cancels** — landed in `531872c` (exact-head run `31479071195`, nine jobs green).
+    Escape clears any pending Timeline move/trim/fade/marquee before mouse-up can persist it and
+    dismisses both inline rename editors without saving draft text. The shipped-boundary gate proves
+    unchanged bundle state, selection, and playback; idle Escape retains audio-export cancellation.
 13. **Repeat paste** — Ctrl+R pastes the clipboard clip N times back-to-back at the playhead
     (N from a small chooser next to the snap control; default 2). One undo group.
 

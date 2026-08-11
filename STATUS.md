@@ -184,7 +184,7 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The A11 evidence handoff `515eae6` is also exact-head green across all nine jobs in run
 `31476203936`.
 
-**A12 implementation is focused-green — Escape cancels:** audited the existing unique `Esc`
+**Done and remote-green for A12 — Escape cancels (`531872c`):** audited the existing unique `Esc`
 descriptor for audio-export cancellation, JUCE key translation, shell key dispatch, Timeline
 move/trim/gain/fade/copy/marquee state, and both inline rename editors before adding anything. No
 action ID or chord is needed: the real shell now gives Escape priority to an active Timeline edit or
@@ -199,13 +199,14 @@ action/keymap uniqueness, and theme audit focused gates are green; the owner's r
 record was temporarily isolated and restored with an identical SHA-256. A fresh Visual Studio
 Developer Shell Release build plus full local `ctest --preset ci` is green **344/344**; the committed
 v8 schema fixture also remained byte-identical.
+Exact-head GitHub Actions run `31479071195` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Now:** commit and push the small A12 implementation checkpoint, then require its exact-head GitHub
-Actions run green across all nine jobs; cancelled runs do not count.
+**Now:** the A12 evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
+Shell build; commit and push only the backlog tick and this handoff.
 
-**Next:** require the A12 implementation commit's exact-head GitHub Actions run green across all nine
-jobs; cancelled runs do not count. Only then tick item 12 with its implementation SHA and land the
-evidence handoff.
+**Next:** require the A12 evidence commit's exact-head GitHub Actions run green across all nine jobs;
+cancelled runs do not count. Only then start A13 — Repeat paste.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
