@@ -10,9 +10,12 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
+#include <vector>
 
 using yesdaw::ui::MainComponentFileChoices;
 using yesdaw::ui::MainComponentSnapshot;
@@ -20,6 +23,7 @@ using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiAppModel;
 using yesdaw::ui::UiRecordingMonitoringPolicy;
 using yesdaw::ui::findMainComponentChildForAction;
+using yesdaw::ui::renderMainComponentPlayback;
 using yesdaw::ui::snapshotMainComponent;
 using yesdaw::persistence::ProjectBundleDb;
 
@@ -79,6 +83,14 @@ float expectedRecordedSample (std::uint64_t frame) noexcept
 {
     const int phase = static_cast<int> (frame % 16u);
     return (static_cast<float> (phase) - 7.5f) / 16.0f;
+}
+
+float peakAbs (std::span<const float> samples) noexcept
+{
+    float peak = 0.0f;
+    for (const float sample : samples)
+        peak = std::max (peak, std::abs (sample));
+    return peak;
 }
 
 yesdaw::engine::RecordingConfig makeRecordingConfigForSnapshot (
@@ -399,6 +411,108 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (decoded.interleavedSamples.size() == 256u);
     for (std::uint64_t frame = 0; frame < decoded.frames; ++frame)
         REQUIRE (decoded.interleavedSamples[static_cast<std::size_t> (frame)] == expectedRecordedSample (frame));
+}
+
+TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting audible recording",
+           "[recording][ux][shell][count-in]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("one-bar-count-in");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] {
+        yesdaw::engine::Project project = UiAppModel::makeDefaultSessionProject();
+        project.tempoMap.front().bpm = 150.0;
+        project.meterMap.front().numerator = 7;
+        project.meterMap.front().denominator = 8;
+        return project;
+    };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (
+        shell->findChildWithID ("shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+
+    const auto countInItem = [&] {
+        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu::MenuItemIterator iterator (options);
+        juce::PopupMenu::Item found;
+        while (iterator.next())
+        {
+            const juce::PopupMenu::Item& item = iterator.getItem();
+            if (item.text == "Count-in for Record")
+                found = item;
+        }
+        return found;
+    };
+
+    const juce::PopupMenu::Item disabledCountIn = countInItem();
+    REQUIRE (disabledCountIn.itemID > 0);
+    REQUIRE_FALSE (disabledCountIn.isTicked);
+    model->menuItemSelected (disabledCountIn.itemID, 3);
+    REQUIRE (countInItem().isTicked);
+
+    constexpr std::int64_t kExpectedBarFrames = 67'200; // 150 BPM, 7/8, 48 kHz.
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r')));
+    REQUIRE (snapshotMainComponent (*shell).context.recordCountInActive);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.recordCountInActive);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r')));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordCountInActive);
+    REQUIRE_FALSE (snapshot.context.isRecording);
+    REQUIRE (snapshot.context.isPlaying);
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
+
+    const std::vector<float> countIn = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (kExpectedBarFrames - 1), 128);
+    REQUIRE (peakAbs (std::span<const float> (countIn.data(), countIn.size())) > 0.1f);
+    const std::span<const float> countInSpan (countIn.data(), countIn.size());
+    REQUIRE (peakAbs (countInSpan.subspan (4'800u * 2u, 64u * 2u)) == 0.0f);
+    REQUIRE (peakAbs (countInSpan.subspan (9'600u * 2u, 64u * 2u)) > 0.1f);
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
+
+    (void) renderMainComponentPlayback (*shell, 1, 1);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.isRecording);
+    REQUIRE (snapshot.lastRecordedAudioTake.timelineStart == kExpectedBarFrames);
+
+    const yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.recordingTakes.size() == 1u);
+    REQUIRE (recorded.clips.size() == 1u);
+    REQUIRE (recorded.recordingTakes.front().timelineStart == kExpectedBarFrames);
+    REQUIRE (recorded.clips.front().timelineStart == kExpectedBarFrames);
+    REQUIRE (recorded.midiClips.front().timelineStart == kExpectedBarFrames);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r')));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isRecording);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> atZero = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (peakAbs (std::span<const float> (atZero.data(), atZero.size())) == 0.0f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == kExpectedBarFrames);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> atBarTwo = renderMainComponentPlayback (*shell, 256, 128);
+    REQUIRE (peakAbs (std::span<const float> (atBarTwo.data(), atBarTwo.size())) > 0.1f);
+    REQUIRE (atBarTwo != atZero);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("H13 monitoring policy and fake-device latency calibration are scriptable through MainComponent",

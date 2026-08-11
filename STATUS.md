@@ -431,10 +431,40 @@ RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 The B20 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B20 backlog-tick/evidence checkpoint.
+The B20 evidence handoff `40d479c` is exact-head green across all nine jobs in run `31530699729`.
 
-**Next:** require the exact B20 evidence head green across all nine GitHub Actions jobs; cancelled or
-incomplete runs do not count. Then stop at the checkpoint; B21 is the next backlog item.
+**Implementation-ready for B21 — Count-in for record:** audited the existing `R` Record descriptor and
+keymap, real Options-menu toggle pattern, deterministic test-device recording commit, desktop-input
+capture FIFO, punch-window compensation, Project Take/Clip/MIDI persistence, playback rebuild, and
+head tempo/meter state before adding anything. Appended the unique `Ctrl+Alt+Shift+R`
+`TransportToggleRecordCountIn` action at the descriptor-table end and covered both exhaustive
+switches. The default-off Options toggle now makes Record roll exactly one head-tempo/meter bar with
+an audible metronome before capture starts; `K` honestly cancels a pending count-in and clears any
+pending capture. Meter beat length now respects the denominator, so 150 BPM in 7/8 at 48 kHz reaches
+the exact bar-two boundary at frame 67,200.
+
+Two shipped-boundary tracers were landed vertically. The real Options/`R` tracer first passed **25
+assertions** then failed because the menu item did not exist, and next passed **32 assertions** then
+failed because recording still committed immediately; it now passes **73 assertions** proving the
+default/ticked menu state, real `K` cancellation, 7/8 click spacing, no persisted Take before the last
+count-in frame, exact persisted Take/Clip/MIDI placement at frame 67,200, silence at timeline zero,
+and audible playback at bar two. The native capture tracer's scratch old-path control failed after
+**14 assertions**; it now passes **560 assertions** proving every pre-roll input frame is rejected by
+the real capture window and only the 512 post-boundary frames persist at frame 67,200. The action/
+keymap gate passes **1,973 assertions** with unique chords, and theme audit passes **88 assertions**.
+The option and active countdown are honestly transient; the real Take/Clip/MIDI mutation is persisted,
+so no schema bump or fake option persistence was added.
+
+A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
+`ctest --preset ci` is green **344/344**, including action uniqueness, playback, accessibility, theme
+audit, screenshots, native input, recording UX, real capture, and the GPU gate. The protected owner
+last-project record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B21 count-in implementation checkpoint.
+
+**Next:** require the exact B21 implementation head green across all nine GitHub Actions jobs;
+cancelled or incomplete runs do not count. Only then land the separate B21 backlog-tick/evidence
+checkpoint and stop before B22.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

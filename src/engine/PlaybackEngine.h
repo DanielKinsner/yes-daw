@@ -183,12 +183,15 @@ public:
     // atomics, so the audio thread never allocates or computes trig. The click is a MONITORING
     // overlay summed after the graph — offline Render/export never contains it. Head-tempo grid
     // (constant BPM) is the alpha scope, matching the header tempo control.
-    void setMetronome (bool enabled, double bpm, int beatsPerBar) noexcept
+    void setMetronome (bool enabled, double bpm, int beatsPerBar, int beatDenominator) noexcept
     {
         const double sampleRateHz = sampleRate_.isValid() ? sampleRate_.hz : 48000.0;
         const double clampedBpm = std::isfinite (bpm) ? std::clamp (bpm, 20.0, 400.0) : 120.0;
+        const double beatScale = 4.0 / static_cast<double> (std::clamp (beatDenominator, 1, 64));
         const std::int64_t framesPerBeat =
-            std::max<std::int64_t> (1, static_cast<std::int64_t> (sampleRateHz * 60.0 / clampedBpm + 0.5));
+            std::max<std::int64_t> (
+                1,
+                static_cast<std::int64_t> (sampleRateHz * 60.0 / clampedBpm * beatScale + 0.5));
         metronomeFramesPerBeat_.store (framesPerBeat, std::memory_order_relaxed);
         metronomeBeatsPerBar_.store (std::clamp (beatsPerBar, 1, 32), std::memory_order_relaxed);
         metronomeEnabled_.store (enabled, std::memory_order_release);

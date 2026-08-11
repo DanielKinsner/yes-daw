@@ -134,6 +134,7 @@ enum class UiActionId : std::uint8_t
     TransportToggleReturnToStartOnStop,
     TransportReturnToZero,
     TransportPlayFromLastLocate,
+    TransportToggleRecordCountIn,
     Count
 };
 
@@ -227,6 +228,8 @@ struct UiActionContext
     std::int64_t snapGridTicks = 512;
     bool clipboardHasClip = false;
     bool metronomeEnabled = false;
+    bool recordCountInEnabled = false;
+    bool recordCountInActive = false;
     bool playheadFollowEnabled = true;
     bool returnToStartOnStopEnabled = false;
     bool timelineAutomationTrackLaneVisible = false;
@@ -541,7 +544,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportReturnToZero, "transport.return_to_zero", "Return to Zero", "Enter", "Return transport to timeline zero",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportPlayFromLastLocate, "transport.play_from_last_locate", "Play from Last Locate", "Shift+Space", "Play from last locate point",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportToggleRecordCountIn, "transport.toggle_record_count_in", "Count-in for Record", "Ctrl+Alt+Shift+R", "Toggle one-bar count-in before recording",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -801,6 +806,7 @@ public:
 
             case UiActionId::TransportStop:
                 context.isPlaying = false;
+                context.recordCountInActive = false;
                 if (context.returnToStartOnStopEnabled)
                     context.playheadFrame = context.playbackStartFrame;
                 context.shuttlePlaybackRate = 1;
@@ -855,7 +861,20 @@ public:
                 break;
 
             case UiActionId::TransportRecord:
-                context.isRecording = ! context.isRecording;
+                if (context.recordCountInActive)
+                {
+                    context.recordCountInActive = false;
+                    context.isPlaying = false;
+                }
+                else if (context.recordCountInEnabled && ! context.isRecording)
+                {
+                    context.recordCountInActive = true;
+                    context.isPlaying = true;
+                }
+                else
+                {
+                    context.isRecording = ! context.isRecording;
+                }
                 ++context.recordingCommandCount;
                 break;
 
@@ -1177,6 +1196,10 @@ public:
 
             case UiActionId::TransportToggleMetronome:
                 context.metronomeEnabled = ! context.metronomeEnabled;
+                break;
+
+            case UiActionId::TransportToggleRecordCountIn:
+                context.recordCountInEnabled = ! context.recordCountInEnabled;
                 break;
 
             case UiActionId::TimelineMarkerAdd:

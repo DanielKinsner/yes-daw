@@ -2170,6 +2170,7 @@ public:
     void timerCallback() override
     {
         appModel.refreshTransportSnapshot();
+        appModel.serviceRecordingCountIn();
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
         refreshActionState();
@@ -3647,12 +3648,13 @@ private:
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
         };
-        static constexpr std::array<UiActionId, 8> kOptionsMenu {
+        static constexpr std::array<UiActionId, 9> kOptionsMenu {
             UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
             UiActionId::TimelineTogglePlayheadFollow,
             UiActionId::TransportToggleReturnToStartOnStop,
+            UiActionId::TransportToggleRecordCountIn,
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
 
@@ -3680,7 +3682,9 @@ private:
                           (action == yesdaw::ui::UiActionId::TimelineTogglePlayheadFollow
                                && appModel.context().playheadFollowEnabled)
                               || (action == yesdaw::ui::UiActionId::TransportToggleReturnToStartOnStop
-                                  && appModel.context().returnToStartOnStopEnabled));
+                                  && appModel.context().returnToStartOnStopEnabled)
+                              || (action == yesdaw::ui::UiActionId::TransportToggleRecordCountIn
+                                  && appModel.context().recordCountInEnabled));
         }
         return menu;
     }

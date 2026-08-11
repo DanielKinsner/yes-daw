@@ -197,6 +197,32 @@ public:
     {
         syncContextFromPlayback();
     }
+
+    // CONTROL THREAD: finish a pending one-bar count-in only after the audio-owned transport has
+    // reached the exact head-tempo/meter boundary. The real capture FIFO is already punch-gated at
+    // that frame; the deterministic test-device path commits its canonical Take here.
+    void serviceRecordingCountIn()
+    {
+        if (! context_.recordCountInActive)
+            return;
+
+        syncContextFromPlayback();
+        if (context_.playheadFrame < recordCountInEndFrame_)
+            return;
+
+        context_.recordCountInActive = false;
+        if (deterministicRecordCountInPending_)
+        {
+            deterministicRecordCountInPending_ = false;
+            applyMetronomeToPlayback();
+            (void) recordDeterministicTestAudioTake (
+                static_cast<engine::Tick> (recordCountInEndFrame_), true);
+            return;
+        }
+
+        context_.isRecording = captureActive_.load (std::memory_order_acquire);
+        applyMetronomeToPlayback();
+    }
     [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
     [[nodiscard]] engine::EntityId selectedTimelineClipId() const noexcept { return selectedTimelineClipId_; }
     [[nodiscard]] std::size_t selectedTimelineClipCount() const noexcept { return selectedTimelineClipIds_.size(); }
@@ -285,6 +311,14 @@ public:
         captureConfig_.channels = std::min (deviceInputChannels, engine::kMaxRecordingChannels);
         captureConfig_.latency.inputLatencyFrames = inputLatencyFrames;
         captureConfig_.latency.outputLatencyFrames = outputLatencyFrames;
+        std::optional<std::int64_t> countInEnd;
+        if (context_.recordCountInEnabled)
+        {
+            countInEnd = nextRecordCountInEndFrame();
+            if (! countInEnd)
+                return false;
+            captureConfig_.window.punchStartFrame = *countInEnd;
+        }
         if (! captureConfig_.isValid())
             return false;
 
@@ -292,9 +326,24 @@ public:
         captureTimelineStartFrame_ = -1;
         captureChannels_ = static_cast<std::uint16_t> (captureConfig_.channels);
         captureActive_.store (true, std::memory_order_release);
-        (void) playback_->play();
-        context_.isRecording = true;
-        context_.isPlaying = true;
+        if (countInEnd)
+        {
+            if (! beginRecordingCountIn (*countInEnd, false))
+            {
+                captureActive_.store (false, std::memory_order_release);
+                return false;
+            }
+        }
+        else
+        {
+            if (! playback_->play())
+            {
+                captureActive_.store (false, std::memory_order_release);
+                return false;
+            }
+            context_.isRecording = true;
+            context_.isPlaying = true;
+        }
         ++context_.recordingCommandCount;
         ++context_.commandDispatchCount;
         return true;
@@ -347,8 +396,11 @@ public:
             drainTransport (*playback_);
         }
         drainRealRecordingCapture();
+        context_.recordCountInActive = false;
+        deterministicRecordCountInPending_ = false;
         context_.isRecording = false;
         context_.isPlaying = false;
+        applyMetronomeToPlayback();
         ++context_.recordingCommandCount;
         ++context_.commandDispatchCount;
 
@@ -747,7 +799,9 @@ public:
         return result;
     }
 
-    [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake()
+    [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake (
+        std::optional<engine::Tick> deferredTimelineStart = std::nullopt,
+        bool servicingCountIn = false)
     {
         UiAppRecordResult result;
         syncRecordingContext();
@@ -760,9 +814,31 @@ public:
             return result;
         }
 
-        if (context_.isRecording)
+        if (! servicingCountIn && context_.recordCountInActive)
+        {
+            cancelRecordingCountIn();
+            ++context_.commandDispatchCount;
+            ++context_.recordingCommandCount;
+            return result;
+        }
+
+        if (! servicingCountIn && context_.isRecording)
         {
             context_.isRecording = false;
+            ++context_.commandDispatchCount;
+            ++context_.recordingCommandCount;
+            return result;
+        }
+
+        if (! servicingCountIn && context_.recordCountInEnabled)
+        {
+            const std::optional<std::int64_t> countInEnd = nextRecordCountInEndFrame();
+            if (! countInEnd || ! beginRecordingCountIn (*countInEnd, true))
+            {
+                result.status = UiAppRecordStatus::PreconditionsNotMet;
+                return result;
+            }
+
             ++context_.commandDispatchCount;
             ++context_.recordingCommandCount;
             return result;
@@ -781,6 +857,7 @@ public:
         request.interleavedSamples = std::span<const float> (decoded.interleavedSamples.data(),
                                                              decoded.interleavedSamples.size());
         request.targetTrackId = recordingTrackInput_.trackId;
+        request.timelineStart = deferredTimelineStart;
         request.deviceStableId = recordingDevice_.stableDeviceId;
         request.inputChannel = recordingTrackInput_.inputChannel;
         request.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
@@ -883,8 +960,11 @@ public:
         result.take = lastRecordedAudioTake_;
         result.midiTake = lastRecordedMidiTake_;
         context_.isRecording = true;
-        ++context_.commandDispatchCount;
-        ++context_.recordingCommandCount;
+        if (! servicingCountIn)
+        {
+            ++context_.commandDispatchCount;
+            ++context_.recordingCommandCount;
+        }
         syncRecordingContext();
         return result;
     }
@@ -1119,6 +1199,7 @@ public:
             }
 
             offset += static_cast<std::uint64_t> (n);
+            serviceRecordingCountIn();
         }
 
         (void) playback_->reclaim();
@@ -3384,6 +3465,12 @@ public:
                 });
 
             case UiActionId::TransportStop:
+                if (context_.recordCountInActive)
+                {
+                    cancelRecordingCountIn();
+                    ++context_.commandDispatchCount;
+                    return { id, { true, "" }, true };
+                }
                 return dispatchTransport (id, [this] { return stopPlaybackAtConfiguredPosition(); });
 
             case UiActionId::TransportLocateStart:
@@ -3473,6 +3560,7 @@ public:
             case UiActionId::TrackSelectNext:
             case UiActionId::TimelineTogglePlayheadFollow:
             case UiActionId::TransportToggleReturnToStartOnStop:
+            case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::TimelineAutomationToggleTrackLane:
             {
                 return registry_.dispatch (id, context_);
@@ -4766,19 +4854,94 @@ private:
 
     [[nodiscard]] std::int64_t snapFramesForUnit (UiSnapUnit unit) const noexcept
     {
-        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
-        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
-        const double beatsPerBar = ! project_.meterMap.empty()
-            ? static_cast<double> (project_.meterMap.front().numerator)
-            : 4.0;
-        const double beatFrames = sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
-        double gridFrames = beatFrames;
+        const double quarterNoteFrames = headQuarterNoteFrames();
+        double gridFrames = headMeterBeatFrames();
         if (unit == UiSnapUnit::Bar)
-            gridFrames = beatFrames * beatsPerBar;
+            gridFrames = headBarFramesExact();
         else if (unit == UiSnapUnit::Sixteenth)
-            gridFrames = beatFrames / 4.0;
+            gridFrames = quarterNoteFrames / 4.0;
 
         return std::max<std::int64_t> (1, static_cast<std::int64_t> (gridFrames + 0.5));
+    }
+
+    [[nodiscard]] double headQuarterNoteFrames() const noexcept
+    {
+        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        return sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
+    }
+
+    [[nodiscard]] double headMeterBeatFrames() const noexcept
+    {
+        const double denominator = ! project_.meterMap.empty()
+            ? static_cast<double> (project_.meterMap.front().denominator)
+            : 4.0;
+        return headQuarterNoteFrames() * 4.0 / std::clamp (denominator, 1.0, 64.0);
+    }
+
+    [[nodiscard]] double headBarFramesExact() const noexcept
+    {
+        const double numerator = ! project_.meterMap.empty()
+            ? static_cast<double> (project_.meterMap.front().numerator)
+            : 4.0;
+        return headMeterBeatFrames() * std::clamp (numerator, 1.0, 32.0);
+    }
+
+    [[nodiscard]] std::int64_t headBarFrames() const noexcept
+    {
+        return std::max<std::int64_t> (
+            1, static_cast<std::int64_t> (headBarFramesExact() + 0.5));
+    }
+
+    [[nodiscard]] std::optional<std::int64_t> nextRecordCountInEndFrame() noexcept
+    {
+        syncContextFromPlayback();
+        const std::int64_t duration = headBarFrames();
+        if (context_.playheadFrame < 0
+            || context_.playheadFrame > std::numeric_limits<std::int64_t>::max() - duration)
+            return std::nullopt;
+        return context_.playheadFrame + duration;
+    }
+
+    [[nodiscard]] bool beginRecordingCountIn (std::int64_t endFrame, bool deterministic)
+    {
+        if (playback_ == nullptr || endFrame <= context_.playheadFrame)
+            return false;
+
+        recordCountInEndFrame_ = endFrame;
+        deterministicRecordCountInPending_ = deterministic;
+        context_.recordCountInActive = true;
+        context_.isRecording = false;
+        applyMetronomeToPlayback (true);
+        if (! playback_->play())
+        {
+            context_.recordCountInActive = false;
+            deterministicRecordCountInPending_ = false;
+            applyMetronomeToPlayback();
+            return false;
+        }
+
+        drainTransport (*playback_);
+        syncContextFromPlayback();
+        return true;
+    }
+
+    void cancelRecordingCountIn()
+    {
+        captureActive_.store (false, std::memory_order_release);
+        drainRealRecordingCapture();
+        captureInterleaved_.clear();
+        captureTimelineStartFrame_ = -1;
+        context_.recordCountInActive = false;
+        deterministicRecordCountInPending_ = false;
+        if (playback_ != nullptr)
+        {
+            (void) stopPlaybackAtConfiguredPosition();
+            drainTransport (*playback_);
+            syncContextFromPlayback();
+        }
+        context_.isRecording = false;
+        applyMetronomeToPlayback();
     }
 
     void syncContextFromPlayback() noexcept
@@ -4799,6 +4962,9 @@ private:
         context_.playheadFrame = 0;
         context_.playbackStartFrame = 0;
         context_.lastLocateFrame = 0;
+        context_.recordCountInActive = false;
+        recordCountInEndFrame_ = 0;
+        deterministicRecordCountInPending_ = false;
         context_.shuttlePlaybackRate = 1;
     }
 
@@ -4823,7 +4989,7 @@ private:
             playbackReplacementDidEnd_();
     }
 
-    void applyMetronomeToPlayback() noexcept
+    void applyMetronomeToPlayback (bool forceEnabled = false) noexcept
     {
         if (playback_ == nullptr)
             return;
@@ -4832,7 +4998,11 @@ private:
         const int beatsPerBar = ! project_.meterMap.empty()
             ? static_cast<int> (project_.meterMap.front().numerator)
             : 4;
-        playback_->setMetronome (context_.metronomeEnabled, bpm, beatsPerBar);
+        const int beatDenominator = ! project_.meterMap.empty()
+            ? static_cast<int> (project_.meterMap.front().denominator)
+            : 4;
+        playback_->setMetronome (
+            forceEnabled || context_.metronomeEnabled, bpm, beatsPerBar, beatDenominator);
     }
 
     static void zeroAudioOutputs (float* const* outputChannels,
@@ -4865,6 +5035,8 @@ private:
     UiRecordedMidiTake lastRecordedMidiTake_;
     UiRecordedMidiTake pendingMidiPlacement_;
     UiRecordingCompSelection recordingCompSelection_;
+    std::int64_t recordCountInEndFrame_ = 0;
+    bool deterministicRecordCountInPending_ = false;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
     AutosaveSchedulePolicy autosaveSchedule_ {};
     struct UiClipClipboardEntry

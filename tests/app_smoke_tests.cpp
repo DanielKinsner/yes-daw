@@ -425,6 +425,91 @@ TEST_CASE ("real capture session records device input into a persisted take at t
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("real capture count-in rejects pre-roll input and starts the Take at bar two",
+           "[ui][app][recording][capture][count-in]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("real-capture-count-in");
+    Project project = makeSmokeProject();
+    project.tempoMap = { { 0, 150.0, yesdaw::engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 7, 8 } };
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleRecordCountIn).dispatched);
+    REQUIRE (app.context().recordCountInEnabled);
+
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    REQUIRE (app.realRecordingCaptureActive());
+    REQUIRE (app.context().recordCountInActive);
+    REQUIRE_FALSE (app.context().isRecording);
+
+    constexpr std::int64_t kExpectedBarFrames = 67'200; // 150 BPM, 7/8, 48 kHz.
+    constexpr int kBlockFrames = 128;
+    static_assert (kExpectedBarFrames % kBlockFrames == 0);
+    std::array<float, kBlockFrames> input {};
+    std::array<float, kBlockFrames> outLeft {};
+    std::array<float, kBlockFrames> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    const float* inputs[1] = { input.data() };
+
+    for (int block = 0; block < static_cast<int> (kExpectedBarFrames / kBlockFrames) - 1; ++block)
+    {
+        input.fill (-0.75f); // pre-roll must never reach the persisted Take.
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, kBlockFrames));
+        app.drainRealRecordingCapture();
+    }
+    app.refreshTransportSnapshot();
+    app.serviceRecordingCountIn();
+    REQUIRE (app.context().recordCountInActive);
+    REQUIRE_FALSE (app.context().isRecording);
+    REQUIRE (app.project().recordingTakes.empty());
+
+    input.fill (-0.75f);
+    REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, kBlockFrames));
+    app.drainRealRecordingCapture();
+    app.refreshTransportSnapshot();
+    app.serviceRecordingCountIn();
+    REQUIRE_FALSE (app.context().recordCountInActive);
+    REQUIRE (app.context().isRecording);
+    REQUIRE (app.project().recordingTakes.empty());
+
+    for (int block = 0; block < 4; ++block)
+    {
+        for (int frame = 0; frame < kBlockFrames; ++frame)
+            input[static_cast<std::size_t> (frame)] = 0.25f
+                + static_cast<float> (block * kBlockFrames + frame) * 0.0001f;
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, kBlockFrames));
+        app.drainRealRecordingCapture();
+    }
+
+    const yesdaw::ui::UiAppRecordResult committed = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (committed.ok());
+    REQUIRE (committed.take.timelineStart == kExpectedBarFrames);
+    REQUIRE (committed.take.frames == 512u);
+
+    ProjectBundleDb verify;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+    Project persisted;
+    REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    REQUIRE (persisted.recordingTakes.size() == 1u);
+    REQUIRE (persisted.recordingTakes.front().timelineStart == kExpectedBarFrames);
+    REQUIRE (persisted.recordingTakes.front().frameCount == 512u);
+    REQUIRE (persisted.clips.back().timelineStart == kExpectedBarFrames);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");
