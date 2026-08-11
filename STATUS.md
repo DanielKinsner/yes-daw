@@ -425,11 +425,16 @@ A clean Release rebuild in a fresh Visual Studio Developer Shell plus full local
 audit, screenshots, native input, and the GPU gate. The protected owner last-project record and
 committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B20 implementation checkpoint.
+Exact-head GitHub Actions run `31528182517` is green across all nine jobs: Linux, Windows, macOS,
+RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B20 implementation head green across all nine GitHub Actions jobs;
-cancelled or incomplete runs do not count. Only then tick B20 in the canonical backlog in its own
-evidence checkpoint.
+The B20 backlog-tick/evidence handoff is locally green **344/344**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B20 backlog-tick/evidence checkpoint.
+
+**Next:** require the exact B20 evidence head green across all nine GitHub Actions jobs; cancelled or
+incomplete runs do not count. Then stop at the checkpoint; B21 is the next backlog item.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

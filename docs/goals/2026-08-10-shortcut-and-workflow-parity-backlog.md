@@ -126,8 +126,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     state; `Home` remains available. The shipped-boundary gates prove real menu state, nonzero
     start capture, exact replay/RTZ audio, both Stop modes, unique chords, and byte-identical
     Project persistence because the option is honestly transient transport state.
-20. **Play from click** — double-click on the ruler locates the playhead there (exists?
-    audit); Shift+Space plays from the last locate point.
+20. [x] **Play from click** — landed in `eb8e01c` (exact-head run `31528182517`, nine jobs
+    green). Ruler double-click now performs a real transport locate instead of persisting a Marker;
+    `M` remains the explicit Marker-add action. Unique Shift+Space queues real Locate then Play from
+    the last explicit locate, independently of later plain playback starts and compatibly with the
+    return-to-start-on-Stop option. The shipped-boundary gates prove exact locate, no accidental
+    Marker persistence, sample-identical replay, audible playback, unique chords, and a byte-identical
+    `project.db` because the remembered locate is honestly transient transport state.
 21. **Count-in for record** — Options toggle: Record waits one bar of metronome before
     capture starts (head tempo/meter). Gate: captured take's first frame aligns to bar 2.
 22. **Tool keys** — single-key tool switching that doesn't collide with existing chords
