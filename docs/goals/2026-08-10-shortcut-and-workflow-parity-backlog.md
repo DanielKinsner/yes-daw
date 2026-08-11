@@ -61,8 +61,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    and across Tracks through exactly one persisted AddClip; edge Alt+drag remains the existing fade
    gesture. The shipped-boundary gate proves persistence, every playback field, audible output, and
    one-step Undo with a bit-identical playback round trip.
-8. **Clip gain keys** — Alt+Up/Alt+Down adjust selected clip gain ±1 dB. Gate: render
-   amplitude follows.
+8. [x] **Clip gain keys** — landed in `4a48cd5` (exact-head run `31460002977`, nine jobs
+   green). Alt+Up/Alt+Down adjust the selected Clip gain by exactly ±1 dB through one persisted
+   edit. The shipped-boundary gate proves bundle readback, matching rendered-amplitude ratios, and
+   one-step Undo restoring bit-identical playback.
 9. **Default fades** — Ctrl+F applies the default fade in+out (token length) to the selected
    clip; applying to a clip with fades replaces them. Undoable.
 10. **Crossfade** — `X` on two overlapping clips on one track creates equal-power

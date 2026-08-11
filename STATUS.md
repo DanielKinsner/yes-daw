@@ -115,7 +115,7 @@ an identical SHA-256. A fresh Visual Studio Developer Shell `/W4 /WX` build plus
 Exact-head GitHub Actions run `31456726490` is green across all nine jobs: Linux, Windows, macOS,
 RTSan, TSan, both package jobs, and both alpha-verifier jobs.
 
-**A8 — Clip gain keys (local implementation ready for certification):** audited the existing
+**Done and remote-green for A8 — Clip gain keys (`4a48cd5`):** audited the existing
 `TimelineClipSetGain` action, descriptor/keymap table, JUCE key translation, persisted SetClipGain
 command, playback rebuild, and Undo path before adding anything. Appended unique `Alt+Up` and
 `Alt+Down` actions and taught the shell to translate arrow keys; each chord now multiplies the selected
@@ -125,10 +125,12 @@ it proves bundle readback, rendered amplitude at +1 dB and -1 dB, and one-step U
 bit-identical playback. The action/keymap gate is green with **1,695 assertions** and unique chords.
 A fresh Visual Studio Developer Shell `/W4 /WX` build plus full local `ctest --preset ci` is green
 **341/341**, including theme audit, screenshots, native input, and the GPU gate. The owner's real
-last-project record was temporarily isolated and restored with an identical SHA-256.
+last-project record was temporarily isolated and restored with an identical SHA-256. Exact-head
+GitHub Actions run `31460002977` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan,
+both package jobs, and both alpha-verifier jobs.
 
-**Now:** run the complete local gate, commit and push the small A8 implementation, then require its
-exact-head GitHub Actions run green across all nine jobs; cancelled runs do not count.
+**Now:** commit and push this small A8 evidence/handoff update, then require its exact-head GitHub
+Actions run green across all nine jobs before opening A9; cancelled runs do not count.
 
 **Next:** after A8 is fully recorded and remote-green, start A9 Default fades with a fresh
 `git pull --rebase` and another audit-first shipped-boundary slice.
