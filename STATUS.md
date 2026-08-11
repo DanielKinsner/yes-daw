@@ -181,12 +181,31 @@ was temporarily isolated
 and restored with SHA-256 `25334FA938CAF98E1FB1191A80B8C36EED03E1301CB537090717C448D99C5673`.
 Exact-head GitHub Actions run `31474044198` is green across all nine jobs: Linux, Windows, macOS,
 RTSan, TSan, both package jobs, and both alpha-verifier jobs.
+The A11 evidence handoff `515eae6` is also exact-head green across all nine jobs in run
+`31476203936`.
 
-**Now:** the A11 evidence handoff is locally green **344/344** in a fresh Visual Studio Developer
-Shell build; commit and push only the backlog tick and this handoff.
+**A12 implementation is focused-green — Escape cancels:** audited the existing unique `Esc`
+descriptor for audio-export cancellation, JUCE key translation, shell key dispatch, Timeline
+move/trim/gain/fade/copy/marquee state, and both inline rename editors before adding anything. No
+action ID or chord is needed: the real shell now gives Escape priority to an active Timeline edit or
+inline editor, while idle Escape retains the existing export-cancel action. Timeline cancellation
+clears the pending mode-independent drag/marquee state before a later mouse-up can mutate the Project;
+the existing TextEditor Escape callbacks discard Clip and Track draft names. The shipped-boundary
+`[esc-cancel]` tracer first failed after **30 passing assertions** because mouse-up still persisted a
+moved Clip, then passed **172 assertions across four cases** covering move, both trim edges, both fade
+edges, marquee selection, and both inline editors. Every case proves bundle state is unchanged and
+the playback checks are bit-identical or remain audibly non-silent. The full UI-input executable,
+action/keymap uniqueness, and theme audit focused gates are green; the owner's real last-project
+record was temporarily isolated and restored with an identical SHA-256. A fresh Visual Studio
+Developer Shell Release build plus full local `ctest --preset ci` is green **344/344**; the committed
+v8 schema fixture also remained byte-identical.
 
-**Next:** require the A11 evidence commit's exact-head GitHub Actions run green across all nine jobs;
-cancelled runs do not count. Only then start A12 — Esc cancels.
+**Now:** commit and push the small A12 implementation checkpoint, then require its exact-head GitHub
+Actions run green across all nine jobs; cancelled runs do not count.
+
+**Next:** require the A12 implementation commit's exact-head GitHub Actions run green across all nine
+jobs; cancelled runs do not count. Only then tick item 12 with its implementation SHA and land the
+evidence handoff.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

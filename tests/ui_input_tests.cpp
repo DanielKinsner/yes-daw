@@ -427,20 +427,36 @@ void mouseDownAt (juce::Component& component, juce::Point<int> position,
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
-void dragFromTo (juce::Component& component,
-                 juce::Point<int> start,
-                 juce::Point<int> end,
-                 juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
+void beginDragFromTo (juce::Component& component,
+                      juce::Point<int> start,
+                      juce::Point<int> end,
+                      juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
 {
     juce::MouseEvent down = makeMouseEvent (component, start, start, false, 1, modifiers);
     component.mouseDown (down);
 
     juce::MouseEvent drag = makeMouseEvent (component, end, start, true, 1, modifiers);
     component.mouseDrag (drag);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
 
+void releaseDragAt (juce::Component& component,
+                    juce::Point<int> start,
+                    juce::Point<int> end,
+                    juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
+{
     juce::MouseEvent up = makeMouseEvent (component, end, start, true, 1, modifiers);
     component.mouseUp (up);
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+}
+
+void dragFromTo (juce::Component& component,
+                 juce::Point<int> start,
+                 juce::Point<int> end,
+                 juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier)
+{
+    beginDragFromTo (component, start, end, modifiers);
+    releaseDragAt (component, start, end, modifiers);
 }
 
 void dragVerticalSliderToNormalizedValue (juce::Slider& slider, double normalizedFromMin)
@@ -933,6 +949,203 @@ TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves
     clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
     REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Lead Vocal Comp");
     REQUIRE (snapshotMainComponent (*reopened).visibleFirstTimelineClipName == "Lead Vocal Comp");
+}
+
+TEST_CASE ("Escape cancels an in-progress timeline move before mouse-up can persist it",
+           "[ui][input][shell][timeline][esc-cancel]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("escape-cancel-move");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeCancel.data(), beforeCancel.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const juce::Point<int> start = timelineClipCenterPoint (timeline, original, 0u);
+    const juce::Point<int> end = start.translated (timeline.getWidth() / 4, 0);
+    beginDragFromTo (timeline, start, end);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+
+    releaseDragAt (timeline, start, end);
+
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (afterCancel == beforeCancel);
+}
+
+TEST_CASE ("Escape cancels in-progress timeline trim and fade edits",
+           "[ui][input][shell][timeline][esc-cancel][trim-fade]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("escape-cancel-trim-fade");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+
+    const juce::Point<int> trimStart = timelineClipRightEdgeDragPoint (timeline, original, 0u);
+    const juce::Point<int> trimEnd = trimStart.translated (-timeline.getWidth() / 8, 0);
+    beginDragFromTo (timeline, trimStart, trimEnd);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, trimStart, trimEnd);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    const juce::Point<int> trimLeftStart = timelineClipLeftEdgeDragPoint (timeline, original, 0u);
+    const juce::Point<int> trimLeftEnd = trimLeftStart.translated (timeline.getWidth() / 8, 0);
+    beginDragFromTo (timeline, trimLeftStart, trimLeftEnd);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, trimLeftStart, trimLeftEnd);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    const juce::ModifierKeys altDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier);
+    const juce::Point<int> fadeStart = timelineClipLeftEdgeDragPoint (timeline, original, 0u);
+    const juce::Point<int> fadeEnd = fadeStart.translated (timeline.getWidth() / 10, 0);
+    beginDragFromTo (timeline, fadeStart, fadeEnd, altDrag);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, fadeStart, fadeEnd, altDrag);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    const juce::Point<int> fadeOutStart = timelineClipRightEdgeDragPoint (timeline, original, 0u);
+    const juce::Point<int> fadeOutEnd = fadeOutStart.translated (-timeline.getWidth() / 10, 0);
+    beginDragFromTo (timeline, fadeOutStart, fadeOutEnd, altDrag);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, fadeOutStart, fadeOutEnd, altDrag);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (afterCancel.data(), afterCancel.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
+TEST_CASE ("Escape cancels an in-progress marquee before mouse-up can change selection",
+           "[ui][input][shell][timeline][esc-cancel][marquee-cancel]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("escape-cancel-marquee");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const juce::Point<int> end = timelineClipCenterPoint (timeline, original, 0u);
+    const juce::Point<int> start { timeline.getWidth() - 20, timeline.getHeight() - 20 };
+    beginDragFromTo (timeline, start, end);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, start, end);
+
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (afterCancel == beforeCancel);
+}
+
+TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting draft text",
+           "[ui][input][shell][esc-cancel][inline-cancel]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("escape-cancel-inline-editors");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.tracks.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
+    auto* clipEditor = dynamic_cast<juce::TextEditor*> (
+        findChildWithComponentId (*shell, "shell.timeline.clip.rename"));
+    REQUIRE (clipEditor != nullptr);
+    REQUIRE (clipEditor->isVisible());
+    clipEditor->setText ("Discarded Clip Draft", juce::dontSendNotification);
+    REQUIRE (clipEditor->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE_FALSE (clipEditor->isVisible());
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == original.clips.front().name);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int firstTrackY = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                          + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2;
+    mouseDownAt (*rail, { rail->getWidth() / 2, firstTrackY });
+
+    const juce::ModifierKeys ctrl = juce::ModifierKeys::ctrlModifier;
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key, ctrl, 0)));
+    auto* trackEditor = dynamic_cast<juce::TextEditor*> (
+        findChildWithComponentId (*shell, "shell.tracklist.rename"));
+    REQUIRE (trackEditor != nullptr);
+    REQUIRE (trackEditor->isVisible());
+    trackEditor->setText ("Discarded Track Draft", juce::dontSendNotification);
+    REQUIRE (trackEditor->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE_FALSE (trackEditor->isVisible());
+
+    const yesdaw::engine::Project afterEditors = readProjectSnapshot (bundlePath);
+    REQUIRE (afterEditors.clips == original.clips);
+    REQUIRE (afterEditors.tracks.front().strip.name == original.tracks.front().strip.name);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (afterCancel == beforeCancel);
 }
 
 TEST_CASE ("shipped MainComponent device callback renders playing Project audio",

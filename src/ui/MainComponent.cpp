@@ -340,6 +340,17 @@ public:
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
 
+    [[nodiscard]] bool cancelInProgressEdit()
+    {
+        if (! dragState.active && ! marqueeState.active)
+            return false;
+
+        dragState = {};
+        marqueeState = {};
+        repaint();
+        return true;
+    }
+
     void paint (juce::Graphics& g) override
     {
         if (stateProvider)
@@ -3468,6 +3479,9 @@ private:
     // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
     bool keyPressed (const juce::KeyPress& key) override
     {
+        if (key.getKeyCode() == juce::KeyPress::escapeKey && cancelInProgressEdit())
+            return true;
+
         const std::string chord = chordForKeyPress (key);
         if (chord.empty())
             return false;
@@ -3480,6 +3494,28 @@ private:
         refreshActionState();
         repaint();
         return true;
+    }
+
+    [[nodiscard]] bool cancelInProgressEdit()
+    {
+        bool cancelled = timelineInput.cancelInProgressEdit();
+        if (trackRenameEditor.isVisible())
+        {
+            dismissTrackRenameEditor();
+            cancelled = true;
+        }
+        if (clipRenameEditor.isVisible())
+        {
+            dismissClipRenameEditor();
+            cancelled = true;
+        }
+
+        if (cancelled)
+        {
+            refreshActionState();
+            repaint();
+        }
+        return cancelled;
     }
 
     void handleAction (yesdaw::ui::UiActionId action)
