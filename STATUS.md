@@ -145,11 +145,28 @@ record was temporarily isolated and restored with an identical SHA-256. Exact-he
 `31463488384` is green across all nine jobs: Linux, Windows, macOS, RTSan, TSan, both package jobs,
 and both alpha-verifier jobs.
 
-**Now:** commit and push this small A9 evidence/handoff update, then require its exact-head GitHub
-Actions run green across all nine jobs before opening A10; cancelled runs do not count.
+**A10 — Crossfade is locally green, pending its exact-head remote gate:** audited the descriptor/keymap
+table, JUCE chord translation, multi-Clip selection, existing persisted `SetClipFades` command,
+transaction groups, bundle adoption, playback rebuild, and accepted equal-power fade law before adding
+anything. Appended the unique `X` `TimelineClipCrossfade` action and both exhaustive switch cases. The
+real chord accepts exactly two Clips only when they form a staggered tail/head overlap on one Track,
+then sets the earlier Clip's fade-out and later Clip's fade-in to the exact overlap through one persisted
+undo transaction; different-Track, non-overlap, same-start, and nested windows are honest no-ops. The
+shipped-boundary `[crossfade]` gate first failed at the unregistered `X` chord after 39 setup assertions,
+then passed **63 assertions**; it drives duplicate, fine nudge, Project-wide selection, and the real
+chord, proves bundle readback, proves the complementary cosine/sine squared gains sum to unity through
+the overlap, compares every rendered overlap sample with an independent equal-power reference, and
+proves one Undo restores the unfaded bundle and bit-identical audio. The action/keymap gate passes
+**1,720 assertions** with unique chords. A fresh Visual Studio Developer Shell `/W4 /WX` build plus
+full local `ctest --preset ci` is green **341/341**, including theme audit, screenshots, native input,
+and the GPU gate. The owner's real last-project record was temporarily isolated and restored with an
+identical SHA-256.
 
-**Next:** after A9 is fully recorded and remote-green, start A10 Crossfade with a fresh
-`git pull --rebase` and another audit-first shipped-boundary slice.
+**Now:** commit and push the small A10 implementation, then require its exact-head GitHub Actions run
+green across all nine jobs; cancelled runs do not count.
+
+**Next:** after the A10 implementation run is green, tick backlog item 10 with its implementation SHA,
+commit/push that evidence handoff, require the evidence exact-head run green, and stop before A11.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

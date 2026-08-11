@@ -2474,6 +2474,73 @@ public:
         return { id, state, true };
     }
 
+    [[nodiscard]] UiActionDispatchResult crossfadeSelectedTimelineClips()
+    {
+        const UiActionId id = UiActionId::TimelineClipCrossfade;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (selectedTimelineClipIds_.size() != 2u)
+            return { id, { false, "select exactly two clips" }, false };
+
+        const engine::Clip* first = findClip (selectedTimelineClipIds_[0]);
+        const engine::Clip* second = findClip (selectedTimelineClipIds_[1]);
+        if (first == nullptr || second == nullptr)
+            return { id, { false, "selected clip missing" }, false };
+        if (second->timelineStart < first->timelineStart)
+            std::swap (first, second);
+
+        const engine::Clip left = *first;
+        const engine::Clip right = *second;
+        if (left.trackId != right.trackId)
+            return { id, { false, "clips must share a track" }, false };
+        if (left.timelineStart == right.timelineStart
+            || left.timelineLength <= 0
+            || right.timelineLength <= 0)
+        {
+            return { id, { false, "clips must form a staggered overlap" }, false };
+        }
+
+        constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
+        if (left.timelineStart < 0
+            || right.timelineStart < 0
+            || left.timelineLength > maxTick - left.timelineStart
+            || right.timelineLength > maxTick - right.timelineStart)
+        {
+            return { id, { false, "clip window overflow" }, false };
+        }
+
+        const engine::Tick leftEnd = left.timelineStart + left.timelineLength;
+        const engine::Tick rightEnd = right.timelineStart + right.timelineLength;
+        if (right.timelineStart >= leftEnd || leftEnd >= rightEnd)
+            return { id, { false, "clips must overlap at their tail and head" }, false };
+
+        const engine::Tick overlap = leftEnd - right.timelineStart;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (
+                 nextProject,
+                 engine::ProjectEditCommand::setClipFades (left.id, left.fadeIn, overlap)).applied()
+            || ! nextUndo.apply (
+                 nextProject,
+                 engine::ProjectEditCommand::setClipFades (right.id, overlap, right.fadeOut)).applied()
+            || ! nextUndo.endTransactionGroup())
+        {
+            return { id, state, false };
+        }
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "crossfade did not persist" }, false };
+
+        context_.activePanel = UiPanel::Timeline;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult nudgeSelection (UiActionId id)
     {
         const UiActionState state = registry_.stateFor (id, context_);
@@ -3344,6 +3411,9 @@ public:
 
             case UiActionId::TimelineClipHeal:
                 return healSelectedTimelineClips();
+
+            case UiActionId::TimelineClipCrossfade:
+                return crossfadeSelectedTimelineClips();
 
             case UiActionId::EditNudgeLeft:
             case UiActionId::EditNudgeRight:

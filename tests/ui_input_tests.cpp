@@ -3659,6 +3659,113 @@ TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one a
     REQUIRE (afterUndo == preexistingAudio);
 }
 
+TEST_CASE ("X crossfades two overlapping clips on one track as one audible edit",
+           "[ui][input][shell][timeline][crossfade]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("crossfade");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    const yesdaw::engine::Clip source = imported.clips.front();
+    REQUIRE (source.timelineStart == 0);
+    REQUIRE (source.fadeIn == 0);
+    REQUIRE (source.fadeOut == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> sourceAudio = renderMainComponentPlayback (
+        *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
+    REQUIRE (peakAbs (std::span<const float> (sourceAudio.data(), sourceAudio.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Tick overlapTicks = snapshotMainComponent (*shell).context.snapGridTicks / 8;
+    REQUIRE (overlapTicks > 0);
+    REQUIRE (overlapTicks < source.timelineLength);
+    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+
+    const yesdaw::engine::Project overlapped = readProjectSnapshot (bundlePath);
+    REQUIRE (overlapped.clips.size() == 2u);
+    const yesdaw::engine::Clip& leftBefore = overlapped.clips[0];
+    const yesdaw::engine::Clip& rightBefore = overlapped.clips[1];
+    REQUIRE (leftBefore.trackId == rightBefore.trackId);
+    REQUIRE (rightBefore.timelineStart == leftBefore.timelineStart + leftBefore.timelineLength - overlapTicks);
+    REQUIRE (leftBefore.fadeOut == 0);
+    REQUIRE (rightBefore.fadeIn == 0);
+
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (
+        rightBefore.timelineStart + rightBefore.timelineLength);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeCrossfade = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('x')));
+    const yesdaw::engine::Project crossfaded = readProjectSnapshot (bundlePath);
+    REQUIRE (crossfaded.clips.size() == 2u);
+    REQUIRE (crossfaded.clips[0].fadeIn == leftBefore.fadeIn);
+    REQUIRE (crossfaded.clips[0].fadeOut == overlapTicks);
+    REQUIRE (crossfaded.clips[1].fadeIn == overlapTicks);
+    REQUIRE (crossfaded.clips[1].fadeOut == rightBefore.fadeOut);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterCrossfade = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (afterCrossfade != beforeCrossfade);
+
+    const std::size_t channelCount = sourceAudio.size() / static_cast<std::size_t> (source.timelineLength);
+    REQUIRE (channelCount > 0u);
+    REQUIRE (sourceAudio.size() == static_cast<std::size_t> (source.timelineLength) * channelCount);
+    REQUIRE (afterCrossfade.size() == static_cast<std::size_t> (renderFrames) * channelCount);
+
+    constexpr double halfPi = 1.57079632679489661923;
+    double maximumRenderedDiff = 0.0;
+    double maximumPowerDeviation = 0.0;
+    for (yesdaw::engine::Tick offset = 0; offset < overlapTicks; ++offset)
+    {
+        const double progress = static_cast<double> (offset) / static_cast<double> (overlapTicks);
+        const double fadeInGain = std::sin (halfPi * progress);
+        const double fadeOutGain = std::sin (halfPi * (1.0 - progress));
+        maximumPowerDeviation = std::max (
+            maximumPowerDeviation, std::fabs (fadeInGain * fadeInGain + fadeOutGain * fadeOutGain - 1.0));
+
+        const yesdaw::engine::Tick timelineFrame = rightBefore.timelineStart + offset;
+        for (std::size_t channel = 0; channel < channelCount; ++channel)
+        {
+            const std::size_t renderedIndex = static_cast<std::size_t> (timelineFrame) * channelCount + channel;
+            const std::size_t leftIndex = static_cast<std::size_t> (timelineFrame) * channelCount + channel;
+            const std::size_t rightIndex = static_cast<std::size_t> (offset) * channelCount + channel;
+            const double expected = static_cast<double> (sourceAudio[leftIndex]) * fadeOutGain
+                                  + static_cast<double> (sourceAudio[rightIndex]) * fadeInGain;
+            maximumRenderedDiff = std::max (
+                maximumRenderedDiff,
+                std::fabs (static_cast<double> (afterCrossfade[renderedIndex]) - expected));
+        }
+    }
+    REQUIRE (maximumPowerDeviation < 0.000001);
+    REQUIRE (maximumRenderedDiff < 0.000001);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == overlapped.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == beforeCrossfade);
+}
+
 TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edit",
            "[ui][input][shell][clipboard][cut]")
 {
