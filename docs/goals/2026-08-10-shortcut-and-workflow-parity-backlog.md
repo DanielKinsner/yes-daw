@@ -51,8 +51,11 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
    windows are contiguous, and their playback settings match; every other case is an honest no-op.
    The shipped-boundary gate proves refusal leaves persistence and undo untouched, then heals a real
    split back to the original persisted Clip and bit-identical playback in one undoable transaction.
-6. **Nudge** — `,` / `.` move the selected clip(s) left/right by one snap-grid unit;
-   Shift+`,`/`.` = fine nudge (1/8 grid). Works in the piano roll on selected notes too.
+6. [x] **Nudge** — landed in `fe79428` (exact-head run `31453353993`, nine jobs green).
+   `,` / `.` move selected Clips or the selected Piano Roll Note left/right by the current snap-grid
+   unit; Shift+`,`/`.` use exactly 1/8 grid. The shipped-boundary gates prove persisted group Clip
+   movement, Note movement, playback timing changes, bit-identical round trips, and one-step Undo.
+   Multi-Note selection remains owned by item 34; no unsupported selection behavior is faked here.
 7. **Alt+drag = copy-drag** — dragging a clip with Alt held leaves the original and moves a
    copy (one undoable AddClip).
 8. **Clip gain keys** — Alt+Up/Alt+Down adjust selected clip gain ±1 dB. Gate: render
