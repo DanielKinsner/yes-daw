@@ -8,6 +8,34 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-08-12 editing-first parity run (in progress)
+
+Operating brief: `docs/goals/2026-08-12-editing-first-run-brief.md` (process rules chain to the
+2026-08-11 brief). Canonical list: `docs/goals/2026-08-12-editing-first-parity-backlog.md` —
+35 items E1–E35 in four phases: multi-track editing tools (E1–E13), FX tools (E14–E20),
+hardening + visual sweep (E21–E27), recording last (E28–E35). Strictly top-to-bottom, one
+independently certified item at a time.
+
+**Carve evidence (2026-08-12):** four parallel adversarial code-path audits of current `main`
+(head `ffd8971`) re-verified the parity state after A1–B41. Load-bearing findings, each quoted
+with file:line in the backlog doc: the tool palette is selectable-but-inert outside the marquee
+branch; only 3 of ~10 timeline time-gestures consult the snap chooser; no vertical track scroll
+exists (lanes shrink to an 8px floor); the loop region and markers are create-only (no
+drag/rename); MIDI clips are not timeline citizens (the only MIDI-clip engine verb is
+`addMidiClip`) and the piano roll is a hardwired 25-key window locked to `midiClips.front()`;
+EQ bands 2–5 are unreachable from the FX param panel; bus strips cannot be selected (dead code
+from the shell), bus rename/remove and send tap/destination editing have no UI, and there is no
+master fader; mixer/rail fader/pan/mute/solo edits BYPASS the undo stack
+(`editSelectedMixerStrip` never pushes a transaction); bus meters paint permanent zero; the
+Record button unlocks only via the fake "Test Device" profile (persisting `deviceStableId = 1`
+on real takes), with no input chooser, no input meters, metadata-only monitoring, no loop
+recording, no take UI, no MIDI recording, and no hardware proof of the shipped record path.
+No gate anywhere exercises a 3+ track project.
+
+**Now:** backlog carved and committed; starting E1 (three-track arrangement proof gates).
+
+**Next:** E2 (group duplicate + group copy-drag).
+
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
 Canonical list: `docs/goals/2026-08-10-shortcut-and-workflow-parity-backlog.md`. Work is strictly
