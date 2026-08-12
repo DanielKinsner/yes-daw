@@ -70,9 +70,13 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         const double clipStart = c.startSeconds;
         const double clipEnd   = c.startSeconds + c.lengthSeconds;
 
-        // Virtualize: skip anything entirely left of, or right of, the window.
+        // Virtualize: skip anything entirely left of, or right of, the window. Vertically
+        // scrolled-out clips still lay out (their rects clamp to empty at paint time) so the
+        // visible-clip census keeps its historical meaning for the frame verdict policy.
         if (clipEnd <= leftSec || clipStart >= rightSec)
             continue;
+
+        const double laneY = c.lane * vp.laneHeightPixels - vp.laneScrollPixels;
 
         // Unclipped pixel span, then clamp to the viewport edges.
         double xPx = (clipStart - leftSec) * pps;
@@ -88,7 +92,7 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         ElementRect& r = out[count++];
         r.id = c.id;
         r.x  = (float) xPx;
-        r.y  = (float) (c.lane * vp.laneHeightPixels - vp.laneScrollPixels);
+        r.y  = (float) laneY;
         r.w  = (float) wPx;
         r.h  = (float) vp.laneHeightPixels;
     }

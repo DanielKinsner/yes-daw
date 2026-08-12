@@ -750,6 +750,11 @@ struct UiTheme
         static constexpr int timelineCanvasClipMinPaintWidth = 2;
         static constexpr int timelineCanvasClipMinPaintHeight = 2;
         static constexpr int timelineCanvasClipCompactHeight = 8;
+        // E5 perf tier: clips below this height draw a FLAT frame (fill + square outline) with
+        // the waveform; the antialiased gradient/rounded frame is reserved for taller clips. At
+        // the fixed 36px overflow row height, hundreds of visible clips per frame must stay under
+        // the 60fps budget on CI hardware.
+        static constexpr int timelineCanvasClipRichPaintHeight = 48;
         static constexpr int timelineCanvasClipCompactHighlightHeight = 1;
         static constexpr int timelineCanvasRulerSeparatorHeight = 1;
         static constexpr double timelineCanvasRulerDensePixelsPerSecond = 24.0;

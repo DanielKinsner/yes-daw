@@ -154,10 +154,41 @@ and a persisted snapped move of the last track's clip through the scrolled viewp
 undo. Three legacy wheel gates were re-pinned to the new map (horizontal assertions now drive
 Shift+wheel; the plain-wheel single-track no-op is pinned).
 
-**Now:** E5 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+**E6 implementation candidate — loop brace editing:** audited before adding: the transport loop
+could only be replaced wholesale by a fresh Shift+drag — it was not painted as an overlay and had
+no handles. The loop now paints as an accent brace band on the upper ruler with brighter end
+handles, from one shared geometry law (`timelineLoopBraceRects`) the painter and the ruler
+gesture hit-test both use, fed by the real transport loop through `makeTimelineState`. Pressing a
+handle drags that edge (the dragged edge snaps through the E4 law with Ctrl inversion; the fixed
+edge keeps its exact frames), pressing the band moves the whole region rigidly (the anchor snaps;
+the span is preserved exactly), a raw-pointer preview follows the drag, Escape cancels without
+committing, Shift+drag creation and plain locate/range below the band are untouched, and every
+commit goes through the existing `setPlaybackLoopRegion` transport path (honestly transient — no
+persistence). The shipped-boundary `[loop-brace]` gate FAILED before (the end-handle drag fell
+through to a plain locate and left the loop at 48000 instead of 24000) and passes after with 58
+assertions: snapped end/start-handle resizes with exact fixed edges, an exact-span one-grid band
+move, a Ctrl raw-tick resize matched by exact pixel-law replication, Escape cancellation, locate
+compatibility below the band, and a byte-identical `project.db`.
 
-**Next:** E6 (loop brace editing).
+**E5 repair round (real red, root-caused):** after the sccache-outage reruns, the E5 head's
+Windows job failed the GPU frame gate for REAL — `sustained_frame_ms=33.66` vs the 16.6ms budget
+with all 160 frames slow, twice in a row. Root cause: at the old shrink-to-8px lane law, every
+clip in the dense 48-lane fixture painted through the cheap COMPACT path; at the new fixed 36px
+rows, ~340 visible clips per frame took the rich path (antialiased gradient + rounded corners +
+waveform), which the CI runner cannot sustain (local sustained had quietly risen to 15.72ms).
+The repair adds a FLAT mid-tier clip frame — clips below the new
+`timelineCanvasClipRichPaintHeight` (48px) draw a flat fill + highlight + square outline with the
+waveform kept, reserving the antialiased gradient/rounded frame for tall clips — and skips the
+paint work for vertically scrolled-out clips whose rects clamp to empty (their layout census is
+preserved so `maxVisibleClips` keeps its meaning for the locked frame-verdict policy: an earlier
+culling attempt dropped it to 126, below the policy's 250 floor, and was rejected). Local GPU
+gate: sustained 15.72ms → **8.80ms**, slow_frames 0, max_visible_clips 336 ≥ 250, all three GPU
+cases green; full local suite green **348/348** (owner record restored byte-identical).
+
+**Now:** pushing the E5 repair; exact-head nine-job green required on the repair head, then E5
+certifies and E6 (loop brace, locally green 348/348) commits.
+
+**Next:** certify E5, commit E6, then E7 (marker move + rename).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

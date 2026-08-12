@@ -290,6 +290,20 @@ inline bool drawClipFrame (juce::Graphics& g, juce::Rectangle<int> area,
         return false;
     }
 
+    // Mid tier (E5): row-height clips draw a FLAT frame — no antialiased gradient or rounded
+    // corners — so a dense overflow arrangement stays inside the 60fps frame budget; the
+    // waveform still draws on top.
+    if (area.getHeight() < UiTheme::Layout::timelineCanvasClipRichPaintHeight)
+    {
+        g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha));
+        g.fillRect (area);
+        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasCompactHighlightBrightness));
+        g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
+        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasClipOutlineBrightness));
+        g.drawRect (area, UiTheme::Layout::timelineCanvasGridLineWidth);
+        return true;
+    }
+
     const auto clipBounds = area.toFloat();
     juce::ColourGradient clipGradient (
         style.colour.brighter (UiTheme::Tone::timelineCanvasClipSurfaceTopBrightness)
@@ -611,13 +625,16 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     for (int i = 0; i < stats.visibleClips; ++i)
     {
         const auto& rect = visible[static_cast<std::size_t> (i)];
-        const auto style = styleForClip (state, rect.id);
         auto clipRect = juce::Rectangle<int> (clipArea.getX() + juce::roundToInt (rect.x),
                                              clipArea.getY() + juce::roundToInt (rect.y),
                                              juce::roundToInt (rect.w),
                                              juce::roundToInt (rect.h))
                             .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline);
         clipRect = clipRect.getIntersection (clipArea);
+        // Vertically scrolled-out rows clamp to empty here (E5): skip their paint work outright.
+        if (clipRect.isEmpty())
+            continue;
+        const auto style = styleForClip (state, rect.id);
         const auto readyCache = state.waveformCacheLookup ? state.waveformCacheLookup (rect.id) : nullptr;
         if (readyCache != nullptr)
         {
