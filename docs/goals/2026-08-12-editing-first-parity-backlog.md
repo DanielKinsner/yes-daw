@@ -116,11 +116,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     historical view so every legacy roll gate holds. The `[roll-viewport]` gate failed before and
     passes after with 44 assertions including real pencils landing persisted notes at key 0 and
     key 127.
-11. [ ] **E11 — Piano roll selection tools.** Only Ctrl+A exists; a click on empty grid PENCILS A
-    NOTE unconditionally (`MainComponent.cpp:1115-1137`) so you cannot even deselect. Make the
-    gesture map tool-aware: Pointer click on empty grid deselects, Pointer drag marquee-selects
-    notes, Shift+click toggles a note in/out of the selection, Pencil tool click adds (the current
-    behavior, moved behind the Pencil tool), double-click a note deletes it (mouse delete).
+11. [x] **E11 — Piano roll selection tools.** Landed in `f6518a4` (exact-head run green after a
+    same-head rerun of the day's sccache-outage red on Linux alpha-verify). The empty roll grid
+    is tool-aware (Pencil adds — every pencil gate re-pinned to press `P`; Pointer deselects and
+    marquee-selects notes), Shift+click toggles via a movement-free-mouse-up law preserving the
+    Shift+drag length edit, plain double-click deletes the note under the mouse, Escape cancels
+    the note marquee, and tool selection became PANEL-PRESERVING (picking a tool no longer kicks
+    the user out of the roll). The `[roll-select]` gate failed before (the pointer empty click
+    pencilled) and passes after with 59 assertions.
 12. [ ] **E12 — Piano roll drag upgrades.** Note drag ignores deltaY (no pitch drag —
     `MainComponent.cpp:1176`), collapses multi-selections to one note (`UiAppModel.h:1420-1421`),
     only the right edge resizes (`:1288-1304`), and move/resize ignore snap entirely. Add vertical
