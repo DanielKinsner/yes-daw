@@ -691,10 +691,15 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B27 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31566327317` is green for full SHA
+`cefd8647e7768c9d02ce3138bb3b36b80f829521` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B27 is ticked in the backlog.
 
-**Next:** on green, tick B27 in the backlog with SHA + run id (docs-only evidence commit), then B28
-(selected-track keys; resolve the Shift+M marker-remove conflict first) per the run brief.
+**Now:** B27 certified; B28 (selected-track keys) is next per the run brief.
+
+**Next:** B28 — `Shift+M` is taken by marker-remove: reassign marker-remove to free `Ctrl+Shift+M`
+first, then add panel-preserving selected-track mute/solo toggles (Shift+M/Shift+S, persisted strip
+edits) and a selected-track transient recording-arm toggle (Shift+R), gated at the shipped boundary.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

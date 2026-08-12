@@ -169,8 +169,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     (the dev-only test-device action moved to Ctrl+Alt+Shift+T to free the chord). The
     shipped-boundary gate proves the persisted copy, exactly-doubled playback, one-step undo/redo,
     and the non-last-track reorder path. Takes and automation lanes honestly stay on the source.
-27. **Move track up/down** — Ctrl+Shift+Up/Down reorders the selected track (verbs exist;
-    wire keys + rail follows).
+27. [x] **Move track up/down** — landed in `cefd864` (exact-head run `31566327317`, nine jobs
+    green). Ctrl+Shift+Up/Down move the selected track one row through the existing undoable
+    ReorderTrack verb; the rail selection follows the moved row and top/bottom boundary presses are
+    honest no-ops. The shipped-boundary gate proves persisted order at every step, painted rail
+    follow, the boundary no-op, per-move undo, and the shared mute control landing on the moved
+    track to exact silence.
 28. **Selected-track keys** — Shift+M toggles mute, Shift+S solo, Shift+R arm on the
     SELECTED track without opening the mixer (audit Shift+M conflict with marker-remove
     first; reassign marker-remove if needed — update its descriptor + gate).
