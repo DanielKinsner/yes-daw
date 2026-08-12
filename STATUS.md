@@ -669,10 +669,32 @@ Exact-head GitHub Actions run `31565388312` is green for full SHA
 `1b91a647d86121c99d127e0624de50dff87f46c9` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B26 is ticked in the backlog.
 
-**Now:** B26 certified; B27 (move track up/down) is next per the run brief.
+**B27 implementation candidate — Move track up/down:** the B26 audit already mapped the reorder
+surface: the undoable `ReorderTrack` verb, the payload-carrying `reorderProjectTrack` model method,
+the whole-vector track diff, and the rail-lane/mixer-target selection sync all exist — B27 only
+wires keys. `Ctrl+Shift+Up` and `Ctrl+Shift+Down` were free. Two actions (`TrackMoveUp`,
+`TrackMoveDown`) are appended at the descriptor-table end and covered in both exhaustive switches;
+the shell computes the adjacent index for the selected rail row, drives the existing undoable
+reorder, and moves the rail selection with the row. Top-row up and bottom-row down are honest
+boundary no-ops (no dispatch, no undo entry) — the same-position-reorder diff refusal B26 exposed
+makes faking impossible.
 
-**Next:** B27 — audit the existing `TrackReorder` verb/action, wire unique Ctrl+Shift+Up/Down keys
-to reorder the selected track with the rail following, gate at the shipped boundary.
+The shipped-boundary `[track-move]` gate proves the real chords on a three-track project: with no
+rail selection the chord is an honest no-op; two Downs walk the clip-owning track to the bottom with
+the persisted order read back from the bundle at every step and both swapped rail rows visibly
+repainting; the bottom-row Down is a no-op with an unchanged dispatch count; Up moves the row back;
+three Ctrl+Z undos restore the original persisted order one move at a time; and after a fresh move
+the shared mute control lands on the moved track and silences its only clip to exact-zero peak
+through the rebuilt playback graph (78 assertions, green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B27 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B27 in the backlog with SHA + run id (docs-only evidence commit), then B28
+(selected-track keys; resolve the Shift+M marker-remove conflict first) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

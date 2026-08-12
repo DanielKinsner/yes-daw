@@ -150,6 +150,8 @@ enum class UiActionId : std::uint8_t
     TransportLocateNextMarker,
     TimelineRangeToLoop,
     TrackDuplicate,
+    TrackMoveUp,
+    TrackMoveDown,
     Count
 };
 
@@ -610,6 +612,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Shift+L", "Convert the ruler range selection to the loop region",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "Ctrl+Alt+T", "Duplicate selected track with clips and strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "Ctrl+Shift+Up", "Move selected track up one row",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackMoveDown, "track.move_down", "Move Track Down", "Ctrl+Shift+Down", "Move selected track down one row",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -1184,6 +1190,8 @@ public:
             case UiActionId::TrackRemove:
             case UiActionId::TrackReorder:
             case UiActionId::TrackDuplicate:
+            case UiActionId::TrackMoveUp:
+            case UiActionId::TrackMoveDown:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.trackEditCount;

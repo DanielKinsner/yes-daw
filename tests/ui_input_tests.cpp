@@ -6575,3 +6575,141 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with the rail following",
+           "[ui][input][shell][tracks][track-move]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-move");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // With no rail row selected the chords resolve but honestly do nothing.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 3u);
+    const yesdaw::engine::EntityId idA = original.tracks[0].id;   // owns the imported clip
+    const yesdaw::engine::EntityId idB = original.tracks[1].id;
+    const yesdaw::engine::EntityId idC = original.tracks[2].id;
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.clips.front().trackId == idA);
+
+    // Select the first row; moving it down twice walks it to the bottom, persisted each step.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int headerHeight = L::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (L::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight / 2 });
+
+    const auto renderShell = [&shell]
+    {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto changedPixelsIn = [] (const juce::Image& first,
+                                     const juce::Image& second,
+                                     juce::Rectangle<int> area)
+    {
+        int changed = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                if (first.getPixelAt (x, y) != second.getPixelAt (x, y))
+                    ++changed;
+        return changed;
+    };
+    const juce::Rectangle<int> firstRow {
+        rail->getX(), rail->getY() + headerHeight, rail->getWidth(), rowHeight
+    };
+    const juce::Rectangle<int> secondRow = firstRow.translated (0, rowHeight);
+    const juce::Image beforeMove = renderShell();
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].id == idB);
+    REQUIRE (project.tracks[1].id == idA);
+    REQUIRE (project.tracks[2].id == idC);
+
+    // The painted rail follows: both swapped rows visibly changed.
+    const juce::Image afterMove = renderShell();
+    REQUIRE (changedPixelsIn (beforeMove, afterMove, firstRow) > 0);
+    REQUIRE (changedPixelsIn (beforeMove, afterMove, secondRow) > 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].id == idB);
+    REQUIRE (project.tracks[1].id == idC);
+    REQUIRE (project.tracks[2].id == idA);
+
+    // The bottom row cannot move further down: an honest no-op with no dispatch and no undo entry.
+    const int dispatchBeforeBoundary = snapshotMainComponent (*shell).context.commandDispatchCount;
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[2].id == idA);
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchBeforeBoundary);
+
+    // Ctrl+Shift+Up moves the still-selected track back up one row.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].id == idB);
+    REQUIRE (project.tracks[1].id == idA);
+    REQUIRE (project.tracks[2].id == idC);
+
+    // Each move is one undo step: three undos restore the original persisted order exactly.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].id == idB);
+    REQUIRE (project.tracks[1].id == idC);
+    REQUIRE (project.tracks[2].id == idA);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].id == idA);
+    REQUIRE (project.tracks[1].id == idB);
+    REQUIRE (project.tracks[2].id == idC);
+
+    // The selection follows a fresh move: re-select the top row, move it down, and the shared
+    // mute control lands on the moved track, silencing its only clip through the rebuilt graph.
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[1].id == idA);
+
+    auto* mute = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    REQUIRE (mute != nullptr);
+    clickButton (*mute);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[1].id == idA);
+    REQUIRE (project.tracks[1].strip.muted);
+    REQUIRE_FALSE (project.tracks[0].strip.muted);
+    REQUIRE_FALSE (project.tracks[2].strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> mutedPlayback = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (mutedPlayback.data(), mutedPlayback.size())) == 0.0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

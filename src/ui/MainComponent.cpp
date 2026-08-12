@@ -3364,6 +3364,26 @@ private:
         repaint();
     }
 
+    void moveSelectedTrack (int delta)
+    {
+        const auto& tracks = appModel.project().tracks;
+        const int trackCount = static_cast<int> (tracks.size());
+        if (selectedTrackLane < 0 || selectedTrackLane >= trackCount)
+            return;
+
+        const int targetLane = selectedTrackLane + delta;
+        if (targetLane < 0 || targetLane >= trackCount)
+            return;   // honest boundary no-op: the first row cannot move up, the last cannot move down
+
+        dismissTrackRenameEditor();
+        if (appModel.reorderProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id,
+                                          static_cast<std::size_t> (targetLane)).dispatched)
+            selectTrackLane (targetLane);   // the rail highlight follows the moved row
+
+        refreshActionState();
+        repaint();
+    }
+
     void duplicateSelectedTrack()
     {
         const auto& tracks = appModel.project().tracks;
@@ -3984,6 +4004,14 @@ private:
 
             case yesdaw::ui::UiActionId::TrackDuplicate:
                 duplicateSelectedTrack();
+                return;
+
+            case yesdaw::ui::UiActionId::TrackMoveUp:
+                moveSelectedTrack (-1);
+                return;
+
+            case yesdaw::ui::UiActionId::TrackMoveDown:
+                moveSelectedTrack (1);
                 return;
 
             case yesdaw::ui::UiActionId::TrackSelectPrevious:

@@ -3894,6 +3894,8 @@ public:
             case UiActionId::TrackRemove:
             case UiActionId::TrackReorder:
             case UiActionId::TrackDuplicate:
+            case UiActionId::TrackMoveUp:
+            case UiActionId::TrackMoveDown:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)
