@@ -380,10 +380,15 @@ Gate-building found two honest traps worth recording: silent renders (the transp
 playing — Home+Space/K brackets every capture) and EQ param 0 being band TYPE (sweeping all
 params to 0.9 turned the EQ into a near-inert high filter; the fix boosts only band gain).
 
-**Now:** E14 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E14 is certified: exact-head GitHub Actions run `31643567315` green for full SHA
+`061f86350d9fc465bb3637f6c58cf95996b1cc4c` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E14 is ticked in the backlog.
 
-**Next:** E15 (every FX param reachable, with the right control type).
+**Now:** E15 (every FX param reachable, with the right control type) — audited and
+design-locked: ParamSpec gains choice metadata, probe limit 32→96, an 8-row page chooser,
+per-row choice ComboBoxes for EQ band type and delay ping-pong; gate walks all five FxKinds.
+
+**Next:** E16 (bus strips are real strips).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

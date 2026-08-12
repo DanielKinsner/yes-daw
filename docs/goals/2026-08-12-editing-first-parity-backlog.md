@@ -147,9 +147,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
 
 ## Phase 2 — FX tools
 
-14. [ ] **E14 — FX reorder from the UI.** `ReorderFxInsert` is fully wired engine-side
-    (`ProjectUndo.h:36`, `Project.h:2725`) with ZERO UI callers. Add per-slot up/down controls;
-    the gate proves persisted order and an audibly different render for a non-commuting chain.
+14. [x] **E14 — FX reorder from the UI.** Landed in `061f863` (run `31643567315` green for the
+    full SHA across all nine jobs, first try). Every visible FX slot row carries `^`/`v` buttons
+    moving the insert through the new `moveFxInsertOnSelectedStrip` verb — the first UI caller of
+    the engine's `ReorderFxInsert` — under the new `MixerFxInsertReorder` action id. Up disabled
+    on the first slot, down on the last; out-of-range refuses. Shell childCount re-pinned 93→103.
+    The `[fx-reorder]` gate failed before (no up buttons) and passes after with 65 assertions:
+    a genuinely non-commuting EQ(+24 dB band gain)+Limiter(-9 dBFS ceiling) chain, an AUDIBLY
+    different render after the swap, params traveling with the inserts, and one undo restoring
+    order and bit-identical audio in both directions.
 15. [ ] **E15 — Every FX param reachable, with the right control type.** The param panel caps at 8
     sliders probing IDs 0–31 (`UiTheme.h:542-543`), so EQ bands 2–5 (16 of 24 params, IDs up to 83)
     are UNREACHABLE (`EqNode.h:35,183-186`); enum params (EQ band type, delay ping-pong) render as
