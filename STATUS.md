@@ -873,10 +873,18 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 entry). The owner's real last-project record was isolated for the native-shell gate and restored
 with its exact SHA-256.
 
-**Now:** B33 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31574711380` is green for full SHA
+`22b00922afb6201903d1c9d4900fa36f0c46b88d` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B33 is ticked in the backlog.
 
-**Next:** on green, tick B33 in the backlog with SHA + run id (docs-only evidence commit), then B34
-(piano-roll transpose keys, Ctrl+A note selection, Delete/Backspace) per the run brief.
+**Now:** B33 certified; B34 (piano-roll transpose keys + note multi-select + delete) is next per
+the run brief.
+
+**Next:** B34 — audited: this item owns multi-note selection (per the B6 note). Up/Down and Ctrl+A
+and Del are taken by track/timeline actions, so they become honestly context-sensitive in the
+PianoRoll panel (the B22 Escape precedent); Shift+Up/Shift+Down are free for new octave-transpose
+actions; TransposeNote verbs exist and group transactions cover multi-note edits; Backspace's
+existing note delete extends to the selection.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

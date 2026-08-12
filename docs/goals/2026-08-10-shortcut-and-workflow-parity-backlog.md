@@ -213,9 +213,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     the shared latch (rail click zone + paint-mirrored strip hit test). Buses honestly keep their
     surface meters (no live tap). The gate proves latch, persistence, both click-clears, and
     exact tick-law hold expiry from real pixels.
-33. **Piano-roll velocity editing** — Alt+wheel (or Alt+vertical-drag) on a note adjusts its
-    velocity; velocity tints the painted note. Undoable SetNoteVelocity (new engine verb if
-    missing — follow the AddNote pattern incl. randomized property test).
+33. [x] **Piano-roll velocity editing** — landed in `22b0092` (exact-head run `31574711380`, nine
+    jobs green). Alt+wheel on the note under the cursor adjusts its velocity by the exact wheel law
+    (clamped to [0, 1]) through the new undoable SetNoteVelocity engine verb, added per the AddNote
+    pattern including the randomized generated-edit-sequence property test; velocity tints the
+    painted note body from a theme tint floor to full brightness. The shipped-boundary gate proves
+    the persisted wheel law, tint pixels, velocity-scaled synth loudness, honest clamp-to-silence,
+    and per-edit undo.
 34. **Piano-roll transpose keys** — Up/Down = ±1 semitone on selected note(s), Shift+Up/Down
     = ±1 octave (verbs exist: TransposeNote); Ctrl+A selects all notes in the clip;
     Delete/Backspace deletes selection.
