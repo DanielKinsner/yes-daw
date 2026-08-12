@@ -306,10 +306,40 @@ assertions: pointer deselect with a refused Del, a marquee Del of exactly two of
 group undo, a Shift+click toggle proven by the survivor, a plain double-click single delete, and
 the Pencil still adding under `P`.
 
-**Now:** E11 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+E11 is certified: exact-head GitHub Actions run `31636004113` green for full SHA
+`f6518a4d855263f7b4139b838f7344359daef24d` across all nine jobs (after a same-head rerun of the
+day's sccache-outage red); full local ctest green **348/348**. E11 is ticked in the backlog.
 
-**Next:** E12 (piano roll drag upgrades).
+**E12 implementation candidate — piano roll drag upgrades:** audited before changing: a note drag
+ignored deltaY entirely (no pitch drag), collapsed any multi-selection to the dragged note, only
+the right edge resized, and move/resize never consulted the snap chooser. Now a vertical drag
+transposes (a row of movement is a semitone; a pure pitch drag does not move the start), a drag
+on a selected member moves the WHOLE selection by the anchor's snapped tick delta plus the key
+delta as ONE undo transaction (refused whole if any member would leave the clip window or the
+0-127 key range), the LEFT edge trims the note head with the end fixed
+(`trimSelectedPianoRollNoteHeadTo`: move + set-length grouped), and move/resize/pencil all
+follow the REAL snap chooser (chooser Off = raw; the pencil floors its tick to the active grid).
+Two REAL defects were flushed out and fixed along the way: (1) the edge zones swallowed narrow
+notes whole — a note under 24px could NEVER be moved because its entire body hit-tested as a
+resize edge; edge zones now require `pianoRollNoteEdgeMinGrabWidth` so narrow notes always move
+(Shift+drag keeps the length edit at any width); (2) two legacy roll gates were re-pinned to the
+new chooser semantics (chooser Off before raw pixel-exact drags) since the default Beat grid
+(24000 frames) rounded their 4096-tick clips' drags to zero. A latent dangling-temporary bug in
+the new gate's own helper (ranging over `readProjectSnapshot(...).midiClips.front().notes` — the
+`front()` call breaks lifetime extension) caused genuinely flaky reads and was fixed by copying
+the vector; it cost several misleading debug rounds. The shipped-boundary `[roll-drag]` gate
+FAILED before the product changes (16 assertions in, at the inert pitch drag) and passes after
+with 90 assertions on a seeded frame-scale project (48kHz/120bpm, Beat grid pinned to exactly
+24000 ticks, both notes off-grid): raw pitch drag preserving the start, a marquee'd group drag
+moving BOTH notes by the anchor's snapped delta plus one semitone undone by ONE Ctrl+Z, a raw
+left-edge head trim with the end fixed, a snapped horizontal move landing on a grid multiple,
+a Beat-floored pencil, and a narrow pencilled note that MOVES (length unchanged) instead of
+being swallowed by the resize zones.
+
+**Now:** E12 — full local suite green 348/348 (owner file isolated + restored, SHA verified);
+committing, pushing, watching the exact-head nine-job run, then the evidence commit.
+
+**Next:** E13 (velocity lane editing).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

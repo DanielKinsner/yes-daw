@@ -2015,6 +2015,12 @@ TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Ro
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    // E12 re-pin: roll drags follow the REAL snap chooser now; this gate asserts the raw
+    // pixel-exact laws, so it runs with the chooser Off.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
     yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.midiClips.size() == 1u);
     REQUIRE (edited.midiClips.front().notes.size() == 2u);
@@ -2839,6 +2845,12 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    // E12 re-pin: roll drags follow the REAL snap chooser now; these raw pixel-exact
+    // expectations need the chooser Off.
+    auto* pianoSnapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (pianoSnapChooser != nullptr);
+    pianoSnapChooser->setSelectedId (1, juce::sendNotificationSync);
     const yesdaw::engine::Project prePiano = readProjectSnapshot (bundlePath);
     REQUIRE (prePiano.midiClips.size() == 1u);
     REQUIRE (prePiano.midiClips.front().notes.size() == 2u);
@@ -6365,7 +6377,9 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
                             / static_cast<double> (grid.getWidth());
     yesdaw::engine::Tick expectedTick = static_cast<yesdaw::engine::Tick> (snapshot.pianoRollViewScrollTicks)
         + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
-    expectedTick -= expectedTick % yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
+    // E12: the pencil floors to the REAL snap chooser grid.
+    REQUIRE (snapshot.context.snapEnabled);
+    expectedTick -= expectedTick % static_cast<yesdaw::engine::Tick> (snapshot.context.snapGridTicks);
     const int expectedCentreKey = snapshot.pianoRollViewLowKey
         + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1
         - static_cast<int> (static_cast<double> (grid.getCentreY() - grid.getY())
@@ -6473,6 +6487,158 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
     REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     mouseDownAt (pianoRoll, grid.getCentre().translated (0, -5 * rowStep));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 4u);
+}
+
+TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
+           "[ui][input][shell][pianoroll][roll-drag]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-drag");
+
+    // Frame-scale seed: 48kHz at 120bpm makes the Beat chooser grid 24000 ticks. Both notes sit
+    // OFF that grid so every snap assertion bites, and both are wide enough to grab by the middle.
+    yesdaw::engine::Project seed = makeMidiInputProject();
+    seed.midiClips.front().timelineLength = 384000;
+    seed.midiClips.front().notes = {
+        makeMidiInputNote (idFromLowByte (4), 50000, 48000, 60, 0.55),
+        makeMidiInputNote (idFromLowByte (5), 200000, 48000, 64, 0.82)
+    };
+    writeProjectSnapshot (bundlePath, seed);
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);   // raw drags first
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+
+    const yesdaw::engine::MidiClip midi = readProjectSnapshot (bundlePath).midiClips.front();
+    REQUIRE (midi.notes.size() == 2u);
+    const yesdaw::engine::Note noteA = midi.notes[0];
+    const yesdaw::engine::Note noteB = midi.notes[1];
+    REQUIRE (noteA.startTick == 50000);
+    REQUIRE (noteB.startTick == 200000);
+    const auto noteById = [&] (yesdaw::engine::EntityId noteId) {
+        // Copy the notes out: ranging over readProjectSnapshot(...).midiClips.front().notes
+        // would dangle (front() breaks the temporary's lifetime extension).
+        const std::vector<yesdaw::engine::Note> notes =
+            readProjectSnapshot (bundlePath).midiClips.front().notes;
+        for (const yesdaw::engine::Note& note : notes)
+            if (note.id == noteId)
+                return note;
+        FAIL ("note missing");
+        return yesdaw::engine::Note {};
+    };
+    const double rowHeight = static_cast<double> (std::max (1, grid.getHeight()))
+                           / static_cast<double> (kPianoRollKeyCount);
+
+    // PITCH drag (chooser Off): a pure vertical drag transposes without moving the start.
+    const juce::Point<int> centreA = pianoRollNoteCenterPoint (pianoRoll, midi, noteA);
+    dragFromTo (pianoRoll, centreA,
+                { centreA.x, centreA.y + juce::roundToInt (2.0 * rowHeight) });
+    yesdaw::engine::Note edited = noteById (noteA.id);
+    REQUIRE (edited.key == noteA.key - 2);
+    REQUIRE (edited.startTick == noteA.startTick);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (noteById (noteA.id).key == noteA.key);
+
+    // GROUP drag (chooser Beat): marquee both notes; dragging one moves BOTH by the anchor's
+    // snapped tick delta and one semitone up, as one undo step.
+    snapChooser->setSelectedId (3, juce::sendNotificationSync);
+    const std::int64_t gridTicks = snapshotMainComponent (*shell).context.snapGridTicks;
+    REQUIRE (gridTicks == 24000);
+    dragFromTo (pianoRoll,
+                { grid.getX() + 2, grid.getBottom() - 2 },
+                { grid.getRight() - 2, grid.getY() + 2 });
+    REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+    const int dragPixels = grid.getWidth() / 6;
+    const yesdaw::engine::Tick rawDelta = pianoRollDeltaTicksForPixels (pianoRoll, midi, dragPixels);
+    yesdaw::engine::Tick snappedTarget = noteA.startTick + rawDelta;
+    REQUIRE (yesdaw::engine::snapTick (noteA.startTick + rawDelta,
+                                       yesdaw::engine::SnapGrid { gridTicks }, snappedTarget));
+    const yesdaw::engine::Tick expectedDelta = snappedTarget - noteA.startTick;
+    const juce::Point<int> centreA2 = pianoRollNoteCenterPoint (pianoRoll, midi, noteA);
+    dragFromTo (pianoRoll, centreA2,
+                { centreA2.x + dragPixels, centreA2.y - juce::roundToInt (rowHeight) });
+    edited = noteById (noteA.id);
+    REQUIRE (edited.startTick == noteA.startTick + expectedDelta);
+    REQUIRE (edited.key == noteA.key + 1);
+    yesdaw::engine::Note editedB = noteById (noteB.id);
+    REQUIRE (editedB.startTick == noteB.startTick + expectedDelta);
+    REQUIRE (editedB.key == noteB.key + 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (noteById (noteA.id).startTick == noteA.startTick);
+    REQUIRE (noteById (noteB.id).startTick == noteB.startTick);
+
+    // LEFT-EDGE trim (chooser Off): the head moves, the end stays fixed.
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    const yesdaw::engine::Tick noteBEnd = noteB.startTick + noteB.lengthTicks;
+    const int leftEdgeX = grid.getX()
+        + juce::roundToInt (static_cast<double> (noteB.startTick)
+                            / static_cast<double> (midi.timelineLength)
+                            * static_cast<double> (grid.getWidth()));
+    const juce::Point<int> edgePoint = {
+        leftEdgeX + 1, pianoRollNoteCenterPoint (pianoRoll, midi, noteB).y
+    };
+    const int trimPixels = 30;
+    const yesdaw::engine::Tick trimDelta = pianoRollDeltaTicksForPixels (pianoRoll, midi, trimPixels);
+    dragFromTo (pianoRoll, edgePoint, { edgePoint.x + trimPixels, edgePoint.y });
+    editedB = noteById (noteB.id);
+    REQUIRE (editedB.startTick == noteB.startTick + trimDelta);
+    REQUIRE (editedB.startTick + editedB.lengthTicks == noteBEnd);
+    REQUIRE (editedB.lengthTicks < noteB.lengthTicks);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (noteById (noteB.id).startTick == noteB.startTick);
+
+    // SNAPPED horizontal move (chooser Beat): the landed start is a grid multiple.
+    snapChooser->setSelectedId (3, juce::sendNotificationSync);
+    mouseDownAt (pianoRoll, { grid.getX() + 2, grid.getBottom() - 2 });
+    releaseDragAt (pianoRoll, { grid.getX() + 2, grid.getBottom() - 2 },
+                   { grid.getX() + 2, grid.getBottom() - 2 });
+    const juce::Point<int> centreB = pianoRollNoteCenterPoint (pianoRoll, midi, noteB);
+    mouseDownAt (pianoRoll, centreB);
+    dragFromTo (pianoRoll, centreB, { centreB.x + grid.getWidth() / 8, centreB.y });
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 2u);
+    editedB = noteById (noteB.id);
+    REQUIRE (editedB.startTick % gridTicks == 0);
+    REQUIRE (editedB.startTick != noteB.startTick);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 2u);
+    REQUIRE (noteById (noteB.id).startTick == noteB.startTick);
+
+    // PENCIL floors to the real chooser grid (Beat here), and the pencilled note is far too
+    // narrow for the edge zones — the pointer must still MOVE it, never resize it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    const int pencilRow = kPianoRollHighKey - 55;
+    mouseDownAt (pianoRoll, { grid.getX() + juce::roundToInt (grid.getWidth() * 5.0 / 8.0),
+                              grid.getY() + juce::roundToInt ((pencilRow + 0.5) * rowHeight) });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    const std::vector<yesdaw::engine::Note> afterPencil =
+        readProjectSnapshot (bundlePath).midiClips.front().notes;
+    REQUIRE (afterPencil.size() == 3u);
+    const auto pencilledIt = std::find_if (afterPencil.begin(), afterPencil.end(), [&] (const auto& note) {
+        return note.id != noteA.id && note.id != noteB.id;
+    });
+    REQUIRE (pencilledIt != afterPencil.end());
+    const yesdaw::engine::Note pencilled = *pencilledIt;
+    REQUIRE (pencilled.startTick % gridTicks == 0);
+    REQUIRE (pencilled.lengthTicks == yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep);
+    REQUIRE (pencilled.key == 55);
+
+    const juce::Point<int> pencilCentre = pianoRollNoteCenterPoint (pianoRoll, midi, pencilled);
+    dragFromTo (pianoRoll, pencilCentre, { pencilCentre.x + 40, pencilCentre.y });
+    const yesdaw::engine::Note movedPencilled = noteById (pencilled.id);
+    REQUIRE (movedPencilled.startTick % gridTicks == 0);
+    REQUIRE (movedPencilled.startTick != pencilled.startTick);
+    REQUIRE (movedPencilled.lengthTicks == pencilled.lengthTicks);
+    REQUIRE (movedPencilled.key == pencilled.key);
 }
 
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
@@ -9201,6 +9367,13 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    // E12: note gestures snap through the real chooser; this gate pins the RAW copy-drag law,
+    // so the chooser goes Off first.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.snapEnabled);
     REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
@@ -9284,10 +9457,18 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    // E12: the pencil floors to the real chooser grid, which would pre-align these notes and
+    // leave the quantize nothing to do — pencil RAW (chooser Off) first, then restore Beat.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
     REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    snapChooser->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 2u);
     const yesdaw::engine::EntityId firstId = project.midiClips.front().notes[0].id;

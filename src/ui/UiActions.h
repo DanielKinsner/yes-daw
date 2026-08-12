@@ -1176,25 +1176,23 @@ public:
                 context.returnToStartOnStopEnabled = ! context.returnToStartOnStopEnabled;
                 break;
 
+            // The snap chooser is panel-preserving (E12): it now governs piano-roll note
+            // gestures too, so changing the grid must not kick the user out of the roll.
             case UiActionId::TimelineSnapDisable:
-                context.activePanel = UiPanel::Timeline;
                 context.snapEnabled = false;
                 break;
 
             case UiActionId::TimelineSnapSetBar:
-                context.activePanel = UiPanel::Timeline;
                 context.snapEnabled = true;
                 context.snapGridTicks = 2048;
                 break;
 
             case UiActionId::TimelineSnapSetBeat:
-                context.activePanel = UiPanel::Timeline;
                 context.snapEnabled = true;
                 context.snapGridTicks = 512;
                 break;
 
             case UiActionId::TimelineSnapSetSixteenth:
-                context.activePanel = UiPanel::Timeline;
                 context.snapEnabled = true;
                 context.snapGridTicks = 128;
                 break;

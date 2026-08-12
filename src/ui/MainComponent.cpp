@@ -1352,7 +1352,10 @@ class PianoRollInputComponent final : public juce::Component,
 public:
     std::function<yesdaw::ui::UiPianoRollSurfaceSnapshot()> stateProvider;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteClicked;
-    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteMoved;
+    // E12: a drag moves the WHOLE selection by (tickDelta, keyDelta) anchored on the dragged
+    // note; the left edge trims the note head with the end fixed.
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick, int)> onNotesDragged;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteHeadTrimmed;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteLengthChanged;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, std::int32_t)> onNoteTransposed;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteQuantized;
@@ -1466,7 +1469,9 @@ public:
                 const auto visibleTicks = static_cast<double> (pianoRollVisibleTicks (surface));
                 yesdaw::engine::Tick tick = surface.viewScrollTicks
                     + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
-                tick -= tick % kPianoRollSnapGridTicks;
+                // E12: the pencil floors to the REAL snap chooser grid (chooser Off = raw).
+                if (surface.snapEnabled && surface.snapGridTicks > 0)
+                    tick -= tick % surface.snapGridTicks;
 
                 const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
                 const int key = pianoRollViewHighKey (surface)
@@ -1610,30 +1615,50 @@ public:
         if (! drag.moved || ! stateProvider)
             return;
 
-        const int deltaX = event.getPosition().x - drag.downPosition.x;
-        if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
-            return;
-
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        const int deltaX = event.getPosition().x - drag.downPosition.x;
+        const int deltaY = event.getPosition().y - drag.downPosition.y;
+        // E12: vertical drag transposes — a row of movement is a semitone.
+        const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
+        const int keyDelta = drag.mode == PianoDragMode::Move && ! drag.copy
+            ? -static_cast<int> (std::llround (static_cast<double> (deltaY) / static_cast<double> (rowHeight)))
+            : 0;
+        if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels && keyDelta == 0)
+            return;
+
         const yesdaw::engine::Tick deltaTicks = pianoRollTickDeltaForPixels (geometry, surface, deltaX);
 
         if (drag.mode == PianoDragMode::SetLength)
         {
             const yesdaw::engine::Tick maxLength =
                 juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.startTick);
+            const yesdaw::engine::Tick snappedEnd = snappedRollTick (
+                surface, drag.startTick + drag.lengthTicks + deltaTicks);
             const yesdaw::engine::Tick nextLength =
-                std::clamp<yesdaw::engine::Tick> (drag.lengthTicks + deltaTicks, 0, maxLength);
+                std::clamp<yesdaw::engine::Tick> (snappedEnd - drag.startTick, 0, maxLength);
             if (nextLength != drag.lengthTicks && onNoteLengthChanged)
                 onNoteLengthChanged (drag.midiClipId, drag.noteId, nextLength);
             return;
         }
 
+        if (drag.mode == PianoDragMode::TrimHead)
+        {
+            if (onNoteHeadTrimmed)
+                onNoteHeadTrimmed (drag.midiClipId, drag.noteId,
+                                   snappedRollTick (surface, drag.startTick + deltaTicks));
+            return;
+        }
+
         const yesdaw::engine::Tick maxStart =
             juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.lengthTicks);
+        // A pure pitch drag (below the horizontal dead zone) must not snap the start sideways.
         const yesdaw::engine::Tick nextStart =
-            std::clamp<yesdaw::engine::Tick> (drag.startTick + deltaTicks, 0, maxStart);
-        if (nextStart == drag.startTick)
+            std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
+                ? std::clamp<yesdaw::engine::Tick> (snappedRollTick (surface, drag.startTick + deltaTicks),
+                                                    0, maxStart)
+                : drag.startTick;
+        if (nextStart == drag.startTick && keyDelta == 0)
             return;
 
         if (drag.copy)
@@ -1643,8 +1668,8 @@ public:
             return;
         }
 
-        if (onNoteMoved)
-            onNoteMoved (drag.midiClipId, drag.noteId, nextStart);
+        if (onNotesDragged)
+            onNotesDragged (drag.midiClipId, drag.noteId, nextStart - drag.startTick, keyDelta);
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -1692,8 +1717,24 @@ private:
     enum class PianoDragMode
     {
         Move,
-        SetLength
+        SetLength,
+        TrimHead    // E12: drag the left edge — the note end stays fixed
     };
+
+    // E12: note gestures snap through the REAL chooser (no Ctrl inversion in the roll — Ctrl on
+    // notes means copy-drag; raw edits come from switching the chooser off).
+    [[nodiscard]] static yesdaw::engine::Tick snappedRollTick (
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface, yesdaw::engine::Tick tick) noexcept
+    {
+        if (! surface.snapEnabled || surface.snapGridTicks <= 0)
+            return juce::jmax<yesdaw::engine::Tick> (0, tick);
+
+        yesdaw::engine::Tick snapped = tick;
+        if (! yesdaw::engine::snapTick (tick, yesdaw::engine::SnapGrid { surface.snapGridTicks }, snapped))
+            return juce::jmax<yesdaw::engine::Tick> (0, tick);
+
+        return juce::jmax<yesdaw::engine::Tick> (0, snapped);
+    }
 
     struct PianoDragState
     {
@@ -1738,10 +1779,21 @@ private:
             return PianoDragMode::SetLength;
 
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
-        const int rightEdge = pianoRollNoteBounds (geometry, surface, note).getRight();
-        if (std::abs (position.x - rightEdge)
-            <= yesdaw::ui::UiTheme::Layout::pianoRollNoteEdgeHitWidth)
-            return PianoDragMode::SetLength;
+        const juce::Rectangle<int> bounds = pianoRollNoteBounds (geometry, surface, note);
+        // E12: the edge zones only bite on a note wide enough to keep a grabbable middle —
+        // otherwise they would swallow a narrow note whole and it could never be moved.
+        // Shift+drag stays the length edit for notes of any width.
+        if (bounds.getWidth() >= yesdaw::ui::UiTheme::Layout::pianoRollNoteEdgeMinGrabWidth)
+        {
+            if (std::abs (position.x - bounds.getRight())
+                <= yesdaw::ui::UiTheme::Layout::pianoRollNoteEdgeHitWidth)
+                return PianoDragMode::SetLength;
+
+            // The LEFT edge trims the note head (end fixed).
+            if (std::abs (position.x - bounds.getX())
+                <= yesdaw::ui::UiTheme::Layout::pianoRollNoteEdgeHitWidth)
+                return PianoDragMode::TrimHead;
+        }
 
         return PianoDragMode::Move;
     }
@@ -3048,7 +3100,8 @@ public:
         pianoRollInput.stateProvider = [this] { return currentPianoRollSurface(); };
         pianoRollInput.onNoteClicked = [this] (yesdaw::engine::EntityId midiClipId,
                                                yesdaw::engine::EntityId noteId) {
-            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            // E12: a plain press on a selected member keeps the group for the drag.
+            (void) appModel.selectPianoRollNoteForGesture (midiClipId, noteId);
             refreshActionState();
             repaint();
         };
@@ -3119,11 +3172,22 @@ public:
             pianoRollViewScrollTicks = juce::jmax<yesdaw::engine::Tick> (0, pianoRollViewScrollTicks);
             repaint();
         };
-        pianoRollInput.onNoteMoved = [this] (yesdaw::engine::EntityId midiClipId,
-                                             yesdaw::engine::EntityId noteId,
-                                             yesdaw::engine::Tick startTick) {
+        // E12: the drag moves the whole selection (anchored on the dragged note) by the snapped
+        // tick delta and the row-derived key delta as one undo transaction.
+        pianoRollInput.onNotesDragged = [this] (yesdaw::engine::EntityId midiClipId,
+                                                yesdaw::engine::EntityId noteId,
+                                                yesdaw::engine::Tick tickDelta,
+                                                int keyDelta) {
+            (void) appModel.selectPianoRollNoteForGesture (midiClipId, noteId);
+            (void) appModel.moveSelectedPianoRollNotesBy (tickDelta, keyDelta);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteHeadTrimmed = [this] (yesdaw::engine::EntityId midiClipId,
+                                                   yesdaw::engine::EntityId noteId,
+                                                   yesdaw::engine::Tick newStart) {
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
-            (void) appModel.moveSelectedPianoRollNoteTo (startTick);
+            (void) appModel.trimSelectedPianoRollNoteHeadTo (newStart);
             refreshActionState();
             repaint();
         };
@@ -7811,6 +7875,9 @@ private:
             pianoRollViewScrollTicks = std::clamp<yesdaw::engine::Tick> (
                 pianoRollViewScrollTicks, 0, juce::jmax<yesdaw::engine::Tick> (0, length - visible));
             surface.viewScrollTicks = pianoRollViewScrollTicks;
+            // E12: note gestures snap through the real chooser.
+            surface.snapEnabled = appModel.context().snapEnabled;
+            surface.snapGridTicks = static_cast<yesdaw::engine::Tick> (appModel.context().snapGridTicks);
             return surface;
         }
 

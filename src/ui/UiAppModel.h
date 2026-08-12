@@ -1528,6 +1528,126 @@ public:
         syncProjectEditContext();
     }
 
+    // E12: a plain press on an ALREADY-SELECTED note keeps the group for the drag (the timeline
+    // gesture law); an unselected note collapses the selection to itself.
+    [[nodiscard]] bool selectPianoRollNoteForGesture (engine::EntityId midiClipId,
+                                                      engine::EntityId noteId) noexcept
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        if (midiClip == nullptr || findNote (*midiClip, noteId) == nullptr)
+            return false;
+
+        selectedMidiClipId_ = midiClipId;
+        if (std::find (selectedMidiNoteIds_.begin(), selectedMidiNoteIds_.end(), noteId)
+            == selectedMidiNoteIds_.end())
+        {
+            selectedMidiNoteIds_.assign (1, noteId);
+        }
+        selectedMidiNoteId_ = noteId;
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        return true;
+    }
+
+    // E12: move the WHOLE note selection by a tick and key delta as one undo transaction; any
+    // member leaving the clip window or the 0-127 key range refuses the whole group.
+    [[nodiscard]] UiActionDispatchResult moveSelectedPianoRollNotesBy (engine::Tick tickDelta, int keyDelta)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteMove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr || (tickDelta == 0 && keyDelta == 0))
+            return { id, { false, "note move needs a selection and a real delta" }, false };
+
+        const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
+            ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
+            : selectedMidiNoteIds_;
+        for (engine::EntityId noteId : targets)
+        {
+            const engine::Note* const note = findNote (*midiClip, noteId);
+            if (note == nullptr)
+                return { id, { false, "MIDI note missing" }, false };
+            const engine::Tick nextStart = note->startTick + tickDelta;
+            const int nextKey = static_cast<int> (note->key) + keyDelta;
+            if (nextStart < 0
+                || nextStart + note->lengthTicks > midiClip->timelineLength
+                || nextKey < 0 || nextKey > 127)
+                return { id, { false, "note move would leave the clip" }, false };
+        }
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        for (engine::EntityId noteId : targets)
+        {
+            const engine::Note* const note = findNote (*midiClip, noteId);
+            if (tickDelta != 0
+                && ! nextUndo.apply (nextProject,
+                                     engine::ProjectEditCommand::moveNote (
+                                         selectedMidiClipId_, noteId, note->startTick + tickDelta)).applied())
+                return { id, state, false };
+            if (keyDelta != 0
+                && ! nextUndo.apply (nextProject,
+                                     engine::ProjectEditCommand::transposeNote (
+                                         selectedMidiClipId_, noteId, keyDelta)).applied())
+                return { id, state, false };
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // E12: trim the selected note's HEAD — the end stays fixed while the start moves.
+    [[nodiscard]] UiActionDispatchResult trimSelectedPianoRollNoteHeadTo (engine::Tick newStart)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSetLength;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        const engine::Note* const note = midiClip != nullptr
+            ? findNote (*midiClip, selectedMidiNoteId_)
+            : nullptr;
+        if (note == nullptr)
+            return { id, { false, "MIDI note missing" }, false };
+
+        const engine::Tick noteEnd = note->startTick + note->lengthTicks;
+        if (newStart < 0 || newStart >= noteEnd || newStart == note->startTick)
+            return { id, { false, "head trim must stay inside the note" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::moveNote (
+                                  selectedMidiClipId_, selectedMidiNoteId_, newStart)).applied()
+            || ! nextUndo.apply (nextProject,
+                                 engine::ProjectEditCommand::setNoteLength (
+                                     selectedMidiClipId_, selectedMidiNoteId_, noteEnd - newStart)).applied())
+            return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
     // Transpose the whole note selection as one atomic undo group (B34): any out-of-range note
     // refuses the entire group.
     [[nodiscard]] UiActionDispatchResult transposeSelectedPianoRollNotes (std::int32_t semitones)

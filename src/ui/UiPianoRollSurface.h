@@ -73,6 +73,11 @@ struct UiPianoRollSurfaceSnapshot
     int viewLowKey = UiThemeLayout::pianoRollDefaultLowKey;
     double viewZoom = 1.0;
     engine::Tick viewScrollTicks = 0;
+
+    // E12: note gestures consult the REAL snap chooser (raw edits = chooser Off; Ctrl on notes
+    // already means copy-drag, so there is no Ctrl inversion in the roll).
+    bool snapEnabled = true;
+    engine::Tick snapGridTicks = 0;
 };
 
 struct UiPianoRollActionPayload
