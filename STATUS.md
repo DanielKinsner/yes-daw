@@ -580,10 +580,12 @@ TSan, both package jobs, and both alpha-verifier jobs.
 The B24 backlog-tick/evidence handoff is locally green **346/346**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B24 backlog-tick/evidence handoff.
+The B24 evidence handoff `71db401` is exact-head green across all nine jobs in run `31553132209`.
 
-**Next:** require the exact B24 evidence head green across all nine jobs; cancelled or incomplete
-runs do not count. Then record the green evidence run in STATUS and stop with B25 untouched.
+**Now:** stop at the completed B24 checkpoint. B25 is untouched.
+
+**Next:** a new agent starts B25 — Ruler range selection — only after `git pull --rebase` and the
+required STATUS/backlog reread and shipped-boundary audit.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
