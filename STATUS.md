@@ -939,12 +939,30 @@ Exact-head GitHub Actions run `31578215018` is green for full SHA
 `f3ab2615e8af7db784ef86b45cc9954641773e79` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B35 is ticked in the backlog.
 
-**Now:** B35 certified; B36 (quantize selected notes) is next per the run brief.
+**B36 implementation candidate — Quantize selected notes:** audited the quantize surface before
+adding anything: the undoable QuantizeNote verb and the engine `snapTick` round-to-nearest law
+already exist, the model already derives the real snap grid (frames from the head tempo/meter) for
+the current snap unit, and plain `Q` was free. One new `PianoRollNoteQuantizeSelection` action
+(unique `Q`, descriptor-table end, both exhaustive switches, same enablement as the other note
+edits) dispatches payload-free: it quantizes the whole B34 note selection to the current snap grid
+as one atomic undo group, skipping notes already on the grid so mixed selections quantize the rest,
+and refusing honestly (no dispatch, no undo entry) when the entire selection is already aligned.
 
-**Next:** B36 — audited: the QuantizeNote verb and `snapTick` law exist and `Q` is free. Add a
-`PianoRollNoteQuantizeSelection` action on `Q` (dispatchable payload-free from the model's current
-snap grid), quantizing the whole note selection as one atomic undo group while skipping notes
-already on the grid so mixed selections work; all-on-grid selections are honest no-ops.
+The shipped-boundary `[note-quantize]` gate pencils two off-grid notes, derives its expectations
+from the same engine `snapTick` law, and proves: `Q` quantizes only the pencil-selected note;
+Ctrl+A + `Q` lands both notes on the exact grid ticks as ONE undo step with audibly changed
+playback; a second `Q` on the aligned selection is an honest no-op with an unchanged dispatch
+count; and one undo restores both original positions with bit-identical playback (65 assertions,
+green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B36 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B36 in the backlog with SHA + run id (docs-only evidence commit), then B37
+(confirm on close with a harness-injectable chooser) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

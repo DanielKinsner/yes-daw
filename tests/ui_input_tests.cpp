@@ -7615,3 +7615,88 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
+           "[ui][input][shell][pianoroll][note-quantize]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("note-quantize");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
+    mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::EntityId firstId = project.midiClips.front().notes[0].id;
+    const yesdaw::engine::EntityId secondId = project.midiClips.front().notes[1].id;
+    const yesdaw::engine::Tick firstStart = project.midiClips.front().notes[0].startTick;
+    const yesdaw::engine::Tick secondStart = project.midiClips.front().notes[1].startTick;
+
+    // The current snap grid (Beat by default) must displace both penciled notes so the quantize
+    // has real work; expectations come from the same engine snapTick law the verb uses.
+    const yesdaw::engine::SnapGrid grid {
+        static_cast<yesdaw::engine::Tick> (snapshotMainComponent (*shell).context.snapGridTicks) };
+    yesdaw::engine::Tick firstExpected = 0;
+    yesdaw::engine::Tick secondExpected = 0;
+    REQUIRE (yesdaw::engine::snapTick (firstStart, grid, firstExpected));
+    REQUIRE (yesdaw::engine::snapTick (secondStart, grid, secondExpected));
+    REQUIRE (firstExpected != firstStart);
+    REQUIRE (secondExpected != secondStart);
+
+    const auto startOf = [&] (yesdaw::engine::EntityId noteId) {
+        const yesdaw::engine::Project current = readProjectSnapshot (bundlePath);
+        for (const yesdaw::engine::Note& note : current.midiClips.front().notes)
+            if (note.id == noteId)
+                return note.startTick;
+        return yesdaw::engine::Tick { -1 };
+    };
+
+    // Q on the single pencil selection quantizes only that note.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+    REQUIRE (startOf (secondId) == secondExpected);
+    REQUIRE (startOf (firstId) == firstStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (startOf (secondId) == secondStart);
+
+    // Ctrl+A + Q quantizes both notes as ONE undo step with audibly changed playback.
+    const auto renderSamples = [&shell]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> before = renderSamples();
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+    REQUIRE (startOf (firstId) == firstExpected);
+    REQUIRE (startOf (secondId) == secondExpected);
+    const std::vector<float> quantized = renderSamples();
+    REQUIRE (quantized != before);
+
+    // A second Q on the now-aligned selection is an honest no-op.
+    const int dispatchesBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+    REQUIRE (startOf (firstId) == firstExpected);
+    REQUIRE (startOf (secondId) == secondExpected);
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchesBefore);
+
+    // ONE undo restores both original positions and the original playback bit-identically.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (startOf (firstId) == firstStart);
+    REQUIRE (startOf (secondId) == secondStart);
+    const std::vector<float> restoredQuantize = renderSamples();
+    REQUIRE (restoredQuantize == before);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

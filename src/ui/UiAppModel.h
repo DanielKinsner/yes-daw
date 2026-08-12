@@ -1548,6 +1548,63 @@ public:
                                        source->startTick + gridStepTicks);
     }
 
+    // Quantize the whole note selection to the current snap grid as one atomic undo group (B36).
+    // Notes already on the grid are skipped so mixed selections quantize the rest; a selection
+    // entirely on the grid is an honest no-op.
+    [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNotesToCurrentGrid()
+    {
+        const UiActionId id = UiActionId::PianoRollNoteQuantizeSelection;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr)
+            return { id, { false, "MIDI clip missing" }, false };
+
+        const engine::SnapGrid grid { std::max<engine::Tick> (1, context_.snapGridTicks) };
+        const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
+            ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
+            : selectedMidiNoteIds_;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+        bool anyQuantized = false;
+        for (const engine::EntityId noteId : targets)
+        {
+            const engine::Note* const note = findNote (*midiClip, noteId);
+            engine::Tick snapped = 0;
+            if (note == nullptr
+                || ! engine::snapTick (note->startTick, grid, snapped)
+                || snapped == note->startTick)
+                continue;   // already on the grid: nothing to quantize for this note
+
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_,
+                                                                            noteId,
+                                                                            grid)).applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, { false, "quantize does not fit the clip" }, false };
+            }
+            anyQuantized = true;
+        }
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+
+        if (! anyQuantized)
+            return { id, { false, "selection already on the grid" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult moveSelectedPianoRollNoteTo (engine::Tick startTick)
     {
         const UiActionId id = UiActionId::PianoRollNoteMove;
@@ -4171,6 +4228,9 @@ public:
 
             case UiActionId::PianoRollNoteOctaveDown:
                 return transposeSelectedPianoRollNotes (-12);
+
+            case UiActionId::PianoRollNoteQuantizeSelection:
+                return quantizeSelectedPianoRollNotesToCurrentGrid();
 
             case UiActionId::ViewPianoRoll:
             {
