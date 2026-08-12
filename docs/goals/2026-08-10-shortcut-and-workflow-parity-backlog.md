@@ -220,9 +220,15 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     painted note body from a theme tint floor to full brightness. The shipped-boundary gate proves
     the persisted wheel law, tint pixels, velocity-scaled synth loudness, honest clamp-to-silence,
     and per-edit undo.
-34. **Piano-roll transpose keys** — Up/Down = ±1 semitone on selected note(s), Shift+Up/Down
-    = ±1 octave (verbs exist: TransposeNote); Ctrl+A selects all notes in the clip;
-    Delete/Backspace deletes selection.
+34. [x] **Piano-roll transpose keys** — landed in `26b5bc8` + macOS repair `cd2f781` (exact-head
+    run `31576683772`, nine jobs green). Multi-note selection (deferred by B6) lands here: Ctrl+A
+    in the Piano Roll selects every note in the clip, painted selected and pruned like timeline
+    clips. Up/Down transpose the selection ±1 semitone and Del deletes it, honestly
+    context-sensitive in the Piano Roll only; unique Shift+Up/Shift+Down are new octave actions;
+    Backspace deletes the selection. Group edits are one atomic undo transaction, an out-of-range
+    note refuses the whole transpose group. One red round: AppleClang's unused-lambda-capture (the
+    known trap). The gate proves exact semitone/octave persistence, untouched rail arrows, one-step
+    group undo, audible transposition, and silent playback after delete-all.
 35. **Note duplicate** — Ctrl+drag on a note copy-drags it; Ctrl+D duplicates the selected
     note one grid step later.
 36. **Quantize selected** — `Q` quantizes selected notes to the snap grid (verb exists;

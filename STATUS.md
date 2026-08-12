@@ -908,10 +908,17 @@ The first exact-head run `31575969393` was red on macOS only (red round 1): Appl
 lambda (`findNote` resolves as a free function, so the capture was dead — the known
 AppleClang-only-warnings trap). The repair drops the capture; behavior is identical.
 
-**Now:** B34 repair checkpoint — awaiting the exact-head GitHub Actions run on the repaired head.
+Exact-head GitHub Actions run `31576683772` is green for repaired full SHA
+`cd2f781ff570d65d6fdd3f91f5cc4d55d27114a1` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B34 is ticked in the backlog.
 
-**Next:** on green, tick B34 in the backlog with SHA + run id (docs-only evidence commit), then B35
-(note duplicate: Ctrl+drag copy-drag + Ctrl+D one grid step later) per the run brief.
+**Now:** B34 certified; B35 (note duplicate) is next per the run brief.
+
+**Next:** B35 — audited: Ctrl+drag on a note becomes a copy-drag (a `copy` flag on the piano drag
+state, mirroring the timeline Alt+drag law) landing one fresh-id AddNote at the snapped target
+tick; Ctrl+D is taken by clip duplicate, so it goes context-sensitive in the Piano Roll and lands
+the copy one grid step later through a new `PianoRollNoteDuplicate` action (free Alt+Shift+D)
+dispatchable payload-free; refusals (copy past the clip window) are honest no-ops.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
