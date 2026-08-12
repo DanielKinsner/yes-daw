@@ -617,14 +617,21 @@ Exact-head GitHub Actions run `31557950879` is green for full SHA
 `4f98a3023a3bf27d87e7ab2373f004ee597b04eb` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B25 is ticked in the backlog.
 
-**Now:** commit and push only the B25 evidence checkpoint, then the CI-speed checkpoint (sccache
-compiler caching + docs-only fast path in `ci.yml`, with the overnight run brief in
-`docs/goals/2026-08-11-overnight-backlog-run-brief.md`), which must prove itself with its own full
-nine-job green run before any further work.
+The B25 evidence handoff `a7f10f7` is exact-head green across all nine jobs in run `31559629752`.
+
+**CI-speed checkpoint (`fbfb6ae`):** sccache compiler caching (GitHub Actions cache backend) now
+fronts the compilers on the six heavy build jobs, and a conservative classifier lets a push whose
+entire diff is `docs/` or `*.md` skip the build jobs — such a tree is code-identical to its
+already-certified parent; PRs, first commits, and anything unrecognized run the full matrix. The
+new pipeline proved itself cold in exact-head run `31559643241`: green across the classifier and
+all nine jobs. Warm-cache code runs and docs-only evidence runs are expected to drop from ~27
+minutes to single digits / under a minute respectively; the first B26 runs are the measurement.
+The overnight run brief for items 26–41 is `docs/goals/2026-08-11-overnight-backlog-run-brief.md`.
+
+**Now:** stop at the completed B25 + CI-speed checkpoints. B26 is untouched.
 
 **Next:** an overnight agent starts B26 per the run brief — only after `git pull --rebase` and the
-required STATUS/backlog reread and shipped-boundary audit. B26 must not start before the CI-speed
-head is green.
+required STATUS/backlog reread and shipped-boundary audit.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
