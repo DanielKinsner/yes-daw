@@ -70,6 +70,11 @@ struct TimelineCanvasState
     // Vertical track scroll (E5): whole lane rows above the viewport. Geometry clamps this and
     // publishes the pixel offset every paint/hit/gesture consumer shares.
     int trackScrollRows = 0;
+
+    // Transport loop brace (E6): painted on the upper ruler band and draggable by its handles.
+    bool loopActive = false;
+    double loopStartSeconds = 0.0;
+    double loopEndSeconds = 0.0;
 };
 
 struct TimelineCanvasPaintStats
@@ -576,6 +581,47 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     return geometry;
 }
 
+// Transport loop brace (E6): one geometry law shared by the painter and the ruler gesture
+// hit-test, so the drag handles can never drift from the painted brace.
+struct TimelineLoopBraceRects
+{
+    bool valid = false;
+    juce::Rectangle<int> band;
+    juce::Rectangle<int> startHandle;
+    juce::Rectangle<int> endHandle;
+};
+
+inline TimelineLoopBraceRects timelineLoopBraceRects (juce::Rectangle<int> area,
+                                                      const TimelineCanvasState& state)
+{
+    TimelineLoopBraceRects rects;
+    if (! state.loopActive || state.loopEndSeconds <= state.loopStartSeconds)
+        return rects;
+
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const double pps = geometry.viewport.pixelsPerSecond;
+    const int startX = geometry.clipArea.getX()
+                     + juce::roundToInt ((state.loopStartSeconds - geometry.viewport.scrollSeconds) * pps);
+    const int endX = geometry.clipArea.getX()
+                   + juce::roundToInt ((state.loopEndSeconds - geometry.viewport.scrollSeconds) * pps);
+    const int left = std::max (geometry.clipArea.getX(), std::min (startX, endX));
+    const int right = std::min (geometry.clipArea.getRight(), std::max (startX, endX));
+    if (right <= left)
+        return rects;
+
+    rects.valid = true;
+    rects.band = { left, geometry.rulerArea.getY(), right - left,
+                   UiTheme::Layout::timelineCanvasLoopBraceHeight };
+    rects.startHandle = { left, geometry.rulerArea.getY(),
+                          UiTheme::Layout::timelineCanvasLoopHandleWidth,
+                          UiTheme::Layout::timelineCanvasLoopBraceHeight };
+    rects.endHandle = { right - UiTheme::Layout::timelineCanvasLoopHandleWidth,
+                        geometry.rulerArea.getY(),
+                        UiTheme::Layout::timelineCanvasLoopHandleWidth,
+                        UiTheme::Layout::timelineCanvasLoopBraceHeight };
+    return rects;
+}
+
 inline TimelineHitTestResult hitTestTimelineCanvas (juce::Rectangle<int> area,
                                                     const TimelineCanvasState& state,
                                                     juce::Point<int> position)
@@ -615,6 +661,17 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, vp, laneHeight);
     drawRangeSelection (g, ruler, clipArea, state, vp);
+
+    // Transport loop brace (E6): accent band across the upper ruler with brighter end handles.
+    if (const TimelineLoopBraceRects loopRects = timelineLoopBraceRects (area, state); loopRects.valid)
+    {
+        g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+        g.fillRect (loopRects.band);
+        g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::focusRingAlpha));
+        g.fillRect (loopRects.startHandle);
+        g.fillRect (loopRects.endHandle);
+        g.drawRect (loopRects.band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+    }
 
     std::array<ElementRect, kVisibleClipCapacity> visible {};
     if (state.clips != nullptr && state.clipCount > 0)

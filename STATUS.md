@@ -185,10 +185,16 @@ culling attempt dropped it to 126, below the policy's 250 floor, and was rejecte
 gate: sustained 15.72ms → **8.80ms**, slow_frames 0, max_visible_clips 336 ≥ 250, all three GPU
 cases green; full local suite green **348/348** (owner record restored byte-identical).
 
-**Now:** pushing the E5 repair; exact-head nine-job green required on the repair head, then E5
-certifies and E6 (loop brace, locally green 348/348) commits.
+E5 is certified: feature `7728f83` + repair `dd1e32f`; exact-head GitHub Actions run
+`31628338076` is green for full SHA `dd1e32fa645b735514253d6e842caff052caffa6` across all nine
+jobs. Full local ctest green **348/348** on both heads (owner record isolated/restored
+byte-identical each time). E5 is ticked in the backlog.
 
-**Next:** certify E5, commit E6, then E7 (marker move + rename).
+**Now:** committing E6 (loop brace editing — implementation + `[loop-brace]` gate locally green,
+full suite 348/348 already run pre-repair; re-verified after the repair rebase of the shared
+canvas headers).
+
+**Next:** E7 (marker move + rename).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

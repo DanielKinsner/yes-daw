@@ -525,6 +525,9 @@ struct UiTheme
         // Vertical track scroll (E5): when tracks overflow the viewport, lanes hold this fixed
         // row height and the shared row offset scrolls them; few tracks still stretch to fill.
         static constexpr int timelineCanvasLaneRowHeight = 36;
+        // Transport loop brace (E6): the band on the upper ruler and its end drag handles.
+        static constexpr int timelineCanvasLoopBraceHeight = 12;
+        static constexpr int timelineCanvasLoopHandleWidth = 8;
         static constexpr double timelineZoomWheelStep = 1.25;
         // Zoom tool (E3): one click doubles the zoom (Alt+click halves it) through the same
         // anchored viewport math as Ctrl+wheel.
