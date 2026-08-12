@@ -341,7 +341,25 @@ E12 is certified: exact-head GitHub Actions run `31639813947` green for full SHA
 the day's recurring sccache-503 infra outage — every red died in the sccache setup step before
 any compile); full local ctest green **348/348**. E12 is ticked in the backlog.
 
-**Now:** E13 (velocity lane editing) — audited and design-locked; implementing.
+**E13 implementation candidate — velocity lane editing:** audited before changing: the velocity
+expression lane was read-only paint and the only velocity edit anywhere was single-note
+Alt+wheel. A drag in the velocity lane now paints velocities: the lane press maps x back to
+ticks with the grid's time law and y back to a velocity by inverting the lane paint's value law
+(both input and paint share the same theme tokens); every note whose COLUMN (its span) overlaps
+the swept tick range takes the drag line's velocity at its own start tick (a real ramp, clamped
+at the segment ends), and when a crossed note is selected the WHOLE selection paints together —
+all through the new `paintPianoRollNoteVelocities` batch verb, one undo transaction per gesture
+(an unknown note or out-of-range velocity refuses the whole batch). The gesture anchors through
+the E12 gesture-select so a marquee'd group survives the paint. Escape cancels an in-flight lane
+drag. Alt+wheel single-note velocity is untouched. The shipped-boundary `[roll-velocity]` gate
+FAILED before the product change (27 assertions in, at the inert lane drag) and passes after
+with 57 assertions on the frame-scale seeded project: a no-selection ramp painting BOTH notes at
+their own ramp values restored by one Ctrl+Z, and a marquee'd group paint from a drag over only
+one note's column that still paints both (the off-column note clamps to the segment end),
+restored by one Ctrl+Z.
+
+**Now:** E13 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E14 (FX reorder from the UI).
 

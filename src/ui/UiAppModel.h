@@ -1895,6 +1895,44 @@ public:
                                                          normalizedVelocity));
     }
 
+    // E13: the velocity-lane drag paints a batch of note velocities as ONE undo transaction; an
+    // unknown note or an out-of-range velocity refuses the whole batch.
+    [[nodiscard]] UiActionDispatchResult paintPianoRollNoteVelocities (
+        engine::EntityId midiClipId,
+        std::span<const std::pair<engine::EntityId, double>> edits)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSetVelocity;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        if (midiClip == nullptr || edits.empty())
+            return { id, { false, "velocity paint needs a MIDI Clip and at least one note" }, false };
+        for (const auto& [noteId, velocity] : edits)
+            if (findNote (*midiClip, noteId) == nullptr || velocity < 0.0 || velocity > 1.0)
+                return { id, { false, "velocity paint targets must exist with velocities in 0..1" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        for (const auto& [noteId, velocity] : edits)
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::setNoteVelocity (
+                                      midiClipId, noteId, velocity)).applied())
+                return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "velocity paint did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNoteTo (engine::SnapGrid grid)
     {
         const UiActionId id = UiActionId::PianoRollNoteQuantize;

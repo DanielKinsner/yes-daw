@@ -829,6 +829,36 @@ yesdaw::engine::Tick pianoRollDeltaTicksForPixels (juce::Component& pianoRoll,
     return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
 }
 
+// E13: the velocity lane rect and its two mapping laws, mirroring the shipped inset chain.
+juce::Rectangle<int> pianoRollVelocityLaneBounds (juce::Component& pianoRoll)
+{
+    auto area = pianoRoll.getLocalBounds();
+    area.removeFromTop (38);
+    area.reduce (12, 8);
+    auto expression = area.removeFromBottom (84);
+    expression = expression.reduced (0, 6);
+    return expression.removeFromTop (36).reduced (0, 2);
+}
+
+yesdaw::engine::Tick pianoRollTickForLaneX (juce::Component& pianoRoll,
+                                            const yesdaw::engine::MidiClip& midiClip,
+                                            int x)
+{
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const double normalized = std::clamp (
+        static_cast<double> (x - grid.getX()) / static_cast<double> (std::max (1, grid.getWidth())),
+        0.0, 1.0);
+    return static_cast<yesdaw::engine::Tick> (
+        std::llround (normalized * static_cast<double> (std::max<yesdaw::engine::Tick> (1, midiClip.timelineLength))));
+}
+
+double pianoRollVelocityForLaneYPixel (juce::Rectangle<int> lane, int y)
+{
+    const double usable = static_cast<double> (std::max (1, lane.getHeight() - 10));
+    const double bottom = static_cast<double> (lane.getBottom() - 5);
+    return std::clamp ((bottom - static_cast<double> (y)) / usable, 0.0, 1.0);
+}
+
 } // namespace
 
 TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][input][shell]")
@@ -6639,6 +6669,108 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     REQUIRE (movedPencilled.startTick != pencilled.startTick);
     REQUIRE (movedPencilled.lengthTicks == pencilled.lengthTicks);
     REQUIRE (movedPencilled.key == pencilled.key);
+}
+
+TEST_CASE ("velocity lane drags paint crossed notes and the selection paints together",
+           "[ui][input][shell][pianoroll][roll-velocity]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-velocity");
+
+    yesdaw::engine::Project seed = makeMidiInputProject();
+    seed.midiClips.front().timelineLength = 384000;
+    seed.midiClips.front().notes = {
+        makeMidiInputNote (idFromLowByte (4), 50000, 48000, 60, 0.55),
+        makeMidiInputNote (idFromLowByte (5), 200000, 48000, 64, 0.82)
+    };
+    writeProjectSnapshot (bundlePath, seed);
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const juce::Rectangle<int> lane = pianoRollVelocityLaneBounds (pianoRoll);
+    const yesdaw::engine::MidiClip midi = readProjectSnapshot (bundlePath).midiClips.front();
+    REQUIRE (midi.notes.size() == 2u);
+    const yesdaw::engine::Note noteA = midi.notes[0];
+    const yesdaw::engine::Note noteB = midi.notes[1];
+    const auto noteById = [&] (yesdaw::engine::EntityId noteId) {
+        const std::vector<yesdaw::engine::Note> notes =
+            readProjectSnapshot (bundlePath).midiClips.front().notes;
+        for (const yesdaw::engine::Note& note : notes)
+            if (note.id == noteId)
+                return note;
+        FAIL ("note missing");
+        return yesdaw::engine::Note {};
+    };
+    const auto rampVelocity = [] (yesdaw::engine::Tick tick,
+                                  yesdaw::engine::Tick tickFrom, double velocityFrom,
+                                  yesdaw::engine::Tick tickTo, double velocityTo) {
+        if (tickTo == tickFrom)
+            return velocityTo;
+        const double t = std::clamp (static_cast<double> (tick - tickFrom)
+                                         / static_cast<double> (tickTo - tickFrom),
+                                     0.0, 1.0);
+        return velocityFrom + t * (velocityTo - velocityFrom);
+    };
+
+    // RAMP paint with NO selection: the drag crosses both note columns; each note takes the
+    // ramp's velocity at its own start tick — one undo transaction.
+    const juce::Point<int> rampFrom = { grid.getX() + grid.getWidth() / 8, lane.getBottom() - 6 };
+    const juce::Point<int> rampTo = { grid.getX() + grid.getWidth() * 5 / 8, lane.getY() + 6 };
+    const yesdaw::engine::Tick rampFromTick = pianoRollTickForLaneX (pianoRoll, midi, rampFrom.x);
+    const yesdaw::engine::Tick rampToTick = pianoRollTickForLaneX (pianoRoll, midi, rampTo.x);
+    const double rampFromVelocity = pianoRollVelocityForLaneYPixel (lane, rampFrom.y);
+    const double rampToVelocity = pianoRollVelocityForLaneYPixel (lane, rampTo.y);
+    REQUIRE (rampFromTick < noteA.startTick);
+    REQUIRE (rampToTick > noteB.startTick);
+    dragFromTo (pianoRoll, rampFrom, rampTo);
+    yesdaw::engine::Note painted = noteById (noteA.id);
+    REQUIRE (painted.normalizedVelocity
+             == Catch::Approx (rampVelocity (noteA.startTick, rampFromTick, rampFromVelocity,
+                                             rampToTick, rampToVelocity)).margin (1e-9));
+    REQUIRE (painted.normalizedVelocity != Catch::Approx (noteA.normalizedVelocity).margin (1e-9));
+    yesdaw::engine::Note paintedB = noteById (noteB.id);
+    REQUIRE (paintedB.normalizedVelocity
+             == Catch::Approx (rampVelocity (noteB.startTick, rampFromTick, rampFromVelocity,
+                                             rampToTick, rampToVelocity)).margin (1e-9));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (noteById (noteA.id).normalizedVelocity == Catch::Approx (0.55).margin (1e-9));
+    REQUIRE (noteById (noteB.id).normalizedVelocity == Catch::Approx (0.82).margin (1e-9));
+
+    // GROUP paint: marquee both notes, then drag ONLY over noteA's column — because a crossed
+    // note is selected the WHOLE selection paints together, undone by one Ctrl+Z.
+    dragFromTo (pianoRoll,
+                { grid.getX() + 2, grid.getBottom() - 2 },
+                { grid.getRight() - 2, grid.getY() + 2 });
+    REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+    const juce::Point<int> groupFrom = { grid.getX() + grid.getWidth() / 6, lane.getBottom() - 8 };
+    const juce::Point<int> groupTo = { grid.getX() + grid.getWidth() / 5, lane.getY() + 8 };
+    const yesdaw::engine::Tick groupFromTick = pianoRollTickForLaneX (pianoRoll, midi, groupFrom.x);
+    const yesdaw::engine::Tick groupToTick = pianoRollTickForLaneX (pianoRoll, midi, groupTo.x);
+    const double groupFromVelocity = pianoRollVelocityForLaneYPixel (lane, groupFrom.y);
+    const double groupToVelocity = pianoRollVelocityForLaneYPixel (lane, groupTo.y);
+    REQUIRE (groupFromTick > noteA.startTick);
+    REQUIRE (groupToTick < noteA.startTick + noteA.lengthTicks);
+    REQUIRE (groupToTick < noteB.startTick);
+    dragFromTo (pianoRoll, groupFrom, groupTo);
+    painted = noteById (noteA.id);
+    REQUIRE (painted.normalizedVelocity
+             == Catch::Approx (rampVelocity (noteA.startTick, groupFromTick, groupFromVelocity,
+                                             groupToTick, groupToVelocity)).margin (1e-9));
+    paintedB = noteById (noteB.id);
+    REQUIRE (paintedB.normalizedVelocity
+             == Catch::Approx (rampVelocity (noteB.startTick, groupFromTick, groupFromVelocity,
+                                             groupToTick, groupToVelocity)).margin (1e-9));
+    REQUIRE (paintedB.normalizedVelocity == Catch::Approx (groupToVelocity).margin (1e-9));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (noteById (noteA.id).normalizedVelocity == Catch::Approx (0.55).margin (1e-9));
+    REQUIRE (noteById (noteB.id).normalizedVelocity == Catch::Approx (0.82).margin (1e-9));
 }
 
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
