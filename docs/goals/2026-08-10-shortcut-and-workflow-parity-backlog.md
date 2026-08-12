@@ -153,9 +153,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     green). Unique `Ctrl+Right` / `Ctrl+Left` actions locate the strictly next/previous persisted
     Marker without wrapping; the real-input reopen gate proves exact Marker frames, honest end
     no-ops, and distinct audible playback at both positions.
-25. **Ruler range selection** — plain drag on the ruler (no Shift) selects a time range
-    (paint it); Shift+L converts range → loop region; range doubles as the export
-    "Loop Region" source when set.
+25. [x] **Ruler range selection** — landed in `4f98a30` (exact-head run `31557950879`, nine jobs
+    green). Plain ruler drag selects a painted transient time range (click still locates and
+    collapses it; Escape cancels a drag); unique `Shift+L` converts the range to the real transport
+    loop; the export "Loop Region" source prefers the range when set. The shipped-boundary gate
+    proves the sliced export is sample-identical to the whole-Project slice and `project.db` stays
+    byte-identical because the range is honestly transient.
 
 ## C. Tracks, mixer, MIDI, polish
 

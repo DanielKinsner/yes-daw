@@ -613,11 +613,18 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 accessibility, theme audit, screenshots, native input, and the GPU gate. The owner's real
 last-project record was isolated for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** commit and push only the B25 implementation checkpoint.
+Exact-head GitHub Actions run `31557950879` is green for full SHA
+`4f98a3023a3bf27d87e7ab2373f004ee597b04eb` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B25 is ticked in the backlog.
 
-**Next:** require the exact B25 implementation head green across all nine jobs; cancelled or
-incomplete runs do not count. Only then tick B25 in a separate evidence checkpoint; B26 must not
-start early.
+**Now:** commit and push only the B25 evidence checkpoint, then the CI-speed checkpoint (sccache
+compiler caching + docs-only fast path in `ci.yml`, with the overnight run brief in
+`docs/goals/2026-08-11-overnight-backlog-run-brief.md`), which must prove itself with its own full
+nine-job green run before any further work.
+
+**Next:** an overnight agent starts B26 per the run brief — only after `git pull --rebase` and the
+required STATUS/backlog reread and shipped-boundary audit. B26 must not start before the CI-speed
+head is green.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
