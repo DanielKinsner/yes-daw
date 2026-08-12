@@ -406,9 +406,25 @@ E15 is certified: exact-head GitHub Actions run `31644849599` green for full SHA
 rerun of the sccache outage); full local ctest green **348/348** (owner file isolated +
 restored, SHA verified). E15 is ticked in the backlog.
 
-**Now:** E16 (bus strips are real strips) — audited: new engine `SetBusMixScalars` verb in the
-bus diff family + property arm, `selectMixerBus`, bus branch in the strip click law, undoable
-bus scalar edits, control lane reads the SELECTED strip, `[bus-strip]` gate.
+**E16 implementation candidate — bus strips are real strips:** audited before changing: bus
+strips could not even be SELECTED (the strip click law dropped indexes past trackCount), the
+model's Bus branches (`selectedMixerStrip`, `selectedMixerOwnerId`) were dead code, and the
+control lane always displayed track 0's values. New engine verb `SetBusMixScalars` mirrors
+`SetTrackMixScalars` (same trivially-copyable payload, joins the whole-vector bus diff family;
+randomized property test grew a `pick(22)` arm with unknown-bus no-op contract). The strip
+click law now routes strips past the tracks to the new `selectMixerBus`; fader/pan/mute/solo on
+a selected bus go through the UNDOABLE verb (`editSelectedScalarStrip` routes by target kind —
+tracks keep the historical direct edit until E21); the FX chain verbs work on the bus through
+the already-owner-aware plumbing; the control lane reads the SELECTED strip (track or bus, with
+the historical track-0 fallback) and follows its display ordinal; the send chooser is disabled
+for a bus target (honest scope: the engine has no bus-side send rows — sends stay track-only).
+The shipped-boundary `[bus-strip]` gate FAILED before (29 in — the send chooser stayed enabled
+on a bus and nothing else could land) and passes after with 84 assertions: a real overlay click
+on the bus strip, four scalar edits persisted ON THE BUS (track untouched) each undone in
+reverse order, EQ add/bypass/param/remove all landing on the bus chain, and the remove undone.
+
+**Now:** E16 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E17 (bus rename + remove from the UI).
 

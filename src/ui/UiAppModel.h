@@ -1993,6 +1993,54 @@ public:
         return true;
     }
 
+    // E16: bus strips are selectable mixer targets, exactly like tracks.
+    [[nodiscard]] bool selectMixerBus (std::size_t index, bool showMixerPanel = true) noexcept
+    {
+        if (! context_.projectLoaded || index >= project_.buses.size())
+        {
+            clearMixerTargetSelection();
+            return false;
+        }
+
+        selectedMixerTarget_ = { MixerTargetKind::Bus, index };
+        context_.mixerTargetSelected = true;
+        if (showMixerPanel)
+            context_.activePanel = UiPanel::Mixer;
+        return true;
+    }
+
+    // E16: the selected strip (track OR bus) for UI display; nullptr without a selection.
+    [[nodiscard]] const engine::MixerStripState* selectedMixerStripView() const noexcept
+    {
+        if (! context_.mixerTargetSelected)
+            return nullptr;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Track)
+            return selectedMixerTarget_.index < project_.tracks.size()
+                ? &project_.tracks[selectedMixerTarget_.index].strip
+                : nullptr;
+
+        return selectedMixerTarget_.index < project_.buses.size()
+            ? &project_.buses[selectedMixerTarget_.index].strip
+            : nullptr;
+    }
+
+    // E16: the selected strip's display ordinal (tracks first, then buses) for lane placement.
+    [[nodiscard]] int selectedMixerStripOrdinal() const noexcept
+    {
+        if (! context_.mixerTargetSelected)
+            return -1;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Track)
+            return selectedMixerTarget_.index < project_.tracks.size()
+                ? static_cast<int> (selectedMixerTarget_.index)
+                : -1;
+
+        return selectedMixerTarget_.index < project_.buses.size()
+            ? static_cast<int> (project_.tracks.size() + selectedMixerTarget_.index)
+            : -1;
+    }
+
     [[nodiscard]] UiActionDispatchResult setSelectedMixerFader (float linearGain)
     {
         const UiActionId id = UiActionId::MixerTargetSetFader;
@@ -2003,7 +2051,7 @@ public:
         if (! engine::mixerGainIsValid (linearGain))
             return { id, { false, "invalid mixer fader" }, false };
 
-        return editSelectedMixerStrip (id, state, [linearGain] (engine::MixerStripState& strip) {
+        return editSelectedScalarStrip (id, state, [linearGain] (engine::MixerStripState& strip) {
             strip.linearGain = linearGain;
         });
     }
@@ -2018,7 +2066,7 @@ public:
         if (! engine::mixerPanIsValid (pan))
             return { id, { false, "invalid mixer pan" }, false };
 
-        return editSelectedMixerStrip (id, state, [pan] (engine::MixerStripState& strip) {
+        return editSelectedScalarStrip (id, state, [pan] (engine::MixerStripState& strip) {
             strip.pan = pan;
         });
     }
@@ -2030,7 +2078,7 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        return editSelectedMixerStrip (id, state, [] (engine::MixerStripState& strip) {
+        return editSelectedScalarStrip (id, state, [] (engine::MixerStripState& strip) {
             strip.muted = ! strip.muted;
         });
     }
@@ -2042,7 +2090,7 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        return editSelectedMixerStrip (id, state, [] (engine::MixerStripState& strip) {
+        return editSelectedScalarStrip (id, state, [] (engine::MixerStripState& strip) {
             strip.soloed = ! strip.soloed;
         });
     }
@@ -5382,6 +5430,44 @@ private:
             return nullptr;
 
         return &project.buses[selectedMixerTarget_.index].strip;
+    }
+
+    // E16: scalar strip edits route by target kind — a selected BUS goes through the undoable
+    // SetBusMixScalars verb; tracks keep the historical direct edit (E21 routes them through
+    // SetTrackMixScalars).
+    template <typename Fn>
+    [[nodiscard]] UiActionDispatchResult editSelectedScalarStrip (UiActionId id,
+                                                                  UiActionState state,
+                                                                  Fn&& fn)
+    {
+        if (context_.mixerTargetSelected && selectedMixerTarget_.kind == MixerTargetKind::Bus)
+        {
+            if (selectedMixerTarget_.index >= project_.buses.size())
+                return { id, { false, "selected mixer target missing" }, false };
+
+            const engine::Bus& bus = project_.buses[selectedMixerTarget_.index];
+            engine::MixerStripState edited = bus.strip;
+            fn (edited);
+
+            engine::Project nextProject = project_;
+            engine::ProjectUndoStack nextUndo = undo_;
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::setBusMixScalars (
+                                      bus.id, edited.linearGain, edited.pan,
+                                      edited.muted, edited.soloed, edited.soloSafe)).applied())
+                return { id, { false, "invalid mixer strip" }, false };
+
+            if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "mixer edit did not persist" }, false };
+
+            context_.mixerTargetSelected = true;
+            context_.activePanel = UiPanel::Mixer;
+            ++context_.commandDispatchCount;
+            ++context_.mixerEditCount;
+            return { id, state, true };
+        }
+
+        return editSelectedMixerStrip (id, state, std::forward<Fn> (fn));
     }
 
     template <typename Fn>

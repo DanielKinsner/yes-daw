@@ -4202,12 +4202,22 @@ private:
         mixerStripsInput.setTitle ("Mixer Strips");
         mixerStripsInput.setTooltip ("Mixer strips: click a strip to retarget the shared controls, click a meter to clear its clip light");
         mixerStripsInput.onStripClicked = [this] (int stripIndex) {
-            const int trackCount = static_cast<int> (currentMixerSurface().tracks.size());
-            if (stripIndex < 0 || stripIndex >= trackCount)
+            const auto surface = currentMixerSurface();
+            const int trackCount = static_cast<int> (surface.tracks.size());
+            const int busCount = static_cast<int> (surface.buses.size());
+            if (stripIndex < 0 || stripIndex >= trackCount + busCount)
                 return;
 
-            (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
-            selectedTrackLane = stripIndex;   // rail selection follows the mixer strip
+            // E16: strips past the tracks are the buses, selectable in their own right.
+            if (stripIndex < trackCount)
+            {
+                (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+                selectedTrackLane = stripIndex;   // rail selection follows the mixer strip
+            }
+            else
+            {
+                (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
+            }
             layoutMixerControls();
             refreshActionState();
             repaint();
@@ -5247,7 +5257,8 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
-        const int selectedStrip = appModel.selectedMixerTrackStripIndex();
+        // E16: the control lane follows the selected strip's display ordinal (tracks, then buses).
+        const int selectedStrip = appModel.selectedMixerStripOrdinal();
         auto lane = mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
                                   yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
@@ -6087,9 +6098,12 @@ private:
             for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
                 mixerSendAddChooser.addItem (juce::String (project.buses[busIndex].strip.name),
                                              static_cast<int> (busIndex) + 1);
+            // E16 honest scope: sends originate on TRACKS only — a selected bus disables the
+            // chooser (the model verb refuses non-track targets regardless).
             const bool sendAddEnabled =
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendAdd, appModel.context()).enabled
-                && ! project.buses.empty();
+                && ! project.buses.empty()
+                && appModel.selectedMixerTrackStripIndex() >= 0;
             mixerSendAddChooser.setEnabled (sendAddEnabled);
 
             const std::vector<yesdaw::engine::SendRow> sends = appModel.selectedTrackSends();
@@ -6465,7 +6479,12 @@ private:
         refreshingMixerControls = true;
         if (projectHasTrack)
         {
-            const auto& strip = project.tracks.front().strip;
+            // E16: the control lane reads the SELECTED strip (track or bus), falling back to the
+            // first track when nothing is targeted (the historical display).
+            const yesdaw::engine::MixerStripState* stripView = appModel.selectedMixerStripView();
+            if (stripView == nullptr)
+                stripView = &project.tracks.front().strip;
+            const auto& strip = *stripView;
             mixerTrackSelect.setButtonText (strip.name.empty() ? "Track 1" : juce::String (strip.name));
             mixerFader.setValue (strip.linearGain, juce::dontSendNotification);
             mixerPan.setValue (strip.pan, juce::dontSendNotification);

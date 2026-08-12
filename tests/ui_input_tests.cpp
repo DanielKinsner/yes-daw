@@ -3990,6 +3990,110 @@ TEST_CASE ("every FX param of every kind is reachable, with choosers for choice 
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[0].normalizedParams.empty());
 }
 
+TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a working FX chain",
+           "[ui][input][shell][mixer][bus-strip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("bus-strip");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    // Click the BUS strip (display order: track 0, then bus 0) through the strips overlay.
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                       strips->getWidth() / 3);   // 1 track + 1 bus + master headroom
+    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+
+    // Honest scope: buses cannot originate sends — the send chooser refuses a bus target.
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    REQUIRE_FALSE (sendChooser->isEnabled());
+
+    // Fader, pan, mute, solo hit the BUS strip persistently AND undoably (the new bus law).
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
+    auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    auto* solo = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_solo"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (pan != nullptr);
+    REQUIRE (mute != nullptr);
+    REQUIRE (solo != nullptr);
+    fader->setValue (0.5, juce::sendNotificationSync);
+    pan->setValue (0.25, juce::sendNotificationSync);
+    clickButton (*mute);
+    clickButton (*solo);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.front().strip.linearGain == 0.5f);
+    REQUIRE (project.buses.front().strip.pan == 0.25f);
+    REQUIRE (project.buses.front().strip.muted);
+    REQUIRE (project.buses.front().strip.soloed);
+    // The track strip stayed untouched — the edits really landed on the bus.
+    REQUIRE (project.tracks.front().strip.linearGain == 1.0f);
+    REQUIRE_FALSE (project.tracks.front().strip.muted);
+
+    // Four bus edits, four undos, each restoring in reverse order.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses.front().strip.soloed);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses.front().strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.pan == 0.0f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.front().strip.linearGain == 1.0f);
+
+    // The FX chain works on the selected bus: add, bypass, param, remove — all persisted there.
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    REQUIRE (fxChooser->isEnabled());
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.front().strip.fxChain.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain.empty());
+
+    auto* toggle0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle"));
+    REQUIRE (toggle0 != nullptr);
+    REQUIRE (toggle0->isVisible());
+    clickButton (*toggle0);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses.front().strip.fxChain.front().enabled);
+
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+    auto* gainParam = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.2"));
+    REQUIRE (gainParam != nullptr);
+    REQUIRE (gainParam->isVisible());
+    gainParam->setValue (0.9, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.front().strip.fxChain.front().normalizedParams.size() == 1u);
+    REQUIRE (project.buses.front().strip.fxChain.front().normalizedParams.front().second
+             == Catch::Approx (0.9));
+    clickButton (*edit0);
+
+    auto* remove0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.remove"));
+    REQUIRE (remove0 != nullptr);
+    clickButton (*remove0);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.fxChain.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.fxChain.size() == 1u);
+}
+
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",
            "[ui][input][shell][timemap]")
 {

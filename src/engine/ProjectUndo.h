@@ -72,7 +72,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E8: MIDI clips as first-class timeline citizens
     MoveMidiClip,
     MoveMidiClipToTrack,
-    RemoveMidiClip
+    RemoveMidiClip,
+    // E16: bus strips are real strips — scalar edits mirror SetTrackMixScalars
+    SetBusMixScalars
 };
 
 struct ProjectEditCommand
@@ -661,6 +663,26 @@ struct ProjectEditCommand
     }
 
     // ADR-0044 send routing factories
+    // E16: bus scalar edits ride the same trivially-copyable payload as the track twin (the
+    // linear gain shares the `gain` field; pan/mute/solo/soloSafe share the track fields).
+    [[nodiscard]] static constexpr ProjectEditCommand setBusMixScalars (EntityId busId,
+                                                                        float linearGain,
+                                                                        float pan,
+                                                                        bool muted,
+                                                                        bool soloed,
+                                                                        bool soloSafe) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetBusMixScalars;
+        command.busId = busId;
+        command.gain = linearGain;
+        command.trackPan = pan;
+        command.trackMuted = muted;
+        command.trackSoloed = soloed;
+        command.trackSoloSafe = soloSafe;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addBus (EntityId busId, std::string_view name) noexcept
     {
         ProjectEditCommand command;
@@ -939,7 +961,8 @@ namespace detail {
 [[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::AddBus
-           || verb == ProjectEditVerb::RemoveBus;
+           || verb == ProjectEditVerb::RemoveBus
+           || verb == ProjectEditVerb::SetBusMixScalars;
 }
 
 [[nodiscard]] constexpr bool isTimeMapEditVerb (ProjectEditVerb verb) noexcept
@@ -1224,6 +1247,15 @@ namespace detail {
                                        command.trackMuted,
                                        command.trackSoloed,
                                        command.trackSoloSafe);
+
+        case ProjectEditVerb::SetBusMixScalars:
+            return setBusMixScalars (project,
+                                     command.busId,
+                                     command.gain,
+                                     command.trackPan,
+                                     command.trackMuted,
+                                     command.trackSoloed,
+                                     command.trackSoloSafe);
 
         case ProjectEditVerb::SetNoteVelocity:
             return setNoteVelocity (project, command.midiClipId, command.noteId, command.noteVelocity);

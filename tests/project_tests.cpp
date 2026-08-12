@@ -2070,7 +2070,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (21))
+            switch (pick (22))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2208,6 +2208,15 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                                 idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                             break;
                     }
+                    break;
+                // E16 bus scalar verb: unknown-bus targets are no-ops by contract like every
+                // family above (the setup bus is id 44).
+                case 21:
+                    command = ProjectEditCommand::setBusMixScalars (
+                        idFromLowByte (pick (2) == 0 ? 44 : static_cast<std::uint8_t> (100 + pick (50))),
+                        static_cast<float> (pick (200)) / 100.0f,
+                        (static_cast<float> (pick (200)) - 100.0f) / 100.0f,
+                        pick (2) == 0, pick (2) == 0, pick (2) == 0);
                     break;
                 default: break;
             }

@@ -2361,6 +2361,40 @@ namespace detail {
     return ProjectEditStatus::TrackNotFound;
 }
 
+// E16: the bus twin of setTrackMixScalars — same validation, targeting a Bus strip.
+[[nodiscard]] inline ProjectEditStatus setBusMixScalars (Project& project,
+                                                         EntityId busId,
+                                                         float linearGain,
+                                                         float pan,
+                                                         bool muted,
+                                                         bool soloed,
+                                                         bool soloSafe)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+        {
+            bus.strip.linearGain = linearGain;
+            bus.strip.pan = pan;
+            bus.strip.muted = muted;
+            bus.strip.soloed = soloed;
+            bus.strip.soloSafe = soloSafe;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::BusNotFound;
+}
+
 [[nodiscard]] inline ProjectEditStatus reorderTrack (Project& project,
                                                      EntityId trackId,
                                                      std::size_t newIndex)
