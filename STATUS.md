@@ -32,7 +32,25 @@ on real takes), with no input chooser, no input meters, metadata-only monitoring
 recording, no take UI, no MIDI recording, and no hardware proof of the shipped record path.
 No gate anywhere exercises a 3+ track project.
 
-**Now:** backlog carved and committed; starting E1 (three-track arrangement proof gates).
+**E1 implementation candidate — three-track arrangement proof gates:** audited the group
+move/clamp law (`moveSelectedTimelineClipToTrack`), the clipboard offset law
+(`makeClipboardForSelection` anchors offsets at the earliest selected clip;
+`addClipsFromClipboard` preserves each entry's own track for multi-clip clipboards), the
+import-to-selected-track path, and the gesture selection law (a plain click on a selected member
+keeps the group for the drag; a real empty click clears it) before writing anything. New
+shipped-boundary `[three-track]` gate (115 assertions) on a REAL 3-track project: import lands on
+the selected middle track at frame zero and on the selected third track at a nonzero located
+playhead; a pointer marquee spans all three lanes; vertical drags of the middle-lane member with
+an all-lane selection clamp to no-ops in both directions; a two-clip selection moves down one
+lane THROUGH the middle lane as one persisted undo step preserving relative track offsets and
+times; project-wide copy/paste at a located playhead preserves each clip's track and relative
+time, audibly changes playback, and one undo restores bit-identical audio. HONEST FINDING: the
+gate passed on its first run — current `main` already implements all four behaviors correctly;
+no defect was flushed out, so this item's value is coverage (the untested middle-lane clamp and
+offset-preservation laws are now pinned).
+
+**Now:** E1 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E2 (group duplicate + group copy-drag).
 

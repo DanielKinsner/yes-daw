@@ -4850,6 +4850,162 @@ TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persist
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
 }
 
+TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
+           "[ui][input][shell][timeline][three-track]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("three-track");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    clickButton (*addTrack);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    const auto railRowCenter = [&] (int row) {
+        return juce::Point<int> { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 };
+    };
+
+    // Import lands on the SELECTED middle track at the playhead (zero), then on the SELECTED third
+    // track at a nonzero located playhead.
+    mouseDownAt (*rail, railRowCenter (1));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    mouseDownAt (*rail, railRowCenter (2));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (locatedFrame > 0);
+    const yesdaw::engine::Tick gridTick = static_cast<yesdaw::engine::Tick> (locatedFrame);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 3u);
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (project.clips[0].trackId == project.tracks[0].id);
+    REQUIRE (project.clips[0].timelineStart == 0);
+    REQUIRE (project.clips[1].trackId == project.tracks[1].id);
+    REQUIRE (project.clips[1].timelineStart == 0);
+    REQUIRE (project.clips[2].trackId == project.tracks[2].id);
+    REQUIRE (project.clips[2].timelineStart == gridTick);
+
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (
+        2 * gridTick + project.clips[2].timelineLength + 256);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // A pointer marquee spans all three lanes.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Rectangle<int> topBounds = timelineClipHitBounds (timeline, project, 0u);
+    const juce::Rectangle<int> midBounds = timelineClipHitBounds (timeline, project, 1u);
+    const juce::Rectangle<int> lowBounds = timelineClipHitBounds (timeline, project, 2u);
+    const juce::Point<int> emptyStart {
+        juce::jmin (lowBounds.getRight() + 2 * yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels,
+                    timeline.getWidth() - 2),
+        lowBounds.getCentreY()
+    };
+    dragFromTo (timeline, emptyStart, { topBounds.getX(), topBounds.getY() });
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+
+    // A vertical drag of the middle-lane member clamps: the selection already spans every lane, so
+    // the group must not change tracks or times in either direction.
+    const yesdaw::engine::Project beforeClamp = readProjectSnapshot (bundlePath);
+    dragFromTo (timeline, midBounds.getCentre(), { midBounds.getCentreX(), lowBounds.getCentreY() });
+    REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    dragFromTo (timeline, midBounds.getCentre(), { midBounds.getCentreX(), topBounds.getCentreY() });
+    REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
+
+    // A two-clip selection on the top two lanes moves down one lane THROUGH the middle lane as one
+    // persisted undo step, preserving relative track offsets and times. A plain click on a selected
+    // member keeps the group (the drag law), so clear via a real empty click first.
+    mouseDownAt (timeline, emptyStart);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+    mouseDownAt (timeline, topBounds.getCentre());
+    mouseDownAt (timeline, midBounds.getCentre(),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                     | juce::ModifierKeys::shiftModifier));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    const yesdaw::engine::EntityId topClipId = beforeClamp.clips[0].id;
+    const yesdaw::engine::EntityId midClipId = beforeClamp.clips[1].id;
+    dragFromTo (timeline, topBounds.getCentre(), { topBounds.getCentreX(), midBounds.getCentreY() });
+    const yesdaw::engine::Project movedDown = readProjectSnapshot (bundlePath);
+    const auto clipById = [] (const yesdaw::engine::Project& snapshot, yesdaw::engine::EntityId clipId)
+        -> const yesdaw::engine::Clip* {
+        const auto match = std::find_if (snapshot.clips.begin(), snapshot.clips.end(), [clipId] (const auto& clip) {
+            return clip.id == clipId;
+        });
+        return match == snapshot.clips.end() ? nullptr : &(*match);
+    };
+    const yesdaw::engine::Clip* const movedTop = clipById (movedDown, topClipId);
+    const yesdaw::engine::Clip* const movedMid = clipById (movedDown, midClipId);
+    REQUIRE (movedTop != nullptr);
+    REQUIRE (movedMid != nullptr);
+    REQUIRE (movedTop->trackId == movedDown.tracks[1].id);
+    REQUIRE (movedMid->trackId == movedDown.tracks[2].id);
+    REQUIRE (movedTop->timelineStart == beforeClamp.clips[0].timelineStart);
+    REQUIRE (movedMid->timelineStart == beforeClamp.clips[1].timelineStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
+
+    // Project-wide copy/paste at a located playhead preserves each clip's track and relative time.
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const auto pasteFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (pasteFrame > 0);
+    const yesdaw::engine::Tick pasteTick = static_cast<yesdaw::engine::Tick> (pasteFrame);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project pasted = readProjectSnapshot (bundlePath);
+    REQUIRE (pasted.clips.size() == 6u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    for (const yesdaw::engine::Clip& original : beforeClamp.clips)
+    {
+        const auto copy = std::find_if (pasted.clips.begin(), pasted.clips.end(), [&] (const auto& clip) {
+            return clip.id != original.id
+                && clip.trackId == original.trackId
+                && clip.timelineStart == pasteTick + original.timelineStart
+                && clip.timelineLength == original.timelineLength
+                && clip.assetId == original.assetId;
+        });
+        REQUIRE (copy != pasted.clips.end());
+    }
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterPaste = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterPaste != beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {
