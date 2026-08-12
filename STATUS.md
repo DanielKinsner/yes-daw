@@ -336,10 +336,14 @@ left-edge head trim with the end fixed, a snapped horizontal move landing on a g
 a Beat-floored pencil, and a narrow pencilled note that MOVES (length unchanged) instead of
 being swallowed by the resize zones.
 
-**Now:** E12 — full local suite green 348/348 (owner file isolated + restored, SHA verified);
-committing, pushing, watching the exact-head nine-job run, then the evidence commit.
+E12 is certified: exact-head GitHub Actions run `31639813947` green for full SHA
+`6df8bdd87332fdb387d295027af5465a0fdf2642` across all nine jobs (after spaced same-head reruns of
+the day's recurring sccache-503 infra outage — every red died in the sccache setup step before
+any compile); full local ctest green **348/348**. E12 is ticked in the backlog.
 
-**Next:** E13 (velocity lane editing).
+**Now:** E13 (velocity lane editing) — audited and design-locked; implementing.
+
+**Next:** E14 (FX reorder from the UI).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

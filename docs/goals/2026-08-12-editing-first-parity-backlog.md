@@ -124,12 +124,17 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     the note marquee, and tool selection became PANEL-PRESERVING (picking a tool no longer kicks
     the user out of the roll). The `[roll-select]` gate failed before (the pointer empty click
     pencilled) and passes after with 59 assertions.
-12. [ ] **E12 — Piano roll drag upgrades.** Note drag ignores deltaY (no pitch drag —
-    `MainComponent.cpp:1176`), collapses multi-selections to one note (`UiAppModel.h:1420-1421`),
-    only the right edge resizes (`:1288-1304`), and move/resize ignore snap entirely. Add vertical
-    pitch drag, group drag of the whole selection (time+pitch, one undo transaction, refusal if any
-    note would leave the clip), left-edge trim, and route move/resize/add through the REAL snap
-    chooser grid instead of the hard-coded `kPianoRollSnapGridTicks`.
+12. [x] **E12 — Piano roll drag upgrades.** Landed in `6df8bdd` (run `31639813947` green for the
+    full SHA across all nine jobs after spaced same-head reruns of the day's sccache-503 outage).
+    A vertical drag transposes (a row is a semitone; pure pitch drags keep the start), a drag on
+    a selected member moves the WHOLE selection by the anchor's snapped tick delta plus the key
+    delta as one undo transaction (refused whole if any member leaves the clip window or the
+    0-127 key range), the LEFT edge trims the note head with the end fixed, and move/resize/
+    pencil follow the REAL snap chooser (Off = raw; the pencil floors to the grid). Flushed a
+    real defect: the 8px edge zones swallowed narrow notes whole (unmovable); edge zones now
+    need `pianoRollNoteEdgeMinGrabWidth` and narrow notes always MOVE. Two legacy roll gates
+    re-pinned to chooser-Off for their raw pixel-exact drags. The `[roll-drag]` gate failed
+    before (inert pitch drag) and passes after with 90 assertions.
 13. [ ] **E13 — Velocity lane editing.** The velocity expression lane is read-only paint
     (`MainComponent.cpp:6322-6372`); the only velocity edit is single-note Alt+wheel. Dragging in
     the velocity lane sets the velocity of the note(s) whose columns the drag crosses (multi-note
