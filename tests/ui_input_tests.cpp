@@ -3829,14 +3829,22 @@ TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][inp
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.timelineZoomFactor > 1.0);
 
-    // Plain wheel scrolls; scroll clamps to zero at the left edge after zooming back out.
+    // E5 wheel map: Shift+wheel scrolls horizontally (the plain wheel scrolls track rows, which
+    // clamps to a no-op on this single-track project); scroll clamps to zero at the left edge
+    // after zooming back out.
     juce::MouseWheelDetails wheelDown {};
     wheelDown.deltaY = -0.4f;
-    juce::MouseEvent plainWheel = makeMouseEvent (timeline, centre, centre, false, 1, juce::ModifierKeys {});
-    timeline.mouseWheelMove (plainWheel, wheelDown);
+    juce::MouseEvent shiftWheel = makeMouseEvent (timeline, centre, centre, false, 1,
+                                                  juce::ModifierKeys (juce::ModifierKeys::shiftModifier));
+    timeline.mouseWheelMove (shiftWheel, wheelDown);
     snapshot = snapshotMainComponent (*shell);
     const double scrolled = snapshot.timelineScrollSeconds;
     REQUIRE (scrolled >= 0.0);
+    juce::MouseEvent plainWheel = makeMouseEvent (timeline, centre, centre, false, 1, juce::ModifierKeys {});
+    timeline.mouseWheelMove (plainWheel, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineTrackScrollRows == 0);
+    REQUIRE (snapshot.timelineScrollSeconds == scrolled);
 
     juce::MouseEvent ctrlWheelOut = makeMouseEvent (timeline, centre, centre, false, 1,
                                                     juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
@@ -3876,9 +3884,10 @@ TEST_CASE ("Ctrl+0 fits the whole Project horizontally without changing Snap",
 
     juce::MouseWheelDetails wheelDown {};
     wheelDown.deltaY = -0.4f;
-    const juce::MouseEvent plainWheel = makeMouseEvent (
-        timeline, centre, centre, false, 1, juce::ModifierKeys {});
-    timeline.mouseWheelMove (plainWheel, wheelDown);
+    const juce::MouseEvent shiftWheel = makeMouseEvent (
+        timeline, centre, centre, false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::shiftModifier));
+    timeline.mouseWheelMove (shiftWheel, wheelDown);
 
     const MainComponentSnapshot zoomed = snapshotMainComponent (*shell);
     REQUIRE (zoomed.timelineZoomFactor > 1.0);
@@ -3945,9 +3954,10 @@ TEST_CASE ("Ctrl+Shift+0 fits the current loop region with exact viewport math",
 
     juce::MouseWheelDetails wheelDown {};
     wheelDown.deltaY = -0.4f;
-    const juce::MouseEvent plainWheel = makeMouseEvent (
-        timeline, centre, centre, false, 1, juce::ModifierKeys {});
-    timeline.mouseWheelMove (plainWheel, wheelDown);
+    const juce::MouseEvent shiftWheel = makeMouseEvent (
+        timeline, centre, centre, false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::shiftModifier));
+    timeline.mouseWheelMove (shiftWheel, wheelDown);
     const MainComponentSnapshot beforeFit = snapshotMainComponent (*shell);
 
     const double loopStartSeconds = static_cast<double> (loopSet.playbackLoopStartFrame)
@@ -5554,6 +5564,116 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     }
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+}
+
+TEST_CASE ("vertical track scroll reaches and edits the last track of a deep project",
+           "[ui][input][shell][timeline][vertical-scroll]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("vertical-scroll");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    constexpr int kTrackCount = 18;
+    for (int i = 1; i < kTrackCount; ++i)
+        clickButton (*addTrack);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == static_cast<std::size_t> (kTrackCount));
+
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+
+    const MainComponentSnapshot base = snapshotMainComponent (*shell);
+    const int maxRows = base.timelineMaxTrackScrollRows;
+    REQUIRE (maxRows > 0);
+    REQUIRE (base.timelineTrackScrollRows == 0);
+
+    // The timeline lane law: fixed rows once the viewport overflows. Replicate the geometry to
+    // prove the last lane is OFF-SCREEN before scrolling and exactly reachable after.
+    yesdaw::ui::TimelineCanvasState laneState;
+    laneState.trackCount = kTrackCount;
+    const yesdaw::ui::TimelineCanvasGeometry unscrolled =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), laneState);
+    REQUIRE (unscrolled.laneHeight >= yesdaw::ui::UiTheme::Layout::timelineCanvasLaneRowHeight);
+    REQUIRE (unscrolled.clipArea.getY() + kTrackCount * unscrolled.laneHeight
+             > unscrolled.clipArea.getBottom());
+
+    // Plain wheel scrolls vertically and clamps at both ends; the project file never changes.
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
+    const juce::MouseEvent plainWheel = makeMouseEvent (timeline, centre, centre, false, 1, juce::ModifierKeys {});
+    for (int i = 0; i < maxRows + 3; ++i)
+        timeline.mouseWheelMove (plainWheel, wheelDown);
+    REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows == maxRows);
+    for (int i = 0; i < maxRows + 3; ++i)
+        timeline.mouseWheelMove (plainWheel, wheelUp);
+    REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows == 0);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // The rail shares the offset: wheel the RAIL to the bottom, click the last row, and the next
+    // import lands on the LAST track at the playhead.
+    const juce::MouseEvent railWheel = makeMouseEvent (
+        *rail, { rail->getWidth() / 2, rail->getHeight() / 2 },
+        { rail->getWidth() / 2, rail->getHeight() / 2 }, false, 1, juce::ModifierKeys {});
+    for (int i = 0; i < maxRows + 3; ++i)
+        rail->mouseWheelMove (railWheel, wheelDown);
+    REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows == maxRows);
+
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int railRowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          (rail->getHeight() - headerHeight) / kTrackCount);
+    const int railVisibleRows = std::max (1, (rail->getHeight() - headerHeight) / railRowHeight);
+    const int railMaxRows = std::max (0, kTrackCount - railVisibleRows);
+    const int railEffectiveRows = std::min (maxRows, railMaxRows);
+    const int lastRowY = headerHeight + (kTrackCount - 1 - railEffectiveRows) * railRowHeight
+                       + railRowHeight / 2;
+    REQUIRE (lastRowY < rail->getHeight());
+    mouseDownAt (*rail, { rail->getWidth() / 2, lastRowY });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 2u);
+    REQUIRE (imported.clips[1].trackId == imported.tracks[kTrackCount - 1].id);
+    REQUIRE (imported.clips[1].timelineStart == 0);
+
+    // The scrolled timeline hit-tests the last lane: drag its clip and the move persists snapped.
+    const int timelineEffectiveRows = std::min (
+        snapshotMainComponent (*shell).timelineTrackScrollRows, unscrolled.maxTrackScrollRows);
+    const int lastLaneY = unscrolled.clipArea.getY()
+                        + (kTrackCount - 1 - timelineEffectiveRows) * unscrolled.laneHeight
+                        + unscrolled.laneHeight / 2;
+    REQUIRE (lastLaneY < unscrolled.clipArea.getBottom());
+    // The clip's horizontal extent is untouched by vertical scroll; only its lane row moved.
+    const juce::Point<int> lastClipPoint {
+        timelineClipHitBounds (timeline, imported, 1u).getCentreX(), lastLaneY
+    };
+    dragFromTo (timeline, lastClipPoint,
+                { lastClipPoint.x + timeline.getWidth() / 3, lastClipPoint.y });
+    const yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    const auto movedClip = std::find_if (moved.clips.begin(), moved.clips.end(), [&] (const auto& clip) {
+        return clip.id == imported.clips[1].id;
+    });
+    REQUIRE (movedClip != moved.clips.end());
+    REQUIRE (movedClip->trackId == imported.tracks[kTrackCount - 1].id);
+    REQUIRE (movedClip->timelineStart > 0);
+    const auto movedSnapshot = snapshotMainComponent (*shell);
+    REQUIRE (movedSnapshot.context.snapEnabled);
+    REQUIRE (movedClip->timelineStart % movedSnapshot.context.snapGridTicks == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == imported.clips);
 }
 
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",

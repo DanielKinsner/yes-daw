@@ -61,6 +61,8 @@ struct MainComponentSnapshot
     long long timelineRangeEndFrame = -1;
     double timelineZoomFactor = 1.0;
     double timelineScrollSeconds = 0.0;
+    int timelineTrackScrollRows = 0;
+    int timelineMaxTrackScrollRows = 0;
     int visibleTimelineTrackCount = 0;
     int visibleTimelineClipCount = 0;
     std::string visibleFirstTimelineClipName;

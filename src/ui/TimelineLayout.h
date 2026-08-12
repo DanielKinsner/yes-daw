@@ -34,6 +34,7 @@ struct Viewport
     double pixelsPerSecond  = UiThemeLayout::timelineLayoutDefaultPixelsPerSecond;     // horizontal zoom
     double widthPixels      = UiThemeLayout::timelineLayoutDefaultWidthPixels;
     double laneHeightPixels = UiThemeLayout::timelineLayoutDefaultLaneHeightPixels;    // each lane's row height (lane 0 at y=0)
+    double laneScrollPixels = UiThemeLayout::timelineLayoutZeroFloor;                  // vertical scroll: pixels of lane rows above the window (E5)
 };
 
 // One on-screen rectangle to draw, in pixels, clipped to the viewport's left/right edges.
@@ -87,7 +88,7 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         ElementRect& r = out[count++];
         r.id = c.id;
         r.x  = (float) xPx;
-        r.y  = (float) (c.lane * vp.laneHeightPixels);
+        r.y  = (float) (c.lane * vp.laneHeightPixels - vp.laneScrollPixels);
         r.w  = (float) wPx;
         r.h  = (float) vp.laneHeightPixels;
     }
@@ -136,7 +137,7 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
         if (xPx + wPx > vp.widthPixels) wPx = vp.widthPixels - xPx;
         wPx = std::max (wPx, UiThemeLayout::timelineLayoutZeroFloor);
 
-        const double yPx = static_cast<double> (c.lane) * vp.laneHeightPixels;
+        const double yPx = static_cast<double> (c.lane) * vp.laneHeightPixels - vp.laneScrollPixels;
         if (xPixels >= xPx
             && xPixels < xPx + wPx
             && yPixels >= yPx

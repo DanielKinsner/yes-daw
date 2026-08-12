@@ -136,10 +136,26 @@ byte-identical). Exact-head GitHub Actions run `31624516457` is green for full S
 day's recurring GitHub sccache-setup outage ("socket hang up" before any compile) twice and went
 green on a same-head rerun — no product or test change was involved. E4 is ticked in the backlog.
 
-**Now:** E5 (vertical track scroll) — implementation in the working tree: shared whole-row
-offset across timeline lanes and the rail, plain-wheel vertical / Shift+wheel horizontal /
-Ctrl+wheel zoom, fixed 36px lane rows on overflow, per-surface clamp so both surfaces' last rows
-pin to their window bottoms.
+**E5 implementation candidate — vertical track scroll:** audited before adding: no vertical
+scroll existed anywhere; timeline lanes shrank to an 8px floor and clipped, and rail rows past
+the window bottom were unreachable. A shared whole-row scroll offset now moves the timeline
+lanes and the track rail together: the lane law becomes "stretch to fill until rows would fall
+below the fixed `timelineCanvasLaneRowHeight` (36px), then hold that height and scroll" (the 8px
+floor token is gone); `Viewport` carries `laneScrollPixels` so paint, hit-testing, cross-track
+drops, the pencil lane, and the rename-editor placement all share one law; the wheel map becomes
+the standard plain-wheel vertical / Shift+wheel horizontal / Ctrl+wheel zoom on both the timeline
+and the rail; and the clamp honors whichever surface overflows more while each surface pins its
+own applied offset so its last row lands exactly at its window bottom. The shipped-boundary
+`[vertical-scroll]` gate FAILED before (a plain wheel left the row offset at 0 of 10) and passes
+after with 63 assertions on an 18-track project: geometry law (36px rows, last lane provably
+off-screen unscrolled), wheel clamping at both ends with byte-identical `project.db`, the rail
+reaching and selecting the LAST track through real wheel + click so the next import lands on it,
+and a persisted snapped move of the last track's clip through the scrolled viewport with one-step
+undo. Three legacy wheel gates were re-pinned to the new map (horizontal assertions now drive
+Shift+wheel; the plain-wheel single-track no-op is pinned).
+
+**Now:** E5 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E6 (loop brace editing).
 

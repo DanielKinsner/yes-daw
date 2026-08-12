@@ -397,6 +397,7 @@ public:
     std::function<void (double, bool)> onZoomToolClicked;        // anchorSeconds, zoomOut (Alt) — E3
     std::function<void (double)> onHandToolScrolled;             // secondsDelta from a Hand drag — E3
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
+    std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
@@ -536,7 +537,9 @@ public:
                     if (state.trackCount > 0 && toolGeometry.laneHeight > 0)
                     {
                         const int lane = std::clamp (
-                            (event.getPosition().y - toolGeometry.clipArea.getY()) / toolGeometry.laneHeight,
+                            (event.getPosition().y - toolGeometry.clipArea.getY()
+                             + juce::roundToInt (toolGeometry.viewport.laneScrollPixels))
+                                / toolGeometry.laneHeight,
                             0, state.trackCount - 1);
                         if (const std::optional<double> seconds =
                                 timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
@@ -817,7 +820,9 @@ public:
         if (state.trackCount > 0 && geometry.laneHeight > 0
             && std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
         {
-            const int lane = (event.getPosition().y - geometry.clipArea.getY()) / geometry.laneHeight;
+            const int lane = (event.getPosition().y - geometry.clipArea.getY()
+                              + juce::roundToInt (geometry.viewport.laneScrollPixels))
+                           / geometry.laneHeight;
             targetLane = std::clamp (lane, 0, state.trackCount - 1);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, drag.layoutClipId))
                 if (clip->lane == targetLane)
@@ -854,6 +859,8 @@ public:
             onClipMoved (drag.layoutClipId, nextStartSeconds, drag.mode == TimelineDragMode::SnapMove);
     }
 
+    // E5 wheel map: Ctrl zooms, Shift scrolls horizontally, and the plain wheel scrolls the
+    // shared track-row offset vertically.
     void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
     {
         if (! stateProvider)
@@ -873,8 +880,15 @@ public:
             return;
         }
 
-        if (onScrollWheel)
-            onScrollWheel (delta);
+        if (event.mods.isShiftDown())
+        {
+            if (onScrollWheel)
+                onScrollWheel (delta);
+            return;
+        }
+
+        if (onVerticalScrollRows)
+            onVerticalScrollRows (delta > 0.0 ? -1 : 1);
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -1697,7 +1711,8 @@ public:
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / rows);
-        return { area.getX(), area.getY() + row * rowHeight, area.getWidth(), rowHeight };
+        const int scrollRows = effectiveScrollRows();
+        return { area.getX(), area.getY() + (row - scrollRows) * rowHeight, area.getWidth(), rowHeight };
     }
 
     // Shared row-geometry law: these mirror drawTrackList's control rectangles exactly, so
@@ -1859,8 +1874,42 @@ private:
 
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / rows);
-        const int row = (position.y - area.getY()) / rowHeight;
+        const int row = (position.y - area.getY()) / rowHeight + effectiveScrollRows();
         return row >= 0 && row < rows ? row : -1;
+    }
+
+public:
+    // Vertical track scroll (E5): the rail shares the timeline's whole-row offset, clamped to its
+    // own overflow so its last row always pins to the window bottom.
+    std::function<int()> rowScrollProvider;
+    std::function<void (int)> onVerticalScrollRows;
+
+    [[nodiscard]] int maxScrollRows() const
+    {
+        const int rows = rowCountProvider ? rowCountProvider() : 0;
+        if (rows <= 0)
+            return 0;
+
+        auto area = getLocalBounds();
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          area.getHeight() / rows);
+        const int visibleRows = std::max (1, area.getHeight() / rowHeight);
+        return std::max (0, rows - visibleRows);
+    }
+
+    [[nodiscard]] int effectiveScrollRows() const
+    {
+        return std::clamp (rowScrollProvider ? rowScrollProvider() : 0, 0, maxScrollRows());
+    }
+
+    void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        const double delta = std::abs (wheel.deltaY) > std::abs (wheel.deltaX) ? wheel.deltaY : wheel.deltaX;
+        if (delta == 0.0 || ! onVerticalScrollRows)
+            return;
+
+        onVerticalScrollRows (delta > 0.0 ? -1 : 1);
     }
 };
 
@@ -2163,6 +2212,9 @@ public:
             timelineScrollSeconds += secondsDelta;
             repaint();
         };
+        timelineInput.onVerticalScrollRows = [this] (int rowDelta) {
+            scrollTrackRowsBy (rowDelta);
+        };
         timelineInput.onPencilEmptyLane = [this] (int lane, double seconds) {
             const auto& tracks = appModel.project().tracks;
             if (lane < 0 || lane >= static_cast<int> (tracks.size()))
@@ -2307,6 +2359,8 @@ public:
         trackListInput.rowCountProvider = [this] {
             return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
         };
+        trackListInput.rowScrollProvider = [this] { return timelineTrackScrollRows; };
+        trackListInput.onVerticalScrollRows = [this] (int rowDelta) { scrollTrackRowsBy (rowDelta); };
         trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
         trackListInput.panValueProvider = [this] (int row) {
             const auto& tracks = appModel.project().tracks;
@@ -2854,6 +2908,18 @@ public:
     [[nodiscard]] long long harnessTimelineRangeEndFrame() const noexcept { return appModel.timelineRangeEndFrame(); }
     [[nodiscard]] double harnessTimelineZoomFactor() const noexcept { return timelineZoomFactor; }
     [[nodiscard]] double harnessTimelineScrollSeconds() const noexcept { return timelineScrollSeconds; }
+    [[nodiscard]] int harnessTimelineTrackScrollRows() const noexcept { return timelineTrackScrollRows; }
+    [[nodiscard]] int harnessTimelineMaxTrackScrollRows() const
+    {
+        // The scroll clamp depends only on the lane count and the surface heights.
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = appModel.context().projectLoaded
+            ? static_cast<int> (appModel.project().tracks.size())
+            : 0;
+        return std::max (
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state).maxTrackScrollRows,
+            trackListInput.maxScrollRows());
+    }
     [[nodiscard]] int harnessVisibleTimelineTrackCount() const
     {
         return appModel.context().projectLoaded ? static_cast<int> (projectTimelineTracks.size()) : 0;
@@ -3907,7 +3973,8 @@ private:
         const int left = geometry.clipArea.getX()
                        + juce::roundToInt ((clip.startSeconds - geometry.viewport.scrollSeconds)
                                            * geometry.viewport.pixelsPerSecond);
-        const int top = geometry.clipArea.getY() + clip.lane * geometry.laneHeight;
+        const int top = geometry.clipArea.getY() + clip.lane * geometry.laneHeight
+                      - juce::roundToInt (geometry.viewport.laneScrollPixels);
         const int width = juce::roundToInt (clip.lengthSeconds * geometry.viewport.pixelsPerSecond);
         juce::Rectangle<int> bounds { left, top, width, geometry.laneHeight };
         bounds = bounds.getIntersection (geometry.clipArea)
@@ -4414,6 +4481,18 @@ private:
         suspendDesktopAudioCallback();
         handleActionWhileAudioStopped (action);
         resumeDesktopAudioCallback();
+    }
+
+    // Vertical track scroll (E5): one shared whole-row offset moves the timeline lanes and the
+    // track rail together. The shared clamp honors WHICHEVER surface overflows more, and each
+    // surface pins its own applied offset so its last row never scrolls past the window bottom.
+    void scrollTrackRowsBy (int rowDelta)
+    {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (
+            timelineInput.getLocalBounds(), makeTimelineState());
+        const int maxRows = std::max (geometry.maxTrackScrollRows, trackListInput.maxScrollRows());
+        timelineTrackScrollRows = std::clamp (timelineTrackScrollRows + rowDelta, 0, maxRows);
+        repaint();
     }
 
     void zoomTimelineAtAnchor (double anchorSeconds, double factor)
@@ -5772,9 +5851,14 @@ private:
 
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / static_cast<int> (appModel.project().tracks.size()));
-        for (std::size_t i = 0; i < appModel.project().tracks.size(); ++i)
+        // Vertical track scroll (E5): the rail paints from its effective (clamped) shared row
+        // offset; scrolled-out rows above the window are skipped so paint matches rowBounds/rowAt.
+        for (std::size_t i = static_cast<std::size_t> (trackListInput.effectiveScrollRows());
+             i < appModel.project().tracks.size(); ++i)
         {
             auto row = area.removeFromTop (rowHeight);
+            if (row.getHeight() < rowHeight)
+                break;
             const auto& projectTrack = appModel.project().tracks[i];
             const juce::String fallbackName = "Track " + juce::String (static_cast<int> (i + 1));
             const juce::String trackName = projectTrack.strip.name.empty()
@@ -6048,6 +6132,8 @@ private:
         const double maxScroll = std::max (0.0, state.totalSeconds - visibleSeconds);
         timelineScrollSeconds = std::clamp (timelineScrollSeconds, 0.0, maxScroll);
         state.viewport.scrollSeconds = timelineScrollSeconds;
+        // Vertical track scroll (E5): geometry clamps the shared row offset per paint/gesture.
+        state.trackScrollRows = timelineTrackScrollRows;
         return state;
     }
 
@@ -7118,6 +7204,9 @@ private:
     std::vector<yesdaw::ui::TimelineMarker> timelineMarkerViews;
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
     mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+    // Vertical track scroll (E5): whole lane rows above the viewport, shared by the timeline
+    // lanes and the track rail; geometry clamps it against the current lane count.
+    int timelineTrackScrollRows = 0;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
@@ -7340,6 +7429,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.timelineRangeEndFrame = mainComponent->harnessTimelineRangeEndFrame();
         snapshot.timelineZoomFactor = mainComponent->harnessTimelineZoomFactor();
         snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
+        snapshot.timelineTrackScrollRows = mainComponent->harnessTimelineTrackScrollRows();
+        snapshot.timelineMaxTrackScrollRows = mainComponent->harnessTimelineMaxTrackScrollRows();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
         snapshot.visibleFirstTimelineClipName = mainComponent->harnessVisibleFirstTimelineClipName();

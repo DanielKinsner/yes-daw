@@ -66,6 +66,10 @@ struct TimelineCanvasState
     bool rangeSelectionActive = false;
     double rangeStartSeconds = 0.0;
     double rangeEndSeconds = 0.0;
+
+    // Vertical track scroll (E5): whole lane rows above the viewport. Geometry clamps this and
+    // publishes the pixel offset every paint/hit/gesture consumer shares.
+    int trackScrollRows = 0;
 };
 
 struct TimelineCanvasPaintStats
@@ -86,6 +90,9 @@ struct TimelineCanvasGeometry
     juce::Rectangle<int> clipArea;
     Viewport viewport;
     int laneHeight = 0;
+    // Vertical track scroll (E5): the clamped whole-row scroll range for the current lane count.
+    int maxTrackScrollRows = 0;
+    int trackScrollRows = 0;
 };
 
 namespace timeline_canvas_detail {
@@ -454,9 +461,12 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     g.fillRect (clipArea);
 
     const int laneCount = std::max (UiTheme::Layout::timelineCanvasGridMinLaneCount, state.trackCount);
+    const int laneScroll = juce::roundToInt (vp.laneScrollPixels);
     for (int lane = 0; lane <= laneCount; ++lane)
     {
-        const int y = clipArea.getY() + lane * laneHeight;
+        const int y = clipArea.getY() + lane * laneHeight - laneScroll;
+        if (y + laneHeight < clipArea.getY() || y > clipArea.getBottom())
+            continue;
         g.setColour (kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridLaneSeparatorAlpha));
         g.fillRect (clipArea.getX(), y, clipArea.getWidth(), UiTheme::Layout::timelineCanvasGridLaneSeparatorHeight);
 
@@ -532,9 +542,15 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     geometry.clipArea = content.reduced (UiTheme::Layout::timelineCanvasClipAreaInsetX,
                                          UiTheme::Layout::timelineCanvasClipAreaInsetY);
 
+    // E5 lane law: few tracks stretch to fill the viewport; once rows would fall below the fixed
+    // row height, lanes hold that height and the shared row offset scrolls them.
     const int laneCount = std::max (UiTheme::Layout::timelineCanvasGeometryMinLaneCount, state.trackCount);
-    geometry.laneHeight = std::max (UiTheme::Layout::timelineCanvasLaneMinHeight,
+    geometry.laneHeight = std::max (UiTheme::Layout::timelineCanvasLaneRowHeight,
                                     geometry.clipArea.getHeight() / laneCount);
+
+    const int visibleRows = std::max (1, geometry.clipArea.getHeight() / geometry.laneHeight);
+    geometry.maxTrackScrollRows = std::max (0, laneCount - visibleRows);
+    geometry.trackScrollRows = std::clamp (state.trackScrollRows, 0, geometry.maxTrackScrollRows);
 
     geometry.viewport = state.viewport;
     geometry.viewport.pixelsPerSecond =
@@ -542,6 +558,7 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
                   geometry.viewport.pixelsPerSecond);
     geometry.viewport.widthPixels = static_cast<double> (geometry.clipArea.getWidth());
     geometry.viewport.laneHeightPixels = static_cast<double> (geometry.laneHeight);
+    geometry.viewport.laneScrollPixels = static_cast<double> (geometry.trackScrollRows * geometry.laneHeight);
     return geometry;
 }
 

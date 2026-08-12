@@ -522,6 +522,9 @@ struct UiTheme
         // Wide enough for the painted SNAP caption to sit between the repeat-paste and snap
         // choosers without being clipped by either (B41).
         static constexpr int timelineRepeatPasteChooserGap = 57;
+        // Vertical track scroll (E5): when tracks overflow the viewport, lanes hold this fixed
+        // row height and the shared row offset scrolls them; few tracks still stretch to fill.
+        static constexpr int timelineCanvasLaneRowHeight = 36;
         static constexpr double timelineZoomWheelStep = 1.25;
         // Zoom tool (E3): one click doubles the zoom (Alt+click halves it) through the same
         // anchored viewport math as Ctrl+wheel.
@@ -717,7 +720,6 @@ struct UiTheme
         static constexpr int timelineCanvasClipAreaInsetY = 0;
         static constexpr int timelineCanvasGeometryMinLaneCount = 1;
         static constexpr double timelineCanvasViewportMinPixelsPerSecond = 1.0;
-        static constexpr int timelineCanvasLaneMinHeight = 8;
         // Caption sits in the gap between the repeat-paste chooser and the snap chooser (B41).
         static constexpr int timelineCanvasSnapLabelX = 266;
         static constexpr int timelineCanvasSnapLabelWidth = 42;
