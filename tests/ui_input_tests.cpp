@@ -874,8 +874,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // 91 shell children + the B31 drag dB readout label (hidden until a gain drag) + the E7
     // marker rename editor (hidden until a marker double-click) + the E14 per-slot FX up/down
     // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
-    // choosers (8) and the param page chooser — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 112u));
+    // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
+    // editor — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 114u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4092,6 +4093,78 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.fxChain.empty());
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.fxChain.size() == 1u);
+}
+
+TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends route to it",
+           "[ui][input][shell][mixer][bus-rename-remove]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("bus-rename-remove");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    // Inline rename: double-click the bus strip, type, Enter — persisted and undoable.
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                       strips->getWidth() / 3);
+    auto* renameEditor = dynamic_cast<juce::TextEditor*> (
+        findChildWithComponentId (*shell, "shell.mixer.bus.rename"));
+    REQUIRE (renameEditor != nullptr);
+    REQUIRE_FALSE (renameEditor->isVisible());
+    doubleClickAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    REQUIRE (renameEditor->isVisible());
+    renameEditor->setText ("Drum Verb", juce::dontSendNotification);
+    renameEditor->onReturnKey();
+    REQUIRE_FALSE (renameEditor->isVisible());
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.name == "Drum Verb");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.name == "Bus 1");
+
+    // Route a send to the bus from the TRACK, then try to remove the bus: the engine refuses
+    // and the bus honestly stays.
+    mouseDownAt (*strips, { stripWidth / 2, strips->getHeight() / 2 });   // select the track strip
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    REQUIRE (sendChooser->isEnabled());
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.size() == 1u);
+
+    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });   // select the bus
+    auto* removeBus = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.remove"));
+    REQUIRE (removeBus != nullptr);
+    REQUIRE (removeBus->isEnabled());
+    clickButton (*removeBus);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);   // refused, not silently dropped
+
+    // Drop the routed send, then the removal goes through — and one undo restores the bus.
+    mouseDownAt (*strips, { stripWidth / 2, strips->getHeight() / 2 });
+    auto* sendRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
+    REQUIRE (sendRemove != nullptr);
+    clickButton (*sendRemove);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.empty());
+
+    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    clickButton (*removeBus);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.name == "Bus 1");
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",

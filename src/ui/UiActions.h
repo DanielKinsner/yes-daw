@@ -91,6 +91,8 @@ enum class UiActionId : std::uint8_t
     MixerFxInsertRemove,
     MixerFxInsertToggle,
     MixerFxInsertReorder,
+    MixerBusRename,
+    MixerBusRemove,
     TransportSetTempo,
     TransportSetMeter,
     TimelineClipCopy,
@@ -505,6 +507,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "Alt+B", "Toggle FX insert bypass on selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerFxInsertReorder, "mixer.fx.insert.reorder", "Move FX Slot", "Alt+Shift+U", "Move FX insert within the selected strip chain",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerBusRename, "mixer.bus.rename", "Rename Bus", "Ctrl+Shift+B", "Rename the selected bus",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerBusRemove, "mixer.bus.remove", "Remove Bus", "Alt+Shift+B", "Remove the selected bus (refused while sends route to it)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1263,6 +1269,8 @@ public:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
             case UiActionId::MixerFxInsertReorder:
+            case UiActionId::MixerBusRename:
+            case UiActionId::MixerBusRemove:
             case UiActionId::MixerFxInsertParamSet:
             case UiActionId::MixerBusAdd:
             case UiActionId::MixerSendAdd:

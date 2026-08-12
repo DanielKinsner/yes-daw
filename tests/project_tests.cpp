@@ -2209,14 +2209,19 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                             break;
                     }
                     break;
-                // E16 bus scalar verb: unknown-bus targets are no-ops by contract like every
-                // family above (the setup bus is id 44).
+                // E16/E17 bus verbs: unknown-bus targets and empty names are no-ops by
+                // contract like every family above (the setup bus is id 44).
                 case 21:
-                    command = ProjectEditCommand::setBusMixScalars (
-                        idFromLowByte (pick (2) == 0 ? 44 : static_cast<std::uint8_t> (100 + pick (50))),
-                        static_cast<float> (pick (200)) / 100.0f,
-                        (static_cast<float> (pick (200)) - 100.0f) / 100.0f,
-                        pick (2) == 0, pick (2) == 0, pick (2) == 0);
+                    if (pick (2) == 0)
+                        command = ProjectEditCommand::setBusMixScalars (
+                            idFromLowByte (pick (2) == 0 ? 44 : static_cast<std::uint8_t> (100 + pick (50))),
+                            static_cast<float> (pick (200)) / 100.0f,
+                            (static_cast<float> (pick (200)) - 100.0f) / 100.0f,
+                            pick (2) == 0, pick (2) == 0, pick (2) == 0);
+                    else
+                        command = ProjectEditCommand::renameBus (
+                            idFromLowByte (pick (2) == 0 ? 44 : static_cast<std::uint8_t> (100 + pick (50))),
+                            pick (2) == 0 ? "Renamed Bus" : "Verb Bus");
                     break;
                 default: break;
             }

@@ -2583,6 +2583,8 @@ class MixerStripsInputComponent final : public juce::Component,
 public:
     std::function<int (juce::Point<int>)> stripAtPosition;   // position in SHELL coordinates
     std::function<void (int)> onStripClicked;
+    // E17: double-click opens the inline bus rename editor when the strip is a bus.
+    std::function<void (int)> onStripDoubleClicked;
     // Painted meter hit test (B32): a click inside a track strip's painted meter clears its
     // held peak and latched clip light instead of retargeting the strip.
     std::function<int (juce::Point<int>)> meterStripAtPosition;
@@ -2609,6 +2611,18 @@ public:
         const int strip = stripAtPosition (shellPosition);
         if (strip >= 0)
             onStripClicked (strip);
+    }
+
+    void mouseDoubleClick (const juce::MouseEvent& event) override
+    {
+        if (! stripAtPosition || ! onStripDoubleClicked)
+            return;
+
+        const juce::Point<int> shellPosition =
+            event.getEventRelativeTo (getParentComponent()).getPosition();
+        const int strip = stripAtPosition (shellPosition);
+        if (strip >= 0)
+            onStripDoubleClicked (strip);
     }
 };
 
@@ -4222,6 +4236,16 @@ private:
             refreshActionState();
             repaint();
         };
+        // E17: double-clicking a BUS strip opens the inline rename editor over its header.
+        mixerStripsInput.onStripDoubleClicked = [this] (int stripIndex) {
+            const auto surface = currentMixerSurface();
+            const int trackCount = static_cast<int> (surface.tracks.size());
+            const int busCount = static_cast<int> (surface.buses.size());
+            if (stripIndex < trackCount || stripIndex >= trackCount + busCount)
+                return;
+
+            openBusRenameEditor (stripIndex - trackCount, stripIndex);
+        };
         mixerStripsInput.meterStripAtPosition = [this] (juce::Point<int> positionInShell) {
             const std::size_t trackCount = appModel.context().projectLoaded
                                                ? appModel.project().tracks.size()
@@ -4356,6 +4380,30 @@ private:
             repaint();
         };
         addAndMakeVisible (mixerBusAddButton);
+
+        // E17: remove the SELECTED bus; the engine refuses while sends still route to it, and
+        // the refusal leaves the bus in place (the gate pins that honesty).
+        configureActionComponent (mixerBusRemoveButton, yesdaw::ui::UiActionId::MixerBusRemove, "Remove bus");
+        mixerBusRemoveButton.setButtonText ("- Bus");
+        mixerBusRemoveButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::warningButton());
+        mixerBusRemoveButton.setColour (juce::TextButton::textColourOffId, kText);
+        mixerBusRemoveButton.onClick = [this] {
+            (void) appModel.removeSelectedBus();
+            layoutMixerControls();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerBusRemoveButton);
+
+        // E17: inline bus rename editor, the marker/clip editor pattern on the mixer panel.
+        busRenameEditor.setComponentID ("shell.mixer.bus.rename");
+        busRenameEditor.setTooltip ("Rename bus: Enter commits, Escape cancels");
+        busRenameEditor.setName ("Rename bus");
+        busRenameEditor.setSelectAllWhenFocused (true);
+        busRenameEditor.onReturnKey = [this] { commitBusRenameEditor(); };
+        busRenameEditor.onEscapeKey = [this] { dismissBusRenameEditor(); };
+        busRenameEditor.onFocusLost = [this] { dismissBusRenameEditor(); };
+        addChildComponent (busRenameEditor);
 
         configureActionComponent (mixerSendAddChooser, yesdaw::ui::UiActionId::MixerSendAdd, "Add send");
         mixerSendAddChooser.setTextWhenNothingSelected ("+ Send");
@@ -4841,6 +4889,39 @@ private:
         markerRenameEditor.grabKeyboardFocus();
     }
 
+    // E17: inline bus rename — the editor sits over the bus strip's header area.
+    void openBusRenameEditor (int busIndex, int stripOrdinal)
+    {
+        const auto& buses = appModel.project().buses;
+        if (busIndex < 0 || busIndex >= static_cast<int> (buses.size()))
+            return;
+
+        busRenameIndex = busIndex;
+        busRenameEditor.setBounds (
+            mixerStripBounds (stripOrdinal)
+                .removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
+        busRenameEditor.setText (juce::String (buses[static_cast<std::size_t> (busIndex)].strip.name),
+                                 juce::dontSendNotification);
+        busRenameEditor.setVisible (true);
+        busRenameEditor.grabKeyboardFocus();
+    }
+
+    void commitBusRenameEditor()
+    {
+        if (busRenameIndex >= 0)
+            (void) appModel.renameBusAt (static_cast<std::size_t> (busRenameIndex),
+                                         busRenameEditor.getText().toStdString());
+        dismissBusRenameEditor();
+        refreshActionState();
+        repaint();
+    }
+
+    void dismissBusRenameEditor()
+    {
+        busRenameIndex = -1;
+        busRenameEditor.setVisible (false);
+    }
+
     void commitMarkerRenameEditor()
     {
         const auto& markers = appModel.project().markers;
@@ -5197,6 +5278,9 @@ private:
         // Hidden rows take no column space — the tools column would otherwise overflow. The refresh
         // path calls resized() whenever a row-visibility count changes.
         mixerBusAddButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        // E17: bus removal lives with the bus tools.
+        mixerBusRemoveButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         mixerSendAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
@@ -6093,6 +6177,12 @@ private:
             const auto& project = appModel.project();
             mixerBusAddButton.setEnabled (
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerBusAdd, appModel.context()).enabled);
+            // E17: bus removal needs a selected BUS (the ordinal past the tracks says which).
+            mixerBusRemoveButton.setEnabled (
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerBusRemove, appModel.context()).enabled
+                && appModel.selectedMixerStripOrdinal()
+                       >= static_cast<int> (appModel.project().tracks.size())
+                && appModel.selectedMixerStripOrdinal() >= 0);
 
             mixerSendAddChooser.clear (juce::dontSendNotification);
             for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
@@ -8288,6 +8378,10 @@ private:
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
     juce::TextButton mixerBusAddButton;
+    // E17: bus rename + remove
+    juce::TextButton mixerBusRemoveButton;
+    juce::TextEditor busRenameEditor;
+    int busRenameIndex = -1;
     juce::ComboBox mixerSendAddChooser;
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;

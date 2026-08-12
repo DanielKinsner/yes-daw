@@ -429,9 +429,24 @@ macOS runner loss — the job died mid-build with zero compile output, no code s
 ctest green **348/348** (owner file isolated + restored, SHA verified). E16 is ticked in the
 backlog.
 
-**Now:** E17 (bus rename + remove from the UI) — audited: `RenameBus` verb on the marker-rename
-name precedent + property arm, bus rename editor on strip double-click, `mixer.bus.remove`
-button surfacing the engine's routed-send refusal honestly.
+**E17 implementation candidate — bus rename + remove from the UI:** audited before changing:
+no `RenameBus` verb existed anywhere; `RemoveBus` was engine-complete (routed-send refusal
+included) with zero UI callers. New engine verb `RenameBus` (name rides the shared `trackName`
+array like markers; empty names refused; joins the whole-vector bus diff family; the property
+arm now alternates scalars/renames). Double-clicking a BUS strip opens the inline
+`shell.mixer.bus.rename` editor over the strip header (Enter commits through the undoable verb,
+Escape cancels — the marker/clip editor pattern); the new `- Bus` button
+(`mixer.bus.remove`, warning-tinted, enabled only with a bus selected) removes the SELECTED bus
+through the engine verb, and the engine's routed-send refusal surfaces honestly — the click
+reports failure and the bus stays. Two new action ids (`MixerBusRename` `Ctrl+Shift+B`,
+`MixerBusRemove` `Alt+Shift+B`) in the descriptor table and both dispatch groups. Shell
+childCount re-pinned 112→114. The shipped-boundary `[bus-rename-remove]` gate FAILED before (28
+in — no rename editor exists) and passes after with 63 assertions: double-click rename persisted
+and undone, a routed bus surviving its removal click REFUSED (not silently dropped), the
+removal landing after the send is dropped, and one undo restoring the bus.
+
+**Now:** E17 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E18 (send tap + destination editing).
 

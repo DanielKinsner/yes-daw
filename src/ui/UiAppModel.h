@@ -2025,6 +2025,64 @@ public:
             : nullptr;
     }
 
+    // E17: rename a bus by index through the undoable RenameBus verb; empty names refuse.
+    [[nodiscard]] UiActionDispatchResult renameBusAt (std::size_t busIndex, const std::string& name)
+    {
+        const UiActionId id = UiActionId::MixerBusRename;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (busIndex >= project_.buses.size())
+            return { id, { false, "no bus at index" }, false };
+        if (name.empty())
+            return { id, { false, "bus name must not be empty" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::renameBus (
+                                  project_.buses[busIndex].id, name)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "bus rename did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // E17: remove the SELECTED bus; the engine's routed-send refusal surfaces honestly (the
+    // click reports failure and the bus stays).
+    [[nodiscard]] UiActionDispatchResult removeSelectedBus()
+    {
+        const UiActionId id = UiActionId::MixerBusRemove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! context_.mixerTargetSelected || selectedMixerTarget_.kind != MixerTargetKind::Bus
+            || selectedMixerTarget_.index >= project_.buses.size())
+            return { id, { false, "no bus selected" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::removeBus (
+                                  project_.buses[selectedMixerTarget_.index].id)).applied())
+            return { id, { false, "bus removal refused (sends still route to it)" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "bus removal did not persist" }, false };
+
+        clearMixerTargetSelection();
+        context_.activePanel = UiPanel::Mixer;
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     // E16: the selected strip's display ordinal (tracks first, then buses) for lane placement.
     [[nodiscard]] int selectedMixerStripOrdinal() const noexcept
     {
@@ -4693,6 +4751,8 @@ public:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
             case UiActionId::MixerFxInsertReorder:
+            case UiActionId::MixerBusRename:
+            case UiActionId::MixerBusRemove:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

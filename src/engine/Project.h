@@ -2361,6 +2361,32 @@ namespace detail {
     return ProjectEditStatus::TrackNotFound;
 }
 
+// E17: the bus twin of renameTrack — empty names are refused before dispatch reaches here.
+[[nodiscard]] inline ProjectEditStatus renameBus (Project& project,
+                                                  EntityId busId,
+                                                  const std::string& newName)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (newName.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+        {
+            bus.strip.name = newName;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::BusNotFound;
+}
+
 // E16: the bus twin of setTrackMixScalars — same validation, targeting a Bus strip.
 [[nodiscard]] inline ProjectEditStatus setBusMixScalars (Project& project,
                                                          EntityId busId,

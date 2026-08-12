@@ -74,7 +74,9 @@ enum class ProjectEditVerb : std::uint8_t
     MoveMidiClipToTrack,
     RemoveMidiClip,
     // E16: bus strips are real strips — scalar edits mirror SetTrackMixScalars
-    SetBusMixScalars
+    SetBusMixScalars,
+    // E17: bus rename (the name rides the shared trackName array like markers do)
+    RenameBus
 };
 
 struct ProjectEditCommand
@@ -692,6 +694,22 @@ struct ProjectEditCommand
         return command;
     }
 
+    // E17: the bus name rides the shared trackName array (trivially-copyable command law).
+    [[nodiscard]] static constexpr ProjectEditCommand renameBus (EntityId busId,
+                                                                 std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RenameBus;
+        command.busId = busId;
+        const std::size_t length = name.size() < sizeof (command.trackName) - 1
+            ? name.size()
+            : sizeof (command.trackName) - 1;
+        for (std::size_t i = 0; i < length; ++i)
+            command.trackName[i] = name[i];
+        command.trackName[length] = '\0';
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand removeBus (EntityId busId) noexcept
     {
         ProjectEditCommand command;
@@ -962,7 +980,8 @@ namespace detail {
 {
     return verb == ProjectEditVerb::AddBus
            || verb == ProjectEditVerb::RemoveBus
-           || verb == ProjectEditVerb::SetBusMixScalars;
+           || verb == ProjectEditVerb::SetBusMixScalars
+           || verb == ProjectEditVerb::RenameBus;
 }
 
 [[nodiscard]] constexpr bool isTimeMapEditVerb (ProjectEditVerb verb) noexcept
@@ -1256,6 +1275,11 @@ namespace detail {
                                      command.trackMuted,
                                      command.trackSoloed,
                                      command.trackSoloSafe);
+
+        case ProjectEditVerb::RenameBus:
+            if (command.trackName[0] == '\0')
+                return ProjectEditStatus::InvalidTrackName;
+            return renameBus (project, command.busId, std::string { command.trackName });
 
         case ProjectEditVerb::SetNoteVelocity:
             return setNoteVelocity (project, command.midiClipId, command.noteId, command.noteVelocity);
