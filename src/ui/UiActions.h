@@ -90,6 +90,7 @@ enum class UiActionId : std::uint8_t
     MixerFxInsertAdd,
     MixerFxInsertRemove,
     MixerFxInsertToggle,
+    MixerFxInsertReorder,
     TransportSetTempo,
     TransportSetMeter,
     TimelineClipCopy,
@@ -502,6 +503,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerFxInsertRemove, "mixer.fx.insert.remove", "Remove FX", "Alt+Shift+X", "Remove FX insert from selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "Alt+B", "Toggle FX insert bypass on selected strip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerFxInsertReorder, "mixer.fx.insert.reorder", "Move FX Slot", "Alt+Shift+U", "Move FX insert within the selected strip chain",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1259,6 +1262,7 @@ public:
             case UiActionId::MixerFxInsertAdd:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
+            case UiActionId::MixerFxInsertReorder:
             case UiActionId::MixerFxInsertParamSet:
             case UiActionId::MixerBusAdd:
             case UiActionId::MixerSendAdd:

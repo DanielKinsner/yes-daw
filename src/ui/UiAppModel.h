@@ -2193,6 +2193,44 @@ public:
         return { id, state, true };
     }
 
+    // E14: move an FX insert one step within the selected strip's chain (the first UI caller of
+    // the engine's ReorderFxInsert verb). Out-of-range targets refuse honestly.
+    [[nodiscard]] UiActionDispatchResult moveFxInsertOnSelectedStrip (std::size_t slotIndex, int delta)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertReorder;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        const std::int64_t target = static_cast<std::int64_t> (slotIndex) + static_cast<std::int64_t> (delta);
+        if (delta == 0 || target < 0 || target >= static_cast<std::int64_t> (strip->fxChain.size()))
+            return { id, { false, "FX move target is outside the chain" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::reorderFxInsert (
+                                  ownerId,
+                                  strip->fxChain[slotIndex].id,
+                                  static_cast<std::size_t> (target))).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleFxInsertEnabledOnSelectedStrip (std::size_t slotIndex)
     {
         const UiActionId id = UiActionId::MixerFxInsertToggle;
@@ -4606,6 +4644,7 @@ public:
             case UiActionId::MixerFxInsertAdd:
             case UiActionId::MixerFxInsertRemove:
             case UiActionId::MixerFxInsertToggle:
+            case UiActionId::MixerFxInsertReorder:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

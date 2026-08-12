@@ -4302,6 +4302,35 @@ private:
                 repaint();
             };
             addChildComponent (edit);
+
+            // E14: move the insert one position earlier or later in the chain, undoably.
+            auto& up = mixerFxSlotUps[slot];
+            up.setButtonText ("^");
+            up.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".up");
+            up.setTooltip ("Move FX slot " + juce::String (static_cast<int> (slot) + 1) + " earlier in the chain");
+            up.setName ("Move FX slot " + juce::String (static_cast<int> (slot + 1)) + " earlier");
+            up.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            up.setColour (juce::TextButton::textColourOffId, kText);
+            up.onClick = [this, slot] {
+                (void) appModel.moveFxInsertOnSelectedStrip (slot, -1);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (up);
+
+            auto& down = mixerFxSlotDowns[slot];
+            down.setButtonText ("v");
+            down.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".down");
+            down.setTooltip ("Move FX slot " + juce::String (static_cast<int> (slot) + 1) + " later in the chain");
+            down.setName ("Move FX slot " + juce::String (static_cast<int> (slot + 1)) + " later");
+            down.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            down.setColour (juce::TextButton::textColourOffId, kText);
+            down.onClick = [this, slot] {
+                (void) appModel.moveFxInsertOnSelectedStrip (slot, 1);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (down);
         }
 
         // Send routing (ADR-0044): + Bus creates a persisted Bus; the send chooser routes the
@@ -5089,6 +5118,8 @@ private:
                 mixerFxSlotToggles[slot].setBounds ({});
                 mixerFxSlotEdits[slot].setBounds ({});
                 mixerFxSlotRemoves[slot].setBounds ({});
+                mixerFxSlotUps[slot].setBounds ({});
+                mixerFxSlotDowns[slot].setBounds ({});
                 continue;
             }
 
@@ -5096,6 +5127,10 @@ private:
             mixerFxSlotRemoves[slot].setBounds (
                 slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
             mixerFxSlotEdits[slot].setBounds (
+                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
+            mixerFxSlotDowns[slot].setBounds (
+                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
+            mixerFxSlotUps[slot].setBounds (
                 slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
             mixerFxSlotToggles[slot].setBounds (slotRow);
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
@@ -5832,8 +5867,13 @@ private:
                 mixerFxSlotToggles[slot].setVisible (present);
                 mixerFxSlotRemoves[slot].setVisible (present);
                 mixerFxSlotEdits[slot].setVisible (present);
+                mixerFxSlotUps[slot].setVisible (present);
+                mixerFxSlotDowns[slot].setVisible (present);
                 if (! present)
                     continue;
+
+                mixerFxSlotUps[slot].setEnabled (slot > 0);
+                mixerFxSlotDowns[slot].setEnabled (slot + 1 < chain.size());
 
                 const yesdaw::engine::FxInsert& insert = chain[slot];
                 juce::String label;
@@ -8086,6 +8126,9 @@ private:
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotEdits;
+    // E14: per-slot chain reorder — the first UI callers of the engine's ReorderFxInsert verb.
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotUps;
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotDowns;
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;
     std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};

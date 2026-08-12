@@ -363,8 +363,25 @@ E13 is certified: exact-head GitHub Actions run `31642136695` green for full SHA
 green **348/348** (owner file isolated + restored, SHA verified). E13 is ticked in the backlog.
 **Phase 1 (multi-track editing tools, E1–E13) is COMPLETE.**
 
-**Now:** E14 (FX reorder from the UI) — audited; implementing per-slot up/down through the
-engine's already-wired `ReorderFxInsert` verb.
+**E14 implementation candidate — FX reorder from the UI:** audited before changing: the engine's
+`ReorderFxInsert` verb was fully wired and undoable with ZERO UI callers. Every visible FX slot
+row now carries `^`/`v` buttons (componentIDs `mixer.fx.slot.N.up`/`.down`, descriptor-named
+tooltips) that move the insert one position through the new `moveFxInsertOnSelectedStrip`
+verb — the first UI caller of `ReorderFxInsert` — under the new `MixerFxInsertReorder` action id
+(enum + descriptor row with the free `Alt+Shift+U` chord + both dispatch switch groups, so GCC's
+`-Werror=switch` stays satisfiable). Up is disabled on the first slot, down on the last; out-of-
+range moves refuse honestly. The shell childCount pin re-pinned 93→103 for the ten new hidden
+buttons. The shipped-boundary `[fx-reorder]` gate FAILED before the product change (no up
+buttons exist) and passes after with 65 assertions: EQ+Limiter chain (+24 dB band gain, -9 dBFS
+ceiling so the pair genuinely does not commute), a from-playing-transport render before, slot
+1's up-swap with params traveling on the persisted inserts, an AUDIBLY DIFFERENT render after,
+one undo restoring order AND bit-identical audio, and the symmetric down-swap with its undo.
+Gate-building found two honest traps worth recording: silent renders (the transport must be
+playing — Home+Space/K brackets every capture) and EQ param 0 being band TYPE (sweeping all
+params to 0.9 turned the EQ into a near-inert high filter; the fix boosts only band gain).
+
+**Now:** E14 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E15 (every FX param reachable, with the right control type).
 

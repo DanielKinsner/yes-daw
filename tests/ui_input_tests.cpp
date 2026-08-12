@@ -872,8 +872,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
     // 91 shell children + the B31 drag dB readout label (hidden until a gain drag) + the E7
-    // marker rename editor (hidden until a marker double-click) — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 93u));
+    // marker rename editor (hidden until a marker double-click) + the E14 per-slot FX up/down
+    // pairs (5 slots x 2, hidden until inserts exist) — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 103u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -3762,6 +3763,107 @@ TEST_CASE ("FX parameter sliders edit the selected insert undoably through real 
     // Toggling the edit button off hides the param rows again.
     clickButton (*edit0);
     REQUIRE_FALSE (param0->isVisible());
+}
+
+TEST_CASE ("FX slot up/down reorder the chain undoably and audibly for a non-commuting chain",
+           "[ui][input][shell][mixer][fx-reorder]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("fx-reorder");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (chooser != nullptr);
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1, juce::sendNotificationSync);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Eq);
+    REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Limiter);
+
+    // Make the chain audibly non-commuting: a +24 dB band-0 gain boost (param 2; type, freq and
+    // Q stay at their bell/1kHz defaults) drives the limiter, whose ceiling (param 0) drops to
+    // -9 dBFS so it engages hard on the boosted signal.
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+    auto* eqGainParam = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.2"));
+    REQUIRE (eqGainParam != nullptr);
+    REQUIRE (eqGainParam->isVisible());
+    eqGainParam->setValue (1.0, juce::sendNotificationSync);
+    clickButton (*edit0);
+    auto* edit1 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.1.edit"));
+    REQUIRE (edit1 != nullptr);
+    clickButton (*edit1);
+    auto* limiterParam = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (limiterParam != nullptr);
+    REQUIRE (limiterParam->isVisible());
+    limiterParam->setValue (0.25, juce::sendNotificationSync);
+    clickButton (*edit1);
+
+    // Renders happen from a playing transport at frame zero, stopped again after each capture.
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> eqFirstRender = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (eqFirstRender.data(), eqFirstRender.size())) > 0.05);
+
+    // Slot 0 cannot move earlier; slot 1's up button swaps the pair, params travel with inserts.
+    auto* up0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.up"));
+    auto* up1 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.1.up"));
+    REQUIRE (up0 != nullptr);
+    REQUIRE (up1 != nullptr);
+    REQUIRE_FALSE (up0->isEnabled());
+    REQUIRE (up1->isEnabled());
+    clickButton (*up1);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Limiter);
+    REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Eq);
+    REQUIRE (project.tracks.front().strip.fxChain[0].normalizedParams.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain[0].normalizedParams.front().second
+             == Catch::Approx (0.25));
+    REQUIRE (snapshotMainComponent (*shell).playbackReady);
+
+    // The reordered chain renders audibly differently, and one undo restores order AND audio.
+    const std::vector<float> limiterFirstRender = renderFromStart();
+    REQUIRE (limiterFirstRender != eqFirstRender);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Eq);
+    REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Limiter);
+    const std::vector<float> restoredRender = renderFromStart();
+    REQUIRE (restoredRender == eqFirstRender);
+
+    // The down button on slot 0 makes the same swap from the other side.
+    auto* down0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.down"));
+    auto* down1 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.1.down"));
+    REQUIRE (down0 != nullptr);
+    REQUIRE (down1 != nullptr);
+    REQUIRE (down0->isEnabled());
+    REQUIRE_FALSE (down1->isEnabled());
+    clickButton (*down0);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::Limiter);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[0].kind
+             == yesdaw::engine::FxKind::Eq);
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",
