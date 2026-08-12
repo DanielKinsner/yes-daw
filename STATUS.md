@@ -551,7 +551,7 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B23 evidence handoff `3fbe878` is exact-head green across all nine jobs in run `31549188240`.
 
-**B24 implementation candidate — Next/previous Marker:** audited the complete descriptor/keymap
+**Done and remote-green for B24 — Next/previous Marker (`012bf18`):** audited the complete descriptor/keymap
 table, JUCE arrow/modifier translation, persisted canonical Marker order, real `M` Marker-add path,
 bundle reopen, and every transport-locate path before adding anything. `Ctrl+Left` and `Ctrl+Right`
 were free. Two actions are appended at the descriptor-table end and covered in both exhaustive
@@ -573,11 +573,17 @@ A clean Release rebuild in the Visual Studio Build Tools Developer Shell plus fu
 accessibility, theme audit, screenshots, native input, and the GPU gate. The protected owner
 last-project record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B24 implementation checkpoint.
+Exact-head GitHub Actions run `31551471745` is green for full SHA
+`012bf1828ff7c5887bf3b3d62653b4ba29ca3b57` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B24 implementation head green across all nine jobs; cancelled or
-incomplete runs do not count. Only then tick B24 in a separate evidence checkpoint; B25 must not
-start early.
+The B24 backlog-tick/evidence handoff is locally green **346/346**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B24 backlog-tick/evidence handoff.
+
+**Next:** require the exact B24 evidence head green across all nine jobs; cancelled or incomplete
+runs do not count. Then record the green evidence run in STATUS and stop with B25 untouched.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

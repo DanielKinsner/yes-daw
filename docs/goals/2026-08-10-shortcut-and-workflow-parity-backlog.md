@@ -149,8 +149,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     Because the existing view and snap bindings conflict, unique `Ctrl+Shift+1..5` chords store the
     playhead and `Alt+1..5` recalls it. Schema v11 additively persists all five slots; the real-input
     reopen gate proves exact audible playback recall and an honest no-op for an empty slot.
-24. **Next/prev marker** — Ctrl+Right/Ctrl+Left jump the playhead to the next/previous
-    marker.
+24. [x] **Next/prev marker** — landed in `012bf18` (exact-head run `31551471745`, nine jobs
+    green). Unique `Ctrl+Right` / `Ctrl+Left` actions locate the strictly next/previous persisted
+    Marker without wrapping; the real-input reopen gate proves exact Marker frames, honest end
+    no-ops, and distinct audible playback at both positions.
 25. **Ruler range selection** — plain drag on the ruler (no Shift) selects a time range
     (paint it); Shift+L converts range → loop region; range doubles as the export
     "Loop Region" source when set.
