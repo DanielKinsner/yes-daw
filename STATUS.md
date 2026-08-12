@@ -549,10 +549,35 @@ TSan, both package jobs, and both alpha-verifier jobs.
 The B23 backlog-tick/evidence handoff is locally green **346/346**. The protected owner last-project
 record and committed v8 schema fixture were restored byte-identically after the run.
 
-**Now:** commit and push only the B23 backlog-tick/evidence handoff.
+The B23 evidence handoff `3fbe878` is exact-head green across all nine jobs in run `31549188240`.
 
-**Next:** require the exact B23 evidence head green across all nine jobs; cancelled or incomplete
-runs do not count. Stop at the checkpoint with B24 untouched.
+**B24 implementation candidate — Next/previous Marker:** audited the complete descriptor/keymap
+table, JUCE arrow/modifier translation, persisted canonical Marker order, real `M` Marker-add path,
+bundle reopen, and every transport-locate path before adding anything. `Ctrl+Left` and `Ctrl+Right`
+were free. Two actions are appended at the descriptor-table end and covered in both exhaustive
+action switches. They locate the previous/next Marker strictly before/after the current playhead,
+skip same-position duplicates, and honestly do nothing at the first/last boundary. They reuse the
+existing persisted Marker surface and authoritative playback locate path, so no schema or ADR change
+is needed.
+
+The shipped-boundary tracer first failed at the first real `Ctrl+Right` because the chord was absent.
+It now passes **77/77 assertions**: real ruler locates plus `M` create two persisted Markers; both
+navigation chords reach their exact frames; first/last boundary repeats do not move; the two Marker
+positions produce distinct audible slices; and bundle reopen reproduces the first Marker and its
+samples exactly. The complete action/keymap gate passes **2,131 assertions** with every chord unique.
+The owner's real last-project record was isolated for the green gates and restored with its exact
+SHA-256; the committed v8 schema fixture also remained byte-identical.
+
+A clean Release rebuild in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --preset ci` is green **346/346**, including action/keymap uniqueness, persistence,
+accessibility, theme audit, screenshots, native input, and the GPU gate. The protected owner
+last-project record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B24 implementation checkpoint.
+
+**Next:** require the exact B24 implementation head green across all nine jobs; cancelled or
+incomplete runs do not count. Only then tick B24 in a separate evidence checkpoint; B25 must not
+start early.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

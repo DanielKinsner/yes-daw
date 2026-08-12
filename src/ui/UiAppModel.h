@@ -3503,6 +3503,12 @@ public:
             case UiActionId::TransportRecallLocatePoint5:
                 return recallLocatePoint (id, state);
 
+            case UiActionId::TransportLocatePreviousMarker:
+                return locateAdjacentTimelineMarker (id, false);
+
+            case UiActionId::TransportLocateNextMarker:
+                return locateAdjacentTimelineMarker (id, true);
+
             case UiActionId::TransportToggleLoop:
                 return dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
@@ -4895,6 +4901,25 @@ private:
             return { id, state, false };
 
         return locatePlaybackAbsolute (id, *point);
+    }
+
+    UiActionDispatchResult locateAdjacentTimelineMarker (UiActionId id, bool next)
+    {
+        const std::int64_t currentFrame = std::max<std::int64_t> (0, context_.playheadFrame);
+        if (next)
+        {
+            for (const engine::Marker& marker : project_.markers)
+                if (marker.tick > currentFrame)
+                    return locatePlaybackAbsolute (id, marker.tick);
+        }
+        else
+        {
+            for (auto marker = project_.markers.rbegin(); marker != project_.markers.rend(); ++marker)
+                if (marker->tick < currentFrame)
+                    return locatePlaybackAbsolute (id, marker->tick);
+        }
+
+        return { id, { false, next ? "no next marker" : "no previous marker" }, false };
     }
 
     UiActionDispatchResult locatePlaybackAbsolute (UiActionId id, std::int64_t targetFrame)

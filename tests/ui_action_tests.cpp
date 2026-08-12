@@ -216,6 +216,10 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TransportStoreLocatePoint1);
     REQUIRE (descriptorForStableId ("transport.locate_point.recall.5")->id
              == UiActionId::TransportRecallLocatePoint5);
+    REQUIRE (descriptorForStableId ("transport.locate_previous_marker")->id
+             == UiActionId::TransportLocatePreviousMarker);
+    REQUIRE (descriptorForStableId ("transport.locate_next_marker")->id
+             == UiActionId::TransportLocateNextMarker);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);

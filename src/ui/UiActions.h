@@ -146,6 +146,8 @@ enum class UiActionId : std::uint8_t
     TransportRecallLocatePoint3,
     TransportRecallLocatePoint4,
     TransportRecallLocatePoint5,
+    TransportLocatePreviousMarker,
+    TransportLocateNextMarker,
     Count
 };
 
@@ -597,6 +599,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportRecallLocatePoint4, "transport.locate_point.recall.4", "Recall Locate 4", "Alt+4", "Recall playhead from locate point 4",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportRecallLocatePoint5, "transport.locate_point.recall.5", "Recall Locate 5", "Alt+5", "Recall playhead from locate point 5",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocatePreviousMarker, "transport.locate_previous_marker", "Previous Marker", "Ctrl+Left", "Move playhead to the previous Marker",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TransportLocateNextMarker, "transport.locate_next_marker", "Next Marker", "Ctrl+Right", "Move playhead to the next Marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -1081,6 +1087,8 @@ public:
             case UiActionId::TransportLocateNextGrid:
             case UiActionId::TransportLocatePreviousBar:
             case UiActionId::TransportLocateNextBar:
+            case UiActionId::TransportLocatePreviousMarker:
+            case UiActionId::TransportLocateNextMarker:
                 break;
 
             case UiActionId::TimelineTogglePlayheadFollow:
