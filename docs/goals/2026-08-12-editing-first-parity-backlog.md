@@ -177,9 +177,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     the SELECTED strip and follows its display ordinal; the send chooser refuses a bus target
     (honest scope: the engine has no bus-side send rows). The `[bus-strip]` gate failed before
     (bus unselectable) and passes after with 84 assertions.
-17. [ ] **E17 — Bus rename + remove from the UI.** No `RenameBus` verb exists anywhere; `RemoveBus`
-    exists engine-side with no UI caller. Add RenameBus (property-tested), inline rename on the bus
-    strip, and a remove control that honestly surfaces the routed-send refusal.
+17. [x] **E17 — Bus rename + remove from the UI.** Landed in `e9d1e88` (run `31651580430` green
+    for the full SHA across all nine jobs, first try). New engine verb `RenameBus` (name rides
+    the shared `trackName` array, empty names refused, whole-vector bus diff family, property
+    arm). Double-clicking a bus strip opens the inline `shell.mixer.bus.rename` editor (Enter
+    commits undoably, Escape cancels); the new `- Bus` button removes the SELECTED bus and the
+    engine's routed-send refusal surfaces honestly — the click reports failure and the bus
+    stays. Action ids `MixerBusRename`/`MixerBusRemove`; childCount re-pinned 112→114. The
+    `[bus-rename-remove]` gate failed before (no rename editor) and passes after with 63
+    assertions including the refused removal and the undo restoring the removed bus.
 18. [ ] **E18 — Send tap + destination editing.** Tap is hardcoded PostFader at creation
     (`UiAppModel.h:2055`) with no engine verb to change it (the `tap` column IS already persisted in
     schema v9); destination is never re-editable. Add `SetSendTap` (property-tested) + a per-row

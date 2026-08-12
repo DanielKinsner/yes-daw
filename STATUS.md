@@ -445,10 +445,15 @@ in — no rename editor exists) and passes after with 63 assertions: double-clic
 and undone, a routed bus surviving its removal click REFUSED (not silently dropped), the
 removal landing after the send is dropped, and one undo restoring the bus.
 
-**Now:** E17 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E17 is certified: exact-head GitHub Actions run `31651580430` green for full SHA
+`e9d1e88c8281c8f31ac417a55c88ec350b7601cc` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E17 is ticked in the backlog.
 
-**Next:** E18 (send tap + destination editing).
+**Now:** E18 (send tap + destination editing) — audited: `SetSendTap` engine verb in the track
+diff family + property arm, per-row Pre/Post toggle, destination chooser re-routing as
+remove+add in one undo group.
+
+**Next:** E19 (master fader).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
