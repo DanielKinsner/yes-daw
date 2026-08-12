@@ -190,8 +190,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     on centered pan; the pan handler now grid-snaps with cancellation-free arithmetic. The
     shipped-boundary gate proves every control with a real off-default edit then a real Alt+click
     reset, including exactly-doubled playback for the fader-to-unity reset.
-30. **Fine drag** — Shift while dragging any slider/fader/knob = 10x finer. (JUCE
-    setVelocityModeParameters or manual; must work on rail minis too.)
+30. [x] **Fine drag** — landed in `44185e2` (exact-head run `31569576522`, nine jobs green).
+    Shift while dragging is exactly 10x finer (manual `FineDragSlider` subclass; JUCE velocity mode
+    is not exactly 10x): anchored at the current value with no jump-to-pointer, unsnapped
+    accumulation, mid-drag engage, latch until mouse-up, and Alt excluded so the B29 reset law is
+    untouched. Covers the mixer fader/pan, sends, FX params, header tempo, inspector sliders, and
+    the rail VOL/PAN minis (persisted-value anchoring). The shipped-boundary gate proves exact
+    per-style math, interval-grid landing, the no-jump anchor, and a >5x coarse/fine ratio.
 31. **dB readout** — the mixer fader and rail VOL show live dB (20*log10(gain)) in a tooltip
     or tiny label while dragging; -inf at zero.
 32. **Meter peak-hold + clip light** — strip and rail meters hold peaks ~2s and latch a red

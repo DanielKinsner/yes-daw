@@ -783,10 +783,16 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B30 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31569576522` is green for full SHA
+`44185e22074553e2e07f69e056bc0db9e8e15276` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B30 is ticked in the backlog.
 
-**Next:** on green, tick B30 in the backlog with SHA + run id (docs-only evidence commit), then B31
-(dB readout while dragging) per the run brief.
+**Now:** B30 certified; B31 (dB readout while dragging) is next per the run brief.
+
+**Next:** B31 — audited: add a shared tiny readout Label shown during mixer-fader and rail-VOL
+drags (JUCE `onDragStart`/`onDragEnd`, with `FineDragSlider` firing them on its fine path where it
+swallows the base drag, and a rail mini-drag-ended callback), text `20*log10(gain)` with `-inf dB`
+at zero; the ui_input shell childCount pin bumps deliberately by one.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
