@@ -2323,6 +2323,157 @@ public:
         return { id, state, true };
     }
 
+    // Duplicate a Track with its Clips, MIDI Clips, scalar strip state, FX chain, and sends as one
+    // transaction group of existing undoable verbs; every duplicated entity gets a fresh session
+    // EntityId. Recording Takes and automation lanes stay on the source Track (no duplicate verbs
+    // exist for those); the copy lands directly below the source as "<name> copy".
+    [[nodiscard]] UiActionDispatchResult duplicateProjectTrack (engine::EntityId trackId)
+    {
+        const UiActionId id = UiActionId::TrackDuplicate;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        std::size_t sourceIndex = project_.tracks.size();
+        for (std::size_t i = 0; i < project_.tracks.size(); ++i)
+        {
+            if (project_.tracks[i].id == trackId)
+            {
+                sourceIndex = i;
+                break;
+            }
+        }
+        if (sourceIndex >= project_.tracks.size())
+            return { id, { false, "track to duplicate missing" }, false };
+
+        const engine::Track source = project_.tracks[sourceIndex];
+
+        constexpr std::string_view copySuffix = " copy";
+        std::string copyName = source.strip.name;
+        const std::size_t maxBaseLength = engine::ProjectEditCommand::kMaxTrackNameLength - copySuffix.size();
+        if (copyName.size() > maxBaseLength)
+            copyName.resize (maxBaseLength);
+        copyName += copySuffix;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+
+        const engine::EntityId newTrackId = allocateSessionEntityId (0xB2u, nextProject);
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (newTrackId, copyName)).applied())
+            return { id, { false, "duplicate track add failed" }, false };
+
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setTrackMixScalars (newTrackId,
+                                                                              source.strip.linearGain,
+                                                                              source.strip.pan,
+                                                                              source.strip.muted,
+                                                                              source.strip.soloed,
+                                                                              source.strip.soloSafe)).applied())
+            return { id, { false, "duplicate strip copy failed" }, false };
+
+        for (std::size_t position = 0; position < source.strip.fxChain.size(); ++position)
+        {
+            const engine::FxInsert& insert = source.strip.fxChain[position];
+            const engine::EntityId newInsertId = allocateSessionEntityId (0xD2u, nextProject);
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::addFxInsert (newTrackId,
+                                                                           newInsertId,
+                                                                           insert.kind,
+                                                                           insert.enabled,
+                                                                           position)).applied())
+                return { id, { false, "duplicate FX insert failed" }, false };
+
+            for (const auto& [paramId, value] : insert.normalizedParams)
+            {
+                if (! nextUndo.apply (nextProject,
+                                      engine::ProjectEditCommand::setFxInsertParam (newTrackId,
+                                                                                    newInsertId,
+                                                                                    paramId,
+                                                                                    value)).applied())
+                    return { id, { false, "duplicate FX param failed" }, false };
+            }
+        }
+
+        for (const engine::SendRow& send : source.sends)
+        {
+            const engine::EntityId newSendId = allocateSessionEntityId (0xE2u, nextProject);
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::addSend (newTrackId,
+                                                                       newSendId,
+                                                                       send.busId,
+                                                                       send.tap,
+                                                                       send.linearGain)).applied())
+                return { id, { false, "duplicate send failed" }, false };
+        }
+
+        for (const engine::Clip& clip : project_.clips)
+        {
+            if (clip.trackId != trackId)
+                continue;
+
+            engine::Clip copy = clip;
+            copy.id = allocateSessionEntityId (0xC4u, nextProject);
+            copy.trackId = newTrackId;
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
+                return { id, { false, "duplicate clip failed" }, false };
+        }
+
+        for (const engine::MidiClip& midiClip : project_.midiClips)
+        {
+            if (midiClip.trackId != trackId)
+                continue;
+
+            const engine::EntityId newMidiClipId = allocateSessionEntityId (0xC5u, nextProject);
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::addMidiClip (newMidiClipId,
+                                                                           newTrackId,
+                                                                           midiClip.timelineStart,
+                                                                           midiClip.timelineLength,
+                                                                           midiClip.timeBase)).applied())
+                return { id, { false, "duplicate MIDI clip failed" }, false };
+
+            for (const engine::Note& note : midiClip.notes)
+            {
+                engine::ProjectEditCommand noteCommand = engine::ProjectEditCommand::addNote (
+                    newMidiClipId,
+                    allocateSessionEntityId (0xC6u, nextProject),
+                    note.startTick,
+                    note.lengthTicks,
+                    note.key,
+                    note.normalizedVelocity);
+                noteCommand.notePitch = note.pitchNote;
+                noteCommand.notePort = note.portIndex;
+                noteCommand.noteChannel = note.channel;
+                if (! nextUndo.apply (nextProject, noteCommand).applied())
+                    return { id, { false, "duplicate note failed" }, false };
+            }
+        }
+
+        // AddTrack appends at the back; only reorder when the copy is not already directly below
+        // the source (a same-position reorder is a no-op the diff recorder rightly refuses).
+        if (sourceIndex + 2u < nextProject.tracks.size())
+        {
+            const engine::ProjectEditApplyResult reordered =
+                nextUndo.apply (nextProject, engine::ProjectEditCommand::reorderTrack (newTrackId, sourceIndex + 1u));
+            if (! reordered.applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, { false, "duplicate track reorder failed" }, false };
+            }
+        }
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track duplicate did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.trackEditCount;
+        return { id, state, true };
+    }
+
     // Pro Tools-style remove-with-contents: deletes the Track's audio Clips and automation lanes as
     // their own undoable commands inside one transaction group, then removes the Track. Tracks that
     // still own MIDI Clips or recording Takes are refused (no delete verbs exist for those yet).
@@ -3742,6 +3893,7 @@ public:
             case UiActionId::TrackRename:
             case UiActionId::TrackRemove:
             case UiActionId::TrackReorder:
+            case UiActionId::TrackDuplicate:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

@@ -3364,6 +3364,20 @@ private:
         repaint();
     }
 
+    void duplicateSelectedTrack()
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (selectedTrackLane < 0 || selectedTrackLane >= static_cast<int> (tracks.size()))
+            return;
+
+        dismissTrackRenameEditor();
+        if (appModel.duplicateProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id).dispatched)
+            selectTrackLane (selectedTrackLane + 1);   // the copy lands directly below the source
+
+        refreshActionState();
+        repaint();
+    }
+
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
@@ -3966,6 +3980,10 @@ private:
 
             case yesdaw::ui::UiActionId::TrackRemove:
                 removeSelectedTrack();
+                return;
+
+            case yesdaw::ui::UiActionId::TrackDuplicate:
+                duplicateSelectedTrack();
                 return;
 
             case yesdaw::ui::UiActionId::TrackSelectPrevious:

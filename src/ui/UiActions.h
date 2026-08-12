@@ -149,6 +149,7 @@ enum class UiActionId : std::uint8_t
     TransportLocatePreviousMarker,
     TransportLocateNextMarker,
     TimelineRangeToLoop,
+    TrackDuplicate,
     Count
 };
 
@@ -374,7 +375,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "Ctrl+Alt+T", "Select test audio device",
+    { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "Ctrl+Alt+Shift+T", "Select test audio device",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "Ctrl+Alt+A", "Arm selected Track for recording",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
@@ -607,6 +608,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportLocateNextMarker, "transport.locate_next_marker", "Next Marker", "Ctrl+Right", "Move playhead to the next Marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Shift+L", "Convert the ruler range selection to the loop region",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "Ctrl+Alt+T", "Duplicate selected track with clips and strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -1180,6 +1183,7 @@ public:
             case UiActionId::TrackRename:
             case UiActionId::TrackRemove:
             case UiActionId::TrackReorder:
+            case UiActionId::TrackDuplicate:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.trackEditCount;

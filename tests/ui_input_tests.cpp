@@ -6384,3 +6384,194 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     std::filesystem::remove (wholeExportPath, ec);
     std::filesystem::remove (rangeExportPath, ec);
 }
+
+TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and sends as one undo group",
+           "[ui][input][shell][tracks][track-duplicate]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-duplicate");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // With no rail row selected the chord resolves but the shell honestly does nothing.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    // Enrich the source track through real controls so the duplicate has something to prove:
+    // rail VOL/PAN gestures, a compressor insert with one edited param, a send routed to a real
+    // bus, and a penciled MIDI clip on the same track.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    mouseDownAt (*rail, { rail->getWidth() / 2, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
+    const juce::Rectangle<int> pan =
+        row.withRight (row.getRight() - L::trackListPanRightInset)
+            .removeFromRight (L::trackListPanDiameter)
+            .withY (row.getY() + L::trackListPanTopInset)
+            .withHeight (L::trackListPanDiameter);
+    mouseDownAt (*rail, { pan.getX() + 1, pan.getCentreY() });
+
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                              juce::sendNotificationSync);
+    auto* fxEdit = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (fxEdit != nullptr);
+    clickButton (*fxEdit);
+    auto* fxParam = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (fxParam != nullptr);
+    fxParam->setValue (0.25, juce::sendNotificationSync);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
+
+    const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
+    REQUIRE (before.tracks.size() == 1u);
+    REQUIRE (before.clips.size() == 1u);
+    REQUIRE (before.midiClips.size() == 1u);
+    REQUIRE (before.midiClips.front().notes.size() == 1u);
+    const yesdaw::engine::Track source = before.tracks.front();
+    REQUIRE (source.strip.linearGain > 0.4f);
+    REQUIRE (source.strip.pan < -0.8f);
+    REQUIRE (source.strip.fxChain.size() == 1u);
+    REQUIRE (source.strip.fxChain.front().normalizedParams.size() == 1u);
+    REQUIRE (source.sends.size() == 1u);
+
+    // Baseline audible playback from timeline zero.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> baseline = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (baseline.data(), baseline.size())) > 0.01);
+
+    // The real chord duplicates the selected track as one persisted transaction group.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+
+    const yesdaw::engine::Project after = readProjectSnapshot (bundlePath);
+    REQUIRE (after.tracks.size() == 2u);
+    const yesdaw::engine::Track& copy = after.tracks.back();   // lands directly below the source
+    REQUIRE (after.tracks.front().id == source.id);
+    REQUIRE (copy.id != source.id);
+    REQUIRE (copy.strip.name == source.strip.name + " copy");
+    REQUIRE (copy.strip.linearGain == source.strip.linearGain);
+    REQUIRE (copy.strip.pan == source.strip.pan);
+    REQUIRE (copy.strip.muted == source.strip.muted);
+    REQUIRE (copy.strip.soloed == source.strip.soloed);
+    REQUIRE (copy.strip.soloSafe == source.strip.soloSafe);
+
+    REQUIRE (copy.strip.fxChain.size() == 1u);
+    REQUIRE (copy.strip.fxChain.front().id != source.strip.fxChain.front().id);
+    REQUIRE (copy.strip.fxChain.front().kind == source.strip.fxChain.front().kind);
+    REQUIRE (copy.strip.fxChain.front().enabled == source.strip.fxChain.front().enabled);
+    REQUIRE (copy.strip.fxChain.front().normalizedParams == source.strip.fxChain.front().normalizedParams);
+
+    REQUIRE (copy.sends.size() == 1u);
+    REQUIRE (copy.sends.front().id != source.sends.front().id);
+    REQUIRE (copy.sends.front().busId == source.sends.front().busId);
+    REQUIRE (copy.sends.front().tap == source.sends.front().tap);
+    REQUIRE (copy.sends.front().linearGain == source.sends.front().linearGain);
+
+    REQUIRE (after.clips.size() == 2u);
+    yesdaw::engine::Clip copiedClip = after.clips.back();
+    REQUIRE (copiedClip.id != before.clips.front().id);
+    REQUIRE (copiedClip.trackId == copy.id);
+    copiedClip.id = before.clips.front().id;
+    copiedClip.trackId = before.clips.front().trackId;
+    REQUIRE (copiedClip == before.clips.front());
+
+    REQUIRE (after.midiClips.size() == 2u);
+    const yesdaw::engine::MidiClip& sourceMidi = before.midiClips.front();
+    yesdaw::engine::MidiClip copiedMidi = after.midiClips.back();
+    REQUIRE (copiedMidi.id != sourceMidi.id);
+    REQUIRE (copiedMidi.trackId == copy.id);
+    REQUIRE (copiedMidi.notes.size() == 1u);
+    REQUIRE (copiedMidi.notes.front().id != sourceMidi.notes.front().id);
+    copiedMidi.id = sourceMidi.id;
+    copiedMidi.trackId = sourceMidi.trackId;
+    copiedMidi.notes.front().id = sourceMidi.notes.front().id;
+    REQUIRE (copiedMidi == sourceMidi);
+
+    // Two identical tracks sum to exactly twice the baseline through the rebuilt playback graph.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> doubled = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (doubled.size() == baseline.size());
+    std::size_t firstMismatch = baseline.size();
+    for (std::size_t i = 0; i < baseline.size(); ++i)
+    {
+        if (doubled[i] != 2.0f * baseline[i])
+        {
+            firstMismatch = i;
+            break;
+        }
+    }
+    REQUIRE (firstMismatch == baseline.size());
+
+    // One Ctrl+Z undoes the whole duplicate and playback returns bit-identically to the baseline.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.tracks == before.tracks);
+    REQUIRE (undone.clips == before.clips);
+    REQUIRE (undone.midiClips == before.midiClips);
+    REQUIRE (undone.buses == before.buses);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> restored = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (restored == baseline);
+
+    // One Ctrl+Shift+Z redoes the whole group.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    const yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.tracks.size() == 2u);
+    REQUIRE (redone.tracks == after.tracks);
+    REQUIRE (redone.clips == after.clips);
+    REQUIRE (redone.midiClips == after.midiClips);
+
+    // Duplicating a non-last track reorders the copy to sit directly below its source.
+    juce::Component* railAgain = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railAgain != nullptr);
+    mouseDownAt (*railAgain, { railAgain->getWidth() / 2,
+                               L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+    const yesdaw::engine::Project three = readProjectSnapshot (bundlePath);
+    REQUIRE (three.tracks.size() == 3u);
+    REQUIRE (three.tracks[0].id == source.id);
+    REQUIRE (three.tracks[1].id != source.id);
+    REQUIRE (three.tracks[1].id != redone.tracks.back().id);   // the fresh copy sits between
+    REQUIRE (three.tracks[2].id == redone.tracks.back().id);
+    REQUIRE (three.tracks[1].strip.name == source.strip.name + " copy");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

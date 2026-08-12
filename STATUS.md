@@ -628,10 +628,47 @@ all nine jobs. Warm-cache code runs and docs-only evidence runs are expected to 
 minutes to single digits / under a minute respectively; the first B26 runs are the measurement.
 The overnight run brief for items 26–41 is `docs/goals/2026-08-11-overnight-backlog-run-brief.md`.
 
-**Now:** stop at the completed B25 + CI-speed checkpoints. B26 is untouched.
+**B26 implementation candidate — Duplicate track:** audited the descriptor/keymap table, both
+exhaustive action switches, the Track/Clip/MidiClip/send/FX row surfaces, every arrangement verb in
+`ProjectUndo.h`, the transaction-group undo law, the whole-vector track diff, the session EntityId
+allocator, and the shell rail-selection path before adding anything. The backlog's `Ctrl+Alt+T` chord
+was taken by the dev-only `DeviceSelectTestAudio` action; per the item-28 precedent that action moved
+to free `Ctrl+Alt+Shift+T` (no test pinned the old chord) and `Ctrl+Alt+T` now drives the new
+`TrackDuplicate` action, appended at the descriptor-table end and covered in both exhaustive switches.
 
-**Next:** an overnight agent starts B26 per the run brief — only after `git pull --rebase` and the
-required STATUS/backlog reread and shipped-boundary audit.
+Duplicate is one transaction group of existing undoable verbs — AddTrack ("<name> copy"),
+AddFxInsert + SetFxInsertParam per insert, AddSend per send, AddClip per audio Clip, AddMidiClip +
+AddNote per MIDI Clip/Note (pitch/port/channel preserved), and ReorderTrack so the copy lands
+directly below its source (skipped honestly when AddTrack already lands there — a same-position
+reorder is a no-op the diff recorder refuses). Scalar strip state (gain/pan/mute/solo/solo-safe) had
+no undoable verb — interactive gestures edit the strip directly — so one new engine verb
+`SetTrackMixScalars` was appended (in-memory command surface only; no schema change) and rides the
+existing whole-vector track diff. Every duplicated entity gets a fresh session EntityId. Recording
+Takes and automation lanes stay on the source Track: no duplicate verbs exist for those, and none
+are faked.
+
+The new engine gate proves the verb edits, undoes, redoes, and rejects invalid gain/pan/targets
+(27 assertions). The shipped-boundary `[track-duplicate]` gate builds a source track through real
+controls (rail VOL/PAN gestures, a compressor insert with an edited param slider, a real bus + send
+chooser, Ctrl+M + pencil note), then proves the real chord: with no rail selection the chord is an
+honest no-op; with the source selected one press persists a full copy — fresh Track/FX/send/Clip/
+MIDI/Note ids, byte-equal strip scalars, param-equal FX chain, route-equal send, field-equal Clips
+and Notes; rendered playback becomes exactly two times the baseline sample-for-sample through the
+rebuilt graph; one Ctrl+Z undoes the whole group with bit-identical baseline playback restored; one
+Ctrl+Shift+Z redoes it; and duplicating a non-last track reorders the copy to sit directly below its
+source (117 assertions). A first run failed at 55/56 because the same-position ReorderTrack no-op
+refused to record — fixed by skipping the redundant reorder, then extending the gate to cover the
+real reorder path.
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**, including action/keymap uniqueness, persistence,
+accessibility, theme audit, screenshots, native input, and the GPU gate. The owner's real
+last-project record was isolated for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B26 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B26 in the backlog with SHA + run id (docs-only evidence commit), then B27
+(move track up/down) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

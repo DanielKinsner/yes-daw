@@ -720,7 +720,8 @@ enum class ProjectEditStatus : std::uint8_t
     SendNotFound,
     DuplicateSendRoute,
     InvalidSendLevel,
-    InvalidClipName
+    InvalidClipName,
+    InvalidTrackMixState
 };
 
 struct Project
@@ -2213,6 +2214,41 @@ namespace detail {
         if (track.id == trackId)
         {
             track.strip.name = newName;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// Set the scalar mixer strip state of one Track as an undoable edit. Interactive fader/pan/mute
+// gestures stay direct strip edits; this verb exists for whole-strip copies (duplicate track).
+[[nodiscard]] inline ProjectEditStatus setTrackMixScalars (Project& project,
+                                                           EntityId trackId,
+                                                           float linearGain,
+                                                           float pan,
+                                                           bool muted,
+                                                           bool soloed,
+                                                           bool soloSafe)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id == trackId)
+        {
+            track.strip.linearGain = linearGain;
+            track.strip.pan = pan;
+            track.strip.muted = muted;
+            track.strip.soloed = soloed;
+            track.strip.soloSafe = soloSafe;
             return ProjectEditStatus::Applied;
         }
     }

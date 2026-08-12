@@ -2254,6 +2254,38 @@ TEST_CASE ("Clip rename edits, undoes, and redoes through the Project command su
     REQUIRE (yesdaw::engine::renameClip (project, clipId, std::string (128u, 'x')) == ProjectEditStatus::InvalidClipName);
 }
 
+TEST_CASE ("SetTrackMixScalars edits, undoes, and redoes the scalar strip state",
+           "[project][arrangement][undo][mix-scalars]")
+{
+    Project project = makeTwoClipEditableProject();
+    const EntityId trackId = idFromLowByte (36);
+    const Project original = project;
+    ProjectUndoStack undo;
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (
+                             trackId, 0.5f, -0.25f, true, true, true)).applied());
+    REQUIRE (project.tracks.front().strip.linearGain == 0.5f);
+    REQUIRE (project.tracks.front().strip.pan == -0.25f);
+    REQUIRE (project.tracks.front().strip.muted);
+    REQUIRE (project.tracks.front().strip.soloed);
+    REQUIRE (project.tracks.front().strip.soloSafe);
+
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.tracks.front().strip.linearGain == 0.5f);
+
+    // Guards bite: unknown or invalid targets and out-of-range gain/pan reject without mutating.
+    REQUIRE (yesdaw::engine::setTrackMixScalars (project, idFromLowByte (99), 1.0f, 0.0f, false, false, false)
+             == ProjectEditStatus::TrackNotFound);
+    REQUIRE (yesdaw::engine::setTrackMixScalars (project, EntityId {}, 1.0f, 0.0f, false, false, false)
+             == ProjectEditStatus::InvalidTrackId);
+    REQUIRE (yesdaw::engine::setTrackMixScalars (project, trackId, -1.0f, 0.0f, false, false, false)
+             == ProjectEditStatus::InvalidTrackMixState);
+    REQUIRE (yesdaw::engine::setTrackMixScalars (project, trackId, 1.0f, 2.0f, false, false, false)
+             == ProjectEditStatus::InvalidTrackMixState);
+}
+
 TEST_CASE ("Send routing verbs edit, undo, and redo buses and sends bit-identically",
            "[project][sends][undo]")
 {

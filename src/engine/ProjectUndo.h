@@ -63,7 +63,8 @@ enum class ProjectEditVerb : std::uint8_t
     AddSend,
     RemoveSend,
     SetSendLevel,
-    RenameClip
+    RenameClip,
+    SetTrackMixScalars
 };
 
 struct ProjectEditCommand
@@ -134,6 +135,11 @@ struct ProjectEditCommand
     EntityId sendId;
     SendTap sendTap = SendTap::PostFader;
     float sendLinearGain = 1.0f;
+    // Scalar strip-state payload (SetTrackMixScalars; the linear gain rides the shared `gain` field)
+    float trackPan = 0.0f;
+    bool trackMuted = false;
+    bool trackSoloed = false;
+    bool trackSoloSafe = false;
 
     static constexpr std::size_t kMaxTrackNameLength = 127;   // trackName holds this + NUL
     static constexpr std::size_t kMaxClipNameLength = ClipName::kMaxLength;
@@ -568,6 +574,24 @@ struct ProjectEditCommand
         return command;
     }
 
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackMixScalars (EntityId trackId,
+                                                                          float linearGain,
+                                                                          float pan,
+                                                                          bool muted,
+                                                                          bool soloed,
+                                                                          bool soloSafe) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackMixScalars;
+        command.trackId = trackId;
+        command.gain = linearGain;
+        command.trackPan = pan;
+        command.trackMuted = muted;
+        command.trackSoloed = soloed;
+        command.trackSoloSafe = soloSafe;
+        return command;
+    }
+
     // Marker name rides the trackName array (same trivially-copyable command constraint).
     [[nodiscard]] static constexpr ProjectEditCommand addMidiClip (EntityId midiClipId,
                                                                     EntityId trackId,
@@ -832,7 +856,8 @@ namespace detail {
            || verb == ProjectEditVerb::RemoveTrack
            || verb == ProjectEditVerb::AddSend
            || verb == ProjectEditVerb::RemoveSend
-           || verb == ProjectEditVerb::SetSendLevel;
+           || verb == ProjectEditVerb::SetSendLevel
+           || verb == ProjectEditVerb::SetTrackMixScalars;
 }
 
 [[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
@@ -1097,6 +1122,15 @@ namespace detail {
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;
             return renameClip (project, command.clipId, std::string_view { command.clipName });
+
+        case ProjectEditVerb::SetTrackMixScalars:
+            return setTrackMixScalars (project,
+                                       command.trackId,
+                                       command.gain,
+                                       command.trackPan,
+                                       command.trackMuted,
+                                       command.trackSoloed,
+                                       command.trackSoloSafe);
     }
 
     return ProjectEditStatus::InvalidProject;
