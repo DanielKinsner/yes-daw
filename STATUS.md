@@ -755,10 +755,17 @@ to the same interval grid with cancellation-free arithmetic (`round(v/interval)*
 it reaches the model; x64-persisted floats are bit-identical to before, and the gate's exact-zero
 assertion is unchanged — never loosened.
 
-**Now:** B29 repair checkpoint — awaiting the exact-head GitHub Actions run on the repaired head.
+Exact-head GitHub Actions run `31568595210` is green for repaired full SHA
+`e0dc4df64160549fdac133ffef9f312796753c9a` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B29 is ticked in the backlog.
 
-**Next:** on green, tick B29 in the backlog with SHA + run id (docs-only evidence commit), then B30
-(Shift fine drag, exact 10x, incl. rail minis) per the run brief.
+**Now:** B29 certified; B30 (Shift fine drag) is next per the run brief.
+
+**Next:** B30 — audited: the four mixer slider families are JUCE sliders in three styles plus the
+custom rail minis; JUCE velocity mode is not exactly 10x, so implement a manual fine mode (anchor
+value at Shift-press, axis delta scaled by a UiTheme fine-drag token) in a local Slider subclass
+and an incremental fine branch in the rail minis (value providers needed for shift-at-mousedown
+anchoring). Gate asserts exact fine-drag math and ~10x coarse/fine ratio.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

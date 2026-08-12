@@ -182,8 +182,14 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     Marker-remove's conflicting chord was reassigned to unique Ctrl+Shift+M and re-pinned in the
     gate. The shipped-boundary gate proves persisted mute/solo with exact silence through the real
     solo policy, byte-identical `project.db` across arm/retarget/disarm, and both marker chords.
-29. **Alt+click resets** — Alt+click on any fader → unity, any pan → center, any send level
-    → unity, any FX param slider → spec default. Gate per control.
+29. [x] **Alt+click resets** — landed in `5e4dfde` + macOS repair `e0dc4df` (exact-head run
+    `31568595210`, nine jobs green). Alt+click resets the mixer fader and send levels to unity,
+    pan to center, each FX param to its own re-bound `ParamSpec.normalizedDefault`, and the rail
+    VOL/PAN minis to unity/center, all through each control's existing persisted edit path. One
+    red round: ARM FMA contraction in JUCE's slider snap left ~2e-17 dust where x64 landed exactly
+    on centered pan; the pan handler now grid-snaps with cancellation-free arithmetic. The
+    shipped-boundary gate proves every control with a real off-default edit then a real Alt+click
+    reset, including exactly-doubled playback for the fader-to-unity reset.
 30. **Fine drag** — Shift while dragging any slider/fader/knob = 10x finer. (JUCE
     setVelocityModeParameters or manual; must work on rail minis too.)
 31. **dB readout** — the mixer fader and rail VOL show live dB (20*log10(gain)) in a tooltip
