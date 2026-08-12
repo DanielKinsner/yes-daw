@@ -1881,14 +1881,24 @@ TEST_CASE ("loaded empty Project ruler click locates and plain drag selects a ra
     REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
 
     // Parity item 25: a plain ruler drag no longer scrubs the playhead — it selects a time range
-    // while the playhead stays at the mouse-down locate.
+    // while the playhead stays at the mouse-down locate. E4: the committed range endpoints snap
+    // through the snap chooser (the locate itself stays raw).
     const juce::Point<int> threeSeconds = emptyProjectRulerPointAtSeconds (timeline, 3.0);
     dragFromTo (timeline, twoSeconds, threeSeconds);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
     REQUIRE (snapshot.context.timelineRangeSelected);
-    REQUIRE (snapshot.timelineRangeStartFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
-    REQUIRE (snapshot.timelineRangeEndFrame == emptyProjectFrameAtRulerPoint (timeline, threeSeconds));
+    REQUIRE (snapshot.context.snapEnabled);
+    yesdaw::engine::Tick expectedRangeStart = 0;
+    yesdaw::engine::Tick expectedRangeEnd = 0;
+    REQUIRE (yesdaw::engine::snapTick (
+        static_cast<yesdaw::engine::Tick> (emptyProjectFrameAtRulerPoint (timeline, twoSeconds)),
+        yesdaw::engine::SnapGrid { snapshot.context.snapGridTicks }, expectedRangeStart));
+    REQUIRE (yesdaw::engine::snapTick (
+        static_cast<yesdaw::engine::Tick> (emptyProjectFrameAtRulerPoint (timeline, threeSeconds)),
+        yesdaw::engine::SnapGrid { snapshot.context.snapGridTicks }, expectedRangeEnd));
+    REQUIRE (snapshot.timelineRangeStartFrame == expectedRangeStart);
+    REQUIRE (snapshot.timelineRangeEndFrame == expectedRangeEnd);
 
     // A plain ruler click collapses the committed range and still locates.
     mouseDownAt (timeline, threeSeconds);
@@ -2376,7 +2386,11 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 5);
 
-    doubleClickAt (timeline, { 80, 100 });
+    // E4: the double-click split tick snaps through the snap chooser; with the default grid far
+    // coarser than this short clip, Ctrl inverts the grid so the raw click point splits.
+    doubleClickAt (timeline, { 80, 100 },
+                   juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                       | juce::ModifierKeys::ctrlModifier));
 
     const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
     REQUIRE (split.clips.size() == 2u);
@@ -2428,8 +2442,12 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 8);
 
+    // E4: the trim edge snaps through the snap chooser; Ctrl inverts so this exact -6px trim
+    // keeps its raw semantics.
     const juce::Point<int> trimStart = timelineClipRightEdgeDragPoint (timeline, splitRedone, 1u);
-    dragFromTo (timeline, trimStart, trimStart.translated (-6, 0));
+    dragFromTo (timeline, trimStart, trimStart.translated (-6, 0),
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
 
     const yesdaw::engine::Project trimmed = readProjectSnapshot (bundlePath);
     REQUIRE (trimmed.clips.size() == 2u);
@@ -4115,12 +4133,16 @@ TEST_CASE ("dragging the clip's left edge trims its head without moving the audi
     REQUIRE (imported.clips.size() == 1u);
     const yesdaw::engine::Clip before = imported.clips.front();
 
+    // E4: trim edges snap through the snap chooser; the default grid is far coarser than this
+    // short fixture, so Ctrl inverts to keep the raw quarter-clip trim.
     const juce::Point<int> leftEdge = timelineClipLeftEdgeDragPoint (timeline, imported, 0u);
     const int quarterClipPixels = juce::jmax (
         yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels + 2,
         juce::roundToInt (timelinePixelsPerSecond (timeline, imported)
                           * (static_cast<double> (before.timelineLength) / 48'000.0) * 0.25));
-    dragFromTo (timeline, leftEdge, { leftEdge.x + quarterClipPixels, leftEdge.y });
+    dragFromTo (timeline, leftEdge, { leftEdge.x + quarterClipPixels, leftEdge.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
 
     const yesdaw::engine::Project trimmed = readProjectSnapshot (bundlePath);
     const yesdaw::engine::Clip after = trimmed.clips.front();
@@ -5271,10 +5293,17 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
 
-    // SCISSORS tool: a click on a clip splits it at the click point as a persisted undoable edit.
+    // SCISSORS tool: with the snap chooser on and the grid coarser than this short clip, the
+    // snapped split tick lands outside the clip body and is honestly refused (E4); Ctrl inverts
+    // the grid, and the raw click splits as a persisted undoable edit.
     REQUIRE (shell->keyPressed (juce::KeyPress ('s')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
+    REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
+    REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks > original.clips[0].timelineLength);
     mouseDownAt (timeline, { topBounds.getX() + (topBounds.getWidth() * 3) / 5, topBounds.getCentreY() });
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
+    mouseDownAt (timeline, { topBounds.getX() + (topBounds.getWidth() * 3) / 5, topBounds.getCentreY() },
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
     const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
     REQUIRE (split.clips.size() == 4u);
     const auto splitLeft = std::find_if (split.clips.begin(), split.clips.end(), [&] (const auto& clip) {
@@ -5347,6 +5376,182 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     });
     REQUIRE (movedClip != moved.clips.end());
     REQUIRE (movedClip->timelineStart > original.clips[0].timelineStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+}
+
+TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inversion",
+           "[ui][input][shell][timeline][snap-gestures]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("snap-gestures");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    const yesdaw::engine::Clip baseClip = original.clips.front();
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    const MainComponentSnapshot base = snapshotMainComponent (*shell);
+    REQUIRE (base.context.snapEnabled);
+    const std::int64_t grid = base.context.snapGridTicks;
+    // The default beat grid is far coarser than the short fixture clip: snapped edge/split ticks
+    // land outside the clip's legality window, so the verbs refuse honestly (legality wins).
+    REQUIRE (grid > baseClip.timelineLength);
+
+    const auto secondsAtX = [&] (int x) {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (original.tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        return geometry.viewport.scrollSeconds
+             + static_cast<double> (x - geometry.clipArea.getX()) / pixelsPerSecond;
+    };
+    const auto rawTickAtX = [&] (int x) {
+        return static_cast<yesdaw::engine::Tick> (
+            std::llround (secondsAtX (x) * original.sampleRate.hz));
+    };
+    const auto snappedTickAtX = [&] (int x) {
+        yesdaw::engine::Tick snapped = rawTickAtX (x);
+        REQUIRE (yesdaw::engine::snapTick (rawTickAtX (x),
+                                           yesdaw::engine::SnapGrid { grid }, snapped));
+        return std::max<yesdaw::engine::Tick> (0, snapped);
+    };
+    const auto xAtTick = [&] (yesdaw::engine::Tick tick) {
+        return projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, tick).x;
+    };
+    const int rulerY = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), original, 0).y;
+    const juce::ModifierKeys ctrlDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    const juce::ModifierKeys shiftDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    const juce::ModifierKeys ctrlShiftDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
+        | juce::ModifierKeys::shiftModifier);
+
+    // LOOP drag on the ruler: endpoints snap to the beat grid; Ctrl inverts to raw.
+    const int loopFromX = xAtTick (grid * 2 / 5);
+    const int loopToX = xAtTick (grid * 8 / 5);
+    dragFromTo (timeline, { loopFromX, rulerY }, { loopToX, rulerY }, shiftDrag);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.playbackLoopStartFrame == snappedTickAtX (loopFromX));
+    REQUIRE (snapshot.playbackLoopEndFrame == snappedTickAtX (loopToX));
+    REQUIRE (snapshot.playbackLoopStartFrame % grid == 0);
+    REQUIRE (snapshot.playbackLoopEndFrame % grid == 0);
+
+    const int rawFromX = xAtTick (grid / 2);
+    const int rawToX = xAtTick (grid * 5 / 4);
+    dragFromTo (timeline, { rawFromX, rulerY }, { rawToX, rulerY }, ctrlShiftDrag);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.playbackLoopStartFrame == rawTickAtX (rawFromX));
+    REQUIRE (snapshot.playbackLoopEndFrame == rawTickAtX (rawToX));
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // RANGE drag on the ruler: endpoints snap while the mouse-down locate stays raw.
+    dragFromTo (timeline, { loopFromX, rulerY }, { loopToX, rulerY });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineRangeSelected);
+    REQUIRE (snapshot.timelineRangeStartFrame == snappedTickAtX (loopFromX));
+    REQUIRE (snapshot.timelineRangeEndFrame == snappedTickAtX (loopToX));
+    REQUIRE (snapshot.context.playheadFrame == rawTickAtX (loopFromX));
+    dragFromTo (timeline, { rawFromX, rulerY }, { rawToX, rulerY }, ctrlDrag);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineRangeStartFrame == rawTickAtX (rawFromX));
+    REQUIRE (snapshot.timelineRangeEndFrame == rawTickAtX (rawToX));
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // TRIM RIGHT: snap-on lands the snapped end outside the legal window -> honest refusal;
+    // Ctrl inverts and the raw target trims exactly.
+    const juce::Point<int> rightEdge = timelineClipRightEdgeDragPoint (timeline, original, 0u);
+    const int trimTargetX = xAtTick (baseClip.timelineLength * 3 / 4);
+    dragFromTo (timeline, rightEdge, { trimTargetX, rightEdge.y });
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    dragFromTo (timeline, rightEdge, { trimTargetX, rightEdge.y }, ctrlDrag);
+    {
+        const yesdaw::engine::Clip trimmed = readProjectSnapshot (bundlePath).clips.front();
+        REQUIRE (trimmed.timelineLength == rawTickAtX (trimTargetX) - baseClip.timelineStart);
+        REQUIRE (trimmed.timelineStart == baseClip.timelineStart);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // TRIM LEFT: same law on the head.
+    const juce::Point<int> leftEdge = timelineClipLeftEdgeDragPoint (timeline, original, 0u);
+    const int trimLeftTargetX = xAtTick (baseClip.timelineLength / 4);
+    dragFromTo (timeline, leftEdge, { trimLeftTargetX, leftEdge.y });
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    dragFromTo (timeline, leftEdge, { trimLeftTargetX, leftEdge.y }, ctrlDrag);
+    {
+        const yesdaw::engine::Clip trimmed = readProjectSnapshot (bundlePath).clips.front();
+        const yesdaw::engine::Tick consumed = rawTickAtX (trimLeftTargetX) - baseClip.timelineStart;
+        REQUIRE (trimmed.timelineStart == baseClip.timelineStart + consumed);
+        REQUIRE (trimmed.timelineLength == baseClip.timelineLength - consumed);
+        REQUIRE (trimmed.srcOffset > baseClip.srcOffset);
+        REQUIRE (trimmed.timelineStart + trimmed.timelineLength
+                 == baseClip.timelineStart + baseClip.timelineLength);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // SPLIT: the snapped double-click tick lands outside the clip body -> honest refusal; the
+    // Ctrl-inverted double-click splits at the exact raw tick.
+    const juce::Rectangle<int> clipBounds = timelineClipHitBounds (timeline, original, 0u);
+    doubleClickAt (timeline, clipBounds.getCentre());
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+    doubleClickAt (timeline, clipBounds.getCentre(), ctrlDrag);
+    {
+        const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+        REQUIRE (split.clips.size() == 2u);
+        const yesdaw::engine::Tick splitTick = rawTickAtX (clipBounds.getCentreX());
+        const auto left = std::find_if (split.clips.begin(), split.clips.end(), [&] (const auto& clip) {
+            return clip.id == baseClip.id;
+        });
+        REQUIRE (left != split.clips.end());
+        REQUIRE (left->timelineLength == splitTick - baseClip.timelineStart);
+        const auto right = std::find_if (split.clips.begin(), split.clips.end(), [&] (const auto& clip) {
+            return clip.id != baseClip.id && clip.timelineStart == splitTick;
+        });
+        REQUIRE (right != split.clips.end());
+        REQUIRE (left->timelineLength + right->timelineLength == baseClip.timelineLength);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // FADES stay honestly unsnapped: with snap ON, an Alt edge drag persists a raw, sub-grid fade
+    // (a snapped duration would have collapsed to zero and changed nothing).
+    const juce::ModifierKeys altDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier);
+    const juce::Point<int> fadeOutStart = timelineClipRightEdgeDragPoint (timeline, original, 0u);
+    dragFromTo (timeline, fadeOutStart, { trimTargetX, fadeOutStart.y }, altDrag);
+    {
+        const yesdaw::engine::Clip faded = readProjectSnapshot (bundlePath).clips.front();
+        REQUIRE (faded.fadeOut > 0);
+        REQUIRE (faded.fadeOut < baseClip.timelineLength);
+        REQUIRE (faded.fadeOut % grid != 0);
+    }
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
 }
@@ -6831,7 +7036,14 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     REQUIRE (rangeStart > 0);
     REQUIRE (rangeEnd > rangeStart);
     REQUIRE (rangeEnd < static_cast<long long> (kFrames));
-    REQUIRE (snapshot.context.playheadFrame == rangeStart);
+    // E4: the committed range endpoints snap through the snap chooser while the mouse-down locate
+    // stays raw — the snapped locate IS the range start.
+    REQUIRE (snapshot.context.snapEnabled);
+    yesdaw::engine::Tick snappedLocate = 0;
+    REQUIRE (yesdaw::engine::snapTick (
+        static_cast<yesdaw::engine::Tick> (snapshot.context.playheadFrame),
+        yesdaw::engine::SnapGrid { snapshot.context.snapGridTicks }, snappedLocate));
+    REQUIRE (snappedLocate == rangeStart);
 
     // Escape cancels an in-progress range drag without touching the committed range.
     beginDragFromTo (timeline, threeQuarterPoint, quarterPoint);

@@ -380,14 +380,16 @@ public:
     std::function<void (int, double, bool)> onClipMoved;
     std::function<void (int, int, double, bool)> onClipMovedToLane;   // layoutClipId, targetLane, startSeconds, snap
     std::function<void (int, int, double, bool)> onClipCopied;        // layoutClipId, targetLane (-1 = same), startSeconds, snap
-    std::function<void (int, double)> onClipSplit;
-    std::function<void (int, double)> onClipTrimmedRight;
-    std::function<void (int, double)> onClipTrimmedLeft;
+    // Time-gestures carry the gesture's Ctrl flag so the shell can apply the snap chooser with
+    // Ctrl inversion (E4); fades are durations and stay honestly unsnapped.
+    std::function<void (int, double, bool)> onClipSplit;         // layoutClipId, seconds, snapInvert
+    std::function<void (int, double, bool)> onClipTrimmedRight;  // layoutClipId, seconds, snapInvert
+    std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
-    std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
-    std::function<void (double, double)> onRulerRangeSelected;  // startSeconds, endSeconds (plain drag)
+    std::function<void (double, double, bool)> onLoopRegionDragged;   // startSeconds, endSeconds, snapInvert
+    std::function<void (double, double, bool)> onRulerRangeSelected;  // startSeconds, endSeconds, snapInvert (plain drag)
     std::function<void()> onRulerRangeCleared;                   // plain ruler click collapses the range
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
@@ -518,7 +520,7 @@ public:
                         if (const std::optional<double> seconds =
                                 timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                             if (onClipSplit)
-                                onClipSplit (hit.id, *seconds);
+                                onClipSplit (hit.id, *seconds, event.mods.isCtrlDown());
                     return;
                 }
 
@@ -709,7 +711,7 @@ public:
                     const double first = std::min (loopDragStartSeconds, *endSeconds);
                     const double second = std::max (loopDragStartSeconds, *endSeconds);
                     if (second > first)
-                        onLoopRegionDragged (first, second);
+                        onLoopRegionDragged (first, second, event.mods.isCtrlDown());
                 }
             }
             return;
@@ -728,7 +730,7 @@ public:
                     const double first = std::min (rulerRangeDragStartSeconds, *endSeconds);
                     const double second = std::max (rulerRangeDragStartSeconds, *endSeconds);
                     if (second > first)
-                        onRulerRangeSelected (first, second);
+                        onRulerRangeSelected (first, second, event.mods.isCtrlDown());
                 }
             }
             return;
@@ -764,7 +766,7 @@ public:
 
             if (eventSeconds)
                 if (onClipTrimmedRight)
-                    onClipTrimmedRight (drag.layoutClipId, *eventSeconds);
+                    onClipTrimmedRight (drag.layoutClipId, *eventSeconds, event.mods.isCtrlDown());
             return;
         }
 
@@ -775,7 +777,7 @@ public:
 
             if (eventSeconds)
                 if (onClipTrimmedLeft)
-                    onClipTrimmedLeft (drag.layoutClipId, *eventSeconds);
+                    onClipTrimmedLeft (drag.layoutClipId, *eventSeconds, event.mods.isCtrlDown());
             return;
         }
 
@@ -899,7 +901,7 @@ public:
 
         if (const std::optional<double> splitSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
             if (onClipSplit)
-                onClipSplit (hit.id, *splitSeconds);
+                onClipSplit (hit.id, *splitSeconds, event.mods.isCtrlDown());
     }
 
 private:
@@ -2205,19 +2207,19 @@ public:
         timelineInput.onClipCopied = [this] (int timelineClipId, int targetLane, double startSeconds, bool snapToGrid) {
             copyTimelineClipByLayoutId (timelineClipId, targetLane, startSeconds, snapToGrid);
         };
-        timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds) {
-            splitTimelineClipByLayoutId (timelineClipId, splitSeconds);
+        timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds, bool snapInvert) {
+            splitTimelineClipByLayoutId (timelineClipId, splitSeconds, snapInvert);
         };
-        timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds) {
-            trimTimelineClipRightByLayoutId (timelineClipId, endSeconds);
+        timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {
+            trimTimelineClipRightByLayoutId (timelineClipId, endSeconds, snapInvert);
         };
-        timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds) {
+        timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds, bool snapInvert) {
             if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
                 return;
 
             (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (timelineClipId)]);
             if (const auto tick = timelineTickFromSeconds (startSeconds))
-                (void) appModel.trimSelectedTimelineClipLeftTo (*tick);
+                (void) appModel.trimSelectedTimelineClipLeftTo (snappedTimelineTick (*tick, snapInvert));
 
             refreshActionState();
             repaint();
@@ -2250,14 +2252,19 @@ public:
                 repaint();
             }
         };
-        timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds) {
+        timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds, bool snapInvert) {
             const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
             const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
-            if (startFrame && endFrame && *endFrame > *startFrame)
+            if (startFrame && endFrame)
             {
-                (void) appModel.setPlaybackLoopRegion (*startFrame, *endFrame);
-                refreshActionState();
-                repaint();
+                const yesdaw::engine::Tick snappedStart = snappedTimelineTick (*startFrame, snapInvert);
+                const yesdaw::engine::Tick snappedEnd = snappedTimelineTick (*endFrame, snapInvert);
+                if (snappedEnd > snappedStart)
+                {
+                    (void) appModel.setPlaybackLoopRegion (snappedStart, snappedEnd);
+                    refreshActionState();
+                    repaint();
+                }
             }
         };
         timelineInput.onTimelineLocated = [this] (double seconds) {
@@ -2268,14 +2275,19 @@ public:
                 repaint();
             }
         };
-        timelineInput.onRulerRangeSelected = [this] (double startSeconds, double endSeconds) {
+        timelineInput.onRulerRangeSelected = [this] (double startSeconds, double endSeconds, bool snapInvert) {
             const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
             const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
-            if (startFrame && endFrame && *endFrame > *startFrame)
+            if (startFrame && endFrame)
             {
-                (void) appModel.setTimelineRangeSelection (*startFrame, *endFrame);
-                refreshActionState();
-                repaint();
+                const yesdaw::engine::Tick snappedStart = snappedTimelineTick (*startFrame, snapInvert);
+                const yesdaw::engine::Tick snappedEnd = snappedTimelineTick (*endFrame, snapInvert);
+                if (snappedEnd > snappedStart)
+                {
+                    (void) appModel.setTimelineRangeSelection (snappedStart, snappedEnd);
+                    refreshActionState();
+                    repaint();
+                }
             }
         };
         timelineInput.onRulerRangeCleared = [this] {
@@ -6258,27 +6270,29 @@ private:
         repaint();
     }
 
-    void splitTimelineClipByLayoutId (int layoutClipId, double splitSeconds)
+    // Snap law for edge gestures (E4): the snapped tick goes straight to the verb, whose legality
+    // rules (positive length, in-body split, source-window bounds) win by honest refusal.
+    void splitTimelineClipByLayoutId (int layoutClipId, double splitSeconds, bool snapInvert = false)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
             return;
 
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (splitSeconds))
-            (void) appModel.splitSelectedTimelineClipAt (*tick);
+            (void) appModel.splitSelectedTimelineClipAt (snappedTimelineTick (*tick, snapInvert));
 
         refreshActionState();
         repaint();
     }
 
-    void trimTimelineClipRightByLayoutId (int layoutClipId, double endSeconds)
+    void trimTimelineClipRightByLayoutId (int layoutClipId, double endSeconds, bool snapInvert = false)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
             return;
 
         (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
         if (const auto tick = timelineTickFromSeconds (endSeconds))
-            (void) appModel.trimSelectedTimelineClipRightTo (*tick);
+            (void) appModel.trimSelectedTimelineClipRightTo (snappedTimelineTick (*tick, snapInvert));
 
         refreshActionState();
         repaint();
