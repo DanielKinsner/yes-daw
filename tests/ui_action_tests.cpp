@@ -220,6 +220,8 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
              == UiActionId::TransportLocatePreviousMarker);
     REQUIRE (descriptorForStableId ("transport.locate_next_marker")->id
              == UiActionId::TransportLocateNextMarker);
+    REQUIRE (descriptorForStableId ("timeline.range_to_loop")->id
+             == UiActionId::TimelineRangeToLoop);
     REQUIRE (descriptorForStableId ("mixer.target.set_fader")->id == UiActionId::MixerTargetSetFader);
     REQUIRE (descriptorForStableId ("mixer.meters.read")->id == UiActionId::MixerReadMeters);
     REQUIRE (descriptorForStableId ("mixer.loudness.read")->id == UiActionId::MixerReadLoudness);
@@ -527,6 +529,17 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
 
     REQUIRE (registry.dispatch (UiActionId::TransportToggleLoop, context).dispatched);
     REQUIRE (context.loopEnabled);
+
+    // Parity item 25: Range → Loop stays disabled without a ruler range selection and turns the
+    // loop on from one.
+    context.loopEnabled = false;
+    context.timelineRangeSelected = false;
+    REQUIRE_FALSE (registry.stateFor (UiActionId::TimelineRangeToLoop, context).enabled);
+    context.timelineRangeSelected = true;
+    REQUIRE (registry.stateFor (UiActionId::TimelineRangeToLoop, context).enabled);
+    REQUIRE (registry.dispatch (UiActionId::TimelineRangeToLoop, context).dispatched);
+    REQUIRE (context.loopEnabled);
+
     REQUIRE (registry.dispatch (UiActionId::DeviceRefreshAudio, context).dispatched);
     REQUIRE (context.deviceRefreshCount == 1);
     REQUIRE (registry.dispatch (UiActionId::DeviceSelectTestAudio, context).dispatched);

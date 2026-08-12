@@ -1863,7 +1863,7 @@ TEST_CASE ("H12 UI input harness rejects disabled shell input before Project loa
     REQUIRE (snapshot.context.commandDispatchCount == 0);
 }
 
-TEST_CASE ("loaded empty Project ruler click and drag locate the real transport",
+TEST_CASE ("loaded empty Project ruler click locates and plain drag selects a range",
            "[ui][input][shell][project][transport][ruler]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("empty-ruler-locate");
@@ -1879,10 +1879,24 @@ TEST_CASE ("loaded empty Project ruler click and drag locate the real transport"
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
 
+    // Parity item 25: a plain ruler drag no longer scrubs the playhead — it selects a time range
+    // while the playhead stays at the mouse-down locate.
     const juce::Point<int> threeSeconds = emptyProjectRulerPointAtSeconds (timeline, 3.0);
     dragFromTo (timeline, twoSeconds, threeSeconds);
     snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
+    REQUIRE (snapshot.context.timelineRangeSelected);
+    REQUIRE (snapshot.timelineRangeStartFrame == emptyProjectFrameAtRulerPoint (timeline, twoSeconds));
+    REQUIRE (snapshot.timelineRangeEndFrame == emptyProjectFrameAtRulerPoint (timeline, threeSeconds));
+
+    // A plain ruler click collapses the committed range and still locates.
+    mouseDownAt (timeline, threeSeconds);
+    releaseDragAt (timeline, threeSeconds, threeSeconds);
+    snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.playheadFrame == emptyProjectFrameAtRulerPoint (timeline, threeSeconds));
+    REQUIRE_FALSE (snapshot.context.timelineRangeSelected);
+    REQUIRE (snapshot.timelineRangeStartFrame == -1);
+    REQUIRE (snapshot.timelineRangeEndFrame == -1);
 }
 
 TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bundles through shell Components",
@@ -6235,4 +6249,138 @@ TEST_CASE ("marker navigation keys locate persisted Markers and drive exact play
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (sourcePath, ec);
+}
+
+TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the loop, and export slices it",
+           "[ui][input][shell][transport][range-selection]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("ruler-range-selection");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-source.wav";
+    std::filesystem::path wholeExportPath = bundlePath;
+    wholeExportPath += "-whole.wav";
+    std::filesystem::path rangeExportPath = bundlePath;
+    rangeExportPath += "-range.wav";
+
+    constexpr std::uint64_t kFrames = 96'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+    {
+        const int saw = static_cast<int> (frame % 103u) - 51;
+        samples[static_cast<std::size_t> (frame)] = static_cast<float> (saw) / 64.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    std::filesystem::path currentExportPath = wholeExportPath;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+    choices.chooseExportAudioFile = [&currentExportPath] { return currentExportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+    REQUIRE (project.clips.size() == 1u);
+
+    // Shift+L with no range selection is an honest disabled no-op.
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineRangeSelected);
+    REQUIRE_FALSE (snapshot.context.loopEnabled);
+    const int dispatchBeforeEmptyConvert = snapshot.context.commandDispatchCount;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l', juce::ModifierKeys::shiftModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.context.commandDispatchCount == dispatchBeforeEmptyConvert);
+
+    // A real plain ruler drag selects the range; the playhead stays at the mouse-down locate,
+    // which shares the drag-start frame exactly.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Tick quarterTick = project.clips.front().timelineLength / 4;
+    const yesdaw::engine::Tick threeQuarterTick = (project.clips.front().timelineLength * 3) / 4;
+    const juce::Point<int> quarterPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, quarterTick);
+    const juce::Point<int> threeQuarterPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, threeQuarterTick);
+    REQUIRE (timeline.getLocalBounds().contains (quarterPoint));
+    REQUIRE (timeline.getLocalBounds().contains (threeQuarterPoint));
+
+    dragFromTo (timeline, quarterPoint, threeQuarterPoint);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineRangeSelected);
+    const long long rangeStart = snapshot.timelineRangeStartFrame;
+    const long long rangeEnd = snapshot.timelineRangeEndFrame;
+    REQUIRE (rangeStart > 0);
+    REQUIRE (rangeEnd > rangeStart);
+    REQUIRE (rangeEnd < static_cast<long long> (kFrames));
+    REQUIRE (snapshot.context.playheadFrame == rangeStart);
+
+    // Escape cancels an in-progress range drag without touching the committed range.
+    beginDragFromTo (timeline, threeQuarterPoint, quarterPoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, threeQuarterPoint, quarterPoint);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.timelineRangeSelected);
+    REQUIRE (snapshot.timelineRangeStartFrame == rangeStart);
+    REQUIRE (snapshot.timelineRangeEndFrame == rangeEnd);
+
+    // Shift+L converts the committed range to the real transport loop region.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('l', juce::ModifierKeys::shiftModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.playbackLoopStartFrame == rangeStart);
+    REQUIRE (snapshot.playbackLoopEndFrame == rangeEnd);
+
+    // The range doubles as the export "Loop Region" source: the sliced export is sample-identical
+    // to the matching slice of the whole-Project export.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    REQUIRE (std::filesystem::exists (wholeExportPath));
+
+    auto* rangeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.range"));
+    REQUIRE (rangeChooser != nullptr);
+    rangeChooser->setSelectedId (2, juce::sendNotificationSync);
+    currentExportPath = rangeExportPath;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    REQUIRE (std::filesystem::exists (rangeExportPath));
+
+    yesdaw::io::Float32Wav whole;
+    yesdaw::io::Float32Wav sliced;
+    REQUIRE (yesdaw::io::readFloat32WavFile (wholeExportPath, whole).ok());
+    REQUIRE (yesdaw::io::readFloat32WavFile (rangeExportPath, sliced).ok());
+    REQUIRE (sliced.channels == whole.channels);
+    REQUIRE (sliced.frames == static_cast<std::uint64_t> (rangeEnd - rangeStart));
+    const std::size_t sliceBegin = static_cast<std::size_t> (rangeStart) * whole.channels;
+    const std::size_t sliceCount = static_cast<std::size_t> (rangeEnd - rangeStart) * whole.channels;
+    REQUIRE (sliceBegin + sliceCount <= whole.interleavedSamples.size());
+    REQUIRE (std::equal (sliced.interleavedSamples.begin(),
+                         sliced.interleavedSamples.end(),
+                         whole.interleavedSamples.begin() + static_cast<std::ptrdiff_t> (sliceBegin)));
+    REQUIRE (peakAbs (std::span<const float> (sliced.interleavedSamples.data(),
+                                              sliced.interleavedSamples.size())) > 0.01);
+
+    // A plain ruler click collapses the range; the loop region it created stays.
+    mouseDownAt (timeline, quarterPoint);
+    releaseDragAt (timeline, quarterPoint, quarterPoint);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.timelineRangeSelected);
+    REQUIRE (snapshot.timelineRangeStartFrame == -1);
+    REQUIRE (snapshot.timelineRangeEndFrame == -1);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.playbackLoopStartFrame == rangeStart);
+    REQUIRE (snapshot.playbackLoopEndFrame == rangeEnd);
+
+    // The range selection is honestly transient: project.db never changed.
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+    std::filesystem::remove (wholeExportPath, ec);
+    std::filesystem::remove (rangeExportPath, ec);
 }

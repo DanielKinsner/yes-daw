@@ -582,10 +582,42 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B24 evidence handoff `71db401` is exact-head green across all nine jobs in run `31553132209`.
 
-**Now:** stop at the completed B24 checkpoint. B25 is untouched.
+**B25 implementation candidate — Ruler range selection:** audited the complete ruler gesture stack
+(Alt+click Marker removal, Shift-drag loop region, plain click/drag locate), descriptor/keymap table,
+JUCE chord translation, loop-region transport path, export range chooser, canvas paint state, and the
+theme-audit scan scope before changing anything. `Shift+L` was free. One `TimelineRangeToLoop` action
+is appended at the descriptor-table end and covered in both exhaustive action switches.
 
-**Next:** a new agent starts B25 — Ruler range selection — only after `git pull --rebase` and the
-required STATUS/backlog reread and shipped-boundary audit.
+The range selection is honestly transient view/transport state — never persisted, no schema change:
+a plain ruler drag past the dead zone now selects a painted time range instead of scrubbing the
+playhead (the playhead stays at the mouse-down locate, which was and remains a real transport
+locate); the band paints live during the drag and from the committed model state after it, under
+Clips and the playhead, with theme tokens only. A plain ruler click still locates and collapses the
+range. Escape cancels an in-progress range drag exactly like the A12 gestures. `Shift+L` converts
+the committed range to the real transport loop through the same playback `setLoop` path as the
+Shift-drag gesture and is an honestly disabled no-op with no range. The export "Loop Region" source
+prefers the range selection when set and falls back to the loop region otherwise.
+
+The legacy empty-project ruler gate is re-pinned to the new semantics (click locates; drag selects
+and no longer scrubs) and extends to prove click-collapse. The new shipped-boundary
+`[range-selection]` gate passes **74 assertions**: a real plain drag selects the range with the
+playhead sharing the drag-start frame exactly; disabled empty-range `Shift+L` changes nothing;
+Escape mid-drag preserves the committed range; `Shift+L` sets the real loop to the exact range
+frames; the real export-range ComboBox then slices a float32 export that is sample-identical to the
+matching slice of the whole-Project export; a plain click collapses the range while the created loop
+stays; and `project.db` is byte-identical throughout. The action/keymap gate passes **2,148
+assertions** with every chord unique.
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --preset ci` is green **346/346**, including action/keymap uniqueness, persistence,
+accessibility, theme audit, screenshots, native input, and the GPU gate. The owner's real
+last-project record was isolated for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** commit and push only the B25 implementation checkpoint.
+
+**Next:** require the exact B25 implementation head green across all nine jobs; cancelled or
+incomplete runs do not count. Only then tick B25 in a separate evidence checkpoint; B26 must not
+start early.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

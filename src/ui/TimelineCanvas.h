@@ -61,6 +61,11 @@ struct TimelineCanvasState
     Viewport viewport {};
     double totalSeconds = UiTheme::Layout::timelineCanvasDefaultTotalSeconds;
     double playheadSeconds = UiTheme::Layout::timelineCanvasDefaultPlayheadSeconds;
+
+    // Ruler range selection (parity item 25): painted as a band across ruler and lanes when active.
+    bool rangeSelectionActive = false;
+    double rangeStartSeconds = 0.0;
+    double rangeEndSeconds = 0.0;
 };
 
 struct TimelineCanvasPaintStats
@@ -418,6 +423,30 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     }
 }
 
+inline void drawRangeSelection (juce::Graphics& g, juce::Rectangle<int> ruler,
+                                juce::Rectangle<int> clipArea,
+                                const TimelineCanvasState& state, const Viewport& vp)
+{
+    if (! state.rangeSelectionActive || state.rangeEndSeconds <= state.rangeStartSeconds)
+        return;
+
+    const int startX = clipArea.getX()
+                     + juce::roundToInt ((state.rangeStartSeconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+    const int endX = clipArea.getX()
+                   + juce::roundToInt ((state.rangeEndSeconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+    const int left = std::max (clipArea.getX(), std::min (startX, endX));
+    const int right = std::min (clipArea.getRight(), std::max (startX, endX));
+    if (right <= left)
+        return;
+
+    const juce::Rectangle<int> band { left, ruler.getY(), right - left,
+                                      clipArea.getBottom() - ruler.getY() };
+    g.setColour (UiTheme::Color::accentBlue().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+    g.fillRect (band);
+    g.setColour (UiTheme::Color::accentBlue().withAlpha (UiTheme::Tone::focusRingAlpha));
+    g.drawRect (band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+}
+
 inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const TimelineCanvasState& state,
                       const Viewport& vp, int laneHeight)
 {
@@ -554,6 +583,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     drawToolbar (g, geometry.toolbarArea);
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, vp, laneHeight);
+    drawRangeSelection (g, ruler, clipArea, state, vp);
 
     std::array<ElementRect, kVisibleClipCapacity> visible {};
     if (state.clips != nullptr && state.clipCount > 0)

@@ -709,17 +709,20 @@ public:
         }
 
         // Range selection: loop-only slices the rendered frames to the transport loop region.
+        // The ruler range selection doubles as the source and wins when set (parity item 25).
         std::uint64_t exportFrames = rendered.frames;
         std::span<const float> exportSamples (rendered.interleavedSamples.data(),
                                               rendered.interleavedSamples.size());
         if (exportLoopRangeOnly_)
         {
-            const std::int64_t loopStart = playbackLoopStartFrame();
-            const std::int64_t loopEnd = playbackLoopEndFrame();
+            const bool rangeSet = timelineRangeStartFrame_ >= 0
+                               && timelineRangeEndFrame_ > timelineRangeStartFrame_;
+            const std::int64_t loopStart = rangeSet ? timelineRangeStartFrame_ : playbackLoopStartFrame();
+            const std::int64_t loopEnd = rangeSet ? timelineRangeEndFrame_ : playbackLoopEndFrame();
             if (loopStart < 0 || loopEnd <= loopStart)
             {
                 context_.audioExportInProgress = false;
-                return { id, { false, "loop range export requires a loop region" }, false };
+                return { id, { false, "loop range export requires a loop region or ruler range selection" }, false };
             }
 
             const std::uint64_t start = std::min<std::uint64_t> (
@@ -1887,6 +1890,30 @@ public:
     {
         return playback_ != nullptr ? playback_->loopEndFrame() : 0;
     }
+
+    // Ruler range selection (parity item 25): plain ruler drag paints a transient time range.
+    // It is honestly view/transport state — never persisted — so it lives beside the loop region,
+    // converts to it on Shift+L, and stands in for it as the export "Loop Region" source when set.
+    [[nodiscard]] bool setTimelineRangeSelection (std::int64_t startFrame, std::int64_t endFrame)
+    {
+        if (! context_.projectLoaded || startFrame < 0 || endFrame <= startFrame)
+            return false;
+
+        timelineRangeStartFrame_ = startFrame;
+        timelineRangeEndFrame_ = endFrame;
+        context_.timelineRangeSelected = true;
+        return true;
+    }
+
+    void clearTimelineRangeSelection() noexcept
+    {
+        timelineRangeStartFrame_ = -1;
+        timelineRangeEndFrame_ = -1;
+        context_.timelineRangeSelected = false;
+    }
+
+    [[nodiscard]] std::int64_t timelineRangeStartFrame() const noexcept { return timelineRangeStartFrame_; }
+    [[nodiscard]] std::int64_t timelineRangeEndFrame() const noexcept { return timelineRangeEndFrame_; }
 
     [[nodiscard]] UiActionDispatchResult setProjectTempoBpm (double bpm)
     {
@@ -3509,6 +3536,9 @@ public:
             case UiActionId::TransportLocateNextMarker:
                 return locateAdjacentTimelineMarker (id, true);
 
+            case UiActionId::TimelineRangeToLoop:
+                return convertTimelineRangeToLoop (id, state);
+
             case UiActionId::TransportToggleLoop:
                 return dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
@@ -4814,6 +4844,8 @@ private:
         context_ = {};
         context_.projectLoaded = true;
         context_.activePanel = UiPanel::Timeline;
+        timelineRangeStartFrame_ = -1;
+        timelineRangeEndFrame_ = -1;
         recordingDevice_ = {};
         recordingTrackInput_ = {};
         lastRecordedAudioTake_ = {};
@@ -4887,6 +4919,23 @@ private:
         context_.activePanel = UiPanel::Timeline;
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    UiActionDispatchResult convertTimelineRangeToLoop (UiActionId id, UiActionState state)
+    {
+        if (playback_ == nullptr
+            || timelineRangeStartFrame_ < 0
+            || timelineRangeEndFrame_ <= timelineRangeStartFrame_)
+            return { id, { false, "no ruler range selection" }, false };
+
+        if (! playback_->setLoop (timelineRangeStartFrame_, timelineRangeEndFrame_))
+            return { id, { false, "loop region rejected" }, false };
+
+        drainTransport (*playback_);
+        syncContextFromPlayback();
+        context_.loopEnabled = true;
+        ++context_.commandDispatchCount;
         return { id, state, true };
     }
 
@@ -5273,6 +5322,9 @@ private:
     int playbackMaxBlockSize_ = 128;
     UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;
     bool exportLoopRangeOnly_ = false;
+    // Ruler range selection (parity item 25): transient, never persisted; -1 means no range.
+    std::int64_t timelineRangeStartFrame_ = -1;
+    std::int64_t timelineRangeEndFrame_ = -1;
     std::function<void()> playbackReplacementWillBegin_;
     std::function<void()> playbackReplacementDidEnd_;
     WaveformPeakService waveformService_;

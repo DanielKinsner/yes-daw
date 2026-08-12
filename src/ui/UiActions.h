@@ -148,6 +148,7 @@ enum class UiActionId : std::uint8_t
     TransportRecallLocatePoint5,
     TransportLocatePreviousMarker,
     TransportLocateNextMarker,
+    TimelineRangeToLoop,
     Count
 };
 
@@ -222,6 +223,7 @@ struct UiActionContext
     bool projectLoaded = false;
     bool isPlaying = false;
     bool loopEnabled = false;
+    bool timelineRangeSelected = false;
     bool canUndo = false;
     bool canRedo = false;
     bool timelineClipSelected = false;
@@ -603,6 +605,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TransportLocatePreviousMarker, "transport.locate_previous_marker", "Previous Marker", "Ctrl+Left", "Move playhead to the previous Marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateNextMarker, "transport.locate_next_marker", "Next Marker", "Ctrl+Right", "Move playhead to the next Marker",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Shift+L", "Convert the ruler range selection to the loop region",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -788,6 +792,8 @@ public:
             return { false, "clipboard has no clip" };
         if (id == UiActionId::TimelineZoomFitLoop && ! context.loopEnabled)
             return { false, "no loop region" };
+        if (id == UiActionId::TimelineRangeToLoop && ! context.timelineRangeSelected)
+            return { false, "no ruler range selection" };
         if (const int index = recallLocatePointIndex (id);
             index >= 0 && ! context.locatePoints[static_cast<std::size_t> (index)].has_value())
             return { false, "locate point is empty" };
@@ -821,6 +827,7 @@ public:
                 context.projectLoaded = true;
                 context.isPlaying = false;
                 context.loopEnabled = false;
+                context.timelineRangeSelected = false;
                 context.playheadFrame = 0;
                 context.playbackStartFrame = 0;
                 context.lastLocateFrame = 0;
@@ -1310,6 +1317,10 @@ public:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.midiEditCount;
+                break;
+
+            case UiActionId::TimelineRangeToLoop:
+                context.loopEnabled = true;
                 break;
 
             case UiActionId::Count:

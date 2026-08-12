@@ -44,6 +44,8 @@ struct MainComponentSnapshot
     bool playbackReady = false;
     long long playbackLoopStartFrame = 0;
     long long playbackLoopEndFrame = 0;
+    long long timelineRangeStartFrame = -1;
+    long long timelineRangeEndFrame = -1;
     double timelineZoomFactor = 1.0;
     double timelineScrollSeconds = 0.0;
     int visibleTimelineTrackCount = 0;

@@ -44,6 +44,7 @@ UiActionContext fullyReachableContext()
     context.audioExportInProgress = true;
     context.clipboardHasClip = true;
     context.loopEnabled = true;
+    context.timelineRangeSelected = true;
     for (auto& locatePoint : context.locatePoints)
         locatePoint = 0;
     return context;

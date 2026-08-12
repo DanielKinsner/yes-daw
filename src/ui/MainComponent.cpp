@@ -344,17 +344,20 @@ public:
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double)> onLoopRegionDragged;   // startSeconds, endSeconds
+    std::function<void (double, double)> onRulerRangeSelected;  // startSeconds, endSeconds (plain drag)
+    std::function<void()> onRulerRangeCleared;                   // plain ruler click collapses the range
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
-        if (! dragState.active && ! marqueeState.active)
+        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive)
             return false;
 
         dragState = {};
         marqueeState = {};
+        rulerRangeDragActive = false;
         repaint();
         return true;
     }
@@ -398,6 +401,26 @@ public:
                     yesdaw::ui::UiTheme::Tone::focusRingAlpha));
                 g.drawRect (marquee.toFloat(), yesdaw::ui::UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
             }
+
+            if (rulerRangeDragActive)
+            {
+                const auto geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+                const int left = std::max (std::min (rulerRangeDownPosition.x, rulerRangeCurrentPosition.x),
+                                           geometry.clipArea.getX());
+                const int right = std::min (std::max (rulerRangeDownPosition.x, rulerRangeCurrentPosition.x),
+                                            geometry.clipArea.getRight());
+                if (right > left)
+                {
+                    const juce::Rectangle<int> band { left, geometry.rulerArea.getY(), right - left,
+                                                      geometry.clipArea.getBottom() - geometry.rulerArea.getY() };
+                    g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+                        yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+                    g.fillRect (band);
+                    g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+                        yesdaw::ui::UiTheme::Tone::focusRingAlpha));
+                    g.drawRect (band.toFloat(), yesdaw::ui::UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+                }
+            }
         }
     }
 
@@ -407,6 +430,7 @@ public:
             return;
 
         playheadLocateActive = false;
+        rulerRangeDragActive = false;
         marqueeState = {};
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineHitTestResult hit =
@@ -438,7 +462,8 @@ public:
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (geometry.rulerArea.contains (event.getPosition()))
         {
-            // Alt+click removes the nearest marker; Shift-drag defines a loop region; plain drag locates.
+            // Alt+click removes the nearest marker; Shift-drag defines a loop region; a plain click
+            // locates while a plain drag selects a painted time range (parity item 25).
             if (event.mods.isAltDown())
             {
                 if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
@@ -456,6 +481,10 @@ public:
             }
 
             playheadLocateActive = true;
+            rulerRangeDownPosition = event.getPosition();
+            rulerRangeCurrentPosition = event.getPosition();
+            rulerRangeDragStartSeconds =
+                timelineSecondsAt (state, getLocalBounds(), event.getPosition()).value_or (0.0);
             if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                 if (onTimelineLocated)
                     onTimelineLocated (*seconds);
@@ -496,10 +525,20 @@ public:
 
         if (playheadLocateActive && stateProvider)
         {
-            const yesdaw::ui::TimelineCanvasState state = stateProvider();
-            if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
-                if (onTimelineLocated)
-                    onTimelineLocated (*seconds);
+            // A plain ruler drag past the dead zone becomes a range selection; the playhead stays at
+            // the mouse-down locate instead of scrubbing (parity item 25).
+            const int deltaX = event.getPosition().x - rulerRangeDownPosition.x;
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                return;
+
+            playheadLocateActive = false;
+            rulerRangeDragActive = true;
+        }
+
+        if (rulerRangeDragActive)
+        {
+            rulerRangeCurrentPosition = event.getPosition();
+            repaint();
             return;
         }
 
@@ -546,9 +585,32 @@ public:
             return;
         }
 
+        if (rulerRangeDragActive)
+        {
+            rulerRangeDragActive = false;
+            repaint();
+            if (stateProvider && onRulerRangeSelected)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                if (const std::optional<double> endSeconds =
+                        timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                {
+                    const double first = std::min (rulerRangeDragStartSeconds, *endSeconds);
+                    const double second = std::max (rulerRangeDragStartSeconds, *endSeconds);
+                    if (second > first)
+                        onRulerRangeSelected (first, second);
+                }
+            }
+            return;
+        }
+
         if (playheadLocateActive)
         {
             playheadLocateActive = false;
+            // A plain ruler click collapses any committed range selection (the locate already
+            // happened on mouse-down).
+            if (onRulerRangeCleared)
+                onRulerRangeCleared();
             return;
         }
 
@@ -877,6 +939,10 @@ private:
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
+    bool rulerRangeDragActive = false;
+    double rulerRangeDragStartSeconds = 0.0;
+    juce::Point<int> rulerRangeDownPosition;
+    juce::Point<int> rulerRangeCurrentPosition;
 };
 
 struct PianoRollCanvasGeometry
@@ -1779,6 +1845,21 @@ public:
                 repaint();
             }
         };
+        timelineInput.onRulerRangeSelected = [this] (double startSeconds, double endSeconds) {
+            const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
+            const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
+            if (startFrame && endFrame && *endFrame > *startFrame)
+            {
+                (void) appModel.setTimelineRangeSelection (*startFrame, *endFrame);
+                refreshActionState();
+                repaint();
+            }
+        };
+        timelineInput.onRulerRangeCleared = [this] {
+            appModel.clearTimelineRangeSelection();
+            refreshActionState();
+            repaint();
+        };
         addAndMakeVisible (timelineInput);
 
         // Interactive Track rail (usable-DAW P0): row click selects the Track for import/mixer/remove
@@ -2293,6 +2374,8 @@ public:
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
     [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
+    [[nodiscard]] long long harnessTimelineRangeStartFrame() const noexcept { return appModel.timelineRangeStartFrame(); }
+    [[nodiscard]] long long harnessTimelineRangeEndFrame() const noexcept { return appModel.timelineRangeEndFrame(); }
     [[nodiscard]] double harnessTimelineZoomFactor() const noexcept { return timelineZoomFactor; }
     [[nodiscard]] double harnessTimelineScrollSeconds() const noexcept { return timelineScrollSeconds; }
     [[nodiscard]] int harnessVisibleTimelineTrackCount() const
@@ -5089,6 +5172,17 @@ private:
         state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
         state.markerCount = static_cast<int> (timelineMarkerViews.size());
 
+        // Ruler range selection (parity item 25): painted from the model's transient range frames.
+        if (appModel.context().timelineRangeSelected
+            && appModel.context().projectLoaded
+            && appModel.project().sampleRate.isValid())
+        {
+            const double sampleRateHz = appModel.project().sampleRate.hz;
+            state.rangeSelectionActive = true;
+            state.rangeStartSeconds = static_cast<double> (appModel.timelineRangeStartFrame()) / sampleRateHz;
+            state.rangeEndSeconds = static_cast<double> (appModel.timelineRangeEndFrame()) / sampleRateHz;
+        }
+
         // Live zoom + horizontal scroll (usable-DAW P1): zoom scales the fit-to-window density and
         // the scroll offset is clamped so the view never runs past the timeline end.
         state.viewport.pixelsPerSecond = timelinePixelsPerSecondFor (state.totalSeconds);
@@ -6359,6 +6453,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.playbackLoopStartFrame = mainComponent->harnessPlaybackLoopStartFrame();
         snapshot.playbackLoopEndFrame = mainComponent->harnessPlaybackLoopEndFrame();
+        snapshot.timelineRangeStartFrame = mainComponent->harnessTimelineRangeStartFrame();
+        snapshot.timelineRangeEndFrame = mainComponent->harnessTimelineRangeEndFrame();
         snapshot.timelineZoomFactor = mainComponent->harnessTimelineZoomFactor();
         snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
