@@ -216,10 +216,17 @@ FAILED before (the label drag fell through to a locate and left the marker at 24
 after with 70 assertions: exact raw Ctrl-move, exact grid-snapped move, per-step undo/redo,
 committed and discarded renames, and the preserved label-click locate.
 
-**Now:** E7 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+E7 is certified: full local ctest green **348/348** (owner record isolated/restored
+byte-identical); exact-head GitHub Actions run green for full SHA
+`423f50ac66a14d94f43d6fd4aa79769046077bfe` across all nine jobs. E7 is ticked in the backlog.
 
-**Next:** E8 (MIDI clips become first-class timeline citizens).
+**Now:** E8 (MIDI clips become first-class timeline citizens) — engine verbs
+MoveMidiClip/MoveMidiClipToTrack/RemoveMidiClip + property coverage green locally; the timeline
+selection model is now kind-aware (one `timelineEntityView` law drives select/prune/move/
+cross-track/delete/nudge/duplicate/copy-drag for audio AND MIDI clips); MIDI clips paint on
+their lanes in the MIDI accent colour; `[midi-clip]` gate in progress.
+
+**Next:** E9 (piano roll follows the selected MIDI clip).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

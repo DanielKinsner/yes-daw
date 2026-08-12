@@ -82,10 +82,13 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    preserved, Escape cancels, and commits ride `setPlaybackLoopRegion` (honestly transient). The
    `[loop-brace]` gate failed before (the end-handle drag fell through to a plain locate) and
    passes after with 58 assertions.
-7. [ ] **E7 — Marker move + rename.** Markers persist a name (`Project.h:451-455`) but there is no
-   MoveMarker/RenameMarker verb, no drag, no rename UI, no way to fix a misplaced marker short of
-   remove+re-add. Add both verbs (randomized property test included), drag-move on the ruler
-   (snap-aware), and double-click inline rename on the marker label.
+7. [x] **E7 — Marker move + rename.** Landed in `423f50a` (exact-head run green, nine jobs).
+   Undoable `MoveMarker` (sorted re-insert) and `RenameMarker` engine verbs join the marker
+   whole-vector diff family and the randomized property test; ruler marker labels drag-move
+   through the shared `timelineMarkerLabelRect` law with E4 snapping (Ctrl inverts, Escape
+   cancels, below-dead-zone release keeps the locate), and double-click opens the new inline
+   rename editor (childCount bumped deliberately). The `[marker-edit]` gate failed before (the
+   drag fell through to a locate) and passes after with 70 assertions.
 8. [ ] **E8 — MIDI clips are first-class timeline citizens.** MIDI clips are never drawn on the
    timeline, cannot be hit-tested, selected, moved, or deleted; the ONLY MIDI-clip verb in the
    entire engine is `addMidiClip` (`ProjectUndo.h:609`) — no move/remove exists anywhere. Add
