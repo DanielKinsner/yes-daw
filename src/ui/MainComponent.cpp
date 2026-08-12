@@ -4497,7 +4497,40 @@ private:
 
             case yesdaw::ui::UiActionId::TrackSelectPrevious:
             case yesdaw::ui::UiActionId::TrackSelectNext:
+                // Context-sensitive (B34): in the Piano Roll with a note selected, Up/Down
+                // transpose the selection by one semitone; elsewhere they walk the track rail.
+                if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll
+                    && appModel.context().midiNoteSelected)
+                {
+                    (void) appModel.transposeSelectedPianoRollNotes (
+                        action == yesdaw::ui::UiActionId::TrackSelectPrevious ? 1 : -1);
+                    return;
+                }
                 selectAdjacentTrackLane (action);
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineClipSelectAllTrack:
+                // Context-sensitive (B34): in the Piano Roll, Ctrl+A selects every note in the
+                // selected MIDI clip; elsewhere it keeps selecting the track's clips.
+                if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll
+                    && appModel.context().midiClipSelected)
+                {
+                    (void) appModel.selectAllPianoRollNotes();
+                    return;
+                }
+                (void) appModel.dispatch (action);
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineClipDelete:
+                // Context-sensitive (B34): in the Piano Roll with a note selection, Del deletes
+                // the selected notes; elsewhere it keeps deleting timeline clips.
+                if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll
+                    && appModel.context().midiNoteSelected)
+                {
+                    (void) appModel.deleteSelectedPianoRollNotes();
+                    return;
+                }
+                (void) appModel.dispatch (action);
                 return;
 
             case yesdaw::ui::UiActionId::TimelineClipSplit:
@@ -6746,7 +6779,8 @@ private:
             return yesdaw::ui::projectUiPianoRollSurface (
                 appModel.project(),
                 midiClipId,
-                appModel.selectedMidiNoteId());
+                appModel.selectedMidiNoteId(),
+                appModel.selectedMidiNoteIds());
         }
 
         return {};

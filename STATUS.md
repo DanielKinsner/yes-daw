@@ -877,14 +877,36 @@ Exact-head GitHub Actions run `31574711380` is green for full SHA
 `22b00922afb6201903d1c9d4900fa36f0c46b88d` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B33 is ticked in the backlog.
 
-**Now:** B33 certified; B34 (piano-roll transpose keys + note multi-select + delete) is next per
-the run brief.
+**B34 implementation candidate — Piano-roll transpose keys + note multi-select:** audited the
+selection and key surfaces before adding anything: this item owns multi-note selection (deferred
+by B6), the TransposeNote verb exists, Up/Down/Ctrl+A/Del are taken by track/timeline actions, and
+`Shift+Up`/`Shift+Down` were free. Multi-note selection mirrors the timeline multi-select law: a
+note click selects one, `Ctrl+A` in the Piano Roll selects every note in the selected MIDI Clip,
+the selection prunes dead notes in the same sync pass as clips, and every selected note paints
+selected through the extended surface projection. Up/Down (semitone) and Del become honestly
+context-sensitive per the B22 Escape precedent — in the Piano Roll with a selection they transpose
+or delete the selection; everywhere else the existing rail/timeline behavior is untouched and its
+gates re-pin it. Two new actions (`PianoRollNoteOctaveUp`/`Down`, unique `Shift+Up`/`Shift+Down`,
+appended at the descriptor end, both exhaustive switches, dispatchable payload-free) transpose by
+an octave. Group transposes and deletes are one atomic undo transaction each; an out-of-range note
+refuses the whole transpose group; Backspace's existing note delete now covers the selection
+(identical for a single note, so the legacy pencil gate re-pins unchanged).
 
-**Next:** B34 — audited: this item owns multi-note selection (per the B6 note). Up/Down and Ctrl+A
-and Del are taken by track/timeline actions, so they become honestly context-sensitive in the
-PianoRoll panel (the B22 Escape precedent); Shift+Up/Shift+Down are free for new octave-transpose
-actions; TransposeNote verbs exist and group transactions cover multi-note edits; Backspace's
-existing note delete extends to the selection.
+The shipped-boundary `[note-keys]` gate pencils two real notes and proves: Up/Down move only the
+selected note by exactly one semitone; Shift+Up/Down move it by an octave; in the Timeline the same
+arrows still walk the rail with no note edits; Ctrl+A + Up transposes both notes as ONE undo step
+with audibly changed playback through the real synth; Ctrl+A + Del deletes both as one group with
+truly silent playback and one-step restore; and Backspace deletes the selection the same way
+(89 assertions, green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B34 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B34 in the backlog with SHA + run id (docs-only evidence commit), then B35
+(note duplicate: Ctrl+drag copy-drag + Ctrl+D one grid step later) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

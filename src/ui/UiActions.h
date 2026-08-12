@@ -156,6 +156,8 @@ enum class UiActionId : std::uint8_t
     TrackToggleSolo,
     TrackToggleArm,
     PianoRollNoteSetVelocity,
+    PianoRollNoteOctaveUp,
+    PianoRollNoteOctaveDown,
     Count
 };
 
@@ -628,6 +630,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TrackToggleArm, "record.track.toggle_arm", "Arm Selected Track", "Shift+R", "Toggle recording arm on selected track",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
     { UiActionId::PianoRollNoteSetVelocity, "piano_roll.note.set_velocity", "Note Velocity", "Alt+Shift+V", "Set selected note velocity",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteOctaveUp, "piano_roll.note.octave_up", "Octave Up", "Shift+Up", "Transpose selected notes up one octave",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteOctaveDown, "piano_roll.note.octave_down", "Octave Down", "Shift+Down", "Transpose selected notes down one octave",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true }
 }};
 
@@ -1063,6 +1069,8 @@ public:
             case UiActionId::PianoRollNoteTranspose:
             case UiActionId::PianoRollNoteQuantize:
             case UiActionId::PianoRollNoteSetVelocity:
+            case UiActionId::PianoRollNoteOctaveUp:
+            case UiActionId::PianoRollNoteOctaveDown:
                 context.activePanel = UiPanel::PianoRoll;
                 context.canUndo = true;
                 context.canRedo = false;

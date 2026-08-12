@@ -1383,8 +1383,110 @@ public:
             return { id, { false, "MIDI note missing" }, false };
 
         selectedMidiNoteId_ = noteId;
+        selectedMidiNoteIds_.assign (1, noteId);
         syncProjectEditContext();
         ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    // Select every Note in the selected MIDI Clip (B34); the first Note becomes the primary so
+    // single-note edit paths stay valid.
+    [[nodiscard]] bool selectAllPianoRollNotes() noexcept
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr || midiClip->notes.empty())
+            return false;
+
+        selectedMidiNoteIds_.clear();
+        for (const engine::Note& note : midiClip->notes)
+            selectedMidiNoteIds_.push_back (note.id);
+        selectedMidiNoteId_ = midiClip->notes.front().id;
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        return true;
+    }
+
+    [[nodiscard]] std::span<const engine::EntityId> selectedMidiNoteIds() const noexcept
+    {
+        return { selectedMidiNoteIds_.data(), selectedMidiNoteIds_.size() };
+    }
+
+    // Transpose the whole note selection as one atomic undo group (B34): any out-of-range note
+    // refuses the entire group.
+    [[nodiscard]] UiActionDispatchResult transposeSelectedPianoRollNotes (std::int32_t semitones)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteTranspose;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
+            ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
+            : selectedMidiNoteIds_;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+        for (const engine::EntityId noteId : targets)
+        {
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::transposeNote (selectedMidiClipId_,
+                                                                             noteId,
+                                                                             semitones)).applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, { false, "transpose out of range" }, false };
+            }
+        }
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // Delete the whole note selection as one atomic undo group (B34).
+    [[nodiscard]] UiActionDispatchResult deleteSelectedPianoRollNotes()
+    {
+        const UiActionId id = UiActionId::PianoRollNoteDelete;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
+            ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
+            : selectedMidiNoteIds_;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+        for (const engine::EntityId noteId : targets)
+        {
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::cutNote (selectedMidiClipId_, noteId)).applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, state, false };
+            }
+        }
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        selectedMidiNoteId_ = {};
+        selectedMidiNoteIds_.clear();
+        context_.midiNoteSelected = false;
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
         return { id, state, true };
     }
 
@@ -4004,7 +4106,13 @@ public:
             }
 
             case UiActionId::PianoRollNoteDelete:
-                return deleteSelectedPianoRollNote();
+                return deleteSelectedPianoRollNotes();
+
+            case UiActionId::PianoRollNoteOctaveUp:
+                return transposeSelectedPianoRollNotes (12);
+
+            case UiActionId::PianoRollNoteOctaveDown:
+                return transposeSelectedPianoRollNotes (-12);
 
             case UiActionId::ViewPianoRoll:
             {
@@ -4683,6 +4791,16 @@ private:
         const engine::MidiClip* const midiClip = context_.projectLoaded ? findMidiClip (selectedMidiClipId_) : nullptr;
         if (midiClip == nullptr)
             selectedMidiNoteId_ = {};
+
+        // Multi-note selection (B34) follows the same pruning law as timeline clips: dead notes
+        // fall out, and losing the primary drops the whole selection.
+        std::erase_if (selectedMidiNoteIds_, [this, midiClip] (engine::EntityId noteId) {
+            return midiClip == nullptr || findNote (*midiClip, noteId) == nullptr;
+        });
+        if (! selectedMidiNoteId_.isValid()
+            || midiClip == nullptr
+            || findNote (*midiClip, selectedMidiNoteId_) == nullptr)
+            selectedMidiNoteIds_.clear();
 
         context_.midiClipSelected = midiClip != nullptr;
         context_.midiNoteSelected = midiClip != nullptr
@@ -5424,6 +5542,7 @@ private:
     engine::EntityId selectedTimelineClipId_;
     engine::EntityId selectedMidiClipId_;
     engine::EntityId selectedMidiNoteId_;
+    std::vector<engine::EntityId> selectedMidiNoteIds_;   // multi-note selection (B34)
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     UiRecordingTrackInputSelection recordingTrackInput_;

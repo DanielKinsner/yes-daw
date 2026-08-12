@@ -180,7 +180,8 @@ inline void appendExpressionLane (UiPianoRollSurfaceSnapshot& snapshot,
 
 inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Project& project,
                                                              engine::EntityId selectedMidiClipId = {},
-                                                             engine::EntityId selectedNoteId = {})
+                                                             engine::EntityId selectedNoteId = {},
+                                                             std::span<const engine::EntityId> selectedNoteIds = {})
 {
     UiPianoRollSurfaceSnapshot snapshot;
     snapshot.projectLoaded = project.hasValidAssetClipIndirection();
@@ -199,6 +200,12 @@ inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Proje
 
     for (const engine::Note& note : midiClip->notes)
     {
+        // A note paints selected when it is the primary selection or part of the multi-note
+        // selection (B34).
+        bool selected = note.id == selectedNoteId;
+        for (const engine::EntityId selectedId : selectedNoteIds)
+            selected = selected || note.id == selectedId;
+
         snapshot.notes.push_back ({
             note.id,
             note.startTick,
@@ -208,7 +215,7 @@ inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Proje
             note.normalizedVelocity,
             note.portIndex,
             note.channel,
-            note.id == selectedNoteId
+            selected
         });
     }
 

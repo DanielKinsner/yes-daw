@@ -7428,3 +7428,109 @@ TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edit every note",
+           "[ui][input][shell][pianoroll][note-keys]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("note-keys");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // Two penciled notes at different keys and ticks; the second stays selected.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
+    mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::EntityId firstNoteId = project.midiClips.front().notes[0].id;
+    const yesdaw::engine::EntityId secondNoteId = project.midiClips.front().notes[1].id;
+    const std::int16_t firstKey = project.midiClips.front().notes[0].key;
+    const std::int16_t secondKey = project.midiClips.front().notes[1].key;
+    REQUIRE (firstKey != secondKey);
+
+    const auto keyOf = [&] (yesdaw::engine::EntityId noteId) {
+        const yesdaw::engine::Project current = readProjectSnapshot (bundlePath);
+        for (const yesdaw::engine::Note& note : current.midiClips.front().notes)
+            if (note.id == noteId)
+                return note.key;
+        return std::int16_t { -1 };
+    };
+
+    // Up/Down transpose only the selected note by one semitone.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+    REQUIRE (keyOf (secondNoteId) == secondKey + 1);
+    REQUIRE (keyOf (firstNoteId) == firstKey);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    REQUIRE (keyOf (secondNoteId) == secondKey);
+
+    // Shift+Up/Down transpose by one octave.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey,
+                                                juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (keyOf (secondNoteId) == secondKey + 12);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
+                                                juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (keyOf (secondNoteId) == secondKey);
+
+    // Outside the Piano Roll the arrows keep walking the track rail: no note changes.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+    REQUIRE (keyOf (firstNoteId) == firstKey);
+    REQUIRE (keyOf (secondNoteId) == secondKey);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));   // back to the Piano Roll
+
+    // Ctrl+A selects every note; Up transposes both as ONE undo step, with audibly changed
+    // playback through the real synth.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> before = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+    REQUIRE (keyOf (firstNoteId) == firstKey + 1);
+    REQUIRE (keyOf (secondNoteId) == secondKey + 1);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> transposed = renderMainComponentPlayback (*shell, 96'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (transposed != before);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (keyOf (firstNoteId) == firstKey);
+    REQUIRE (keyOf (secondNoteId) == secondKey);
+
+    // Ctrl+A + Del deletes every note as one group; playback falls truly silent; one undo restores.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> silent = renderMainComponentPlayback (*shell, 48'000, 512);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (silent.data(), silent.size())) == 0.0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+
+    // Backspace deletes the selection too.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::backspaceKey)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
