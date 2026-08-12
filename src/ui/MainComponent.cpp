@@ -3364,6 +3364,33 @@ private:
         repaint();
     }
 
+    // Selected-track strip/arm toggles (B28): the rail row is the target; the mixer never opens.
+    void toggleSelectedTrackKey (yesdaw::ui::UiActionId action)
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (selectedTrackLane < 0 || selectedTrackLane >= static_cast<int> (tracks.size()))
+            return;
+
+        const std::size_t lane = static_cast<std::size_t> (selectedTrackLane);
+        switch (action)
+        {
+            case yesdaw::ui::UiActionId::TrackToggleMute:
+                (void) appModel.toggleTrackMute (tracks[lane].id);
+                break;
+            case yesdaw::ui::UiActionId::TrackToggleSolo:
+                (void) appModel.toggleTrackSolo (tracks[lane].id);
+                break;
+            case yesdaw::ui::UiActionId::TrackToggleArm:
+                (void) appModel.toggleRecordingArmForTrack (lane);
+                break;
+            default:
+                return;
+        }
+
+        refreshActionState();
+        repaint();
+    }
+
     void moveSelectedTrack (int delta)
     {
         const auto& tracks = appModel.project().tracks;
@@ -4012,6 +4039,12 @@ private:
 
             case yesdaw::ui::UiActionId::TrackMoveDown:
                 moveSelectedTrack (1);
+                return;
+
+            case yesdaw::ui::UiActionId::TrackToggleMute:
+            case yesdaw::ui::UiActionId::TrackToggleSolo:
+            case yesdaw::ui::UiActionId::TrackToggleArm:
+                toggleSelectedTrackKey (action);
                 return;
 
             case yesdaw::ui::UiActionId::TrackSelectPrevious:

@@ -695,11 +695,35 @@ Exact-head GitHub Actions run `31566327317` is green for full SHA
 `cefd8647e7768c9d02ce3138bb3b36b80f829521` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B27 is ticked in the backlog.
 
-**Now:** B27 certified; B28 (selected-track keys) is next per the run brief.
+**B28 implementation candidate — Selected-track keys:** audited the descriptor/keymap table, the
+mixer strip toggle path (which deliberately opens the Mixer panel), the transient recording-arm
+surface (`toggleDefaultTrackRecordingArm` always arms track 0), and the marker add/remove paths
+before adding anything. The backlog-flagged `Shift+M` conflict is resolved by moving marker-remove
+to free `Ctrl+Shift+M` (no test pinned the old chord); `Shift+S` and `Shift+R` were free. Three
+actions are appended at the descriptor-table end and covered in both exhaustive switches:
+`TrackToggleMute` / `TrackToggleSolo` are the same persisted strip edit as the mixer controls but
+panel-preserving and addressed by the selected rail row — the Timeline stays in front and the mixer
+target is untouched; `TrackToggleArm` toggles the honestly-transient recording arm onto the selected
+track (arming, retargeting from another track, and disarming on a second press), mirroring the
+existing default-track arm including its device/input requirements.
 
-**Next:** B28 — `Shift+M` is taken by marker-remove: reassign marker-remove to free `Ctrl+Shift+M`
-first, then add panel-preserving selected-track mute/solo toggles (Shift+M/Shift+S, persisted strip
-edits) and a selected-track transient recording-arm toggle (Shift+R), gated at the shipped boundary.
+The shipped-boundary `[track-keys]` gate proves the real chords on a two-track project: no-selection
+presses are honest no-ops; `Shift+M` persists mute on exactly the selected track, silences playback
+to exact zero, and leaves the active panel on Timeline; `Shift+S` on the empty track persists solo
+and silences the clip-owning track through the real solo policy; `Shift+R` (after selecting the real
+test device) arms the selected track, retargets to the other track after an Up + press, disarms on a
+repeat press, and `project.db` stays byte-identical throughout because arm state is honestly
+transient; `M` still adds a Marker, `Shift+M` no longer removes it, and `Ctrl+Shift+M` does
+(93 assertions, green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B28 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B28 in the backlog with SHA + run id (docs-only evidence commit), then B29
+(Alt+click resets) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

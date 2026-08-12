@@ -1534,6 +1534,62 @@ public:
         });
     }
 
+    // Selected-track strip toggles (B28): the same persisted strip edit as the mixer controls, but
+    // panel-preserving and targeted by Track id — the shell passes the selected rail row so the
+    // Timeline stays in front and the mixer never opens.
+    [[nodiscard]] UiActionDispatchResult toggleTrackMute (engine::EntityId trackId)
+    {
+        return editTrackStripPanelPreserving (UiActionId::TrackToggleMute, trackId,
+                                              [] (engine::MixerStripState& strip) {
+                                                  strip.muted = ! strip.muted;
+                                              });
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleTrackSolo (engine::EntityId trackId)
+    {
+        return editTrackStripPanelPreserving (UiActionId::TrackToggleSolo, trackId,
+                                              [] (engine::MixerStripState& strip) {
+                                                  strip.soloed = ! strip.soloed;
+                                              });
+    }
+
+    // Toggle the transient recording arm onto a specific Track (B28). Arming an unarmed session or
+    // retargeting from another Track arms this Track's input 0; pressing again on the armed Track
+    // disarms. Arm state is honestly transient session state, exactly like the default-track arm.
+    [[nodiscard]] UiActionDispatchResult toggleRecordingArmForTrack (std::size_t trackIndex)
+    {
+        syncRecordingContext();
+
+        const UiActionId id = UiActionId::TrackToggleArm;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (trackIndex >= project_.tracks.size())
+            return { id, { false, "selected track missing" }, false };
+
+        if (! recordingDevice_.selected || recordingDevice_.inputChannels == 0u)
+            return { id, { false, "no armed recording Track/input" }, false };
+
+        const engine::EntityId trackId = project_.tracks[trackIndex].id;
+        if (recordingTrackInput_.armed && recordingTrackInput_.trackId == trackId)
+        {
+            clearRecordingTrackInput();
+        }
+        else
+        {
+            recordingTrackInput_.armed = true;
+            recordingTrackInput_.trackId = trackId;
+            recordingTrackInput_.trackIndex = trackIndex;
+            recordingTrackInput_.inputChannel = 0;
+        }
+
+        ++context_.commandDispatchCount;
+        ++context_.recordingArmCount;
+        syncRecordingContext();
+        return { id, state, true };
+    }
+
     // FX insert chain on the SELECTED strip (usable-DAW P0): add/remove/bypass are undoable engine
     // commands; the audible graph rebuilds through the same adopt path as every other edit.
     [[nodiscard]] bool selectedMixerOwnerId (engine::EntityId& out) const noexcept
@@ -3896,6 +3952,9 @@ public:
             case UiActionId::TrackDuplicate:
             case UiActionId::TrackMoveUp:
             case UiActionId::TrackMoveDown:
+            case UiActionId::TrackToggleMute:
+            case UiActionId::TrackToggleSolo:
+            case UiActionId::TrackToggleArm:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)
@@ -4512,6 +4571,38 @@ private:
 
         context_.mixerTargetSelected = true;
         context_.activePanel = UiPanel::Mixer;
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // Same persisted strip edit as editSelectedMixerStrip, but addressed by Track id and
+    // panel-preserving: neither the active panel nor the mixer target selection changes (B28).
+    template <typename Fn>
+    [[nodiscard]] UiActionDispatchResult editTrackStripPanelPreserving (UiActionId id,
+                                                                        engine::EntityId trackId,
+                                                                        Fn&& fn)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::MixerStripState* strip = nullptr;
+        for (engine::Track& track : nextProject.tracks)
+            if (track.id == trackId)
+                strip = &track.strip;
+        if (strip == nullptr)
+            return { id, { false, "selected track missing" }, false };
+
+        fn (*strip);
+        if (! nextProject.hasValidAssetClipIndirection())
+            return { id, { false, "invalid strip edit" }, false };
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "strip edit did not persist" }, false };
+
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };

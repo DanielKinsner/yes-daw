@@ -152,6 +152,9 @@ enum class UiActionId : std::uint8_t
     TrackDuplicate,
     TrackMoveUp,
     TrackMoveDown,
+    TrackToggleMute,
+    TrackToggleSolo,
+    TrackToggleArm,
     Count
 };
 
@@ -509,7 +512,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TimelineMarkerAdd, "timeline.marker.add", "Add Marker", "M", "Add marker at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Shift+M", "Remove nearest marker",
+    { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Ctrl+Shift+M", "Remove nearest marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "Ctrl+M", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -616,7 +619,13 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "Ctrl+Shift+Up", "Move selected track up one row",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackMoveDown, "track.move_down", "Move Track Down", "Ctrl+Shift+Down", "Move selected track down one row",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TrackToggleMute, "track.toggle_mute", "Mute Track", "Shift+M", "Toggle mute on selected track",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::TrackToggleSolo, "track.toggle_solo", "Solo Track", "Shift+S", "Toggle solo on selected track",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::TrackToggleArm, "record.track.toggle_arm", "Arm Selected Track", "Shift+R", "Toggle recording arm on selected track",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -925,6 +934,7 @@ public:
                 break;
 
             case UiActionId::RecordingArmTrack:
+            case UiActionId::TrackToggleArm:
                 context.recordingTrackArmed = ! context.recordingTrackArmed;
                 context.recordingInputSelected = context.recordingTrackArmed;
                 context.selectedRecordingTrackIndex = context.recordingTrackArmed ? 0 : -1;
@@ -1016,6 +1026,15 @@ public:
             case UiActionId::MixerSetFirstSendLevel:
             case UiActionId::MixerToggleFirstFxSlotEnabled:
                 context.activePanel = UiPanel::Mixer;
+                context.canUndo = true;
+                context.canRedo = false;
+                ++context.mixerEditCount;
+                break;
+
+            // Selected-track strip toggles: the same strip edit as the mixer controls, but
+            // panel-preserving — the active panel stays wherever the user is working.
+            case UiActionId::TrackToggleMute:
+            case UiActionId::TrackToggleSolo:
                 context.canUndo = true;
                 context.canRedo = false;
                 ++context.mixerEditCount;

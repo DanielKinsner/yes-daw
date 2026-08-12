@@ -6713,3 +6713,116 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the selected track",
+           "[ui][input][shell][tracks][track-keys]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-keys");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 2u);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().trackId == project.tracks.front().id);
+
+    // With no rail row selected the chord resolves but honestly does nothing.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tracks.front().strip.muted);
+    REQUIRE_FALSE (project.tracks.back().strip.muted);
+
+    // Select row 0 (the clip-owning track) and prove the audible baseline from timeline zero.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> audible = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (audible.data(), audible.size())) > 0.01);
+
+    // Shift+M mutes the selected track — persisted, playback-silencing, and the mixer stays shut.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.muted);
+    REQUIRE_FALSE (project.tracks.back().strip.muted);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> mutedOut = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (mutedOut.data(), mutedOut.size())) == 0.0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tracks.front().strip.muted);
+
+    // Shift+S on the other (empty) track solos it, muting the clip-owning track by solo policy.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.back().strip.soloed);
+    REQUIRE_FALSE (project.tracks.front().strip.soloed);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> soloedOut = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (soloedOut.data(), soloedOut.size())) == 0.0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (project.tracks.back().strip.soloed);
+
+    // Shift+R arms the SELECTED track once a device with inputs exists; arm state is honestly
+    // transient — project.db never changes while arming, retargeting, and disarming.
+    const std::vector<std::uint8_t> persistedBeforeArm = readBytes (bundlePath / "project.db");
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.context.selectedRecordingTrackIndex == 1);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.context.selectedRecordingTrackIndex == 0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBeforeArm);
+
+    // The marker-remove chord moved to Ctrl+Shift+M: M adds a Marker at the playhead, Shift+M only
+    // mutes, and Ctrl+Shift+M removes the Marker.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.size() == 1u);
+    REQUIRE (project.tracks.front().strip.muted);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m',
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.markers.empty());
+    REQUIRE (project.tracks.front().strip.muted);   // marker removal never touches the strip
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
