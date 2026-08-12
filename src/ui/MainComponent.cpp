@@ -1278,19 +1278,40 @@ struct PianoRollCanvasGeometry
     return juce::jmax<yesdaw::engine::Tick> (1, surface.timelineLength);
 }
 
-[[nodiscard]] int pianoRollKeyY (const PianoRollCanvasGeometry& geometry, int key) noexcept
+// Piano-roll viewport (E10): the visible horizontal window is the clip length divided by the
+// zoom, offset by the scroll ticks; the vertical window is the 25 keys above viewLowKey. With
+// the default view this reproduces the historical stretched full-clip C3-C5 mapping exactly.
+[[nodiscard]] yesdaw::engine::Tick pianoRollVisibleTicks (
+    const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
+{
+    const double zoom = std::clamp (surface.viewZoom,
+                                    yesdaw::ui::UiThemeLayout::pianoRollZoomMin,
+                                    yesdaw::ui::UiThemeLayout::pianoRollZoomMax);
+    return juce::jmax<yesdaw::engine::Tick> (
+        1, static_cast<yesdaw::engine::Tick> (
+               std::llround (static_cast<double> (pianoRollTimelineLength (surface)) / zoom)));
+}
+
+[[nodiscard]] int pianoRollViewHighKey (const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
+{
+    return surface.viewLowKey + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1;
+}
+
+[[nodiscard]] int pianoRollKeyY (const PianoRollCanvasGeometry& geometry,
+                                 const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                 int key) noexcept
 {
     return geometry.grid.getY()
          + juce::roundToInt (
-             static_cast<float> (yesdaw::ui::UiTheme::Layout::pianoRollHighKey - key) * geometry.rowHeight);
+             static_cast<float> (pianoRollViewHighKey (surface) - key) * geometry.rowHeight);
 }
 
 [[nodiscard]] int pianoRollTickX (const PianoRollCanvasGeometry& geometry,
                                   const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
                                   yesdaw::engine::Tick tick) noexcept
 {
-    const double timelineLength = static_cast<double> (pianoRollTimelineLength (surface));
-    const double normalized = static_cast<double> (tick) / timelineLength;
+    const double visibleTicks = static_cast<double> (pianoRollVisibleTicks (surface));
+    const double normalized = static_cast<double> (tick - surface.viewScrollTicks) / visibleTicks;
     return geometry.grid.getX()
          + juce::roundToInt (static_cast<float> (normalized) * static_cast<float> (geometry.grid.getWidth()));
 }
@@ -1302,7 +1323,7 @@ struct PianoRollCanvasGeometry
 {
     const int gridWidth = juce::jmax (1, geometry.grid.getWidth());
     const double ticks = static_cast<double> (deltaPixels)
-                       * static_cast<double> (pianoRollTimelineLength (surface))
+                       * static_cast<double> (pianoRollVisibleTicks (surface))
                        / static_cast<double> (gridWidth);
     return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
 }
@@ -1315,7 +1336,7 @@ struct PianoRollCanvasGeometry
     const int x = pianoRollTickX (geometry, surface, note.startTick);
     const int width = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollNoteMinWidth,
                                   pianoRollTickX (geometry, surface, note.startTick + note.lengthTicks) - x);
-    const int y = pianoRollKeyY (geometry, note.key)
+    const int y = pianoRollKeyY (geometry, surface, note.key)
                 + yesdaw::ui::UiTheme::Layout::pianoRollNoteTopInset;
     const int height = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollNoteMinHeight,
                                    juce::roundToInt (geometry.rowHeight)
@@ -1341,25 +1362,69 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, double)> onNoteVelocityAdjusted;
     // Ctrl+drag copy-drags a note (B35): clip, source note, copy's start tick.
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteCopyDragged;
+    // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
+    // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
+    std::function<void (int)> onViewKeysScrolled;                          // +1 up / -1 down
+    std::function<void (yesdaw::engine::Tick, double)> onViewZoomWheel;    // anchorTick, wheelDelta
+    std::function<void (double)> onViewTicksScrolled;                      // fraction of the visible window
 
     void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
     {
-        if (! event.mods.isAltDown() || ! stateProvider || ! onNoteVelocityAdjusted)
+        if (! stateProvider)
             return;
 
-        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
-        const auto hit = noteAt (surface, event.getPosition());
-        if (! hit)
+        const double delta = std::abs (wheel.deltaY) > std::abs (wheel.deltaX) ? wheel.deltaY : wheel.deltaX;
+        if (delta == 0.0)
             return;
 
-        const double adjusted = juce::jlimit (
-            0.0,
-            1.0,
-            hit->normalizedVelocity
-                + static_cast<double> (wheel.deltaY)
-                      * yesdaw::ui::UiTheme::Layout::pianoRollVelocityWheelScale);
-        if (adjusted != hit->normalizedVelocity)
-            onNoteVelocityAdjusted (surface.midiClipId, hit->noteId, adjusted);
+        if (event.mods.isAltDown())
+        {
+            if (! onNoteVelocityAdjusted)
+                return;
+
+            const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+            const auto hit = noteAt (surface, event.getPosition());
+            if (! hit)
+                return;
+
+            const double adjusted = juce::jlimit (
+                0.0,
+                1.0,
+                hit->normalizedVelocity
+                    + static_cast<double> (wheel.deltaY)
+                          * yesdaw::ui::UiTheme::Layout::pianoRollVelocityWheelScale);
+            if (adjusted != hit->normalizedVelocity)
+                onNoteVelocityAdjusted (surface.midiClipId, hit->noteId, adjusted);
+            return;
+        }
+
+        if (event.mods.isCtrlDown() || event.mods.isCommandDown())
+        {
+            const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+            const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            const int gridWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                              geometry.grid.getWidth());
+            const double normalized = juce::jlimit (
+                0.0, 1.0,
+                static_cast<double> (event.getPosition().x - geometry.grid.getX())
+                    / static_cast<double> (gridWidth));
+            const yesdaw::engine::Tick anchorTick = surface.viewScrollTicks
+                + static_cast<yesdaw::engine::Tick> (
+                    normalized * static_cast<double> (pianoRollVisibleTicks (surface)));
+            if (onViewZoomWheel)
+                onViewZoomWheel (anchorTick, delta);
+            return;
+        }
+
+        if (event.mods.isShiftDown())
+        {
+            if (onViewTicksScrolled)
+                onViewTicksScrolled (delta);
+            return;
+        }
+
+        if (onViewKeysScrolled)
+            onViewKeysScrolled (delta > 0.0 ? 1 : -1);
     }
 
     void mouseDown (const juce::MouseEvent& event) override
@@ -1382,16 +1447,17 @@ public:
                     const double normalized =
                         static_cast<double> (event.getPosition().x - geometry.grid.getX())
                         / static_cast<double> (geometry.grid.getWidth());
-                    const auto timelineLength = static_cast<double> (pianoRollTimelineLength (surface));
-                    yesdaw::engine::Tick tick =
-                        static_cast<yesdaw::engine::Tick> (normalized * timelineLength);
+                    const auto visibleTicks = static_cast<double> (pianoRollVisibleTicks (surface));
+                    yesdaw::engine::Tick tick = surface.viewScrollTicks
+                        + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
                     tick -= tick % kPianoRollSnapGridTicks;
 
                     const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
-                    const int key = yesdaw::ui::UiTheme::Layout::pianoRollHighKey
+                    const int key = pianoRollViewHighKey (surface)
                         - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
-                    if (key >= yesdaw::ui::UiTheme::Layout::pianoRollLowKey
-                        && key <= yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
+                    if (key >= surface.viewLowKey && key <= pianoRollViewHighKey (surface)
+                        && key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin
+                        && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
                         onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
                 }
             }
@@ -1534,8 +1600,7 @@ private:
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
         for (auto it = surface.notes.rbegin(); it != surface.notes.rend(); ++it)
         {
-            if (it->key < yesdaw::ui::UiTheme::Layout::pianoRollLowKey
-                || it->key > yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
+            if (it->key < surface.viewLowKey || it->key > pianoRollViewHighKey (surface))
                 continue;
 
             if (pianoRollNoteBounds (geometry, surface, *it).contains (position))
@@ -2858,6 +2923,44 @@ public:
             refreshActionState();
             repaint();
         };
+        // Piano-roll viewport wheel map (E10): plain wheel scrolls keys, Shift+wheel scrolls
+        // time, Ctrl+wheel zooms time anchored at the pointer tick.
+        pianoRollInput.onViewKeysScrolled = [this] (int keyDelta) {
+            pianoRollViewLowKey = std::clamp (
+                pianoRollViewLowKey + keyDelta,
+                yesdaw::ui::UiThemeLayout::pianoRollKeyMin,
+                yesdaw::ui::UiThemeLayout::pianoRollKeyMax
+                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+            repaint();
+        };
+        pianoRollInput.onViewZoomWheel = [this] (yesdaw::engine::Tick anchorTick, double wheelDelta) {
+            const double factor = wheelDelta > 0.0
+                ? yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
+                : 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep;
+            const double previousZoom = pianoRollViewZoom;
+            pianoRollViewZoom = std::clamp (pianoRollViewZoom * factor,
+                                            yesdaw::ui::UiThemeLayout::pianoRollZoomMin,
+                                            yesdaw::ui::UiThemeLayout::pianoRollZoomMax);
+            if (pianoRollViewZoom != previousZoom)
+            {
+                const double zoomRatio = previousZoom / pianoRollViewZoom;
+                pianoRollViewScrollTicks = anchorTick
+                    - static_cast<yesdaw::engine::Tick> (
+                        std::llround (static_cast<double> (anchorTick - pianoRollViewScrollTicks) * zoomRatio));
+            }
+            if (pianoRollViewZoom == yesdaw::ui::UiThemeLayout::pianoRollZoomMin)
+                pianoRollViewScrollTicks = 0;
+            repaint();
+        };
+        pianoRollInput.onViewTicksScrolled = [this] (double wheelDelta) {
+            const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = currentPianoRollSurface();
+            pianoRollViewScrollTicks -= static_cast<yesdaw::engine::Tick> (
+                std::llround (wheelDelta
+                              * static_cast<double> (pianoRollVisibleTicks (surface))
+                              * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction));
+            pianoRollViewScrollTicks = juce::jmax<yesdaw::engine::Tick> (0, pianoRollViewScrollTicks);
+            repaint();
+        };
         pianoRollInput.onNoteMoved = [this] (yesdaw::engine::EntityId midiClipId,
                                              yesdaw::engine::EntityId noteId,
                                              yesdaw::engine::Tick startTick) {
@@ -3154,6 +3257,12 @@ public:
     [[nodiscard]] double harnessTimelineZoomFactor() const noexcept { return timelineZoomFactor; }
     [[nodiscard]] double harnessTimelineScrollSeconds() const noexcept { return timelineScrollSeconds; }
     [[nodiscard]] int harnessTimelineTrackScrollRows() const noexcept { return timelineTrackScrollRows; }
+    [[nodiscard]] int harnessPianoRollViewLowKey() const noexcept { return pianoRollViewLowKey; }
+    [[nodiscard]] double harnessPianoRollViewZoom() const noexcept { return pianoRollViewZoom; }
+    [[nodiscard]] long long harnessPianoRollViewScrollTicks() const noexcept
+    {
+        return static_cast<long long> (pianoRollViewScrollTicks);
+    }
     [[nodiscard]] int harnessTimelineMaxTrackScrollRows() const
     {
         // The scroll clamp depends only on the lane count and the surface heights.
@@ -6817,11 +6926,11 @@ private:
         g.setColour (yesdaw::ui::UiTheme::Color::controlInsetBlack());
         g.fillRect (geometry.grid);
 
-        for (int key = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
-             key >= yesdaw::ui::UiTheme::Layout::pianoRollLowKey;
+        for (int key = pianoRollViewHighKey (surface);
+             key >= surface.viewLowKey;
              --key)
         {
-            const int y = pianoRollKeyY (geometry, key);
+            const int y = pianoRollKeyY (geometry, surface, key);
             auto keyRow = juce::Rectangle<int> (geometry.keyboard.getX(),
                                                 y,
                                                 geometry.keyboard.getWidth(),
@@ -6855,6 +6964,8 @@ private:
              tick += yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep)
         {
             const int x = pianoRollTickX (geometry, surface, tick);
+            if (x < geometry.grid.getX() || x > geometry.grid.getRight())
+                continue;
             g.setColour ((tick % yesdaw::ui::UiTheme::Layout::pianoRollGridStrongTickStep) == 0
                               ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
                               : yesdaw::ui::UiTheme::Color::pianoGridWeak());
@@ -6866,11 +6977,13 @@ private:
 
         for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
         {
-            if (note.key < yesdaw::ui::UiTheme::Layout::pianoRollLowKey
-                || note.key > yesdaw::ui::UiTheme::Layout::pianoRollHighKey)
+            if (note.key < surface.viewLowKey || note.key > pianoRollViewHighKey (surface))
                 continue;
 
-            const auto noteRect = pianoRollNoteBounds (geometry, surface, note);
+            const auto noteRect = pianoRollNoteBounds (geometry, surface, note)
+                                      .getIntersection (geometry.grid);
+            if (noteRect.isEmpty())
+                continue;
 
             g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
             g.fillRoundedRectangle (noteRect.expanded (yesdaw::ui::UiTheme::Layout::pianoRollSelectedNoteHalo).toFloat(),
@@ -7514,11 +7627,32 @@ private:
             if (! midiClipId.isValid() && ! appModel.project().midiClips.empty())
                 midiClipId = appModel.project().midiClips.front().id;
 
-            return yesdaw::ui::projectUiPianoRollSurface (
+            yesdaw::ui::UiPianoRollSurfaceSnapshot surface = yesdaw::ui::projectUiPianoRollSurface (
                 appModel.project(),
                 midiClipId,
                 appModel.selectedMidiNoteId(),
                 appModel.selectedMidiNoteIds());
+
+            // Piano-roll viewport (E10): the surface publishes the CLAMPED view so every paint,
+            // hit-test, and gesture consumer shares one law.
+            pianoRollViewLowKey = std::clamp (
+                pianoRollViewLowKey,
+                yesdaw::ui::UiThemeLayout::pianoRollKeyMin,
+                yesdaw::ui::UiThemeLayout::pianoRollKeyMax
+                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+            pianoRollViewZoom = std::clamp (pianoRollViewZoom,
+                                            yesdaw::ui::UiThemeLayout::pianoRollZoomMin,
+                                            yesdaw::ui::UiThemeLayout::pianoRollZoomMax);
+            surface.viewLowKey = pianoRollViewLowKey;
+            surface.viewZoom = pianoRollViewZoom;
+            const yesdaw::engine::Tick length = juce::jmax<yesdaw::engine::Tick> (1, surface.timelineLength);
+            const yesdaw::engine::Tick visible = juce::jmax<yesdaw::engine::Tick> (
+                1, static_cast<yesdaw::engine::Tick> (
+                       std::llround (static_cast<double> (length) / pianoRollViewZoom)));
+            pianoRollViewScrollTicks = std::clamp<yesdaw::engine::Tick> (
+                pianoRollViewScrollTicks, 0, juce::jmax<yesdaw::engine::Tick> (0, length - visible));
+            surface.viewScrollTicks = pianoRollViewScrollTicks;
+            return surface;
         }
 
         return {};
@@ -7555,6 +7689,11 @@ private:
     // Vertical track scroll (E5): whole lane rows above the viewport, shared by the timeline
     // lanes and the track rail; geometry clamps it against the current lane count.
     int timelineTrackScrollRows = 0;
+    // Piano-roll viewport (E10): transient view state; the surface builder is the clamp
+    // authority (mutable because paint-side snapshots re-clamp against the current clip).
+    mutable int pianoRollViewLowKey = yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey;
+    mutable double pianoRollViewZoom = 1.0;
+    mutable yesdaw::engine::Tick pianoRollViewScrollTicks = 0;
     TimelineInputComponent timelineInput;
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
@@ -7781,6 +7920,9 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.timelineScrollSeconds = mainComponent->harnessTimelineScrollSeconds();
         snapshot.timelineTrackScrollRows = mainComponent->harnessTimelineTrackScrollRows();
         snapshot.timelineMaxTrackScrollRows = mainComponent->harnessTimelineMaxTrackScrollRows();
+        snapshot.pianoRollViewLowKey = mainComponent->harnessPianoRollViewLowKey();
+        snapshot.pianoRollViewZoom = mainComponent->harnessPianoRollViewZoom();
+        snapshot.pianoRollViewScrollTicks = mainComponent->harnessPianoRollViewScrollTicks();
         snapshot.visibleTimelineTrackCount = mainComponent->harnessVisibleTimelineTrackCount();
         snapshot.visibleTimelineClipCount = mainComponent->harnessVisibleTimelineClipCount();
         snapshot.visibleFirstTimelineClipName = mainComponent->harnessVisibleFirstTimelineClipName();

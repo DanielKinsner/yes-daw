@@ -63,6 +63,9 @@ struct MainComponentSnapshot
     double timelineScrollSeconds = 0.0;
     int timelineTrackScrollRows = 0;
     int timelineMaxTrackScrollRows = 0;
+    int pianoRollViewLowKey = 0;
+    double pianoRollViewZoom = 1.0;
+    long long pianoRollViewScrollTicks = 0;
     int visibleTimelineTrackCount = 0;
     int visibleTimelineClipCount = 0;
     std::string visibleFirstTimelineClipName;

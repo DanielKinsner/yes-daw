@@ -7,6 +7,7 @@
 
 #include "engine/ProjectUndo.h"
 #include "ui/UiActions.h"
+#include "ui/UiThemeLayout.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -65,6 +66,13 @@ struct UiPianoRollSurfaceSnapshot
     engine::Tick timelineLength = 0;
     std::vector<UiPianoRollNoteView> notes;
     std::vector<UiPianoRollExpressionLaneReadout> expressionLanes;
+
+    // Piano-roll viewport (E10): the visible key window scrolls across all 128 keys and the
+    // horizontal window zooms/scrolls across the clip; the defaults reproduce the historical
+    // fixed C3-C5 full-clip view exactly.
+    int viewLowKey = UiThemeLayout::pianoRollDefaultLowKey;
+    double viewZoom = 1.0;
+    engine::Tick viewScrollTicks = 0;
 };
 
 struct UiPianoRollActionPayload

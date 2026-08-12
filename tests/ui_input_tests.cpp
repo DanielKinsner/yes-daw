@@ -6260,6 +6260,122 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     REQUIRE (notesOnTrack (2) == 1u);
 }
 
+TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls time",
+           "[ui][input][shell][pianoroll][roll-viewport]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-viewport");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.midiClips.size() == 1u);
+    const yesdaw::engine::Tick clipLength = original.midiClips.front().timelineLength;
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    // Defaults reproduce the historical fixed view.
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.pianoRollViewLowKey == yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey);
+    REQUIRE (snapshot.pianoRollViewZoom == 1.0);
+    REQUIRE (snapshot.pianoRollViewScrollTicks == 0);
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::MouseEvent plainWheel = makeMouseEvent (
+        pianoRoll, grid.getCentre(), grid.getCentre(), false, 1, juce::ModifierKeys {});
+
+    // Plain wheel scrolls the key window and clamps at the bottom; the view is transient.
+    for (int i = 0; i < 60; ++i)
+        pianoRoll.mouseWheelMove (plainWheel, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.pianoRollViewLowKey == yesdaw::ui::UiThemeLayout::pianoRollKeyMin);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // The bottom row is now key 0: the real pencil proves it end-to-end.
+    const auto noteWithKey = [&] (const yesdaw::engine::Project& snapshotProject, int key)
+        -> const yesdaw::engine::Note* {
+        for (const yesdaw::engine::Note& note : snapshotProject.midiClips.front().notes)
+            if (note.key == key)
+                return &note;
+        return nullptr;
+    };
+    mouseDownAt (pianoRoll, { grid.getCentreX(), grid.getBottom() - 2 });
+    yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.size() == 1u);
+    REQUIRE (noteWithKey (edited, 0) != nullptr);
+
+    // Scroll to the very top: the top row is key 127.
+    for (int i = 0; i < 130; ++i)
+        pianoRoll.mouseWheelMove (plainWheel, wheelUp);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.pianoRollViewLowKey
+             == yesdaw::ui::UiThemeLayout::pianoRollKeyMax
+                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+    mouseDownAt (pianoRoll, { grid.getCentreX(), grid.getY() + 2 });
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.size() == 2u);
+    REQUIRE (noteWithKey (edited, 127) != nullptr);
+
+    // Ctrl+wheel zooms time; Shift+wheel scrolls it by the exact wheel law.
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (
+        pianoRoll, grid.getCentre(), grid.getCentre(), false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 3; ++i)
+        pianoRoll.mouseWheelMove (ctrlWheel, wheelUp);
+    snapshot = snapshotMainComponent (*shell);
+    const double expectedZoom = yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
+                              * yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
+                              * yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep;
+    REQUIRE (snapshot.pianoRollViewZoom == Catch::Approx (expectedZoom));
+
+    const long long scrollBefore = snapshot.pianoRollViewScrollTicks;
+    const auto visibleTicks = static_cast<double> (juce::jmax<yesdaw::engine::Tick> (
+        1, static_cast<yesdaw::engine::Tick> (
+               std::llround (static_cast<double> (clipLength) / snapshot.pianoRollViewZoom))));
+    const juce::MouseEvent shiftWheel = makeMouseEvent (
+        pianoRoll, grid.getCentre(), grid.getCentre(), false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::shiftModifier));
+    pianoRoll.mouseWheelMove (shiftWheel, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    const long long expectedScroll = scrollBefore
+        + static_cast<long long> (std::llround (
+              0.4 * visibleTicks * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction));
+    REQUIRE (snapshot.pianoRollViewScrollTicks == expectedScroll);
+
+    // The pencil under zoom+scroll lands at the exact snapped viewport tick.
+    mouseDownAt (pianoRoll, { grid.getCentreX(), grid.getCentreY() });
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().notes.size() == 3u);
+    const double normalized = static_cast<double> (grid.getCentreX() - grid.getX())
+                            / static_cast<double> (grid.getWidth());
+    yesdaw::engine::Tick expectedTick = static_cast<yesdaw::engine::Tick> (snapshot.pianoRollViewScrollTicks)
+        + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
+    expectedTick -= expectedTick % yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
+    const int expectedCentreKey = snapshot.pianoRollViewLowKey
+        + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1
+        - static_cast<int> (static_cast<double> (grid.getCentreY() - grid.getY())
+                            / (static_cast<double> (juce::jmax (1, grid.getHeight()))
+                               / static_cast<double> (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount)));
+    const yesdaw::engine::Note* const centreNote = noteWithKey (edited, expectedCentreKey);
+    REQUIRE (centreNote != nullptr);
+    REQUIRE (centreNote->startTick == expectedTick);
+
+    // Zooming back out clamps to 1x and resets the time scroll.
+    for (int i = 0; i < 5; ++i)
+        pianoRoll.mouseWheelMove (ctrlWheel, wheelDown);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.pianoRollViewZoom == yesdaw::ui::UiThemeLayout::pianoRollZoomMin);
+    REQUIRE (snapshot.pianoRollViewScrollTicks == 0);
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {

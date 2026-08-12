@@ -266,11 +266,29 @@ show fine detail anyway) and the waveform columns draw as integer fills instead 
 vertical lines. Local GPU gate: sustained 8.80ms → **3.65ms**, slow_frames 0,
 max_visible_clips 336 preserved, all three GPU cases green.
 
-**Now:** full local suite on the repair; then the repair commits ahead of E10 and E9's
-exact-head green is required on the repair head.
+E9 is certified: feature `6310154` + repair `f2f4ce3`; exact-head GitHub Actions run green for
+full SHA `f2f4ce32df9286b2cc10bb6d0d67c3e5d9ccb5b1` across all nine jobs; full local ctest green
+**348/348** on the repair tree (the theme audit caught two raw literals in the new code — both
+replaced with real tokens before commit; owner record isolated/restored byte-identical each
+round). E9 is ticked in the backlog.
 
-**Next:** E10 (piano roll zoom, scroll, and all 128 keys) — implementation + `[roll-viewport]`
-gate (44 assertions) already green in the working tree.
+**E10 implementation candidate — piano roll zoom, scroll, and all 128 keys:** audited before
+adding: the roll was a hardwired 25-key C3-C5 window with the clip stretched edge-to-edge —
+notes outside were invisible and uneditable. The surface snapshot now carries a piano-roll
+viewport (viewLowKey / viewZoom / viewScrollTicks; the surface builder is the clamp authority)
+and one law drives key rows, note paint (grid-clamped), hit tests, the pencil, and drag deltas;
+the wheel map matches the timeline (plain wheel scrolls keys across the full 0-127 range,
+Shift+wheel scrolls time, Ctrl+wheel zooms time anchored at the pointer tick, Alt+wheel keeps
+the velocity law); defaults reproduce the historical view exactly so every legacy piano-roll
+gate holds unchanged. The `[roll-viewport]` gate FAILED before (the view surface did not exist)
+and passes after with 44 assertions: default-view law, key-scroll clamping at both ends with a
+byte-identical `project.db`, real pencils landing persisted notes at key 0 and key 127, the
+exact zoom factor and shift-scroll law, an exact snapped pencil under zoom+scroll, and the
+zoom-out reset.
+
+**Now:** committing E10 for its exact-head run.
+
+**Next:** E11 (piano roll selection tools).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
