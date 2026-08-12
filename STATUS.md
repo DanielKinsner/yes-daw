@@ -787,12 +787,31 @@ Exact-head GitHub Actions run `31569576522` is green for full SHA
 `44185e22074553e2e07f69e056bc0db9e8e15276` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B30 is ticked in the backlog.
 
-**Now:** B30 certified; B31 (dB readout while dragging) is next per the run brief.
+**B31 implementation candidate — dB readout while dragging:** audited the drag-notification
+surface before adding anything: JUCE sliders expose `onDragStart`/`onDragEnd`, but the B30
+`FineDragSlider` swallows the base drag on its fine path, so it now fires those callbacks itself
+(exactly once, plain or fine); the rail minis had no gesture-end signal, so a `onMiniDragEnded`
+callback fires from the rail mouse-up. One shared tiny Label (`shell.drag.db`, theme tokens,
+click-transparent, hidden by default) shows `20*log10(gain)` to one decimal — `-inf dB` at exact
+silence — anchored above the dragged control: the mixer fader shows and live-updates it through
+its real drag and value paths, and the rail VOL shows it from every mini gesture event. This is
+honestly transient view state; nothing persists beyond the gain edits the drags already made. The
+shell childCount pin bumps deliberately from 91 to 92 for the new label.
 
-**Next:** B31 — audited: add a shared tiny readout Label shown during mixer-fader and rail-VOL
-drags (JUCE `onDragStart`/`onDragEnd`, with `FineDragSlider` firing them on its fine path where it
-swallows the base drag, and a rail mini-drag-ended callback), text `20*log10(gain)` with `-inf dB`
-at zero; the ui_input shell childCount pin bumps deliberately by one.
+The shipped-boundary `[db-readout]` gate proves: the label exists and stays hidden at rest; a
+programmatic value change never shows it; a held fader drag shows the exact
+`20*log10(getValue())` text and release hides it; dragging the fader to the bottom reads exactly
+`-inf dB` at zero gain; and a held rail VOL gesture shows the same readout matching the persisted
+gain, hiding on release.
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B31 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B31 in the backlog with SHA + run id (docs-only evidence commit), then B32
+(meter peak-hold + clip light) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

@@ -1297,7 +1297,10 @@ public:
         if (isEnabled() && wantsFineDrag (event) && supportsFineDrag())
         {
             fineActive = true;
+            fineStartedDrag = true;   // the base drag was swallowed, so fire the callbacks here
             fineValue = getValue();
+            if (onDragStart)
+                onDragStart();
             return;   // no jump-to-pointer; the anchor is the current value
         }
 
@@ -1333,6 +1336,12 @@ public:
     {
         fineActive = false;
         juce::Slider::mouseUp (event);
+        if (fineStartedDrag)
+        {
+            fineStartedDrag = false;
+            if (onDragEnd)
+                onDragEnd();
+        }
     }
 
 private:
@@ -1369,6 +1378,7 @@ private:
     }
 
     bool fineActive = false;
+    bool fineStartedDrag = false;
     double fineValue = 0.0;
     juce::Point<float> lastFinePosition;
 };
@@ -1387,6 +1397,8 @@ public:
     // Current strip values, used to anchor Shift fine drags without a jump (B30).
     std::function<float (int)> panValueProvider;
     std::function<float (int)> volumeValueProvider;
+    // Fired on mouse-up after any mini-control gesture, so transient drag readouts can hide (B31).
+    std::function<void()> onMiniDragEnded;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
@@ -1469,6 +1481,8 @@ public:
         dragRow = -1;
         dragZone = MiniZone::None;
         fineDragActive = false;
+        if (onMiniDragEnded)
+            onMiniDragEnded();
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -2070,9 +2084,13 @@ public:
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.setSelectedMixerFader (linearGain);
+            showDragDbReadout (trackListInput.volumeSliderBounds (row)
+                                   .translated (trackListInput.getX(), trackListInput.getY()),
+                               linearGain);
             refreshActionState();
             repaint();
         };
+        trackListInput.onMiniDragEnded = [this] { hideDragDbReadout(); };
         trackListInput.onMuteToggled = [this] (int row) {
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
@@ -3259,10 +3277,26 @@ private:
                 return;
 
             (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
+            if (dragDbReadout.isVisible())
+                dragDbReadout.setText (dbReadoutText (mixerFader.getValue()), juce::dontSendNotification);
             refreshActionState();
             repaint();
         };
+        // Live dB readout while the fader is dragged (B31); the rail VOL shares the same label.
+        mixerFader.onDragStart = [this] {
+            showDragDbReadout (mixerFader.getBounds(), mixerFader.getValue());
+        };
+        mixerFader.onDragEnd = [this] { hideDragDbReadout(); };
         addAndMakeVisible (mixerFader);
+
+        dragDbReadout.setComponentID ("shell.drag.db");
+        dragDbReadout.setInterceptsMouseClicks (false, false);
+        dragDbReadout.setJustificationType (juce::Justification::centred);
+        dragDbReadout.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+        dragDbReadout.setColour (juce::Label::textColourId, kText);
+        dragDbReadout.setColour (juce::Label::backgroundColourId,
+                                 yesdaw::ui::UiTheme::Color::darkControl());
+        addChildComponent (dragDbReadout);
 
         configureActionComponent (mixerPan, yesdaw::ui::UiActionId::MixerTargetSetPan, "Mixer pan");
         mixerPan.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
@@ -3602,6 +3636,34 @@ private:
 
         refreshActionState();
         repaint();
+    }
+
+    // Live gain readout in dB (B31): 20*log10(linear gain), "-inf dB" at silence.
+    [[nodiscard]] static juce::String dbReadoutText (double linearGain)
+    {
+        if (linearGain <= 0.0)
+            return "-inf dB";
+
+        return juce::String (20.0 * std::log10 (linearGain), 1) + " dB";
+    }
+
+    void showDragDbReadout (juce::Rectangle<int> anchorBounds, double linearGain)
+    {
+        dragDbReadout.setText (dbReadoutText (linearGain), juce::dontSendNotification);
+        dragDbReadout.setBounds (
+            juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::dbReadoutWidth,
+                                  yesdaw::ui::UiTheme::Layout::dbReadoutHeight)
+                .withCentre ({ anchorBounds.getCentreX(),
+                               anchorBounds.getY()
+                                   - yesdaw::ui::UiTheme::Layout::dbReadoutHeight / 2 })
+                .constrainedWithin (getLocalBounds()));
+        dragDbReadout.setVisible (true);
+        dragDbReadout.toFront (false);
+    }
+
+    void hideDragDbReadout()
+    {
+        dragDbReadout.setVisible (false);
     }
 
     void duplicateSelectedTrack()
@@ -6550,6 +6612,7 @@ private:
     juce::TextButton mixerTrackSelect;
     FineDragSlider mixerFader;
     FineDragSlider mixerPan;
+    juce::Label dragDbReadout;
     juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerSendLevelEdit;

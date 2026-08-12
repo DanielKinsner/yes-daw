@@ -841,7 +841,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 91u));
+    // 91 shell children + the B31 drag dB readout label (hidden until a gain drag).
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 92u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -7101,6 +7102,82 @@ TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten ti
     project = readProjectSnapshot (bundlePath);
     const float sendCoarse = project.tracks.front().sends.front().linearGain;
     REQUIRE (std::abs (sendCoarse - 0.5f) > 5.0f * std::abs (sendFine - 0.5f));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf at zero",
+           "[ui][input][shell][mixer][db-readout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("db-readout");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    auto* readout = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.drag.db"));
+    REQUIRE (readout != nullptr);
+    REQUIRE_FALSE (readout->isVisible());
+
+    // A programmatic value change never shows the readout — only a real drag does.
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (0.5, juce::sendNotificationSync);
+    REQUIRE_FALSE (readout->isVisible());
+
+    // While the fader drag is held the readout shows 20*log10(gain) of the live value.
+    const juce::Point<int> faderCentre = fader->getLocalBounds().getCentre();
+    beginDragFromTo (*fader, faderCentre, faderCentre.translated (0, -10));
+    REQUIRE (readout->isVisible());
+    const double draggedGain = fader->getValue();
+    REQUIRE (draggedGain > 0.0);
+    REQUIRE (readout->getText()
+             == juce::String (20.0 * std::log10 (draggedGain), 1) + " dB");
+    releaseDragAt (*fader, faderCentre, faderCentre.translated (0, -10));
+    REQUIRE_FALSE (readout->isVisible());
+
+    // Dragging the fader to the bottom reads exact silence as "-inf dB".
+    const juce::Point<int> faderBottom { faderCentre.x, fader->getHeight() + 200 };
+    beginDragFromTo (*fader, faderCentre, faderBottom);
+    REQUIRE (readout->isVisible());
+    REQUIRE (fader->getValue() == 0.0);
+    REQUIRE (readout->getText() == "-inf dB");
+    releaseDragAt (*fader, faderCentre, faderBottom);
+    REQUIRE_FALSE (readout->isVisible());
+
+    // The rail VOL mini shares the same readout while its gesture is held.
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    beginDragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
+                     { level.getCentreX() + 4, level.getCentreY() });
+    REQUIRE (readout->isVisible());
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const float railGain = project.tracks.front().strip.linearGain;
+    REQUIRE (railGain > 0.0f);
+    REQUIRE (readout->getText()
+             == juce::String (20.0 * std::log10 (static_cast<double> (railGain)), 1) + " dB");
+    releaseDragAt (*rail, { level.getCentreX(), level.getCentreY() },
+                   { level.getCentreX() + 4, level.getCentreY() });
+    REQUIRE_FALSE (readout->isVisible());
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
