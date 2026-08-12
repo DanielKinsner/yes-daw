@@ -373,7 +373,7 @@ class TimelineInputComponent final : public juce::Component,
 {
 public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
-    std::function<bool()> pointerToolActiveProvider;
+    std::function<yesdaw::ui::TimelineTool()> activeToolProvider;
     std::function<void (int, bool)> onClipClicked;
     std::function<void()> onEmptyClicked;
     std::function<void (std::span<const int>)> onMarqueeSelection;
@@ -392,15 +392,19 @@ public:
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
+    std::function<void (double, bool)> onZoomToolClicked;        // anchorSeconds, zoomOut (Alt) — E3
+    std::function<void (double)> onHandToolScrolled;             // secondsDelta from a Hand drag — E3
+    std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
-        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive)
+        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive)
             return false;
 
         dragState = {};
         marqueeState = {};
         rulerRangeDragActive = false;
+        handDragActive = false;
         repaint();
         return true;
     }
@@ -474,10 +478,73 @@ public:
 
         playheadLocateActive = false;
         rulerRangeDragActive = false;
+        handDragActive = false;
         marqueeState = {};
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
+
+        // The tool palette owns the clip-area gesture (E3): Hand pans, Zoom clicks zoom, Scissors
+        // splits the hit clip, Pencil creates a MIDI clip on the clicked empty lane (or just
+        // selects a hit clip). The ruler keeps its locate/loop/range behavior for every tool, and
+        // Pointer keeps the full historical gesture map below.
+        const yesdaw::ui::TimelineTool tool =
+            activeToolProvider ? activeToolProvider() : yesdaw::ui::TimelineTool::Pointer;
+        if (tool != yesdaw::ui::TimelineTool::Pointer)
+        {
+            const yesdaw::ui::TimelineCanvasGeometry toolGeometry =
+                yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            if (toolGeometry.clipArea.contains (event.getPosition()))
+            {
+                if (tool == yesdaw::ui::TimelineTool::Hand)
+                {
+                    handDragActive = true;
+                    handDragLastX = event.getPosition().x;
+                    return;
+                }
+
+                if (tool == yesdaw::ui::TimelineTool::Zoom)
+                {
+                    if (const std::optional<double> seconds =
+                            timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                        if (onZoomToolClicked)
+                            onZoomToolClicked (*seconds, event.mods.isAltDown());
+                    return;
+                }
+
+                if (tool == yesdaw::ui::TimelineTool::Scissors)
+                {
+                    if (hit.hit)
+                        if (const std::optional<double> seconds =
+                                timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                            if (onClipSplit)
+                                onClipSplit (hit.id, *seconds);
+                    return;
+                }
+
+                if (tool == yesdaw::ui::TimelineTool::Pencil)
+                {
+                    if (hit.hit)
+                    {
+                        if (onClipClicked)
+                            onClipClicked (hit.id, event.mods.isShiftDown());
+                        return;
+                    }
+
+                    if (state.trackCount > 0 && toolGeometry.laneHeight > 0)
+                    {
+                        const int lane = std::clamp (
+                            (event.getPosition().y - toolGeometry.clipArea.getY()) / toolGeometry.laneHeight,
+                            0, state.trackCount - 1);
+                        if (const std::optional<double> seconds =
+                                timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                            if (onPencilEmptyLane)
+                                onPencilEmptyLane (lane, *seconds);
+                    }
+                    return;
+                }
+            }
+        }
 
         if (hit.hit)
         {
@@ -535,8 +602,7 @@ public:
         }
 
         playheadLocateActive = false;
-        if (geometry.clipArea.contains (event.getPosition())
-            && (! pointerToolActiveProvider || pointerToolActiveProvider()))
+        if (geometry.clipArea.contains (event.getPosition()))
         {
             marqueeState.active = true;
             marqueeState.downPosition = event.getPosition();
@@ -585,12 +651,33 @@ public:
             return;
         }
 
+        if (handDragActive && stateProvider)
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            const yesdaw::ui::TimelineCanvasGeometry geometry =
+                yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            const double pixelsPerSecond = std::max (
+                yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+                geometry.viewport.pixelsPerSecond);
+            const int deltaX = event.getPosition().x - handDragLastX;
+            handDragLastX = event.getPosition().x;
+            if (deltaX != 0 && onHandToolScrolled)
+                onHandToolScrolled (-static_cast<double> (deltaX) / pixelsPerSecond);
+            return;
+        }
+
         if (dragState.active)
             dragState.moved = true;
     }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (handDragActive)
+        {
+            handDragActive = false;
+            return;
+        }
+
         if (marqueeState.active)
         {
             const TimelineMarqueeState marquee = marqueeState;
@@ -979,6 +1066,9 @@ private:
 
     TimelineDragState dragState;
     TimelineMarqueeState marqueeState;
+    // Hand tool (E3): a press-drag pans the viewport horizontally; transient view state only.
+    bool handDragActive = false;
+    int handDragLastX = 0;
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
@@ -2059,8 +2149,28 @@ public:
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
         timelineInput.stateProvider = [this] { return makeTimelineState(); };
-        timelineInput.pointerToolActiveProvider = [this] {
-            return appModel.context().activeTimelineTool == yesdaw::ui::TimelineTool::Pointer;
+        timelineInput.activeToolProvider = [this] {
+            return appModel.context().activeTimelineTool;
+        };
+        timelineInput.onZoomToolClicked = [this] (double anchorSeconds, bool zoomOut) {
+            const double factor = yesdaw::ui::UiTheme::Layout::timelineZoomToolClickFactor;
+            zoomTimelineAtAnchor (anchorSeconds, zoomOut ? 1.0 / factor : factor);
+            repaint();
+        };
+        timelineInput.onHandToolScrolled = [this] (double secondsDelta) {
+            timelineScrollSeconds += secondsDelta;
+            repaint();
+        };
+        timelineInput.onPencilEmptyLane = [this] (int lane, double seconds) {
+            const auto& tracks = appModel.project().tracks;
+            if (lane < 0 || lane >= static_cast<int> (tracks.size()))
+                return;
+            if (const auto tick = timelineTickFromSeconds (seconds))
+                (void) appModel.addMidiClipOnTrackAt (
+                    tracks[static_cast<std::size_t> (lane)].id,
+                    snappedTimelineTick (*tick, false));
+            refreshActionState();
+            repaint();
         };
         timelineInput.onClipClicked = [this] (int timelineClipId, bool toggle) {
             selectTimelineClipByLayoutId (timelineClipId, toggle);

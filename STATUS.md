@@ -79,10 +79,34 @@ jobs; the single red round was pure infrastructure (Linux sccache setup "socket 
 any compile step ran) and the failed-job rerun on the SAME head went green — no product or test
 change was needed. E2 is ticked in the backlog.
 
-**Now:** E3 (tool palette does real work in the timeline): Scissors click-split, Pencil MIDI-clip
-creation on the clicked lane, Hand viewport pan, Zoom click in / Alt+click out; implementation
-and `[tool-palette]` gate in the working tree (fail-before proven: Zoom click was a no-op on the
-old code).
+**E3 implementation candidate — tool palette does real work (timeline):** audited before adding:
+the `TimelineTool` state existed but the only consumer was the marquee-enable check; Scissors,
+Pencil, Hand, and Zoom changed nothing. The timeline input component now routes the clip-area
+press per tool: Hand press-drags pan the viewport horizontally by the exact pixel→seconds law
+(clip hits ignored, transient view state only, Escape-cancellable); Zoom clicks double the zoom
+anchored at the click and Alt+clicks halve it, both through the existing `zoomTimelineAtAnchor`
+wheel math with the new `timelineZoomToolClickFactor` theme token; Scissors clicks split the hit
+clip at the click tick through the same persisted split verb as `B` (raw tick today — E4 owns
+gesture snapping); Pencil clicks on a hit clip only select it, and on an empty lane create a
+snapped one-bar MIDI clip on THAT lane at the clicked tick through the new shared
+`addMidiClipOnTrackAt` verb (the Ctrl+M law generalized — same bar length from head tempo/meter,
+opens the piano roll); Pointer keeps the full historical gesture map, and the ruler keeps
+locate/loop/range for every tool. The shipped-boundary `[tool-palette]` gate FAILED before
+(the Zoom click was a no-op at zoom 1.0) and passes after with 125 assertions: exact zoom-in/out
+factors and anchor law with reset at zoom-min, exact hand-pan scroll deltas with a byte-identical
+`project.db`, a persisted undoable scissors split with exact adjacent windows, pencil
+select-vs-create honesty with the exact snapped tick and bar length, panel switch to the piano
+roll, and the preserved Pointer move law.
+
+One legacy assertion was re-pinned to the new semantics (never weakened): the B22 `[tool-keys]`
+gate had pinned that a Pencil drag on empty space leaves nothing selected — which held only
+because the old inert Pencil fell through to the empty-click deselect. Under E3 the same gesture
+now creates the MIDI clip, opens the piano roll, and leaves the timeline clip selection
+untouched (deselection belongs to the Pointer empty click); the gate now asserts exactly that,
+plus the undo, making it strictly stronger.
+
+**Now:** E3 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E4 (snap chooser consulted by every timeline time-gesture).
 

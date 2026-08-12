@@ -2927,20 +2927,30 @@ public:
     // tempo/meter, selected for immediate piano-roll editing — MIDI without recording.
     [[nodiscard]] UiActionDispatchResult addMidiClipAtPlayhead()
     {
-        const UiActionId id = UiActionId::TimelineMidiClipAdd;
-        const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
         if (project_.tracks.empty())
-            return { id, { false, "no track for the MIDI clip" }, false };
+            return { UiActionId::TimelineMidiClipAdd, { false, "no track for the MIDI clip" }, false };
 
         const int selectedStrip = selectedMixerTrackStripIndex();
         const std::size_t trackIndex = selectedStrip >= 0
                 && selectedStrip < static_cast<int> (project_.tracks.size())
             ? static_cast<std::size_t> (selectedStrip)
             : std::size_t {};
-        const engine::EntityId trackId = project_.tracks[trackIndex].id;
+        return addMidiClipOnTrackAt (
+            project_.tracks[trackIndex].id,
+            static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
+    }
+
+    // Shared Ctrl+M / Pencil-tool law (E3): a one-bar MIDI clip (head tempo/meter) on the given
+    // Track at the given tick, opening the piano roll on the new clip.
+    [[nodiscard]] UiActionDispatchResult addMidiClipOnTrackAt (engine::EntityId trackId, engine::Tick startTick)
+    {
+        const UiActionId id = UiActionId::TimelineMidiClipAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (findTrack (trackId) == nullptr || startTick < 0)
+            return { id, { false, "no track for the MIDI clip" }, false };
 
         const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
         const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
@@ -2957,7 +2967,7 @@ public:
                               engine::ProjectEditCommand::addMidiClip (
                                   midiClipId,
                                   trackId,
-                                  static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+                                  startTick,
                                   barTicks,
                                   engine::TimeBase::SampleLocked)).applied())
             return { id, state, false };

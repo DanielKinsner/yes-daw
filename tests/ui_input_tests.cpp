@@ -5155,6 +5155,202 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
 }
 
+TEST_CASE ("the tool palette drives real timeline behavior per tool",
+           "[ui][input][shell][timeline][tool-palette]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tool-palette");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    clickButton (*addTrack);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + 2 * rowHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (locatedFrame > 0);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 3u);
+    REQUIRE (original.clips.size() == 3u);
+    REQUIRE (original.midiClips.empty());
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Rectangle<int> topBounds = timelineClipHitBounds (timeline, original, 0u);
+    const juce::Rectangle<int> midBounds = timelineClipHitBounds (timeline, original, 1u);
+
+    // The exact pixel->seconds law of the timeline input component, rebuilt from the snapshot.
+    const auto viewportAt = [&] (const MainComponentSnapshot& snapshot) {
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (original.tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        return yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    };
+    const auto secondsAtX = [&] (const MainComponentSnapshot& snapshot, int x) {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = viewportAt (snapshot);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        return geometry.viewport.scrollSeconds
+             + static_cast<double> (x - geometry.clipArea.getX()) / pixelsPerSecond;
+    };
+
+    // ZOOM tool: a click doubles the zoom around the click, Alt+click halves it; transient only.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom);
+    const juce::Point<int> zoomPoint { topBounds.getCentreX(), topBounds.getCentreY() };
+    const MainComponentSnapshot zoomBase = snapshotMainComponent (*shell);
+    REQUIRE (zoomBase.timelineZoomFactor == 1.0);
+    const double anchorSeconds = secondsAtX (zoomBase, zoomPoint.x);
+    mouseDownAt (timeline, zoomPoint);
+    const MainComponentSnapshot zoomOnce = snapshotMainComponent (*shell);
+    REQUIRE (zoomOnce.timelineZoomFactor
+             == Catch::Approx (yesdaw::ui::UiTheme::Layout::timelineZoomToolClickFactor));
+    REQUIRE (zoomOnce.timelineScrollSeconds
+             == Catch::Approx (anchorSeconds
+                               * (1.0 - 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomToolClickFactor)));
+    mouseDownAt (timeline, zoomPoint);
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == Catch::Approx (4.0));
+    mouseDownAt (timeline, zoomPoint,
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier));
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == Catch::Approx (2.0));
+    mouseDownAt (timeline, zoomPoint,
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier));
+    const MainComponentSnapshot zoomReset = snapshotMainComponent (*shell);
+    REQUIRE (zoomReset.timelineZoomFactor == 1.0);
+    REQUIRE (zoomReset.timelineScrollSeconds == yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // HAND tool: a drag that STARTS ON A CLIP pans the viewport by the exact pixel delta and never
+    // moves the clip; the reverse drag lands back at exactly zero scroll.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('h')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Hand);
+    const MainComponentSnapshot handBase = snapshotMainComponent (*shell);
+    const yesdaw::ui::TimelineCanvasGeometry handGeometry = viewportAt (handBase);
+    const double handPixelsPerSecond = std::max (
+        yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+        handGeometry.viewport.pixelsPerSecond);
+    const int handDragPixels = 120;
+    dragFromTo (timeline, topBounds.getCentre(),
+                { topBounds.getCentreX() - handDragPixels, topBounds.getCentreY() });
+    const MainComponentSnapshot handMoved = snapshotMainComponent (*shell);
+    REQUIRE (handMoved.timelineScrollSeconds
+             == Catch::Approx (handBase.timelineScrollSeconds
+                               + static_cast<double> (handDragPixels) / handPixelsPerSecond));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    dragFromTo (timeline, { topBounds.getCentreX() - handDragPixels, topBounds.getCentreY() },
+                topBounds.getCentre());
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+
+    // SCISSORS tool: a click on a clip splits it at the click point as a persisted undoable edit.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
+    mouseDownAt (timeline, { topBounds.getX() + (topBounds.getWidth() * 3) / 5, topBounds.getCentreY() });
+    const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+    REQUIRE (split.clips.size() == 4u);
+    const auto splitLeft = std::find_if (split.clips.begin(), split.clips.end(), [&] (const auto& clip) {
+        return clip.id == original.clips[0].id;
+    });
+    REQUIRE (splitLeft != split.clips.end());
+    REQUIRE (splitLeft->timelineStart == original.clips[0].timelineStart);
+    REQUIRE (splitLeft->timelineLength > 0);
+    REQUIRE (splitLeft->timelineLength < original.clips[0].timelineLength);
+    const auto splitRight = std::find_if (split.clips.begin(), split.clips.end(), [&] (const auto& clip) {
+        return clip.id != original.clips[0].id
+            && clip.trackId == original.clips[0].trackId
+            && clip.timelineStart == splitLeft->timelineStart + splitLeft->timelineLength;
+    });
+    REQUIRE (splitRight != split.clips.end());
+    REQUIRE (splitLeft->timelineLength + splitRight->timelineLength == original.clips[0].timelineLength);
+    REQUIRE (splitRight->srcOffset == splitLeft->srcOffset + splitLeft->srcLen);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // PENCIL tool: a click on a clip only selects it; a click on an empty lane creates a snapped
+    // one-bar MIDI clip on THAT lane through the Ctrl+M law and opens the piano roll.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
+    const std::vector<std::uint8_t> persistedAfterSplitUndo = readBytes (bundlePath / "project.db");
+    mouseDownAt (timeline, midBounds.getCentre());
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedAfterSplitUndo);
+
+    const yesdaw::engine::Tick emptyLaneTick =
+        original.clips[1].timelineLength + static_cast<yesdaw::engine::Tick> (locatedFrame) / 2;
+    const MainComponentSnapshot pencilBase = snapshotMainComponent (*shell);
+    const juce::Point<int> pencilPoint {
+        projectRulerPointAtTick (timeline, pencilBase, original, emptyLaneTick).x,
+        midBounds.getCentreY()
+    };
+    const double pencilSeconds = secondsAtX (pencilBase, pencilPoint.x);
+    const auto pencilRawTick = static_cast<yesdaw::engine::Tick> (
+        std::llround (pencilSeconds * original.sampleRate.hz));
+    yesdaw::engine::Tick pencilExpectedTick = pencilRawTick;
+    REQUIRE (pencilBase.context.snapEnabled);
+    REQUIRE (pencilBase.context.snapGridTicks > 0);
+    REQUIRE (yesdaw::engine::snapTick (pencilRawTick,
+                                       yesdaw::engine::SnapGrid { pencilBase.context.snapGridTicks },
+                                       pencilExpectedTick));
+    mouseDownAt (timeline, pencilPoint);
+    const yesdaw::engine::Project penciled = readProjectSnapshot (bundlePath);
+    REQUIRE (penciled.midiClips.size() == 1u);
+    REQUIRE (penciled.midiClips.front().trackId == original.tracks[1].id);
+    REQUIRE (penciled.midiClips.front().timelineStart == pencilExpectedTick);
+    const double barSeconds = 60.0 / penciled.tempoMap.front().bpm
+                            * static_cast<double> (penciled.meterMap.front().numerator);
+    REQUIRE (penciled.midiClips.front().timelineLength
+             == static_cast<yesdaw::engine::Tick> (barSeconds * penciled.sampleRate.hz + 0.5));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Timeline);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.empty());
+
+    // POINTER law preserved: the plain move drag still persists.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+    dragFromTo (timeline, topBounds.getCentre(),
+                { topBounds.getCentreX() + timeline.getWidth() / 4, topBounds.getCentreY() });
+    const yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    const auto movedClip = std::find_if (moved.clips.begin(), moved.clips.end(), [&] (const auto& clip) {
+        return clip.id == original.clips[0].id;
+    });
+    REQUIRE (movedClip != moved.clips.end());
+    REQUIRE (movedClip->timelineStart > original.clips[0].timelineStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {
@@ -6337,7 +6533,16 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     dragFromTo (timeline, emptyLanePoint, clipPoint);
-    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+    // Re-pinned to the E3 tool semantics: the Pencil press on an empty lane creates a MIDI clip
+    // on that lane and opens the piano roll; the timeline clip selection is untouched (the
+    // imported clip stays selected — deselection belongs to the Pointer empty click).
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Timeline);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.empty());
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);

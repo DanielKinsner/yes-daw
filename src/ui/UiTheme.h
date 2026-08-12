@@ -523,6 +523,9 @@ struct UiTheme
         // choosers without being clipped by either (B41).
         static constexpr int timelineRepeatPasteChooserGap = 57;
         static constexpr double timelineZoomWheelStep = 1.25;
+        // Zoom tool (E3): one click doubles the zoom (Alt+click halves it) through the same
+        // anchored viewport math as Ctrl+wheel.
+        static constexpr double timelineZoomToolClickFactor = 2.0;
         static constexpr double timelineZoomMin = 1.0;
         static constexpr double timelineZoomMax = 64.0;
         static constexpr double timelineScrollWheelFraction = 0.15;
