@@ -45,6 +45,8 @@ struct MainComponentSnapshot
 {
     bool isMainComponent = false;
     bool primaryFileChoicesReady = false;
+    // Window title with the dirty marker (B38): "<project>[*] - YES DAW"; empty without a project.
+    std::string windowTitle;
     bool desktopAudioRequested = false;
     bool desktopAudioOpen = false;
     std::uint64_t deviceAudioCallbackBlockCount = 0;

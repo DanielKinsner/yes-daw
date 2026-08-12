@@ -7757,3 +7757,38 @@ TEST_CASE ("closing with unsaved changes prompts Save, Close, or Cancel through 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("the window title carries the project name and a dirty marker until save",
+           "[ui][input][shell][dirty-title]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("dirty-title");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+
+    // Without a project the shell keeps the app's versioned startup title (empty here).
+    REQUIRE (snapshotMainComponent (*shell).windowTitle.empty());
+
+    // A freshly created project shows its bundle name, clean.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const std::string cleanTitle = bundlePath.stem().string() + " - YES DAW";
+    const std::string dirtyTitle = bundlePath.stem().string() + "* - YES DAW";
+    REQUIRE (snapshotMainComponent (*shell).windowTitle == cleanTitle);
+
+    // A real edit raises the dirty marker; an explicit save clears it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).windowTitle == dirtyTitle);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).windowTitle == cleanTitle);
+
+    // Any later edit is dirty again — including through undo, which is itself an edit.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).windowTitle == dirtyTitle);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

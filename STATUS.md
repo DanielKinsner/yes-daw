@@ -990,12 +990,27 @@ Exact-head GitHub Actions run `31580310432` is green for full SHA
 `155e36a40465431f02f3d750a7e84d476f6f2976` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B37 is ticked in the backlog.
 
-**Now:** B37 certified; B38 (dirty marker + title) is next per the run brief.
+**B38 implementation candidate — Dirty marker + title:** audited before adding anything: the B37
+edit serial (`hasUnsavedChanges()`) and the model's `bundlePath()` accessor already carry all the
+state; the window title was a constructor-time constant. The shell now computes
+"<bundle stem>[*] - YES DAW" as pure state-derived data — exposed directly through the harness
+snapshot (`windowTitle`) so gates never depend on a real window — and the UI tick pushes it,
+deduplicated, to the parent DocumentWindow for the native shell; without a project the versioned
+startup title stays.
 
-**Next:** B38 — audited: `hasUnsavedChanges()` (B37) and the model's `bundlePath()` accessor carry
-everything needed; compute "<bundle stem>[*] - YES DAW" as state-derived shell data exposed through
-the harness snapshot (gate law: edit → dirty, save → clean), and push it to the parent
-DocumentWindow on the UI tick for the native shell.
+The shipped-boundary `[dirty-title]` gate proves the exact title law: empty before a project; the
+clean bundle-stem title on a fresh project; the starred title after a real Ctrl+T edit; clean again
+after an explicit Ctrl+S; and dirty again after undo (undo is itself an edit since the last save)
+(16 assertions, green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B38 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B38 in the backlog with SHA + run id (docs-only evidence commit), then B39
+(Open Recent MRU in the File menu) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

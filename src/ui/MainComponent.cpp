@@ -2577,6 +2577,7 @@ public:
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
         updateTrackMeterHoldStates();
+        pushWindowTitle();
         refreshActionState();
         followPlaybackPlayhead();
         repaint();
@@ -2769,6 +2770,29 @@ public:
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
+    }
+
+    // Window title with the dirty marker (B38): "<bundle stem>[*] - YES DAW" once a project is
+    // open; empty otherwise so the app keeps its versioned startup title. State-derived, so the
+    // harness snapshot reads it directly and the UI tick pushes it to the native window.
+    [[nodiscard]] juce::String computedWindowTitle() const
+    {
+        if (! appModel.context().projectLoaded || appModel.bundlePath().empty())
+            return {};
+
+        const juce::String stem (appModel.bundlePath().stem().string());
+        return stem + (appModel.hasUnsavedChanges() ? "*" : "") + " - YES DAW";
+    }
+
+    void pushWindowTitle()
+    {
+        const juce::String title = computedWindowTitle();
+        if (title.isEmpty() || title == lastPushedWindowTitle)
+            return;
+
+        lastPushedWindowTitle = title;
+        if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
+            window->setName (title);
     }
 
     // Close-confirm flow (B37): a clean session closes silently; edits since the last explicit
@@ -6929,6 +6953,7 @@ private:
     FineDragSlider mixerPan;
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
+    juce::String lastPushedWindowTitle;           // dirty-title push dedupe (B38)
     juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerSendLevelEdit;
@@ -7099,6 +7124,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
     {
         snapshot.isMainComponent = true;
+        snapshot.windowTitle = mainComponent->computedWindowTitle().toStdString();
         snapshot.primaryFileChoicesReady = mainComponent->harnessPrimaryFileChoicesReady();
         snapshot.desktopAudioRequested = mainComponent->harnessDesktopAudioRequested();
         snapshot.desktopAudioOpen = mainComponent->harnessDesktopAudioOpen();
