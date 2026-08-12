@@ -1007,10 +1007,19 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B38 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31581331754` is green for full SHA
+`fa0b779cb4066644bee44654581d8eaff6ef3bea` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B38 is ticked in the backlog.
 
-**Next:** on green, tick B38 in the backlog with SHA + run id (docs-only evidence commit), then B39
-(Open Recent MRU in the File menu) per the run brief.
+**Now:** B38 certified; B39 (Open Recent) is next per the run brief.
+
+**Next:** B39 — audited: the harness never sets a session-state directory (only the native shell
+does), so add a `sessionStateDirectory` seam to the injectable choices; a separate
+`recent-projects.txt` MRU (up to 5, most recent first, same UTF-8 encoding as the untouched
+`last-project.txt`) updates on every bundle attach; the File menu gains an Open Recent submenu
+(IDs above the action range) opening bundles through the extracted open-by-path helper; the menubar
+gate's File-menu count re-pins from 6 to 7; full-suite isolation extends to the owner's
+`recent-projects.txt`.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

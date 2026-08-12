@@ -250,8 +250,12 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     the new harness-injectable `confirmCloseUnsavedChanges` seam (native three-way box otherwise):
     Save records the state and closes, Close-without-saving closes with the bundle current, Cancel
     stays; autosave untouched. The gate proves all flows through the injected seam.
-38. **Dirty marker + title** — window title shows "<project> — YES DAW" with `*` when
-    unsaved edits exist. Gate: edit → title dirty; save → clean.
+38. [x] **Dirty marker + title** — landed in `fa0b779` (exact-head run `31581331754`, nine jobs
+    green). The shell computes "<bundle stem>[*] - YES DAW" from the B37 edit serial as pure
+    state-derived data, exposed through the harness snapshot and pushed deduplicated to the parent
+    DocumentWindow on the UI tick; without a project the versioned startup title stays. The gate
+    proves the exact law: empty pre-project, clean stem title on a fresh project, starred after a
+    real edit, clean after Ctrl+S, dirty again after undo.
 39. **Open Recent** — File menu lists the last 5 project bundles (session state dir already
     records the last one; extend to a small MRU list). Gate: open two projects → both listed,
     most recent first.
