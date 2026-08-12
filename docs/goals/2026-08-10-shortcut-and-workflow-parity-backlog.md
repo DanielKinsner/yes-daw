@@ -204,9 +204,15 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     minis gained a gesture-end signal). Honestly transient view state. The shipped-boundary gate
     proves hidden-at-rest, no-show on programmatic changes, exact live text, `-inf` at zero, and
     hide-on-release.
-32. **Meter peak-hold + clip light** — strip and rail meters hold peaks ~2s and latch a red
-    clip indicator at >= 0 dBFS; click clears. Painted-only is fine; state in the meter
-    readout path.
+32. [x] **Meter peak-hold + clip light** — landed in `ffa7aa0` (exact-head run `31573011101`,
+    nine jobs green). Live per-track MeterNode peaks now reach the shell (control-side
+    `CompiledGraph::nodeForId`, pointers harvested at `PlaybackEngine::create`,
+    `UiAppModel::trackMeterPeak`); the shared per-track readout state holds peaks for 60 UI ticks
+    (~2 s, never wall-clock), latches the clip light at 1.0 (0 dBFS), reads live silence when
+    stopped, and paints on both the rail and painted strip meters; clicking either meter clears
+    the shared latch (rail click zone + paint-mirrored strip hit test). Buses honestly keep their
+    surface meters (no live tap). The gate proves latch, persistence, both click-clears, and
+    exact tick-law hold expiry from real pixels.
 33. **Piano-roll velocity editing** — Alt+wheel (or Alt+vertical-drag) on a note adjusts its
     velocity; velocity tints the painted note. Undoable SetNoteVelocity (new engine verb if
     missing — follow the AddNote pattern incl. randomized property test).

@@ -844,11 +844,17 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 new meter harvest. The owner's real last-project record was isolated for the native-shell gate and
 restored with its exact SHA-256.
 
-**Now:** B32 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31573011101` is green for full SHA
+`ffa7aa08aa0fe20f76975e18db4871521159f985` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B32 is ticked in the backlog.
 
-**Next:** on green, tick B32 in the backlog with SHA + run id (docs-only evidence commit), then B33
-(piano-roll velocity editing; SetNoteVelocity engine verb per the AddNote pattern) per the run
-brief.
+**Now:** B32 certified; B33 (piano-roll velocity editing) is next per the run brief.
+
+**Next:** B33 — audited: no SetNoteVelocity verb exists, so add one per the AddNote pattern (enum
+end, factory, apply, isMidiNoteEditVerb, engine helper, and the randomized generated-edit-sequence
+property test); the piano-roll surface already carries per-note `normalizedVelocity` for both the
+Alt+wheel math and the painted tint; wire Alt+wheel on the hit note through a new input-component
+callback and prove persisted velocity, tint pixels, one-step undo, and velocity-scaled playback.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
