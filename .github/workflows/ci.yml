@@ -10,6 +10,15 @@ name: ci
 #
 # Everything runs through the `ci` CMake preset (Ninja/Release) so the cloud and all three of
 # Dan's machines invoke it byte-identically and path-free.
+#
+# Speed (2026-08-11): two mechanisms, neither weakens the gate.
+# 1. sccache (GitHub Actions cache backend) fronts the compilers on the heavy build jobs, so a
+#    commit only recompiles the translation units it touched. Cache misses fall back to a plain
+#    compile — correctness is unaffected by cache state.
+# 2. A docs-only push (every changed path is docs/ or *.md) skips the build jobs entirely: its
+#    tree is code-identical to its parent, whose own exact-head run already proved all nine jobs.
+#    The classifier is deliberately conservative — PRs, first commits, and anything unrecognized
+#    run the full matrix.
 
 on:
   push:
@@ -23,8 +32,39 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Docs-only fast path: classify the diff. Conservative by construction — only a push whose
+  # entire parent diff is documentation may skip the build jobs; every other shape (PR, first
+  # commit, diff error, any non-docs path) runs the full matrix.
+  changes:
+    name: Classify diff (docs-only fast path)
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: classify
+        run: |
+          set -euo pipefail
+          code=true
+          if [ "${{ github.event_name }}" = "push" ] && git rev-parse HEAD^ >/dev/null 2>&1; then
+            changed="$(git diff --name-only HEAD^ HEAD)"
+            echo "changed files:"
+            echo "$changed"
+            # Allowlist: docs/** and *.md anywhere. Anything else keeps code=true.
+            if [ -n "$changed" ] && ! echo "$changed" | grep -qvE '^docs/|\.md$'; then
+              code=false
+            fi
+          fi
+          echo "docs-only fast path: code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   build-and-test:
     name: ${{ matrix.name }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false          # one OS failing must not hide the others (the agent triages, not Dan)
       matrix:
@@ -33,6 +73,8 @@ jobs:
           - { name: Linux,   os: ubuntu-22.04 }
           - { name: macOS,   os: macos-14 }
     runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +100,9 @@ jobs:
       - name: Get CMake + Ninja (consistent across all runners)
         uses: lukka/get-cmake@latest
 
+      - name: Set up sccache (compiler cache)
+        uses: mozilla/sccache-action@v0.0.9
+
       # Cache the fetched JUCE + Catch2 sources so we don't re-clone them every run.
       # Keyed to the pinned tags + CMakeLists so bumping a dependency busts the cache.
       - name: Cache fetched dependencies
@@ -69,10 +114,13 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release — Debug hangs on JUCE asserts in CI)
-        run: cmake --preset ci
+        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build (GUI app + headless test)
         run: cmake --build --preset ci
+
+      - name: sccache stats
+        run: sccache --show-stats
 
       - name: Test (headless DSP self-check)
         run: ctest --preset ci
@@ -84,6 +132,8 @@ jobs:
   # (where RTSan landed). YesDawCheck is pure (no JUCE), so no X11/audio deps are required here.
   rtsan:
     name: RTSan (audio thread no-alloc)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     env:
       RTSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/rtsan_suppressions.txt"
@@ -120,6 +170,8 @@ jobs:
   # -Wl,-z,now (that is RTSan-specific) and YESDAW_SANITIZER=thread.
   tsan:
     name: TSan (audio<->control data races)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     env:
       TSAN_OPTIONS: "halt_on_error=1"
@@ -151,7 +203,11 @@ jobs:
   # plus a guard that a real git-describe version was baked in (not the unstamped fallback).
   package:
     name: Package (portable zip + packaged self-check)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -167,6 +223,9 @@ jobs:
       - name: Get CMake + Ninja (consistent across all runners)
         uses: lukka/get-cmake@latest
 
+      - name: Set up sccache (compiler cache)
+        uses: mozilla/sccache-action@v0.0.9
+
       - name: Cache fetched dependencies
         uses: actions/cache@v4
         with:
@@ -176,7 +235,7 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci
+        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Package (build GUI + self-check, stage, zip)
         run: tools/package.sh
@@ -213,7 +272,11 @@ jobs:
   # and -SelfTest are device-free by construction.
   package-windows:
     name: Package (Windows zip + packaged hardware-verifier self-test)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -222,6 +285,9 @@ jobs:
 
       - name: Get CMake + Ninja (consistent across all runners)
         uses: lukka/get-cmake@latest
+
+      - name: Set up sccache (compiler cache)
+        uses: mozilla/sccache-action@v0.0.9
 
       - name: Cache fetched dependencies
         uses: actions/cache@v4
@@ -232,7 +298,7 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci
+        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Package (build GUI + self-check + hardware checkers, stage, manifest, zip)
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\package.ps1
@@ -270,6 +336,8 @@ jobs:
   # (.sh) and Windows (.ps1) scripts are covered.
   alpha-verify:
     name: Alpha-verify self-test (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -277,6 +345,8 @@ jobs:
           - { name: Linux,   os: ubuntu-22.04 }
           - { name: Windows, os: windows-latest }
     runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -297,6 +367,9 @@ jobs:
       - name: Get CMake + Ninja (consistent across all runners)
         uses: lukka/get-cmake@latest
 
+      - name: Set up sccache (compiler cache)
+        uses: mozilla/sccache-action@v0.0.9
+
       - name: Cache fetched dependencies
         uses: actions/cache@v4
         with:
@@ -306,7 +379,7 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci
+        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build the self-check CLI
         run: cmake --build --preset ci --target YesDawSelfCheck
