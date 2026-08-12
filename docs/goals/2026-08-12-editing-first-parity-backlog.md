@@ -89,14 +89,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    cancels, below-dead-zone release keeps the locate), and double-click opens the new inline
    rename editor (childCount bumped deliberately). The `[marker-edit]` gate failed before (the
    drag fell through to a locate) and passes after with 70 assertions.
-8. [ ] **E8 — MIDI clips are first-class timeline citizens.** MIDI clips are never drawn on the
-   timeline, cannot be hit-tested, selected, moved, or deleted; the ONLY MIDI-clip verb in the
-   entire engine is `addMidiClip` (`ProjectUndo.h:609`) — no move/remove exists anywhere. Add
-   engine verbs `MoveMidiClip`, `MoveMidiClipToTrack`, `RemoveMidiClip` (randomized property test
-   per the AddNote pattern), paint MIDI clips on their track lanes, and wire hit-test / selection
-   (joining the multi-selection) / snapped move / cross-track move / delete / duplicate through
-   the same gesture paths audio clips use, one undo per gesture. Honest scope: MIDI clip
-   trim/split stays out (source-window semantics for notes need a decision — see out-of-scope).
+8. [x] **E8 — MIDI clips are first-class timeline citizens.** Landed in `f4f7a31` (exact-head
+   run green, nine jobs). New undoable engine verbs MoveMidiClip / MoveMidiClipToTrack /
+   RemoveMidiClip (removal = the add diff-shape inverted) join the randomized property test;
+   the timeline selection model is kind-aware through one `timelineEntityView` law
+   (select/marquee/prune/group move/cross-track clamp/delete/nudge/duplicate/Alt-copy all handle
+   both kinds in one transaction; duplicate now emits fresh ids directly, MIDI copies carry
+   every note); MIDI clips paint on their lanes in the MIDI accent colour. Honest scope:
+   trim/split refuse on MIDI; the Ctrl+C/X clipboard stays audio-only (cut with MIDI members is
+   an honest no-op). The `[midi-clip]` gate failed before (a click selected nothing) and passes
+   after with 104 assertions.
 9. [ ] **E9 — Piano roll follows the selected MIDI clip.** The roll always shows
    `midiClips.front()` (`MainComponent.cpp:6945-6956`); with several MIDI tracks there is NO way
    to open the second clip. Double-click a timeline MIDI clip (E8) opens the piano roll on THAT
