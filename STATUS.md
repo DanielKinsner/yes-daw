@@ -423,10 +423,17 @@ on a bus and nothing else could land) and passes after with 84 assertions: a rea
 on the bus strip, four scalar edits persisted ON THE BUS (track untouched) each undone in
 reverse order, EQ add/bypass/param/remove all landing on the bus chain, and the remove undone.
 
-**Now:** E16 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E16 is certified: exact-head GitHub Actions run `31647560865` green for full SHA
+`3d4e98715946d771200b39a3629449c5ab1d15c5` across all nine jobs (after one same-head rerun of a
+macOS runner loss — the job died mid-build with zero compile output, no code signal); full local
+ctest green **348/348** (owner file isolated + restored, SHA verified). E16 is ticked in the
+backlog.
 
-**Next:** E17 (bus rename + remove from the UI).
+**Now:** E17 (bus rename + remove from the UI) — audited: `RenameBus` verb on the marker-rename
+name precedent + property arm, bus rename editor on strip double-click, `mixer.bus.remove`
+button surfacing the engine's routed-send refusal honestly.
+
+**Next:** E18 (send tap + destination editing).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

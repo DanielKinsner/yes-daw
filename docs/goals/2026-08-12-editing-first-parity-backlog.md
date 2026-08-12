@@ -167,12 +167,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     the FULL inventory of all five FxKinds walked page by page (EQ 24, Compressor 6, Delay 6,
     Reverb 5, Limiter 3), the EQ type chooser persisting HPF's exact 0.6, the band-5 gain
     (id 82) edited on page 3, ping-pong via its chooser, and three reverse-order undos.
-16. [ ] **E16 — Bus strips are real strips.** Bus strips cannot even be selected
-    (`MainComponent.cpp:3284-3294` drops clicks past trackCount); `selectedMixerStrip`'s Bus branch
-    is dead code from the shell. Make bus strips selectable; fader/pan/mute/solo and FX
-    add/remove/bypass/param work on the selected bus through undoable verbs (new
-    `SetBusMixScalars` mirroring `SetTrackMixScalars` where needed). Honest scope: buses cannot
-    originate sends (engine has no bus-side send rows) — say so.
+16. [x] **E16 — Bus strips are real strips.** Landed in `3d4e987` (run `31647560865` green for
+    the full SHA across all nine jobs after one same-head rerun of a macOS runner loss that died
+    mid-build with zero compile output). New engine verb `SetBusMixScalars` mirrors the track
+    twin (whole-vector bus diff family; `pick(22)` property arm). The strip click law routes
+    strips past the tracks to `selectMixerBus`; bus fader/pan/mute/solo are UNDOABLE from day
+    one (`editSelectedScalarStrip` routes by target kind — tracks keep the direct edit until
+    E21); the FX chain works on the bus through the owner-aware plumbing; the control lane reads
+    the SELECTED strip and follows its display ordinal; the send chooser refuses a bus target
+    (honest scope: the engine has no bus-side send rows). The `[bus-strip]` gate failed before
+    (bus unselectable) and passes after with 84 assertions.
 17. [ ] **E17 — Bus rename + remove from the UI.** No `RenameBus` verb exists anywhere; `RemoveBus`
     exists engine-side with no UI caller. Add RenameBus (property-tested), inline rename on the bus
     strip, and a remove control that honestly surfaces the routed-send refusal.
