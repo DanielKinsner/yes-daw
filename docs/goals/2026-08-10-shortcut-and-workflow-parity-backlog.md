@@ -256,9 +256,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     DocumentWindow on the UI tick; without a project the versioned startup title stays. The gate
     proves the exact law: empty pre-project, clean stem title on a fresh project, starred after a
     real edit, clean after Ctrl+S, dirty again after undo.
-39. **Open Recent** — File menu lists the last 5 project bundles (session state dir already
-    records the last one; extend to a small MRU list). Gate: open two projects → both listed,
-    most recent first.
+39. [x] **Open Recent** — landed in `57dd070` (exact-head run `31582341126`, nine jobs green).
+    A `recent-projects.txt` MRU (up to five, most recent first, same UTF-8 encoding; the
+    last-project record's format untouched) updates on every bundle attach and Save-As; the File
+    menu gains an Open Recent submenu whose entries reopen bundles through the shared open-by-path
+    helper, and the injectable choices gain a session-directory seam so gates stay test-local. The
+    gate proves MRU order across two real New flows, real-menu reopening confirmed by the title,
+    and the reopened bundle returning to the top.
 40. **Tooltips everywhere** — every interactive control has a tooltip naming its action and
     chord (pull from the descriptor table so they can't drift). Gate: iterate shell children
     with a componentID → non-empty tooltip.

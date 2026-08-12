@@ -1034,10 +1034,18 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 and restored with its exact SHA-256; no owner recent-projects file existed before the suite and
 none was left behind.
 
-**Now:** B39 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31582341126` is green for full SHA
+`57dd070e6d2c9b1847bac78769dbd1515d176077` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B39 is ticked in the backlog.
 
-**Next:** on green, tick B39 in the backlog with SHA + run id (docs-only evidence commit), then B40
-(tooltips everywhere, pulled from the descriptor table) per the run brief.
+**Now:** B39 certified; B40 (tooltips everywhere) is next per the run brief.
+
+**Next:** B40 — audited: action-backed components already receive tooltips from
+`configureActionComponent` in the form "stableId  chord"; the item wants the human action name +
+chord, still pulled from the descriptor table so they cannot drift. Refine the format, add a
+`juce::TooltipWindow` for native display, extend the manually-configured controls and the custom
+input canvases (SettableTooltipClient mixin) with descriptive tooltips, and gate by iterating every
+shell child with a componentID: tooltip non-empty, and containing the chord for action-backed ones.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
