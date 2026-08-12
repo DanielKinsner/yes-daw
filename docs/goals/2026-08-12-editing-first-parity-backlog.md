@@ -34,11 +34,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    project-wide copy/paste preserving per-clip track + relative time with audible playback change
    and bit-identical undo. Honest finding: the gate passed on its first run — no defect existed;
    the previously untested middle-lane clamp and offset-preservation laws are now pinned.
-2. [ ] **E2 — Group duplicate + group copy-drag.** `duplicateSelectedTimelineClip`
-   (`UiAppModel.h:3540-3560`) duplicates only a single clip; Alt+drag copy (A7) copies only the
-   dragged clip. Make Ctrl+D and center Alt+drag act on the WHOLE selection: fresh-ID copies
-   preserving relative time and track offsets, one undo transaction, selection moves to the copies.
-   Single-clip behavior and edge Alt+drag fades stay unchanged.
+2. [x] **E2 — Group duplicate + group copy-drag.** Landed in `4ea1151` (exact-head run
+   `31621801153`, nine jobs green — one Linux infra flake, sccache "socket hang up" before any
+   compile, rerun green on the same head). Ctrl+D duplicates the WHOLE selection after its span
+   through the shared clipboard paste; center Alt+drag on a selected member copies the WHOLE
+   selection by the anchor's snapped delta via the new `copySelectedTimelineClipsTo` verb sharing
+   the move gesture's lane/time clamp laws, one undo transaction, copies selected; single-clip
+   laws and edge-fade Alt+drag unchanged. The `[group-duplicate]` gate failed before (4 clips,
+   not 6) and passes after with 114 assertions on a 3-track project.
 3. [ ] **E3 — Tool palette does real work (timeline).** The tool state exists but only the marquee
    branch reads it (`MainComponent.cpp:538-539`); Scissors/Pencil/Hand/Zoom change nothing.
    Wire honest behaviors: Scissors click splits the hit clip at the snapped click tick (same law as

@@ -72,10 +72,19 @@ group Alt+drag one lane down preserving originals byte-for-byte, per-field copy 
 preserved single-clip law. Companion gates ([three-track], [copy-drag], [marquee], [multi-select],
 [repeat-paste]) stay green: 420 assertions.
 
-**Now:** E2 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+E2 is certified: full local `ctest --test-dir build-ci` green **348/348** (owner's last-project
+record isolated and restored byte-identical, SHA-256 verified). Exact-head GitHub Actions run
+`31621801153` is green for full SHA `4ea115129c5d9292fccebdbd072e8aaec5294710` across all nine
+jobs; the single red round was pure infrastructure (Linux sccache setup "socket hang up" before
+any compile step ran) and the failed-job rerun on the SAME head went green — no product or test
+change was needed. E2 is ticked in the backlog.
 
-**Next:** E3 (tool palette does real work in the timeline).
+**Now:** E3 (tool palette does real work in the timeline): Scissors click-split, Pencil MIDI-clip
+creation on the clicked lane, Hand viewport pan, Zoom click in / Alt+click out; implementation
+and `[tool-palette]` gate in the working tree (fail-before proven: Zoom click was a no-op on the
+old code).
+
+**Next:** E4 (snap chooser consulted by every timeline time-gesture).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
