@@ -8,8 +8,10 @@
 #pragma once
 
 #include "engine/OfflineRenderer.h"
+#include "engine/ProjectMixerProjection.h"
 #include "engine/Recording.h"
 #include "engine/RuntimeAudioDriver.h"
+#include "engine/nodes/MeterNode.h"
 #include "rt/RtHot.h"
 
 #include "choc/containers/choc_SingleReaderSingleWriterFIFO.h"
@@ -24,6 +26,7 @@
 #include <memory>
 #include <span>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -62,6 +65,18 @@ public:
 
         std::unique_ptr<PlaybackEngine> engine (
             new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize));
+
+        // Harvest the per-track MeterNode taps before the graph moves into the Runtime. The engine
+        // publishes exactly this one graph and owns the Runtime that owns it, so these control-side
+        // pointers stay valid for the engine's whole life; reads are the single acquire-load the
+        // MeterNode contract designs for.
+        for (const Track& track : project.tracks)
+        {
+            const NodeId meterNodeId = projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Meter);
+            if (const auto* meter = dynamic_cast<const MeterNode*> (built.graph->nodeForId (meterNodeId)))
+                engine->trackMeters_.push_back ({ track.id, meter });
+        }
+
         if (! engine->driver_.publish (std::move (built.graph)))
         {
             // Only a null graph or a full command queue can fail here; a fresh queue cannot be full.
@@ -88,6 +103,17 @@ public:
 
     PlaybackEngine (const PlaybackEngine&)            = delete;
     PlaybackEngine& operator= (const PlaybackEngine&) = delete;
+
+    // CONTROL THREAD: the latest per-track meter peak the audio thread published (0 for unknown
+    // Tracks or a transport-only engine). One atomic acquire-load; never blocks the audio thread.
+    [[nodiscard]] float trackMeterPeak (EntityId trackId) const noexcept
+    {
+        for (const auto& [id, meter] : trackMeters_)
+            if (id == trackId)
+                return meter->peak();
+
+        return 0.0f;
+    }
 
     // AUDIO THREAD / device callback: no allocation, locking, logging, or I/O. The queued graph installs
     // on the first call (the command drain runs before the render, ADR-0006).
@@ -517,6 +543,7 @@ private:
     }
 
     RuntimeAudioDriver driver_;
+    std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     static constexpr double kMetronomeClickSeconds = 0.005;
     static constexpr double kMetronomeDecayPerSecond = 600.0;

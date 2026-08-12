@@ -243,6 +243,14 @@ public:
     CompiledGraph (const CompiledGraph&)            = delete;
     CompiledGraph& operator= (const CompiledGraph&) = delete;
 
+    // CONTROL THREAD: look up a live Node by its diagnostic NodeId so control-side readers can
+    // reach the atomics a Node deliberately publishes (MeterNode peaks are the designed use).
+    [[nodiscard]] const Node* nodeForId (NodeId id) const noexcept
+    {
+        const CompiledNode* const compiled = findCompiledNode (id);
+        return compiled != nullptr ? compiled->node : nullptr;
+    }
+
     // Compatibility mono wrapper for older tests/drivers. The real device-callback path below can surface
     // every master channel.
     void process (float* out, int numFrames) const noexcept YESDAW_RT_HOT

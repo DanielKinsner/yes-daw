@@ -7182,3 +7182,152 @@ TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf a
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that a click clears",
+           "[ui][input][shell][mixer][meter-hold]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("meter-hold");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-fullscale.wav";
+
+    // A full-scale square so the post-fader track meter can reach and exceed 0 dBFS.
+    constexpr std::uint64_t kFrames = 48'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+        samples[static_cast<std::size_t> (frame)] = (frame / 64u) % 2u == 0u ? 1.0f : -1.0f;
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    // A second (silent) track: deselecting the clip-owning strip later moves the interactive
+    // overlay off its painted meter so the clip light is observable and clickable.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    const auto renderShell = [&shell]
+    {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto pixelsOfColour = [] (const juce::Image& image,
+                                    juce::Rectangle<int> within,
+                                    juce::Colour colour)
+    {
+        int count = 0;
+        for (int y = within.getY(); y < within.getBottom(); ++y)
+            for (int x = within.getX(); x < within.getRight(); ++x)
+                if (image.getPixelAt (x, y) == colour)
+                    ++count;
+        return count;
+    };
+    const juce::Colour clipColour = yesdaw::ui::UiTheme::Meter::clipFill();
+    const juce::Colour holdColour = yesdaw::ui::UiTheme::Meter::hotFill();
+
+    // Row 0's rail meter rect mirrors the shared rail geometry law (two tracks split the rail).
+    juce::Rectangle<int> railRow = rail->getLocalBounds();
+    railRow.removeFromTop (L::trackListHeaderHeight);
+    railRow = railRow.withHeight (juce::jmax (L::trackListRowMinHeight, railRow.getHeight() / 2));
+    railRow.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> railMeter =
+        railRow.withRight (railRow.getRight() - L::trackListMeterRightInset)
+            .removeFromRight (L::trackListMeterWidth)
+            .reduced (L::trackListMeterHorizontalInset, L::trackListMeterVerticalInset)
+            .translated (rail->getX(), rail->getY());
+    const juce::Rectangle<int> shellArea = shell->getLocalBounds();
+
+    // At rest no clip light exists anywhere.
+    REQUIRE (pixelsOfColour (renderShell(), shellArea, clipColour) == 0);
+
+    // Push the meter past 0 dBFS: fader x2 over the full-scale source, then a UI tick while the
+    // transport is still playing samples the live MeterNode peak, holds it, and latches the light.
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (2.0, juce::sendNotificationSync);
+    // The shared fader edit fronts the Mixer panel; return to the Timeline so the rail paints.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> loud = renderMainComponentPlayback (*shell, 8192, 128);
+    REQUIRE (peakAbs (std::span<const float> (loud.data(), loud.size()))
+             >= yesdaw::ui::UiTheme::Meter::clipThreshold);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // The rail meter shows the latched clip light, which survives stopped silence across ticks
+    // until a real click on the rail meter clears it.
+    const juce::Image latched = renderShell();
+    REQUIRE (pixelsOfColour (latched, railMeter, clipColour) > 0);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (pixelsOfColour (renderShell(), railMeter, clipColour) > 0);
+    mouseDownAt (*rail, railMeter.getCentre().translated (-rail->getX(), -rail->getY()));
+    REQUIRE (pixelsOfColour (renderShell(), shellArea, clipColour) == 0);
+
+    // Re-latch, then clear through the painted mixer strip meter instead. The painted strips only
+    // have full height in Mixer view; click any latched clip pixel outside the rail, translated
+    // into the strip input surface.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 8192, 128);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));   // deselect strip 0
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    // In Mixer view the rail does not paint, so every clip-coloured pixel belongs to the painted
+    // strip meter's latched light.
+    const juce::Image relatched = renderShell();
+    juce::Point<int> stripClipPixel { -1, -1 };
+    for (int y = shellArea.getY(); y < shellArea.getBottom() && stripClipPixel.x < 0; ++y)
+        for (int x = shellArea.getX(); x < shellArea.getRight(); ++x)
+            if (relatched.getPixelAt (x, y) == clipColour)
+            {
+                stripClipPixel = { x, y };
+                break;
+            }
+    REQUIRE (stripClipPixel.x >= 0);
+    auto* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, stripClipPixel - strips->getPosition());
+    REQUIRE (pixelsOfColour (renderShell(), shellArea, clipColour) == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));               // back to the Timeline
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));   // re-select strip 0
+
+    // Peak-hold decays on the tick law: a sub-clip peak paints only the held marker once the
+    // transport stops, and expires after exactly the token's tick count.
+    fader->setValue (0.35, juce::sendNotificationSync);
+    // The shared fader edit deliberately fronts the Mixer panel; return to the Timeline so the
+    // rail (whose meter this phase reads) is the painted surface.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 8192, 128);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (serviceMainComponentUiTimer (*shell));   // live falls silent; the held marker stays
+    REQUIRE (pixelsOfColour (renderShell(), railMeter, holdColour) > 0);
+    REQUIRE (pixelsOfColour (renderShell(), railMeter, clipColour) == 0);
+
+    for (int tick = 0; tick < yesdaw::ui::UiTheme::Meter::peakHoldTicks; ++tick)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (pixelsOfColour (renderShell(), railMeter, holdColour) == 0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}

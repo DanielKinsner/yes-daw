@@ -1453,6 +1453,13 @@ public:
         return { id, state, true };
     }
 
+    // Latest per-track meter peak published by the live playback graph (B32): one control-thread
+    // acquire-load of the MeterNode tap; 0 when no engine or no tap exists for the Track.
+    [[nodiscard]] float trackMeterPeak (engine::EntityId trackId) const noexcept
+    {
+        return playback_ != nullptr ? playback_->trackMeterPeak (trackId) : 0.0f;
+    }
+
     // Which Track strip (surface order) the mixer target currently points at; -1 when the target is
     // unset or a Bus. The shell positions its interactive strip controls from this.
     [[nodiscard]] int selectedMixerTrackStripIndex() const noexcept

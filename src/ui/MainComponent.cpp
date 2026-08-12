@@ -172,6 +172,37 @@ void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
     }
 }
 
+// B32: vertical meter with a peak-hold marker and a latched clip light. The live bar paints
+// exactly like drawMeter; the held peak paints as a marker line while its hold lasts; the clip
+// light fills the meter's top cell while latched.
+void drawMeterWithHold (juce::Graphics& g,
+                        juce::Rectangle<int> area,
+                        float liveValue,
+                        float heldValue,
+                        bool clipLatched)
+{
+    drawMeter (g, area, liveValue);
+
+    const auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
+    if (heldValue > 0.0f)
+    {
+        const int heldHeight = juce::roundToInt (
+            static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, heldValue));
+        g.setColour (yesdaw::ui::UiTheme::Meter::hotFill());
+        g.fillRect (fill.getX(),
+                    fill.getBottom() - heldHeight,
+                    fill.getWidth(),
+                    yesdaw::ui::UiTheme::Meter::peakTickThickness);
+    }
+
+    if (clipLatched)
+    {
+        g.setColour (yesdaw::ui::UiTheme::Meter::clipFill());
+        g.fillRect (fill.getX(), area.getY(), fill.getWidth(),
+                    yesdaw::ui::UiTheme::Meter::clipLightSize);
+    }
+}
+
 void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
 {
     g.setColour (yesdaw::ui::UiTheme::Color::meterTrack());
@@ -1399,6 +1430,8 @@ public:
     std::function<float (int)> volumeValueProvider;
     // Fired on mouse-up after any mini-control gesture, so transient drag readouts can hide (B31).
     std::function<void()> onMiniDragEnded;
+    // Click on the row's meter clears its held peak and latched clip light (B32).
+    std::function<void (int)> onMeterClicked;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
@@ -1446,6 +1479,11 @@ public:
             case MiniZone::Solo:
                 if (onSoloToggled)
                     onSoloToggled (row);
+                return;
+
+            case MiniZone::Meter:
+                if (onMeterClicked)
+                    onMeterClicked (row);
                 return;
 
             case MiniZone::None:
@@ -1541,8 +1579,18 @@ public:
     [[nodiscard]] juce::Rectangle<int> muteCellBounds (int row) const { return buttonCellBounds (row, 0); }
     [[nodiscard]] juce::Rectangle<int> soloCellBounds (int row) const { return buttonCellBounds (row, 1); }
 
+    [[nodiscard]] juce::Rectangle<int> meterZoneBounds (int row) const
+    {
+        auto bounds = rowBounds (row);
+        bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
+        return bounds.withRight (bounds.getRight() - yesdaw::ui::UiTheme::Layout::trackListMeterRightInset)
+                     .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
+                     .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
+                               yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
+    }
+
 private:
-    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo };
+    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo, Meter };
 
     [[nodiscard]] juce::Rectangle<int> buttonCellBounds (int row, int cellIndex) const
     {
@@ -1568,6 +1616,8 @@ private:
             return MiniZone::Mute;
         if (soloCellBounds (row).contains (position))
             return MiniZone::Solo;
+        if (meterZoneBounds (row).contains (position))
+            return MiniZone::Meter;
         return MiniZone::None;
     }
 
@@ -1792,13 +1842,30 @@ class MixerStripsInputComponent final : public juce::Component
 public:
     std::function<int (juce::Point<int>)> stripAtPosition;   // position in SHELL coordinates
     std::function<void (int)> onStripClicked;
+    // Painted meter hit test (B32): a click inside a track strip's painted meter clears its
+    // held peak and latched clip light instead of retargeting the strip.
+    std::function<int (juce::Point<int>)> meterStripAtPosition;
+    std::function<void (int)> onMeterClicked;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
+        const juce::Point<int> shellPosition =
+            event.getEventRelativeTo (getParentComponent()).getPosition();
+
+        if (meterStripAtPosition && onMeterClicked)
+        {
+            const int meterStrip = meterStripAtPosition (shellPosition);
+            if (meterStrip >= 0)
+            {
+                onMeterClicked (meterStrip);
+                return;
+            }
+        }
+
         if (! stripAtPosition || ! onStripClicked)
             return;
 
-        const int strip = stripAtPosition (event.getEventRelativeTo (getParentComponent()).getPosition());
+        const int strip = stripAtPosition (shellPosition);
         if (strip >= 0)
             onStripClicked (strip);
     }
@@ -2091,6 +2158,7 @@ public:
             repaint();
         };
         trackListInput.onMiniDragEnded = [this] { hideDragDbReadout(); };
+        trackListInput.onMeterClicked = [this] (int row) { clearTrackMeterHold (row); };
         trackListInput.onMuteToggled = [this] (int row) {
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
@@ -2453,6 +2521,7 @@ public:
         appModel.serviceRecordingCountIn();
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
+        updateTrackMeterHoldStates();
         refreshActionState();
         followPlaybackPlayhead();
         repaint();
@@ -3071,6 +3140,16 @@ private:
             refreshActionState();
             repaint();
         };
+        mixerStripsInput.meterStripAtPosition = [this] (juce::Point<int> positionInShell) {
+            const std::size_t trackCount = appModel.context().projectLoaded
+                                               ? appModel.project().tracks.size()
+                                               : 0u;
+            for (std::size_t i = 0; i < trackCount; ++i)
+                if (paintedMeterBoundsForLane (paintedMixerLaneBounds (i)).contains (positionInShell))
+                    return static_cast<int> (i);
+            return -1;
+        };
+        mixerStripsInput.onMeterClicked = [this] (int stripIndex) { clearTrackMeterHold (stripIndex); };
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
             const auto surface = currentMixerSurface();
             const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
@@ -3638,6 +3717,58 @@ private:
         repaint();
     }
 
+    // Per-track meter peak-hold and clip-latch state (B32), advanced once per UI refresh tick so
+    // gates can drive it deterministically through serviceMainComponentUiTimer.
+    struct MeterHoldState
+    {
+        float livePeak = 0.0f;
+        float heldPeak = 0.0f;
+        int holdTicksRemaining = 0;
+        bool clipLatched = false;
+    };
+
+    static void advanceMeterHold (MeterHoldState& state, float livePeak)
+    {
+        state.livePeak = livePeak;
+        if (livePeak >= state.heldPeak || state.holdTicksRemaining <= 0)
+        {
+            state.heldPeak = livePeak;
+            state.holdTicksRemaining = yesdaw::ui::UiTheme::Meter::peakHoldTicks;
+        }
+        else
+        {
+            --state.holdTicksRemaining;
+        }
+
+        if (livePeak >= yesdaw::ui::UiTheme::Meter::clipThreshold)
+            state.clipLatched = true;
+    }
+
+    void updateTrackMeterHoldStates()
+    {
+        // A stopped transport reads live silence: the MeterNode atomics keep the last processed
+        // Block's peak, but a meter must fall when playback stops (the held peak still decays on
+        // its own ~2 s law and the clip latch stays until clicked).
+        const bool playing = appModel.context().isPlaying;
+        const auto& tracks = appModel.project().tracks;
+        trackMeterHold.resize (tracks.size());
+        for (std::size_t i = 0; i < tracks.size(); ++i)
+            advanceMeterHold (trackMeterHold[i],
+                              playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f);
+    }
+
+    void clearTrackMeterHold (int trackIndex)
+    {
+        if (trackIndex < 0 || trackIndex >= static_cast<int> (trackMeterHold.size()))
+            return;
+
+        MeterHoldState& state = trackMeterHold[static_cast<std::size_t> (trackIndex)];
+        state.clipLatched = false;
+        state.heldPeak = state.livePeak;
+        state.holdTicksRemaining = 0;
+        repaint();
+    }
+
     // Live gain readout in dB (B31): 20*log10(linear gain), "-inf dB" at silence.
     [[nodiscard]] static juce::String dbReadoutText (double linearGain)
     {
@@ -3706,6 +3837,38 @@ private:
     }
 
     [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const { return mixerStripBounds (0); }
+
+    // Shared painted-strip geometry law (B32): hit-testing must mirror drawMixer's lane math
+    // exactly so a meter click can never drift from the painted meter.
+    [[nodiscard]] juce::Rectangle<int> paintedMixerLaneBounds (std::size_t stripIndex) const
+    {
+        auto area = mixerPanelBounds();
+        area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
+
+        const auto surface = currentMixerSurface();
+        const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
+        const int stripWidth = std::clamp (
+            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
+                                           static_cast<int> (stripCount))
+                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
+        return juce::Rectangle<int> (area.getX() + static_cast<int> (stripIndex) * stripWidth,
+                                     area.getY(),
+                                     stripWidth,
+                                     area.getHeight())
+                   .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
+                             yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane)
+    {
+        auto faderArea = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
+                             .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
+        return faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
+                        .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetX,
+                                  yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetY);
+    }
 
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
     {
@@ -5248,7 +5411,6 @@ private:
             return;
         }
 
-        const yesdaw::ui::UiMixerSurfaceSnapshot railMixerSurface = currentMixerSurface();
         const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
                                           area.getHeight() / static_cast<int> (appModel.project().tracks.size()));
         for (std::size_t i = 0; i < appModel.project().tracks.size(); ++i)
@@ -5442,15 +5604,15 @@ private:
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
-            // Live meter (usable-DAW P2): the rail meter follows the same per-track readout the
-            // mixer strips render.
+            // Live meter (usable-DAW P2 + B32): the rail meter renders the live MeterNode peak with
+            // the shared per-track hold/clip-latch state; a click on it clears the latch.
             auto meter = row.withRight (row.getRight() - yesdaw::ui::UiTheme::Layout::trackListMeterRightInset)
                              .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
                              .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
-            const bool railMeterValid = i < railMixerSurface.tracks.size()
-                                     && railMixerSurface.tracks[i].meter.valid;
-            drawMeter (g, meter, railMeterValid ? railMixerSurface.tracks[i].meter.peakLeft : 0.0f);
+            const MeterHoldState railHold = i < trackMeterHold.size() ? trackMeterHold[i]
+                                                                      : MeterHoldState {};
+            drawMeterWithHold (g, meter, railHold.livePeak, railHold.heldPeak, railHold.clipLatched);
         }
     }
 
@@ -6288,10 +6450,16 @@ private:
             auto faderArea =
                 lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
                     .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
-            auto meter = faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
-                             .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetX,
-                                       yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetY);
-            drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
+            const auto meter = paintedMeterBoundsForLane (lane);
+            if (! isBus && stripIndex < trackMeterHold.size())
+            {
+                const MeterHoldState& hold = trackMeterHold[stripIndex];
+                drawMeterWithHold (g, meter, hold.livePeak, hold.heldPeak, hold.clipLatched);
+            }
+            else
+            {
+                drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
+            }
 
             auto rail = faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
                             .withCentre ({ lane.getCentreX()
@@ -6613,6 +6781,7 @@ private:
     FineDragSlider mixerFader;
     FineDragSlider mixerPan;
     juce::Label dragDbReadout;
+    std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
     juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerSendLevelEdit;

@@ -78,9 +78,17 @@ struct UiTheme
     {
         static juce::Colour nominalFill() noexcept { return Color::meterGreen(); }
         static juce::Colour hotFill() noexcept { return Color::meterYellow(); }
+        // Latched clip indicator (B32): an exact, scan-friendly red so gates can pixel-assert it.
+        static juce::Colour clipFill() noexcept { return juce::Colour (0xffff1f1f); }
 
         static constexpr float verticalHotBand = 0.22f;
         static constexpr float horizontalHotBand = 0.18f;
+        // Peak-hold and clip-latch law (B32): the held peak survives this many 33 ms UI refresh
+        // ticks (~2 s); the clip light latches at or above this linear peak (0 dBFS).
+        static constexpr int peakHoldTicks = 60;
+        static constexpr float clipThreshold = 1.0f;
+        static constexpr int clipLightSize = 6;      // square clip cell at the meter's hot end
+        static constexpr int peakTickThickness = 2;  // held-peak marker line
     };
 
     struct Mixer

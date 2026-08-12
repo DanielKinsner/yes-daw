@@ -812,14 +812,43 @@ Exact-head GitHub Actions run `31570461464` is green for full SHA
 `6e956963ed2e799382c1a99c08b118cc53f520a5` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B31 is ticked in the backlog.
 
-**Now:** B31 certified; B32 (meter peak-hold + clip light) is next per the run brief.
+**B32 implementation candidate — Meter peak-hold + clip light:** audited the meter data flow before
+adding anything: strip and rail meters painted honest zeros because no live per-track peak ever
+reached the shell — only the master header meter read the device-callback atomics. `MeterNode` was
+always designed for exactly this read (single audio-thread release-store, UI acquire-load), and a
+`PlaybackEngine` publishes exactly one graph for its whole life, so the plumbing is: a new
+control-side `CompiledGraph::nodeForId` lookup, per-track MeterNode pointers harvested at
+`PlaybackEngine::create` before the graph moves into the Runtime, and
+`UiAppModel::trackMeterPeak (trackId)` reading one atomic. The shell keeps per-track
+`MeterHoldState` (live peak, held peak, hold ticks, clip latch) advanced once per 33 ms UI tick —
+never wall-clock — with the hold spanning the `UiTheme::Meter::peakHoldTicks` (60 ≈ 2 s) law and
+the latch set at `clipThreshold` (1.0 = 0 dBFS). A stopped transport honestly reads live silence
+(the MeterNode atomic keeps the last processed Block otherwise). Both the rail meter and the
+painted mixer strip meters render the shared state through one `drawMeterWithHold` painter (exact
+scan-friendly clip red, held marker line); the rail gains a meter click zone under the shared
+row-geometry law and the strip meters a hit-test that mirrors the painted lane math, both clearing
+the same per-track latch. Buses keep their surface meters (no live tap harvested — honest subset).
 
-**Next:** B32 — audited: strip/rail meters currently paint honest zeros because no live per-track
-peak reaches the shell (only the master meter reads the device-callback atomics); `MeterNode`
-already publishes UI-readable atomic peaks and `PlaybackEngine` publishes exactly one graph per
-engine, so harvest per-track MeterNode pointers at create, surface live peaks through UiAppModel
-into the mixer-surface controls, then put hold (~2s of UI-timer ticks, never wall-clock) + >= 0
-dBFS clip latch + click-clear state in the shared meter readout path.
+The shipped-boundary `[meter-hold]` gate builds a full-scale square source, drives the meter past
+0 dBFS through the real fader (x2), and proves from real pixels: no clip red at rest; a UI tick
+during real playback latches the light on the rail; the latch survives stopped-silence ticks; a
+real click on the rail meter clears every clip pixel; a re-latched light is cleared through the
+painted mixer strip meter in Mixer view by clicking a latched pixel; and a sub-clip peak paints
+only the held marker after stop, which expires after exactly `peakHoldTicks` ticks (112
+assertions). Two gate-side lessons surfaced during development: the painted strips only have full
+height in Mixer view (the known trap), and the shared fader edit deliberately fronts the Mixer
+panel, so the gate returns to the Timeline before reading rail pixels.
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**, including RTSan-relevant engine coverage over the
+new meter harvest. The owner's real last-project record was isolated for the native-shell gate and
+restored with its exact SHA-256.
+
+**Now:** B32 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B32 in the backlog with SHA + run id (docs-only evidence commit), then B33
+(piano-roll velocity editing; SetNoteVelocity engine verb per the AddNote pattern) per the run
+brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
