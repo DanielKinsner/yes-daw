@@ -848,13 +848,35 @@ Exact-head GitHub Actions run `31573011101` is green for full SHA
 `ffa7aa08aa0fe20f76975e18db4871521159f985` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B32 is ticked in the backlog.
 
-**Now:** B32 certified; B33 (piano-roll velocity editing) is next per the run brief.
+**B33 implementation candidate — Piano-roll velocity editing:** audited the note-edit surface
+before adding anything: no velocity verb existed, the piano-roll surface already carries per-note
+`normalizedVelocity`, and the synth's envelope target IS the velocity, so edits are genuinely
+audible. The new `SetNoteVelocity` engine verb follows the AddNote pattern exactly — enum end,
+trivially-copyable factory, apply case, `isMidiNoteEditVerb` (whole-clip diff), a focused
+edit/undo/redo/guards gate, and a new arm in the randomized generated-edit-sequence property test.
+`Alt+wheel` over the note under the cursor adjusts velocity by `deltaY x
+pianoRollVelocityWheelScale` (clamped honestly to [0, 1]) through a new `PianoRollNoteSetVelocity`
+action (unique `Alt+Shift+V`, appended at the descriptor end and covered in both exhaustive
+switches, same enablement as the other note edits) via the standard select-then-edit-selected model
+path. Velocity now tints the painted note body: brightness scales from the
+`noteVelocityTintFloor` token at silence to full at velocity 1.
 
-**Next:** B33 — audited: no SetNoteVelocity verb exists, so add one per the AddNote pattern (enum
-end, factory, apply, isMidiNoteEditVerb, engine helper, and the randomized generated-edit-sequence
-property test); the piano-roll surface already carries per-note `normalizedVelocity` for both the
-Alt+wheel math and the painted tint; wire Alt+wheel on the hit note through a new input-component
-callback and prove persisted velocity, tint pixels, one-step undo, and velocity-scaled playback.
+The shipped-boundary `[note-velocity]` gate pencils a real synth note, then proves a real Alt+wheel
+notch: persisted velocity drops by exactly the wheel law; the painted note visibly changes; the
+quieter velocity renders less audible energy through the real synth; a huge wheel-down clamps at
+exact silence with a truly silent render; and two Ctrl+Z steps walk back through both edits to the
+original velocity (46 assertions). The engine gate adds 23 assertions over the verb's round trip
+and guards.
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348** (the new engine velocity gate is its own ctest
+entry). The owner's real last-project record was isolated for the native-shell gate and restored
+with its exact SHA-256.
+
+**Now:** B33 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B33 in the backlog with SHA + run id (docs-only evidence commit), then B34
+(piano-roll transpose keys, Ctrl+A note selection, Delete/Backspace) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

@@ -1427,6 +1427,21 @@ public:
             engine::ProjectEditCommand::transposeNote (selectedMidiClipId_, selectedMidiNoteId_, semitones));
     }
 
+    [[nodiscard]] UiActionDispatchResult setSelectedPianoRollNoteVelocity (double normalizedVelocity)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSetVelocity;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedMidiNote (
+            id,
+            state,
+            engine::ProjectEditCommand::setNoteVelocity (selectedMidiClipId_,
+                                                         selectedMidiNoteId_,
+                                                         normalizedVelocity));
+    }
+
     [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNoteTo (engine::SnapGrid grid)
     {
         const UiActionId id = UiActionId::PianoRollNoteQuantize;
@@ -4030,6 +4045,7 @@ public:
             case UiActionId::PianoRollNoteSetLength:
             case UiActionId::PianoRollNoteTranspose:
             case UiActionId::PianoRollNoteQuantize:
+            case UiActionId::PianoRollNoteSetVelocity:
             case UiActionId::PianoRollReadExpressionLanes:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);

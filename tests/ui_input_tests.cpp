@@ -7331,3 +7331,100 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (sourcePath, ec);
 }
+
+TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints the painted note",
+           "[ui][input][shell][pianoroll][note-velocity]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("note-velocity");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // Ctrl+M + pencil: one synth note whose loudness follows its velocity.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Point<int> noteCentre { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 };
+    mouseDownAt (pianoRoll, noteCentre);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    const double startVelocity = project.midiClips.front().notes.front().normalizedVelocity;
+    REQUIRE (startVelocity > 0.0);
+    const juce::Point<int> notePoint = pianoRollNoteCenterPoint (
+        pianoRoll, project.midiClips.front(), project.midiClips.front().notes.front());
+
+    const auto renderEnergy = [&shell]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        double energy = 0.0;
+        for (const float sample : rendered)
+            energy += std::abs (static_cast<double> (sample));
+        return energy;
+    };
+    const double loudEnergy = renderEnergy();
+    REQUIRE (loudEnergy > 1.0);
+
+    const auto renderShell = [&shell]
+    {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const juce::Image beforeTint = renderShell();
+
+    // One Alt+wheel notch down: velocity drops by exactly deltaY * pianoRollVelocityWheelScale,
+    // persisted through the undoable SetNoteVelocity verb.
+    juce::MouseWheelDetails wheelDown {};
+    wheelDown.deltaY = -0.4f;
+    juce::MouseEvent altWheel = makeMouseEvent (pianoRoll, notePoint, notePoint, false, 1,
+                                                juce::ModifierKeys (juce::ModifierKeys::altModifier));
+    pianoRoll.mouseWheelMove (altWheel, wheelDown);
+    project = readProjectSnapshot (bundlePath);
+    const double reduced = project.midiClips.front().notes.front().normalizedVelocity;
+    REQUIRE (reduced == Catch::Approx (
+        std::max (0.0, startVelocity
+                           - 0.4 * yesdaw::ui::UiTheme::Layout::pianoRollVelocityWheelScale)));
+    REQUIRE (reduced < startVelocity);
+
+    // The painted note visibly darkens with its velocity.
+    const juce::Image afterTint = renderShell();
+    const juce::Rectangle<int> rollArea = pianoRoll.getBounds();
+    int changed = 0;
+    for (int y = rollArea.getY(); y < rollArea.getBottom(); ++y)
+        for (int x = rollArea.getX(); x < rollArea.getRight(); ++x)
+            if (beforeTint.getPixelAt (x, y) != afterTint.getPixelAt (x, y))
+                ++changed;
+    REQUIRE (changed > 0);
+
+    // The quieter velocity is audible through the real synth.
+    const double quietEnergy = renderEnergy();
+    REQUIRE (quietEnergy > 0.0);
+    REQUIRE (quietEnergy < loudEnergy);
+
+    // A huge wheel-down clamps honestly at silence, and each edit is one undo step.
+    juce::MouseWheelDetails wheelFloor {};
+    wheelFloor.deltaY = -10.0f;
+    pianoRoll.mouseWheelMove (altWheel, wheelFloor);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.front().normalizedVelocity == 0.0);
+    const double silentEnergy = renderEnergy();
+    REQUIRE (silentEnergy == 0.0);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.front().normalizedVelocity == Catch::Approx (reduced));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.front().normalizedVelocity == Catch::Approx (startVelocity));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

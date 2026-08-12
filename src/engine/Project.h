@@ -2035,6 +2035,37 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// Set one Note's normalized velocity (B33 piano-roll velocity editing). Same contract as every
+// note edit helper above: validate, mutate, Applied.
+[[nodiscard]] inline ProjectEditStatus setNoteVelocity (Project& project,
+                                                        EntityId midiClipId,
+                                                        EntityId noteId,
+                                                        double normalizedVelocity) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! std::isfinite (normalizedVelocity) || normalizedVelocity < 0.0 || normalizedVelocity > 1.0)
+        return ProjectEditStatus::InvalidNoteValue;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    note->normalizedVelocity = normalizedVelocity;
+    return ProjectEditStatus::Applied;
+}
+
 // --- Arrangement verbs (usable-DAW P0, 2026-08-09): clip delete / cross-track move, note add, and
 // --- the Track lifecycle. Same contract as every edit helper above: validate, mutate, Applied.
 

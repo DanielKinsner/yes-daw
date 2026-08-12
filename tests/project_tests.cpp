@@ -2062,7 +2062,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (18))
+            switch (pick (19))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2149,6 +2149,8 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                             break;
                     }
                     break;
+                case 18: command = ProjectEditCommand::setNoteVelocity (midiClipId, note,
+                                                                        static_cast<double> (pick (101)) / 100.0); break;
                 default: break;
             }
 
@@ -2252,6 +2254,36 @@ TEST_CASE ("Clip rename edits, undoes, and redoes through the Project command su
     REQUIRE (yesdaw::engine::renameClip (project, idFromLowByte (99), "Unknown") == ProjectEditStatus::ClipNotFound);
     REQUIRE (yesdaw::engine::renameClip (project, clipId, "") == ProjectEditStatus::InvalidClipName);
     REQUIRE (yesdaw::engine::renameClip (project, clipId, std::string (128u, 'x')) == ProjectEditStatus::InvalidClipName);
+}
+
+TEST_CASE ("SetNoteVelocity edits, undoes, and redoes one Note's velocity bit-identically",
+           "[project][midi][undo][note-velocity]")
+{
+    Project project = makeTwoClipEditableProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (41), "MIDI Track"));
+    project.midiClips = { makeMidiClip (idFromLowByte (40), idFromLowByte (41)) };
+    const EntityId midiClipId = idFromLowByte (40);
+    const EntityId noteId = idFromLowByte (42);
+    const Project original = project;
+    ProjectUndoStack undo;
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::setNoteVelocity (midiClipId, noteId, 0.25)).applied());
+    REQUIRE (project.midiClips.front().notes.front().normalizedVelocity == 0.25);
+
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.midiClips.front().notes.front().normalizedVelocity == 0.25);
+
+    // Guards bite: unknown targets and out-of-range velocities reject without mutating.
+    REQUIRE (yesdaw::engine::setNoteVelocity (project, midiClipId, idFromLowByte (99), 0.5)
+             == ProjectEditStatus::NoteNotFound);
+    REQUIRE (yesdaw::engine::setNoteVelocity (project, idFromLowByte (99), noteId, 0.5)
+             == ProjectEditStatus::MidiClipNotFound);
+    REQUIRE (yesdaw::engine::setNoteVelocity (project, midiClipId, noteId, -0.1)
+             == ProjectEditStatus::InvalidNoteValue);
+    REQUIRE (yesdaw::engine::setNoteVelocity (project, midiClipId, noteId, 1.1)
+             == ProjectEditStatus::InvalidNoteValue);
 }
 
 TEST_CASE ("SetTrackMixScalars edits, undoes, and redoes the scalar strip state",

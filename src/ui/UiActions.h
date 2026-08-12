@@ -155,6 +155,7 @@ enum class UiActionId : std::uint8_t
     TrackToggleMute,
     TrackToggleSolo,
     TrackToggleArm,
+    PianoRollNoteSetVelocity,
     Count
 };
 
@@ -625,7 +626,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TrackToggleSolo, "track.toggle_solo", "Solo Track", "Shift+S", "Toggle solo on selected track",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TrackToggleArm, "record.track.toggle_arm", "Arm Selected Track", "Shift+R", "Toggle recording arm on selected track",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
+    { UiActionId::PianoRollNoteSetVelocity, "piano_roll.note.set_velocity", "Note Velocity", "Alt+Shift+V", "Set selected note velocity",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -1059,6 +1062,7 @@ public:
             case UiActionId::PianoRollNoteSetLength:
             case UiActionId::PianoRollNoteTranspose:
             case UiActionId::PianoRollNoteQuantize:
+            case UiActionId::PianoRollNoteSetVelocity:
                 context.activePanel = UiPanel::PianoRoll;
                 context.canUndo = true;
                 context.canRedo = false;

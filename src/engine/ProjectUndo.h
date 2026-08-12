@@ -64,7 +64,8 @@ enum class ProjectEditVerb : std::uint8_t
     RemoveSend,
     SetSendLevel,
     RenameClip,
-    SetTrackMixScalars
+    SetTrackMixScalars,
+    SetNoteVelocity
 };
 
 struct ProjectEditCommand
@@ -574,6 +575,18 @@ struct ProjectEditCommand
         return command;
     }
 
+    [[nodiscard]] static constexpr ProjectEditCommand setNoteVelocity (EntityId midiClipId,
+                                                                       EntityId noteId,
+                                                                       double normalizedVelocity) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetNoteVelocity;
+        command.midiClipId = midiClipId;
+        command.noteId = noteId;
+        command.noteVelocity = normalizedVelocity;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setTrackMixScalars (EntityId trackId,
                                                                           float linearGain,
                                                                           float pan,
@@ -844,7 +857,8 @@ namespace detail {
            || verb == ProjectEditVerb::QuantizeNote
            || verb == ProjectEditVerb::TransposeNote
            || verb == ProjectEditVerb::AddNote
-           || verb == ProjectEditVerb::AddMidiClip;
+           || verb == ProjectEditVerb::AddMidiClip
+           || verb == ProjectEditVerb::SetNoteVelocity;
 }
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
@@ -1131,6 +1145,9 @@ namespace detail {
                                        command.trackMuted,
                                        command.trackSoloed,
                                        command.trackSoloSafe);
+
+        case ProjectEditVerb::SetNoteVelocity:
+            return setNoteVelocity (project, command.midiClipId, command.noteId, command.noteVelocity);
     }
 
     return ProjectEditStatus::InvalidProject;

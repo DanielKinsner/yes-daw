@@ -1064,6 +1064,28 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteQuantized;
     std::function<void()> onExpressionRead;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::Tick, std::int16_t)> onNoteAdded;
+    // Alt+wheel on a note adjusts its velocity (B33): clip, note, new normalized velocity.
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, double)> onNoteVelocityAdjusted;
+
+    void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+    {
+        if (! event.mods.isAltDown() || ! stateProvider || ! onNoteVelocityAdjusted)
+            return;
+
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const auto hit = noteAt (surface, event.getPosition());
+        if (! hit)
+            return;
+
+        const double adjusted = juce::jlimit (
+            0.0,
+            1.0,
+            hit->normalizedVelocity
+                + static_cast<double> (wheel.deltaY)
+                      * yesdaw::ui::UiTheme::Layout::pianoRollVelocityWheelScale);
+        if (adjusted != hit->normalizedVelocity)
+            onNoteVelocityAdjusted (surface.midiClipId, hit->noteId, adjusted);
+    }
 
     void mouseDown (const juce::MouseEvent& event) override
     {
@@ -2409,6 +2431,14 @@ public:
         };
         pianoRollInput.onExpressionRead = [this] {
             (void) appModel.readPianoRollExpressionLanes();
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteVelocityAdjusted = [this] (yesdaw::engine::EntityId midiClipId,
+                                                        yesdaw::engine::EntityId noteId,
+                                                        double normalizedVelocity) {
+            (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            (void) appModel.setSelectedPianoRollNoteVelocity (normalizedVelocity);
             refreshActionState();
             repaint();
         };
@@ -6074,7 +6104,12 @@ private:
             g.setColour ((note.selected ? kPurple : kCyan).withAlpha (0.34f));
             g.fillRoundedRectangle (noteRect.expanded (yesdaw::ui::UiTheme::Layout::pianoRollSelectedNoteHalo).toFloat(),
                                     yesdaw::ui::UiTheme::Radius::md);
-            g.setColour (note.selected ? kPurple.brighter (0.35f) : kCyan);
+            // Velocity tints the note body (B33): quiet notes darken toward the tint floor.
+            g.setColour ((note.selected ? kPurple.brighter (0.35f) : kCyan)
+                             .withMultipliedBrightness (
+                                 yesdaw::ui::UiTheme::Tone::noteVelocityTintFloor
+                                 + static_cast<float> (note.normalizedVelocity)
+                                       * (1.0f - yesdaw::ui::UiTheme::Tone::noteVelocityTintFloor)));
             g.fillRoundedRectangle (noteRect.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }
 

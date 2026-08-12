@@ -98,6 +98,9 @@ struct UiTheme
 
     struct Tone
     {
+        // Velocity tints the painted piano-roll note (B33): brightness scales from this floor at
+        // velocity 0 up to full at velocity 1.
+        static constexpr float noteVelocityTintFloor = 0.45f;
         static constexpr float disabledAlpha = 0.38f;
         static constexpr float componentHiddenAlpha = 0.0f;
         static constexpr float componentVisibleAlpha = 1.0f;
@@ -426,6 +429,9 @@ struct UiTheme
         // Live dB readout shown while a gain control is dragged (B31).
         static constexpr int dbReadoutWidth = 64;
         static constexpr int dbReadoutHeight = 16;
+        // Alt+wheel velocity editing on a piano-roll note (B33): normalized velocity change per
+        // unit of vertical wheel delta.
+        static constexpr double pianoRollVelocityWheelScale = 0.5;
         static constexpr int mixerToolsInsetX = 8;
         static constexpr int mixerToolsInsetY = 0;
         static constexpr int mixerToolsSendsLabelTop = 52;
