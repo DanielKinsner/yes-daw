@@ -99,10 +99,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    trim/split refuse on MIDI; the Ctrl+C/X clipboard stays audio-only (cut with MIDI members is
    an honest no-op). The `[midi-clip]` gate failed before (a click selected nothing) and passes
    after with 104 assertions.
-9. [ ] **E9 — Piano roll follows the selected MIDI clip.** The roll always shows
-   `midiClips.front()` (`MainComponent.cpp:6945-6956`); with several MIDI tracks there is NO way
-   to open the second clip. Double-click a timeline MIDI clip (E8) opens the piano roll on THAT
-   clip; the roll header shows which clip/track is open; switching works across 3+ MIDI tracks.
+9. [x] **E9 — Piano roll follows the selected MIDI clip.** Landed in `6310154` + real-red repair
+   `f2f4ce3` (exact-head run green, nine jobs). Double-clicking a timeline MIDI clip opens the
+   roll on THAT clip through a consuming double-click seam (the audio split path no longer snaps
+   the panel back); the roll header names the open clip's owning track; View Piano Roll retains
+   the last opened clip. The `[roll-follow]` gate failed before and passes after (pencil notes
+   land in exactly the targeted clip across three MIDI tracks). The repair round was the GPU
+   frame gate on a slower CI runner (sustained 18.62ms): row-height clips now stride their
+   waveform coarser and draw integer fills — local sustained 8.80ms → 3.65ms with the
+   visible-clip census preserved.
 10. [ ] **E10 — Piano roll zoom, scroll, and all 128 keys.** The roll is a hardwired 25-key
     (C3–C5) window with the clip stretched edge-to-edge (`UiTheme.h:667-669`,
     `MainComponent.cpp:1028-1036`); notes outside are invisible and uneditable. Add vertical pitch
