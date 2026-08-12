@@ -509,7 +509,7 @@ record and committed v8 schema fixture were restored byte-identically after the 
 
 The B22 evidence handoff `f0a3156` is exact-head green across all nine jobs in run `31544599900`.
 
-**B23 implementation candidate — Locate points:** audited the complete descriptor/keymap table,
+**Done and remote-green for B23 — Locate points (`182f255`):** audited the complete descriptor/keymap table,
 JUCE digit/modifier translation, every existing transport-locate path, Project value surface,
 SQLite migrations, bundle snapshot round-trip, fresh-reopen context synchronization, and playback
 locate/render behavior before adding anything. Plain `1`/`2`/`3` already select views and
@@ -542,11 +542,17 @@ persistence, accessibility, theme audit, screenshots, native input, and the GPU 
 owner last-project record and committed v8 schema fixture were restored byte-identically after both
 full runs.
 
-**Now:** commit and push only the B23 implementation checkpoint.
+Exact-head GitHub Actions run `31547337686` is green for full SHA
+`182f255abe37535c60af3229c0333cc08897f543` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs.
 
-**Next:** require the exact B23 implementation head green across all nine jobs; cancelled or
-incomplete runs do not count. Only then tick B23 in a separate evidence checkpoint; B24 must not
-start early.
+The B23 backlog-tick/evidence handoff is locally green **346/346**. The protected owner last-project
+record and committed v8 schema fixture were restored byte-identically after the run.
+
+**Now:** commit and push only the B23 backlog-tick/evidence handoff.
+
+**Next:** require the exact B23 evidence head green across all nine jobs; cancelled or incomplete
+runs do not count. Stop at the checkpoint with B24 untouched.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

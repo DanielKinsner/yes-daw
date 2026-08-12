@@ -145,8 +145,10 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     now honestly context-sensitive: it cancels an active audio export without changing tools, or
     otherwise returns to Pointer. The shipped-boundary gate proves idle Escape enables a real
     Pointer marquee, persisted Delete, silent playback, and one-step Undo restoration.
-23. **Locate points** — Ctrl+1..5 stores the playhead, 1..5 recalls it (if 1/2/3 view keys
-    conflict, use Ctrl+Shift+1..5 store / Alt+1..5 recall; keep the keymap table honest).
+23. [x] **Locate points** — landed in `182f255` (exact-head run `31547337686`, nine jobs green).
+    Because the existing view and snap bindings conflict, unique `Ctrl+Shift+1..5` chords store the
+    playhead and `Alt+1..5` recalls it. Schema v11 additively persists all five slots; the real-input
+    reopen gate proves exact audible playback recall and an honest no-op for an empty slot.
 24. **Next/prev marker** — Ctrl+Right/Ctrl+Left jump the playhead to the next/previous
     marker.
 25. **Ruler range selection** — plain drag on the ruler (no Shift) selects a time range
