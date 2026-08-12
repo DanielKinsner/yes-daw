@@ -135,10 +135,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     need `pianoRollNoteEdgeMinGrabWidth` and narrow notes always MOVE. Two legacy roll gates
     re-pinned to chooser-Off for their raw pixel-exact drags. The `[roll-drag]` gate failed
     before (inert pitch drag) and passes after with 90 assertions.
-13. [ ] **E13 — Velocity lane editing.** The velocity expression lane is read-only paint
-    (`MainComponent.cpp:6322-6372`); the only velocity edit is single-note Alt+wheel. Dragging in
-    the velocity lane sets the velocity of the note(s) whose columns the drag crosses (multi-note
-    selection edits together), persisted and undoable through `SetNoteVelocity`.
+13. [x] **E13 — Velocity lane editing.** Landed in `b80717c` (run `31642136695` green for the
+    full SHA across all nine jobs, first try). A drag in the velocity lane paints velocities: x
+    maps back to ticks with the grid law, y inverts the lane paint's value law (shared theme
+    tokens), every note whose column overlaps the swept range takes the drag line's velocity at
+    its own start tick (a real ramp, clamped at the segment ends), and a crossed selected note
+    paints the WHOLE selection together — all through the new `paintPianoRollNoteVelocities`
+    batch verb as ONE undo transaction (unknown notes or out-of-range velocities refuse the
+    batch). Escape cancels; Alt+wheel is untouched. The `[roll-velocity]` gate failed before
+    (inert lane drag) and passes after with 57 assertions.
 
 ## Phase 2 — FX tools
 

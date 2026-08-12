@@ -358,10 +358,15 @@ their own ramp values restored by one Ctrl+Z, and a marquee'd group paint from a
 one note's column that still paints both (the off-column note clamps to the segment end),
 restored by one Ctrl+Z.
 
-**Now:** E13 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E13 is certified: exact-head GitHub Actions run `31642136695` green for full SHA
+`b80717cc4bb19342ccd62b870f1fc8a21d294b3a` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E13 is ticked in the backlog.
+**Phase 1 (multi-track editing tools, E1–E13) is COMPLETE.**
 
-**Next:** E14 (FX reorder from the UI).
+**Now:** E14 (FX reorder from the UI) — audited; implementing per-slot up/down through the
+engine's already-wired `ReorderFxInsert` verb.
+
+**Next:** E15 (every FX param reachable, with the right control type).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
