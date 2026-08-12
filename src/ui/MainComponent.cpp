@@ -1066,6 +1066,8 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::Tick, std::int16_t)> onNoteAdded;
     // Alt+wheel on a note adjusts its velocity (B33): clip, note, new normalized velocity.
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, double)> onNoteVelocityAdjusted;
+    // Ctrl+drag copy-drags a note (B35): clip, source note, copy's start tick.
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteCopyDragged;
 
     void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
     {
@@ -1134,6 +1136,11 @@ public:
         dragState.lengthTicks = hit->lengthTicks;
         dragState.downPosition = event.getPosition();
         dragState.mode = dragModeForPointer (surface, *hit, event.getPosition(), event.mods);
+        // Ctrl+drag copy-drags the note (B35), mirroring the timeline's copy-drag law. Ctrl is an
+        // explicit copy request, so it wins over the narrow note's resize-edge zone.
+        dragState.copy = event.mods.isCtrlDown() && ! event.mods.isShiftDown();
+        if (dragState.copy)
+            dragState.mode = PianoDragMode::Move;
     }
 
     void mouseDrag (const juce::MouseEvent&) override
@@ -1176,7 +1183,17 @@ public:
             juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.lengthTicks);
         const yesdaw::engine::Tick nextStart =
             std::clamp<yesdaw::engine::Tick> (drag.startTick + deltaTicks, 0, maxStart);
-        if (nextStart != drag.startTick && onNoteMoved)
+        if (nextStart == drag.startTick)
+            return;
+
+        if (drag.copy)
+        {
+            if (onNoteCopyDragged)
+                onNoteCopyDragged (drag.midiClipId, drag.noteId, nextStart);
+            return;
+        }
+
+        if (onNoteMoved)
             onNoteMoved (drag.midiClipId, drag.noteId, nextStart);
     }
 
@@ -1230,6 +1247,7 @@ private:
         yesdaw::engine::Tick startTick = 0;
         yesdaw::engine::Tick lengthTicks = 0;
         PianoDragMode mode = PianoDragMode::Move;
+        bool copy = false;   // Ctrl+drag copy-drag (B35)
         juce::Point<int> downPosition;
     };
 
@@ -2439,6 +2457,13 @@ public:
                                                         double normalizedVelocity) {
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.setSelectedPianoRollNoteVelocity (normalizedVelocity);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteCopyDragged = [this] (yesdaw::engine::EntityId midiClipId,
+                                                   yesdaw::engine::EntityId noteId,
+                                                   yesdaw::engine::Tick newStartTick) {
+            (void) appModel.duplicatePianoRollNote (midiClipId, noteId, newStartTick);
             refreshActionState();
             repaint();
         };
@@ -4531,6 +4556,22 @@ private:
                     return;
                 }
                 (void) appModel.dispatch (action);
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineClipDuplicate:
+                // Context-sensitive (B35): in the Piano Roll with a note selected, Ctrl+D lands a
+                // fresh copy one grid step later; elsewhere it keeps duplicating timeline clips.
+                if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll
+                    && appModel.context().midiNoteSelected)
+                {
+                    (void) appModel.duplicateSelectedPianoRollNote (kPianoRollSnapGridTicks);
+                    return;
+                }
+                (void) appModel.dispatch (action);
+                return;
+
+            case yesdaw::ui::UiActionId::PianoRollNoteDuplicate:
+                (void) appModel.duplicateSelectedPianoRollNote (kPianoRollSnapGridTicks);
                 return;
 
             case yesdaw::ui::UiActionId::TimelineClipSplit:

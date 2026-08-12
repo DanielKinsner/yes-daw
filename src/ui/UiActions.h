@@ -158,6 +158,7 @@ enum class UiActionId : std::uint8_t
     PianoRollNoteSetVelocity,
     PianoRollNoteOctaveUp,
     PianoRollNoteOctaveDown,
+    PianoRollNoteDuplicate,
     Count
 };
 
@@ -634,6 +635,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollNoteOctaveUp, "piano_roll.note.octave_up", "Octave Up", "Shift+Up", "Transpose selected notes up one octave",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::PianoRollNoteOctaveDown, "piano_roll.note.octave_down", "Octave Down", "Shift+Down", "Transpose selected notes down one octave",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::PianoRollNoteDuplicate, "piano_roll.note.duplicate", "Duplicate Note", "Alt+Shift+D", "Duplicate selected note one grid step later",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true }
 }};
 
@@ -1071,6 +1074,7 @@ public:
             case UiActionId::PianoRollNoteSetVelocity:
             case UiActionId::PianoRollNoteOctaveUp:
             case UiActionId::PianoRollNoteOctaveDown:
+            case UiActionId::PianoRollNoteDuplicate:
                 context.activePanel = UiPanel::PianoRoll;
                 context.canUndo = true;
                 context.canRedo = false;

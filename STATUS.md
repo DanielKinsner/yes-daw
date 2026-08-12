@@ -912,13 +912,34 @@ Exact-head GitHub Actions run `31576683772` is green for repaired full SHA
 `cd2f781ff570d65d6fdd3f91f5cc4d55d27114a1` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B34 is ticked in the backlog.
 
-**Now:** B34 certified; B35 (note duplicate) is next per the run brief.
+**B35 implementation candidate — Note duplicate:** audited the piano drag machinery and the clip
+duplicate action before adding anything. Ctrl+drag on a note is now a copy-drag mirroring the
+timeline's copy-drag law: a `copy` flag on the piano drag state (Ctrl is an explicit copy request,
+so it wins over the narrow note's resize-edge zone), landing exactly one fresh-id AddNote — every
+payload field preserved — at the drag-target tick through the same move math. Ctrl+D is taken by
+clip duplicate, so it goes honestly context-sensitive in the Piano Roll (B22 precedent) and lands
+the copy one grid step later through the new `PianoRollNoteDuplicate` action (unique `Alt+Shift+D`,
+descriptor-table end, both exhaustive switches); a copy that does not fit the clip window is an
+honest refusal via the AddNote window validation. The copy becomes the selection.
 
-**Next:** B35 — audited: Ctrl+drag on a note becomes a copy-drag (a `copy` flag on the piano drag
-state, mirroring the timeline Alt+drag law) landing one fresh-id AddNote at the snapped target
-tick; Ctrl+D is taken by clip duplicate, so it goes context-sensitive in the Piano Roll and lands
-the copy one grid step later through a new `PianoRollNoteDuplicate` action (free Alt+Shift+D)
-dispatchable payload-free; refusals (copy past the clip window) are honest no-ops.
+The first gate draft was flaky (3/5): with the Ctrl+D copy starting exactly at the source note's
+off-frame on the same key, the engine's same-frame event order tie-breaks on note ids — fully
+deterministic for a persisted project, but the gate's freshly allocated wall-clock ULIDs flipped
+the off/on order run to run. Changing the engine's simultaneity law was out of scope (it could
+shift MIDI-timing goldens, a hard stop), so the gate was made deterministic instead: the audible
+proof uses the temporally separated Ctrl+drag copy — render differs with the copy and returns
+bit-identical after undo — while Ctrl+D pins the exact persisted step/fields/undo. Six consecutive
+local runs are green (56 assertions each).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B35 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B35 in the backlog with SHA + run id (docs-only evidence commit), then B36
+(`Q` quantizes selected notes to the snap grid; verb exists, audit the key + multi-note behavior)
+per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

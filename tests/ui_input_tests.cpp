@@ -7534,3 +7534,84 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step later",
+           "[ui][input][shell][pianoroll][note-duplicate]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("note-duplicate");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 2 });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    const yesdaw::engine::Note source = project.midiClips.front().notes.front();
+    REQUIRE (source.lengthTicks > 0);   // the pencil note is exactly one grid step long
+
+    const auto renderSamples = [&shell]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> oneNote = renderSamples();
+    REQUIRE (peakAbs (std::span<const float> (oneNote.data(), oneNote.size())) > 0.01);
+
+    // Ctrl+D: a fresh-id copy lands exactly one grid step (= the pencil note's length) later with
+    // every payload field preserved. Adjacent same-key playback rides the engine's same-frame
+    // event order (deterministic per persisted note ids), so the audible proof below uses the
+    // temporally separated drag copy instead.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::Note copy = project.midiClips.front().notes.back();
+    REQUIRE (copy.id != source.id);
+    REQUIRE (copy.startTick == source.startTick + source.lengthTicks);
+    REQUIRE (copy.lengthTicks == source.lengthTicks);
+    REQUIRE (copy.key == source.key);
+    REQUIRE (copy.normalizedVelocity == source.normalizedVelocity);
+    REQUIRE (project.midiClips.front().notes.front().startTick == source.startTick);
+
+    // One undo removes exactly the copy.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    REQUIRE (project.midiClips.front().notes.front().id == source.id);
+
+    // Ctrl+drag: the original stays put and one fresh copy lands at the drag target, far enough
+    // from the source that the second hit audibly changes the rendered playback.
+    const juce::Point<int> notePoint = pianoRollNoteCenterPoint (
+        pianoRoll, project.midiClips.front(), project.midiClips.front().notes.front());
+    dragFromTo (pianoRoll, notePoint, notePoint.translated (80, 0),
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::Note dragged = project.midiClips.front().notes.back();
+    REQUIRE (dragged.id != source.id);
+    REQUIRE (dragged.startTick > source.startTick + source.lengthTicks);
+    REQUIRE (dragged.key == source.key);
+    REQUIRE (dragged.lengthTicks == source.lengthTicks);
+    REQUIRE (project.midiClips.front().notes.front().startTick == source.startTick);
+
+    const std::vector<float> withDraggedCopy = renderSamples();
+    REQUIRE (withDraggedCopy != oneNote);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    const std::vector<float> restored = renderSamples();
+    REQUIRE (restored == oneNote);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

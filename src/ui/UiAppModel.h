@@ -1490,6 +1490,64 @@ public:
         return { id, state, true };
     }
 
+    // Duplicate one Note as a fresh-id copy at a caller-chosen start tick (B35): Ctrl+drag lands
+    // it at the drag target and Ctrl+D one grid step later. The copy becomes the selection; a
+    // copy that does not fit the clip window is an honest refusal.
+    [[nodiscard]] UiActionDispatchResult duplicatePianoRollNote (engine::EntityId midiClipId,
+                                                                 engine::EntityId noteId,
+                                                                 engine::Tick newStartTick)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteDuplicate;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        const engine::Note* const source = midiClip != nullptr ? findNote (*midiClip, noteId) : nullptr;
+        if (source == nullptr)
+            return { id, { false, "note to duplicate missing" }, false };
+
+        if (newStartTick < 0)
+            return { id, { false, "duplicate before clip start" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::EntityId copyId = allocateSessionEntityId (0xC7u, nextProject);
+        engine::ProjectEditCommand command = engine::ProjectEditCommand::addNote (
+            midiClipId, copyId, newStartTick, source->lengthTicks, source->key,
+            source->normalizedVelocity);
+        command.notePitch = source->pitchNote;
+        command.notePort = source->portIndex;
+        command.noteChannel = source->channel;
+
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, { false, "duplicate does not fit the clip" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note edit did not persist" }, false };
+
+        selectedMidiClipId_ = midiClipId;
+        selectedMidiNoteId_ = copyId;
+        selectedMidiNoteIds_.assign (1, copyId);
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult duplicateSelectedPianoRollNote (engine::Tick gridStepTicks)
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        const engine::Note* const source =
+            midiClip != nullptr ? findNote (*midiClip, selectedMidiNoteId_) : nullptr;
+        if (source == nullptr)
+            return { UiActionId::PianoRollNoteDuplicate, { false, "no selected note" }, false };
+
+        return duplicatePianoRollNote (selectedMidiClipId_,
+                                       selectedMidiNoteId_,
+                                       source->startTick + gridStepTicks);
+    }
+
     [[nodiscard]] UiActionDispatchResult moveSelectedPianoRollNoteTo (engine::Tick startTick)
     {
         const UiActionId id = UiActionId::PianoRollNoteMove;
@@ -4154,6 +4212,7 @@ public:
             case UiActionId::PianoRollNoteTranspose:
             case UiActionId::PianoRollNoteQuantize:
             case UiActionId::PianoRollNoteSetVelocity:
+            case UiActionId::PianoRollNoteDuplicate:
             case UiActionId::PianoRollReadExpressionLanes:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
