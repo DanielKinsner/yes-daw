@@ -399,15 +399,22 @@ public:
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
     std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
+    // Loop brace editing (E6): drag either handle to resize, drag the band to move.
+    enum class LoopBraceEdit : std::uint8_t { None, Start, End, Move };
+    std::function<void (LoopBraceEdit, double, double, bool)> onLoopBraceEdited;
+    // kind, pointerSeconds, grabOffsetSeconds (Move only), snapInvert
+
     [[nodiscard]] bool cancelInProgressEdit()
     {
-        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive)
+        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive
+            && loopBraceDrag == LoopBraceEdit::None)
             return false;
 
         dragState = {};
         marqueeState = {};
         rulerRangeDragActive = false;
         handDragActive = false;
+        loopBraceDrag = LoopBraceEdit::None;
         repaint();
         return true;
     }
@@ -416,7 +423,22 @@ public:
     {
         if (stateProvider)
         {
-            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            yesdaw::ui::TimelineCanvasState state = stateProvider();
+            // Loop brace drag preview (E6): the in-flight brace follows the raw pointer; the
+            // committed edit applies the snap chooser on release.
+            if (loopBraceDrag != LoopBraceEdit::None && state.loopActive)
+            {
+                const double span = state.loopEndSeconds - state.loopStartSeconds;
+                if (loopBraceDrag == LoopBraceEdit::Start && loopBracePointerSeconds < state.loopEndSeconds)
+                    state.loopStartSeconds = std::max (0.0, loopBracePointerSeconds);
+                else if (loopBraceDrag == LoopBraceEdit::End && loopBracePointerSeconds > state.loopStartSeconds)
+                    state.loopEndSeconds = loopBracePointerSeconds;
+                else if (loopBraceDrag == LoopBraceEdit::Move)
+                {
+                    state.loopStartSeconds = std::max (0.0, loopBracePointerSeconds - loopBraceGrabOffsetSeconds);
+                    state.loopEndSeconds = state.loopStartSeconds + span;
+                }
+            }
             (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), state);
             if (state.trackCount == 0 && state.clipCount == 0)
             {
@@ -595,6 +617,40 @@ public:
                 return;
             }
 
+            // Loop brace editing (E6): a press on the painted brace edits the loop instead of
+            // locating; the handle/band rects come from the same law the painter uses.
+            if (const yesdaw::ui::TimelineLoopBraceRects loopRects =
+                    yesdaw::ui::timelineLoopBraceRects (getLocalBounds(), state);
+                loopRects.valid)
+            {
+                if (const std::optional<double> seconds =
+                        timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                {
+                    if (loopRects.startHandle.contains (event.getPosition()))
+                    {
+                        loopBraceDrag = LoopBraceEdit::Start;
+                        loopBracePointerSeconds = *seconds;
+                        repaint();
+                        return;
+                    }
+                    if (loopRects.endHandle.contains (event.getPosition()))
+                    {
+                        loopBraceDrag = LoopBraceEdit::End;
+                        loopBracePointerSeconds = *seconds;
+                        repaint();
+                        return;
+                    }
+                    if (loopRects.band.contains (event.getPosition()))
+                    {
+                        loopBraceDrag = LoopBraceEdit::Move;
+                        loopBracePointerSeconds = *seconds;
+                        loopBraceGrabOffsetSeconds = *seconds - state.loopStartSeconds;
+                        repaint();
+                        return;
+                    }
+                }
+            }
+
             playheadLocateActive = true;
             rulerRangeDownPosition = event.getPosition();
             rulerRangeCurrentPosition = event.getPosition();
@@ -624,6 +680,16 @@ public:
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (loopBraceDrag != LoopBraceEdit::None && stateProvider)
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            if (const std::optional<double> seconds =
+                    timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                loopBracePointerSeconds = *seconds;
+            repaint();
+            return;
+        }
+
         if (marqueeState.active && stateProvider)
         {
             const yesdaw::ui::TimelineCanvasGeometry geometry =
@@ -677,6 +743,21 @@ public:
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (loopBraceDrag != LoopBraceEdit::None)
+        {
+            const LoopBraceEdit kind = loopBraceDrag;
+            loopBraceDrag = LoopBraceEdit::None;
+            if (stateProvider && onLoopBraceEdited)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                if (const std::optional<double> seconds =
+                        timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                    onLoopBraceEdited (kind, *seconds, loopBraceGrabOffsetSeconds, event.mods.isCtrlDown());
+            }
+            repaint();
+            return;
+        }
+
         if (handDragActive)
         {
             handDragActive = false;
@@ -1085,6 +1166,10 @@ private:
     // Hand tool (E3): a press-drag pans the viewport horizontally; transient view state only.
     bool handDragActive = false;
     int handDragLastX = 0;
+    // Loop brace drag (E6): raw-pointer preview state; the commit applies the snap chooser.
+    LoopBraceEdit loopBraceDrag = LoopBraceEdit::None;
+    double loopBracePointerSeconds = 0.0;
+    double loopBraceGrabOffsetSeconds = 0.0;
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
@@ -2323,6 +2408,55 @@ public:
             if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
             {
                 (void) appModel.locatePlaybackFrame (*frame);
+                refreshActionState();
+                repaint();
+            }
+        };
+        // Loop brace edits (E6): the dragged edge (or the move anchor) snaps through the snap
+        // chooser; the fixed edge keeps its exact frames, and a move preserves the span exactly.
+        timelineInput.onLoopBraceEdited = [this] (TimelineInputComponent::LoopBraceEdit kind,
+                                                  double pointerSeconds,
+                                                  double grabOffsetSeconds,
+                                                  bool snapInvert) {
+            const std::int64_t loopStart = appModel.playbackLoopStartFrame();
+            const std::int64_t loopEnd = appModel.playbackLoopEndFrame();
+            if (loopEnd <= loopStart)
+                return;
+
+            bool edited = false;
+            if (kind == TimelineInputComponent::LoopBraceEdit::Start)
+            {
+                if (const auto tick = timelineTickFromSeconds (std::max (0.0, pointerSeconds)))
+                {
+                    const yesdaw::engine::Tick snapped = snappedTimelineTick (*tick, snapInvert);
+                    if (static_cast<std::int64_t> (snapped) < loopEnd)
+                        edited = appModel.setPlaybackLoopRegion (snapped, loopEnd).dispatched;
+                }
+            }
+            else if (kind == TimelineInputComponent::LoopBraceEdit::End)
+            {
+                if (const auto tick = timelineTickFromSeconds (std::max (0.0, pointerSeconds)))
+                {
+                    const yesdaw::engine::Tick snapped = snappedTimelineTick (*tick, snapInvert);
+                    if (static_cast<std::int64_t> (snapped) > loopStart)
+                        edited = appModel.setPlaybackLoopRegion (loopStart, snapped).dispatched;
+                }
+            }
+            else if (kind == TimelineInputComponent::LoopBraceEdit::Move)
+            {
+                if (const auto tick = timelineTickFromSeconds (
+                        std::max (0.0, pointerSeconds - grabOffsetSeconds)))
+                {
+                    const std::int64_t span = loopEnd - loopStart;
+                    const yesdaw::engine::Tick snapped = snappedTimelineTick (*tick, snapInvert);
+                    edited = appModel.setPlaybackLoopRegion (snapped,
+                                                             static_cast<std::int64_t> (snapped) + span)
+                                 .dispatched;
+                }
+            }
+
+            if (edited)
+            {
                 refreshActionState();
                 repaint();
             }
@@ -6134,6 +6268,21 @@ private:
         state.viewport.scrollSeconds = timelineScrollSeconds;
         // Vertical track scroll (E5): geometry clamps the shared row offset per paint/gesture.
         state.trackScrollRows = timelineTrackScrollRows;
+
+        // Transport loop brace (E6): painted and hit-tested from the real transport loop.
+        if (appModel.context().loopEnabled
+            && appModel.context().projectLoaded
+            && appModel.project().sampleRate.isValid())
+        {
+            const std::int64_t loopStart = appModel.playbackLoopStartFrame();
+            const std::int64_t loopEnd = appModel.playbackLoopEndFrame();
+            if (loopEnd > loopStart && loopStart >= 0)
+            {
+                state.loopActive = true;
+                state.loopStartSeconds = static_cast<double> (loopStart) / appModel.project().sampleRate.hz;
+                state.loopEndSeconds = static_cast<double> (loopEnd) / appModel.project().sampleRate.hz;
+            }
+        }
         return state;
     }
 

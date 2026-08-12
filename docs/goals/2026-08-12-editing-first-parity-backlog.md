@@ -61,12 +61,17 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    unsnapped. The `[snap-gestures]` gate failed before (a snapped loop drag persisted raw 9600
    instead of 0) and passes after; four legacy gates were re-pinned strictly stronger to the
    snapped semantics.
-5. [ ] **E5 — Vertical track scroll.** No vertical scroll exists anywhere; lanes shrink to the 8px
-   floor and clip (`TimelineCanvas.h:522-546`, `UiTheme.h:717`), so big projects are unusable.
-   Adopt the standard mapping: plain wheel scrolls vertically (rail + timeline share one row
-   offset), Shift+wheel scrolls horizontally, Ctrl+wheel keeps zoom — re-pin the existing wheel
-   gates to the new semantics. Lanes get a sane minimum height; a 12-track project must reach and
-   edit its last track through the real viewport.
+5. [x] **E5 — Vertical track scroll.** Landed in `7728f83` + real-red repair `dd1e32f`
+   (exact-head run `31628338076`, nine jobs green). A shared whole-row offset scrolls the timeline
+   lanes and the rail together; lanes stretch to fill until rows would fall below the fixed 36px
+   `timelineCanvasLaneRowHeight`, then hold and scroll; plain wheel = vertical, Shift+wheel =
+   horizontal, Ctrl+wheel = zoom on both surfaces; the clamp honors whichever surface overflows
+   more with per-surface pinning. The `[vertical-scroll]` gate failed before (plain wheel left the
+   row offset at 0 of 10) and passes after with 63 assertions on an 18-track project. The repair
+   round was a REAL red: 36px rows pushed ~340 dense-fixture clips onto the antialiased
+   gradient/rounded clip frame and blew the 16.6ms GPU budget on CI (sustained 33.66ms); a flat
+   mid-tier clip frame below 48px (waveform kept) plus an empty-rect paint skip restored sustained
+   to 8.80ms locally with `maxVisibleClips` 336 preserving the locked frame-verdict census.
 6. [ ] **E6 — Loop brace editing.** The loop region can only be replaced wholesale by a new
    Shift+drag; it is not painted as a draggable overlay and has no handles
    (`MainComponent.cpp:518-524, 613-628`). Paint a real loop brace on the ruler; drag either end to

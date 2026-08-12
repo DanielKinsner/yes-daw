@@ -5676,6 +5676,151 @@ TEST_CASE ("vertical track scroll reaches and edits the last track of a deep pro
     REQUIRE (readProjectSnapshot (bundlePath).clips == imported.clips);
 }
 
+TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact spans",
+           "[ui][input][shell][timeline][loop-brace]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("loop-brace");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+    const double sampleRateHz = project.sampleRate.hz;
+
+    const MainComponentSnapshot base = snapshotMainComponent (*shell);
+    REQUIRE (base.context.snapEnabled);
+    const std::int64_t grid = base.context.snapGridTicks;
+
+    const auto xAtTick = [&] (yesdaw::engine::Tick tick) {
+        return projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, tick).x;
+    };
+    const int rulerY = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, 0).y;
+    const auto braceRects = [&] {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (project.tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        state.loopActive = snapshot.context.loopEnabled;
+        state.loopStartSeconds = static_cast<double> (snapshot.playbackLoopStartFrame) / sampleRateHz;
+        state.loopEndSeconds = static_cast<double> (snapshot.playbackLoopEndFrame) / sampleRateHz;
+        return yesdaw::ui::timelineLoopBraceRects (timeline.getLocalBounds(), state);
+    };
+    const juce::ModifierKeys shiftDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    const juce::ModifierKeys ctrlDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+
+    // Create the loop: Shift+drag snaps both endpoints (E4) to [0, grid*2].
+    dragFromTo (timeline, { xAtTick (grid * 2 / 5), rulerY }, { xAtTick (grid * 8 / 5), rulerY },
+                shiftDrag);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.loopEnabled);
+    REQUIRE (snapshot.playbackLoopStartFrame == 0);
+    REQUIRE (snapshot.playbackLoopEndFrame == grid * 2);
+
+    // Drag the END handle inward: the dragged edge snaps, the start keeps its exact frames.
+    yesdaw::ui::TimelineLoopBraceRects rects = braceRects();
+    REQUIRE (rects.valid);
+    dragFromTo (timeline, rects.endHandle.getCentre(),
+                { xAtTick (grid * 2 / 3), rects.endHandle.getCentreY() });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.playbackLoopStartFrame == 0);
+    REQUIRE (snapshot.playbackLoopEndFrame == grid);
+
+    // Drag the BAND right by exactly one grid: the span is preserved exactly.
+    rects = braceRects();
+    REQUIRE (rects.valid);
+    const juce::Point<int> bandGrab { (rects.startHandle.getRight() + rects.endHandle.getX()) / 2,
+                                      rects.band.getCentreY() };
+    dragFromTo (timeline, bandGrab, { bandGrab.x + (xAtTick (grid) - xAtTick (0)), bandGrab.y });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.playbackLoopStartFrame == grid);
+    REQUIRE (snapshot.playbackLoopEndFrame == grid * 2);
+
+    // Drag the START handle outward to before zero: it snaps and clamps to zero.
+    rects = braceRects();
+    REQUIRE (rects.valid);
+    dragFromTo (timeline, rects.startHandle.getCentre(),
+                { xAtTick (grid / 3), rects.startHandle.getCentreY() });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.playbackLoopStartFrame == 0);
+    REQUIRE (snapshot.playbackLoopEndFrame == grid * 2);
+
+    // Ctrl inverts the grid: the end handle lands on the exact raw tick.
+    rects = braceRects();
+    REQUIRE (rects.valid);
+    const int rawTargetX = xAtTick (grid * 5 / 4);
+    dragFromTo (timeline, rects.endHandle.getCentre(), { rawTargetX, rects.endHandle.getCentreY() },
+                ctrlDrag);
+    snapshot = snapshotMainComponent (*shell);
+    const MainComponentSnapshot rawSnapshot = snapshot;
+    {
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (project.tracks.size());
+        state.totalSeconds = rawSnapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * rawSnapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = rawSnapshot.timelineScrollSeconds;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        const double seconds = geometry.viewport.scrollSeconds
+                             + static_cast<double> (rawTargetX - geometry.clipArea.getX()) / pixelsPerSecond;
+        REQUIRE (snapshot.playbackLoopEndFrame
+                 == static_cast<long long> (std::llround (seconds * sampleRateHz)));
+    }
+    REQUIRE (snapshot.playbackLoopStartFrame == 0);
+
+    // Escape cancels an in-flight brace drag without committing.
+    rects = braceRects();
+    REQUIRE (rects.valid);
+    const long long endBeforeCancel = snapshot.playbackLoopEndFrame;
+    beginDragFromTo (timeline, rects.endHandle.getCentre(),
+                     { xAtTick (grid / 2), rects.endHandle.getCentreY() });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    releaseDragAt (timeline, rects.endHandle.getCentre(),
+                   { xAtTick (grid / 2), rects.endHandle.getCentreY() });
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.playbackLoopEndFrame == endBeforeCancel);
+
+    // A plain ruler press below the brace band still locates and leaves the loop alone.
+    const juce::Point<int> locatePoint { xAtTick (grid / 2), rulerY };
+    REQUIRE (locatePoint.y > braceRects().band.getBottom());
+    mouseDownAt (timeline, locatePoint);
+    releaseDragAt (timeline, locatePoint, locatePoint);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.playheadFrame > 0);
+    REQUIRE (snapshot.playbackLoopEndFrame == endBeforeCancel);
+    REQUIRE (snapshot.playbackLoopStartFrame == 0);
+
+    // The loop brace is honestly transient transport state.
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {
