@@ -1059,10 +1059,18 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
 and restored with its exact SHA-256; the test-written recent-projects file was removed.
 
-**Now:** B40 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31583480188` is green for full SHA
+`48df5d30e1ded2fc2f040c5222be8ff03318751d` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B40 is ticked in the backlog.
 
-**Next:** on green, tick B40 in the backlog with SHA + run id (docs-only evidence commit), then B41
-(SNAP label clip — the final backlog item) per the run brief.
+**Now:** B40 certified; B41 (SNAP label clip — the final backlog item) is next per the run brief.
+
+**Next:** B41 — audited: the painted SNAP caption sits at fixed toolbar tokens
+(`timelineCanvasSnapLabelX`/`Width`) while the interactive snap chooser floats right-aligned off
+the automation toggle, clipping the caption at shipped window sizes. The screenshot suite pins no
+pixel goldens (fingerprint inequality + cross-view header invariance only), so the spacing-token
+fix is safe; the gate computes the painted label rect from the same geometry helper and tokens the
+painter uses and requires zero intersection with the real chooser bounds.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

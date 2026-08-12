@@ -263,9 +263,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     helper, and the injectable choices gain a session-directory seam so gates stay test-local. The
     gate proves MRU order across two real New flows, real-menu reopening confirmed by the title,
     and the reopened bundle returning to the top.
-40. **Tooltips everywhere** — every interactive control has a tooltip naming its action and
-    chord (pull from the descriptor table so they can't drift). Gate: iterate shell children
-    with a componentID → non-empty tooltip.
+40. [x] **Tooltips everywhere** — landed in `48df5d3` (exact-head run `31583480188`, nine jobs
+    green). Action-backed controls read "<accessible name>  (<chord>)" straight from the
+    descriptor table so tooltips can never drift from the keymap; every manually-configured
+    control gains a descriptive tooltip; the five custom canvases and the menu bar gain the
+    SettableTooltipClient mixin; a desktop-scoped TooltipWindow displays them natively. The gate
+    walks every componentID descendant: tooltip client, non-empty text, and the LIVE chord on
+    action-backed controls.
 41. **SNAP label clip** — the "SNAP" label is clipped by the Beat chooser (cosmetic, known).
     Fix the header row spacing tokens.
 
