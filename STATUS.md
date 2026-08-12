@@ -190,11 +190,21 @@ E5 is certified: feature `7728f83` + repair `dd1e32f`; exact-head GitHub Actions
 jobs. Full local ctest green **348/348** on both heads (owner record isolated/restored
 byte-identical each time). E5 is ticked in the backlog.
 
-**Now:** committing E6 (loop brace editing — implementation + `[loop-brace]` gate locally green,
-full suite 348/348 already run pre-repair; re-verified after the repair rebase of the shared
-canvas headers).
+E6 is certified: exact-head GitHub Actions run `31629082426` is green for full SHA
+`ad66a98b4c83567f66bca0a949d39208026b6685` across all nine jobs; full local suite green
+**348/348** on the committed tree (owner record isolated/restored byte-identical). PROCESS MISS,
+recorded honestly: a staging slip (files left staged by a stash pop) put E6's shell + gate files
+into the docs-labeled commit `05ff909` and the canvas scaffolding + STATUS into `ad66a98`; the
+pair is the atomic E6 change, `05ff909` does not build standalone (breaks bisect for that one
+commit), and pushed history is never rewritten per the hard rules. Loop lesson: after any stash
+checkout/pop, `git reset` the index and re-stage explicitly before committing. E6 is ticked in
+the backlog.
 
-**Next:** E7 (marker move + rename).
+**Now:** E7 (marker move + rename) — engine verbs MoveMarker/RenameMarker + randomized property
+coverage landed in the working tree (property gate green locally, 7,171 assertions); model verbs
+and the shared marker-label rect law in place; wiring the ruler drag + inline rename editor next.
+
+**Next:** E8 (MIDI clips become first-class timeline citizens).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

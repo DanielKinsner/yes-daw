@@ -72,11 +72,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    gradient/rounded clip frame and blew the 16.6ms GPU budget on CI (sustained 33.66ms); a flat
    mid-tier clip frame below 48px (waveform kept) plus an empty-rect paint skip restored sustained
    to 8.80ms locally with `maxVisibleClips` 336 preserving the locked frame-verdict census.
-6. [ ] **E6 — Loop brace editing.** The loop region can only be replaced wholesale by a new
-   Shift+drag; it is not painted as a draggable overlay and has no handles
-   (`MainComponent.cpp:518-524, 613-628`). Paint a real loop brace on the ruler; drag either end to
-   resize, drag the middle to move, all snap-aware and persisted through the existing
-   `setPlaybackLoopRegion` path.
+6. [x] **E6 — Loop brace editing.** Landed across `05ff909` + `ad66a98` (exact-head run
+   `31629082426`, nine jobs green). NOTE: a staging slip put the shell/gate files in the
+   docs-labeled `05ff909` and the canvas scaffolding in `ad66a98` — the PAIR is the atomic E6
+   change and `05ff909` does not build standalone (recorded honestly; pushed history is never
+   rewritten). The transport loop paints as an accent brace band with end handles on the upper
+   ruler from one shared `timelineLoopBraceRects` law; handle drags resize with the dragged edge
+   snapped (Ctrl inverts) and the fixed edge exact, band drags move rigidly with the span
+   preserved, Escape cancels, and commits ride `setPlaybackLoopRegion` (honestly transient). The
+   `[loop-brace]` gate failed before (the end-handle drag fell through to a plain locate) and
+   passes after with 58 assertions.
 7. [ ] **E7 — Marker move + rename.** Markers persist a name (`Project.h:451-455`) but there is no
    MoveMarker/RenameMarker verb, no drag, no rename UI, no way to fix a misplaced marker short of
    remove+re-add. Add both verbs (randomized property test included), drag-move on the ruler
