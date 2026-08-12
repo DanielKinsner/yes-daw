@@ -5006,6 +5006,155 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
 }
 
+TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's offsets",
+           "[ui][input][shell][timeline][group-duplicate]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("group-duplicate");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    clickButton (*addTrack);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + 2 * rowHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (locatedFrame > 0);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 3u);
+    REQUIRE (original.clips.size() == 3u);
+    yesdaw::engine::Tick selectionSpan = 0;
+    for (const yesdaw::engine::Clip& clip : original.clips)
+        selectionSpan = std::max (selectionSpan, clip.timelineStart + clip.timelineLength);
+
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (
+        2 * selectionSpan + original.clips[2].timelineLength + 256);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const auto matchingCopy = [] (const yesdaw::engine::Project& snapshot,
+                                  const yesdaw::engine::Clip& source,
+                                  yesdaw::engine::EntityId sourceTrackId,
+                                  yesdaw::engine::Tick expectedStart) {
+        return std::find_if (snapshot.clips.begin(), snapshot.clips.end(), [&] (const auto& clip) {
+            return clip.id != source.id
+                && clip.trackId == sourceTrackId
+                && clip.timelineStart == expectedStart
+                && clip.timelineLength == source.timelineLength
+                && clip.assetId == source.assetId
+                && clip.srcOffset == source.srcOffset
+                && clip.srcLen == source.srcLen
+                && clip.gain == source.gain
+                && clip.fadeIn == source.fadeIn
+                && clip.fadeOut == source.fadeOut;
+        }) != snapshot.clips.end();
+    };
+
+    // Ctrl+D duplicates the WHOLE selection after its span, preserving relative time and track.
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project duplicated = readProjectSnapshot (bundlePath);
+    REQUIRE (duplicated.clips.size() == 6u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
+    for (const yesdaw::engine::Clip& source : original.clips)
+        REQUIRE (matchingCopy (duplicated, source, source.trackId,
+                               selectionSpan + source.timelineStart));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterDuplicate = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterDuplicate != beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // A center Alt+drag on a selected member copies the WHOLE selection by the anchor's exact
+    // delta — here one lane down with zero time delta — leaving every original untouched.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Rectangle<int> topBounds = timelineClipHitBounds (timeline, original, 0u);
+    const juce::Rectangle<int> midBounds = timelineClipHitBounds (timeline, original, 1u);
+    mouseDownAt (timeline, topBounds.getCentre());
+    mouseDownAt (timeline, midBounds.getCentre(),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                     | juce::ModifierKeys::shiftModifier));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    dragFromTo (timeline, topBounds.getCentre(), { topBounds.getCentreX(), midBounds.getCentreY() },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::altModifier));
+    const yesdaw::engine::Project copied = readProjectSnapshot (bundlePath);
+    REQUIRE (copied.clips.size() == 5u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    for (const yesdaw::engine::Clip& source : original.clips)
+    {
+        const auto match = std::find_if (copied.clips.begin(), copied.clips.end(), [&source] (const auto& clip) {
+            return clip.id == source.id;
+        });
+        REQUIRE (match != copied.clips.end());
+        REQUIRE (*match == source);
+    }
+    REQUIRE (matchingCopy (copied, original.clips[0], copied.tracks[1].id,
+                           original.clips[0].timelineStart));
+    REQUIRE (matchingCopy (copied, original.clips[1], copied.tracks[2].id,
+                           original.clips[1].timelineStart));
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // The historical single-clip duplicate law is unchanged: the copy lands directly after the
+    // source clip on the same track.
+    const juce::Point<int> emptyStart {
+        juce::jmin (timelineClipHitBounds (timeline, original, 2u).getRight()
+                        + 2 * yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels,
+                    timeline.getWidth() - 2),
+        timelineClipHitBounds (timeline, original, 2u).getCentreY()
+    };
+    mouseDownAt (timeline, emptyStart);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 0);
+    mouseDownAt (timeline, topBounds.getCentre());
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project single = readProjectSnapshot (bundlePath);
+    REQUIRE (single.clips.size() == 4u);
+    REQUIRE (matchingCopy (single, original.clips[0], original.clips[0].trackId,
+                           original.clips[0].timelineStart + original.clips[0].timelineLength));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {

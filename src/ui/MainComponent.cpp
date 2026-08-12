@@ -6134,9 +6134,15 @@ private:
             targetTrackId = project.tracks[static_cast<std::size_t> (targetLane)].id;
         }
 
+        // The dragged clip is the gesture anchor; a copy-drag on a selected member carries the
+        // whole selection, exactly like the move gesture (E2).
+        if (! appModel.isTimelineClipSelected (sourceClipId))
+            (void) appModel.selectTimelineClip (sourceClipId);
+        else
+            (void) appModel.selectTimelineClipForGesture (sourceClipId, false);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
-            (void) appModel.copyTimelineClipTo (
-                sourceClipId, targetTrackId, snappedTimelineTick (*tick, snapToGrid));
+            (void) appModel.copySelectedTimelineClipsTo (
+                targetTrackId, snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
         repaint();

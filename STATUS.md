@@ -55,9 +55,25 @@ recent-projects file remained). Exact-head GitHub Actions run `31620834337` is g
 `e9f68e399e6f352c7de8e44bf61e5a449d4a4483` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. E1 is ticked in the backlog.
 
-**Now:** E2 (group duplicate + group copy-drag): make Ctrl+D and center Alt+drag act on the whole
-selection preserving relative time/track offsets, one undo transaction, selection moving to the
-copies; gate fails before, passes after.
+**E2 implementation candidate — group duplicate + group copy-drag:** audited the single-clip
+duplicate law (`duplicateSelectedTimelineClip` pasted only the anchor after itself), the
+single-clip Alt+drag copy verb (`copyTimelineClipTo`), the clipboard offset law, and the group
+move's lane-clamp law before changing anything. Ctrl+D now duplicates the WHOLE selection through
+the shared clipboard paste (copies land directly after the selection's span, preserving relative
+time and track offsets; single-clip selections keep the exact historical law). Center Alt+drag on
+a selected member now copies the WHOLE selection by the gesture anchor's snapped delta through the
+new `copySelectedTimelineClipsTo` verb, which shares the move gesture's lane-clamp and time-clamp
+laws, refuses overflow honestly, adds fresh-id copies in one undo transaction, and selects the
+copies (the old single-clip verb is removed, not left as dead code). Edge Alt+drag fades are
+untouched. The shipped-boundary `[group-duplicate]` gate FAILED before the change (old Ctrl+D
+produced 4 clips, not 6) and passes after with 114 assertions on a 3-track project: whole-selection
+duplicate placement + payload preservation, audible playback change with bit-identical undo,
+group Alt+drag one lane down preserving originals byte-for-byte, per-field copy payloads, and the
+preserved single-clip law. Companion gates ([three-track], [copy-drag], [marquee], [multi-select],
+[repeat-paste]) stay green: 420 assertions.
+
+**Now:** E2 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E3 (tool palette does real work in the timeline).
 
