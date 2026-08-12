@@ -42,12 +42,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    the move gesture's lane/time clamp laws, one undo transaction, copies selected; single-clip
    laws and edge-fade Alt+drag unchanged. The `[group-duplicate]` gate failed before (4 clips,
    not 6) and passes after with 114 assertions on a 3-track project.
-3. [ ] **E3 — Tool palette does real work (timeline).** The tool state exists but only the marquee
-   branch reads it (`MainComponent.cpp:538-539`); Scissors/Pencil/Hand/Zoom change nothing.
-   Wire honest behaviors: Scissors click splits the hit clip at the snapped click tick (same law as
-   `B`); Pencil click on an empty lane creates a snapped one-bar MIDI clip on THAT lane at the click
-   tick (engine `addMidiClip` exists); Hand drag scrolls the viewport; Zoom click zooms in around
-   the click, Alt+click zooms out (same viewport math as Ctrl+wheel); Pointer unchanged.
+3. [x] **E3 — Tool palette does real work (timeline).** Landed in `e315dce` (exact-head run
+   `31623384703`, nine jobs green — one Windows alpha-verify infra flake, sccache "socket hang
+   up" before any compile, rerun green on the same head). Hand press-drags pan the viewport by
+   the exact pixel→seconds law; Zoom clicks double / Alt+clicks halve the zoom through the
+   existing anchored wheel math (new `timelineZoomToolClickFactor` token); Scissors clicks split
+   the hit clip through the same persisted verb as `B`; Pencil clicks select a hit clip or create
+   a snapped one-bar MIDI clip on the clicked lane through the new shared `addMidiClipOnTrackAt`
+   verb (Ctrl+M law generalized); Pointer and the ruler keep their full historical behavior. The
+   `[tool-palette]` gate failed before (Zoom click was a no-op) and passes after with 125
+   assertions; the B22 `[tool-keys]` gate was re-pinned stronger to the new Pencil semantics.
 4. [ ] **E4 — Snap chooser consulted by every timeline time-gesture.** Only clip move/cross-track
    move/copy-drag snap today (`MainComponent.cpp:6073/6112/6139`); trim-left
    (`MainComponent.cpp:2104-2114`), trim-right (`:6158-6169`), double-click split (`:6145-6156`),

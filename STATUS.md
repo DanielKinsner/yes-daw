@@ -105,10 +105,35 @@ now creates the MIDI clip, opens the piano roll, and leaves the timeline clip se
 untouched (deselection belongs to the Pointer empty click); the gate now asserts exactly that,
 plus the undo, making it strictly stronger.
 
-**Now:** E3 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+**E4 implementation candidate — snap chooser consulted by every timeline time-gesture:** audited
+before changing: only clip move / cross-track move / copy-drag snapped; trim-left, trim-right,
+double-click split, scissors split, ruler loop drag, and ruler range drag all committed raw
+pixel ticks. Every time-gesture callback now carries the gesture's Ctrl flag and the shell
+routes the tick through the shared `snappedTimelineTick` law (Ctrl inverts, exactly like moves):
+trim edges and splits pass the SNAPPED tick to the existing verbs, whose legality rules
+(positive length, in-body split, source-window bounds) win by honest refusal — no clamping was
+added; ruler loop and range drags snap both endpoints and collapse to an honest no-op if the
+snapped range empties. Fades are durations, not grid positions, and stay honestly unsnapped.
+The shipped-boundary `[snap-gestures]` gate FAILED before (a snapped loop drag persisted its raw
+start 9600 instead of 0) and passes after: snapped + Ctrl-raw loop and range endpoints with a
+byte-identical `project.db`, snap-refused then Ctrl-exact trims on both edges, snap-refused then
+Ctrl-exact double-click split with exact windows, a persisted sub-grid fade proving fades bypass
+the grid, and one-step undo everywhere. Legacy gates were re-pinned to the new semantics (never
+weakened): the mouse-editing gate's split/trim now use Ctrl for raw placement, the trim-left gate
+uses Ctrl, the empty-project ruler-range and B25 range gates assert the SNAPPED endpoints against
+the engine `snapTick` law (locate stays raw), and the E3 `[tool-palette]` scissors section now
+proves snap-refusal before the Ctrl-raw split.
 
-**Next:** E4 (snap chooser consulted by every timeline time-gesture).
+E3 is certified: full local ctest green **348/348** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified). Exact-head GitHub Actions run `31623384703` is green
+for full SHA `e315dce87404daf653cfca6e5a3ed2e76cb91ae7` across all nine jobs; the single red was
+infrastructure (Windows alpha-verify sccache "socket hang up" before any compile) and the
+failed-job rerun on the SAME head went green. E3 is ticked in the backlog.
+
+**Now:** E4 — local suite green 348/348 (owner record restored byte-identical); committing and
+pushing for the exact-head nine-job run.
+
+**Next:** E5 (vertical track scroll).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
