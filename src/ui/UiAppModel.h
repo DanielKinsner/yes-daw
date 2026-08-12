@@ -3481,6 +3481,64 @@ public:
         return { id, state, true };
     }
 
+    // Marker editing (E7): drag-move on the ruler and inline rename, both undoable.
+    [[nodiscard]] UiActionDispatchResult moveTimelineMarkerTo (engine::EntityId markerId, engine::Tick newTick)
+    {
+        const UiActionId id = UiActionId::TimelineMarkerAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const auto marker = std::find_if (project_.markers.begin(), project_.markers.end(),
+                                          [markerId] (const engine::Marker& candidate) {
+                                              return candidate.id == markerId;
+                                          });
+        if (marker == project_.markers.end() || newTick < 0 || marker->tick == newTick)
+            return { id, { false, "marker move needs a real new tick" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::moveMarker (markerId, newTick)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "marker edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult renameTimelineMarker (engine::EntityId markerId, const std::string& newName)
+    {
+        const UiActionId id = UiActionId::TimelineMarkerAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (newName.empty() || newName.size() > engine::ProjectEditCommand::kMaxTrackNameLength)
+            return { id, { false, "marker name must be 1-127 characters" }, false };
+
+        const auto marker = std::find_if (project_.markers.begin(), project_.markers.end(),
+                                          [markerId] (const engine::Marker& candidate) {
+                                              return candidate.id == markerId;
+                                          });
+        if (marker == project_.markers.end() || marker->name == newName)
+            return { id, { false, "marker rename needs a real new name" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::renameMarker (markerId, newName)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "marker edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleMetronome()
     {
         const UiActionId id = UiActionId::TransportToggleMetronome;

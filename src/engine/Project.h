@@ -2566,6 +2566,60 @@ namespace detail {
     return ProjectEditStatus::MarkerNotFound;
 }
 
+// E7: move a marker to a new tick, preserving addMarker's sorted-insert law.
+[[nodiscard]] inline ProjectEditStatus moveMarker (Project& project, EntityId markerId, Tick newTick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (newTick < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (std::size_t i = 0; i < project.markers.size(); ++i)
+    {
+        if (project.markers[i].id == markerId)
+        {
+            Marker moved = project.markers[i];
+            moved.tick = newTick;
+            project.markers.erase (project.markers.begin() + static_cast<std::ptrdiff_t> (i));
+            const auto insertAt = std::find_if (project.markers.begin(), project.markers.end(),
+                                                [&moved] (const Marker& existing) { return existing.tick > moved.tick; });
+            project.markers.insert (insertAt, moved);
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
+}
+
+// E7: rename a marker; like renameTrack, the length cap lives at the command factory's shared
+// name buffer, so the engine only refuses empty names.
+[[nodiscard]] inline ProjectEditStatus renameMarker (Project& project, EntityId markerId, std::string_view name)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (name.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Marker& marker : project.markers)
+    {
+        if (marker.id == markerId)
+        {
+            marker.name = std::string { name };
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
+}
+
 // Alpha time-map editing (usable-DAW P0): a single Project-wide tempo and meter — the head of each
 // map. Multi-segment tempo/meter editing arrives with the tempo-map UI later.
 [[nodiscard]] inline ProjectEditStatus setProjectTempo (Project& project, double bpm)

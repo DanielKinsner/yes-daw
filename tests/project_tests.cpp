@@ -45,6 +45,7 @@ using yesdaw::engine::FxInsert;
 using yesdaw::engine::FxKind;
 using yesdaw::engine::kMaxUlidTimestampMs;
 using yesdaw::engine::kTicksPerQuarter;
+using yesdaw::engine::Marker;
 using yesdaw::engine::MidiClip;
 using yesdaw::engine::moveClip;
 using yesdaw::engine::moveNote;
@@ -2032,6 +2033,13 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
         bus.strip.name = "FX Bus";
         project.buses.push_back (bus);
     }
+    {
+        Marker marker;
+        marker.id = idFromLowByte (45);
+        marker.tick = 5'000;
+        marker.name = "Verse";
+        project.markers.push_back (marker);
+    }
 
     const std::array<EntityId, 2> clipIds { idFromLowByte (31), idFromLowByte (33) };
     const EntityId                midiClipId = idFromLowByte (40);
@@ -2062,7 +2070,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (19))
+            switch (pick (20))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2151,6 +2159,30 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                     break;
                 case 18: command = ProjectEditCommand::setNoteVelocity (midiClipId, note,
                                                                         static_cast<double> (pick (101)) / 100.0); break;
+                // E7 marker verbs: rejected commands (unknown id, empty name, negative tick) are
+                // no-ops by contract, matching the other families above.
+                case 19:
+                    switch (pick (4))
+                    {
+                        case 0:
+                            if (freshLowByte < 250)
+                                command = ProjectEditCommand::addMarker (
+                                    idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                    tick (0, 40'000), pick (2) == 0 ? "Marker A" : "Marker B");
+                            break;
+                        case 1:
+                            command = ProjectEditCommand::moveMarker (idFromLowByte (45), tick (0, 40'000));
+                            break;
+                        case 2:
+                            command = ProjectEditCommand::renameMarker (
+                                idFromLowByte (45), pick (2) == 0 ? "Chorus" : "Bridge");
+                            break;
+                        default:
+                            command = ProjectEditCommand::removeMarker (
+                                idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                            break;
+                    }
+                    break;
                 default: break;
             }
 

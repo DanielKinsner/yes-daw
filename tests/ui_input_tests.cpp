@@ -841,8 +841,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.isMainComponent);
     REQUIRE (snapshot.primaryFileChoicesReady);
     REQUIRE (snapshot.desktopAudioRequested);
-    // 91 shell children + the B31 drag dB readout label (hidden until a gain drag).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 92u));
+    // 91 shell children + the B31 drag dB readout label (hidden until a gain drag) + the E7
+    // marker rename editor (hidden until a marker double-click) — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 93u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -5819,6 +5820,162 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
 
     // The loop brace is honestly transient transport state.
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+}
+
+TEST_CASE ("markers drag-move on the ruler and rename inline, all undoable",
+           "[ui][input][shell][timeline][marker-edit]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("marker-edit");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const double sampleRateHz = project.sampleRate.hz;
+    const MainComponentSnapshot base = snapshotMainComponent (*shell);
+    REQUIRE (base.context.snapEnabled);
+    const std::int64_t grid = base.context.snapGridTicks;
+
+    // Two real markers via the M chord at located playheads.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
+    yesdaw::engine::Project marked = readProjectSnapshot (bundlePath);
+    REQUIRE (marked.markers.size() == 2u);
+    REQUIRE (marked.markers[0].tick == 0);
+    REQUIRE (marked.markers[1].tick == grid);
+    const yesdaw::engine::EntityId movedMarkerId = marked.markers[1].id;
+
+    // Shared pixel/label-law replication.
+    std::vector<std::string> markerLabels;
+    std::vector<yesdaw::ui::TimelineMarker> markerViews;
+    const auto rebuildViews = [&] (const yesdaw::engine::Project& snapshotProject) {
+        markerLabels.clear();
+        markerViews.clear();
+        for (const yesdaw::engine::Marker& marker : snapshotProject.markers)
+        {
+            markerLabels.push_back (marker.name);
+            markerViews.push_back ({ static_cast<double> (marker.tick) / sampleRateHz,
+                                     markerLabels.back().c_str() });
+        }
+    };
+    const auto canvasState = [&] {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (project.tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        state.markers = markerViews.data();
+        state.markerCount = static_cast<int> (markerViews.size());
+        return state;
+    };
+    const auto rawTickAtX = [&] (int x) {
+        const yesdaw::ui::TimelineCanvasState state = canvasState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        const double seconds = geometry.viewport.scrollSeconds
+                             + static_cast<double> (x - geometry.clipArea.getX()) / pixelsPerSecond;
+        return static_cast<yesdaw::engine::Tick> (std::llround (seconds * sampleRateHz));
+    };
+    const auto xAtTick = [&] (yesdaw::engine::Tick tick) {
+        return projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, tick).x;
+    };
+    const auto markerById = [] (const yesdaw::engine::Project& snapshotProject,
+                                yesdaw::engine::EntityId markerId) -> const yesdaw::engine::Marker* {
+        for (const yesdaw::engine::Marker& marker : snapshotProject.markers)
+            if (marker.id == markerId)
+                return &marker;
+        return nullptr;
+    };
+    const juce::ModifierKeys ctrlDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+
+    // Ctrl drag moves the second marker to the exact raw tick.
+    rebuildViews (marked);
+    juce::Rectangle<int> label = yesdaw::ui::timelineMarkerLabelRect (
+        timeline.getLocalBounds(), canvasState(), 1);
+    REQUIRE_FALSE (label.isEmpty());
+    const int rawTargetX = xAtTick (grid * 5 / 4);
+    dragFromTo (timeline, label.getCentre(), { rawTargetX, label.getCentreY() }, ctrlDrag);
+    yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Marker* movedMarker = markerById (moved, movedMarkerId);
+    REQUIRE (movedMarker != nullptr);
+    REQUIRE (movedMarker->tick == rawTickAtX (rawTargetX));
+
+    // A plain (snap-on) drag lands the marker exactly on the grid.
+    rebuildViews (moved);
+    const auto movedIndex = static_cast<int> (std::distance (
+        moved.markers.begin(),
+        std::find_if (moved.markers.begin(), moved.markers.end(), [&] (const auto& marker) {
+            return marker.id == movedMarkerId;
+        })));
+    label = yesdaw::ui::timelineMarkerLabelRect (timeline.getLocalBounds(), canvasState(), movedIndex);
+    REQUIRE_FALSE (label.isEmpty());
+    dragFromTo (timeline, label.getCentre(), { xAtTick (grid * 5 / 3), label.getCentreY() });
+    moved = readProjectSnapshot (bundlePath);
+    movedMarker = markerById (moved, movedMarkerId);
+    REQUIRE (movedMarker != nullptr);
+    REQUIRE (movedMarker->tick == grid * 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (markerById (readProjectSnapshot (bundlePath), movedMarkerId)->tick == rawTickAtX (rawTargetX));
+
+    // Double-click the first marker's label: inline rename commits on Enter and is undoable.
+    yesdaw::engine::Project current = readProjectSnapshot (bundlePath);
+    rebuildViews (current);
+    label = yesdaw::ui::timelineMarkerLabelRect (timeline.getLocalBounds(), canvasState(), 0);
+    doubleClickAt (timeline, label.getCentre());
+    auto* renameEditor = dynamic_cast<juce::TextEditor*> (
+        findChildWithComponentId (*shell, "shell.timeline.marker.rename"));
+    REQUIRE (renameEditor != nullptr);
+    REQUIRE (renameEditor->isVisible());
+    renameEditor->setText ("Chorus", juce::dontSendNotification);
+    REQUIRE (renameEditor->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE_FALSE (renameEditor->isVisible());
+    current = readProjectSnapshot (bundlePath);
+    REQUIRE (current.markers[0].name == "Chorus");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).markers[0].name == "Marker 1");
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+
+    // Escape discards a rename draft without persisting.
+    current = readProjectSnapshot (bundlePath);
+    rebuildViews (current);
+    label = yesdaw::ui::timelineMarkerLabelRect (timeline.getLocalBounds(), canvasState(), 0);
+    doubleClickAt (timeline, label.getCentre());
+    REQUIRE (renameEditor->isVisible());
+    renameEditor->setText ("Discarded Draft", juce::dontSendNotification);
+    REQUIRE (renameEditor->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE_FALSE (renameEditor->isVisible());
+    REQUIRE (readProjectSnapshot (bundlePath).markers[0].name == "Chorus");
+
+    // A plain click on a marker label keeps the historical ruler-click locate.
+    rebuildViews (readProjectSnapshot (bundlePath));
+    label = yesdaw::ui::timelineMarkerLabelRect (timeline.getLocalBounds(), canvasState(), 0);
+    mouseDownAt (timeline, label.getCentre());
+    releaseDragAt (timeline, label.getCentre(), label.getCentre());
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame
+             == rawTickAtX (label.getCentreX()));
 }
 
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",

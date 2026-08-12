@@ -581,6 +581,25 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     return geometry;
 }
 
+// Marker labels (E7): one geometry law shared by the ruler painter and the gesture hit-test so
+// dragging and renaming target exactly the painted label.
+inline juce::Rectangle<int> timelineMarkerLabelRect (juce::Rectangle<int> area,
+                                                     const TimelineCanvasState& state,
+                                                     int markerIndex)
+{
+    if (state.markers == nullptr || markerIndex < 0 || markerIndex >= state.markerCount)
+        return {};
+
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const int x = geometry.clipArea.getX()
+                + juce::roundToInt ((state.markers[markerIndex].seconds - geometry.viewport.scrollSeconds)
+                                    * geometry.viewport.pixelsPerSecond);
+    return { x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
+             geometry.rulerArea.getY() + UiTheme::Layout::timelineCanvasRulerMarkerLabelTopInset,
+             UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+             UiTheme::Layout::timelineCanvasRulerMarkerLabelHeight };
+}
+
 // Transport loop brace (E6): one geometry law shared by the painter and the ruler gesture
 // hit-test, so the drag handles can never drift from the painted brace.
 struct TimelineLoopBraceRects

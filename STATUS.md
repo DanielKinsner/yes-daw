@@ -200,9 +200,24 @@ commit), and pushed history is never rewritten per the hard rules. Loop lesson: 
 checkout/pop, `git reset` the index and re-stage explicitly before committing. E6 is ticked in
 the backlog.
 
-**Now:** E7 (marker move + rename) — engine verbs MoveMarker/RenameMarker + randomized property
-coverage landed in the working tree (property gate green locally, 7,171 assertions); model verbs
-and the shared marker-label rect law in place; wiring the ruler drag + inline rename editor next.
+**E7 implementation candidate — marker move + rename:** audited before adding: markers persisted
+a name but the only verbs anywhere were AddMarker/RemoveMarker — no move, no rename, no drag, no
+rename UI. New undoable engine verbs `MoveMarker` (erase + sorted re-insert preserving
+addMarker's ordering law, clamped ≥ 0) and `RenameMarker` (shared name buffer, empty refused)
+join the marker whole-vector diff family and the randomized generated-edit-sequence property test
+(20th verb arm; locally green, 7,171 assertions). Model verbs refuse unknown ids, same-tick
+moves, and empty/unchanged names honestly. On the ruler, marker labels hit-test through the new
+shared `timelineMarkerLabelRect` law (same tokens the painter uses): dragging a label commits a
+snapped MoveMarker (Ctrl inverts, Escape cancels, a below-dead-zone release keeps the historical
+ruler-click locate), and double-click opens a new inline rename editor
+(`shell.timeline.marker.rename`, Enter commits / Escape discards — the ui_input shell childCount
+was bumped deliberately for the new hidden editor). The shipped-boundary `[marker-edit]` gate
+FAILED before (the label drag fell through to a locate and left the marker at 24000) and passes
+after with 70 assertions: exact raw Ctrl-move, exact grid-snapped move, per-step undo/redo,
+committed and discarded renames, and the preserved label-click locate.
+
+**Now:** E7 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E8 (MIDI clips become first-class timeline citizens).
 

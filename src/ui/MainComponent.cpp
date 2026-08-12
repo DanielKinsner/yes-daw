@@ -404,10 +404,14 @@ public:
     std::function<void (LoopBraceEdit, double, double, bool)> onLoopBraceEdited;
     // kind, pointerSeconds, grabOffsetSeconds (Move only), snapInvert
 
+    // Marker editing (E7): drag a ruler marker label to move it; double-click to rename.
+    std::function<void (int, double, bool)> onMarkerDragged;      // markerIndex, seconds, snapInvert
+    std::function<void (int)> onMarkerRenameRequested;            // markerIndex
+
     [[nodiscard]] bool cancelInProgressEdit()
     {
         if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive
-            && loopBraceDrag == LoopBraceEdit::None)
+            && loopBraceDrag == LoopBraceEdit::None && markerDragIndex < 0)
             return false;
 
         dragState = {};
@@ -415,6 +419,7 @@ public:
         rulerRangeDragActive = false;
         handDragActive = false;
         loopBraceDrag = LoopBraceEdit::None;
+        markerDragIndex = -1;
         repaint();
         return true;
     }
@@ -651,6 +656,19 @@ public:
                 }
             }
 
+            // Marker editing (E7): a press on a painted marker label starts a marker drag
+            // instead of locating; the label rects come from the shared geometry law.
+            for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
+            {
+                if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex)
+                        .contains (event.getPosition()))
+                {
+                    markerDragIndex = markerIndex;
+                    markerDragDownX = event.getPosition().x;
+                    return;
+                }
+            }
+
             playheadLocateActive = true;
             rulerRangeDownPosition = event.getPosition();
             rulerRangeCurrentPosition = event.getPosition();
@@ -680,6 +698,9 @@ public:
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (markerDragIndex >= 0)
+            return;
+
         if (loopBraceDrag != LoopBraceEdit::None && stateProvider)
         {
             const yesdaw::ui::TimelineCanvasState state = stateProvider();
@@ -743,6 +764,30 @@ public:
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (markerDragIndex >= 0)
+        {
+            const int markerIndex = markerDragIndex;
+            markerDragIndex = -1;
+            if (stateProvider)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                const std::optional<double> seconds =
+                    timelineSecondsAt (state, getLocalBounds(), event.getPosition());
+                if (std::abs (event.getPosition().x - markerDragDownX)
+                        < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                {
+                    // A plain click on a marker label keeps the historical ruler-click locate.
+                    if (seconds && onTimelineLocated)
+                        onTimelineLocated (*seconds);
+                }
+                else if (seconds && onMarkerDragged)
+                {
+                    onMarkerDragged (markerIndex, *seconds, event.mods.isCtrlDown());
+                }
+            }
+            return;
+        }
+
         if (loopBraceDrag != LoopBraceEdit::None)
         {
             const LoopBraceEdit kind = loopBraceDrag;
@@ -985,9 +1030,23 @@ public:
             const yesdaw::ui::TimelineCanvasGeometry geometry =
                 yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
             if (geometry.rulerArea.contains (event.getPosition()))
+            {
+                // Marker editing (E7): double-click on a marker label opens the inline rename.
+                for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
+                {
+                    if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex)
+                            .contains (event.getPosition()))
+                    {
+                        if (onMarkerRenameRequested)
+                            onMarkerRenameRequested (markerIndex);
+                        return;
+                    }
+                }
+
                 if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                     if (onTimelineLocated)
                         onTimelineLocated (*seconds);
+            }
             return;
         }
 
@@ -1170,6 +1229,9 @@ private:
     LoopBraceEdit loopBraceDrag = LoopBraceEdit::None;
     double loopBracePointerSeconds = 0.0;
     double loopBraceGrabOffsetSeconds = 0.0;
+    // Marker drag (E7): a below-dead-zone release keeps the historical ruler-click locate.
+    int markerDragIndex = -1;
+    int markerDragDownX = 0;
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
@@ -2412,6 +2474,24 @@ public:
                 repaint();
             }
         };
+        // Marker edits (E7): the dragged label commits a snapped MoveMarker; double-click opens
+        // the inline rename editor over the painted label.
+        timelineInput.onMarkerDragged = [this] (int markerIndex, double seconds, bool snapInvert) {
+            const auto& markers = appModel.project().markers;
+            if (markerIndex < 0 || markerIndex >= static_cast<int> (markers.size()))
+                return;
+            if (const auto tick = timelineTickFromSeconds (std::max (0.0, seconds)))
+            {
+                (void) appModel.moveTimelineMarkerTo (
+                    markers[static_cast<std::size_t> (markerIndex)].id,
+                    snappedTimelineTick (*tick, snapInvert));
+                refreshActionState();
+                repaint();
+            }
+        };
+        timelineInput.onMarkerRenameRequested = [this] (int markerIndex) {
+            openMarkerRenameEditor (markerIndex);
+        };
         // Loop brace edits (E6): the dragged edge (or the move anchor) snaps through the snap
         // chooser; the fixed edge keeps its exact frames, and a move preserves the span exactly.
         timelineInput.onLoopBraceEdited = [this] (TimelineInputComponent::LoopBraceEdit kind,
@@ -2623,6 +2703,16 @@ public:
         clipRenameEditor.onEscapeKey = [this] { dismissClipRenameEditor(); };
         clipRenameEditor.onFocusLost = [this] { dismissClipRenameEditor(); };
         addChildComponent (clipRenameEditor);
+
+        // Marker rename editor (E7): same inline pattern as the clip and track editors.
+        markerRenameEditor.setComponentID ("shell.timeline.marker.rename");
+        markerRenameEditor.setTooltip ("Rename marker: Enter commits, Escape cancels");
+        markerRenameEditor.setName ("Rename marker");
+        markerRenameEditor.setSelectAllWhenFocused (true);
+        markerRenameEditor.onReturnKey = [this] { commitMarkerRenameEditor(); };
+        markerRenameEditor.onEscapeKey = [this] { dismissMarkerRenameEditor(); };
+        markerRenameEditor.onFocusLost = [this] { dismissMarkerRenameEditor(); };
+        addChildComponent (markerRenameEditor);
 
         // Snap grid picker (usable-DAW P1): the four registered snap actions surfaced as one control;
         // the model derives real frame grids from the head tempo/meter.
@@ -4132,6 +4222,48 @@ private:
         repaint();
     }
 
+    // Marker rename (E7): positioned over the painted label through the shared rect law.
+    void openMarkerRenameEditor (int markerIndex)
+    {
+        const auto& markers = appModel.project().markers;
+        if (markerIndex < 0 || markerIndex >= static_cast<int> (markers.size()))
+            return;
+
+        dismissTrackRenameEditor();
+        dismissClipRenameEditor();
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        juce::Rectangle<int> bounds = yesdaw::ui::timelineMarkerLabelRect (
+            timelineInput.getLocalBounds(), state, markerIndex)
+                                          .translated (timelineInput.getX(), timelineInput.getY());
+        if (bounds.isEmpty())
+            return;
+
+        markerRenameIndex = markerIndex;
+        markerRenameEditor.setBounds (bounds);
+        markerRenameEditor.setText (juce::String (markers[static_cast<std::size_t> (markerIndex)].name.c_str()),
+                                    juce::dontSendNotification);
+        markerRenameEditor.setVisible (true);
+        markerRenameEditor.grabKeyboardFocus();
+    }
+
+    void commitMarkerRenameEditor()
+    {
+        const auto& markers = appModel.project().markers;
+        if (markerRenameIndex >= 0 && markerRenameIndex < static_cast<int> (markers.size()))
+            (void) appModel.renameTimelineMarker (
+                markers[static_cast<std::size_t> (markerRenameIndex)].id,
+                markerRenameEditor.getText().toStdString());
+        dismissMarkerRenameEditor();
+        refreshActionState();
+        repaint();
+    }
+
+    void dismissMarkerRenameEditor()
+    {
+        markerRenameIndex = -1;
+        markerRenameEditor.setVisible (false);
+    }
+
     void dismissClipRenameEditor()
     {
         clipRenameEditor.setVisible (false);
@@ -4599,6 +4731,11 @@ private:
         if (clipRenameEditor.isVisible())
         {
             dismissClipRenameEditor();
+            cancelled = true;
+        }
+        if (markerRenameEditor.isVisible())
+        {
+            dismissMarkerRenameEditor();
             cancelled = true;
         }
 
@@ -7383,6 +7520,8 @@ private:
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     juce::TextEditor clipRenameEditor;
+    juce::TextEditor markerRenameEditor;
+    int markerRenameIndex = -1;
     int selectedTrackLane = -1;
     juce::TextButton exportAudioButton;
     juce::ComboBox exportBitDepthChooser;

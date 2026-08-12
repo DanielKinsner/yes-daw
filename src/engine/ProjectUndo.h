@@ -65,7 +65,10 @@ enum class ProjectEditVerb : std::uint8_t
     SetSendLevel,
     RenameClip,
     SetTrackMixScalars,
-    SetNoteVelocity
+    SetNoteVelocity,
+    // E7: marker editing beyond add/remove
+    MoveMarker,
+    RenameMarker
 };
 
 struct ProjectEditCommand
@@ -697,6 +700,27 @@ struct ProjectEditCommand
         return command;
     }
 
+    // E7: move a marker to a new timeline tick (kept sorted like addMarker's insert law).
+    [[nodiscard]] static constexpr ProjectEditCommand moveMarker (EntityId markerId, Tick newTick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveMarker;
+        command.markerId = markerId;
+        command.markerTick = newTick;
+        return command;
+    }
+
+    // E7: rename a marker (same shared name buffer/limits as track and clip names).
+    [[nodiscard]] static constexpr ProjectEditCommand renameMarker (EntityId markerId,
+                                                                    std::string_view name) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RenameMarker;
+        command.markerId = markerId;
+        (void) copyTrackName (command, name);
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setProjectTempo (double bpm) noexcept
     {
         ProjectEditCommand command;
@@ -889,7 +913,9 @@ namespace detail {
 [[nodiscard]] constexpr bool isMarkerEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::AddMarker
-           || verb == ProjectEditVerb::RemoveMarker;
+           || verb == ProjectEditVerb::RemoveMarker
+           || verb == ProjectEditVerb::MoveMarker
+           || verb == ProjectEditVerb::RenameMarker;
 }
 
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
@@ -1093,6 +1119,12 @@ namespace detail {
 
         case ProjectEditVerb::RemoveMarker:
             return removeMarker (project, command.markerId);
+
+        case ProjectEditVerb::MoveMarker:
+            return moveMarker (project, command.markerId, command.markerTick);
+
+        case ProjectEditVerb::RenameMarker:
+            return renameMarker (project, command.markerId, std::string_view { command.trackName });
 
         case ProjectEditVerb::AddMidiClip:
         {
