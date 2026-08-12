@@ -408,6 +408,10 @@ public:
     std::function<void (int, double, bool)> onMarkerDragged;      // markerIndex, seconds, snapInvert
     std::function<void (int)> onMarkerRenameRequested;            // markerIndex
 
+    // E9: double-click on a clip, fired before the split path; returning true consumes the
+    // gesture (a MIDI clip opens its piano roll instead of attempting the audio split).
+    std::function<bool (int)> onClipDoubleClicked;                // layoutClipId -> consumed
+
     [[nodiscard]] bool cancelInProgressEdit()
     {
         if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive
@@ -1052,6 +1056,9 @@ public:
 
         if (onClipClicked)
             onClipClicked (hit.id, false);
+
+        if (onClipDoubleClicked && onClipDoubleClicked (hit.id))
+            return;
 
         if (const std::optional<double> splitSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
             if (onClipSplit)
@@ -2408,6 +2415,20 @@ public:
         };
         timelineInput.onClipSplit = [this] (int timelineClipId, double splitSeconds, bool snapInvert) {
             splitTimelineClipByLayoutId (timelineClipId, splitSeconds, snapInvert);
+        };
+        // E9: a double-clicked MIDI clip opens the piano roll on THAT clip (audio clips keep the
+        // historical double-click split behavior through onClipSplit).
+        timelineInput.onClipDoubleClicked = [this] (int timelineClipId) {
+            if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
+                return false;
+            const yesdaw::engine::EntityId entityId = timelineClipIds[static_cast<std::size_t> (timelineClipId)];
+            if (! appModel.openPianoRollOnMidiClip (entityId))
+                return false;
+
+            refreshActionState();
+            resized();
+            repaint();
+            return true;
         };
         timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {
             trimTimelineClipRightByLayoutId (timelineClipId, endSeconds, snapInvert);
@@ -6770,9 +6791,23 @@ private:
                         "PIANO ROLL",
                         header.reduced (yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetX,
                                         yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetY));
-        drawSmallLabel (g, surface.midiClipSelected
-                            ? "MIDI Clip  |  Note edits: select move length transpose quantize"
-                            : "No MIDI Clip selected",
+        // E9: the header names the OPEN clip's owning track so switching clips is legible.
+        juce::String rollTitle = "No MIDI Clip selected";
+        if (surface.midiClipSelected)
+        {
+            rollTitle = "MIDI Clip";
+            for (const yesdaw::engine::MidiClip& midiClip : appModel.project().midiClips)
+            {
+                if (midiClip.id != appModel.selectedMidiClipId())
+                    continue;
+                for (const yesdaw::engine::Track& track : appModel.project().tracks)
+                    if (track.id == midiClip.trackId && ! track.strip.name.empty())
+                        rollTitle = juce::String (track.strip.name);
+                break;
+            }
+            rollTitle << "  |  Note edits: select move length transpose quantize";
+        }
+        drawSmallLabel (g, rollTitle,
                         header.reduced (yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetX,
                                         yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetY),
                         juce::Justification::centredRight);

@@ -239,10 +239,26 @@ nothing) and passes after with 104 assertions: hit+select, snapped time move wit
 and bit-identical undo, cross-track move, mixed audio+MIDI group move, mixed duplicate with note
 payloads, trim/split refusals, delete-with-undo, and select-all covering both kinds.
 
-**Now:** E8 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+**E9 implementation candidate — the piano roll follows the selected MIDI clip:** audited before
+adding: the roll always showed `midiClips.front()`; with several MIDI tracks there was NO way to
+open a second clip. Double-clicking a timeline MIDI clip now opens the piano roll ON THAT CLIP
+through the new consuming `onClipDoubleClicked` seam (fired before the audio split path — a
+consumed MIDI double-click never reaches the split, whose selection side-effect used to snap the
+panel straight back to the Timeline); the roll header now names the OPEN clip's owning track;
+and View Piano Roll retains the LAST opened clip instead of resetting to the first. The
+shipped-boundary `[roll-follow]` gate FAILED before (the double-click left the panel on the
+Timeline) and passes after: three MIDI tracks, double-click opens each chosen clip, the real
+pencil lands notes in exactly the targeted clip and nowhere else, and the View action retains
+the last clip.
 
-**Next:** E9 (piano roll follows the selected MIDI clip).
+E8 is certified: full local ctest green **348/348**; exact-head GitHub Actions run green for
+full SHA `f4f7a318ce71fdcb2e1516c307d2504dc19ee78a` across all nine jobs. E8 is ticked in the
+backlog. E9's full local suite is also green **348/348** (owner record isolated/restored
+byte-identical both rounds).
+
+**Now:** committing E9 (roll-follow) for its exact-head run.
+
+**Next:** E10 (piano roll zoom, scroll, and all 128 keys).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

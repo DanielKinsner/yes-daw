@@ -1378,6 +1378,20 @@ public:
         return { id, state, true };
     }
 
+    // E9: the piano roll follows the timeline — a double-clicked MIDI clip becomes ITS clip.
+    [[nodiscard]] bool openPianoRollOnMidiClip (engine::EntityId midiClipId) noexcept
+    {
+        if (findMidiClip (midiClipId) == nullptr)
+            return false;
+
+        selectedMidiClipId_ = midiClipId;
+        selectedMidiNoteId_ = {};
+        selectedMidiNoteIds_.clear();
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        return true;
+    }
+
     [[nodiscard]] bool selectFirstMidiClip() noexcept
     {
         if (! context_.projectLoaded || project_.midiClips.empty())

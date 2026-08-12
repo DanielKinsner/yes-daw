@@ -6154,6 +6154,112 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
 }
 
+TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
+           "[ui][input][shell][timeline][roll-follow]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-follow");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    clickButton (*addTrack);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    const auto selectRailRow = [&] (int row) {
+        mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 });
+    };
+
+    // One MIDI clip per track, all at frame zero.
+    for (int row = 0; row < 3; ++row)
+    {
+        selectRailRow (row);
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    }
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 3u);
+    REQUIRE (original.midiClips.size() == 3u);
+    const double sampleRateHz = original.sampleRate.hz;
+    const yesdaw::engine::Tick clipLength = original.midiClips.front().timelineLength;
+
+    const auto notesOnTrack = [&] (std::size_t trackIndex) {
+        const yesdaw::engine::Project snapshotProject = readProjectSnapshot (bundlePath);
+        for (const yesdaw::engine::MidiClip& midiClip : snapshotProject.midiClips)
+            if (midiClip.trackId == snapshotProject.tracks[trackIndex].id)
+                return midiClip.notes.size();
+        return std::size_t { 0 };
+    };
+    REQUIRE (notesOnTrack (0) == 0u);
+    REQUIRE (notesOnTrack (1) == 0u);
+    REQUIRE (notesOnTrack (2) == 0u);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const auto midiClipPointOnLane = [&] (int lane) {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = 3;
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        return juce::Point<int> {
+            geometry.clipArea.getX()
+                + juce::roundToInt ((static_cast<double> (clipLength / 2) / sampleRateHz
+                                     - geometry.viewport.scrollSeconds) * pixelsPerSecond),
+            geometry.clipArea.getY() + lane * geometry.laneHeight + geometry.laneHeight / 2
+        };
+    };
+
+    // Double-click the LAST track's MIDI clip: the roll opens on THAT clip and the pencil lands
+    // its note there and nowhere else.
+    doubleClickAt (timeline, midiClipPointOnLane (2));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
+    REQUIRE (notesOnTrack (2) == 1u);
+    REQUIRE (notesOnTrack (0) == 0u);
+    REQUIRE (notesOnTrack (1) == 0u);
+
+    // Switch to the FIRST track's clip the same way.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    doubleClickAt (timeline, midiClipPointOnLane (0));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
+    REQUIRE (notesOnTrack (0) == 1u);
+    REQUIRE (notesOnTrack (1) == 0u);
+    REQUIRE (notesOnTrack (2) == 1u);
+
+    // The View Piano Roll action retains the LAST opened clip instead of resetting to the first.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre().translated (
+                                0, yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight * 2));
+    REQUIRE (notesOnTrack (0) == 2u);
+    REQUIRE (notesOnTrack (1) == 0u);
+    REQUIRE (notesOnTrack (2) == 1u);
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {
