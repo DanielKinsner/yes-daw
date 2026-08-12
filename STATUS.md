@@ -746,7 +746,16 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B29 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+The first exact-head run `31567781787` was red on macOS only (red round 1): the mixer-pan Alt+click
+persisted ~2e-17 instead of exactly 0. Root cause is in the product, not the gate: JUCE snaps
+slider values as `rangeStart + interval * n`, and with the pan range starting at −1.0, ARM FMA
+contraction leaves cancellation dust where x64 lands exactly on 0.0 — so dead-center pan (reset or
+dragged) genuinely persisted off-center on Apple Silicon. The repair snaps the pan handler's value
+to the same interval grid with cancellation-free arithmetic (`round(v/interval)*interval`) before
+it reaches the model; x64-persisted floats are bit-identical to before, and the gate's exact-zero
+assertion is unchanged — never loosened.
+
+**Now:** B29 repair checkpoint — awaiting the exact-head GitHub Actions run on the repaired head.
 
 **Next:** on green, tick B29 in the backlog with SHA + run id (docs-only evidence commit), then B30
 (Shift fine drag, exact 10x, incl. rail minis) per the run brief.

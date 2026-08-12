@@ -3112,7 +3112,14 @@ private:
             if (refreshingMixerControls || ! mixerPan.isEnabled())
                 return;
 
-            (void) appModel.setSelectedMixerPan (static_cast<float> (mixerPan.getValue()));
+            // JUCE snaps values as `rangeStart + interval * n`; with the pan range starting at
+            // -1.0, ARM FMA contraction leaves ~2e-17 dust where x64 lands exactly on 0.0. Snap
+            // to the same interval grid with cancellation-free arithmetic so dead center
+            // persists as exactly 0 on every platform.
+            const double snapped = std::round (mixerPan.getValue()
+                                               / yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval)
+                                 * yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval;
+            (void) appModel.setSelectedMixerPan (static_cast<float> (snapped));
             refreshActionState();
             repaint();
         };
