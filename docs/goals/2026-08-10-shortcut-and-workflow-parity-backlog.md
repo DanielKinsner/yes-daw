@@ -197,8 +197,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     untouched. Covers the mixer fader/pan, sends, FX params, header tempo, inspector sliders, and
     the rail VOL/PAN minis (persisted-value anchoring). The shipped-boundary gate proves exact
     per-style math, interval-grid landing, the no-jump anchor, and a >5x coarse/fine ratio.
-31. **dB readout** — the mixer fader and rail VOL show live dB (20*log10(gain)) in a tooltip
-    or tiny label while dragging; -inf at zero.
+31. [x] **dB readout** — landed in `6e95696` (exact-head run `31570461464`, nine jobs green).
+    A shared click-transparent label shows `20*log10(gain)` to one decimal (`-inf dB` at exact
+    silence) above the mixer fader or rail VOL while its drag is held, live-updating through the
+    real drag/value paths (`FineDragSlider` fires the drag callbacks on its fine path; the rail
+    minis gained a gesture-end signal). Honestly transient view state. The shipped-boundary gate
+    proves hidden-at-rest, no-show on programmatic changes, exact live text, `-inf` at zero, and
+    hide-on-release.
 32. **Meter peak-hold + clip light** — strip and rail meters hold peaks ~2s and latch a red
     clip indicator at >= 0 dBFS; click clears. Painted-only is fine; state in the meter
     readout path.

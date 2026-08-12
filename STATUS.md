@@ -808,10 +808,18 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B31 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31570461464` is green for full SHA
+`6e956963ed2e799382c1a99c08b118cc53f520a5` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B31 is ticked in the backlog.
 
-**Next:** on green, tick B31 in the backlog with SHA + run id (docs-only evidence commit), then B32
-(meter peak-hold + clip light) per the run brief.
+**Now:** B31 certified; B32 (meter peak-hold + clip light) is next per the run brief.
+
+**Next:** B32 — audited: strip/rail meters currently paint honest zeros because no live per-track
+peak reaches the shell (only the master meter reads the device-callback atomics); `MeterNode`
+already publishes UI-readable atomic peaks and `PlaybackEngine` publishes exactly one graph per
+engine, so harvest per-track MeterNode pointers at create, surface live peaks through UiAppModel
+into the mixer-surface controls, then put hold (~2s of UI-timer ticks, never wall-clock) + >= 0
+dBFS clip latch + click-clear state in the shared meter readout path.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
