@@ -243,8 +243,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     when the entire selection is aligned. The gate derives expectations from the same engine
     snapTick law and proves exact grid landing, one-step group undo with bit-identical playback,
     audible change, and the honest no-op.
-37. **Confirm on close** — closing the app with unsaved changes prompts Save/Discard/Cancel
-    (autosave stays independent). Harness-injectable chooser like the file dialogs.
+37. [x] **Confirm on close** — landed in `155e36a` (exact-head run `31580310432`, nine jobs
+    green). "Unsaved changes" honestly means edits since the last explicit Save (an edit serial
+    across every mutation path, cleared by Save/Save-As and fresh attach) — every edit already
+    persists synchronously, so closing never rolls back data. The window close button asks through
+    the new harness-injectable `confirmCloseUnsavedChanges` seam (native three-way box otherwise):
+    Save records the state and closes, Close-without-saving closes with the bundle current, Cancel
+    stays; autosave untouched. The gate proves all flows through the injected seam.
 38. **Dirty marker + title** — window title shows "<project> — YES DAW" with `*` when
     unsaved edits exist. Gate: edit → title dirty; save → clean.
 39. **Open Recent** — File menu lists the last 5 project bundles (session state dir already

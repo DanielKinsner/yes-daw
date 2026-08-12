@@ -981,6 +981,22 @@ app open; Close-without-saving closes while the persisted bundle keeps the edit;
 bumps the real save count, and the very next close is silent; and an explicit Ctrl+S also cleans
 the session (30 assertions, green first run).
 
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256. (This paragraph and the
+certification below were recorded in the evidence commit; the feature commit omitted them.)
+
+Exact-head GitHub Actions run `31580310432` is green for full SHA
+`155e36a40465431f02f3d750a7e84d476f6f2976` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B37 is ticked in the backlog.
+
+**Now:** B37 certified; B38 (dirty marker + title) is next per the run brief.
+
+**Next:** B38 — audited: `hasUnsavedChanges()` (B37) and the model's `bundlePath()` accessor carry
+everything needed; compute "<bundle stem>[*] - YES DAW" as state-derived shell data exposed through
+the harness snapshot (gate law: edit → dirty, save → clean), and push it to the parent
+DocumentWindow on the UI tick for the native shell.
+
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
 **What landed (docs only, no implementation code):** ADR-0037 (alpha target + H14–H19 re-carve),
