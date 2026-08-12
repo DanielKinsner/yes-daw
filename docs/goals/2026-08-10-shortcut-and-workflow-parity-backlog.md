@@ -270,8 +270,15 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     SettableTooltipClient mixin; a desktop-scoped TooltipWindow displays them natively. The gate
     walks every componentID descendant: tooltip client, non-empty text, and the LIVE chord on
     action-backed controls.
-41. **SNAP label clip** — the "SNAP" label is clipped by the Beat chooser (cosmetic, known).
-    Fix the header row spacing tokens.
+41. [x] **SNAP label clip** — landed in `2375782` (exact-head run `31585200992`, nine jobs
+    green). Token-only fix: the automation toggle shifts right (368→420) carrying both
+    right-aligned choosers with it, the repeat-paste gap widens (8→57) so that chooser lands
+    exactly clear of the painted tool cells, and the SNAP caption moves into the opened gap
+    between the choosers (234→266) with the always-covered legacy painted field/value shifted
+    to stay hidden under the chooser. The gate computes the painted caption rect from the same
+    geometry helper and tokens the painter uses and requires zero intersection with either
+    chooser, the caption ordered between them, the repeat chooser clear of the tool cells, and
+    the automation toggle inside the timeline header.
 
 ## Explicitly out of scope (do NOT fake these)
 

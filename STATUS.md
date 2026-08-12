@@ -1088,11 +1088,19 @@ the Visual Studio Build Tools Developer Shell. The owner's real last-project rec
 (moved aside) and restored with its exact SHA-256; the test-written recent-projects file was
 removed.
 
-**Now:** B41 feature commit is pushed; awaiting its exact-head GitHub Actions run before ticking
-the final backlog item.
+Exact-head GitHub Actions run `31585200992` is green for full SHA
+`23757829086ac47fe578c9e3940eae64b850cb42` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B41 is ticked in the backlog.
 
-**Next:** on green, post the B41 evidence commit — the shortcut & workflow parity backlog
-(items 26–41) is then complete.
+**Now:** the shortcut & workflow parity backlog is COMPLETE — all sixteen items (B26–B41) are
+individually certified: each landed as its own feature commit, proven by a shipped-boundary gate
+that failed before and passed after, went green on its exact-head nine-job GitHub Actions run,
+and was ticked in a separate docs-only evidence commit. The overnight run brief
+(`docs/goals/2026-08-11-overnight-backlog-run-brief.md`) is fully executed.
+
+**Next:** Dan picks the next goal. The remaining shipped-parity work lives in the P0 backlog of
+`docs/reviews/2026-08-09-shipped-parity-gap-audit.md`; the backlog doc's "explicitly out of
+scope" section lists what was deliberately not faked and could seed the next carve.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
