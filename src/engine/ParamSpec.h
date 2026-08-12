@@ -31,7 +31,22 @@ struct ParamSpec
     double        def       = 0.0;
     ParamMapping  mapping   = ParamMapping::Linear;
     ParamSmoothing smoothing = ParamSmoothing::None;
+    // E15: choice-shaped params (an enum behind a numeric range) declare their choices so UIs
+    // can render a real chooser instead of a raw slider. 0 = continuous. When set, choiceNames
+    // points at choiceCount static labels and the real value is the choice index.
+    std::uint8_t  choiceCount = 0;
+    const char* const* choiceNames = nullptr;
 };
+
+// E15: the normalized value that lands EXACTLY on a choice index once mapped and rounded.
+[[nodiscard]] inline double normalizedForChoice (const ParamSpec& spec, std::uint8_t choice) noexcept
+{
+    if (spec.choiceCount < 2)
+        return 0.0;
+
+    const double lastChoice = static_cast<double> (spec.choiceCount - 1);
+    return std::clamp (static_cast<double> (choice) / lastChoice, 0.0, 1.0);
+}
 
 [[nodiscard]] inline bool paramSpecHasUsableRange (const ParamSpec& spec) noexcept
 {

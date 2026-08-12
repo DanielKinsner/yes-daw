@@ -384,9 +384,25 @@ E14 is certified: exact-head GitHub Actions run `31643567315` green for full SHA
 `061f86350d9fc465bb3637f6c58cf95996b1cc4c` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E14 is ticked in the backlog.
 
-**Now:** E15 (every FX param reachable, with the right control type) — audited and
-design-locked: ParamSpec gains choice metadata, probe limit 32→96, an 8-row page chooser,
-per-row choice ComboBoxes for EQ band type and delay ping-pong; gate walks all five FxKinds.
+**E15 implementation candidate — every FX param reachable, with the right control type:**
+audited before changing: the param panel probed ids 0–31 into 8 sliders, so EQ bands 2–5 (16 of
+24 params, ids up to 83) were UNREACHABLE, and enum params (EQ band type, delay ping-pong)
+rendered as raw linear sliders. `ParamSpec` now carries choice metadata (`choiceCount` +
+`choiceNames`, additive trailing members): EQ band type declares its six filter shapes, delay
+ping-pong its two states, and `normalizedForChoice` maps a choice index to the exact normalized
+value. The probe limit rose 32→96 (EQ's band-5 gain tops out at id 83); param lists larger than
+one panel page through the new `mixer.fx.param.page` chooser (a fresh slot always opens on page
+1); choice-shaped rows swap their slider for a real chooser (`mixer.fx.param.N.choice`) that
+persists through the same `SetFxInsertParam` verb. Shell childCount re-pinned 103→112 (8 choice
+choosers + the pager). The shipped-boundary `[fx-params-all]` gate FAILED before (18 assertions
+in, no pager exists) and passes after with 119 assertions: the FULL param inventory of all five
+FxKinds walked page by page (EQ 24, Compressor 6, Delay 6, Reverb 5, Limiter 3), the EQ band
+type chooser persisting HPF's exact 0.6 normalization with the slider hidden, the
+previously-unreachable band-5 gain (id 82) edited on page 3, delay ping-pong toggled On through
+its two-state chooser, and three undos restoring each edit in reverse order.
+
+**Now:** E15 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E16 (bus strips are real strips).
 

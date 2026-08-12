@@ -244,6 +244,9 @@ public:
 
     [[nodiscard]] static ParamSpec parameterSpec (ParameterId parameterId) noexcept
     {
+        // E15: ping-pong is a CHOICE param — UIs render its two states as a chooser.
+        static constexpr const char* kPingPongNames[] = { "Off", "On" };
+
         switch (parameterId)
         {
             case kTimeLeftParamId:
@@ -260,7 +263,7 @@ public:
                                    kDefaultDampingHz, ParamMapping::Log, ParamSmoothing::Linear5Ms };
             case kPingPongParamId:
                 return ParamSpec { parameterId, "delay.ping_pong", "", 0.0, 1.0,
-                                   0.0, ParamMapping::Linear, ParamSmoothing::None };
+                                   0.0, ParamMapping::Linear, ParamSmoothing::None, 2, kPingPongNames };
             case kMixParamId:
                 return ParamSpec { parameterId, "delay.mix", "", kMinMix, kMaxMix,
                                    kDefaultMix, ParamMapping::Linear, ParamSmoothing::Linear5Ms };

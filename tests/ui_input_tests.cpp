@@ -873,8 +873,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.desktopAudioRequested);
     // 91 shell children + the B31 drag dB readout label (hidden until a gain drag) + the E7
     // marker rename editor (hidden until a marker double-click) + the E14 per-slot FX up/down
-    // pairs (5 slots x 2, hidden until inserts exist) — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 103u));
+    // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
+    // choosers (8) and the param page chooser — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 112u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -3864,6 +3865,129 @@ TEST_CASE ("FX slot up/down reorder the chain undoably and audibly for a non-com
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[0].kind
              == yesdaw::engine::FxKind::Eq);
+}
+
+TEST_CASE ("every FX param of every kind is reachable, with choosers for choice params",
+           "[ui][input][shell][mixer][fx-params-all]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("fx-params-all");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (chooser != nullptr);
+    const std::array<std::pair<yesdaw::engine::FxKind, int>, 5> kindsAndParamCounts {{
+        { yesdaw::engine::FxKind::Eq, 24 },
+        { yesdaw::engine::FxKind::Compressor, 6 },
+        { yesdaw::engine::FxKind::Delay, 6 },
+        { yesdaw::engine::FxKind::Reverb, 5 },
+        { yesdaw::engine::FxKind::Limiter, 3 }
+    }};
+    for (const auto& [kind, count] : kindsAndParamCounts)
+        chooser->setSelectedId (static_cast<int> (kind) + 1, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.size() == 5u);
+
+    auto* pager = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.param.page"));
+    REQUIRE (pager != nullptr);
+
+    // Every kind exposes its FULL param inventory across the pager's pages.
+    for (std::size_t slot = 0; slot < kindsAndParamCounts.size(); ++slot)
+    {
+        auto* edit = dynamic_cast<juce::Button*> (findChildWithComponentId (
+            *shell, "mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".edit"));
+        REQUIRE (edit != nullptr);
+        clickButton (*edit);
+
+        const int pages = pager->isVisible() ? pager->getNumItems() : 1;
+        int visibleParams = 0;
+        for (int page = 0; page < pages; ++page)
+        {
+            if (page > 0)
+                pager->setSelectedId (page + 1, juce::sendNotificationSync);
+            for (std::size_t row = 0; row < yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount; ++row)
+            {
+                auto* label = findChildWithComponentId (
+                    *shell, "mixer.fx.param." + juce::String (static_cast<int> (row)) + ".label");
+                REQUIRE (label != nullptr);
+                if (label->isVisible())
+                    ++visibleParams;
+            }
+        }
+        INFO ("slot " << slot << " expected " << kindsAndParamCounts[slot].second
+              << " params, saw " << visibleParams);
+        REQUIRE (visibleParams == kindsAndParamCounts[slot].second);
+        clickButton (*edit);   // close before the next slot
+    }
+
+    // EQ band 0 TYPE is a real chooser: picking HPF persists the exact choice normalization.
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+    auto* typeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.param.0.choice"));
+    auto* slider0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (typeChooser != nullptr);
+    REQUIRE (slider0 != nullptr);
+    REQUIRE (typeChooser->isVisible());
+    REQUIRE_FALSE (slider0->isVisible());
+    REQUIRE (typeChooser->getNumItems() == 6);
+    typeChooser->setSelectedId (4, juce::sendNotificationSync);   // HPF = choice index 3
+    const auto paramValue = [&] (std::size_t chainSlot, std::uint32_t paramId) {
+        const std::vector<std::pair<std::uint32_t, double>> params =
+            readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[chainSlot].normalizedParams;
+        for (const auto& [id, value] : params)
+            if (id == paramId)
+                return value;
+        FAIL ("param not persisted");
+        return -1.0;
+    };
+    REQUIRE (paramValue (0, 0) == Catch::Approx (0.6));
+
+    // The previously-unreachable EQ band 5 gain (id 82) is editable on the last page.
+    REQUIRE (pager->isVisible());
+    REQUIRE (pager->getNumItems() == 3);
+    pager->setSelectedId (3, juce::sendNotificationSync);
+    auto* band5Gain = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.6"));
+    REQUIRE (band5Gain != nullptr);
+    REQUIRE (band5Gain->isVisible());
+    band5Gain->setValue (0.75, juce::sendNotificationSync);
+    REQUIRE (paramValue (0, 82) == Catch::Approx (0.75));
+    clickButton (*edit0);
+
+    // Delay ping-pong is a two-state chooser persisting exactly 1.0 for On.
+    auto* edit2 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.2.edit"));
+    REQUIRE (edit2 != nullptr);
+    clickButton (*edit2);
+    auto* pingPong = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.param.4.choice"));
+    REQUIRE (pingPong != nullptr);
+    REQUIRE (pingPong->isVisible());
+    REQUIRE (pingPong->getNumItems() == 2);
+    pingPong->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (paramValue (2, 4) == Catch::Approx (1.0));
+
+    // Three param edits, three undos — each restores in reverse order.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    for (const auto& [id, value] : project.tracks.front().strip.fxChain[2].normalizedParams)
+        REQUIRE (id != 4u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    for (const auto& [id, value] : project.tracks.front().strip.fxChain[0].normalizedParams)
+        REQUIRE (id != 82u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[0].normalizedParams.empty());
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",

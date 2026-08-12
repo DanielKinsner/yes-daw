@@ -193,11 +193,16 @@ public:
             return {};
         (void) band;
 
+        // E15: the band type is a CHOICE param — UIs render its six filter shapes as a chooser.
+        static constexpr const char* kBandTypeNames[] = {
+            "Bell", "Low Shelf", "High Shelf", "HPF", "LPF", "Notch"
+        };
+
         switch (offset)
         {
             case kTypeParamOffset:
                 return ParamSpec { parameterId, "eq.band.type", "", 0.0, 5.0, 0.0,
-                                   ParamMapping::Linear, ParamSmoothing::None };
+                                   ParamMapping::Linear, ParamSmoothing::None, 6, kBandTypeNames };
             case kFrequencyParamOffset:
                 return ParamSpec { parameterId, "eq.band.freq", "Hz", 20.0, 20000.0, kDefaultFrequencyHz,
                                    ParamMapping::Log, ParamSmoothing::Linear5Ms };

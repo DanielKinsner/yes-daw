@@ -4297,6 +4297,7 @@ private:
             edit.onClick = [this, slot] {
                 selectedFxParamSlot = selectedFxParamSlot == static_cast<int> (slot) ? -1
                                                                                      : static_cast<int> (slot);
+                selectedFxParamPage = 0;   // E15: a fresh slot always opens on its first page
                 refreshActionState();
                 resized();
                 repaint();
@@ -4443,7 +4444,54 @@ private:
                 repaint();
             };
             addChildComponent (slider);
+
+            // E15: choice-shaped params (EQ band type, delay ping-pong) get a real chooser in
+            // place of the raw slider.
+            auto& choiceChooser = mixerFxParamChoosers[index];
+            configureActionComponent (choiceChooser, yesdaw::ui::UiActionId::MixerFxInsertParamSet,
+                                      "FX parameter choice");
+            choiceChooser.setComponentID ("mixer.fx.param." + juce::String (static_cast<int> (index))
+                                          + ".choice");
+            choiceChooser.onChange = [this, index] {
+                if (refreshingFxParamControls || selectedFxParamSlot < 0)
+                    return;
+
+                const int choice = mixerFxParamChoosers[index].getSelectedId() - 1;
+                const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+                if (choice < 0 || static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
+                    return;
+
+                const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (
+                    chain[static_cast<std::size_t> (selectedFxParamSlot)].kind,
+                    mixerFxParamSliderIds[index]);
+                (void) appModel.setFxInsertParamOnSelectedStrip (
+                    static_cast<std::size_t> (selectedFxParamSlot),
+                    mixerFxParamSliderIds[index],
+                    yesdaw::engine::normalizedForChoice (spec, static_cast<std::uint8_t> (choice)));
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (choiceChooser);
         }
+
+        // E15: params beyond one panel's worth page through this chooser.
+        configureActionComponent (mixerFxParamPageChooser, yesdaw::ui::UiActionId::MixerFxInsertParamSet,
+                                  "FX parameter page");
+        mixerFxParamPageChooser.setComponentID ("mixer.fx.param.page");
+        mixerFxParamPageChooser.onChange = [this] {
+            if (refreshingFxParamControls)
+                return;
+
+            const int page = mixerFxParamPageChooser.getSelectedId() - 1;
+            if (page < 0 || page == selectedFxParamPage)
+                return;
+
+            selectedFxParamPage = page;
+            refreshActionState();
+            resized();
+            repaint();
+        };
+        addChildComponent (mixerFxParamPageChooser);
 
         configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
         mixerFader.setSliderStyle (juce::Slider::LinearVertical);
@@ -5161,11 +5209,24 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
+        // E15: the pager row (when paging) sits above the param rows; a choice-shaped row puts
+        // its chooser where the slider would go.
+        if (mixerFxParamPageChooser.isVisible())
+        {
+            mixerFxParamPageChooser.setBounds (
+                utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        }
+        else
+        {
+            mixerFxParamPageChooser.setBounds ({});
+        }
         for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
         {
-            if (! mixerFxParamSliders[index].isVisible())
+            if (! mixerFxParamLabels[index].isVisible())
             {
                 mixerFxParamSliders[index].setBounds ({});
+                mixerFxParamChoosers[index].setBounds ({});
                 mixerFxParamLabels[index].setBounds ({});
                 continue;
             }
@@ -5173,7 +5234,16 @@ private:
             auto paramRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxParamRowHeight);
             mixerFxParamLabels[index].setBounds (
                 paramRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
-            mixerFxParamSliders[index].setBounds (paramRow);
+            if (mixerFxParamChoosers[index].isVisible())
+            {
+                mixerFxParamChoosers[index].setBounds (paramRow);
+                mixerFxParamSliders[index].setBounds ({});
+            }
+            else
+            {
+                mixerFxParamSliders[index].setBounds (paramRow);
+                mixerFxParamChoosers[index].setBounds ({});
+            }
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
@@ -5902,6 +5972,7 @@ private:
 
             refreshingFxParamControls = true;
             std::size_t used = 0;
+            std::size_t pageCount = 0;
             if (selectedFxParamSlot >= 0)
             {
                 const yesdaw::engine::FxKind kind =
@@ -5909,29 +5980,83 @@ private:
                 const bool paramEditEnabled =
                     appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerFxInsertParamSet,
                                                   appModel.context()).enabled;
+
+                // E15: collect EVERY accepted param id, then show the selected page of rows.
+                std::vector<std::uint32_t> acceptedIds;
                 for (std::uint32_t paramId = 0;
-                     paramId < yesdaw::ui::UiTheme::Layout::mixerFxParamProbeLimit
-                     && used < mixerFxParamSliders.size();
+                     paramId < yesdaw::ui::UiTheme::Layout::mixerFxParamProbeLimit;
                      ++paramId)
                 {
-                    if (! yesdaw::engine::fxKindAcceptsParameterId (kind, paramId))
-                        continue;
+                    if (yesdaw::engine::fxKindAcceptsParameterId (kind, paramId))
+                        acceptedIds.push_back (paramId);
+                }
+                pageCount = (acceptedIds.size() + mixerFxParamSliders.size() - 1)
+                          / std::max<std::size_t> (1, mixerFxParamSliders.size());
+                if (selectedFxParamPage < 0
+                    || static_cast<std::size_t> (selectedFxParamPage) >= pageCount)
+                    selectedFxParamPage = 0;
 
+                mixerFxParamPageChooser.clear (juce::dontSendNotification);
+                for (std::size_t page = 0; page < pageCount; ++page)
+                {
+                    const std::size_t firstParam = page * mixerFxParamSliders.size();
+                    const std::size_t lastParam = std::min (firstParam + mixerFxParamSliders.size(),
+                                                            acceptedIds.size());
+                    mixerFxParamPageChooser.addItem (
+                        "Params " + juce::String (static_cast<int> (firstParam) + 1)
+                            + "-" + juce::String (static_cast<int> (lastParam)),
+                        static_cast<int> (page) + 1);
+                }
+                mixerFxParamPageChooser.setSelectedId (selectedFxParamPage + 1, juce::dontSendNotification);
+                mixerFxParamPageChooser.setEnabled (paramEditEnabled);
+
+                const std::size_t firstShown =
+                    static_cast<std::size_t> (selectedFxParamPage) * mixerFxParamSliders.size();
+                for (std::size_t i = firstShown;
+                     i < acceptedIds.size() && used < mixerFxParamSliders.size();
+                     ++i)
+                {
+                    const std::uint32_t paramId = acceptedIds[i];
                     const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (kind, paramId);
                     const double normalized = appModel.fxInsertParamValueOnSelectedStrip (
                         static_cast<std::size_t> (selectedFxParamSlot), paramId);
                     mixerFxParamSliderIds[used] = paramId;
-                    // Alt+click resets the bound parameter to its ParamSpec default.
-                    mixerFxParamSliders[used].setDoubleClickReturnValue (
-                        true, yesdaw::engine::normalizedDefault (spec));
-                    mixerFxParamSliders[used].setValue (normalized, juce::dontSendNotification);
-                    mixerFxParamSliders[used].setEnabled (paramEditEnabled);
-                    mixerFxParamSliders[used].setVisible (true);
-                    mixerFxParamLabels[used].setText (
-                        juce::String (spec.name)
-                            + " " + juce::String (yesdaw::engine::mapNormalized (spec, normalized), 1)
-                            + spec.unit,
-                        juce::dontSendNotification);
+                    if (spec.choiceCount >= 2 && spec.choiceNames != nullptr)
+                    {
+                        // E15: choice-shaped param — a real chooser replaces the raw slider.
+                        auto& choiceChooser = mixerFxParamChoosers[used];
+                        choiceChooser.clear (juce::dontSendNotification);
+                        for (int choice = 0; choice < static_cast<int> (spec.choiceCount); ++choice)
+                            choiceChooser.addItem (spec.choiceNames[choice], choice + 1);
+                        const double real = yesdaw::engine::mapNormalized (spec, normalized);
+                        const double step = (spec.max - spec.min)
+                                          / static_cast<double> (spec.choiceCount - 1);
+                        const int currentChoice = juce::jlimit (
+                            0, static_cast<int> (spec.choiceCount) - 1,
+                            static_cast<int> (std::llround ((real - spec.min) / step)));
+                        choiceChooser.setSelectedId (currentChoice + 1, juce::dontSendNotification);
+                        choiceChooser.setEnabled (paramEditEnabled);
+                        choiceChooser.setVisible (true);
+                        mixerFxParamSliders[used].setVisible (false);
+                        mixerFxParamLabels[used].setText (
+                            juce::String (spec.name) + " " + spec.choiceNames[currentChoice],
+                            juce::dontSendNotification);
+                    }
+                    else
+                    {
+                        // Alt+click resets the bound parameter to its ParamSpec default.
+                        mixerFxParamSliders[used].setDoubleClickReturnValue (
+                            true, yesdaw::engine::normalizedDefault (spec));
+                        mixerFxParamSliders[used].setValue (normalized, juce::dontSendNotification);
+                        mixerFxParamSliders[used].setEnabled (paramEditEnabled);
+                        mixerFxParamSliders[used].setVisible (true);
+                        mixerFxParamChoosers[used].setVisible (false);
+                        mixerFxParamLabels[used].setText (
+                            juce::String (spec.name)
+                                + " " + juce::String (yesdaw::engine::mapNormalized (spec, normalized), 1)
+                                + spec.unit,
+                            juce::dontSendNotification);
+                    }
                     mixerFxParamLabels[used].setVisible (true);
                     ++used;
                 }
@@ -5939,12 +6064,16 @@ private:
             for (std::size_t index = used; index < mixerFxParamSliders.size(); ++index)
             {
                 mixerFxParamSliders[index].setVisible (false);
+                mixerFxParamChoosers[index].setVisible (false);
                 mixerFxParamLabels[index].setVisible (false);
             }
+            const bool pagerVisible = pageCount > 1;
+            mixerFxParamPageChooser.setVisible (pagerVisible);
             refreshingFxParamControls = false;
-            if (used != lastVisibleFxParamRows)
+            if (used != lastVisibleFxParamRows || pagerVisible != lastFxParamPagerVisible)
             {
                 lastVisibleFxParamRows = used;
+                lastFxParamPagerVisible = pagerVisible;
                 resized();
             }
         }
@@ -8132,6 +8261,11 @@ private:
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;
     std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};
+    // E15: choice-shaped params render as real choosers; big param lists page through the pager.
+    std::array<juce::ComboBox, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamChoosers;
+    juce::ComboBox mixerFxParamPageChooser;
+    int selectedFxParamPage = 0;
+    bool lastFxParamPagerVisible = false;
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
     juce::TextButton mixerBusAddButton;
