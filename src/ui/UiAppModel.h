@@ -592,6 +592,30 @@ public:
         return std::filesystem::exists (recorded, existsError) ? recorded : std::filesystem::path {};
     }
 
+    static constexpr std::size_t kRecentProjectsLimit = 5;
+
+    // Open Recent MRU (B39): up to five bundle paths, most recent first, one UTF-8 line each in
+    // recent-projects.txt beside the last-project record (whose format stays untouched).
+    [[nodiscard]] std::vector<std::filesystem::path> recentProjectBundles() const
+    {
+        std::vector<std::filesystem::path> recents;
+        if (sessionStateDirectory_.empty())
+            return recents;
+
+        std::ifstream input (sessionStateDirectory_ / kRecentProjectsRecordFileName);
+        std::string line;
+        while (recents.size() < kRecentProjectsLimit && std::getline (input, line))
+        {
+            if (line.empty())
+                continue;
+
+            const auto* bytes = reinterpret_cast<const char8_t*> (line.data());
+            recents.emplace_back (std::u8string (bytes, bytes + line.size()));
+        }
+
+        return recents;
+    }
+
     [[nodiscard]] persistence::BundleResult saveProjectBundle()
     {
         if (! bundleDb_.isOpen())
@@ -5330,6 +5354,26 @@ private:
         const std::u8string utf8 = bundlePath_.u8string();
         output.write (reinterpret_cast<const char*> (utf8.data()),
                       static_cast<std::streamsize> (utf8.size()));
+
+        // MRU update (B39): the current bundle moves to the top; the list keeps at most five.
+        std::vector<std::filesystem::path> recents = recentProjectBundles();
+        std::erase (recents, bundlePath_);
+        recents.insert (recents.begin(), bundlePath_);
+        if (recents.size() > kRecentProjectsLimit)
+            recents.resize (kRecentProjectsLimit);
+
+        std::ofstream recentOutput (sessionStateDirectory_ / kRecentProjectsRecordFileName,
+                                    std::ios::binary | std::ios::trunc);
+        if (! recentOutput.good())
+            return;
+
+        for (const std::filesystem::path& recent : recents)
+        {
+            const std::u8string recentUtf8 = recent.u8string();
+            recentOutput.write (reinterpret_cast<const char*> (recentUtf8.data()),
+                                static_cast<std::streamsize> (recentUtf8.size()));
+            recentOutput.put ('\n');
+        }
     }
 
     void attachProjectBundle (
@@ -5717,6 +5761,7 @@ private:
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
     int repeatPasteCount_ = kDefaultRepeatPasteCount;
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
+    static constexpr const char* kRecentProjectsRecordFileName = "recent-projects.txt";
 
     [[nodiscard]] static UiClipClipboardEntry clipboardEntryForClip (const engine::Clip& clip,
                                                                      engine::Tick anchorStart) noexcept

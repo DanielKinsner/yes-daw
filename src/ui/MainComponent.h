@@ -35,6 +35,9 @@ struct MainComponentFileChoices
     // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
     // three-way box when unset.
     std::function<int()> confirmCloseUnsavedChanges;
+    // Session-state directory seam (B39): the harness points last-project/recent-projects records
+    // at a test-local directory; the native shell keeps its real per-user location when unset.
+    std::filesystem::path sessionStateDirectory;
 };
 
 inline constexpr int kCloseChoiceSave = 0;

@@ -1011,15 +1011,33 @@ Exact-head GitHub Actions run `31581331754` is green for full SHA
 `fa0b779cb4066644bee44654581d8eaff6ef3bea` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B38 is ticked in the backlog.
 
-**Now:** B38 certified; B39 (Open Recent) is next per the run brief.
+**B39 implementation candidate — Open Recent:** audited before adding anything: only the native
+shell sets a session-state directory (harness gates never touched the owner's records), and the
+last-project record's one-line format is protected. A separate `recent-projects.txt` MRU (up to
+five bundle paths, most recent first, the same UTF-8 encoding) now updates whenever the
+last-project record is written — every bundle attach and Save-As — with the current bundle moving
+to the top. The injectable choices gain a `sessionStateDirectory` seam so gates use a test-local
+directory; the native shell keeps its real per-user location. The File menu gains an Open Recent
+submenu (item ids above the action range, disabled while empty) whose entries reopen bundles
+through the open-by-path helper extracted from File > Open. The menubar gate's File-menu item
+count re-pins deliberately from 6 to 7 for the submenu.
 
-**Next:** B39 — audited: the harness never sets a session-state directory (only the native shell
-does), so add a `sessionStateDirectory` seam to the injectable choices; a separate
-`recent-projects.txt` MRU (up to 5, most recent first, same UTF-8 encoding as the untouched
-`last-project.txt`) updates on every bundle attach; the File menu gains an Open Recent submenu
-(IDs above the action range) opening bundles through the extracted open-by-path helper; the menubar
-gate's File-menu count re-pins from 6 to 7; full-suite isolation extends to the owner's
-`recent-projects.txt`.
+The shipped-boundary `[open-recent]` gate creates two bundles through the real New flow into a
+test-local session directory and proves: the submenu lists both stems most recent first; selecting
+the older entry through the real menu path reopens that bundle (the B38 title confirms it); and
+the reopened bundle moves back to the top of the MRU. From this item on, full-suite isolation
+covers the owner's `recent-projects.txt` alongside `last-project.txt` (absent before this suite —
+nothing to restore, any test-written file is removed).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+and restored with its exact SHA-256; no owner recent-projects file existed before the suite and
+none was left behind.
+
+**Now:** B39 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B39 in the backlog with SHA + run id (docs-only evidence commit), then B40
+(tooltips everywhere, pulled from the descriptor table) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

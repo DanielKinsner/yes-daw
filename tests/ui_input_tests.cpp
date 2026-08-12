@@ -3544,7 +3544,8 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     juce::MenuBarModel* model = bar->getModel();
     REQUIRE (model != nullptr);
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "View", "Options", "Help" }));
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 6);
+    // Six action items + the B39 Open Recent submenu.
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 7);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 9);
     REQUIRE (model->getMenuForIndex (4, "Help").getNumItems() == 1);
 
@@ -7791,4 +7792,62 @@ TEST_CASE ("the window title carries the project name and a dirty marker until s
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("the File menu lists recent project bundles most recent first and reopens them",
+           "[ui][input][shell][open-recent]")
+{
+    const std::filesystem::path sessionDir = makeTempBundlePath ("open-recent-session");
+    const std::filesystem::path bundleA = makeTempBundlePath ("open-recent-a");
+    const std::filesystem::path bundleB = makeTempBundlePath ("open-recent-b");
+
+    std::filesystem::path nextNewBundle = bundleA;
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = sessionDir;
+    choices.chooseNewProjectBundle = [&nextNewBundle] { return nextNewBundle; };
+
+    auto shell = makeShell (std::move (choices));
+
+    // Create A then B: the MRU lists both, most recent first.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    nextNewBundle = bundleB;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+
+    const auto recentEntries = [&model]
+    {
+        std::vector<juce::String> entries;
+        juce::PopupMenu fileMenu = model->getMenuForIndex (0, "File");
+        for (juce::PopupMenu::MenuItemIterator it (fileMenu); it.next();)
+        {
+            if (it.getItem().subMenu != nullptr)
+                for (juce::PopupMenu::MenuItemIterator sub (*it.getItem().subMenu); sub.next();)
+                    entries.push_back (sub.getItem().text);
+        }
+        return entries;
+    };
+
+    std::vector<juce::String> entries = recentEntries();
+    REQUIRE (entries.size() == 2u);
+    REQUIRE (entries[0] == juce::String (bundleB.stem().string()));
+    REQUIRE (entries[1] == juce::String (bundleA.stem().string()));
+
+    // Selecting the older entry reopens A through the real menu path; the title follows, and A
+    // moves back to the top of the MRU.
+    model->menuItemSelected (1001, 0);   // second recent row = bundle A
+    REQUIRE (snapshotMainComponent (*shell).windowTitle
+             == bundleA.stem().string() + " - YES DAW");
+    entries = recentEntries();
+    REQUIRE (entries.size() == 2u);
+    REQUIRE (entries[0] == juce::String (bundleA.stem().string()));
+    REQUIRE (entries[1] == juce::String (bundleB.stem().string()));
+
+    std::error_code ec;
+    std::filesystem::remove_all (sessionDir, ec);
+    std::filesystem::remove_all (bundleA, ec);
+    std::filesystem::remove_all (bundleB, ec);
 }

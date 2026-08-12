@@ -40,6 +40,9 @@ constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
 constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
 constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr int kUiRefreshIntervalMs = 33;
+// Open Recent menu item ids live above the action-id range (B39).
+constexpr int kRecentMenuBaseId = 1000;
+
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
@@ -1923,6 +1926,9 @@ public:
         appModel.setPlaybackReplacementCallbacks (
             [this] { suspendDesktopAudioCallback(); },
             [this] { resumeDesktopAudioCallback(); });
+
+        if (! fileChoices.sessionStateDirectory.empty())
+            appModel.setSessionStateDirectory (fileChoices.sessionStateDirectory);
 
         setOpaque (true);
         setLookAndFeel (&lookAndFeel);
@@ -3927,6 +3933,18 @@ private:
         repaint();
     }
 
+    // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
+    void openProjectBundleAtPath (const std::filesystem::path& path)
+    {
+        if (auto decodedAssets = decodeStoredProjectAssets (path); decodedAssets && ! decodedAssets->empty())
+            (void) appModel.loadProjectBundle (
+                path,
+                std::span<const yesdaw::ui::UiDecodedAsset> (
+                    decodedAssets->data(), decodedAssets->size()));
+        else if (decodedAssets)
+            (void) appModel.openProjectBundle (path);
+    }
+
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
@@ -4364,11 +4382,36 @@ private:
                               || (action == yesdaw::ui::UiActionId::TransportToggleRecordCountIn
                                   && appModel.context().recordCountInEnabled));
         }
+
+        // Open Recent (B39): the File menu lists the MRU bundles, most recent first, on item ids
+        // above the action range.
+        if (topLevelMenuIndex == 0)
+        {
+            juce::PopupMenu recent;
+            const std::vector<std::filesystem::path> recents = appModel.recentProjectBundles();
+            for (std::size_t i = 0; i < recents.size(); ++i)
+                recent.addItem (kRecentMenuBaseId + static_cast<int> (i),
+                                juce::String (recents[i].stem().string()));
+            menu.addSubMenu ("Open Recent", recent, ! recents.empty());
+        }
+
         return menu;
     }
 
     void menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/) override
     {
+        if (menuItemID >= kRecentMenuBaseId
+            && menuItemID < kRecentMenuBaseId + static_cast<int> (yesdaw::ui::UiAppModel::kRecentProjectsLimit))
+        {
+            const std::vector<std::filesystem::path> recents = appModel.recentProjectBundles();
+            const std::size_t index = static_cast<std::size_t> (menuItemID - kRecentMenuBaseId);
+            if (index < recents.size())
+                openProjectBundleAtPath (recents[index]);
+            refreshActionState();
+            repaint();
+            return;
+        }
+
         if (menuItemID <= 0 || menuItemID > static_cast<int> (yesdaw::ui::kUiActionCount))
             return;
 
@@ -4458,15 +4501,7 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
                     if (! path.empty())
-                    {
-                        if (auto decodedAssets = decodeStoredProjectAssets (path); decodedAssets && ! decodedAssets->empty())
-                            (void) appModel.loadProjectBundle (
-                                path,
-                                std::span<const yesdaw::ui::UiDecodedAsset> (
-                                    decodedAssets->data(), decodedAssets->size()));
-                        else if (decodedAssets)
-                            (void) appModel.openProjectBundle (path);
-                    }
+                        openProjectBundleAtPath (path);
                 }
                 return;
 
