@@ -2094,6 +2094,80 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// E8: MIDI clips move, change tracks, and delete like audio clips.
+[[nodiscard]] inline ProjectEditStatus moveMidiClip (Project& project, EntityId midiClipId, Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == midiClipId)
+        {
+            midiClip.timelineStart = newTimelineStart;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveMidiClipToTrack (Project& project,
+                                                            EntityId midiClipId,
+                                                            EntityId targetTrackId,
+                                                            Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (project.findTrack (targetTrackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == midiClipId)
+        {
+            midiClip.trackId = targetTrackId;
+            midiClip.timelineStart = newTimelineStart;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMidiClip (Project& project, EntityId midiClipId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        if (project.midiClips[i].id == midiClipId)
+        {
+            project.midiClips.erase (project.midiClips.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
 [[nodiscard]] inline ProjectEditStatus addClip (Project& project, const Clip& clip)
 {
     if (! detail::projectCanApplyClipEdit (project))

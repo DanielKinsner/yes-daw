@@ -5978,6 +5978,182 @@ TEST_CASE ("markers drag-move on the ruler and rename inline, all undoable",
              == rawTickAtX (label.getCentreX()));
 }
 
+TEST_CASE ("MIDI clips are first-class timeline citizens",
+           "[ui][input][shell][timeline][midi-clip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-clip-timeline");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 2);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.tracks.size() == 2u);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (original.midiClips.size() == 1u);
+    REQUIRE (original.midiClips.front().trackId == original.tracks[1].id);
+    REQUIRE (original.midiClips.front().timelineStart == 0);
+    REQUIRE (original.midiClips.front().notes.size() == 1u);
+    const yesdaw::engine::EntityId midiId = original.midiClips.front().id;
+    const double sampleRateHz = original.sampleRate.hz;
+
+    const MainComponentSnapshot base = snapshotMainComponent (*shell);
+    REQUIRE (base.context.snapEnabled);
+    const std::int64_t grid = base.context.snapGridTicks;
+
+    // Layout replication from the REAL viewport (midi clips extend totalSeconds, so the
+    // audio-only test helpers cannot be used here).
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const auto geometryNow = [&] {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = 2;
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth()
+                                                      - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
+                                                    state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        return yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    };
+    const auto pointAt = [&] (yesdaw::engine::Tick tick, int lane) {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = geometryNow();
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        return juce::Point<int> {
+            geometry.clipArea.getX()
+                + juce::roundToInt ((static_cast<double> (tick) / sampleRateHz
+                                     - geometry.viewport.scrollSeconds) * pixelsPerSecond),
+            geometry.clipArea.getY() + lane * geometry.laneHeight + geometry.laneHeight / 2
+        };
+    };
+    const auto gridPixels = [&] {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = geometryNow();
+        const double pixelsPerSecond = std::max (
+            yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+            geometry.viewport.pixelsPerSecond);
+        return juce::roundToInt (static_cast<double> (grid) / sampleRateHz * pixelsPerSecond);
+    };
+
+    const std::uint64_t renderFrames = static_cast<std::uint64_t> (
+        original.midiClips.front().timelineLength + 2 * grid + 256);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // HIT + SELECT: a click on the painted MIDI clip selects it like an audio clip.
+    const yesdaw::engine::Tick midiMid = original.midiClips.front().timelineLength / 2;
+    mouseDownAt (timeline, pointAt (midiMid, 1));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    // MOVE in time: a snapped drag persists through the new MoveMidiClip verb.
+    dragFromTo (timeline, pointAt (midiMid, 1),
+                { pointAt (midiMid, 1).x + gridPixels(), pointAt (midiMid, 1).y });
+    yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().timelineStart == grid);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterMove = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterMove != beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().timelineStart == 0);
+
+    // CROSS-TRACK: a vertical drag persists through MoveMidiClipToTrack; undo restores.
+    dragFromTo (timeline, pointAt (midiMid, 1), pointAt (midiMid, 0));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.front().trackId == edited.tracks[0].id);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().trackId == original.tracks[1].id);
+
+    // GROUP: project-wide selection moves audio and MIDI together as one undo step.
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    const yesdaw::engine::Tick audioMid = original.clips.front().timelineLength / 2;
+    dragFromTo (timeline, pointAt (audioMid, 0),
+                { pointAt (audioMid, 0).x + gridPixels(), pointAt (audioMid, 0).y });
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.clips.front().timelineStart == grid);
+    REQUIRE (edited.midiClips.front().timelineStart == grid);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.clips.front().timelineStart == 0);
+    REQUIRE (edited.midiClips.front().timelineStart == 0);
+
+    // DUPLICATE: Ctrl+D copies both kinds after the selection span, notes included, one undo.
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.clips.size() == 2u);
+    REQUIRE (edited.midiClips.size() == 2u);
+    const yesdaw::engine::Tick span = original.midiClips.front().timelineLength;
+    const auto midiCopy = std::find_if (edited.midiClips.begin(), edited.midiClips.end(), [&] (const auto& clip) {
+        return clip.id != midiId;
+    });
+    REQUIRE (midiCopy != edited.midiClips.end());
+    REQUIRE (midiCopy->trackId == original.tracks[1].id);
+    REQUIRE (midiCopy->timelineStart == span);
+    REQUIRE (midiCopy->notes.size() == 1u);
+    REQUIRE (midiCopy->notes.front().key == original.midiClips.front().notes.front().key);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.clips.size() == 1u);
+    REQUIRE (edited.midiClips.size() == 1u);
+
+    // Trim and split honestly refuse on MIDI clips (no verb exists yet by design).
+    mouseDownAt (timeline, pointAt (midiMid, 1));
+    doubleClickAt (timeline, pointAt (midiMid, 1));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.size() == 1u);
+    REQUIRE (edited.clips.size() == 1u);
+
+    // DELETE: Del removes the selected MIDI clip; the audio clip survives; undo restores audio.
+    mouseDownAt (timeline, pointAt (midiMid, 1));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.empty());
+    REQUIRE (edited.clips.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
+    REQUIRE (afterUndo == beforeEdits);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
            "[ui][input][shell][timeline][split-at-playhead]")
 {

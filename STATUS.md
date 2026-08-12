@@ -220,11 +220,27 @@ E7 is certified: full local ctest green **348/348** (owner record isolated/resto
 byte-identical); exact-head GitHub Actions run green for full SHA
 `423f50ac66a14d94f43d6fd4aa79769046077bfe` across all nine jobs. E7 is ticked in the backlog.
 
-**Now:** E8 (MIDI clips become first-class timeline citizens) — engine verbs
-MoveMidiClip/MoveMidiClipToTrack/RemoveMidiClip + property coverage green locally; the timeline
-selection model is now kind-aware (one `timelineEntityView` law drives select/prune/move/
-cross-track/delete/nudge/duplicate/copy-drag for audio AND MIDI clips); MIDI clips paint on
-their lanes in the MIDI accent colour; `[midi-clip]` gate in progress.
+**E8 implementation candidate — MIDI clips are first-class timeline citizens:** audited before
+adding: MIDI clips were never painted on the timeline, could not be hit-tested, selected, moved,
+or deleted, and the ONLY midi-clip verb in the engine was `addMidiClip`. New undoable engine
+verbs `MoveMidiClip`, `MoveMidiClipToTrack`, and `RemoveMidiClip` mirror the audio clip family
+(removal is the add diff-shape inverted, so undo re-inserts at the old index) and join the
+randomized generated-edit-sequence property test (21st arm; green locally, 7,237 assertions).
+The timeline selection model is now KIND-AWARE through one `timelineEntityView` law:
+select/gesture-select/marquee/prune, group move, cross-track group move with the lane clamp,
+delete, nudge, whole-selection duplicate, and Alt+drag copy all handle audio and MIDI members in
+one undo transaction (the duplicate dropped its clipboard detour for direct fresh-id emission;
+MIDI copies carry every note through the shared `appendMidiClipCopy` emitter). MIDI clips paint
+on their track lanes in the MIDI accent colour ("MIDI" label) and hit-test through the same
+layout ids. Honest scope: MIDI clip trim/split refuse (no verb by design), and the
+Ctrl+C/X clipboard stays audio-only (cut on a midi-containing selection is an honest no-op).
+The shipped-boundary `[midi-clip]` gate FAILED before (a click on the painted MIDI clip selected
+nothing) and passes after with 104 assertions: hit+select, snapped time move with audible change
+and bit-identical undo, cross-track move, mixed audio+MIDI group move, mixed duplicate with note
+payloads, trim/split refusals, delete-with-undo, and select-all covering both kinds.
+
+**Now:** E8 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
 
 **Next:** E9 (piano roll follows the selected MIDI clip).
 

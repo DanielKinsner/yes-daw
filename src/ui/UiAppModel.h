@@ -1247,7 +1247,7 @@ public:
 
     [[nodiscard]] bool selectTimelineClip (engine::EntityId clipId) noexcept
     {
-        if (findClip (clipId) == nullptr)
+        if (! timelineEntityExists (clipId))
         {
             clearTimelineClipSelection();
             return false;
@@ -1262,7 +1262,7 @@ public:
 
     [[nodiscard]] bool selectTimelineClipForGesture (engine::EntityId clipId, bool toggle) noexcept
     {
-        if (findClip (clipId) == nullptr)
+        if (! timelineEntityExists (clipId))
             return false;
 
         const auto selected = std::find (selectedTimelineClipIds_.begin(), selectedTimelineClipIds_.end(), clipId);
@@ -1302,7 +1302,7 @@ public:
         nextSelection.reserve (clipIds.size());
         for (engine::EntityId clipId : clipIds)
         {
-            if (findClip (clipId) == nullptr)
+            if (! timelineEntityExists (clipId))
                 return false;
             if (std::find (nextSelection.begin(), nextSelection.end(), clipId) == nextSelection.end())
                 nextSelection.push_back (clipId);
@@ -1342,6 +1342,9 @@ public:
         for (const engine::Clip& clip : project_.clips)
             if (clip.trackId == trackId)
                 selectedTimelineClipIds_.push_back (clip.id);
+        for (const engine::MidiClip& midiClip : project_.midiClips)
+            if (midiClip.trackId == trackId)
+                selectedTimelineClipIds_.push_back (midiClip.id);
 
         selectedTimelineClipId_ = selectedTimelineClipIds_.empty()
             ? engine::EntityId {}
@@ -1360,9 +1363,11 @@ public:
             return { id, state, false };
 
         selectedTimelineClipIds_.clear();
-        selectedTimelineClipIds_.reserve (project_.clips.size());
+        selectedTimelineClipIds_.reserve (project_.clips.size() + project_.midiClips.size());
         for (const engine::Clip& clip : project_.clips)
             selectedTimelineClipIds_.push_back (clip.id);
+        for (const engine::MidiClip& midiClip : project_.midiClips)
+            selectedTimelineClipIds_.push_back (midiClip.id);
 
         selectedTimelineClipId_ = selectedTimelineClipIds_.empty()
             ? engine::EntityId {}
@@ -2376,16 +2381,19 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
-        if (anchor == nullptr)
+        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
+        if (! anchor.valid)
             return { id, state, false };
 
-        engine::Tick earliestStart = anchor->timelineStart;
+        engine::Tick earliestStart = anchor.timelineStart;
         for (engine::EntityId clipId : selectedTimelineClipIds_)
-            if (const engine::Clip* const clip = findClip (clipId))
-                earliestStart = std::min (earliestStart, clip->timelineStart);
+        {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            if (view.valid)
+                earliestStart = std::min (earliestStart, view.timelineStart);
+        }
 
-        const engine::Tick requestedDelta = timelineStart - anchor->timelineStart;
+        const engine::Tick requestedDelta = timelineStart - anchor.timelineStart;
         const engine::Tick delta = std::max (requestedDelta, -earliestStart);
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
@@ -2393,14 +2401,12 @@ public:
             return { id, state, false };
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
-            const engine::Clip* const clip = findClip (clipId);
-            if (clip == nullptr
-                || ! nextUndo.apply (nextProject,
-                                     engine::ProjectEditCommand::moveClip (
-                                         clipId, clip->timelineStart + delta)).applied())
-            {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            const engine::ProjectEditCommand command = view.isMidi
+                ? engine::ProjectEditCommand::moveMidiClip (clipId, view.timelineStart + delta)
+                : engine::ProjectEditCommand::moveClip (clipId, view.timelineStart + delta);
+            if (! view.valid || ! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
-            }
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -2425,8 +2431,14 @@ public:
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
         for (engine::EntityId clipId : selectedTimelineClipIds_)
-            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (clipId)).applied())
+        {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            const engine::ProjectEditCommand command = view.isMidi
+                ? engine::ProjectEditCommand::removeMidiClip (clipId)
+                : engine::ProjectEditCommand::deleteClip (clipId);
+            if (! view.valid || ! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
+        }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
@@ -2447,11 +2459,11 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
+        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
         const auto targetTrack = std::find_if (project_.tracks.begin(), project_.tracks.end(), [targetTrackId] (const auto& track) {
             return track.id == targetTrackId;
         });
-        if (anchor == nullptr || targetTrack == project_.tracks.end())
+        if (! anchor.valid || targetTrack == project_.tracks.end())
             return { id, state, false };
 
         const auto trackIndexFor = [this] (engine::EntityId trackId) {
@@ -2462,26 +2474,27 @@ public:
                 ? -1
                 : static_cast<int> (std::distance (project_.tracks.begin(), track));
         };
-        const int anchorLane = trackIndexFor (anchor->trackId);
+        const int anchorLane = trackIndexFor (anchor.trackId);
         const int requestedLaneDelta = static_cast<int> (std::distance (project_.tracks.begin(), targetTrack)) - anchorLane;
         int minimumLane = anchorLane;
         int maximumLane = anchorLane;
-        engine::Tick earliestStart = anchor->timelineStart;
+        engine::Tick earliestStart = anchor.timelineStart;
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
-            if (const engine::Clip* const clip = findClip (clipId))
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            if (view.valid)
             {
-                const int lane = trackIndexFor (clip->trackId);
+                const int lane = trackIndexFor (view.trackId);
                 minimumLane = std::min (minimumLane, lane);
                 maximumLane = std::max (maximumLane, lane);
-                earliestStart = std::min (earliestStart, clip->timelineStart);
+                earliestStart = std::min (earliestStart, view.timelineStart);
             }
         }
 
         const int laneDelta = std::clamp (requestedLaneDelta,
                                           -minimumLane,
                                           static_cast<int> (project_.tracks.size()) - 1 - maximumLane);
-        const engine::Tick requestedTimeDelta = timelineStart - anchor->timelineStart;
+        const engine::Tick requestedTimeDelta = timelineStart - anchor.timelineStart;
         const engine::Tick timeDelta = std::max (requestedTimeDelta, -earliestStart);
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
@@ -2489,18 +2502,18 @@ public:
             return { id, state, false };
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
-            const engine::Clip* const clip = findClip (clipId);
-            const int sourceLane = clip == nullptr ? -1 : trackIndexFor (clip->trackId);
-            if (clip == nullptr || sourceLane < 0)
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            const int sourceLane = view.valid ? trackIndexFor (view.trackId) : -1;
+            if (! view.valid || sourceLane < 0)
                 return { id, state, false };
             const engine::EntityId nextTrackId = project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
-            if (! nextUndo.apply (
-                    nextProject,
-                    engine::ProjectEditCommand::moveClipToTrack (
-                        clipId, nextTrackId, clip->timelineStart + timeDelta)).applied())
-            {
+            const engine::ProjectEditCommand command = view.isMidi
+                ? engine::ProjectEditCommand::moveMidiClipToTrack (
+                      clipId, nextTrackId, view.timelineStart + timeDelta)
+                : engine::ProjectEditCommand::moveClipToTrack (
+                      clipId, nextTrackId, view.timelineStart + timeDelta);
+            if (! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
-            }
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -2511,6 +2524,44 @@ public:
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
+    }
+
+    // E8: append a fresh-id copy of a MIDI clip (with all its notes) inside the caller's
+    // transaction group — the same emission the track duplicate uses.
+    [[nodiscard]] bool appendMidiClipCopy (engine::Project& nextProject,
+                                           engine::ProjectUndoStack& nextUndo,
+                                           const engine::MidiClip& source,
+                                           engine::EntityId targetTrackId,
+                                           engine::Tick timelineStart,
+                                           engine::EntityId& copiedId)
+    {
+        const engine::EntityId newMidiClipId = allocateSessionEntityId (0xC5u, nextProject);
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::addMidiClip (newMidiClipId,
+                                                                       targetTrackId,
+                                                                       timelineStart,
+                                                                       source.timelineLength,
+                                                                       source.timeBase)).applied())
+            return false;
+
+        for (const engine::Note& note : source.notes)
+        {
+            engine::ProjectEditCommand noteCommand = engine::ProjectEditCommand::addNote (
+                newMidiClipId,
+                allocateSessionEntityId (0xC6u, nextProject),
+                note.startTick,
+                note.lengthTicks,
+                note.key,
+                note.normalizedVelocity);
+            noteCommand.notePitch = note.pitchNote;
+            noteCommand.notePort = note.portIndex;
+            noteCommand.noteChannel = note.channel;
+            if (! nextUndo.apply (nextProject, noteCommand).applied())
+                return false;
+        }
+
+        copiedId = newMidiClipId;
+        return true;
     }
 
     // Center Alt+drag copy (E2): copies the WHOLE selection by the gesture anchor's delta — the
@@ -2524,11 +2575,11 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
+        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
         const auto targetTrack = std::find_if (project_.tracks.begin(), project_.tracks.end(), [targetTrackId] (const auto& track) {
             return track.id == targetTrackId;
         });
-        if (anchor == nullptr || targetTrack == project_.tracks.end())
+        if (! anchor.valid || targetTrack == project_.tracks.end())
             return { id, state, false };
 
         const auto trackIndexFor = [this] (engine::EntityId trackId) {
@@ -2539,26 +2590,27 @@ public:
                 ? -1
                 : static_cast<int> (std::distance (project_.tracks.begin(), track));
         };
-        const int anchorLane = trackIndexFor (anchor->trackId);
+        const int anchorLane = trackIndexFor (anchor.trackId);
         const int requestedLaneDelta = static_cast<int> (std::distance (project_.tracks.begin(), targetTrack)) - anchorLane;
         int minimumLane = anchorLane;
         int maximumLane = anchorLane;
-        engine::Tick earliestStart = anchor->timelineStart;
+        engine::Tick earliestStart = anchor.timelineStart;
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
-            if (const engine::Clip* const clip = findClip (clipId))
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            if (view.valid)
             {
-                const int lane = trackIndexFor (clip->trackId);
+                const int lane = trackIndexFor (view.trackId);
                 minimumLane = std::min (minimumLane, lane);
                 maximumLane = std::max (maximumLane, lane);
-                earliestStart = std::min (earliestStart, clip->timelineStart);
+                earliestStart = std::min (earliestStart, view.timelineStart);
             }
         }
 
         const int laneDelta = std::clamp (requestedLaneDelta,
                                           -minimumLane,
                                           static_cast<int> (project_.tracks.size()) - 1 - maximumLane);
-        const engine::Tick requestedTimeDelta = timelineStart - anchor->timelineStart;
+        const engine::Tick requestedTimeDelta = timelineStart - anchor.timelineStart;
         const engine::Tick timeDelta = std::max (requestedTimeDelta, -earliestStart);
 
         constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
@@ -2571,25 +2623,39 @@ public:
         engine::EntityId copiedAnchorId;
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
-            const engine::Clip* const clip = findClip (clipId);
-            const int sourceLane = clip == nullptr ? -1 : trackIndexFor (clip->trackId);
-            if (clip == nullptr || sourceLane < 0)
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            const int sourceLane = view.valid ? trackIndexFor (view.trackId) : -1;
+            if (! view.valid || sourceLane < 0)
                 return { id, state, false };
-            if (timeDelta > 0 && clip->timelineStart > maxTick - timeDelta)
+            if (timeDelta > 0 && view.timelineStart > maxTick - timeDelta)
                 return { id, { false, "copy-drag would overflow timeline" }, false };
-            const engine::Tick copyStart = clip->timelineStart + timeDelta;
-            if (clip->timelineLength > maxTick - copyStart)
+            const engine::Tick copyStart = view.timelineStart + timeDelta;
+            if (view.timelineLength > maxTick - copyStart)
                 return { id, { false, "copy-drag would overflow timeline" }, false };
 
-            engine::Clip copy = *clip;
-            copy.id = allocateSessionEntityId (0xC3u, nextProject);
-            copy.trackId = project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
-            copy.timelineStart = copyStart;
-            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
-                return { id, state, false };
-            copiedClipIds.push_back (copy.id);
+            const engine::EntityId nextTrackId =
+                project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
+            engine::EntityId copiedId;
+            if (view.isMidi)
+            {
+                const engine::MidiClip* const source = findMidiClip (clipId);
+                if (source == nullptr
+                    || ! appendMidiClipCopy (nextProject, nextUndo, *source, nextTrackId, copyStart, copiedId))
+                    return { id, state, false };
+            }
+            else
+            {
+                engine::Clip copy = *findClip (clipId);
+                copy.id = allocateSessionEntityId (0xC3u, nextProject);
+                copy.trackId = nextTrackId;
+                copy.timelineStart = copyStart;
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
+                    return { id, state, false };
+                copiedId = copy.id;
+            }
+            copiedClipIds.push_back (copiedId);
             if (clipId == selectedTimelineClipId_)
-                copiedAnchorId = copy.id;
+                copiedAnchorId = copiedId;
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -3257,20 +3323,20 @@ public:
             return result;
         }
 
-        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
-        if (anchor == nullptr)
+        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
+        if (! anchor.valid)
             return { id, { false, "timeline clip missing" }, false };
 
-        engine::Tick earliestStart = anchor->timelineStart;
+        engine::Tick earliestStart = anchor.timelineStart;
         if (right)
         {
             constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
             for (engine::EntityId clipId : selectedTimelineClipIds_)
             {
-                const engine::Clip* const clip = findClip (clipId);
-                if (clip == nullptr
-                    || clip->timelineStart > maxTick - amount
-                    || clip->timelineLength > maxTick - (clip->timelineStart + amount))
+                const UiTimelineEntityView view = timelineEntityView (clipId);
+                if (! view.valid
+                    || view.timelineStart > maxTick - amount
+                    || view.timelineLength > maxTick - (view.timelineStart + amount))
                 {
                     return { id, { false, "nudge would overflow timeline" }, false };
                 }
@@ -3280,18 +3346,18 @@ public:
         {
             for (engine::EntityId clipId : selectedTimelineClipIds_)
             {
-                const engine::Clip* const clip = findClip (clipId);
-                if (clip == nullptr)
+                const UiTimelineEntityView view = timelineEntityView (clipId);
+                if (! view.valid)
                     return { id, { false, "timeline clip missing" }, false };
-                earliestStart = std::min (earliestStart, clip->timelineStart);
+                earliestStart = std::min (earliestStart, view.timelineStart);
             }
             if (earliestStart == 0)
                 return { id, { false, "selection is at the nudge boundary" }, false };
         }
 
         const engine::Tick target = right
-            ? anchor->timelineStart + amount
-            : anchor->timelineStart - std::min (earliestStart, amount);
+            ? anchor.timelineStart + amount
+            : anchor.timelineStart - std::min (earliestStart, amount);
         UiActionDispatchResult result = moveSelectedTimelineClipTo (target);
         result.action = id;
         return result;
@@ -3666,34 +3732,81 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        const engine::Clip* const anchor = findClip (selectedTimelineClipId_);
-        if (anchor == nullptr)
+        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
+        if (! anchor.valid)
             return { id, { false, "timeline clip missing" }, false };
 
-        // Duplicate the WHOLE selection (E2): the copies land directly after the selection's span,
-        // preserving relative time and track offsets. A single-clip selection keeps the historical
-        // law (its copy appended right after the source clip on the same track).
-        UiClipClipboard duplicate = makeClipboardForSelection();
-        if (duplicate.clips.empty())
-            return { id, { false, "timeline clip missing" }, false };
-
-        engine::Tick earliestStart = anchor->timelineStart;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-            if (const engine::Clip* const clip = findClip (clipId))
-                earliestStart = std::min (earliestStart, clip->timelineStart);
+        // Duplicate the WHOLE selection (E2/E8): fresh-id copies of every selected audio or MIDI
+        // clip land directly after the selection's span, preserving relative time and track
+        // offsets, as one undo transaction. A single-clip selection keeps the historical law
+        // (its copy appended right after the source on the same track).
+        engine::Tick earliestStart = anchor.timelineStart;
         engine::Tick selectionSpan = 0;
-        for (const UiClipClipboardEntry& entry : duplicate.clips)
-            selectionSpan = std::max (selectionSpan, entry.timelineOffset + entry.timelineLength);
         constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
-        if (selectionSpan > maxTick - earliestStart)
-            return { id, { false, "duplicate would overflow timeline" }, false };
+        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            if (! view.valid)
+                return { id, { false, "timeline clip missing" }, false };
+            earliestStart = std::min (earliestStart, view.timelineStart);
+        }
+        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            selectionSpan = std::max (selectionSpan,
+                                      view.timelineStart - earliestStart + view.timelineLength);
+        }
+        if (selectionSpan <= 0)
+            return { id, { false, "timeline clip missing" }, false };
 
-        const UiClipClipboard savedClipboard = clipClipboard_;
-        clipClipboard_ = duplicate;
-        const UiActionDispatchResult result = addClipsFromClipboard (
-            id, state, anchor->trackId, earliestStart + selectionSpan, 1);
-        clipClipboard_ = savedClipboard;
-        return result;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        std::vector<engine::EntityId> copiedClipIds;
+        copiedClipIds.reserve (selectedTimelineClipIds_.size());
+        engine::EntityId copiedAnchorId;
+        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
+            const UiTimelineEntityView view = timelineEntityView (clipId);
+            if (view.timelineStart > maxTick - selectionSpan
+                || view.timelineLength > maxTick - (view.timelineStart + selectionSpan))
+                return { id, { false, "duplicate would overflow timeline" }, false };
+            const engine::Tick copyStart = view.timelineStart + selectionSpan;
+
+            engine::EntityId copiedId;
+            if (view.isMidi)
+            {
+                const engine::MidiClip* const source = findMidiClip (clipId);
+                if (source == nullptr
+                    || ! appendMidiClipCopy (nextProject, nextUndo, *source, view.trackId, copyStart, copiedId))
+                    return { id, state, false };
+            }
+            else
+            {
+                engine::Clip copy = *findClip (clipId);
+                copy.id = allocateSessionEntityId (0xC3u, nextProject);
+                copy.timelineStart = copyStart;
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
+                    return { id, state, false };
+                copiedId = copy.id;
+            }
+            copiedClipIds.push_back (copiedId);
+            if (clipId == selectedTimelineClipId_)
+                copiedAnchorId = copiedId;
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        selectedTimelineClipIds_ = std::move (copiedClipIds);
+        selectedTimelineClipId_ = copiedAnchorId.isValid() ? copiedAnchorId : selectedTimelineClipIds_.back();
+        context_.timelineClipSelected = true;
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
     }
 
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipGain (float newGain)
@@ -4545,6 +4658,31 @@ private:
         return nullptr;
     }
 
+    // E8: a timeline selection entry can be an audio Clip or a MIDI clip — one view law for
+    // existence, window, and owning track keeps every group gesture kind-aware.
+    struct UiTimelineEntityView
+    {
+        bool valid = false;
+        bool isMidi = false;
+        engine::Tick timelineStart = 0;
+        engine::Tick timelineLength = 0;
+        engine::EntityId trackId;
+    };
+
+    [[nodiscard]] UiTimelineEntityView timelineEntityView (engine::EntityId entityId) const noexcept
+    {
+        if (const engine::Clip* const clip = findClip (entityId))
+            return { true, false, clip->timelineStart, clip->timelineLength, clip->trackId };
+        if (const engine::MidiClip* const midiClip = findMidiClip (entityId))
+            return { true, true, midiClip->timelineStart, midiClip->timelineLength, midiClip->trackId };
+        return {};
+    }
+
+    [[nodiscard]] bool timelineEntityExists (engine::EntityId entityId) const noexcept
+    {
+        return timelineEntityView (entityId).valid;
+    }
+
     [[nodiscard]] const engine::RecordingTake* findRecordingTake (engine::EntityId takeId) const noexcept
     {
         return project_.findRecordingTake (takeId);
@@ -5071,7 +5209,7 @@ private:
         for (std::size_t index = 0; index < project_.locatePoints.size(); ++index)
             context_.locatePoints[index] = project_.locatePoints[index];
         std::erase_if (selectedTimelineClipIds_, [this] (engine::EntityId clipId) {
-            return findClip (clipId) == nullptr;
+            return ! timelineEntityExists (clipId);
         });
         if (selectedTimelineClipIds_.empty())
             selectedTimelineClipId_ = {};

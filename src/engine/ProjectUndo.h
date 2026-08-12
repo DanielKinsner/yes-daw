@@ -68,7 +68,11 @@ enum class ProjectEditVerb : std::uint8_t
     SetNoteVelocity,
     // E7: marker editing beyond add/remove
     MoveMarker,
-    RenameMarker
+    RenameMarker,
+    // E8: MIDI clips as first-class timeline citizens
+    MoveMidiClip,
+    MoveMidiClipToTrack,
+    RemoveMidiClip
 };
 
 struct ProjectEditCommand
@@ -625,6 +629,37 @@ struct ProjectEditCommand
         return command;
     }
 
+    // E8: MIDI clips move, cross tracks, and delete like audio clips.
+    [[nodiscard]] static constexpr ProjectEditCommand moveMidiClip (EntityId midiClipId,
+                                                                    Tick newTimelineStart) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveMidiClip;
+        command.midiClipId = midiClipId;
+        command.timelineStart = newTimelineStart;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand moveMidiClipToTrack (EntityId midiClipId,
+                                                                           EntityId targetTrackId,
+                                                                           Tick newTimelineStart) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::MoveMidiClipToTrack;
+        command.midiClipId = midiClipId;
+        command.trackId = targetTrackId;
+        command.timelineStart = newTimelineStart;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeMidiClip (EntityId midiClipId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveMidiClip;
+        command.midiClipId = midiClipId;
+        return command;
+    }
+
     // ADR-0044 send routing factories
     [[nodiscard]] static constexpr ProjectEditCommand addBus (EntityId busId, std::string_view name) noexcept
     {
@@ -882,7 +917,10 @@ namespace detail {
            || verb == ProjectEditVerb::TransposeNote
            || verb == ProjectEditVerb::AddNote
            || verb == ProjectEditVerb::AddMidiClip
-           || verb == ProjectEditVerb::SetNoteVelocity;
+           || verb == ProjectEditVerb::SetNoteVelocity
+           || verb == ProjectEditVerb::MoveMidiClip
+           || verb == ProjectEditVerb::MoveMidiClipToTrack
+           || verb == ProjectEditVerb::RemoveMidiClip;
 }
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
@@ -1126,6 +1164,15 @@ namespace detail {
         case ProjectEditVerb::RenameMarker:
             return renameMarker (project, command.markerId, std::string_view { command.trackName });
 
+        case ProjectEditVerb::MoveMidiClip:
+            return moveMidiClip (project, command.midiClipId, command.timelineStart);
+
+        case ProjectEditVerb::MoveMidiClipToTrack:
+            return moveMidiClipToTrack (project, command.midiClipId, command.trackId, command.timelineStart);
+
+        case ProjectEditVerb::RemoveMidiClip:
+            return removeMidiClip (project, command.midiClipId);
+
         case ProjectEditVerb::AddMidiClip:
         {
             MidiClip midiClip;
@@ -1256,6 +1303,21 @@ namespace detail {
         out.firstMidiClipIndex = addedIndex;
         out.before = {};
         out.after = { after.midiClips[addedIndex] };
+        return true;
+    }
+
+    // E8: removal is the add shape inverted — undo re-inserts the snapshot at its old index.
+    if (command.verb == ProjectEditVerb::RemoveMidiClip)
+    {
+        std::size_t removedIndex = 0;
+        if (! findMidiClipIndex (before, command.midiClipId, removedIndex)
+            || after.midiClips.size() + 1u != before.midiClips.size())
+            return false;
+
+        out = {};
+        out.firstMidiClipIndex = removedIndex;
+        out.before = { before.midiClips[removedIndex] };
+        out.after = {};
         return true;
     }
 

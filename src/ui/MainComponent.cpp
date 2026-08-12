@@ -6478,6 +6478,33 @@ private:
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
 
+        // MIDI clips are first-class timeline citizens (E8): painted on their track lanes in the
+        // MIDI accent colour and hit-testable through the same layout ids as audio clips.
+        for (const yesdaw::engine::MidiClip& midiClip : project.midiClips)
+        {
+            if (! midiClip.id.isValid() || midiClip.timelineStart < 0 || midiClip.timelineLength <= 0)
+                continue;
+
+            const auto track = std::find_if (project.tracks.begin(), project.tracks.end(), [&midiClip] (const auto& candidate) {
+                return candidate.id == midiClip.trackId;
+            });
+            if (track == project.tracks.end())
+                continue;
+
+            const int lane = static_cast<int> (std::distance (project.tracks.begin(), track));
+            const double startSeconds = static_cast<double> (midiClip.timelineStart) / sampleRate;
+            const double lengthSeconds = static_cast<double> (midiClip.timelineLength) / sampleRate;
+            const int id = static_cast<int> (timelineClips.size());
+            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, "MIDI" });
+            timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (midiClip.id)
+                                                ? yesdaw::ui::UiTheme::Color::accentBlue()
+                                                : yesdaw::ui::UiTheme::Color::accentCyan(),
+                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
+            timelineClipIds.push_back (midiClip.id);
+            timelineClipAssetHashes.push_back ({});
+            endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+        }
+
         timelineTotalSeconds = timelineClips.empty()
             ? yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds
             : std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,

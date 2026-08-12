@@ -2070,7 +2070,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (20))
+            switch (pick (21))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2179,6 +2179,32 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                             break;
                         default:
                             command = ProjectEditCommand::removeMarker (
+                                idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
+                            break;
+                    }
+                    break;
+                // E8 MIDI clip verbs: rejected commands (unknown/removed clip, unknown track,
+                // negative tick) are no-ops by contract like every family above.
+                case 20:
+                    switch (pick (4))
+                    {
+                        case 0:
+                            if (freshLowByte < 250)
+                                command = ProjectEditCommand::addMidiClip (
+                                    idFromLowByte (static_cast<std::uint8_t> (freshLowByte++)),
+                                    idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                    tick (0, 40'000), tick (1, 20'000),
+                                    yesdaw::engine::TimeBase::SampleLocked);
+                            break;
+                        case 1:
+                            command = ProjectEditCommand::moveMidiClip (idFromLowByte (40), tick (0, 40'000));
+                            break;
+                        case 2:
+                            command = ProjectEditCommand::moveMidiClipToTrack (
+                                idFromLowByte (40), idFromLowByte (pick (2) == 0 ? 36 : 41), tick (0, 40'000));
+                            break;
+                        default:
+                            command = ProjectEditCommand::removeMidiClip (
                                 idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                             break;
                     }
