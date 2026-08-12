@@ -740,6 +740,8 @@ struct UiTheme
         static constexpr float timelineCanvasWaveformMaxAmplitude = 1.0f;
         static constexpr float timelineCanvasWaveformHeightScale = 0.42f;
         static constexpr int timelineCanvasWaveformMinStep = 2;
+        // E5 perf repair: row-height clips stride coarser — hundreds paint per frame on CI.
+        static constexpr int timelineCanvasWaveformCompactMinStep = 4;
         static constexpr int timelineCanvasWaveformStepDivisor = 64;
         static constexpr int timelineCanvasWaveformClipPhaseMultiplier = 37;
         static constexpr int timelineCanvasWaveformXPhaseMultiplier = 13;

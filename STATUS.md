@@ -256,9 +256,21 @@ full SHA `f4f7a318ce71fdcb2e1516c307d2504dc19ee78a` across all nine jobs. E8 is 
 backlog. E9's full local suite is also green **348/348** (owner record isolated/restored
 byte-identical both rounds).
 
-**Now:** committing E9 (roll-follow) for its exact-head run.
+**E9 red round (real, root-caused to the E5 renderer margin):** E9's exact-head run failed the
+GPU frame gate on a slower CI Windows runner (`sustained_frame_ms=18.62` vs 16.6, 22 slow
+frames) plus the day's recurring sccache-outage on the package job. The E5 flat-tier repair had
+left local sustained at 8.80ms — roughly 2.1x under the budget on THAT runner but with no margin
+for slower ones. Second repair: row-height clips stride their placeholder waveform coarser (new
+`timelineCanvasWaveformCompactMinStep` 4 vs 2 — hundreds paint per frame and small rows cannot
+show fine detail anyway) and the waveform columns draw as integer fills instead of antialiased
+vertical lines. Local GPU gate: sustained 8.80ms → **3.65ms**, slow_frames 0,
+max_visible_clips 336 preserved, all three GPU cases green.
 
-**Next:** E10 (piano roll zoom, scroll, and all 128 keys).
+**Now:** full local suite on the repair; then the repair commits ahead of E10 and E9's
+exact-head green is required on the repair head.
+
+**Next:** E10 (piano roll zoom, scroll, and all 128 keys) — implementation + `[roll-viewport]`
+gate (44 assertions) already green in the working tree.
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

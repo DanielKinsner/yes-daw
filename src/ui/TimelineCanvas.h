@@ -188,7 +188,12 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
                                    UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
                                    UiTheme::Layout::timelineCanvasWaveformMaxAmplitude)
                      * UiTheme::Layout::timelineCanvasWaveformHeightScale;
-    const int step = std::max (UiTheme::Layout::timelineCanvasWaveformMinStep,
+    // Row-height clips draw a coarser stride (E5 perf repair): a dense overflow arrangement can
+    // paint hundreds of these per frame on CI hardware, and small rows cannot show fine detail
+    // anyway. Integer fills replace antialiased vertical lines for the same reason.
+    const bool compactDetail = area.getHeight() < UiTheme::Layout::timelineCanvasClipRichPaintHeight;
+    const int step = std::max (compactDetail ? UiTheme::Layout::timelineCanvasWaveformCompactMinStep
+                                             : UiTheme::Layout::timelineCanvasWaveformMinStep,
                                area.getWidth() / UiTheme::Layout::timelineCanvasWaveformStepDivisor);
 
     g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
@@ -207,9 +212,10 @@ inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce
                            + static_cast<float> (phase)
                                  / static_cast<float> (UiTheme::Layout::timelineCanvasWaveformPhaseMask)
                                  * UiTheme::Layout::timelineCanvasWaveformScaleRange;
-        const float top = midY - half * scaled;
-        const float bottom = midY + half * scaled;
-        g.drawVerticalLine (area.getX() + x, top, bottom);
+        const int top = juce::roundToInt (midY - half * scaled);
+        const int bottom = juce::roundToInt (midY + half * scaled);
+        g.fillRect (area.getX() + x, top, UiTheme::Layout::timelineCanvasGridLineWidth,
+                    std::max (UiTheme::Layout::timelineCanvasGridLineWidth, bottom - top));
     }
 }
 
