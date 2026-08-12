@@ -26,13 +26,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
 
 ## Phase 1 — multi-track editing tools
 
-1. [ ] **E1 — Three-track arrangement proof gates.** Audit found NO gate exercises 3+ tracks
-   (marquee gate stops at 2 tracks — `tests/ui_input_tests.cpp:4794-4851`; the lane-delta clamp in
-   `moveSelectedTimelineClipToTrack` — `src/ui/UiAppModel.h:2442-2513` — has never seen a middle
-   lane). Extend the shipped-boundary gates to a 3-track project: import lands on the SELECTED
-   (third) track at the playhead, marquee spans all three lanes, group vertical move anchored on a
-   middle lane clamps at both ends, multi-clip copy/paste preserves relative track offsets. Fix any
-   defect these gates flush out.
+1. [x] **E1 — Three-track arrangement proof gates.** Landed in `e9f68e3` (exact-head run
+   `31620834337`, nine jobs green). New shipped-boundary `[three-track]` gate (115 assertions) on a
+   real 3-track project: import to the selected middle/third track at zero and at a located
+   playhead, marquee spanning all three lanes, both-direction clamp of an all-lane group vertical
+   drag, a two-clip group move THROUGH the middle lane preserving offsets with one-step undo, and
+   project-wide copy/paste preserving per-clip track + relative time with audible playback change
+   and bit-identical undo. Honest finding: the gate passed on its first run — no defect existed;
+   the previously untested middle-lane clamp and offset-preservation laws are now pinned.
 2. [ ] **E2 — Group duplicate + group copy-drag.** `duplicateSelectedTimelineClip`
    (`UiAppModel.h:3540-3560`) duplicates only a single clip; Alt+drag copy (A7) copies only the
    dragged clip. Make Ctrl+D and center Alt+drag act on the WHOLE selection: fresh-ID copies

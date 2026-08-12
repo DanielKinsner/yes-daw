@@ -49,10 +49,17 @@ gate passed on its first run — current `main` already implements all four beha
 no defect was flushed out, so this item's value is coverage (the untested middle-lane clamp and
 offset-preservation laws are now pinned).
 
-**Now:** E1 — full local suite running; then commit, push, exact-head nine-job green, evidence
-commit.
+E1 is certified: full local `ctest --test-dir build-ci` green **348/348** (the owner's real
+last-project record was isolated and restored byte-identical, SHA-256 verified; no test
+recent-projects file remained). Exact-head GitHub Actions run `31620834337` is green for full SHA
+`e9f68e399e6f352c7de8e44bf61e5a449d4a4483` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. E1 is ticked in the backlog.
 
-**Next:** E2 (group duplicate + group copy-drag).
+**Now:** E2 (group duplicate + group copy-drag): make Ctrl+D and center Alt+drag act on the whole
+selection preserving relative time/track offsets, one undo transaction, selection moving to the
+copies; gate fails before, passes after.
+
+**Next:** E3 (tool palette does real work in the timeline).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
