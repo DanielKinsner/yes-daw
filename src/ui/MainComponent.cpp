@@ -1304,12 +1304,24 @@ public:
         switch (zoneAt (row, event.getPosition()))
         {
             case MiniZone::Pan:
+                if (event.mods.isAltDown())
+                {
+                    if (onPanEdited)
+                        onPanEdited (row, 0.0f);   // Alt+click recentres, matching double-click
+                    return;
+                }
                 dragRow = row;
                 dragZone = MiniZone::Pan;
                 applyPan (row, event.getPosition());
                 return;
 
             case MiniZone::Volume:
+                if (event.mods.isAltDown())
+                {
+                    if (onVolumeEdited)
+                        onVolumeEdited (row, 1.0f);   // Alt+click resets the mini VOL to unity
+                    return;
+                }
                 dragRow = row;
                 dragZone = MiniZone::Volume;
                 applyVolume (row, event.getPosition());
@@ -3000,6 +3012,7 @@ private:
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
             slider.setRange (0.0, 1.0, 0.0);
+            slider.setDoubleClickReturnValue (true, 1.0);   // Alt+click resets the send to unity
             slider.onValueChange = [this, row] {
                 if (refreshingSendControls)
                     return;
@@ -3070,6 +3083,8 @@ private:
                              yesdaw::ui::UiTheme::Layout::mixerFaderSliderInterval);
         mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                              juce::dontSendNotification);
+        // Alt+click (or double-click) resets the fader to unity through the same persisted edit.
+        mixerFader.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault);
         mixerFader.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerFader.isEnabled())
                 return;
@@ -3091,6 +3106,8 @@ private:
                            yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval);
         mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
                            juce::dontSendNotification);
+        // Alt+click (or double-click) recentres the pan through the same persisted edit.
+        mixerPan.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault);
         mixerPan.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerPan.isEnabled())
                 return;
@@ -4245,6 +4262,9 @@ private:
                     const double normalized = appModel.fxInsertParamValueOnSelectedStrip (
                         static_cast<std::size_t> (selectedFxParamSlot), paramId);
                     mixerFxParamSliderIds[used] = paramId;
+                    // Alt+click resets the bound parameter to its ParamSpec default.
+                    mixerFxParamSliders[used].setDoubleClickReturnValue (
+                        true, yesdaw::engine::normalizedDefault (spec));
                     mixerFxParamSliders[used].setValue (normalized, juce::dontSendNotification);
                     mixerFxParamSliders[used].setEnabled (paramEditEnabled);
                     mixerFxParamSliders[used].setVisible (true);

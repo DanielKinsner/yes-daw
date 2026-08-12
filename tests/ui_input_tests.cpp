@@ -6826,3 +6826,145 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, and FX params to spec default",
+           "[ui][input][shell][mixer][alt-click-reset]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("alt-click-reset");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    const juce::ModifierKeys altClick (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier);
+
+    // Mixer fader: a real value drag persists 0.5; Alt+click resets to unity and doubles playback.
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (fader->isEnabled());
+    fader->setValue (0.5, juce::sendNotificationSync);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain == 0.5f);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> halved = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (halved.data(), halved.size())) > 0.005);
+
+    mouseDownAt (*fader, fader->getLocalBounds().getCentre(), altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain == 1.0f);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> unity = renderMainComponentPlayback (*shell, 4096, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (unity.size() == halved.size());
+    std::size_t faderMismatch = unity.size();
+    for (std::size_t i = 0; i < unity.size(); ++i)
+    {
+        if (unity[i] != 2.0f * halved[i])
+        {
+            faderMismatch = i;
+            break;
+        }
+    }
+    REQUIRE (faderMismatch == unity.size());
+
+    // Mixer pan: a real value drag persists an offset; Alt+click recentres to exactly zero.
+    auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
+    REQUIRE (pan != nullptr);
+    pan->setValue (-0.6, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan == -0.6f);
+    mouseDownAt (*pan, pan->getLocalBounds().getCentre(), altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan == 0.0f);
+
+    // Rail mini VOL: a plain click sets ~0.5; Alt+click resets to exactly unity.
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain < 0.6f);
+    mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() }, altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain == 1.0f);
+
+    // Rail mini PAN: a plain click on the knob edge pans hard left; Alt+click recentres.
+    const juce::Rectangle<int> panKnob =
+        row.withRight (row.getRight() - L::trackListPanRightInset)
+            .removeFromRight (L::trackListPanDiameter)
+            .withY (row.getY() + L::trackListPanTopInset)
+            .withHeight (L::trackListPanDiameter);
+    mouseDownAt (*rail, { panKnob.getX() + 1, panKnob.getCentreY() });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan < -0.8f);
+    mouseDownAt (*rail, { panKnob.getCentreX(), panKnob.getCentreY() }, altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan == 0.0f);
+
+    // Send level: a real slider edit persists 0.5; Alt+click resets the send to unity.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* sendLevel = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (sendLevel != nullptr);
+    REQUIRE (sendLevel->isVisible());
+    sendLevel->setValue (0.5, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+    mouseDownAt (*sendLevel, sendLevel->getLocalBounds().getCentre(), altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 1.0f);
+
+    // FX param: a real slider edit persists 0.25; Alt+click resets to the ParamSpec default.
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                              juce::sendNotificationSync);
+    auto* fxEdit = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (fxEdit != nullptr);
+    clickButton (*fxEdit);
+    auto* fxParam = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (fxParam != nullptr);
+    REQUIRE (fxParam->isVisible());
+    fxParam->setValue (0.25, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.front().normalizedParams.size() == 1u);
+    REQUIRE (project.tracks.front().strip.fxChain.front().normalizedParams.front().second
+             == Catch::Approx (0.25));
+
+    const yesdaw::engine::ParamSpec spec =
+        yesdaw::engine::fxParamSpecForKind (yesdaw::engine::FxKind::Compressor, 0u);
+    const double specDefault = yesdaw::engine::normalizedDefault (spec);
+    mouseDownAt (*fxParam, fxParam->getLocalBounds().getCentre(), altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.fxChain.front().normalizedParams.front().second
+             == Catch::Approx (specDefault));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

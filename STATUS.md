@@ -724,12 +724,32 @@ Exact-head GitHub Actions run `31567061090` is green for full SHA
 `3ce2306d46181669f99ba586d2d7a423f818d955` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B28 is ticked in the backlog.
 
-**Now:** B28 certified; B29 (Alt+click resets) is next per the run brief.
+**B29 implementation candidate — Alt+click resets:** audited every reset target before changing
+anything: the shared mixer fader/pan, per-row send-level, and per-row FX-param controls are plain
+JUCE sliders whose committed values already persist through the model, and the rail VOL/PAN minis
+are custom zones in the rail `mouseDown` whose PAN already recentres on double-click. No new
+actions, chords, or engine verbs are needed. The sliders now declare their reset via the built-in
+double-click return value (which JUCE also fires on plain Alt+click): fader → unity, pan → center,
+send level → unity, and each FX-param slider re-binds its own `ParamSpec.normalizedDefault` every
+time a slot's params are shown, so the reset can never drift from the spec. The rail minis get an
+explicit Alt branch: VOL → unity, PAN → center, mirroring the existing double-click law. Every
+reset flows through the exact persisted edit path its control already used.
 
-**Next:** B29 — audited: the mixer fader/pan, send-level, and FX-param controls are plain JUCE
-sliders (Alt+click reset is the built-in double-click return value; FX params re-bind their
-per-ParamSpec `normalizedDefault` at refresh); the rail VOL/PAN minis need an Alt branch in the
-rail `mouseDown`. One gate per control per the backlog line.
+The shipped-boundary `[alt-click-reset]` gate proves each control with a real gesture pair: a real
+edit moves the persisted value off default, then a real Alt+click resets it — fader 0.5 → unity
+with rendered playback exactly doubling sample-for-sample through the rebuilt graph, pan −0.6 → 0,
+rail VOL ~0.5 → exactly 1.0, rail PAN hard-left → 0, send 0.5 → unity on the persisted send row,
+and the compressor's param 0.25 → its self-derived `normalizedDefault` (80 assertions, green first
+run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B29 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B29 in the backlog with SHA + run id (docs-only evidence commit), then B30
+(Shift fine drag, exact 10x, incl. rail minis) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
