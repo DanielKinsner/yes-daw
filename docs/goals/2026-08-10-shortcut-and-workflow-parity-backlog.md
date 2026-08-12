@@ -175,9 +175,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     honest no-ops. The shipped-boundary gate proves persisted order at every step, painted rail
     follow, the boundary no-op, per-move undo, and the shared mute control landing on the moved
     track to exact silence.
-28. **Selected-track keys** — Shift+M toggles mute, Shift+S solo, Shift+R arm on the
-    SELECTED track without opening the mixer (audit Shift+M conflict with marker-remove
-    first; reassign marker-remove if needed — update its descriptor + gate).
+28. [x] **Selected-track keys** — landed in `3ce2306` (exact-head run `31567061090`, nine jobs
+    green). Shift+M mutes and Shift+S solos the selected track as the same persisted strip edit as
+    the mixer controls but panel-preserving (the Timeline stays in front); Shift+R toggles the
+    honestly-transient recording arm onto the selected track with cross-track retargeting.
+    Marker-remove's conflicting chord was reassigned to unique Ctrl+Shift+M and re-pinned in the
+    gate. The shipped-boundary gate proves persisted mute/solo with exact silence through the real
+    solo policy, byte-identical `project.db` across arm/retarget/disarm, and both marker chords.
 29. **Alt+click resets** — Alt+click on any fader → unity, any pan → center, any send level
     → unity, any FX param slider → spec default. Gate per control.
 30. **Fine drag** — Shift while dragging any slider/fader/knob = 10x finer. (JUCE

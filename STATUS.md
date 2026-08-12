@@ -720,10 +720,16 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B28 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31567061090` is green for full SHA
+`3ce2306d46181669f99ba586d2d7a423f818d955` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B28 is ticked in the backlog.
 
-**Next:** on green, tick B28 in the backlog with SHA + run id (docs-only evidence commit), then B29
-(Alt+click resets) per the run brief.
+**Now:** B28 certified; B29 (Alt+click resets) is next per the run brief.
+
+**Next:** B29 — audited: the mixer fader/pan, send-level, and FX-param controls are plain JUCE
+sliders (Alt+click reset is the built-in double-click return value; FX params re-bind their
+per-ParamSpec `normalizedDefault` at refresh); the rail VOL/PAN minis need an Alt branch in the
+rail `mouseDown`. One gate per control per the backlog line.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
