@@ -229,8 +229,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     note refuses the whole transpose group. One red round: AppleClang's unused-lambda-capture (the
     known trap). The gate proves exact semitone/octave persistence, untouched rail arrows, one-step
     group undo, audible transposition, and silent playback after delete-all.
-35. **Note duplicate** — Ctrl+drag on a note copy-drags it; Ctrl+D duplicates the selected
-    note one grid step later.
+35. [x] **Note duplicate** — landed in `f3ab261` (exact-head run `31578215018`, nine jobs green).
+    Ctrl+drag copy-drags a note (one fresh-id AddNote, every payload field preserved, Ctrl wins
+    over the narrow-note resize-edge zone); Ctrl+D goes context-sensitive in the Piano Roll and
+    lands the copy one grid step later via the new unique Alt+Shift+D action; non-fitting copies
+    are honest refusals. A gate flake (same-frame same-key off/on order tie-broken by fresh
+    wall-clock ULIDs) was made deterministic by proving audibility through the temporally
+    separated drag copy; the engine's per-project event order was not touched.
 36. **Quantize selected** — `Q` quantizes selected notes to the snap grid (verb exists;
     audit the key + multi-note behavior).
 37. **Confirm on close** — closing the app with unsaved changes prompts Save/Discard/Cancel

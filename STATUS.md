@@ -935,11 +935,16 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B35 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31578215018` is green for full SHA
+`f3ab2615e8af7db784ef86b45cc9954641773e79` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B35 is ticked in the backlog.
 
-**Next:** on green, tick B35 in the backlog with SHA + run id (docs-only evidence commit), then B36
-(`Q` quantizes selected notes to the snap grid; verb exists, audit the key + multi-note behavior)
-per the run brief.
+**Now:** B35 certified; B36 (quantize selected notes) is next per the run brief.
+
+**Next:** B36 — audited: the QuantizeNote verb and `snapTick` law exist and `Q` is free. Add a
+`PianoRollNoteQuantizeSelection` action on `Q` (dispatchable payload-free from the model's current
+snap grid), quantizing the whole note selection as one atomic undo group while skipping notes
+already on the grid so mixed selections work; all-on-grid selections are honest no-ops.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
