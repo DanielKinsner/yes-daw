@@ -156,11 +156,17 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     a genuinely non-commuting EQ(+24 dB band gain)+Limiter(-9 dBFS ceiling) chain, an AUDIBLY
     different render after the swap, params traveling with the inserts, and one undo restoring
     order and bit-identical audio in both directions.
-15. [ ] **E15 — Every FX param reachable, with the right control type.** The param panel caps at 8
-    sliders probing IDs 0–31 (`UiTheme.h:542-543`), so EQ bands 2–5 (16 of 24 params, IDs up to 83)
-    are UNREACHABLE (`EqNode.h:35,183-186`); enum params (EQ band type, delay ping-pong) render as
-    raw linear sliders. Page or scroll the param list so every `ParamSpec` of every FxKind is
-    editable, and give choice-shaped params real choosers. Gate walks every FxKind × every param.
+15. [x] **E15 — Every FX param reachable, with the right control type.** Landed in `a33a9fc`
+    (run `31644849599` green for the full SHA across all nine jobs after one spaced sccache
+    rerun). `ParamSpec` gained additive choice metadata (`choiceCount`/`choiceNames` +
+    `normalizedForChoice`); EQ band type and delay ping-pong declare their choices; the probe
+    limit rose 32→96 so EQ bands 2–5 (ids up to 83) are reachable; params page through the new
+    `mixer.fx.param.page` chooser; choice-shaped rows swap the raw slider for a real chooser
+    persisting through the same `SetFxInsertParam` verb. Shell childCount re-pinned 103→112.
+    The `[fx-params-all]` gate failed before (no pager) and passes after with 119 assertions:
+    the FULL inventory of all five FxKinds walked page by page (EQ 24, Compressor 6, Delay 6,
+    Reverb 5, Limiter 3), the EQ type chooser persisting HPF's exact 0.6, the band-5 gain
+    (id 82) edited on page 3, ping-pong via its chooser, and three reverse-order undos.
 16. [ ] **E16 — Bus strips are real strips.** Bus strips cannot even be selected
     (`MainComponent.cpp:3284-3294` drops clicks past trackCount); `selectedMixerStrip`'s Bus branch
     is dead code from the shell. Make bus strips selectable; fader/pan/mute/solo and FX

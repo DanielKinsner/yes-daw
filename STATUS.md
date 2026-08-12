@@ -401,10 +401,16 @@ type chooser persisting HPF's exact 0.6 normalization with the slider hidden, th
 previously-unreachable band-5 gain (id 82) edited on page 3, delay ping-pong toggled On through
 its two-state chooser, and three undos restoring each edit in reverse order.
 
-**Now:** E15 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E15 is certified: exact-head GitHub Actions run `31644849599` green for full SHA
+`a33a9fc361630448b076f9f85a4746518b62fef0` across all nine jobs (after one spaced same-head
+rerun of the sccache outage); full local ctest green **348/348** (owner file isolated +
+restored, SHA verified). E15 is ticked in the backlog.
 
-**Next:** E16 (bus strips are real strips).
+**Now:** E16 (bus strips are real strips) — audited: new engine `SetBusMixScalars` verb in the
+bus diff family + property arm, `selectMixerBus`, bus branch in the strip click law, undoable
+bus scalar edits, control lane reads the SELECTED strip, `[bus-strip]` gate.
+
+**Next:** E17 (bus rename + remove from the UI).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
