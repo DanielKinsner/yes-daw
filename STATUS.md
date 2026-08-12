@@ -130,10 +130,18 @@ for full SHA `e315dce87404daf653cfca6e5a3ed2e76cb91ae7` across all nine jobs; th
 infrastructure (Windows alpha-verify sccache "socket hang up" before any compile) and the
 failed-job rerun on the SAME head went green. E3 is ticked in the backlog.
 
-**Now:** E4 — local suite green 348/348 (owner record restored byte-identical); committing and
-pushing for the exact-head nine-job run.
+E4 is certified: full local ctest green **348/348** (owner record isolated/restored
+byte-identical). Exact-head GitHub Actions run `31624516457` is green for full SHA
+`6c133fe8bdbad8529d3edc273fb64c1a63df203f` across all nine jobs; the package job hit the
+day's recurring GitHub sccache-setup outage ("socket hang up" before any compile) twice and went
+green on a same-head rerun — no product or test change was involved. E4 is ticked in the backlog.
 
-**Next:** E5 (vertical track scroll).
+**Now:** E5 (vertical track scroll) — implementation in the working tree: shared whole-row
+offset across timeline lanes and the rail, plain-wheel vertical / Shift+wheel horizontal /
+Ctrl+wheel zoom, fixed 36px lane rows on overflow, per-surface clamp so both surfaces' last rows
+pin to their window bottoms.
+
+**Next:** E6 (loop brace editing).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

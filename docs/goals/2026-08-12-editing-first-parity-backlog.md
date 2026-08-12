@@ -52,13 +52,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    verb (Ctrl+M law generalized); Pointer and the ruler keep their full historical behavior. The
    `[tool-palette]` gate failed before (Zoom click was a no-op) and passes after with 125
    assertions; the B22 `[tool-keys]` gate was re-pinned stronger to the new Pencil semantics.
-4. [ ] **E4 — Snap chooser consulted by every timeline time-gesture.** Only clip move/cross-track
-   move/copy-drag snap today (`MainComponent.cpp:6073/6112/6139`); trim-left
-   (`MainComponent.cpp:2104-2114`), trim-right (`:6158-6169`), double-click split (`:6145-6156`),
-   ruler loop drag (`:2143-2152`), and ruler range drag (`:2161-2170`) all ignore the snap chooser.
-   Route every one of them through `snappedTimelineTick` (Ctrl still inverts; edge legality — zero
-   length, source-window bounds — wins over the grid). Fades honestly stay unsnapped — they are
-   durations, not grid positions; say so in the gate.
+4. [x] **E4 — Snap chooser consulted by every timeline time-gesture.** Landed in `6c133fe`
+   (exact-head run `31624516457`, nine jobs green — one package-job infra flake, sccache "socket
+   hang up" before any compile, twice; rerun green on the same head). Trim-left, trim-right,
+   double-click split, scissors split, ruler loop drag, and ruler range drag now route through the
+   shared `snappedTimelineTick` law with the gesture's Ctrl flag inverting the grid; verb legality
+   (positive length, in-body split, source bounds) wins by honest refusal; fades stay honestly
+   unsnapped. The `[snap-gestures]` gate failed before (a snapped loop drag persisted raw 9600
+   instead of 0) and passes after; four legacy gates were re-pinned strictly stronger to the
+   snapped semantics.
 5. [ ] **E5 — Vertical track scroll.** No vertical scroll exists anywhere; lanes shrink to the 8px
    floor and clip (`TimelineCanvas.h:522-546`, `UiTheme.h:717`), so big projects are unusable.
    Adopt the standard mapping: plain wheel scrolls vertically (rail + timeline share one row
