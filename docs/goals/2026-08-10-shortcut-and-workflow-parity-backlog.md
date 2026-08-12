@@ -162,8 +162,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
 
 ## C. Tracks, mixer, MIDI, polish
 
-26. **Duplicate track** — Ctrl+Alt+T duplicates the selected track WITH its clips, strip
-    state, FX chain (fresh entity ids, "<name> copy"). One undo group.
+26. [x] **Duplicate track** — landed in `1b91a64` (exact-head run `31565388312`, nine jobs green).
+    Ctrl+Alt+T duplicates the selected track — clips, MIDI clips/notes, scalar strip state (new
+    SetTrackMixScalars engine verb), FX chain with params, and sends — as one transaction group of
+    undoable verbs with fresh entity ids, named "<name> copy", placed directly below the source
+    (the dev-only test-device action moved to Ctrl+Alt+Shift+T to free the chord). The
+    shipped-boundary gate proves the persisted copy, exactly-doubled playback, one-step undo/redo,
+    and the non-last-track reorder path. Takes and automation lanes honestly stay on the source.
 27. **Move track up/down** — Ctrl+Shift+Up/Down reorders the selected track (verbs exist;
     wire keys + rail follows).
 28. **Selected-track keys** — Shift+M toggles mute, Shift+S solo, Shift+R arm on the

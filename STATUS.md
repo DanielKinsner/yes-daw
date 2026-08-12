@@ -665,10 +665,14 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 accessibility, theme audit, screenshots, native input, and the GPU gate. The owner's real
 last-project record was isolated for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B26 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31565388312` is green for full SHA
+`1b91a647d86121c99d127e0624de50dff87f46c9` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B26 is ticked in the backlog.
 
-**Next:** on green, tick B26 in the backlog with SHA + run id (docs-only evidence commit), then B27
-(move track up/down) per the run brief.
+**Now:** B26 certified; B27 (move track up/down) is next per the run brief.
+
+**Next:** B27 — audit the existing `TrackReorder` verb/action, wire unique Ctrl+Shift+Up/Down keys
+to reorder the selected track with the rail following, gate at the shipped boundary.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
