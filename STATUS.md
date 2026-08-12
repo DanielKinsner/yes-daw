@@ -759,13 +759,34 @@ Exact-head GitHub Actions run `31568595210` is green for repaired full SHA
 `e0dc4df64160549fdac133ffef9f312796753c9a` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B29 is ticked in the backlog.
 
-**Now:** B29 certified; B30 (Shift fine drag) is next per the run brief.
+**B30 implementation candidate — Shift fine drag:** audited the slider surface before changing
+anything: every mixer control (fader LinearVertical, pan Rotary, sends and FX params
+LinearHorizontal) is a plain JUCE slider, and the rail VOL/PAN minis are custom absolute-position
+zones. JUCE's built-in velocity mode is not exactly 10x, so fine drag is a small local
+`FineDragSlider` subclass with an exact contract: while Shift is held (and Alt is not, so the B29
+reset law is untouched), pointer movement counts for exactly the new `UiTheme::Layout::fineDragScale`
+(0.1) of its plain proportional effect; fine mode anchors at the current value with no
+jump-to-pointer, accumulates unsnapped so tiny moves add up, engages mid-drag if Shift is pressed
+during a plain drag, and latches until mouse-up. All shell slider members (mixer fader/pan, send
+levels, FX params, header tempo, inspector sliders) now use the subclass — behavior is identical
+until Shift is held. The rail minis get the same law with value providers so a Shift-press anchors
+at the persisted strip value instead of jumping.
 
-**Next:** B30 — audited: the four mixer slider families are JUCE sliders in three styles plus the
-custom rail minis; JUCE velocity mode is not exactly 10x, so implement a manual fine mode (anchor
-value at Shift-press, axis delta scaled by a UiTheme fine-drag token) in a local Slider subclass
-and an incremental fine branch in the rail minis (value providers needed for shift-at-mousedown
-anchoring). Gate asserts exact fine-drag math and ~10x coarse/fine ratio.
+The shipped-boundary `[fine-drag]` gate proves exact math per control family from real gestures:
+rail VOL and PAN Shift drags land within 1e-6 of anchor + pixels/width x span x fineDragScale; the
+vertical fader and rotary pan land on their 0.01 interval grid at exactly the fine-scaled travel;
+a Shift-press far from the send slider's value does not jump; the send's fine drag matches the
+exact continuous math; and the same plain drag moves more than five times as far (58 assertions,
+green first run).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **347/347**. The owner's real last-project record was isolated
+for the native-shell gate and restored with its exact SHA-256.
+
+**Now:** B30 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B30 in the backlog with SHA + run id (docs-only evidence commit), then B31
+(dB readout while dragging) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

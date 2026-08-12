@@ -412,6 +412,9 @@ struct UiTheme
         static constexpr double mixerPanSliderMax = 1.0;
         static constexpr double mixerPanSliderInterval = 0.01;
         static constexpr double mixerPanSliderDefault = 0.0;
+        // Shift-drag fine-adjust scale: pointer movement counts for exactly this fraction of its
+        // plain effect on every slider, fader, knob, and rail mini (10x finer).
+        static constexpr double fineDragScale = 0.1;
         static constexpr int mixerToolsInsetX = 8;
         static constexpr int mixerToolsInsetY = 0;
         static constexpr int mixerToolsSendsLabelTop = 52;

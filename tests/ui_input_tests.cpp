@@ -6968,3 +6968,140 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten times finer",
+           "[ui][input][shell][mixer][fine-drag]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("fine-drag");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    const juce::ModifierKeys shiftDrag (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    const double fine = L::fineDragScale;
+
+    // Rail mini VOL: a plain click coarsely sets ~0.5, then a Shift drag moves exactly
+    // fineDragScale of the pointer's proportional travel from the persisted anchor — no jump.
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const double railVolAnchor = static_cast<double> (project.tracks.front().strip.linearGain);
+    REQUIRE (railVolAnchor < 0.6);
+
+    dragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
+                { level.getCentreX() + 10, level.getCentreY() }, shiftDrag);
+    project = readProjectSnapshot (bundlePath);
+    const double railVolExpected =
+        railVolAnchor + (10.0 / level.getWidth()) * 1.0 * fine;
+    REQUIRE (project.tracks.front().strip.linearGain
+             == Catch::Approx (railVolExpected).epsilon (1e-6));
+
+    // Rail mini PAN: from center, an 8-pixel Shift drag covers exactly fineDragScale of the
+    // proportional travel across the [-1, 1] span.
+    const juce::Rectangle<int> panKnob =
+        row.withRight (row.getRight() - L::trackListPanRightInset)
+            .removeFromRight (L::trackListPanDiameter)
+            .withY (row.getY() + L::trackListPanTopInset)
+            .withHeight (L::trackListPanDiameter);
+    dragFromTo (*rail, panKnob.getCentre(), panKnob.getCentre().translated (8, 0), shiftDrag);
+    project = readProjectSnapshot (bundlePath);
+    const double railPanExpected = (8.0 / panKnob.getWidth()) * 2.0 * fine;
+    REQUIRE (project.tracks.front().strip.pan
+             == Catch::Approx (railPanExpected).epsilon (1e-6));
+
+    // Mixer fader (vertical, 0.01 interval): the Shift drag lands on the interval grid at
+    // exactly fineDragScale of the plain proportional travel.
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (0.8, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain == 0.8f);
+
+    const juce::Point<int> faderCentre = fader->getLocalBounds().getCentre();
+    dragFromTo (*fader, faderCentre, faderCentre.translated (0, -30), shiftDrag);
+    project = readProjectSnapshot (bundlePath);
+    const double faderRaw = 0.8
+                          + (30.0 / fader->getHeight())
+                                * (L::mixerFaderSliderMax - L::mixerFaderSliderMin) * fine;
+    const double faderSnapped = L::mixerFaderSliderMin
+                              + L::mixerFaderSliderInterval
+                                    * std::floor ((faderRaw - L::mixerFaderSliderMin)
+                                                      / L::mixerFaderSliderInterval + 0.5);
+    REQUIRE (project.tracks.front().strip.linearGain
+             == Catch::Approx (faderSnapped).epsilon (1e-6));
+
+    // Mixer pan (rotary, 0.01 interval): the Shift drag tracks (+x, -y) at fineDragScale.
+    auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
+    REQUIRE (pan != nullptr);
+    pan->setValue (0.2, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan == 0.2f);
+
+    const juce::Point<int> panCentre = pan->getLocalBounds().getCentre();
+    dragFromTo (*pan, panCentre, panCentre.translated (25, 0), shiftDrag);
+    project = readProjectSnapshot (bundlePath);
+    const double panRaw = 0.2
+                        + (25.0 / pan->getWidth())
+                              * (L::mixerPanSliderMax - L::mixerPanSliderMin) * fine;
+    const double panSnapped = std::round ((L::mixerPanSliderMin
+                                           + L::mixerPanSliderInterval
+                                                 * std::floor ((panRaw - L::mixerPanSliderMin)
+                                                                   / L::mixerPanSliderInterval + 0.5))
+                                          / L::mixerPanSliderInterval)
+                            * L::mixerPanSliderInterval;
+    REQUIRE (project.tracks.front().strip.pan == Catch::Approx (panSnapped).epsilon (1e-6));
+
+    // Send level (horizontal, continuous): exact fine math, an anchored no-move Shift press
+    // never jumps, and the same plain drag moves far more than five times as much.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* sendLevel = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (sendLevel != nullptr);
+    sendLevel->setValue (0.5, juce::sendNotificationSync);
+
+    const juce::Point<int> sendEdge { sendLevel->getLocalBounds().getX() + 1,
+                                      sendLevel->getLocalBounds().getCentreY() };
+    dragFromTo (*sendLevel, sendEdge, sendEdge, shiftDrag);   // Shift press far off-value: no jump
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+
+    const juce::Point<int> sendCentre = sendLevel->getLocalBounds().getCentre();
+    dragFromTo (*sendLevel, sendCentre, sendCentre.translated (20, 0), shiftDrag);
+    project = readProjectSnapshot (bundlePath);
+    const double sendFineExpected = 0.5 + (20.0 / sendLevel->getWidth()) * 1.0 * fine;
+    const float sendFine = project.tracks.front().sends.front().linearGain;
+    REQUIRE (sendFine == Catch::Approx (sendFineExpected).epsilon (1e-6));
+
+    sendLevel->setValue (0.5, juce::sendNotificationSync);
+    dragFromTo (*sendLevel, sendCentre, sendCentre.translated (20, 0));
+    project = readProjectSnapshot (bundlePath);
+    const float sendCoarse = project.tracks.front().sends.front().linearGain;
+    REQUIRE (std::abs (sendCoarse - 0.5f) > 5.0f * std::abs (sendFine - 0.5f));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

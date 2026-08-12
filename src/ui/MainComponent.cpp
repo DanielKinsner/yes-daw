@@ -1281,6 +1281,98 @@ private:
 
 // Transparent overlay across the left Track rail. Shares drawTrackList's exact row math (header
 // strip, then equal rows floored at trackListRowMinHeight) so hit-testing and paint cannot drift.
+// Slider with an exact Shift fine-drag mode (B30): while Shift is held, pointer movement counts
+// for exactly UiTheme::Layout::fineDragScale of its plain effect. Fine mode anchors at the value
+// when it engages (no jump-to-pointer), accumulates unsnapped so tiny moves add up, latches until
+// mouse-up, and never engages while Alt is down so the Alt+click reset law is untouched.
+class FineDragSlider : public juce::Slider
+{
+public:
+    using juce::Slider::Slider;
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        fineActive = false;
+        lastFinePosition = event.position;
+        if (isEnabled() && wantsFineDrag (event) && supportsFineDrag())
+        {
+            fineActive = true;
+            fineValue = getValue();
+            return;   // no jump-to-pointer; the anchor is the current value
+        }
+
+        juce::Slider::mouseDown (event);
+    }
+
+    void mouseDrag (const juce::MouseEvent& event) override
+    {
+        if (! fineActive && wantsFineDrag (event) && supportsFineDrag())
+        {
+            fineActive = true;   // Shift pressed mid-drag: anchor at the value reached so far
+            fineValue = getValue();
+        }
+
+        if (! fineActive)
+        {
+            lastFinePosition = event.position;
+            juce::Slider::mouseDrag (event);
+            return;
+        }
+
+        const double proportionDelta = axisProportionDelta (event.position);
+        lastFinePosition = event.position;
+        fineValue = juce::jlimit (getMinimum(),
+                                  getMaximum(),
+                                  fineValue
+                                      + proportionDelta * (getMaximum() - getMinimum())
+                                            * yesdaw::ui::UiTheme::Layout::fineDragScale);
+        setValue (fineValue, juce::sendNotificationSync);
+    }
+
+    void mouseUp (const juce::MouseEvent& event) override
+    {
+        fineActive = false;
+        juce::Slider::mouseUp (event);
+    }
+
+private:
+    [[nodiscard]] static bool wantsFineDrag (const juce::MouseEvent& event)
+    {
+        return event.mods.isShiftDown() && ! event.mods.isAltDown();
+    }
+
+    [[nodiscard]] bool supportsFineDrag() const
+    {
+        const auto style = getSliderStyle();
+        return style == juce::Slider::LinearHorizontal
+            || style == juce::Slider::LinearVertical
+            || style == juce::Slider::RotaryHorizontalVerticalDrag;
+    }
+
+    // Pointer movement as a proportion of the control's own span, matching each style's plain
+    // drag direction: horizontal tracks +x, vertical tracks -y, rotary tracks (+x, -y) combined.
+    [[nodiscard]] double axisProportionDelta (juce::Point<float> position) const
+    {
+        const double dx = static_cast<double> (position.x - lastFinePosition.x);
+        const double dy = static_cast<double> (position.y - lastFinePosition.y);
+        switch (getSliderStyle())
+        {
+            case juce::Slider::LinearHorizontal:
+                return dx / std::max (1, getWidth());
+            case juce::Slider::LinearVertical:
+                return -dy / std::max (1, getHeight());
+            case juce::Slider::RotaryHorizontalVerticalDrag:
+                return (dx - dy) / std::max (1, getWidth());
+            default:
+                return 0.0;
+        }
+    }
+
+    bool fineActive = false;
+    double fineValue = 0.0;
+    juce::Point<float> lastFinePosition;
+};
+
 class TrackListInputComponent final : public juce::Component
 {
 public:
@@ -1292,6 +1384,9 @@ public:
     std::function<void (int, float)> onVolumeEdited;   // row, linear gain in [0, 1]
     std::function<void (int)> onMuteToggled;
     std::function<void (int)> onSoloToggled;
+    // Current strip values, used to anchor Shift fine drags without a jump (B30).
+    std::function<float (int)> panValueProvider;
+    std::function<float (int)> volumeValueProvider;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
@@ -1312,6 +1407,8 @@ public:
                 }
                 dragRow = row;
                 dragZone = MiniZone::Pan;
+                if (beginFineDragIfWanted (event))
+                    return;   // fine mode anchors at the current value; no jump
                 applyPan (row, event.getPosition());
                 return;
 
@@ -1324,6 +1421,8 @@ public:
                 }
                 dragRow = row;
                 dragZone = MiniZone::Volume;
+                if (beginFineDragIfWanted (event))
+                    return;
                 applyVolume (row, event.getPosition());
                 return;
 
@@ -1350,6 +1449,15 @@ public:
         if (dragRow < 0)
             return;
 
+        if (! fineDragActive && event.mods.isShiftDown() && ! event.mods.isAltDown())
+            (void) beginFineDragIfWanted (event);   // Shift pressed mid-drag: anchor here
+
+        if (fineDragActive)
+        {
+            applyFineDrag (event);
+            return;
+        }
+
         if (dragZone == MiniZone::Pan)
             applyPan (dragRow, event.getPosition());
         else if (dragZone == MiniZone::Volume)
@@ -1360,6 +1468,7 @@ public:
     {
         dragRow = -1;
         dragZone = MiniZone::None;
+        fineDragActive = false;
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -1476,8 +1585,56 @@ private:
         onVolumeEdited (row, juce::jlimit (0.0f, 1.0f, normalized));
     }
 
+    // Shift fine drag (B30): anchor at the strip's current value and scale pointer movement by
+    // the shared fine-drag token; the value never jumps to the pointer while fine mode is active.
+    [[nodiscard]] bool beginFineDragIfWanted (const juce::MouseEvent& event)
+    {
+        if (! event.mods.isShiftDown() || event.mods.isAltDown())
+            return false;
+
+        const auto* provider = dragZone == MiniZone::Pan
+                                   ? &panValueProvider
+                                   : &volumeValueProvider;
+        if (! (*provider))
+            return false;
+
+        fineDragActive = true;
+        fineDragValue = (*provider) (dragRow);
+        fineDragLastX = event.getPosition().x;
+        return true;
+    }
+
+    void applyFineDrag (const juce::MouseEvent& event)
+    {
+        const auto bounds = dragZone == MiniZone::Pan ? panKnobBounds (dragRow)
+                                                      : volumeSliderBounds (dragRow);
+        if (bounds.getWidth() <= 0)
+            return;
+
+        const int x = event.getPosition().x;
+        const double proportionDelta = static_cast<double> (x - fineDragLastX)
+                                     / static_cast<double> (bounds.getWidth());
+        fineDragLastX = x;
+
+        const bool isPan = dragZone == MiniZone::Pan;
+        const double span = isPan ? 2.0 : 1.0;   // pan covers [-1, 1]; VOL covers [0, 1]
+        fineDragValue = static_cast<float> (juce::jlimit (
+            isPan ? -1.0 : 0.0,
+            1.0,
+            static_cast<double> (fineDragValue)
+                + proportionDelta * span * yesdaw::ui::UiTheme::Layout::fineDragScale));
+
+        if (isPan && onPanEdited)
+            onPanEdited (dragRow, fineDragValue);
+        else if (! isPan && onVolumeEdited)
+            onVolumeEdited (dragRow, fineDragValue);
+    }
+
     int dragRow = -1;
     MiniZone dragZone = MiniZone::None;
+    bool fineDragActive = false;
+    float fineDragValue = 0.0f;
+    int fineDragLastX = 0;
 
     [[nodiscard]] int rowAt (juce::Point<int> position) const
     {
@@ -1884,6 +2041,18 @@ public:
             return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
         };
         trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
+        trackListInput.panValueProvider = [this] (int row) {
+            const auto& tracks = appModel.project().tracks;
+            return row >= 0 && row < static_cast<int> (tracks.size())
+                       ? tracks[static_cast<std::size_t> (row)].strip.pan
+                       : 0.0f;
+        };
+        trackListInput.volumeValueProvider = [this] (int row) {
+            const auto& tracks = appModel.project().tracks;
+            return row >= 0 && row < static_cast<int> (tracks.size())
+                       ? juce::jlimit (0.0f, 1.0f, tracks[static_cast<std::size_t> (row)].strip.linearGain)
+                       : 0.0f;
+        };
         trackListInput.onRowDoubleClicked = [this] (int row) {
             selectTrackLane (row);
             openTrackRenameEditor();
@@ -6349,20 +6518,20 @@ private:
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
-    juce::Slider headerTempoControl;
+    FineDragSlider headerTempoControl;
     juce::ComboBox headerMeterChooser;
     juce::ComboBox mixerFxAddChooser;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotEdits;
-    std::array<juce::Slider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
+    std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;
     std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
     juce::TextButton mixerBusAddButton;
     juce::ComboBox mixerSendAddChooser;
-    std::array<juce::Slider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
+    std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;
     bool refreshingSendControls = false;
@@ -6379,8 +6548,8 @@ private:
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;
     juce::TextButton mixerTrackSelect;
-    juce::Slider mixerFader;
-    juce::Slider mixerPan;
+    FineDragSlider mixerFader;
+    FineDragSlider mixerPan;
     juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;
     juce::TextButton mixerSendLevelEdit;
@@ -6400,12 +6569,12 @@ private:
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;
     juce::TextButton automationBreakpointDeleteButton;
-    juce::Slider inspectorStart;
-    juce::Slider inspectorEnd;
-    juce::Slider inspectorLength;
-    juce::Slider inspectorGain;
-    juce::Slider inspectorFadeIn;
-    juce::Slider inspectorFadeOut;
+    FineDragSlider inspectorStart;
+    FineDragSlider inspectorEnd;
+    FineDragSlider inspectorLength;
+    FineDragSlider inspectorGain;
+    FineDragSlider inspectorFadeIn;
+    FineDragSlider inspectorFadeOut;
     juce::ComboBox inspectorFadeCurve;
     std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
