@@ -1104,28 +1104,25 @@ public:
                 context.keymapVisible = ! context.keymapVisible;
                 break;
 
+            // Tool selection is panel-preserving (E11): the palette drives the piano roll's
+            // gestures too, so picking a tool must not kick the user out of the roll.
             case UiActionId::TimelineToolSelectPointer:
-                context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Pointer;
                 break;
 
             case UiActionId::TimelineToolSelectPencil:
-                context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Pencil;
                 break;
 
             case UiActionId::TimelineToolSelectScissors:
-                context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Scissors;
                 break;
 
             case UiActionId::TimelineToolSelectHand:
-                context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Hand;
                 break;
 
             case UiActionId::TimelineToolSelectZoom:
-                context.activePanel = UiPanel::Timeline;
                 context.activeTimelineTool = TimelineTool::Zoom;
                 break;
 

@@ -286,9 +286,30 @@ byte-identical `project.db`, real pencils landing persisted notes at key 0 and k
 exact zoom factor and shift-scroll law, an exact snapped pencil under zoom+scroll, and the
 zoom-out reset.
 
-**Now:** committing E10 for its exact-head run.
+E10 is certified: exact-head GitHub Actions run `31634369465` green for full SHA
+`3aea76b605f39b37088e7517cea6a2f9994bf414` across all nine jobs; full local ctest green
+**348/348**. E10 is ticked in the backlog.
 
-**Next:** E11 (piano roll selection tools).
+**E11 implementation candidate — piano roll selection tools:** audited before adding: only
+Ctrl+A existed, a click on empty grid pencilled a note UNCONDITIONALLY (you could not even
+deselect), there was no note marquee and no mouse delete. The empty roll grid is now tool-aware
+(the Pencil adds — every pencil gate re-pinned to press `P` first; the Pointer clears the
+selection and drags a note marquee painted with the shared marquee style); Shift+click toggles a
+note in the multi-selection through a movement-free-mouse-up law so Shift+DRAG keeps the
+historical length edit; plain double-click deletes the note under the mouse; Escape cancels an
+in-flight note marquee; and tool selection is now PANEL-PRESERVING (the palette drives the roll
+too, so picking a tool no longer kicks the user back to the Timeline — the old force-switch made
+`P` in the roll impossible). New model verbs: togglePianoRollNoteSelection /
+selectPianoRollNotes / clearPianoRollNoteSelection. The shipped-boundary `[roll-select]` gate
+FAILED before (the pointer empty click pencilled and selected a note) and passes after with 59
+assertions: pointer deselect with a refused Del, a marquee Del of exactly two of three notes with
+group undo, a Shift+click toggle proven by the survivor, a plain double-click single delete, and
+the Pencil still adding under `P`.
+
+**Now:** E11 — full local suite running; then commit, push, exact-head nine-job green, evidence
+commit.
+
+**Next:** E12 (piano roll drag upgrades).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

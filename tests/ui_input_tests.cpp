@@ -6005,9 +6005,13 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
+    // E11: the empty roll grid is tool-aware — the pencil needs the Pencil tool; Pointer is
+    // restored before the timeline gestures below.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 2u);
@@ -6231,7 +6235,8 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     };
 
     // Double-click the LAST track's MIDI clip: the roll opens on THAT clip and the pencil lands
-    // its note there and nowhere else.
+    // its note there and nowhere else. (E11: the pencil needs the Pencil tool.)
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     doubleClickAt (timeline, midiClipPointOnLane (2));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
@@ -6272,6 +6277,8 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    // E11: the empty-grid pencil needs the Pencil tool.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.midiClips.size() == 1u);
     const yesdaw::engine::Tick clipLength = original.midiClips.front().timelineLength;
@@ -6374,6 +6381,98 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.pianoRollViewZoom == yesdaw::ui::UiThemeLayout::pianoRollZoomMin);
     REQUIRE (snapshot.pianoRollViewScrollTicks == 0);
+}
+
+TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle, mouse delete",
+           "[ui][input][shell][pianoroll][roll-select]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-select");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const int rowStep = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
+                                    grid.getHeight() / yesdaw::ui::UiTheme::Layout::pianoRollKeyCount);
+
+    // Three pencilled notes at distinct keys and ticks.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    mouseDownAt (pianoRoll, grid.getCentre().translated (-80, 3 * rowStep));
+    mouseDownAt (pianoRoll, grid.getCentre());
+    mouseDownAt (pianoRoll, grid.getCentre().translated (80, -3 * rowStep));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 3u);
+    const yesdaw::engine::MidiClip midi = project.midiClips.front();
+    const auto sortedByTick = [&] {
+        std::vector<yesdaw::engine::Note> notes = readProjectSnapshot (bundlePath).midiClips.front().notes;
+        std::sort (notes.begin(), notes.end(), [] (const auto& a, const auto& b) {
+            return a.startTick < b.startTick;
+        });
+        return notes;
+    };
+    const std::vector<yesdaw::engine::Note> ordered = sortedByTick();
+    const yesdaw::engine::Note noteA = ordered[0];   // left-low
+    const yesdaw::engine::Note noteB = ordered[1];   // centre
+    const yesdaw::engine::Note noteC = ordered[2];   // right-high
+
+    // POINTER: an empty click clears the selection instead of pencilling; Del then refuses.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    const juce::Point<int> emptySpot { grid.getX() + 2, grid.getBottom() - 2 };
+    mouseDownAt (pianoRoll, emptySpot);
+    releaseDragAt (pianoRoll, emptySpot, emptySpot);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.midiNoteSelected);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
+
+    // POINTER MARQUEE: a drag over two notes selects exactly those; Del removes them as one
+    // undoable group.
+    const juce::Point<int> centreA = pianoRollNoteCenterPoint (pianoRoll, midi, noteA);
+    const juce::Point<int> centreB = pianoRollNoteCenterPoint (pianoRoll, midi, noteB);
+    dragFromTo (pianoRoll,
+                { centreA.x - 40, centreA.y + rowStep },
+                { centreB.x + 20, centreB.y - rowStep });
+    REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    REQUIRE (project.midiClips.front().notes.front().id == noteC.id);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
+
+    // SHIFT+CLICK toggle: select all, toggle C OUT, Del keeps exactly C.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    const juce::Point<int> centreC = pianoRollNoteCenterPoint (pianoRoll, midi, noteC);
+    mouseDownAt (pianoRoll, centreC,
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                     | juce::ModifierKeys::shiftModifier));
+    releaseDragAt (pianoRoll, centreC, centreC,
+                   juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                       | juce::ModifierKeys::shiftModifier));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 1u);
+    REQUIRE (project.midiClips.front().notes.front().id == noteC.id);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
+
+    // Plain double-click deletes a single note with the mouse.
+    doubleClickAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, midi, noteB));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.front().notes.size() == 2u);
+    for (const yesdaw::engine::Note& note : project.midiClips.front().notes)
+        REQUIRE_FALSE (note.id == noteB.id);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
+
+    // The Pencil tool still adds.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    mouseDownAt (pianoRoll, grid.getCentre().translated (0, -5 * rowStep));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 4u);
 }
 
 TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate edit",
@@ -6642,7 +6741,9 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
 
+    // E11: the empty-grid pencil needs the Pencil tool (the pencil selects its new note).
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.midiClips.size() == 1u);
@@ -6871,8 +6972,10 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
     REQUIRE (snapshot.context.midiClipSelected);
 
-    // Pencil: a click on the empty grid creates a note at the clicked key and snapped tick.
+    // Pencil: with the Pencil tool (E11), a click on the empty grid creates a note at the
+    // clicked key and snapped tick.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
@@ -7992,7 +8095,9 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
 
     const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
     REQUIRE (before.tracks.size() == 1u);
@@ -8891,8 +8996,10 @@ TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints
     // Ctrl+M + pencil: one synth note whose loudness follows its velocity.
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     const juce::Point<int> noteCentre { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 };
     mouseDownAt (pianoRoll, noteCentre);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
     const double startVelocity = project.midiClips.front().notes.front().normalizedVelocity;
@@ -8988,8 +9095,10 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     // Two penciled notes at different keys and ticks; the second stays selected.
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 2u);
     const yesdaw::engine::EntityId firstNoteId = project.midiClips.front().notes[0].id;
@@ -9092,7 +9201,9 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
     const yesdaw::engine::Note source = project.midiClips.front().notes.front();
@@ -9173,8 +9284,10 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 2u);
     const yesdaw::engine::EntityId firstId = project.midiClips.front().notes[0].id;

@@ -641,8 +641,11 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE (registry.dispatch (UiActionId::HelpShowKeymap, context).dispatched);
     REQUIRE (context.keymapVisible);
 
+    // E11: tool selection is PANEL-PRESERVING — the palette drives the piano roll too, so
+    // picking a tool must not switch panels.
+    const UiPanel panelBeforeToolSelect = context.activePanel;
     REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectPencil, context).dispatched);
-    REQUIRE (context.activePanel == UiPanel::Timeline);
+    REQUIRE (context.activePanel == panelBeforeToolSelect);
     REQUIRE (context.activeTimelineTool == TimelineTool::Pencil);
     REQUIRE (registry.dispatch (UiActionId::TimelineToolSelectScissors, context).dispatched);
     REQUIRE (context.activeTimelineTool == TimelineTool::Scissors);

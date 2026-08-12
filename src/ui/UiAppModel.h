@@ -1466,6 +1466,68 @@ public:
         return { selectedMidiNoteIds_.data(), selectedMidiNoteIds_.size() };
     }
 
+    // Piano-roll selection tools (E11): Shift+click toggles a note in the multi-selection, the
+    // Pointer marquee replaces it, and a Pointer empty click clears it.
+    [[nodiscard]] bool togglePianoRollNoteSelection (engine::EntityId midiClipId,
+                                                     engine::EntityId noteId) noexcept
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        if (midiClip == nullptr || findNote (*midiClip, noteId) == nullptr)
+            return false;
+
+        selectedMidiClipId_ = midiClipId;
+        const auto selected = std::find (selectedMidiNoteIds_.begin(), selectedMidiNoteIds_.end(), noteId);
+        if (selected == selectedMidiNoteIds_.end())
+        {
+            selectedMidiNoteIds_.push_back (noteId);
+            selectedMidiNoteId_ = noteId;
+        }
+        else
+        {
+            selectedMidiNoteIds_.erase (selected);
+            selectedMidiNoteId_ = selectedMidiNoteIds_.empty()
+                ? engine::EntityId {}
+                : selectedMidiNoteIds_.back();
+        }
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        return true;
+    }
+
+    [[nodiscard]] bool selectPianoRollNotes (std::span<const engine::EntityId> noteIds) noexcept
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr)
+            return false;
+
+        std::vector<engine::EntityId> nextSelection;
+        nextSelection.reserve (noteIds.size());
+        for (engine::EntityId noteId : noteIds)
+        {
+            if (findNote (*midiClip, noteId) == nullptr)
+                return false;
+            if (std::find (nextSelection.begin(), nextSelection.end(), noteId) == nextSelection.end())
+                nextSelection.push_back (noteId);
+        }
+
+        selectedMidiNoteIds_ = std::move (nextSelection);
+        selectedMidiNoteId_ = selectedMidiNoteIds_.empty()
+            ? engine::EntityId {}
+            : selectedMidiNoteIds_.back();
+        context_.activePanel = UiPanel::PianoRoll;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        return true;
+    }
+
+    void clearPianoRollNoteSelection() noexcept
+    {
+        selectedMidiNoteId_ = {};
+        selectedMidiNoteIds_.clear();
+        syncProjectEditContext();
+    }
+
     // Transpose the whole note selection as one atomic undo group (B34): any out-of-range note
     // refuses the entire group.
     [[nodiscard]] UiActionDispatchResult transposeSelectedPianoRollNotes (std::int32_t semitones)

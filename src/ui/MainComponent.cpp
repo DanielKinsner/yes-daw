@@ -1362,6 +1362,13 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, double)> onNoteVelocityAdjusted;
     // Ctrl+drag copy-drags a note (B35): clip, source note, copy's start tick.
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteCopyDragged;
+    // Piano-roll selection tools (E11): the empty grid is tool-aware (Pencil adds, Pointer
+    // deselects and marquee-selects), Shift+click toggles, plain double-click deletes a note.
+    std::function<yesdaw::ui::TimelineTool()> activeToolProvider;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteToggled;
+    std::function<void (yesdaw::engine::EntityId, std::span<const yesdaw::engine::EntityId>)> onNotesMarqueeSelected;
+    std::function<void()> onSelectionCleared;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteDeleted;
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
     // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
     std::function<void (int)> onViewKeysScrolled;                          // +1 up / -1 down
@@ -1437,35 +1444,62 @@ public:
         if (! hit)
         {
             dragState = {};
-            // Pencil (usable-DAW P1): a click on EMPTY grid adds a note at the clicked tick and key,
-            // snapped to the piano-roll grid.
-            if (surface.midiClipSelected && onNoteAdded)
-            {
-                const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
-                if (geometry.grid.contains (event.getPosition()) && geometry.grid.getWidth() > 0)
-                {
-                    const double normalized =
-                        static_cast<double> (event.getPosition().x - geometry.grid.getX())
-                        / static_cast<double> (geometry.grid.getWidth());
-                    const auto visibleTicks = static_cast<double> (pianoRollVisibleTicks (surface));
-                    yesdaw::engine::Tick tick = surface.viewScrollTicks
-                        + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
-                    tick -= tick % kPianoRollSnapGridTicks;
+            marqueeState = {};
+            const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            if (! surface.midiClipSelected
+                || ! geometry.grid.contains (event.getPosition())
+                || geometry.grid.getWidth() <= 0)
+                return;
 
-                    const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
-                    const int key = pianoRollViewHighKey (surface)
-                        - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
-                    if (key >= surface.viewLowKey && key <= pianoRollViewHighKey (surface)
-                        && key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin
-                        && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
-                        onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
-                }
+            // The empty grid is tool-aware (E11): the Pencil adds a note at the clicked tick and
+            // key; the Pointer clears the selection and starts a note marquee.
+            const yesdaw::ui::TimelineTool tool =
+                activeToolProvider ? activeToolProvider() : yesdaw::ui::TimelineTool::Pointer;
+            if (tool == yesdaw::ui::TimelineTool::Pencil)
+            {
+                if (! onNoteAdded)
+                    return;
+
+                const double normalized =
+                    static_cast<double> (event.getPosition().x - geometry.grid.getX())
+                    / static_cast<double> (geometry.grid.getWidth());
+                const auto visibleTicks = static_cast<double> (pianoRollVisibleTicks (surface));
+                yesdaw::engine::Tick tick = surface.viewScrollTicks
+                    + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
+                tick -= tick % kPianoRollSnapGridTicks;
+
+                const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
+                const int key = pianoRollViewHighKey (surface)
+                    - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
+                if (key >= surface.viewLowKey && key <= pianoRollViewHighKey (surface)
+                    && key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin
+                    && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
+                    onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
+                return;
+            }
+
+            if (tool == yesdaw::ui::TimelineTool::Pointer)
+            {
+                if (onSelectionCleared)
+                    onSelectionCleared();
+                marqueeState.active = true;
+                marqueeState.downPosition = geometry.grid.getConstrainedPoint (event.getPosition());
+                marqueeState.currentPosition = marqueeState.downPosition;
+                repaint();
             }
             return;
         }
 
-        if (onNoteClicked)
+        // Shift+click toggles the note in the multi-selection (E11); a Shift+DRAG keeps the
+        // historical length-edit law, so the toggle is resolved on a movement-free mouse-up.
+        if (event.mods.isShiftDown())
+        {
+            pendingShiftToggleNoteId = hit->noteId;
+        }
+        else if (onNoteClicked)
+        {
             onNoteClicked (surface.midiClipId, hit->noteId);
+        }
 
         dragState = {};
         dragState.active = true;
@@ -1482,14 +1516,91 @@ public:
             dragState.mode = PianoDragMode::Move;
     }
 
-    void mouseDrag (const juce::MouseEvent&) override
+    // Note marquee overlay (E11): painted above the roll canvas with the shared marquee style.
+    void paint (juce::Graphics& g) override
     {
+        if (! marqueeState.active || ! marqueeState.moved)
+            return;
+
+        const juce::Rectangle<int> marquee (marqueeState.downPosition, marqueeState.currentPosition);
+        g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+            yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+        g.fillRect (marquee);
+        g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
+            yesdaw::ui::UiTheme::Tone::focusRingAlpha));
+        g.drawRect (marquee.toFloat(), yesdaw::ui::UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+    }
+
+    [[nodiscard]] bool cancelInProgressEdit()
+    {
+        if (! dragState.active && ! marqueeState.active && ! pendingShiftToggleNoteId.isValid())
+            return false;
+
+        dragState = {};
+        marqueeState = {};
+        pendingShiftToggleNoteId = {};
+        repaint();
+        return true;
+    }
+
+    void mouseDrag (const juce::MouseEvent& event) override
+    {
+        if (marqueeState.active)
+        {
+            const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            marqueeState.currentPosition = geometry.grid.getConstrainedPoint (event.getPosition());
+            const int deltaX = marqueeState.currentPosition.x - marqueeState.downPosition.x;
+            const int deltaY = marqueeState.currentPosition.y - marqueeState.downPosition.y;
+            marqueeState.moved = std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
+                              || std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
+            repaint();
+            return;
+        }
+
         if (dragState.active)
             dragState.moved = true;
     }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (marqueeState.active)
+        {
+            const NoteMarqueeState marquee = marqueeState;
+            marqueeState = {};
+            repaint();
+
+            if (marquee.moved && stateProvider && onNotesMarqueeSelected)
+            {
+                const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+                const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+                const juce::Rectangle<int> rect (marquee.downPosition, marquee.currentPosition);
+                std::vector<yesdaw::engine::EntityId> noteIds;
+                for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
+                {
+                    if (note.key < surface.viewLowKey || note.key > pianoRollViewHighKey (surface))
+                        continue;
+                    if (pianoRollNoteBounds (geometry, surface, note).intersects (rect))
+                        noteIds.push_back (note.noteId);
+                }
+                onNotesMarqueeSelected (surface.midiClipId,
+                                        std::span<const yesdaw::engine::EntityId> (noteIds.data(),
+                                                                                   noteIds.size()));
+            }
+            return;
+        }
+
+        if (pendingShiftToggleNoteId.isValid())
+        {
+            const yesdaw::engine::EntityId toggledNoteId = pendingShiftToggleNoteId;
+            pendingShiftToggleNoteId = {};
+            if ((! dragState.active || ! dragState.moved) && stateProvider && onNoteToggled)
+            {
+                dragState = {};
+                onNoteToggled (stateProvider().midiClipId, toggledNoteId);
+                return;
+            }
+        }
+
         if (! dragState.active)
             return;
 
@@ -1567,6 +1678,13 @@ public:
         {
             if (onNoteTransposed)
                 onNoteTransposed (surface.midiClipId, hit->noteId, 1);
+            return;
+        }
+
+        // Plain double-click deletes the note (E11): the mouse finally has a delete gesture.
+        if (onNoteDeleted)
+        {
+            onNoteDeleted (surface.midiClipId, hit->noteId);
         }
     }
 
@@ -1629,6 +1747,17 @@ private:
     }
 
     PianoDragState dragState;
+    // Piano-roll selection tools (E11): Pointer note marquee + the pending Shift+click toggle
+    // that resolves on a movement-free mouse-up (a Shift+DRAG keeps the length-edit law).
+    struct NoteMarqueeState
+    {
+        bool active = false;
+        bool moved = false;
+        juce::Point<int> downPosition;
+        juce::Point<int> currentPosition;
+    };
+    NoteMarqueeState marqueeState;
+    yesdaw::engine::EntityId pendingShiftToggleNoteId;
 };
 
 class ToolbarActionButton final : public juce::TextButton
@@ -2920,6 +3049,35 @@ public:
         pianoRollInput.onNoteClicked = [this] (yesdaw::engine::EntityId midiClipId,
                                                yesdaw::engine::EntityId noteId) {
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
+            refreshActionState();
+            repaint();
+        };
+        // Piano-roll selection tools (E11).
+        pianoRollInput.activeToolProvider = [this] {
+            return appModel.context().activeTimelineTool;
+        };
+        pianoRollInput.onNoteToggled = [this] (yesdaw::engine::EntityId midiClipId,
+                                               yesdaw::engine::EntityId noteId) {
+            (void) appModel.togglePianoRollNoteSelection (midiClipId, noteId);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNotesMarqueeSelected = [this] (yesdaw::engine::EntityId midiClipId,
+                                                        std::span<const yesdaw::engine::EntityId> noteIds) {
+            juce::ignoreUnused (midiClipId);
+            (void) appModel.selectPianoRollNotes (noteIds);
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onSelectionCleared = [this] {
+            appModel.clearPianoRollNoteSelection();
+            refreshActionState();
+            repaint();
+        };
+        pianoRollInput.onNoteDeleted = [this] (yesdaw::engine::EntityId midiClipId,
+                                               yesdaw::engine::EntityId noteId) {
+            if (appModel.selectPianoRollNote (midiClipId, noteId).dispatched)
+                (void) appModel.deleteSelectedPianoRollNotes();
             refreshActionState();
             repaint();
         };
@@ -4853,6 +5011,7 @@ private:
     [[nodiscard]] bool cancelInProgressEdit()
     {
         bool cancelled = timelineInput.cancelInProgressEdit();
+        cancelled = pianoRollInput.cancelInProgressEdit() || cancelled;
         if (trackRenameEditor.isVisible())
         {
             dismissTrackRenameEditor();
