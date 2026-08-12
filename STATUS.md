@@ -903,7 +903,12 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B34 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+The first exact-head run `31575969393` was red on macOS only (red round 1): AppleClang's
+`-Wunused-lambda-capture` rejected a defensively captured `this` in the new selection-pruning
+lambda (`findNote` resolves as a free function, so the capture was dead — the known
+AppleClang-only-warnings trap). The repair drops the capture; behavior is identical.
+
+**Now:** B34 repair checkpoint — awaiting the exact-head GitHub Actions run on the repaired head.
 
 **Next:** on green, tick B34 in the backlog with SHA + run id (docs-only evidence commit), then B35
 (note duplicate: Ctrl+drag copy-drag + Ctrl+D one grid step later) per the run brief.

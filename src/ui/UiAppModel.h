@@ -4794,7 +4794,7 @@ private:
 
         // Multi-note selection (B34) follows the same pruning law as timeline clips: dead notes
         // fall out, and losing the primary drops the whole selection.
-        std::erase_if (selectedMidiNoteIds_, [this, midiClip] (engine::EntityId noteId) {
+        std::erase_if (selectedMidiNoteIds_, [midiClip] (engine::EntityId noteId) {
             return midiClip == nullptr || findNote (*midiClip, noteId) == nullptr;
         });
         if (! selectedMidiNoteId_.isValid()
