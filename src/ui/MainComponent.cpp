@@ -43,6 +43,14 @@ constexpr int kUiRefreshIntervalMs = 33;
 // Open Recent menu item ids live above the action-id range (B39).
 constexpr int kRecentMenuBaseId = 1000;
 
+// The menu bar names its menus itself; the tooltip mixin satisfies the every-control law (B40).
+class TooltippedMenuBar final : public juce::MenuBarComponent,
+                                public juce::SettableTooltipClient
+{
+public:
+    using juce::MenuBarComponent::MenuBarComponent;
+};
+
 constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
     yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
 constexpr const char* kTimelineComponentId = "timeline.canvas";
@@ -360,7 +368,8 @@ std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> decodeStoredProjectAssets
 
 } // namespace
 
-class TimelineInputComponent final : public juce::Component
+class TimelineInputComponent final : public juce::Component,
+                                     public juce::SettableTooltipClient
 {
 public:
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
@@ -1056,7 +1065,8 @@ struct PianoRollCanvasGeometry
                   yesdaw::ui::UiTheme::Layout::pianoRollNoteInsetY);
 }
 
-class PianoRollInputComponent final : public juce::Component
+class PianoRollInputComponent final : public juce::Component,
+                                      public juce::SettableTooltipClient
 {
 public:
     std::function<yesdaw::ui::UiPianoRollSurfaceSnapshot()> stateProvider;
@@ -1457,7 +1467,8 @@ private:
     juce::Point<float> lastFinePosition;
 };
 
-class TrackListInputComponent final : public juce::Component
+class TrackListInputComponent final : public juce::Component,
+                                      public juce::SettableTooltipClient
 {
 public:
     std::function<int()> rowCountProvider;
@@ -1764,7 +1775,8 @@ private:
 // The automation lane canvas (usable-DAW P1): paints the target lane's breakpoints against the SAME
 // timeline viewport math as the arrangement, and turns clicks into real breakpoint edits. Click empty
 // lane = add at (time, value); drag a handle = move; double-click a handle = delete.
-class AutomationLaneCanvasComponent final : public juce::Component
+class AutomationLaneCanvasComponent final : public juce::Component,
+                                            public juce::SettableTooltipClient
 {
 public:
     std::function<std::vector<std::pair<double, double>>()> pointsProvider;   // (seconds, normalized value)
@@ -1880,7 +1892,8 @@ private:
 
 // Transparent overlay across the mixer strip region: forwards a click to the strip index under the
 // pointer (geometry owned by MainComponent so paint and hits share one source of truth).
-class MixerStripsInputComponent final : public juce::Component
+class MixerStripsInputComponent final : public juce::Component,
+                                        public juce::SettableTooltipClient
 {
 public:
     std::function<int (juce::Point<int>)> stripAtPosition;   // position in SHELL coordinates
@@ -1981,6 +1994,7 @@ public:
 
         // Export options (usable-DAW P1): bit depth and range feed the model before Export runs.
         exportBitDepthChooser.setComponentID ("shell.export.bitdepth");
+        exportBitDepthChooser.setTooltip ("Export bit depth");
         exportBitDepthChooser.setName ("Export bit depth");
         exportBitDepthChooser.setTitle ("Export bit depth");
         exportBitDepthChooser.addItem ("32-bit float", 1);
@@ -1996,6 +2010,7 @@ public:
         addAndMakeVisible (exportBitDepthChooser);
 
         exportRangeChooser.setComponentID ("shell.export.range");
+        exportRangeChooser.setTooltip ("Export range: whole project or the loop/range selection");
         exportRangeChooser.setName ("Export range");
         exportRangeChooser.setTitle ("Export range");
         exportRangeChooser.addItem ("Whole Project", 1);
@@ -2007,6 +2022,7 @@ public:
         addAndMakeVisible (exportRangeChooser);
 
         exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
+        exportAudioProgress.setTooltip ("Audio export progress");
         exportAudioProgress.setName ("Export audio progress");
         exportAudioProgress.setText ("Export --", juce::dontSendNotification);
         exportAudioProgress.setJustificationType (juce::Justification::centred);
@@ -2039,6 +2055,7 @@ public:
         addAndMakeVisible (masterLoudnessReadout);
 
         timelineInput.setComponentID (kTimelineComponentId);
+        timelineInput.setTooltip ("Timeline: drag clips, drag the ruler to select a range, Shift-drag for the loop");
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
         timelineInput.stateProvider = [this] { return makeTimelineState(); };
@@ -2164,6 +2181,7 @@ public:
         trackListInput.setComponentID ("shell.tracklist.input");
         trackListInput.setName ("Track List");
         trackListInput.setTitle ("Track List");
+        trackListInput.setTooltip ("Track rail: click to select, drag PAN/VOL minis, click M/S/meter");
         trackListInput.rowCountProvider = [this] {
             return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
         };
@@ -2279,6 +2297,7 @@ public:
         addAndMakeVisible (trackAddButton);
 
         trackRenameEditor.setComponentID ("shell.tracklist.rename");
+        trackRenameEditor.setTooltip ("Rename track: Enter commits, Escape cancels");
         trackRenameEditor.setName ("Rename track");
         trackRenameEditor.setSelectAllWhenFocused (true);
         trackRenameEditor.onReturnKey = [this] { commitTrackRenameEditor(); };
@@ -2287,6 +2306,7 @@ public:
         addChildComponent (trackRenameEditor);
 
         clipRenameEditor.setComponentID ("shell.timeline.clip.rename");
+        clipRenameEditor.setTooltip ("Rename clip: Enter commits, Escape cancels");
         clipRenameEditor.setName ("Rename clip");
         clipRenameEditor.setSelectAllWhenFocused (true);
         clipRenameEditor.onReturnKey = [this] { commitClipRenameEditor(); };
@@ -2345,6 +2365,7 @@ public:
         // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
         // timeline viewport math as the arrangement; targets the selected track's fader lane.
         automationLaneCanvas.setComponentID ("timeline.automation.canvas");
+        automationLaneCanvas.setTooltip ("Automation lane: click to add a breakpoint, drag to move it");
         automationLaneCanvas.setName ("Automation Lane");
         automationLaneCanvas.setTitle ("Automation Lane");
         automationLaneCanvas.pointsProvider = [this] {
@@ -2406,6 +2427,7 @@ public:
         addChildComponent (automationLaneCanvas);
 
         pianoRollInput.setComponentID (kPianoRollComponentId);
+        pianoRollInput.setTooltip ("Piano roll: click to pencil a note, drag to move, Ctrl+drag to copy, Alt+wheel for velocity");
         pianoRollInput.setName ("Piano Roll");
         pianoRollInput.setTitle ("Piano Roll");
         pianoRollInput.stateProvider = [this] { return currentPianoRollSurface(); };
@@ -2479,12 +2501,14 @@ public:
         menuBar.setComponentID ("shell.menubar");
         menuBar.setName ("Menu bar");
         menuBar.setTitle ("Menu bar");
+        menuBar.setTooltip ("Application menus: File, Edit, View, Options, Help");
         addAndMakeVisible (menuBar);
 
         // Real audio device chooser (usable-DAW P1): lists the machine's output devices and switches
         // the live device on selection. The harness injects deterministic device seams; the native
         // shell enumerates and switches through the JUCE device manager.
         audioDeviceChooser.setComponentID ("shell.device.chooser");
+        audioDeviceChooser.setTooltip ("Audio output device");
         audioDeviceChooser.setName ("Audio output device");
         audioDeviceChooser.setTitle ("Audio output device");
         audioDeviceChooser.setTextWhenNothingSelected ("Audio Device");
@@ -3021,7 +3045,10 @@ private:
             component.setComponentID (descriptor->stableId);
             component.setName (descriptor->accessibleName);
             component.setTitle (descriptor->label);
-            component.setTooltip (juce::String (descriptor->stableId) + "  " + descriptor->defaultKey);
+            // The tooltip names the action and its chord straight from the descriptor table so it
+            // can never drift from the keymap (B40).
+            component.setTooltip (juce::String (descriptor->accessibleName)
+                                  + "  (" + descriptor->defaultKey + ")");
             return;
         }
 
@@ -3069,6 +3096,7 @@ private:
         addAndMakeVisible (automationLaneToggle);
 
         automationLaneRow.setComponentID (kAutomationLaneRowComponentId);
+        automationLaneRow.setTooltip ("First Track automation lane row");
         automationLaneRow.setName ("First Track automation lane");
         automationLaneRow.setTitle ("First Track automation lane");
         automationLaneRow.setTooltip (kAutomationLaneRowComponentId);
@@ -3176,6 +3204,7 @@ private:
         addAndMakeVisible (inspectorFadeOut);
 
         inspectorFadeCurve.setComponentID (kInspectorFadeCurveComponentId);
+        inspectorFadeCurve.setTooltip ("Clip fade curve shape");
         inspectorFadeCurve.setName ("Clip fade curve");
         inspectorFadeCurve.setTitle ("Clip fade curve");
         inspectorFadeCurve.setTooltip ("H14 canonical fade law");
@@ -3235,7 +3264,7 @@ private:
         mixerTrackSelect.setButtonText ("Audio 1");
         mixerTrackSelect.setComponentID ("mixer.track.0.select");
         mixerTrackSelect.setName ("Select first mixer track");
-        mixerTrackSelect.setTooltip ("mixer.track.0.select");
+        mixerTrackSelect.setTooltip ("Select the first mixer track strip");
         mixerTrackSelect.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
         mixerTrackSelect.setColour (juce::TextButton::textColourOffId, kText);
         mixerTrackSelect.onClick = [this] {
@@ -3251,6 +3280,7 @@ private:
         mixerStripsInput.setComponentID ("shell.mixer.strips.input");
         mixerStripsInput.setName ("Mixer Strips");
         mixerStripsInput.setTitle ("Mixer Strips");
+        mixerStripsInput.setTooltip ("Mixer strips: click a strip to retarget the shared controls, click a meter to clear its clip light");
         mixerStripsInput.onStripClicked = [this] (int stripIndex) {
             const int trackCount = static_cast<int> (currentMixerSurface().tracks.size());
             if (stripIndex < 0 || stripIndex >= trackCount)
@@ -3312,6 +3342,7 @@ private:
         {
             auto& toggle = mixerFxSlotToggles[slot];
             toggle.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".toggle");
+            toggle.setTooltip ("Bypass FX slot " + juce::String (static_cast<int> (slot) + 1));
             toggle.setName ("Toggle FX slot " + juce::String (static_cast<int> (slot + 1)) + " bypass");
             toggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
             toggle.setColour (juce::TextButton::textColourOffId, kText);
@@ -3325,6 +3356,7 @@ private:
             auto& remove = mixerFxSlotRemoves[slot];
             remove.setButtonText ("x");
             remove.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".remove");
+            remove.setTooltip ("Remove FX slot " + juce::String (static_cast<int> (slot) + 1));
             remove.setName ("Remove FX slot " + juce::String (static_cast<int> (slot + 1)));
             remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
             remove.setColour (juce::TextButton::textColourOffId, kText);
@@ -3338,6 +3370,7 @@ private:
             auto& edit = mixerFxSlotEdits[slot];
             edit.setButtonText ("e");
             edit.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".edit");
+            edit.setTooltip ("Edit FX slot " + juce::String (static_cast<int> (slot) + 1) + " parameters");
             edit.setName ("Edit FX slot " + juce::String (static_cast<int> (slot + 1)) + " parameters");
             edit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
             edit.setColour (juce::TextButton::textColourOffId, kText);
@@ -3386,6 +3419,7 @@ private:
         {
             auto& label = mixerSendLabels[row];
             label.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".label");
+            label.setTooltip ("Send " + juce::String (static_cast<int> (row) + 1) + " route");
             label.setColour (juce::Label::textColourId, kText);
             label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
             label.setInterceptsMouseClicks (false, false);
@@ -3415,6 +3449,7 @@ private:
             auto& remove = mixerSendRemoves[row];
             remove.setButtonText ("x");
             remove.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".remove");
+            remove.setTooltip ("Remove send " + juce::String (static_cast<int> (row) + 1));
             remove.setName ("Remove send " + juce::String (static_cast<int> (row + 1)));
             remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
             remove.setColour (juce::TextButton::textColourOffId, kText);
@@ -3432,6 +3467,7 @@ private:
         {
             auto& label = mixerFxParamLabels[index];
             label.setComponentID ("mixer.fx.param." + juce::String (static_cast<int> (index)) + ".label");
+            label.setTooltip ("FX parameter " + juce::String (static_cast<int> (index) + 1) + " readout");
             label.setColour (juce::Label::textColourId, kText);
             label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
             label.setInterceptsMouseClicks (false, false);
@@ -3491,6 +3527,7 @@ private:
         addAndMakeVisible (mixerFader);
 
         dragDbReadout.setComponentID ("shell.drag.db");
+        dragDbReadout.setTooltip ("Live gain in dB while dragging");
         dragDbReadout.setInterceptsMouseClicks (false, false);
         dragDbReadout.setJustificationType (juce::Justification::centred);
         dragDbReadout.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
@@ -6927,7 +6964,8 @@ private:
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
     juce::AudioDeviceManager audioDeviceManager;
-    juce::MenuBarComponent menuBar;
+    TooltippedMenuBar menuBar;
+    juce::TooltipWindow tooltipWindow { nullptr };   // native tooltip display (B40)
     juce::ComboBox audioDeviceChooser;
     std::vector<std::string> audioDeviceChooserNames;
     bool refreshingAudioDeviceChooser = false;

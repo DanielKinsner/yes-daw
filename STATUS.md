@@ -1038,14 +1038,31 @@ Exact-head GitHub Actions run `31582341126` is green for full SHA
 `57dd070e6d2c9b1847bac78769dbd1515d176077` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B39 is ticked in the backlog.
 
-**Now:** B39 certified; B40 (tooltips everywhere) is next per the run brief.
+**B40 implementation candidate — Tooltips everywhere:** audited before adding anything:
+action-backed components already received tooltips from `configureActionComponent`, but as
+"stableId  chord" rather than the human name, several manually-configured controls had none, the
+custom input canvases were not tooltip clients at all, and no `TooltipWindow` existed so nothing
+displayed natively. `configureActionComponent` now writes "<accessible name>  (<chord>)" straight
+from the descriptor table so tooltips can never drift from the keymap; every manually-configured
+control (choosers, rename editors, per-slot FX and send controls, labels, progress readout, device
+chooser) gains a descriptive tooltip; the five custom canvases (timeline, rail, mixer strips,
+piano roll, automation lane) and the menu bar gain the SettableTooltipClient mixin with gesture
+summaries; and a desktop-scoped `juce::TooltipWindow` makes them display in the native shell
+(no shell childCount change).
 
-**Next:** B40 — audited: action-backed components already receive tooltips from
-`configureActionComponent` in the form "stableId  chord"; the item wants the human action name +
-chord, still pulled from the descriptor table so they cannot drift. Refine the format, add a
-`juce::TooltipWindow` for native display, extend the manually-configured controls and the custom
-input canvases (SettableTooltipClient mixin) with descriptive tooltips, and gate by iterating every
-shell child with a componentID: tooltip non-empty, and containing the chord for action-backed ones.
+The shipped-boundary `[tooltips]` gate walks every shell descendant with a componentID and proves
+each is a tooltip client with non-empty text, that action-backed controls carry the LIVE chord from
+the descriptor table (drift-proof by construction), and that the walk saw the real control
+population (278 assertions).
+
+A clean Release build in the Visual Studio Build Tools Developer Shell plus full local
+`ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
+and restored with its exact SHA-256; the test-written recent-projects file was removed.
+
+**Now:** B40 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+
+**Next:** on green, tick B40 in the backlog with SHA + run id (docs-only evidence commit), then B41
+(SNAP label clip — the final backlog item) per the run brief.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

@@ -7851,3 +7851,50 @@ TEST_CASE ("the File menu lists recent project bundles most recent first and reo
     std::filesystem::remove_all (bundleA, ec);
     std::filesystem::remove_all (bundleB, ec);
 }
+
+TEST_CASE ("every componentID'd control carries a tooltip naming its action and chord",
+           "[ui][input][shell][tooltips]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tooltips");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    int checkedControls = 0;
+    std::function<void (juce::Component&)> visit = [&] (juce::Component& parent)
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component& child = *parent.getChildComponent (i);
+            const juce::String id = child.getComponentID();
+            if (id.isNotEmpty())
+            {
+                INFO ("component id: " << id.toStdString());
+                auto* client = dynamic_cast<juce::TooltipClient*> (&child);
+                REQUIRE (client != nullptr);
+                REQUIRE (client->getTooltip().isNotEmpty());
+
+                // Drift-proofing: an action-backed control's tooltip carries the LIVE chord from
+                // the descriptor table.
+                if (const auto* descriptor = yesdaw::ui::descriptorForStableId (id.toStdString()))
+                    REQUIRE (client->getTooltip().contains (descriptor->defaultKey));
+
+                ++checkedControls;
+            }
+            visit (child);
+        }
+    };
+    visit (*shell);
+
+    // The walk saw the real control population, not an empty shell.
+    REQUIRE (checkedControls > 50);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
