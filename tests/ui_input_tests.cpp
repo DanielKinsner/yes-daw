@@ -7898,3 +7898,56 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("the painted SNAP caption clears the snap and repeat-paste choosers",
+           "[ui][input][shell][snap-label]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("snap-label");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // The painted caption rect comes from the same geometry helper and tokens the painter uses.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::ui::TimelineCanvasState state;
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> labelInShell =
+        geometry.toolbarArea.withTrimmedLeft (L::timelineCanvasSnapLabelX)
+            .withWidth (L::timelineCanvasSnapLabelWidth)
+            .translated (timeline.getX(), timeline.getY());
+
+    auto* snapChooser = findChildWithComponentId (*shell, "timeline.snap.chooser");
+    auto* repeatChooser = findChildWithComponentId (*shell, "timeline.repeat-paste.chooser");
+    REQUIRE (snapChooser != nullptr);
+    REQUIRE (repeatChooser != nullptr);
+    INFO ("label " << labelInShell.toString().toStdString()
+          << " snap " << snapChooser->getBounds().toString().toStdString()
+          << " repeat " << repeatChooser->getBounds().toString().toStdString());
+    REQUIRE_FALSE (labelInShell.intersects (snapChooser->getBounds()));
+    REQUIRE_FALSE (labelInShell.intersects (repeatChooser->getBounds()));
+
+    // The caption reads as the snap chooser's label: right of the repeat-paste chooser,
+    // left of the snap chooser.
+    REQUIRE (labelInShell.getX() >= repeatChooser->getBounds().getRight());
+    REQUIRE (labelInShell.getRight() <= snapChooser->getBounds().getX());
+
+    // The repeat-paste chooser clears the painted tool cells on its left.
+    const juce::Rectangle<int> toolCellsInShell =
+        geometry.toolbarArea.withTrimmedLeft (yesdaw::ui::UiTheme::Space::xl)
+            .withWidth (5 * L::timelineCanvasToolCellWidth)
+            .translated (timeline.getX(), timeline.getY());
+    REQUIRE_FALSE (toolCellsInShell.intersects (repeatChooser->getBounds()));
+
+    // And the whole cluster still fits: the automation toggle sits right of the snap chooser
+    // and inside the timeline header.
+    const juce::Rectangle<int> toggleBounds = L::automationLaneToggleBounds (timeline.getBounds());
+    REQUIRE (toggleBounds.getX() >= snapChooser->getBounds().getRight());
+    REQUIRE (toggleBounds.getRight() <= timeline.getBounds().getRight());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

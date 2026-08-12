@@ -519,7 +519,9 @@ struct UiTheme
         static constexpr int timelineSnapChooserWidth = 96;
         static constexpr int timelineSnapChooserGap = 8;
         static constexpr int timelineRepeatPasteChooserWidth = 72;
-        static constexpr int timelineRepeatPasteChooserGap = 8;
+        // Wide enough for the painted SNAP caption to sit between the repeat-paste and snap
+        // choosers without being clipped by either (B41).
+        static constexpr int timelineRepeatPasteChooserGap = 57;
         static constexpr double timelineZoomWheelStep = 1.25;
         static constexpr double timelineZoomMin = 1.0;
         static constexpr double timelineZoomMax = 64.0;
@@ -608,7 +610,9 @@ struct UiTheme
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;
         static constexpr double timelineClipDefaultFadeSeconds = UiThemeLayout::timelineClipDefaultFadeSeconds;
-        static constexpr int automationLaneToggleLeftInset = 368;
+        // Shifted right (B41) so the tool row, repeat-paste chooser, SNAP caption, and snap
+        // chooser all fit without overlap to its left.
+        static constexpr int automationLaneToggleLeftInset = 420;
         static constexpr int automationLaneToggleTopInset = 8;
         static constexpr int automationLaneToggleWidth = 116;
         static constexpr int automationLaneToggleHeight = 26;
@@ -711,13 +715,14 @@ struct UiTheme
         static constexpr int timelineCanvasGeometryMinLaneCount = 1;
         static constexpr double timelineCanvasViewportMinPixelsPerSecond = 1.0;
         static constexpr int timelineCanvasLaneMinHeight = 8;
-        static constexpr int timelineCanvasSnapLabelX = 234;
+        // Caption sits in the gap between the repeat-paste chooser and the snap chooser (B41).
+        static constexpr int timelineCanvasSnapLabelX = 266;
         static constexpr int timelineCanvasSnapLabelWidth = 42;
-        static constexpr int timelineCanvasSnapFieldX = 276;
+        static constexpr int timelineCanvasSnapFieldX = 316;
         static constexpr int timelineCanvasSnapFieldWidth = 80;
         static constexpr int timelineCanvasSnapFieldInsetX = 0;
         static constexpr int timelineCanvasSnapFieldInsetY = Space::sm + Space::hairline;
-        static constexpr int timelineCanvasSnapValueX = 284;
+        static constexpr int timelineCanvasSnapValueX = 324;
         static constexpr int timelineCanvasSnapValueWidth = 54;
         static constexpr float timelineCanvasOutlineInset = 0.5f;
         static constexpr float timelineCanvasOutlineStrokeWidth = 1.0f;

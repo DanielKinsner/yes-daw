@@ -1063,14 +1063,36 @@ Exact-head GitHub Actions run `31583480188` is green for full SHA
 `48df5d30e1ded2fc2f040c5222be8ff03318751d` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B40 is ticked in the backlog.
 
-**Now:** B40 certified; B41 (SNAP label clip — the final backlog item) is next per the run brief.
+**B41 implementation candidate — SNAP label clip fix:** audited before changing anything: the
+painted SNAP caption (`timelineCanvasSnapLabelX` 234, width 42) straddled BOTH right-aligned
+choosers — the repeat-paste chooser (local 183..255) and the snap chooser (local 263..359) — and
+the painted tool cells end at local 186, so no gap existed anywhere for a 42px caption without
+moving the cluster. Token-only fix, no painter or layout code changes: the automation toggle
+shifts right (`automationLaneToggleLeftInset` 368→420), which carries both right-aligned choosers
+with it; `timelineRepeatPasteChooserGap` widens 8→57 so the repeat chooser lands exactly clear of
+the painted tool cells; the caption moves into the opened gap between the choosers
+(`timelineCanvasSnapLabelX` 234→266, ~8px clearance each side); and the legacy painted snap
+field/value (always covered by the chooser) shift with it (276→316, 284→324) so they stay hidden
+underneath. The screenshot suite pins no pixel goldens (fingerprint inequality + cross-view header
+invariance only), so the token change is safe.
 
-**Next:** B41 — audited: the painted SNAP caption sits at fixed toolbar tokens
-(`timelineCanvasSnapLabelX`/`Width`) while the interactive snap chooser floats right-aligned off
-the automation toggle, clipping the caption at shipped window sizes. The screenshot suite pins no
-pixel goldens (fingerprint inequality + cross-view header invariance only), so the spacing-token
-fix is safe; the gate computes the painted label rect from the same geometry helper and tokens the
-painter uses and requires zero intersection with the real chooser bounds.
+The shipped-boundary `[snap-label]` gate computes the painted caption rect from the same geometry
+helper and tokens the painter uses and requires: zero intersection with either real chooser, the
+caption ordered between them (right of repeat-paste, left of snap — it reads as the snap chooser's
+label), the repeat chooser clear of the painted tool cells, and the automation toggle right of the
+snap chooser and inside the timeline header. It failed before the token fix (measured the exact
+overlaps above) and passes after.
+
+Full local `ctest --test-dir build-ci` is green **348/348** after a full incremental rebuild in
+the Visual Studio Build Tools Developer Shell. The owner's real last-project record was isolated
+(moved aside) and restored with its exact SHA-256; the test-written recent-projects file was
+removed.
+
+**Now:** B41 feature commit is pushed; awaiting its exact-head GitHub Actions run before ticking
+the final backlog item.
+
+**Next:** on green, post the B41 evidence commit — the shortcut & workflow parity backlog
+(items 26–41) is then complete.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 
