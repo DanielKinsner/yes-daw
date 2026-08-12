@@ -471,6 +471,7 @@ public:
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
+        ++editSerial_;   // a committed recording is an edit since the last explicit Save (B37)
         selectedTimelineClipIds_.assign (1, commit.clipId);
         selectedTimelineClipId_ = commit.clipId;
         context_.timelineClipSelected = true;
@@ -604,11 +605,19 @@ public:
         persistence::BundleResult result = bundleDb_.writeProjectSnapshot (project_);
         if (result.ok())
         {
+            lastSavedEditSerial_ = editSerial_;   // an explicit Save marks the session clean (B37)
             ++context_.saveCount;
             ++context_.commandDispatchCount;
         }
 
         return result;
+    }
+
+    // Edits since the last explicit Save (B37/B38). The bundle on disk is always current — every
+    // edit persists synchronously — so this tracks the user's saved-state intent, never data risk.
+    [[nodiscard]] bool hasUnsavedChanges() const noexcept
+    {
+        return context_.projectLoaded && editSerial_ != lastSavedEditSerial_;
     }
 
     // Save-As (usable-DAW P0): persist the current Project, copy the whole bundle (SQLite + immutable
@@ -934,6 +943,7 @@ public:
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
+        ++editSerial_;   // a committed recording is an edit since the last explicit Save (B37)
         context_.projectLoaded = true;
         selectedTimelineClipIds_.assign (1, commit.clipId);
         selectedTimelineClipId_ = commit.clipId;
@@ -1131,6 +1141,7 @@ private:
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
+        ++editSerial_;   // an import is an edit since the last explicit Save (B37)
         context_.projectLoaded = true;
         selectedTimelineClipIds_.assign (1, clip.id);
         selectedTimelineClipId_ = clip.id;
@@ -4989,6 +5000,7 @@ private:
         undo_ = std::move (nextUndo);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (nextEngine));
+        ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
         return true;
@@ -5026,6 +5038,7 @@ private:
             drainTransport (*transport);
         }
         replacePlayback (std::move (transport));
+        ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
         return true;
@@ -5328,6 +5341,8 @@ private:
         bundlePath_ = bundlePath;
         writeLastProjectRecord();
         project_ = std::move (project);
+        editSerial_ = 0;
+        lastSavedEditSerial_ = 0;   // a freshly attached bundle starts clean (B37)
         waveformService_.start (bundlePath_);
         selectedTimelineClipIds_.clear();
         selectedTimelineClipId_ = {};
@@ -5662,6 +5677,11 @@ private:
     engine::EntityId selectedMidiClipId_;
     engine::EntityId selectedMidiNoteId_;
     std::vector<engine::EntityId> selectedMidiNoteIds_;   // multi-note selection (B34)
+    // Edits since the last explicit Save (B37): every project mutation bumps the serial; Save and
+    // a fresh bundle attach mark the session clean. Data is never at risk — the bundle persists
+    // every edit synchronously — this tracks the user's saved-state intent only.
+    std::uint64_t editSerial_ = 0;
+    std::uint64_t lastSavedEditSerial_ = 0;
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     UiRecordingTrackInputSelection recordingTrackInput_;

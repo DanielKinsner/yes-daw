@@ -7700,3 +7700,60 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("closing with unsaved changes prompts Save, Close, or Cancel through the seam",
+           "[ui][input][shell][confirm-close]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("confirm-close");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    int chooserCalls = 0;
+    int nextChoice = yesdaw::ui::kCloseChoiceCancel;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.confirmCloseUnsavedChanges = [&chooserCalls, &nextChoice] {
+        ++chooserCalls;
+        return nextChoice;
+    };
+
+    auto shell = makeShell (std::move (choices));
+
+    // Without a project (and with a freshly attached clean project) closing needs no prompt.
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 0);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 0);
+
+    // A real edit marks the session dirty; Cancel keeps the app open.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    nextChoice = yesdaw::ui::kCloseChoiceCancel;
+    REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 1);
+
+    // Close-without-saving lets the app close; the always-persisted bundle keeps the edit.
+    nextChoice = yesdaw::ui::kCloseChoiceClose;
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 2);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+
+    // Save closes AND marks the session clean: the very next close needs no prompt.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    nextChoice = yesdaw::ui::kCloseChoiceSave;
+    const int savesBefore = snapshotMainComponent (*shell).context.saveCount;
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 3);
+    REQUIRE (snapshotMainComponent (*shell).context.saveCount == savesBefore + 1);
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 3);
+
+    // An explicit Ctrl+S also cleans the session, so closing stays silent.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (chooserCalls == 3);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

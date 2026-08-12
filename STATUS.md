@@ -963,13 +963,23 @@ Exact-head GitHub Actions run `31579179874` is green for full SHA
 `22ef6f05c684884c43e1d6e973db22fbefbb8110` across all nine jobs: Linux, Windows, macOS, RTSan,
 TSan, both package jobs, and both alpha-verifier jobs. B36 is ticked in the backlog.
 
-**Now:** B36 certified; B37 (confirm on close) is next per the run brief.
+**B37 implementation candidate — Confirm on close:** audited the close and persistence flow before
+adding anything: the window close button quit unconditionally, and every edit already persists
+synchronously, so "unsaved changes" honestly means edits since the last explicit Save — data is
+never at risk and closing must never roll back the always-persisted bundle. The model now keeps an
+edit serial bumped on every project mutation (both adopt paths, recording commits, imports),
+cleared by an explicit Save/Save-As and on a fresh bundle attach; `hasUnsavedChanges()` exposes it.
+The shell's `confirmClose()` closes silently when clean and otherwise asks through the new
+harness-injectable `confirmCloseUnsavedChanges` seam (native three-way box when unset): Save
+records the state as the saved version and closes, Close-without-saving closes with the bundle
+still current, Cancel keeps the app open; a failed save keeps the app open. The window close button
+routes through `mainComponentConfirmsClose` before quitting; autosave stays untouched.
 
-**Next:** B37 — audited: every edit already persists synchronously, so "unsaved changes" honestly
-means edits since the last explicit Save (an edit serial, cleared on Save/attach); the close prompt
-(harness-injectable chooser like the file dialogs, native three-way box otherwise) offers
-Save/Close-without-saving/Cancel, where closing never rolls back the always-persisted bundle;
-autosave stays independent. The window close button routes through the confirm before quitting.
+The shipped-boundary `[confirm-close]` gate proves through the injected seam: no prompt without a
+project or on a freshly attached clean project; a real Ctrl+T edit prompts, with Cancel keeping the
+app open; Close-without-saving closes while the persisted bundle keeps the edit; Save closes,
+bumps the real save count, and the very next close is silent; and an explicit Ctrl+S also cleans
+the session (30 assertions, green first run).
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

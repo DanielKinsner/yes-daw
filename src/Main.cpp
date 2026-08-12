@@ -40,7 +40,14 @@ private:
             setVisible (true);
         }
 
-        void closeButtonPressed() override { app.systemRequestedQuit(); }
+        // Confirm on close (B37): edits since the last explicit Save prompt Save / Close without
+        // saving / Cancel before the app quits. The bundle on disk stays current either way.
+        void closeButtonPressed() override
+        {
+            if (getContentComponent() == nullptr
+                || yesdaw::ui::mainComponentConfirmsClose (*getContentComponent()))
+                app.systemRequestedQuit();
+        }
 
     private:
         JUCEApplication& app;

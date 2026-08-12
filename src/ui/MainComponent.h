@@ -31,7 +31,15 @@ struct MainComponentFileChoices
     // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
     std::function<std::vector<std::string>()> listAudioOutputDevices;
     std::function<bool (const std::string&)> selectAudioOutputDevice;
+    // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
+    // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
+    // three-way box when unset.
+    std::function<int()> confirmCloseUnsavedChanges;
 };
+
+inline constexpr int kCloseChoiceSave = 0;
+inline constexpr int kCloseChoiceClose = 1;
+inline constexpr int kCloseChoiceCancel = 2;
 
 struct MainComponentSnapshot
 {
@@ -79,6 +87,9 @@ struct MainComponentSnapshot
                                                               std::uint64_t frames,
                                                               int blockSize);
 [[nodiscard]] bool serviceMainComponentUiTimer (juce::Component& component);
+// Ask the shell whether the app may close (B37): true when the session is clean or the user chose
+// Save or Close through the confirm seam; false when the user cancelled.
+[[nodiscard]] bool mainComponentConfirmsClose (juce::Component& component);
 [[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
                                                          float* const* outputChannels,
                                                          int numOutputChannels,

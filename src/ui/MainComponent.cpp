@@ -2771,6 +2771,43 @@ public:
         return appModel.renderPlaybackFrames (frames, blockSize);
     }
 
+    // Close-confirm flow (B37): a clean session closes silently; edits since the last explicit
+    // Save ask through the injectable seam (native three-way box otherwise). Closing never rolls
+    // back the always-persisted bundle; Save records this state as the saved version.
+    [[nodiscard]] bool confirmClose()
+    {
+        if (! appModel.hasUnsavedChanges())
+            return true;
+
+        int choice = yesdaw::ui::kCloseChoiceCancel;
+        if (fileChoices.confirmCloseUnsavedChanges)
+        {
+            choice = fileChoices.confirmCloseUnsavedChanges();
+        }
+        else
+        {
+            const int native = juce::AlertWindow::showYesNoCancelBox (
+                juce::MessageBoxIconType::QuestionIcon,
+                "Unsaved changes",
+                "Save this state as your saved version before closing?\n"
+                "(Every edit is already stored in the project bundle.)",
+                "Save",
+                "Close without saving",
+                "Cancel");
+            choice = native == 1 ? yesdaw::ui::kCloseChoiceSave
+                   : native == 2 ? yesdaw::ui::kCloseChoiceClose
+                                 : yesdaw::ui::kCloseChoiceCancel;
+        }
+
+        if (choice == yesdaw::ui::kCloseChoiceSave)
+        {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::ProjectSave);
+            return ! appModel.hasUnsavedChanges();   // a failed save keeps the app open
+        }
+
+        return choice == yesdaw::ui::kCloseChoiceClose;
+    }
+
     void paint (juce::Graphics& g) override
     {
         g.fillAll (kBackground);
@@ -7117,6 +7154,14 @@ bool serviceMainComponentUiTimer (juce::Component& component)
     }
 
     return false;
+}
+
+bool mainComponentConfirmsClose (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->confirmClose();
+
+    return true;
 }
 
 bool processMainComponentDeviceAudioBlock (juce::Component& component,
