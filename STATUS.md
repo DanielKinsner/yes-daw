@@ -959,10 +959,17 @@ A clean Release build in the Visual Studio Build Tools Developer Shell plus full
 `ctest --test-dir build-ci` is green **348/348**. The owner's real last-project record was isolated
 for the native-shell gate and restored with its exact SHA-256.
 
-**Now:** B36 implementation checkpoint — awaiting the exact-head GitHub Actions run.
+Exact-head GitHub Actions run `31579179874` is green for full SHA
+`22ef6f05c684884c43e1d6e973db22fbefbb8110` across all nine jobs: Linux, Windows, macOS, RTSan,
+TSan, both package jobs, and both alpha-verifier jobs. B36 is ticked in the backlog.
 
-**Next:** on green, tick B36 in the backlog with SHA + run id (docs-only evidence commit), then B37
-(confirm on close with a harness-injectable chooser) per the run brief.
+**Now:** B36 certified; B37 (confirm on close) is next per the run brief.
+
+**Next:** B37 — audited: every edit already persists synchronously, so "unsaved changes" honestly
+means edits since the last explicit Save (an edit serial, cleared on Save/attach); the close prompt
+(harness-injectable chooser like the file dialogs, native three-way box otherwise) offers
+Save/Close-without-saving/Cancel, where closing never rolls back the always-persisted bundle;
+autosave stays independent. The window close button routes through the confirm before quitting.
 
 ## Planning packet — 2026-07-03 (Fable 5): alpha target + H14–H19 re-carve
 

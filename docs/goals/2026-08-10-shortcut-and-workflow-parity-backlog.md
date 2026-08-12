@@ -236,8 +236,13 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     are honest refusals. A gate flake (same-frame same-key off/on order tie-broken by fresh
     wall-clock ULIDs) was made deterministic by proving audibility through the temporally
     separated drag copy; the engine's per-project event order was not touched.
-36. **Quantize selected** — `Q` quantizes selected notes to the snap grid (verb exists;
-    audit the key + multi-note behavior).
+36. [x] **Quantize selected** — landed in `22ef6f0` (exact-head run `31579179874`, nine jobs
+    green). Unique `Q` quantizes the whole note selection to the current snap grid (real
+    tempo/meter-derived frames) as one atomic undo group through the existing QuantizeNote verb,
+    skipping already-aligned notes so mixed selections quantize the rest and refusing honestly
+    when the entire selection is aligned. The gate derives expectations from the same engine
+    snapTick law and proves exact grid landing, one-step group undo with bit-identical playback,
+    audible change, and the honest no-op.
 37. **Confirm on close** — closing the app with unsaved changes prompts Save/Discard/Cancel
     (autosave stays independent). Harness-injectable chooser like the file dialogs.
 38. **Dirty marker + title** — window title shows "<project> — YES DAW" with `*` when
