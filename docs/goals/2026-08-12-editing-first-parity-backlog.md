@@ -108,11 +108,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
    frame gate on a slower CI runner (sustained 18.62ms): row-height clips now stride their
    waveform coarser and draw integer fills — local sustained 8.80ms → 3.65ms with the
    visible-clip census preserved.
-10. [ ] **E10 — Piano roll zoom, scroll, and all 128 keys.** The roll is a hardwired 25-key
-    (C3–C5) window with the clip stretched edge-to-edge (`UiTheme.h:667-669`,
-    `MainComponent.cpp:1028-1036`); notes outside are invisible and uneditable. Add vertical pitch
-    scroll (wheel) and horizontal zoom/scroll (Ctrl+wheel / Shift+wheel, same laws as the
-    timeline); every key 0–127 reachable; keyboard column paints correctly at any scroll.
+10. [x] **E10 — Piano roll zoom, scroll, and all 128 keys.** Landed in `3aea76b` (exact-head run
+    `31634369465`, nine jobs green). The surface snapshot carries a clamped roll viewport
+    (viewLowKey / viewZoom / viewScrollTicks) driving one law for key rows, note paint, hit
+    tests, the pencil, and drag deltas; the wheel map matches the timeline (plain = keys,
+    Shift = time scroll, Ctrl = anchored time zoom, Alt keeps velocity); defaults reproduce the
+    historical view so every legacy roll gate holds. The `[roll-viewport]` gate failed before and
+    passes after with 44 assertions including real pencils landing persisted notes at key 0 and
+    key 127.
 11. [ ] **E11 — Piano roll selection tools.** Only Ctrl+A exists; a click on empty grid PENCILS A
     NOTE unconditionally (`MainComponent.cpp:1115-1137`) so you cannot even deselect. Make the
     gesture map tool-aware: Pointer click on empty grid deselects, Pointer drag marquee-selects
