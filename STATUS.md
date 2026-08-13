@@ -711,17 +711,19 @@ take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed):
 `switchAudibleTakeForSelectedClip` (one SetClipGain transaction group: chosen 1.0 others 0.0),
 `deleteRecordingTake` (via the verb; clears clip selection if the removed take's clip was
 selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
-gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). REMAINING for E33:
-(1) UI — REPLACE the inspector's placeholder AUTOMATION-VOLUME section (it ALWAYS paints "No
-automation", a fake) with a real TAKES section: a chooser listing the window's takes ("Take
-N" + audible mark, drives `switchAudibleTakeForSelectedClip`) + a Delete Take button (drives
-`deleteRecordingTake`), whole-section drop law applies (mirror the E27 pattern:
-drawInspectorSectionCard gate + sectionFits in layoutInspectorControls); (2) ui_input
-[take-chooser] gate (loop-record 3 takes through the shell → chooser lists them → switching
-drives the verb → snapshot gains) + childCount pin (+2 → mainShellToolbarActions().size() +
-128u at ui_input_tests.cpp:~895); (3) fail-before (stash MainComponent.cpp → chooser missing/
-inactive → red), full ctest, feature commit, nine-job CI, evidence. THEN E34 (MIDI recording),
-E35 (hardware record proof) — see the backlog for their audit notes.
+gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). UI HALF ALSO DONE: the inspector's
+placeholder AUTOMATION-VOLUME section (which ALWAYS painted "No automation" — a fake) is now a
+real TAKES section — chooser listing the selected window's takes with a ● audible mark
+(UTF-8 via CharPointer_UTF8; MSVC codepage mangles raw literals) driving
+`switchAudibleTakeForSelectedClip`, Delete Take button driving `deleteRecordingTake`, honest
+"No takes" empty card, single-row layout (CLIP FX shrunk 100→60 and the section top 466→426 to
+make room inside the 494px content column — judged clean in pixels). Locked by `[take-chooser]`
+(chooser hidden with no takes; deterministic Record presses APPEND takes so the UI gate covers
+list + audible mark + delete + undo; the same-window SWITCH law is locked by the model-level
+`[take-switch]` gate since only loop recording creates stacks) — RUNTIME red vs the old shell
+(exit 42, chooser missing). childCount re-pinned +128. Full local ctest 349/349. E33 is ready
+for its feature commit + nine-job CI + evidence. THEN E34 (MIDI recording), E35 (hardware
+record proof) — audit notes in the backlog.
 
 **Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
 their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching

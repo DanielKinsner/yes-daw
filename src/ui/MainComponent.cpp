@@ -4197,6 +4197,48 @@ private:
 
     void configureInspectorControls()
     {
+        // E33: the take stack — a real TAKES section replaces the old always-"No automation"
+        // placeholder. The chooser switches the AUDIBLE take; Delete Take removes one.
+        inspectorTakeChooser.setComponentID ("clip.inspector.take.chooser");
+        inspectorTakeChooser.setTooltip ("Switch the audible take for this clip's window");
+        inspectorTakeChooser.setName ("Take chooser");
+        inspectorTakeChooser.setTitle ("Take chooser");
+        inspectorTakeChooser.setTextWhenNothingSelected ("Takes");
+        inspectorTakeChooser.setTextWhenNoChoicesAvailable ("No takes");
+        inspectorTakeChooser.onChange = [this] {
+            if (refreshingInspectorControls)
+                return;
+
+            const int selected = inspectorTakeChooser.getSelectedId();
+            if (selected <= 0
+                || static_cast<std::size_t> (selected - 1) >= inspectorTakeViews.size())
+                return;
+
+            (void) appModel.switchAudibleTakeForSelectedClip (
+                inspectorTakeViews[static_cast<std::size_t> (selected - 1)].takeId);
+            refreshActionState();
+            repaint();
+        };
+        addChildComponent (inspectorTakeChooser);
+
+        inspectorTakeDelete.setComponentID ("clip.inspector.take.delete");
+        inspectorTakeDelete.setButtonText ("Delete Take");
+        inspectorTakeDelete.setTooltip ("Delete the chosen take (its clip goes with it)");
+        inspectorTakeDelete.setName ("Delete take");
+        inspectorTakeDelete.setTitle ("Delete take");
+        inspectorTakeDelete.onClick = [this] {
+            const int selected = inspectorTakeChooser.getSelectedId();
+            if (selected <= 0
+                || static_cast<std::size_t> (selected - 1) >= inspectorTakeViews.size())
+                return;
+
+            (void) appModel.deleteRecordingTake (
+                inspectorTakeViews[static_cast<std::size_t> (selected - 1)].takeId);
+            refreshActionState();
+            repaint();
+        };
+        addChildComponent (inspectorTakeDelete);
+
         configureInspectorTimeSlider (inspectorStart, kInspectorStartComponentId, "Clip start");
         inspectorStart.onValueChange = [this] {
             if (refreshingInspectorControls || ! inspectorStart.isEnabled())
@@ -5489,6 +5531,31 @@ private:
             ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
                   .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
             : juce::Rectangle<int>());
+
+        // E33: the TAKES section (the old automation placeholder's area) — the chooser and
+        // the delete button share its whole-section drop law.
+        auto takesSection = area.withTrimmedTop (
+            yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
+        const int takesNeededHeight = yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight
+                                    + yesdaw::ui::UiTheme::Layout::inspectorTakeRowHeight
+                                    + yesdaw::ui::UiTheme::Layout::inspectorTakeRowGap;
+        if (sectionFits (takesSection) && takesSection.getHeight() >= takesNeededHeight)
+        {
+            takesSection.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight);
+            takesSection.reduce (yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetX,
+                                 yesdaw::ui::UiTheme::Space::none);
+            auto takesRow = takesSection.removeFromTop (
+                yesdaw::ui::UiTheme::Layout::inspectorTakeRowHeight);
+            inspectorTakeDelete.setBounds (
+                takesRow.removeFromRight (yesdaw::ui::UiTheme::Layout::inspectorTakeDeleteWidth));
+            takesRow.removeFromRight (yesdaw::ui::UiTheme::Layout::inspectorTakeRowGap);
+            inspectorTakeChooser.setBounds (takesRow);
+        }
+        else
+        {
+            inspectorTakeChooser.setBounds ({});
+            inspectorTakeDelete.setBounds ({});
+        }
     }
 
     void layoutMixerControls()
@@ -6868,6 +6935,29 @@ private:
                                        juce::dontSendNotification);
             inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
         }
+
+        // E33: rebuild the take stack for the selected clip's window.
+        inspectorTakeViews = appModel.takesForSelectedClipWindow();
+        inspectorTakeChooser.clear (juce::dontSendNotification);
+        for (std::size_t view = 0; view < inspectorTakeViews.size(); ++view)
+        {
+            inspectorTakeChooser.addItem (
+                "Take " + juce::String (inspectorTakeViews[view].takeOrdinal + 1u)
+                    + (inspectorTakeViews[view].audible
+                           ? juce::String (juce::CharPointer_UTF8 (" \xe2\x97\x8f"))
+                           : juce::String()),
+                static_cast<int> (view) + 1);
+            if (inspectorTakeViews[view].audible
+                && inspectorTakeChooser.getSelectedId() == 0)
+                inspectorTakeChooser.setSelectedId (static_cast<int> (view) + 1,
+                                                    juce::dontSendNotification);
+        }
+        const bool takesVisible = selected && ! inspectorTakeViews.empty()
+                               && ! inspectorTakeChooser.getBounds().isEmpty();
+        inspectorTakeChooser.setVisible (takesVisible);
+        inspectorTakeDelete.setVisible (takesVisible);
+        inspectorTakeChooser.setEnabled (takesVisible);
+        inspectorTakeDelete.setEnabled (takesVisible && inspectorTakeChooser.getSelectedId() > 0);
         refreshingInspectorControls = false;
     }
 
@@ -8408,25 +8498,30 @@ private:
                                                     yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY));
         }
 
-        auto automation = area.withTrimmedTop (
+        // E33: the TAKES section replaced the old placeholder that ALWAYS said "No automation"
+        // — the interactive chooser + delete button overlay this card; the painted text only
+        // covers the honest empty case.
+        auto takes = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
-        if (! drawInspectorSectionCard (automation))
+        if (! drawInspectorSectionCard (takes))
             return;
         drawSmallLabel (
             g,
-            "AUTOMATION  -  VOLUME",
-            automation.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        auto chart = automation.withTrimmedTop (
-                                   yesdaw::ui::UiTheme::Layout::inspectorAutomationChartTop)
-                         .withHeight (
-                             yesdaw::ui::UiTheme::Layout::inspectorAutomationChartHeight)
-                         .reduced (
-                             yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetX,
-                             yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetY);
-        g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-        g.fillRoundedRectangle (chart.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-
-        drawSmallLabel (g, "No automation", chart, juce::Justification::centred);
+            "TAKES",
+            takes.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+        if (inspectorTakeViews.empty())
+        {
+            auto chart = takes.withTrimmedTop (
+                                  yesdaw::ui::UiTheme::Layout::inspectorAutomationChartTop)
+                             .withHeight (
+                                 yesdaw::ui::UiTheme::Layout::inspectorAutomationChartHeight)
+                             .reduced (
+                                 yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetX,
+                                 yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetY);
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRoundedRectangle (chart.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            drawSmallLabel (g, "No takes", chart, juce::Justification::centred);
+        }
     }
 
     void drawMixer (juce::Graphics& g, juce::Rectangle<int> area) const
@@ -9009,6 +9104,10 @@ private:
     juce::TextButton automationBreakpointDeleteButton;
     // E26: whether the lane controls were last laid out with the band reserved.
     bool automationLaneLaidOutVisible = false;
+    // E33: the inspector take stack — chooser + delete over the TAKES section.
+    juce::ComboBox inspectorTakeChooser;
+    juce::TextButton inspectorTakeDelete;
+    std::vector<yesdaw::ui::UiClipTakeView> inspectorTakeViews;
     FineDragSlider inspectorStart;
     FineDragSlider inspectorEnd;
     FineDragSlider inspectorLength;

@@ -389,14 +389,15 @@ struct UiTheme
         static constexpr int inspectorFadeRowInsetY = 3;
         static constexpr int inspectorFadeTextInsetX = 8;
         static constexpr int inspectorFadeTextInsetY = 0;
+        // E33: CLIP FX is a two-line stub — its height moved to the TAKES section below it.
         static constexpr int inspectorFxSectionTop = 360;
-        static constexpr int inspectorFxSectionHeight = 100;
+        static constexpr int inspectorFxSectionHeight = 60;
         static constexpr int inspectorFxRowHeight = 28;
         static constexpr int inspectorFxRowInsetX = 0;
         static constexpr int inspectorFxRowInsetY = 2;
         static constexpr int inspectorFxTextInsetX = 10;
         static constexpr int inspectorFxTextInsetY = 0;
-        static constexpr int inspectorAutomationSectionTop = 466;
+        static constexpr int inspectorAutomationSectionTop = 426;
         static constexpr int inspectorAutomationChartTop = 4;
         static constexpr int inspectorAutomationChartHeight = 44;
         static constexpr int inspectorAutomationChartInsetX = 6;
@@ -692,6 +693,10 @@ struct UiTheme
                            .withHeight (automationBreakpointDeleteButtonHeight);
         }
         static constexpr int inputDragDeadZonePixels = 2;
+        // E33: the inspector TAKES section rows (chooser + delete) in the old placeholder area.
+        static constexpr int inspectorTakeRowHeight = 26;
+        static constexpr int inspectorTakeRowGap = 4;
+        static constexpr int inspectorTakeDeleteWidth = 110;
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;
         static constexpr int pianoRollPanelInsetY = 8;

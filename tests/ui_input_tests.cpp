@@ -890,8 +890,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
-    // and recorded-channel pick — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 126u));
+    // and recorded-channel pick + the E33 take chooser and delete button — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 128u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -8140,6 +8140,66 @@ TEST_CASE ("the shell's armed rail meter shows the live input peak", "[ui][input
     // Disarm: the meter reads silent again.
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);
+}
+
+TEST_CASE ("the inspector take chooser lists the stack and drives switch and delete",
+           "[ui][input][shell][take-chooser]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("take-chooser");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
+
+    auto* takeChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "clip.inspector.take.chooser"));
+    auto* takeDelete = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "clip.inspector.take.delete"));
+    REQUIRE (takeChooser != nullptr);
+    REQUIRE (takeDelete != nullptr);
+    REQUIRE_FALSE (takeChooser->isVisible());   // no takes yet
+
+    // Deterministic Record presses APPEND takes (each take owns its window; same-window
+    // stacks come from loop recording, whose switch law the [take-switch] model gate locks).
+    // The chooser lists the SELECTED clip's window and the delete button drives the verb.
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));   // stop
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));   // take 2
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));   // stop
+    yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.recordingTakes.size() == 2u);
+
+    // The LAST take's clip is selected; its window holds exactly that take, marked audible.
+    {
+        const MainComponentSnapshot probe = snapshotMainComponent (*shell);
+        INFO ("chooser bounds " << takeChooser->getBounds().toString().toStdString()
+              << " items " << takeChooser->getNumItems()
+              << " clipSelected " << probe.context.timelineClipSelected
+              << " takes " << recorded.recordingTakes.size());
+        REQUIRE (takeChooser->isVisible());
+    }
+    REQUIRE (takeChooser->getNumItems() == 1);
+    REQUIRE (takeChooser->getItemText (0).contains (juce::CharPointer_UTF8 ("\xe2\x97\x8f")));
+    REQUIRE (takeDelete->isVisible());
+    REQUIRE (takeDelete->isEnabled());
+
+    // Delete removes the chosen take AND its clip through the verb — one Undo restores both.
+    const yesdaw::engine::EntityId lastClipId = recorded.recordingTakes[1].clipId;
+    clickButton (*takeDelete);
+    recorded = readProjectSnapshot (bundlePath);
+    REQUIRE (recorded.recordingTakes.size() == 1u);
+    for (const yesdaw::engine::Clip& clip : recorded.clips)
+        REQUIRE (clip.id != lastClipId);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.size() == 2u);
 }
 
 TEST_CASE ("the automation lane is a full-width band between the ruler and the clips",
