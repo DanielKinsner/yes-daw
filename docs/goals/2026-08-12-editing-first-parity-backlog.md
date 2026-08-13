@@ -206,12 +206,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     (`masterLinearGain` not a member pre-E19) and passes after with 41 assertions: persisted 0.5
     round trip, render peak halving EXACTLY, one undo restoring unity and bit-identical audio.
     Honest scope: gain only — no master FX chain, no master pan.
-20. [ ] **E20 — Automation targeting.** The canvas hard-targets the selected track's FADER lane
-    only (`MainComponent.cpp:6010-6020`) even though the engine compiles and plays back all six
-    roles (`Project.h:583-598`, `CompiledGraph.h:340-431`). Add a lane-target chooser (track
-    fader / pan / each send level / each FX param) creating lanes on demand; breakpoint drags snap
-    through the snap chooser (today they emit raw pixel ticks — `MainComponent.cpp:2402-2413`);
-    the gate proves audible playback follows a pan lane and an FX-param lane, not just fader.
+20. [x] **E20 — Automation targeting.** Landed in `b8050d4` (run `31656108777` green for the
+    full SHA across all nine jobs, first try). The model's lane accessors generalized to
+    (owner, role, paramId) with the create-on-demand one-undo-group law; the new
+    `timeline.automation.target` chooser lists Fader, Pan, each send level, then EVERY FX param
+    of every insert (owner = the INSERT id), and the canvas edits whatever it names; breakpoints
+    land on the REAL snap chooser's grid (Off = raw). Legacy `[automation-canvas]` re-pinned
+    chooser-Off. childCount 123→124. The `[automation-target]` gate failed before (no target
+    chooser) and passes after with 66 assertions: an on-demand Pan lane AUDIBLY changing the
+    render, an EQ band-gain lane owned by the insert audibly changing it again, the raw-tick
+    law, and the one-undo-group law dropping the on-demand lane whole.
 
 ## Phase 3 — hardening + visual sweep of everything shipped
 

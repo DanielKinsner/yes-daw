@@ -511,10 +511,18 @@ AUDIBLY changes the render, an EQ band-gain lane owned by the INSERT id (the cho
 EQ's full 24-param inventory) audibly changing it again, the chooser-Off raw-tick law, and the
 one-undo-group law dropping the on-demand lane whole.
 
-**Now:** E20 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E20 is certified: exact-head GitHub Actions run `31656108777` green for full SHA
+`b8050d495cf1b9e718581860d93dd5da82778d29` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E20 is ticked in the backlog.
+**Phase 2 (FX tools, E14–E20) is COMPLETE.**
 
-**Next:** E21 (undo covers direct strip edits) — Phase 3 begins.
+**Now:** E21 (undo covers direct strip edits) — Phase 3 begins. Audited: extend verb
+coalescing to the three scalar-strip verbs (chain-checked; mute/solo flag equality so toggles
+never merge), a coalescing seal fired on slider drag-end so separate drags stay separate undo
+steps, route track scalar + panel-preserving rail edits through `SetTrackMixScalars`,
+`[strip-undo]` gate pinning the Ctrl+Z law for every control with a sentinel edit.
+
+**Next:** E22 (bus meters live).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
