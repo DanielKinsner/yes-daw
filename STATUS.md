@@ -556,9 +556,23 @@ E22 is certified: exact-head GitHub Actions run `31658312970` green for full SHA
 `82675769c873e6d620a70e1bdfe86172e9882dd4` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E22 is ticked in the backlog.
 
-**Now:** E23 (cross-strip/slot coverage gates) — audit-first: extend `[fxparam]`, `[sendsui]`,
-and `[inspector]` to third-track / non-zero-slot fixtures; fix the painted-mixer selected
-highlight to the E16 strip ordinal (bus strips never highlighted).
+**E23 implementation candidate — cross-strip/slot coverage gates:** audit-first, and the audit
+BIT: extending `[fxparam]` to a third track flushed a REAL CRASH — the mixer control-lane
+refresh guarded the first-track FX bypass readout with track 0's chain but dereferenced the
+SELECTED strip's chain (an E16 seam), so selecting a chain-less non-zero strip while track 0
+had FX dereferenced `front()` of an empty vector and SEGFAULTED the shell. Fixed: that readout
+reads track 0's chain per its own first-track law. Also fixed the painted-mixer selected
+highlight to key on the E16 strip ordinal (bus strips never highlighted — dead visual
+feedback), pinned through the new `selectedMixerStripOrdinal` snapshot field asserted in
+`[bus-strip]`. Existing gates extended rather than duplicated: `[fxparam]` edits a NON-ZERO
+strip's NON-ZERO slot (third track, slot 1 compressor threshold, neighbours untouched, undo),
+`[sendsui]` routes and edits a send on the THIRD track through the same rows, `[inspector]`
+edits a clip imported onto the THIRD track (first track's clip bit-identical, undo). The
+fail-before is compile-level (the ordinal snapshot field doesn't exist pre-E23) and the
+pre-fix product demonstrably SEGFAULTED on the extended `[fxparam]` gate.
+
+**Now:** E23 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E24 (visual sweep: Timeline view).
 

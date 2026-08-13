@@ -3712,6 +3712,11 @@ public:
     {
         return static_cast<int> (currentMixerSurface().buses.size());
     }
+    // E23: which strip the painted mixer highlights (tracks first, then buses; -1 = none).
+    [[nodiscard]] int harnessSelectedMixerStripOrdinal() const
+    {
+        return appModel.selectedMixerStripOrdinal();
+    }
     [[nodiscard]] bool harnessVisibleMixerLoudnessValid() const
     {
         return currentMixerSurface().loudness.valid;
@@ -6147,7 +6152,6 @@ private:
                                                && appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll),
                                        juce::dontSendNotification);
         }
-
         refreshAutosaveRecoveryControls();
         const bool exportInProgress = appModel.context().audioExportInProgress;
         exportAudioButton.setVisible (! exportInProgress);
@@ -6471,7 +6475,6 @@ private:
         automationLaneToggle.setEnabled (state.enabled);
         automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
                                              juce::dontSendNotification);
-
         automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
         const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
         automationLaneRow.setVisible (laneVisible);
@@ -6772,7 +6775,6 @@ private:
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled,
                                           appModel.context()).enabled
             && firstFxSlotAvailable);
-
         refreshingMixerControls = true;
         // E19: the master fader reflects the persisted master gain and enables with a project.
         mixerMasterFader.setEnabled (
@@ -6802,7 +6804,11 @@ private:
             mixerGainReductionReadout.setButtonText (mixerGainReductionReadoutText());
             mixerBusFxSlotsReadout.setButtonText (mixerBusFxSlotsReadoutText());
             mixerFxSlotToggle.setButtonText ("FX");
-            mixerFxSlotToggle.setToggleState (firstFxSlotAvailable && strip.fxChain.front().enabled,
+            // E23: this readout is the FIRST-track FX bypass tool — it must read track 0's
+            // chain, not the selected strip's (found by the cross-strip gate: selecting a
+            // chain-less third track while track 0 had FX dereferenced an empty vector).
+            mixerFxSlotToggle.setToggleState (firstFxSlotAvailable
+                                                  && project.tracks.front().strip.fxChain.front().enabled,
                                               juce::dontSendNotification);
         }
         else
@@ -8187,10 +8193,12 @@ private:
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
             const juce::Colour stripColour = stripColourForIndex (stripIndex);
-            const int selectedTrackStrip = appModel.selectedMixerTrackStripIndex();
+            // E23: the selected highlight keys on the E16 strip ordinal, so a selected BUS
+            // strip highlights exactly like a selected track.
+            const int selectedOrdinal = appModel.selectedMixerStripOrdinal();
             const bool selected = appModel.context().mixerTargetSelected
-                               && selectedTrackStrip >= 0
-                               && stripIndex == static_cast<std::size_t> (selectedTrackStrip);
+                               && selectedOrdinal >= 0
+                               && stripIndex == static_cast<std::size_t> (selectedOrdinal);
             const bool interactiveStrip = selected;
 
             auto lane = area.removeFromLeft (stripWidth)
@@ -8909,6 +8917,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.visibleTimelineTotalSeconds = mainComponent->harnessVisibleTimelineTotalSeconds();
         snapshot.visibleMixerTrackCount = mainComponent->harnessVisibleMixerTrackCount();
         snapshot.visibleMixerBusCount = mainComponent->harnessVisibleMixerBusCount();
+        snapshot.selectedMixerStripOrdinal = mainComponent->harnessSelectedMixerStripOrdinal();
         snapshot.visibleMixerLoudnessValid = mainComponent->harnessVisibleMixerLoudnessValid();
         snapshot.visibleMasterPeakLeft = mainComponent->harnessVisibleMasterPeakLeft();
         snapshot.visibleMasterPeakRight = mainComponent->harnessVisibleMasterPeakRight();

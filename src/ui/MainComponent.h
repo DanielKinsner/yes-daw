@@ -73,6 +73,8 @@ struct MainComponentSnapshot
     double visibleTimelineTotalSeconds = 0.0;
     int visibleMixerTrackCount = 0;
     int visibleMixerBusCount = 0;
+    // E23: which strip the painted mixer highlights (tracks first, then buses; -1 = none).
+    int selectedMixerStripOrdinal = -1;
     bool visibleMixerLoudnessValid = false;
     float visibleMasterPeakLeft = 0.0f;
     float visibleMasterPeakRight = 0.0f;

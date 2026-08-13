@@ -2316,6 +2316,32 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     const yesdaw::engine::Project reopened = readProjectSnapshot (bundlePath);
     REQUIRE (reopened.clips == edited.clips);
     REQUIRE (fadeCurve.getSelectedId() == kInspectorEqualPowerFadeCurveId);
+
+    // E23: the inspector is not first-track-only — a clip imported onto the THIRD track edits
+    // through the SAME controls, and the first track's clip stays untouched.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    const int thirdRowHeight = juce::jmax (
+        yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+        (railComponent->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / 3);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + 2 * thirdRowHeight + thirdRowHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::engine::Project thirdTrackProject = readProjectSnapshot (bundlePath);
+    REQUIRE (thirdTrackProject.tracks.size() == 3u);
+    REQUIRE (thirdTrackProject.clips.size() == 2u);
+    REQUIRE (thirdTrackProject.clips.back().trackId == thirdTrackProject.tracks[2].id);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+
+    dragHorizontalSliderToNormalizedValue (gain, 0.3);
+    thirdTrackProject = readProjectSnapshot (bundlePath);
+    REQUIRE (thirdTrackProject.clips.back().gain < 1.0f);
+    REQUIRE (thirdTrackProject.clips.front() == edited.clips.front());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.back().gain == 1.0f);
 }
 
 TEST_CASE ("H12 UI input harness drives an end-to-end saved session through shipped Components",
@@ -3700,6 +3726,29 @@ TEST_CASE ("bus and send controls route the selected track undoably through real
     REQUIRE (project.tracks.front().sends.empty());
     REQUIRE (project.buses.size() == 1u);
 
+    // E23: sends are not first-track-only — the SAME controls route the THIRD track.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    const int thirdRowHeight = juce::jmax (
+        yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+        (railComponent->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / 3);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + 2 * thirdRowHeight + thirdRowHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 3u);
+    REQUIRE (project.tracks[2].sends.size() == 1u);
+    REQUIRE (project.tracks[0].sends.empty());
+    REQUIRE (project.tracks[1].sends.empty());
+    level0->setValue (0.4, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[2].sends.front().linearGain == 0.4f);
+    clickButton (*remove0);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].sends.empty());
+
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
@@ -3878,6 +3927,41 @@ TEST_CASE ("FX parameter sliders edit the selected insert undoably through real 
     // Toggling the edit button off hides the param rows again.
     clickButton (*edit0);
     REQUIRE_FALSE (param0->isVisible());
+
+    // E23: param editing is not first-index-only — the SAME controls edit a NON-ZERO strip's
+    // NON-ZERO slot. The third track gets an EQ then a Compressor; slot 1's threshold edit
+    // persists on THAT track's slot 1 and nowhere else.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    const int thirdRowHeight = juce::jmax (
+        yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+        (railComponent->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / 3);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + 2 * thirdRowHeight + thirdRowHeight / 2 });
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    chooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                            juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 3u);
+    REQUIRE (project.tracks[2].strip.fxChain.size() == 2u);
+    REQUIRE (project.tracks[2].strip.fxChain[1].kind == yesdaw::engine::FxKind::Compressor);
+
+    auto* edit1 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.1.edit"));
+    REQUIRE (edit1 != nullptr);
+    REQUIRE (edit1->isVisible());
+    clickButton (*edit1);
+    REQUIRE (param0->isVisible());
+    param0->setValue (0.4, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[2].strip.fxChain[1].normalizedParams.size() == 1u);
+    REQUIRE (project.tracks[2].strip.fxChain[1].normalizedParams.front().first == 0u);
+    REQUIRE (project.tracks[2].strip.fxChain[1].normalizedParams.front().second == Catch::Approx (0.4));
+    REQUIRE (project.tracks[2].strip.fxChain[0].normalizedParams.empty());
+    REQUIRE (project.tracks[0].strip.fxChain.front().normalizedParams.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].strip.fxChain[1].normalizedParams.empty());
 }
 
 TEST_CASE ("FX slot up/down reorder the chain undoably and audibly for a non-commuting chain",
@@ -4138,6 +4222,9 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
     REQUIRE (sendChooser != nullptr);
     REQUIRE_FALSE (sendChooser->isEnabled());
+    // E23: the painted mixer highlights the SELECTED strip by display ordinal — the bus strip
+    // (ordinal 1 = after the single track) highlights exactly like a selected track.
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
 
     // Fader, pan, mute, solo hit the BUS strip persistently AND undoably (the new bus law).
     auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
