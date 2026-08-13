@@ -369,12 +369,26 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     LOCKED by `[midi-record]` (in-window note lands compensated, pre-window note rejected by
     the mapping, hostile events refused, persisted MidiClip pinned) — fail-before proven
     (compile-fail vs the old model).
-35. [ ] **E35 — Shipped-path hardware record proof.** `verify-hardware.ps1` drives
-    `RecordingCheckMain.cpp`'s OWN callback — the shipped Record path (`MainComponent.cpp:4584-4615`
-    → `UiAppModel::startRealRecordingCapture/stopRealRecordingCaptureAndCommit`) has NO automated
-    proof on real hardware. Add a one-command self-asserting PASS/FAIL checker that drives the SAME
-    model verbs the Record button calls against the real device (loopback), plus a CI gate pinning
-    the button→verb dispatch path. Never "listen and check."
+35. [x] **E35 — Shipped-path hardware record proof.** DONE — feature `ed4719c`, exact-head
+    nine-job CI run `31671162011` green (first try), local 350/350. `YesDawShippedRecordCheck`
+    (one command: `pwsh tools/shipped-record-check.ps1`) drives the SAME model verbs the
+    shipped Record button calls — adopt real device profile → arm → `startRealRecordingCapture`
+    with live device parameters → `processDeviceAudioBlock` as the callback → drain →
+    stop/commit — against the real device, overlays a deterministic coded burst on the
+    outputs, and SELF-ASSERTS the committed take contains the burst by cross-correlation
+    (PASS/FAIL exit codes; setup problems exit 2; never listen-and-check). Proven on the owner
+    machine: 96,000 real frames captured and committed through the shipped path on the
+    Focusrite (honest FAIL on the burst check until an output is physically looped back into
+    the recorded input — the full-PASS run is the one remaining owner action). CI compiles the
+    checker, pins `--version`, and the `[record-button-path]` gate pins the button's exact
+    verb sequence with real NONZERO driver latencies (ADR-0018 compensation: 128+64 frames
+    rejected off the take head). Found and fixed while building it: the checker initially
+    refused every block because the playback engine was built before the device block size was
+    known — the shipped shell's ordering (block size before project load) is now documented in
+    the checker as the law.
+
+**Run complete 2026-08-13: E1–E35 all certified** — every item feature-committed, nine-job
+exact-head CI green, and evidence-committed.
 
 ## Explicitly out of scope — do not fake
 

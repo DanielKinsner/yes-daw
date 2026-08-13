@@ -713,17 +713,31 @@ take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed):
 selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
 gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). E33 IS CERTIFIED (CI run `31670095158` green on `0a7857f`; ticked in the backlog).
 
-**Now:** E34 (MIDI recording) — implemented and locally green (349/349):
-`captureMidiEventDuringRecording` collects notes during a LIVE capture session only; the last
-take's commit places them as a real MidiClip on the take's track via the commit-hook machinery
-(`appendCapturedMidiTake` maps device frames through the SAME recording window as audio —
-latency-compensated, punch/loop aware, loop cycles beyond the first honest-scope dropped;
-clip-relative note ticks); the native shell opens every `juce::MidiInput` whose callback pairs
-note on/off on the message thread and stamps frames from the audio thread's published cursor
-(`captureDeviceFrameApprox`). Locked by `[midi-record]` (in-window note lands at the
-compensated position, pre-window note rejected by the mapping, hostile events refused,
-persisted MidiClip pinned) — fail-before proven (compile-fail vs the old model). Feature
-commit + CI next, then E35 (hardware record proof).
+## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
+
+Every item certified: feature commit(s) + exact-head nine-job CI green + evidence commit.
+The recording phase closed this session: E34 (MIDI recording — `13fb85a`, CI `31670610696`)
+and E35 (shipped-path hardware record proof — `ed4719c`, CI `31671162011`) both green first
+try, full local ctest **350/350** under the owner-file ritual.
+
+**The one remaining owner action:** route a physical loopback (an output back into input 1 of
+the Focusrite) and run
+
+    pwsh tools/shipped-record-check.ps1
+
+for the full PASS. Without the cable it already proves the shipped Record path end-to-end on
+real hardware (96,000 frames captured and committed through the exact button verbs) and
+honestly FAILs only the burst-return check.
+
+**Now:** stopped at Dan's request after the backlog completed. Everything committed and
+pushed; working tree clean.
+
+**Next (next session):** pick the next horizon — candidates: the loopback full-PASS record
+run; a fresh adversarial parity re-audit against PT/Logic to carve the next backlog; or the
+H18 plugin-hosting track per the roadmap (`docs/goals/`, ADR-0037 FX-before-hosting is
+satisfied). The E34/E35 honest-scope notes worth carrying: loop-cycle MIDI beyond cycle 0 is
+dropped, LatencyCompensated monitoring stays a no-op, and multi-arm recording stays out of
+scope by design.
 
 Historical E33 detail: the inspector's
 placeholder AUTOMATION-VOLUME section (which ALWAYS painted "No automation" — a fake) is now a
