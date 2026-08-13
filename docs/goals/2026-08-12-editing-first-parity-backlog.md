@@ -345,10 +345,20 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     (8-frame loop, one 128-frame block → exactly 8 takes, distinct ordinals, and cycle 2's
     asset carrying frames 16..23 of the device ramp — RUNTIME red vs the old single-take
     model, exit 42).
-33. [ ] **E33 — Take management UI.** Takes exist engine-side with ordinals but there is no way to
-    see, switch, or delete a take. Per-clip take chooser (list takes on the clip's track/window,
-    switch the audible take, delete a take) — honest scope: no comping UI beyond the existing Comp
-    button.
+33. [x] **E33 — Take management UI.** DONE — three green commits (`d85db86` engine verb,
+    `7883739` model verbs, `0a7857f` TAKES UI), exact-head nine-job CI run `31670095158` green
+    on the final SHA (first try), local 349/349. `RemoveRecordingTake` verb removes take +
+    hard-linked clip + comp segments in one undoable step via a NEW combined three-family diff
+    (takes are hard-linked to clips by `recordingTakesReferenceProjectRows`, so audible-take
+    switching is a one-undo-group GAIN switch — chosen clip 1.0, same-window others 0.0);
+    model verbs `takesForSelectedClipWindow` / `switchAudibleTakeForSelectedClip` /
+    `deleteRecordingTake`; the inspector's fake AUTOMATION-VOLUME placeholder (always "No
+    automation") is now the real TAKES section (chooser with ● audible mark + Delete Take,
+    honest "No takes" card). LOCKED by `[take-remove]` (bit-identical undo/redo incl. comp
+    scrub), `[take-switch]` (loop-built 3-take stack: exact gains, single-undo restore,
+    delete+undo), `[take-chooser]` (chooser hidden without takes; lists + audible mark +
+    delete + undo through the shell; runtime red vs the old shell, exit 42). Property arm
+    case 23 covers verb refusal paths.
 34. [ ] **E34 — MIDI recording.** The engine primitive `recordMidiEventsToTimeline`
     (`Recording.h:556-585`) is never called from production code and no MIDI input is ever opened.
     Open MIDI inputs, collect during a capture session, commit to a MIDI clip on the armed track at
