@@ -752,6 +752,76 @@ TEST_CASE ("the armed input's live meter reads the picked channel", "[ui][app][r
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("DirectInput monitoring routes the armed pick into the live outputs; Off is off",
+           "[ui][app][recording][monitoring]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("monitoring");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x0DDBA11u, 48'000.0, 2, 128, 0, 0 }));
+    REQUIRE (app.setRecordingInputChannel (1, false));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    ch0.fill (0.8f);
+    ch1.fill (0.25f);
+    std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    // Unselected policy: NOTHING reaches the outputs (transport stopped renders silence).
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (outRight[0] == 0.0f);
+
+    // One Monitor cycle = DirectInput: the PICKED mono channel (0.25) sums into BOTH outputs.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);
+    REQUIRE (app.context().selectedRecordingMonitoringPolicy
+             == yesdaw::ui::UiRecordingMonitoringPolicy::DirectInput);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.25f));
+    REQUIRE (outRight[0] == Approx (0.25f));
+    REQUIRE (outLeft[127] == Approx (0.25f));
+
+    // The stereo pair routes channel-to-channel.
+    REQUIRE (app.setRecordingInputChannel (0, true));
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.8f));
+    REQUIRE (outRight[0] == Approx (0.25f));
+
+    // LatencyCompensated is an honest no-op; Off is truly off.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // LatencyCompensated
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // Off
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (outRight[0] == 0.0f);
+
+    // Disarm kills monitoring even if the policy stays DirectInput.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // DirectInput
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.8f));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);   // disarm
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");

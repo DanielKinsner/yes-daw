@@ -338,6 +338,29 @@ public:
         }
 
         playback->processBlock (outputChannels, numOutputChannels, numFrames);
+
+        // E31: DirectInput monitoring — the armed pick SUMS into the live outputs (mono pick
+        // to every output, stereo pair channel-to-channel). Plain loops, no allocation or
+        // locks; Off/Unselected/LatencyCompensated sum nothing.
+        if (monitorDirectInput_.load (std::memory_order_acquire)
+            && armedPick != 0u && inputChannels != nullptr && numInputChannels > 0)
+        {
+            const int monitorBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
+            const int monitorWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
+            if (monitorBase >= 0 && monitorBase + monitorWidth <= numInputChannels)
+            {
+                for (int out = 0; out < numOutputChannels; ++out)
+                {
+                    float* dest = outputChannels[out];
+                    const float* source = inputChannels[monitorBase
+                                                        + (monitorWidth == 2 ? std::min (out, 1) : 0)];
+                    if (dest == nullptr || source == nullptr)
+                        continue;
+                    for (int frame = 0; frame < numFrames; ++frame)
+                        dest[frame] += source[frame];
+                }
+            }
+        }
         return true;
     }
 
@@ -5392,9 +5415,10 @@ private:
         context_.selectedRecordingInputChannel = -1;
         context_.selectedRecordingInputStereoPair = false;
         context_.isRecording = false;
-        // E30: no armed pick — the live input meter reads silent.
+        // E30/E31: no armed pick — the live input meter reads silent and monitoring stops.
         armedInputPickPacked_.store (0u, std::memory_order_release);
         liveInputPeak_.store (0.0f, std::memory_order_release);
+        monitorDirectInput_.store (false, std::memory_order_release);
     }
 
     static void applyDeterministicTestDeviceProfile (UiRecordingDeviceSelection& device) noexcept
@@ -5452,6 +5476,10 @@ private:
         armedInputPickPacked_.store (
             (static_cast<std::uint32_t> (recordingTrackInput_.inputChannel) + 1u)
                 | (recordingTrackInput_.stereoPair ? 0x10000u : 0u),
+            std::memory_order_release);
+        // E31: DirectInput is the ONLY policy that actually routes input to output.
+        monitorDirectInput_.store (
+            context_.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::DirectInput,
             std::memory_order_release);
     }
 
@@ -6712,6 +6740,8 @@ private:
     // and the live input block peak it publishes for the UI meters.
     std::atomic<std::uint32_t> armedInputPickPacked_ { 0 };
     std::atomic<float> liveInputPeak_ { 0.0f };
+    // E31: DirectInput monitoring routes the armed pick into the live outputs.
+    std::atomic<bool> monitorDirectInput_ { false };
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;

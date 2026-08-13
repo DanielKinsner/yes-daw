@@ -686,7 +686,15 @@ input blocks through the new input-carrying harness export reach the shell snaps
 `[arm-badge]` (pixel probe: the O cell paints `mixerBack` unarmed and `dangerRed` armed —
 RUNTIME red vs the old paint, exit 42). Full local ctest 348/348.
 
-**Next:** E31 (direct input monitoring).
+E31 (direct input monitoring) — the Monitor button's policy is REAL now: DirectInput sums the
+armed pick into the live outputs on the audio thread (mono pick to every output, stereo pair
+channel-to-channel; plain loops, no allocation/locks — RTSan job covers the path), and
+Off/Unselected/LatencyCompensated sum NOTHING (LatencyCompensated stays an honest no-op).
+Disarm kills monitoring instantly regardless of policy. Locked by `[monitoring]` in
+app_smoke_tests (policy-by-policy output assertions; RUNTIME red vs the old model where
+DirectInput summed nothing, exit 42). Full local ctest 348/348.
+
+**Next:** E32 (loop recording).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
