@@ -535,10 +535,16 @@ after with 95 assertions: a real fader drag as ONE step and a second drag as its
 panel-preserving rail VOL drag and rail mute each undoing exactly themselves, and the final
 undo removing exactly the sentinel.
 
-**Now:** E21 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E21 is certified: exact-head GitHub Actions run `31657624258` green for full SHA
+`c9aac9664b8650834308fd016858ab70b8fd7a3e` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E21 is ticked in the backlog.
 
-**Next:** E22 (bus meters live).
+**Now:** E22 (bus meters live) — implementation in the working tree: PlaybackEngine harvests
+per-bus MeterNodes on the track contract, `busMeterPeak` accessors, busMeterHold on the B32
+tick law, bus meters painted with held-peak/clip-latch, bus meter clicks clear their own hold;
+`[bus-meter]` gate green locally (40 assertions), fail-before + full suite pending.
+
+**Next:** E23 (cross-strip/slot coverage gates).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

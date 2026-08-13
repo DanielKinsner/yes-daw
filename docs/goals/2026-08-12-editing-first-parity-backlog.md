@@ -219,13 +219,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
 
 ## Phase 3 — hardening + visual sweep of everything shipped
 
-21. [ ] **E21 — Undo covers direct strip edits.** THE correctness gap: mixer/rail fader, pan, mute,
-    solo all route through `editSelectedMixerStrip` / `editTrackStripPanelPreserving`
-    (`UiAppModel.h:4839-4894`) which mutate the project WITHOUT pushing an undo transaction —
-    Ctrl+Z after a fader drag silently reverts some OTHER earlier edit. Route every scalar strip
-    edit through the existing `SetTrackMixScalars` verb (and E16's bus twin), gesture-grouped so
-    one drag = one undo step (fine drag and Alt+reset included). Gate pins the Ctrl+Z law for
-    every control.
+21. [x] **E21 — Undo covers direct strip edits.** Landed in `c9aac96` (run `31657624258` green
+    for the full SHA across all nine jobs, first try). Every scalar strip edit rides an
+    undoable verb (`SetTrackMixScalars` on the mixer lane AND the panel-preserving rail path,
+    `SetBusMixScalars` for buses); the dead direct-edit helper removed. The undo stack grew safe
+    scalar-gesture coalescing: consecutive strip-scalar entries merge into ONE step while a
+    gesture is open (chain-checked; mute/solo flag equality keeps toggles separate), any
+    non-coalescable verb AUTO-ENDS the gesture (the track-duplicate gate caught the
+    group-swallowing hazard in the first design, which was replaced), and a new gesture SEALS
+    the previous entry so two drags stay two steps. The `[strip-undo]` gate failed before (the
+    old law ate the sentinel marker) and passes after with 95 assertions.
 22. [ ] **E22 — Bus meters live.** Engine builds per-bus MeterNodes (`MixerGraphProjection.h:575-586`)
     but the shell never harvests them — bus strips paint permanent zero
     (`UiMixerSurface.h:400`, `MainComponent.cpp:6702-6703`). Surface bus peaks exactly like track
