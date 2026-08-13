@@ -282,9 +282,20 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     play-through disagreed) — `emitCompiledLaneAutomationEvents` now primes the start value on
     the first evaluated block (clamp-before-first), locked by the `[automation-target]` pan
     gate (red before) and three re-pinned builder gates (red vs old engine).
-27. [ ] **E27 — Visual sweep: whole-shell resize + consistency.** Min/max window sizes, header
-    row behavior under width pressure, menu/tooltip/theming consistency, token drift; lock with
-    layout gates (the B41 SNAP-label gate is the model).
+27. [x] **E27 — Visual sweep: whole-shell resize + consistency.** DONE — feature `aa8ab5f`,
+    exact-head nine-job CI run `31664962854` green (first try), local 348/348. The window was
+    NOT resizable at all (no `setResizable`/`setResizeLimits`); it now resizes between token
+    limits with the floor at 1152×720 — the smallest size every shipped layout stays honest at
+    (judged: 1024×640 collides — gear over the loop readout, truncated Comp, Automation toggle
+    on the inspector; 2560×1440 honest). Judged DEFECT fixed: the inspector painted its
+    "Fade Out" row past the panel's bottom onto the MASTER pane — paint and layout now share
+    ONE whole-section drop law (a section that no longer fits drops card, labels, and controls
+    together). LOCKED by the `[shell-sizes]` gate: renders at the exact token floor and
+    2560×1440 with coverage assertions, whole-section control pins (fades dropped at the
+    floor, present wide), and a no-bright-pixels pin on the old bleed band (red vs the old
+    paint, exit 42). Honest note: the `setResizeLimits` wiring itself lives in the app wrapper
+    (`Main.cpp`) outside the unit-test harness — the tokens and the layouts at both limits are
+    what the gate pins.
 
 ## Phase 4 — recording (last)
 
