@@ -707,7 +707,23 @@ identically with distinct ordinals, 9 clips, and cycle 2's asset carrying frames
 device ramp — proof each cycle keeps its own audio; RUNTIME red vs the old single-take model,
 exit 42). Full local ctest 348/348.
 
-**Next:** E33 (take management UI).
+**Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
+their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching
+asset/track/start/srcLen), so "switch the audible take" CANNOT remove other takes' clips — it
+is a one-undo-group gain switch (chosen take's clip gain 1.0, other same-window takes' clips
+0.0, via the existing SetClipGain verb); "delete a take" needs a NEW engine verb
+`RemoveRecordingTake` (removes the take + its clip + comp segments referencing it, keeping
+validation green; enum tail + factory in ProjectUndo.h + apply fn in Project.h + diff family +
+property-test arm — the established verb pattern). WRINKLE found in the audit: the undo diff
+machinery is FAMILY-scoped (`isRecordingCompEditVerb` diffs only comp rows, clip verbs only
+clip rows) but take removal touches takes + clips + comp segments at once — the verb needs a
+new combined "recording rows" diff family (takes + clips + comp rows in one diff) or an
+equivalent; check how `ProjectEditTransaction` composes diffs before picking. Model: `takesForSelectedClipWindow()`,
+`switchAudibleTakeForSelectedClip(takeId)`, `deleteRecordingTake(takeId)`. UI: a Takes chooser
++ Delete Take button on the inspector CLIP tab (whole-section drop law applies). Then E34
+(MIDI recording: open MIDI inputs, collect during capture, commit at stop via
+`recordMidiEventsToTimeline`), E35 (one-command self-asserting loopback checker driving the
+SAME model verbs as the Record button + a CI gate pinning the button→verb dispatch).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
