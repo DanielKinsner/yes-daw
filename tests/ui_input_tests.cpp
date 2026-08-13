@@ -1373,7 +1373,12 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     auto shell = makeShell (std::move (choices));
 
     juce::Button& automation = requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane);
-    juce::Label& laneRow = requireLabelWithComponentId (*shell, kAutomationLaneRowComponentId);
+    // E26: the lane band only exists in the geometry law while the lane is OPEN, so the row
+    // label has no bounds yet — it is required in full (nonzero bounds) after the toggle.
+    auto* laneRowComponent = dynamic_cast<juce::Label*> (
+        findChildWithComponentId (*shell, kAutomationLaneRowComponentId));
+    REQUIRE (laneRowComponent != nullptr);
+    juce::Label& laneRow = *laneRowComponent;
     auto* addPointComponent = dynamic_cast<juce::Button*> (
         findMainComponentChildForAction (*shell, UiActionId::TimelineAutomationAddBreakpoint));
     REQUIRE (addPointComponent != nullptr);
@@ -1402,6 +1407,8 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE (snapshot.context.timelineAutomationTrackIndex == 0);
     REQUIRE (snapshot.context.timelineAutomationShowHideCount == 1);
     REQUIRE (laneRow.isVisible());
+    REQUIRE (laneRow.getWidth() > 0);
+    REQUIRE (laneRow.getHeight() > 0);
     REQUIRE (laneRow.getText().contains ("Audio 1"));
     REQUIRE (laneRow.getText().contains ("Track fader"));
     REQUIRE (laneRow.getText().contains ("2 breakpoints"));
@@ -8055,6 +8062,57 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     REQUIRE (project.automationLanes.front().points.size() == 2u);
 }
 
+TEST_CASE ("the automation lane is a full-width band between the ruler and the clips",
+           "[ui][input][shell][automation-geometry]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-geometry");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::ui::TimelineCanvasState state;
+    state.automationLaneVisible = true;
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
+    REQUIRE_FALSE (geometry.automationLaneArea.isEmpty());
+
+    // The canvas shares the ARRANGEMENT's horizontal span (breakpoints line up with clip
+    // time positions) and lives strictly between the ruler and the clip area.
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->isVisible());
+    REQUIRE (canvas->getX() == geometry.clipArea.getX());
+    REQUIRE (canvas->getRight() == geometry.clipArea.getRight());
+    REQUIRE (canvas->getY() >= geometry.rulerArea.getBottom());
+    REQUIRE (canvas->getBottom() <= geometry.clipArea.getY());
+
+    // The lane's controls sit in the band's header row — NEVER over the curve canvas and
+    // never over clip content.
+    for (const char* id : { "timeline.automation.add_breakpoint",
+                            "timeline.automation.delete_breakpoint",
+                            "timeline.automation.target" })
+    {
+        juce::Component* control = findChildWithComponentId (*shell, id);
+        if (control == nullptr)
+            control = yesdaw::ui::findMainComponentChildForAction (
+                *shell,
+                juce::String (id).contains ("add")
+                    ? UiActionId::TimelineAutomationAddBreakpoint
+                    : UiActionId::TimelineAutomationDeleteBreakpoint);
+        REQUIRE (control != nullptr);
+        REQUIRE_FALSE (control->getBounds().intersects (canvas->getBounds()));
+        REQUIRE (control->getBounds().getBottom() <= geometry.clipArea.getY());
+    }
+}
+
 TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",
            "[ui][input][shell][automation-target]")
 {
@@ -8098,6 +8156,9 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
     REQUIRE (project.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::TrackPan);
     REQUIRE (project.automationLanes.front().ownerEntity == project.tracks.front().id);
     REQUIRE (project.automationLanes.front().points.size() == 1u);
+    INFO ("pan tick " << project.automationLanes.front().points.front().tick
+          << " value " << project.automationLanes.front().points.front().value
+          << " canvas " << canvas->getBounds().toString().toStdString());
     REQUIRE (project.automationLanes.front().points.front().tick % 24'000 == 0);
     const std::vector<float> panned = renderFromStart();
     REQUIRE (panned != baseline);

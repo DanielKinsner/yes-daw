@@ -622,11 +622,30 @@ E25 is certified: exact-head GitHub Actions run `31662276616` green for full SHA
 `2a1dc3d` (2a1dc3d…) across all nine jobs (first try); full local ctest green **348/348**
 (owner file isolated + restored, SHA verified). E25 is ticked in the backlog.
 
-**Now:** E26 (visual sweep: piano roll + automation lane) — captures judged; the automation
-lane row (canvas + Add/Delete/Fader controls) overlaps the first track's clip because it is
-stamped at a hardcoded inset INSIDE the clip area, and the canvas is a fixed 320px strip
-instead of a full-width lane. Fix: the shared timelineCanvasGeometry law reserves a full-width
-automation band between the ruler and the clip area when the lane is visible.
+E26 (visual sweep: piano roll + automation lane) — CANDIDATE, awaiting CI. New `[roll-sizes]`
+screenshot capture (real pencilled notes at three window sizes + the automation lane with
+clicked breakpoints; key column / grid / expression-lane coverage assertions). Judged: the
+piano roll renders honestly (notes, velocity + pitch lanes, octave labels). Judged DEFECT,
+fixed: the automation lane row (canvas + Add/Delete/Fader controls) was STAMPED OVER the first
+track's clip at a hardcoded inset inside the clip area, with a fixed 320px canvas. Now the
+shared `timelineCanvasGeometry` law reserves a full-width automation band between the ruler and
+the clip area when the lane is open (`state.automationLaneVisible`); the lane is a header row
+(label left, controls right) over a FULL-WIDTH canvas aligned with the arrangement's time axis,
+and the clip area shifts below it for every paint/hit/layout consumer at once. LOCKED by the
+new `[automation-geometry]` gate (canvas spans exactly the clip area's horizontal span, sits
+strictly between ruler and clips, controls never intersect the canvas) — red against the old
+layout (exit 42). SECOND real defect the widened canvas exposed, fixed in the ENGINE: on
+continuous playback from the start, a lane whose first breakpoint lay ahead of the playhead
+emitted NOTHING until that frame (seek primed `values.front()` but play-from-0 did not — the
+same timeline position sounded different by how you reached it, and unlike every major DAW a
+single-point lane did not hold its value). `emitCompiledLaneAutomationEvents` now primes the
+lane's start value on the FIRST evaluated block exactly like a locate does (the H15
+evaluator's documented clamp-before-first law). Locked by the existing `[automation-target]`
+pan gate (red before the fix — pan breakpoint at 0.5s was inaudible) and three re-pinned
+builder gates asserting the priming event (red against the old engine, 3 failures). Full local
+ctest green **348/348** (owner file isolated + restored, SHA verified).
+
+**Now:** E26 — push + nine-job CI green, then evidence commit.
 
 **Next:** E27 (visual sweep: whole-shell resize + consistency).
 

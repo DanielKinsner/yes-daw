@@ -866,10 +866,14 @@ private:
                                                   std::span<Event> out,
                                                   std::size_t& count) noexcept YESDAW_RT_HOT
     {
-        const bool discontinuousReset = cursor.initialized && blockStart != cursor.lastBlockEnd;
-        if (! cursor.initialized || blockStart != cursor.lastBlockEnd)
+        // E26: the FIRST evaluated block primes the lane exactly like a locate does — the lane's
+        // value at the start frame is emitted up front, so a lane whose first breakpoint lies
+        // ahead of the playhead still holds its first value from playback start (the H15
+        // evaluator's documented clamp-before-first law; play-from-0 and seek now agree).
+        const bool needsPrimingReset = ! cursor.initialized || blockStart != cursor.lastBlockEnd;
+        if (needsPrimingReset)
             resetAutomationLaneCursorForBlock (lane, cursor, blockStart);
-        if (discontinuousReset && ! lane.frames.empty())
+        if (needsPrimingReset && ! lane.frames.empty())
         {
             emitAutomationEvent (lane, blockStart, blockStart, automationValueAtFrame (lane, blockStart), out, count);
             consumeAutomationEventsAtBlockStart (lane, cursor, blockStart);

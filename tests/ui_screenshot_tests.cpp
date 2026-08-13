@@ -484,6 +484,148 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
+           "[ui][screenshot][roll-sizes]")
+{
+    juce::MessageManager::getInstance();
+
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-roll-sizes.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+
+    const auto findChildById = [&shell] (const char* id) -> juce::Component*
+    {
+        for (int child = 0; child < shell->getNumChildComponents(); ++child)
+            if (shell->getChildComponent (child)->getComponentID() == id)
+                return shell->getChildComponent (child);
+        return nullptr;
+    };
+    const auto mouseDownUpAt = [] (juce::Component& component, juce::Point<int> point)
+    {
+        const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(),
+                                      point.toFloat(), juce::ModifierKeys::leftButtonModifier,
+                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                      &component, &component, juce::Time::getCurrentTime(),
+                                      point.toFloat(), juce::Time::getCurrentTime(), 1, false);
+        component.mouseDown (event);
+        component.mouseUp (event);
+    };
+
+    // Real content through real controls: an audio track with a clip, plus a MIDI clip
+    // pencilled with a phrase of notes across the key range.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::ui::MainComponentSnapshot opened = yesdaw::ui::snapshotMainComponent (*shell);
+    REQUIRE (opened.context.projectLoaded);
+    REQUIRE (opened.context.activePanel == UiPanel::PianoRoll);
+    REQUIRE (opened.context.midiClipSelected);
+
+    juce::Component* pianoRoll = findChildById ("piano-roll.canvas");
+    REQUIRE (pianoRoll != nullptr);
+    const auto pencilGrid = [&] ()
+    {
+        // The shipped grid inset chain (header 38, frame 12/8, expression 84, keys 70).
+        auto grid = pianoRoll->getLocalBounds();
+        grid.removeFromTop (38);
+        grid.reduce (12, 8);
+        grid.removeFromBottom (84);
+        grid.removeFromLeft (70);
+        return grid.reduced (0, 2);
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    const juce::Rectangle<int> grid = pencilGrid();
+    for (const auto [fx, fy] : { std::pair { 0.08, 0.62 }, { 0.22, 0.55 }, { 0.36, 0.48 },
+                                 { 0.52, 0.55 }, { 0.68, 0.42 }, { 0.84, 0.35 } })
+        mouseDownUpAt (*pianoRoll,
+                       { grid.getX() + juce::roundToInt (grid.getWidth() * fx),
+                         grid.getY() + juce::roundToInt (grid.getHeight() * fy) });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+
+    const auto renderRollAtSize = [&] (int width, int height, const char* filename)
+    {
+        shell->setSize (width, height);
+        const juce::Image image = renderShell (*shell);
+        juce::Component* canvas = findChildById ("piano-roll.canvas");
+        REQUIRE (canvas != nullptr);
+        const juce::Rectangle<int> bounds = canvas->getBounds();
+        // Size-relative honesty: the key column, the note grid, and the expression lane all
+        // paint real structure at every size.
+        auto local = bounds;
+        local.removeFromTop (38);
+        local.reduce (12, 8);
+        const auto expression = local.removeFromBottom (84);
+        const auto keys = local.removeFromLeft (70);
+        REQUIRE (sampledDifferentPixelCount (image, keys) > 20u);
+        REQUIRE (sampledDifferentPixelCount (image, local) > 60u);
+        REQUIRE (sampledDifferentPixelCount (image, expression) > 10u);
+        (void) captureShellPng (image, filename);
+    };
+
+    renderRollAtSize (1152, 720, "yesdaw-roll-laptop.png");
+    renderRollAtSize (1536, 960, "yesdaw-roll-default.png");
+    renderRollAtSize (1920, 1080, "yesdaw-roll-large.png");
+
+    // The automation lane, open on the timeline with real breakpoints clicked into the canvas.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    const yesdaw::ui::MainComponentSnapshot laneOpen = yesdaw::ui::snapshotMainComponent (*shell);
+    REQUIRE (laneOpen.context.timelineAutomationTrackLaneVisible);
+
+    juce::Component* automationCanvas = findChildById ("timeline.automation.canvas");
+    REQUIRE (automationCanvas != nullptr);
+    REQUIRE (automationCanvas->isVisible());
+    for (const auto [fx, fy] : { std::pair { 0.15, 0.75 }, { 0.45, 0.25 }, { 0.8, 0.55 } })
+        mouseDownUpAt (*automationCanvas,
+                       { juce::roundToInt (automationCanvas->getWidth() * fx),
+                         juce::roundToInt (automationCanvas->getHeight() * fy) });
+
+    // Clicked breakpoints are REAL: the delete-breakpoint action only arms once the target
+    // lane holds points.
+    {
+        juce::Component* deleteButton = yesdaw::ui::findMainComponentChildForAction (
+            *shell, UiActionId::TimelineAutomationDeleteBreakpoint);
+        REQUIRE (deleteButton != nullptr);
+        REQUIRE (deleteButton->isEnabled());
+    }
+
+    shell->setSize (1536, 960);
+    const juce::Image automationImage = renderShell (*shell);
+    juce::Component* canvasAfter = findChildById ("timeline.automation.canvas");
+    REQUIRE (canvasAfter != nullptr);
+    // Dense scan: the lane's curve line and handles are thin — count every pixel that differs
+    // from the lane background instead of the sparse stride.
+    {
+        const juce::Rectangle<int> lane =
+            canvasAfter->getBounds().getIntersection (automationImage.getBounds());
+        REQUIRE_FALSE (lane.isEmpty());
+        const auto background = automationImage.getPixelAt (lane.getX(), lane.getY()).getARGB();
+        std::uint64_t structure = 0;
+        for (int y = lane.getY(); y < lane.getBottom(); ++y)
+            for (int x = lane.getX(); x < lane.getRight(); ++x)
+                if (automationImage.getPixelAt (x, y).getARGB() != background)
+                    ++structure;
+        REQUIRE (structure > 400u);
+    }
+    (void) captureShellPng (automationImage, "yesdaw-automation-default.png");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
 {
     const juce::Image blank (juce::Image::ARGB,

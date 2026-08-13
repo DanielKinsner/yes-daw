@@ -5562,16 +5562,28 @@ private:
 
     void layoutAutomationLaneControls()
     {
+        using L = yesdaw::ui::UiTheme::Layout;
         const auto timeline = timelineBounds();
-        automationLaneToggle.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneToggleBounds (timeline));
-        automationLaneRow.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
-        automationLaneCanvas.setBounds (yesdaw::ui::UiTheme::Layout::automationLaneRowBounds (timeline));
-        automationBreakpointAddButton.setBounds (
-            yesdaw::ui::UiTheme::Layout::automationBreakpointAddButtonBounds (timeline));
-        automationBreakpointDeleteButton.setBounds (
-            yesdaw::ui::UiTheme::Layout::automationBreakpointDeleteButtonBounds (timeline));
+        automationLaneToggle.setBounds (L::automationLaneToggleBounds (timeline));
+
+        // E26: the lane lives in the geometry law's reserved band — a header row (lane label
+        // left, breakpoint controls right) above a FULL-WIDTH canvas, so the curve is never
+        // hidden behind its own controls and never overlaps clip content.
+        auto band = yesdaw::ui::timelineCanvasGeometry (timeline, makeTimelineState())
+                        .automationLaneArea;
+        auto header = band.removeFromTop (L::timelineCanvasAutomationHeaderHeight);
         automationTargetChooser.setBounds (
-            yesdaw::ui::UiTheme::Layout::automationTargetChooserBounds (timeline));
+            header.removeFromRight (L::automationTargetChooserWidth));
+        header.removeFromRight (L::timelineCanvasAutomationHeaderGap);
+        automationBreakpointDeleteButton.setBounds (
+            header.removeFromRight (L::automationBreakpointDeleteButtonWidth));
+        header.removeFromRight (L::timelineCanvasAutomationHeaderGap);
+        automationBreakpointAddButton.setBounds (
+            header.removeFromRight (L::automationBreakpointAddButtonWidth));
+        automationLaneRow.setBounds (header.withTrimmedLeft (L::timelineCanvasClipAreaInsetX));
+        automationLaneCanvas.setBounds (
+            band.reduced (L::timelineCanvasClipAreaInsetX, 0)
+                .withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2));
     }
 
     void suspendDesktopAudioCallback()
@@ -6503,6 +6515,13 @@ private:
         const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
         automationLaneRow.setVisible (laneVisible);
         automationLaneCanvas.setVisible (laneVisible);
+        // E26: the lane band only exists in the geometry law while the lane is open, so a
+        // visibility flip must re-lay the lane controls out of the (new) reserved band.
+        if (laneVisible != automationLaneLaidOutVisible)
+        {
+            automationLaneLaidOutVisible = laneVisible;
+            layoutAutomationLaneControls();
+        }
         if (laneVisible)
             automationLaneCanvas.repaint();
 
@@ -7416,6 +7435,10 @@ private:
         }
         state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
         state.markerCount = static_cast<int> (timelineMarkerViews.size());
+
+        // E26: the open automation lane reserves its band in the shared geometry law, so every
+        // paint, hit-test, and layout consumer agrees the clips start below it.
+        state.automationLaneVisible = appModel.context().timelineAutomationTrackLaneVisible;
 
         // Ruler range selection (parity item 25): painted from the model's transient range frames.
         if (appModel.context().timelineRangeSelected
@@ -8767,6 +8790,8 @@ private:
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;
     juce::TextButton automationBreakpointDeleteButton;
+    // E26: whether the lane controls were last laid out with the band reserved.
+    bool automationLaneLaidOutVisible = false;
     FineDragSlider inspectorStart;
     FineDragSlider inspectorEnd;
     FineDragSlider inspectorLength;

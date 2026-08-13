@@ -736,6 +736,11 @@ struct UiTheme
         static constexpr int timelineCanvasRulerHeight = 48;
         static constexpr int timelineCanvasClipAreaInsetX = 12;
         static constexpr int timelineCanvasClipAreaInsetY = 0;
+        // E26: the automation lane is a real full-width band between the ruler and the clip
+        // area — reserved by the shared geometry law when visible, never stamped over clips.
+        static constexpr int timelineCanvasAutomationBandHeight = 56;
+        static constexpr int timelineCanvasAutomationHeaderHeight = 24;
+        static constexpr int timelineCanvasAutomationHeaderGap = 8;
         static constexpr int timelineCanvasGeometryMinLaneCount = 1;
         static constexpr double timelineCanvasViewportMinPixelsPerSecond = 1.0;
         // Caption sits in the gap between the repeat-paste chooser and the snap chooser (B41).

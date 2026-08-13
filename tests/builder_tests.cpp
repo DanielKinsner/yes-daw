@@ -658,15 +658,21 @@ TEST_CASE ("CompiledGraph emits compiled automation lanes into the ProcessArgs s
     transport.hasTimelineFrame = true;
     graph->process (outChannels, 1, static_cast<int> (out.size()), events, transport);
 
-    REQUIRE (state.count == 2u);
-    REQUIRE (state.events[0].timeInBlock == 32u);
+    // E26: the first evaluated block PRIMES the lane with its value at the start frame (the
+    // clamp-before-first law), then the breakpoint and control-rate events follow.
+    REQUIRE (state.count == 3u);
+    REQUIRE (state.events[0].timeInBlock == 0u);
     REQUIRE (state.events[0].payload.parameter.targetNode == kProbeId);
     REQUIRE (state.events[0].payload.parameter.parameterId == kParameterId);
     REQUIRE (state.events[0].payload.parameter.normalizedValue == Approx (0.25));
-    REQUIRE (state.events[1].timeInBlock == 64u);
+    REQUIRE (state.events[1].timeInBlock == 32u);
     REQUIRE (state.events[1].payload.parameter.targetNode == kProbeId);
     REQUIRE (state.events[1].payload.parameter.parameterId == kParameterId);
-    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.375));
+    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.25));
+    REQUIRE (state.events[2].timeInBlock == 64u);
+    REQUIRE (state.events[2].payload.parameter.targetNode == kProbeId);
+    REQUIRE (state.events[2].payload.parameter.parameterId == kParameterId);
+    REQUIRE (state.events[2].payload.parameter.normalizedValue == Approx (0.375));
 
     for (float v : out)
         REQUIRE (v == 0.25f);
@@ -772,11 +778,14 @@ TEST_CASE ("CompiledGraph automation lane cursors continue across sequential Blo
 
     transport.timelineFrame = 0;
     graph->process (outChannels, 1, 96, events, transport);
-    REQUIRE (state.count == 2u);
-    REQUIRE (state.events[0].timeInBlock == 32u);
+    // E26: first block primes the lane's start value (clamp-before-first) ahead of the stream.
+    REQUIRE (state.count == 3u);
+    REQUIRE (state.events[0].timeInBlock == 0u);
     REQUIRE (state.events[0].payload.parameter.normalizedValue == Approx (0.25));
-    REQUIRE (state.events[1].timeInBlock == 64u);
-    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.375));
+    REQUIRE (state.events[1].timeInBlock == 32u);
+    REQUIRE (state.events[1].payload.parameter.normalizedValue == Approx (0.25));
+    REQUIRE (state.events[2].timeInBlock == 64u);
+    REQUIRE (state.events[2].payload.parameter.normalizedValue == Approx (0.375));
 
     const std::span<const yesdaw::engine::CompiledAutomationLaneCursor> cursors =
         graph->debugAutomationLaneCursors();
@@ -847,7 +856,8 @@ TEST_CASE ("CompiledGraph automation lane cursors reset on discontinuous locate 
 
     transport.timelineFrame = 0;
     graph->process (outChannels, 1, 192, events, transport);
-    REQUIRE (state.count == 4u);
+    // E26: + the first-block priming event at frame 0 (clamp-before-first).
+    REQUIRE (state.count == 5u);
 
     const std::span<const yesdaw::engine::CompiledAutomationLaneCursor> cursors =
         graph->debugAutomationLaneCursors();

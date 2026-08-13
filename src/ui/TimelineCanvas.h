@@ -75,6 +75,10 @@ struct TimelineCanvasState
     bool loopActive = false;
     double loopStartSeconds = 0.0;
     double loopEndSeconds = 0.0;
+
+    // E26: when the automation lane is open the geometry reserves a full-width band between
+    // the ruler and the clip area, so lane controls never overlap clip content.
+    bool automationLaneVisible = false;
 };
 
 struct TimelineCanvasPaintStats
@@ -92,6 +96,8 @@ struct TimelineCanvasGeometry
 {
     juce::Rectangle<int> toolbarArea;
     juce::Rectangle<int> rulerArea;
+    // E26: empty unless state.automationLaneVisible — the reserved lane band above the clips.
+    juce::Rectangle<int> automationLaneArea;
     juce::Rectangle<int> clipArea;
     Viewport viewport;
     int laneHeight = 0;
@@ -564,6 +570,9 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     auto content = area.reduced (UiTheme::Layout::timelineCanvasOuterInset);
     geometry.toolbarArea = content.removeFromTop (UiTheme::Layout::timelineCanvasToolbarHeight);
     geometry.rulerArea = content.removeFromTop (UiTheme::Layout::timelineCanvasRulerHeight);
+    if (state.automationLaneVisible)
+        geometry.automationLaneArea = content.removeFromTop (
+            UiTheme::Layout::timelineCanvasAutomationBandHeight);
     geometry.clipArea = content.reduced (UiTheme::Layout::timelineCanvasClipAreaInsetX,
                                          UiTheme::Layout::timelineCanvasClipAreaInsetY);
 
