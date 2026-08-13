@@ -440,6 +440,50 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes with real strips",
+           "[ui][screenshot][mixer-sizes]")
+{
+    juce::MessageManager::getInstance();
+
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-mixer-sizes.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::KeyPress addTrack ('t', juce::ModifierKeys::ctrlModifier, 0);
+    REQUIRE (shell->keyPressed (addTrack));
+    REQUIRE (shell->keyPressed (addTrack));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    const auto renderAtSize = [&shell] (int width, int height, const char* filename)
+    {
+        shell->setSize (width, height);
+        const juce::Image image = renderShell (*shell);
+        REQUIRE (hasMixerSurfaceCoverage (image));
+        (void) captureShellPng (image, filename);
+    };
+
+    renderAtSize (1152, 720, "yesdaw-mixer-laptop.png");
+    renderAtSize (1536, 960, "yesdaw-mixer-default.png");
+    renderAtSize (1920, 1080, "yesdaw-mixer-large.png");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
 {
     const juce::Image blank (juce::Image::ARGB,

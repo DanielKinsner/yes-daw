@@ -829,6 +829,19 @@ yesdaw::engine::Tick pianoRollDeltaTicksForPixels (juce::Component& pianoRoll,
     return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
 }
 
+// E25: strip clicks land on the PAINTED lane centers — the unified mixer geometry law
+// (stripWidth clamps like drawMixer; the overlay's origin equals the painted area's origin).
+juce::Point<int> paintedStripCentre (juce::Component& strips, int stripIndex, int stripTotal)
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int stripWidth = std::clamp (
+        strips.getWidth() / (std::max (L::mixerPaintedStripMinCount, stripTotal)
+                             + L::mixerPaintedStripExtraSlotCount),
+        L::mixerPaintedStripMinWidth,
+        L::mixerPaintedStripMaxWidth);
+    return { stripIndex * stripWidth + stripWidth / 2, strips.getHeight() / 2 };
+}
+
 // E13: the velocity lane rect and its two mapping laws, mirroring the shipped inset chain.
 juce::Rectangle<int> pianoRollVelocityLaneBounds (juce::Component& pianoRoll)
 {
@@ -3405,9 +3418,8 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     REQUIRE (strips != nullptr);
     REQUIRE (strips->isVisible());
 
-    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                       strips->getWidth() / 4);   // 2 tracks + master column headroom
-    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    // E25 re-pin: clicks land on the PAINTED lane centers.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
 
     auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
     REQUIRE (mute != nullptr);
@@ -3554,6 +3566,73 @@ TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip t
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("mixer clicks, the control lane, and the master fader share the painted strip geometry",
+           "[ui][input][shell][mixer][mixer-geometry]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-geometry");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+
+    // At the default width the painted lanes clamp to their max width, far from the old
+    // width/(count+1) law — clicking each PAINTED center must select exactly that strip.
+    for (int stripIndex = 0; stripIndex < 3; ++stripIndex)
+    {
+        mouseDownAt (*strips, paintedStripCentre (*strips, stripIndex, 3));
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == stripIndex);
+    }
+
+    // The interactive control lane sits ON its painted strip: the strip-name button's bounds
+    // (in shell space) stay inside the horizontal span of painted lane 2.
+    const int stripWidth = std::clamp (
+        strips->getWidth() / (std::max (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount, 3)
+                              + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
+        yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+        yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
+    juce::Component* nameButton = findChildWithComponentId (*shell, "mixer.track.select");
+    if (nameButton == nullptr)
+        nameButton = findChildWithComponentId (*shell, "mixer.target.select");
+    if (nameButton != nullptr)
+    {
+        const int laneLeftInShell = strips->getX() + 2 * stripWidth;
+        REQUIRE (nameButton->getX() >= laneLeftInShell - stripWidth);
+        REQUIRE (nameButton->getRight() <= laneLeftInShell + 2 * stripWidth);
+    }
+
+    // The master fader sits on the PAINTED master pane (the rightmost painted lane).
+    auto* masterFader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.master.fader"));
+    REQUIRE (masterFader != nullptr);
+    const int masterLeftInShell = strips->getRight() - stripWidth;
+    REQUIRE (masterFader->getX() >= masterLeftInShell);
+    REQUIRE (masterFader->getRight() <= strips->getRight());
+
+    // ... and inside the pane's METER region: the fader rail must start BELOW the painted
+    // INTEGRATED / TRUE PEAK cards (the drawMixer walk), never crossing them.
+    const int masterCardsBottomInShell = strips->getY()
+                                       + yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY
+                                       + yesdaw::ui::UiTheme::Layout::mixerMasterContentTop
+                                       + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight
+                                       + yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap
+                                       + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight;
+    REQUIRE (masterFader->getY() >= masterCardsBottomInShell);
+
+    // Clicks past the painted lanes (the empty span before the master pane) select nothing new.
+    mouseDownAt (*strips, { 3 * stripWidth + stripWidth * 2, strips->getHeight() / 2 });
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
+}
+
 TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggles do not",
            "[ui][input][shell][mixer][strip-undo]")
 {
@@ -3576,9 +3655,7 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
-    mouseDownAt (*strips, { juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                        strips->getWidth() / 2) / 2,
-                            strips->getHeight() / 2 });
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 1));   // E25 unified geometry
 
     auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
     auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
@@ -4211,12 +4288,11 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
 
-    // Click the BUS strip (display order: track 0, then bus 0) through the strips overlay.
+    // Click the BUS strip (display order: track 0, then bus 0) through the strips overlay,
+    // at its PAINTED lane center (E25 unified geometry).
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
-    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                       strips->getWidth() / 3);   // 1 track + 1 bus + master headroom
-    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
 
     // Honest scope: buses cannot originate sends — the send chooser refuses a bus target.
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
@@ -4318,16 +4394,15 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
 
-    // Inline rename: double-click the bus strip, type, Enter — persisted and undoable.
+    // Inline rename: double-click the bus strip (its PAINTED lane center — E25 unified
+    // geometry), type, Enter — persisted and undoable.
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
-    const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                       strips->getWidth() / 3);
     auto* renameEditor = dynamic_cast<juce::TextEditor*> (
         findChildWithComponentId (*shell, "shell.mixer.bus.rename"));
     REQUIRE (renameEditor != nullptr);
     REQUIRE_FALSE (renameEditor->isVisible());
-    doubleClickAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    doubleClickAt (*strips, paintedStripCentre (*strips, 1, 2));
     REQUIRE (renameEditor->isVisible());
     renameEditor->setText ("Drum Verb", juce::dontSendNotification);
     renameEditor->onReturnKey();
@@ -4338,14 +4413,14 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
 
     // Route a send to the bus from the TRACK, then try to remove the bus: the engine refuses
     // and the bus honestly stays.
-    mouseDownAt (*strips, { stripWidth / 2, strips->getHeight() / 2 });   // select the track strip
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));   // select the track strip
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
     REQUIRE (sendChooser != nullptr);
     REQUIRE (sendChooser->isEnabled());
     sendChooser->setSelectedId (1, juce::sendNotificationSync);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.size() == 1u);
 
-    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });   // select the bus
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));   // select the bus
     auto* removeBus = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.remove"));
     REQUIRE (removeBus != nullptr);
     REQUIRE (removeBus->isEnabled());
@@ -4353,13 +4428,13 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);   // refused, not silently dropped
 
     // Drop the routed send, then the removal goes through — and one undo restores the bus.
-    mouseDownAt (*strips, { stripWidth / 2, strips->getHeight() / 2 });
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
     auto* sendRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
     REQUIRE (sendRemove != nullptr);
     clickButton (*sendRemove);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.empty());
 
-    mouseDownAt (*strips, { stripWidth + stripWidth / 2, strips->getHeight() / 2 });
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
     clickButton (*removeBus);
     REQUIRE (readProjectSnapshot (bundlePath).buses.empty());
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));

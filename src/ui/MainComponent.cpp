@@ -4305,17 +4305,14 @@ private:
             else
                 clearBusMeterHold (stripIndex - trackCount);   // E22
         };
+        // E25: clicks hit-test the PAINTED lanes — the same geometry the eye sees.
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
             const auto surface = currentMixerSurface();
-            const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
-            auto mixer = mixerPanelBounds();
-            mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
-            if (! mixer.contains (positionInShell))
-                return -1;
-
-            const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                               mixer.getWidth() / (stripCount + 1));
-            return (positionInShell.x - mixer.getX()) / stripWidth;
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+                if (paintedMixerLaneBounds (i).contains (positionInShell))
+                    return static_cast<int> (i);
+            return -1;
         };
         addAndMakeVisible (mixerStripsInput);
         mixerStripsInput.toBack();   // the shared strip controls stay on top and keep their own clicks
@@ -5269,22 +5266,34 @@ private:
                               yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
     }
 
+    // E25: ONE strip geometry — the interactive control lane, the click law, and the paint all
+    // share the painted-strip law (the old width/(count+1) law visibly diverged from the
+    // painted lanes at real window sizes, floating the control lane off its strip).
     [[nodiscard]] juce::Rectangle<int> mixerStripBounds (int stripIndex) const
     {
-        auto mixer = mixerPanelBounds();
-        mixer.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
-
-        const auto surface = currentMixerSurface();
-        const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
-        const int stripWidth = juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
-                                           mixer.getWidth() / (stripCount + 1));
-        return mixer.withWidth (stripWidth)
-            .translated (stripWidth * juce::jmax (0, stripIndex), 0)
-            .reduced (yesdaw::ui::UiTheme::Layout::mixerStripHorizontalInset,
-                      yesdaw::ui::UiTheme::Layout::mixerStripVerticalInset);
+        return paintedMixerLaneBounds (static_cast<std::size_t> (juce::jmax (0, stripIndex)));
     }
 
     [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const { return mixerStripBounds (0); }
+
+    // E25: the painted MASTER pane rect — mirrors drawMixer's removeFromRight law exactly.
+    [[nodiscard]] juce::Rectangle<int> paintedMixerMasterBounds() const
+    {
+        auto area = mixerPanelBounds();
+        area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
+
+        const auto surface = currentMixerSurface();
+        const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
+        const int stripWidth = std::clamp (
+            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
+                                           static_cast<int> (stripCount))
+                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
+        return area.removeFromRight (stripWidth)
+            .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
+                      yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+    }
 
     // Shared painted-strip geometry law (B32): hit-testing must mirror drawMixer's lane math
     // exactly so a meter click can never drift from the painted meter.
@@ -5527,22 +5536,28 @@ private:
         mixerFader.setBounds (faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
                                   .withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
 
-        // E19: the master fader lives on the MASTER column (the +1 strip after tracks + buses).
-        const auto& masterProject = appModel.project();
-        const int masterOrdinal = appModel.context().projectLoaded
-            ? static_cast<int> (masterProject.tracks.size() + masterProject.buses.size())
-            : 0;
-        auto masterLane = mixerStripBounds (masterOrdinal)
-                              .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
-                                        yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
-        masterLane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight);
-        masterLane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
-        auto masterFaderArea = masterLane.removeFromTop (
-            juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
-                        masterLane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
+        // E19/E25: the master fader lives on the PAINTED MASTER pane, inside its METER region —
+        // the same walk drawMixer uses (content top, loudness card, gap, peak card, meter gap) —
+        // so the fader rail can never cross the INTEGRATED / TRUE PEAK cards and the thumb
+        // travels the same vertical span as the painted dB scale.
+        auto masterContent = paintedMixerMasterBounds()
+                                 .reduced (yesdaw::ui::UiTheme::Layout::mixerMasterContentInsetX,
+                                           yesdaw::ui::UiTheme::Space::none);
+        masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterContentTop
+                                     + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight
+                                     + yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap
+                                     + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight
+                                     + yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
+        auto masterFaderArea = masterContent.withTrimmedBottom (
+            yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset);
+        masterFaderArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerMasterScaleWidth);
+        const int masterMeterPairWidth = 2 * yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth
+                                       + yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap;
+        auto masterFaderColumn = masterFaderArea.withTrimmedRight (
+            masterFaderArea.getWidth() / 2 + masterMeterPairWidth / 2);
         mixerMasterFader.setBounds (
-            masterFaderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
-                .withCentre ({ masterFaderArea.getCentreX(), masterFaderArea.getCentreY() }));
+            masterFaderColumn.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
+                .withCentre ({ masterFaderColumn.getCentreX(), masterFaderColumn.getCentreY() }));
     }
 
     void layoutAutomationLaneControls()

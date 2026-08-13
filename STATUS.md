@@ -600,10 +600,25 @@ E24 is certified: exact-head GitHub Actions run `31661114262` green for full SHA
 `75be6490e5e766b5bb6dabb4a820a4e28c6d23d6` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E24 is ticked in the backlog.
 
-**Now:** E25 (visual sweep: Mixer view) — the painted-strip vs overlay/control-lane geometry
-mismatch is the headline defect (clicks and the control lane use width/(count+1) while paint
-uses the clamped painted-strip law; they visibly diverge at real window sizes — the control
-lane floats detached from its painted strip).
+E25 (visual sweep: Mixer view) — CANDIDATE, awaiting CI. The headline defect is fixed: mixer
+geometry is now ONE law. `mixerStripBounds` delegates to the painted-strip law (clamped
+width/(count+extra) after the tools column), `stripAtPosition` hit-tests the painted lanes, and
+a new `paintedMixerMasterBounds()` mirrors drawMixer's removeFromRight master pane — so the
+interactive control lane sits ON its painted strip and the master fader sits ON the painted
+MASTER pane (the E24-observed "control lane floats detached at x≈680–890" is gone in the
+rendered pixels at 1152×720 / 1536×960 / 1920×1080). Second judged defect, also fixed: the
+interactive master fader spanned the whole pane so its rail crossed the INTEGRATED / TRUE PEAK
+cards — it now lives in the pane's METER region via the exact drawMixer walk (content top +
+loudness card + gap + peak card + meter gap), beside the painted dB scale. LOCKED by: the new
+`[mixer-geometry]` gate (clicks each painted lane center → exact strip ordinal; name button
+inside painted lane 2's span; master fader inside the painted pane AND below the painted cards;
+clicks past the lanes select nothing) plus the `[mixer-sizes]` screenshot capture (3-track
+project rendered at three sizes with coverage assertions). Fail-before proven: with only
+`src/ui/MainComponent.cpp` stashed the gate goes red (painted-center click selects the wrong
+strip, exit 42). Full local ctest green **348/348** (owner file isolated + restored, SHA
+verified).
+
+**Now:** E25 — push + nine-job CI green, then evidence commit.
 
 **Next:** E26 (visual sweep: piano roll + automation lane).
 
