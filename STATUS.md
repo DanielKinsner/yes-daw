@@ -722,8 +722,21 @@ make room inside the 494px content column — judged clean in pixels). Locked by
 list + audible mark + delete + undo; the same-window SWITCH law is locked by the model-level
 `[take-switch]` gate since only loop recording creates stacks) — RUNTIME red vs the old shell
 (exit 42, chooser missing). childCount re-pinned +128. Full local ctest 349/349. E33 is ready
-for its feature commit + nine-job CI + evidence. THEN E34 (MIDI recording), E35 (hardware
-record proof) — audit notes in the backlog.
+for its feature commit + nine-job CI + evidence. THEN E34 (MIDI recording) — audit sketch:
+`recordMidiEventsToTimeline` (Recording.h:556) maps `IncomingRecordedMidiEvent
+{deviceInputFrame, Event}` through the SAME capture window as audio (loop-aware, punch-aware,
+latency-compensated). Model plan: (a) a control-thread collection seam
+`captureMidiEventDuringRecording(deviceInputFrame, midiEvent)` active while captureActive_
+(tests inject; the native shell wiring opens `juce::MidiInput` devices whose callback stamps
+events with an atomic published copy of E32's `captureDeviceFrameCursor_`); (b) at
+`stopRealRecordingCaptureAndCommit`, map collected events via the primitive, pair note-on/off
+into engine Notes, and commit a MidiClip on the armed track — NOTE the deterministic path
+already "decorates the commit with its paired synthetic MIDI take" (UiAppModel.h ~1205
+`placedMidiTake` + `app::commitRecordedAudioTake` MIDI hooks) — reuse that placement machinery
+for REAL captured MIDI instead of the synthetic decoration; (c) gate: injected MIDI events
+through the model API → committed MidiClip notes at latency-compensated positions; pre-roll
+(count-in) MIDI rejected like audio. E35 (hardware record proof) after — audit notes in the
+backlog.
 
 **Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
 their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching
