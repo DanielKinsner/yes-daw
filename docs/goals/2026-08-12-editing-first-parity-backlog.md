@@ -359,10 +359,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     delete+undo), `[take-chooser]` (chooser hidden without takes; lists + audible mark +
     delete + undo through the shell; runtime red vs the old shell, exit 42). Property arm
     case 23 covers verb refusal paths.
-34. [ ] **E34 — MIDI recording.** The engine primitive `recordMidiEventsToTimeline`
-    (`Recording.h:556-585`) is never called from production code and no MIDI input is ever opened.
-    Open MIDI inputs, collect during a capture session, commit to a MIDI clip on the armed track at
-    stop; CI with injected MIDI events through the model API.
+34. [x] **E34 — MIDI recording.** DONE — feature `13fb85a`, exact-head nine-job CI run
+    `31670610696` green (first try), local 349/349. `captureMidiEventDuringRecording` collects
+    notes during a LIVE session only; the last take's commit places them as a REAL MidiClip on
+    the take's track via the commit-hook machinery, with device frames mapped through the SAME
+    recording window as audio (latency-compensated, punch/loop aware; loop cycles beyond the
+    first honest-scope dropped). The native shell opens every `juce::MidiInput`, pairs note
+    on/off on the message thread, and stamps frames from the audio thread's published cursor.
+    LOCKED by `[midi-record]` (in-window note lands compensated, pre-window note rejected by
+    the mapping, hostile events refused, persisted MidiClip pinned) — fail-before proven
+    (compile-fail vs the old model).
 35. [ ] **E35 — Shipped-path hardware record proof.** `verify-hardware.ps1` drives
     `RecordingCheckMain.cpp`'s OWN callback — the shipped Record path (`MainComponent.cpp:4584-4615`
     → `UiAppModel::startRealRecordingCapture/stopRealRecordingCaptureAndCommit`) has NO automated
