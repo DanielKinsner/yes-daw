@@ -308,10 +308,18 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     `[real-device]` gate (hostile profiles rejected, unarmed capture refused, armed capture
     persists the injected real `deviceStableId`) — fail-before proven (compile-fail vs the old
     model, which had no adoption API and rolled unarmed).
-29. [ ] **E29 — Input device + channel chooser.** The header chooser is output-only
-    (`MainComponent.cpp:4462-4494`); input is whatever the OS default gives and `inputChannel` is
-    hardcoded 0 (`UiAppModel.h:1858,4705`). Add an input device chooser and a channel picker
-    (mono channel N or stereo pair) driving the JUCE setup input side and the capture config.
+29. [x] **E29 — Input device + channel chooser.** DONE — feature `8aa74e6`, exact-head
+    nine-job CI run `31666333429` green (first try), local 348/348.
+    `setRecordingInputChannel(base, stereoPair)` picks mono channel N or the pair (N, N+1)
+    against the ADOPTED device's real input count; the capture session records exactly the
+    picked window (stack-only channel view on the audio thread) and provenance persists the
+    picked channel. Header device row gained the input device chooser (switching restarts the
+    device → re-adopts the E28 profile) and the channel chooser ("In N" / "In N+M"), row
+    re-balanced to the 1152 floor with every label whole (judged in pixels). LOCKED by
+    `[input-pick]` (persisted float-WAV take carries EXACTLY the picked channel's samples;
+    provenance `inputChannel` pinned) and `[input-chooser]` (chooser disabled until adoption;
+    lists per the adopted profile; picking drives the live armed selection). Fail-before:
+    compile-fail vs the old model (no pick API; recorded whatever the device gave).
 30. [ ] **E30 — Input metering + arm visibility.** No input level is computed or shown anywhere —
     you cannot see signal before recording. Live input peak meter while armed (through
     `processDeviceAudioBlock`), painted on the armed track's rail/strip meter plus a transport arm
