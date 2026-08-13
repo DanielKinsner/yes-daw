@@ -668,6 +668,18 @@ struct UiTheme
                            .withWidth (automationBreakpointDeleteButtonWidth)
                            .withHeight (automationBreakpointDeleteButtonHeight);
         }
+
+        // E20: the lane-target chooser sits beside the delete button on the automation row.
+        static constexpr int automationTargetChooserLeftInset = automationBreakpointDeleteButtonLeftInset
+                                                              + automationBreakpointDeleteButtonWidth + 8;
+        static constexpr int automationTargetChooserWidth = 172;
+        static juce::Rectangle<int> automationTargetChooserBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timeline.withTrimmedLeft (automationTargetChooserLeftInset)
+                           .withTrimmedTop (automationBreakpointDeleteButtonTopInset)
+                           .withWidth (automationTargetChooserWidth)
+                           .withHeight (automationBreakpointDeleteButtonHeight);
+        }
         static constexpr int inputDragDeadZonePixels = 2;
         static constexpr int pianoRollHeaderHeight = 38;
         static constexpr int pianoRollPanelInsetX = 12;

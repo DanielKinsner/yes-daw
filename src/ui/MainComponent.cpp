@@ -3193,13 +3193,15 @@ public:
         automationLaneCanvas.setTooltip ("Automation lane: click to add a breakpoint, drag to move it");
         automationLaneCanvas.setName ("Automation Lane");
         automationLaneCanvas.setTitle ("Automation Lane");
+        // E20: the canvas reads and edits the CHOSEN target's lane (fader/pan/send/FX param).
         automationLaneCanvas.pointsProvider = [this] {
             std::vector<std::pair<double, double>> points;
-            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
-            if (! trackId.isValid() || ! appModel.project().sampleRate.isValid())
+            const AutomationTargetOption target = currentAutomationTarget();
+            if (! target.ownerEntity.isValid() || ! appModel.project().sampleRate.isValid())
                 return points;
 
-            if (const yesdaw::engine::AutomationLaneData* const lane = appModel.trackFaderAutomationLane (trackId))
+            if (const yesdaw::engine::AutomationLaneData* const lane =
+                    appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId))
             {
                 const double sampleRateHz = appModel.project().sampleRate.hz;
                 points.reserve (lane->points.size());
@@ -3214,33 +3216,40 @@ public:
         automationLaneCanvas.localXForSeconds = [this] (double seconds) {
             return automationCanvasLocalXForSeconds (seconds);
         };
+        // E20: added and dragged breakpoints land on the snap chooser's grid (chooser Off = raw).
         automationLaneCanvas.onAddPoint = [this] (double seconds, double value) {
-            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+            const AutomationTargetOption target = currentAutomationTarget();
             if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
-                tick && trackId.isValid())
+                tick && target.ownerEntity.isValid())
             {
-                (void) appModel.addAutomationBreakpointToTrackLane (trackId, *tick, value);
+                (void) appModel.addAutomationBreakpointToLane (
+                    target.ownerEntity, target.role, target.paramId,
+                    snappedTimelineTick (*tick, false), value);
                 refreshActionState();
                 repaint();
             }
         };
         automationLaneCanvas.onMovePoint = [this] (double oldSeconds, double newSeconds, double newValue) {
-            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
-            const yesdaw::engine::AutomationLaneData* const lane =
-                trackId.isValid() ? appModel.trackFaderAutomationLane (trackId) : nullptr;
+            const AutomationTargetOption target = currentAutomationTarget();
+            const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+                ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+                : nullptr;
             const std::optional<yesdaw::engine::Tick> oldTick = timelineTickFromSeconds (oldSeconds);
             const std::optional<yesdaw::engine::Tick> newTick = timelineTickFromSeconds (newSeconds);
             if (lane != nullptr && oldTick && newTick)
             {
-                (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick, *newTick, newValue);
+                (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick,
+                                                            snappedTimelineTick (*newTick, false),
+                                                            newValue);
                 refreshActionState();
                 repaint();
             }
         };
         automationLaneCanvas.onDeletePoint = [this] (double seconds) {
-            const yesdaw::engine::EntityId trackId = automationTargetTrackId();
-            const yesdaw::engine::AutomationLaneData* const lane =
-                trackId.isValid() ? appModel.trackFaderAutomationLane (trackId) : nullptr;
+            const AutomationTargetOption target = currentAutomationTarget();
+            const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+                ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+                : nullptr;
             if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
                 lane != nullptr && tick)
             {
@@ -4028,6 +4037,24 @@ private:
             repaint();
         };
         addAndMakeVisible (automationLaneToggle);
+
+        // E20: the lane-target chooser — the canvas edits whatever target it names, creating
+        // the lane on demand (fader / pan / each send level / each FX param).
+        automationTargetChooser.setComponentID ("timeline.automation.target");
+        automationTargetChooser.setTooltip ("Choose which automation lane the canvas edits");
+        automationTargetChooser.onChange = [this] {
+            if (refreshingAutomationTarget)
+                return;
+
+            const int selected = automationTargetChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            selectedAutomationTargetIndex = selected - 1;
+            refreshActionState();
+            repaint();
+        };
+        addChildComponent (automationTargetChooser);
 
         automationLaneRow.setComponentID (kAutomationLaneRowComponentId);
         automationLaneRow.setTooltip ("First Track automation lane row");
@@ -5458,6 +5485,8 @@ private:
             yesdaw::ui::UiTheme::Layout::automationBreakpointAddButtonBounds (timeline));
         automationBreakpointDeleteButton.setBounds (
             yesdaw::ui::UiTheme::Layout::automationBreakpointDeleteButtonBounds (timeline));
+        automationTargetChooser.setBounds (
+            yesdaw::ui::UiTheme::Layout::automationTargetChooserBounds (timeline));
     }
 
     void suspendDesktopAudioCallback()
@@ -6411,6 +6440,24 @@ private:
                                                      && deleteState.enabled
                                                      && lane != nullptr
                                                      && ! lane->points.empty());
+
+        // E20: rebuild the lane-target list for the automation-target track; keep the selected
+        // index stable when the list still covers it.
+        refreshingAutomationTarget = true;
+        automationTargetOptions = buildAutomationTargetOptions();
+        if (selectedAutomationTargetIndex < 0
+            || selectedAutomationTargetIndex >= static_cast<int> (automationTargetOptions.size()))
+            selectedAutomationTargetIndex = 0;
+        automationTargetChooser.clear (juce::dontSendNotification);
+        for (std::size_t option = 0; option < automationTargetOptions.size(); ++option)
+            automationTargetChooser.addItem (automationTargetOptions[option].label,
+                                             static_cast<int> (option) + 1);
+        if (! automationTargetOptions.empty())
+            automationTargetChooser.setSelectedId (selectedAutomationTargetIndex + 1,
+                                                   juce::dontSendNotification);
+        automationTargetChooser.setVisible (laneVisible);
+        automationTargetChooser.setEnabled (laneVisible && ! automationTargetOptions.empty());
+        refreshingAutomationTarget = false;
     }
 
     [[nodiscard]] juce::String automationLaneRowText() const
@@ -7437,6 +7484,80 @@ private:
             ? selectedTrackLane
             : int {};
         return tracks[static_cast<std::size_t> (lane)].id;
+    }
+
+    // E20: the automation lane target — what the canvas edits.
+    struct AutomationTargetOption
+    {
+        yesdaw::engine::AutomationTargetRole role = yesdaw::engine::AutomationTargetRole::TrackFader;
+        std::uint32_t paramId = 0;
+        yesdaw::engine::EntityId ownerEntity {};
+        juce::String label;
+    };
+
+    // E20: enumerate the selected track's automation targets in a stable order — fader, pan,
+    // each send level, then each FX param of each insert.
+    [[nodiscard]] std::vector<AutomationTargetOption> buildAutomationTargetOptions() const
+    {
+        std::vector<AutomationTargetOption> options;
+        const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+        if (! trackId.isValid())
+            return options;
+
+        options.push_back ({ yesdaw::engine::AutomationTargetRole::TrackFader,
+                             yesdaw::engine::FaderNode::kGainParameterId, trackId, "Fader" });
+        options.push_back ({ yesdaw::engine::AutomationTargetRole::TrackPan,
+                             yesdaw::engine::PanNode::kPanParameterId, trackId, "Pan" });
+
+        const yesdaw::engine::Track* track = nullptr;
+        for (const yesdaw::engine::Track& candidate : appModel.project().tracks)
+            if (candidate.id == trackId)
+                track = &candidate;
+        if (track == nullptr)
+            return options;
+
+        for (std::size_t sendIndex = 0; sendIndex < track->sends.size(); ++sendIndex)
+        {
+            juce::String busName ("Bus?");
+            for (const auto& bus : appModel.project().buses)
+                if (bus.id == track->sends[sendIndex].busId)
+                    busName = juce::String (bus.strip.name);
+            options.push_back ({ yesdaw::engine::AutomationTargetRole::SendLevel,
+                                 static_cast<std::uint32_t> (sendIndex), trackId,
+                                 "Send: " + busName });
+        }
+
+        for (std::size_t slot = 0; slot < track->strip.fxChain.size(); ++slot)
+        {
+            const yesdaw::engine::FxInsert& insert = track->strip.fxChain[slot];
+            for (std::uint32_t paramId = 0;
+                 paramId < yesdaw::ui::UiTheme::Layout::mixerFxParamProbeLimit;
+                 ++paramId)
+            {
+                if (! yesdaw::engine::fxKindAcceptsParameterId (insert.kind, paramId))
+                    continue;
+
+                const yesdaw::engine::ParamSpec spec =
+                    yesdaw::engine::fxParamSpecForKind (insert.kind, paramId);
+                options.push_back ({ yesdaw::engine::AutomationTargetRole::FxInsertParam,
+                                     paramId, insert.id,
+                                     "FX" + juce::String (static_cast<int> (slot) + 1)
+                                         + " " + spec.name });
+            }
+        }
+        return options;
+    }
+
+    [[nodiscard]] AutomationTargetOption currentAutomationTarget() const
+    {
+        if (selectedAutomationTargetIndex >= 0
+            && selectedAutomationTargetIndex < static_cast<int> (automationTargetOptions.size()))
+            return automationTargetOptions[static_cast<std::size_t> (selectedAutomationTargetIndex)];
+
+        AutomationTargetOption fallback;
+        fallback.ownerEntity = automationTargetTrackId();
+        fallback.paramId = yesdaw::engine::FaderNode::kGainParameterId;
+        return fallback;
     }
 
     [[nodiscard]] double automationCanvasSecondsForLocalX (int localX)
@@ -8539,6 +8660,12 @@ private:
     juce::ComboBox timelineSnapChooser;
     juce::ComboBox timelineRepeatPasteChooser;
     AutomationLaneCanvasComponent automationLaneCanvas;
+    // E20: the automation lane target — what the canvas edits (struct declared with the
+    // target helpers earlier in the class).
+    std::vector<AutomationTargetOption> automationTargetOptions;
+    int selectedAutomationTargetIndex = 0;
+    bool refreshingAutomationTarget = false;
+    juce::ComboBox automationTargetChooser;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
     juce::TextButton automationBreakpointAddButton;

@@ -494,10 +494,25 @@ E19 is certified: exact-head GitHub Actions run `31654737005` green for full SHA
 `5f7ea32cc2bf9178c1c39b70b04ac478a408d43b` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E19 is ticked in the backlog.
 
-**Now:** E20 (automation targeting) — audited: generalize the model's lane accessors to
-(owner, role, paramId) with create-on-demand, a `timeline.automation.target` chooser listing
-fader/pan/each send/each FX param, breakpoint ticks through the snap chooser, gate proves
-audible pan and FX-param playback.
+**E20 implementation candidate — automation targeting:** audited before changing: the canvas
+hard-targeted the selected track's FADER lane only, even though the engine compiles and plays
+back all six roles, and breakpoint clicks landed raw pixel ticks. The model's lane accessors
+generalized to (owner, role, paramId) with the same create-lane-on-demand one-undo-group law
+(the fader wrappers delegate); the new `timeline.automation.target` chooser on the automation
+row lists the selected track's targets in a stable order — Fader, Pan, each send level
+("Send: <bus>"), then EVERY FX param of every insert ("FXn <param name>", owner = the INSERT
+id) — and the canvas reads/edits whatever it names; added and dragged breakpoints now land on
+the REAL snap chooser's grid (chooser Off = raw). The legacy `[automation-canvas]` gate
+re-pinned chooser-Off for its raw pixel-exact laws (its first click otherwise snapped to tick
+0 under the default Beat grid). Shell childCount re-pinned 123→124. The shipped-boundary
+`[automation-target]` gate FAILED before (19 in — no target chooser exists) and passes after
+with 66 assertions: a Pan lane created on demand whose breakpoint lands on the Beat grid and
+AUDIBLY changes the render, an EQ band-gain lane owned by the INSERT id (the chooser grows the
+EQ's full 24-param inventory) audibly changing it again, the chooser-Off raw-tick law, and the
+one-undo-group law dropping the on-demand lane whole.
+
+**Now:** E20 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E21 (undo covers direct strip edits) — Phase 3 begins.
 

@@ -4344,10 +4344,19 @@ public:
     // creating the lane on first use (grouped with the first breakpoint into one undo step).
     [[nodiscard]] const engine::AutomationLaneData* trackFaderAutomationLane (engine::EntityId trackId) const noexcept
     {
+        return automationLaneForTarget (trackId,
+                                        engine::AutomationTargetRole::TrackFader,
+                                        engine::FaderNode::kGainParameterId);
+    }
+
+    // E20: any (owner, role, paramId) automation target — the general lane finder.
+    [[nodiscard]] const engine::AutomationLaneData* automationLaneForTarget (
+        engine::EntityId ownerEntity,
+        engine::AutomationTargetRole role,
+        std::uint32_t paramId) const noexcept
+    {
         for (const engine::AutomationLaneData& lane : project_.automationLanes)
-            if (lane.ownerEntity == trackId
-                && lane.role == engine::AutomationTargetRole::TrackFader
-                && lane.paramId == engine::FaderNode::kGainParameterId)
+            if (lane.ownerEntity == ownerEntity && lane.role == role && lane.paramId == paramId)
                 return &lane;
 
         return nullptr;
@@ -4356,6 +4365,20 @@ public:
     [[nodiscard]] UiActionDispatchResult addAutomationBreakpointToTrackLane (engine::EntityId trackId,
                                                                              engine::Tick tick,
                                                                              double value)
+    {
+        return addAutomationBreakpointToLane (trackId,
+                                              engine::AutomationTargetRole::TrackFader,
+                                              engine::FaderNode::kGainParameterId,
+                                              tick, value);
+    }
+
+    // E20: add a breakpoint to ANY automation target, creating the lane on first use (grouped
+    // with the first breakpoint into one undo step) — the fader-only law generalized.
+    [[nodiscard]] UiActionDispatchResult addAutomationBreakpointToLane (engine::EntityId ownerEntity,
+                                                                        engine::AutomationTargetRole role,
+                                                                        std::uint32_t paramId,
+                                                                        engine::Tick tick,
+                                                                        double value)
     {
         const UiActionId id = UiActionId::TimelineAutomationAddBreakpoint;
         const UiActionState state = registry_.stateFor (id, context_);
@@ -4371,7 +4394,7 @@ public:
         const bool grouped = nextUndo.beginTransactionGroup();
 
         engine::EntityId laneId;
-        if (const engine::AutomationLaneData* const lane = trackFaderAutomationLane (trackId))
+        if (const engine::AutomationLaneData* const lane = automationLaneForTarget (ownerEntity, role, paramId))
         {
             laneId = lane->id;
         }
@@ -4381,9 +4404,9 @@ public:
             engine::ProjectEditCommand createLane;
             createLane.verb = engine::ProjectEditVerb::AddAutomationLane;
             createLane.automationLaneId = laneId;
-            createLane.automationOwnerId = trackId;
-            createLane.automationRole = engine::AutomationTargetRole::TrackFader;
-            createLane.automationParamId = engine::FaderNode::kGainParameterId;
+            createLane.automationOwnerId = ownerEntity;
+            createLane.automationRole = role;
+            createLane.automationParamId = paramId;
             if (! nextUndo.apply (nextProject, createLane).applied())
             {
                 if (grouped)

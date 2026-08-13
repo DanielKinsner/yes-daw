@@ -876,8 +876,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
-    // E19 master fader — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 123u));
+    // E19 master fader + the E20 automation target chooser — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 124u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -7739,6 +7739,13 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     REQUIRE (canvas->isVisible());
     REQUIRE (canvas->getWidth() > 0);
 
+    // E20 re-pin: breakpoints follow the REAL snap chooser now; this gate asserts the raw
+    // pixel-exact laws, so it runs with the chooser Off.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+
     // Click low in the lane: a breakpoint appears with a LOW normalized value at the clicked time,
     // creating the selected track's fader lane on first use.
     const int lowY = (canvas->getHeight() * 9) / 10;
@@ -7772,6 +7779,98 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.automationLanes.front().points.size() == 2u);
+}
+
+TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",
+           "[ui][input][shell][automation-target]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-target");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    auto* targetChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (canvas != nullptr);
+    REQUIRE (targetChooser != nullptr);
+    REQUIRE (targetChooser->isVisible());
+    REQUIRE (targetChooser->getNumItems() == 2);   // Fader + Pan before any sends or FX
+    REQUIRE (targetChooser->getItemText (0) == "Fader");
+    REQUIRE (targetChooser->getItemText (1) == "Pan");
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> baseline = renderFromStart();
+
+    // PAN lane on demand: with Pan targeted, a canvas click creates a TrackPan lane whose
+    // breakpoint lands on the default Beat grid, and the render audibly follows it.
+    targetChooser->setSelectedId (2, juce::sendNotificationSync);
+    mouseDownAt (*canvas, { canvas->getWidth() / 3, 1 });   // pan hard toward one side
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::TrackPan);
+    REQUIRE (project.automationLanes.front().ownerEntity == project.tracks.front().id);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.front().tick % 24'000 == 0);
+    const std::vector<float> panned = renderFromStart();
+    REQUIRE (panned != baseline);
+
+    // FX-PARAM lane on demand: add an EQ, target its band-0 gain (Fader, Pan, type, freq,
+    // gain, ...), pull it low — the lane owns the INSERT and the render changes again.
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+    REQUIRE (targetChooser->getNumItems() == 2 + 24);   // the EQ's full param inventory appears
+    REQUIRE (targetChooser->getItemText (4).contains ("eq.band.gain"));
+    targetChooser->setSelectedId (5, juce::sendNotificationSync);   // FX1 eq.band.gain
+    mouseDownAt (*canvas, { (canvas->getWidth() * 2) / 3, canvas->getHeight() - 2 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 2u);
+    REQUIRE (project.automationLanes.back().role == yesdaw::engine::AutomationTargetRole::FxInsertParam);
+    REQUIRE (project.automationLanes.back().ownerEntity
+             == project.tracks.front().strip.fxChain.front().id);
+    REQUIRE (project.automationLanes.back().paramId == 2u);
+    const std::vector<float> eqAutomated = renderFromStart();
+    REQUIRE (eqAutomated != panned);
+
+    // SNAP law: chooser Off lands the breakpoint on the raw tick, off the Beat grid.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    mouseDownAt (*canvas, { canvas->getWidth() / 5 + 3, canvas->getHeight() / 2 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.back().points.size() == 2u);
+    bool sawOffGridTick = false;
+    for (const yesdaw::engine::AutomationBreakpoint& point : project.automationLanes.back().points)
+        sawOffGridTick = sawOffGridTick || (point.tick % 24'000 != 0);
+    REQUIRE (sawOffGridTick);
+
+    // The on-demand FX lane creation was ONE undo group: two undos drop both new breakpoints
+    // and the lane itself.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.back().points.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 1u);
 }
 
 TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui][input][shell][pencil]")
