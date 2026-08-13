@@ -10015,6 +10015,107 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     std::filesystem::remove (sourcePath, ec);
 }
 
+TEST_CASE ("bus meters read live send audio, latch a clip light, and a meter click clears it",
+           "[ui][input][shell][mixer][bus-meter]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("bus-meter");
+    std::filesystem::path sourcePath = bundlePath;
+    sourcePath += "-fullscale.wav";
+
+    // The same full-scale square as the track meter gate: the unity send clips the bus.
+    constexpr std::uint64_t kFrames = 48'000;
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+        samples[static_cast<std::size_t> (frame)] = (frame / 64u) % 2u == 0u ? 1.0f : -1.0f;
+    REQUIRE (yesdaw::io::writeFloat32WavFile (
+        sourcePath,
+        yesdaw::engine::SampleRate { 48'000.0 },
+        1,
+        kFrames,
+        std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                              + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.size() == 1u);
+
+    // Meters read post-pan (0.707 at center), so unity never crosses the clip threshold; the
+    // 2x fader pushes both the track and the post-fader send past 0 dBFS (the B32 law).
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (2.0, juce::sendNotificationSync);
+
+    const auto renderShell = [&shell]
+    {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto clipPixels = [&renderShell] (juce::Rectangle<int> within)
+    {
+        const juce::Image image = renderShell();
+        const juce::Colour clipColour = yesdaw::ui::UiTheme::Meter::clipFill();
+        int count = 0;
+        for (int y = within.getY(); y < within.getBottom(); ++y)
+            for (int x = within.getX(); x < within.getRight(); ++x)
+                if (image.getPixelAt (x, y) == clipColour)
+                    ++count;
+        return count;
+    };
+    const juce::Rectangle<int> shellArea = shell->getLocalBounds();
+    REQUIRE (clipPixels (shellArea) == 0);
+
+    // Playing the full-scale clip through the unity send clips BOTH meters: the model reads a
+    // real bus peak and the painted mixer shows TWO latched clip lights.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 8192, 128);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const int bothLights = clipPixels (shellArea);
+    const int oneLightArea = yesdaw::ui::UiTheme::Meter::clipLightSize
+                           * yesdaw::ui::UiTheme::Meter::clipLightSize;
+    REQUIRE (bothLights > oneLightArea);   // more than a single light: the BUS light exists
+
+    // The bus light is the rightmost clip pixel (bus strips paint after tracks). Clicking it
+    // clears ONLY the bus latch; the track light stays.
+    const juce::Image latched = renderShell();
+    const juce::Colour clipColour = yesdaw::ui::UiTheme::Meter::clipFill();
+    juce::Point<int> busClipPixel { -1, -1 };
+    for (int y = shellArea.getY(); y < shellArea.getBottom(); ++y)
+        for (int x = shellArea.getX(); x < shellArea.getRight(); ++x)
+            if (latched.getPixelAt (x, y) == clipColour && x > busClipPixel.x)
+                busClipPixel = { x, y };
+    REQUIRE (busClipPixel.x >= 0);
+    auto* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, busClipPixel - strips->getPosition());
+    const int trackLightOnly = clipPixels (shellArea);
+    REQUIRE (trackLightOnly > 0);
+    REQUIRE (trackLightOnly < bothLights);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}
+
 TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints the painted note",
            "[ui][input][shell][pianoroll][note-velocity]")
 {

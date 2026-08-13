@@ -1966,6 +1966,12 @@ public:
         return playback_ != nullptr ? playback_->trackMeterPeak (trackId) : 0.0f;
     }
 
+    // E22: the latest per-bus meter peak (0 for unrouted buses, which project no meter node).
+    [[nodiscard]] float busMeterPeak (engine::EntityId busId) const noexcept
+    {
+        return playback_ != nullptr ? playback_->busMeterPeak (busId) : 0.0f;
+    }
+
     // Which Track strip (surface order) the mixer target currently points at; -1 when the target is
     // unset or a Bus. The shell positions its interactive strip controls from this.
     [[nodiscard]] int selectedMixerTrackStripIndex() const noexcept

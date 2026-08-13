@@ -539,10 +539,21 @@ E21 is certified: exact-head GitHub Actions run `31657624258` green for full SHA
 `c9aac9664b8650834308fd016858ab70b8fd7a3e` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E21 is ticked in the backlog.
 
-**Now:** E22 (bus meters live) — implementation in the working tree: PlaybackEngine harvests
-per-bus MeterNodes on the track contract, `busMeterPeak` accessors, busMeterHold on the B32
-tick law, bus meters painted with held-peak/clip-latch, bus meter clicks clear their own hold;
-`[bus-meter]` gate green locally (40 assertions), fail-before + full suite pending.
+**E22 implementation candidate — bus meters live:** audited before changing: the engine builds
+per-bus MeterNodes but the shell never harvested them — bus strips painted permanent zero.
+`PlaybackEngine` now harvests the per-bus MeterNode taps at create on the exact track-meter
+contract (an unrouted, FX-less bus projects no meter node and honestly reads 0);
+`busMeterPeak` flows through the model; the shell keeps a `busMeterHold` advanced on the same
+B32 tick law (peak-hold, clip-latch); bus strips paint with the held-peak/clip-latch renderer
+instead of the permanent-zero fallback; and a click on a painted BUS meter clears exactly its
+own hold (the meter hit-test now spans tracks then buses). The shipped-boundary `[bus-meter]`
+gate FAILED before (38 in — only the track's clip light existed) and passes after with 40
+assertions: a full-scale clip through a unity send latching TWO clip lights after one UI tick
+(more pixels than a single light can paint), and a click on the self-located rightmost (bus)
+light clearing only the bus latch while the track light stays.
+
+**Now:** E22 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E23 (cross-strip/slot coverage gates).
 

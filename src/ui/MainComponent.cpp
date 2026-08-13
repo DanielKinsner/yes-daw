@@ -4281,15 +4281,23 @@ private:
             openBusRenameEditor (stripIndex - trackCount, stripIndex);
         };
         mixerStripsInput.meterStripAtPosition = [this] (juce::Point<int> positionInShell) {
-            const std::size_t trackCount = appModel.context().projectLoaded
+            // E22: bus meters are clickable like track meters — the index spans tracks then buses.
+            const std::size_t stripTotal = appModel.context().projectLoaded
                                                ? appModel.project().tracks.size()
+                                                     + appModel.project().buses.size()
                                                : 0u;
-            for (std::size_t i = 0; i < trackCount; ++i)
+            for (std::size_t i = 0; i < stripTotal; ++i)
                 if (paintedMeterBoundsForLane (paintedMixerLaneBounds (i)).contains (positionInShell))
                     return static_cast<int> (i);
             return -1;
         };
-        mixerStripsInput.onMeterClicked = [this] (int stripIndex) { clearTrackMeterHold (stripIndex); };
+        mixerStripsInput.onMeterClicked = [this] (int stripIndex) {
+            const int trackCount = static_cast<int> (appModel.project().tracks.size());
+            if (stripIndex < trackCount)
+                clearTrackMeterHold (stripIndex);
+            else
+                clearBusMeterHold (stripIndex - trackCount);   // E22
+        };
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
             const auto surface = currentMixerSurface();
             const int stripCount = juce::jmax (1, static_cast<int> (surface.tracks.size() + surface.buses.size()));
@@ -5156,6 +5164,13 @@ private:
         for (std::size_t i = 0; i < tracks.size(); ++i)
             advanceMeterHold (trackMeterHold[i],
                               playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f);
+
+        // E22: bus meters live on exactly the same B32 law.
+        const auto& buses = appModel.project().buses;
+        busMeterHold.resize (buses.size());
+        for (std::size_t i = 0; i < buses.size(); ++i)
+            advanceMeterHold (busMeterHold[i],
+                              playing ? appModel.busMeterPeak (buses[i].id) : 0.0f);
     }
 
     void clearTrackMeterHold (int trackIndex)
@@ -5164,6 +5179,19 @@ private:
             return;
 
         MeterHoldState& state = trackMeterHold[static_cast<std::size_t> (trackIndex)];
+        state.clipLatched = false;
+        state.heldPeak = state.livePeak;
+        state.holdTicksRemaining = 0;
+        repaint();
+    }
+
+    // E22: a click on a painted BUS meter clears its hold and latch, like the track law.
+    void clearBusMeterHold (int busIndex)
+    {
+        if (busIndex < 0 || busIndex >= static_cast<int> (busMeterHold.size()))
+            return;
+
+        MeterHoldState& state = busMeterHold[static_cast<std::size_t> (busIndex)];
         state.clipLatched = false;
         state.heldPeak = state.livePeak;
         state.holdTicksRemaining = 0;
@@ -8293,6 +8321,12 @@ private:
                 const MeterHoldState& hold = trackMeterHold[stripIndex];
                 drawMeterWithHold (g, meter, hold.livePeak, hold.heldPeak, hold.clipLatched);
             }
+            else if (isBus && stripIndex - surface.tracks.size() < busMeterHold.size())
+            {
+                // E22: bus meters live — same held-peak/clip-latch painting as tracks.
+                const MeterHoldState& hold = busMeterHold[stripIndex - surface.tracks.size()];
+                drawMeterWithHold (g, meter, hold.livePeak, hold.heldPeak, hold.clipLatched);
+            }
             else
             {
                 drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
@@ -8672,6 +8706,7 @@ private:
     FineDragSlider mixerPan;
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
+    std::vector<MeterHoldState> busMeterHold;     // by Bus index; same tick law (E22)
     juce::String lastPushedWindowTitle;           // dirty-title push dedupe (B38)
     juce::TextButton mixerMetersReadout;
     juce::TextButton mixerSendsReadout;

@@ -77,6 +77,15 @@ public:
                 engine->trackMeters_.push_back ({ track.id, meter });
         }
 
+        // E22: harvest the per-bus MeterNode taps on the same contract (an unrouted bus with no
+        // FX projects no meter node and simply stays absent — its peak reads 0).
+        for (const Bus& bus : project.buses)
+        {
+            const NodeId meterNodeId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Meter);
+            if (const auto* meter = dynamic_cast<const MeterNode*> (built.graph->nodeForId (meterNodeId)))
+                engine->busMeters_.push_back ({ bus.id, meter });
+        }
+
         if (! engine->driver_.publish (std::move (built.graph)))
         {
             // Only a null graph or a full command queue can fail here; a fresh queue cannot be full.
@@ -110,6 +119,16 @@ public:
     {
         for (const auto& [id, meter] : trackMeters_)
             if (id == trackId)
+                return meter->peak();
+
+        return 0.0f;
+    }
+
+    // E22: the per-bus twin — 0 for unknown or unrouted buses.
+    [[nodiscard]] float busMeterPeak (EntityId busId) const noexcept
+    {
+        for (const auto& [id, meter] : busMeters_)
+            if (id == busId)
                 return meter->peak();
 
         return 0.0f;
@@ -544,6 +563,7 @@ private:
 
     RuntimeAudioDriver driver_;
     std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
+    std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     static constexpr double kMetronomeClickSeconds = 0.005;
     static constexpr double kMetronomeDecayPerSecond = 600.0;
