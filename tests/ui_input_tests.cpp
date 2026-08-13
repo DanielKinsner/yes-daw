@@ -3528,6 +3528,118 @@ TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip t
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggles do not",
+           "[ui][input][shell][mixer][strip-undo]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("strip-undo");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Sentinel edit: a marker. If any strip edit were still un-undoable, its Ctrl+Z would
+    // silently eat THIS instead.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
+    REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, { juce::jmax (yesdaw::ui::UiTheme::Layout::mixerStripMinWidth,
+                                        strips->getWidth() / 2) / 2,
+                            strips->getHeight() / 2 });
+
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
+    auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    auto* solo = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_solo"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (pan != nullptr);
+    REQUIRE (mute != nullptr);
+    REQUIRE (solo != nullptr);
+
+    // A REAL fader drag (down + drag + up, many value events) is ONE undo step.
+    dragFromTo (*fader, { fader->getWidth() / 2, fader->getHeight() - 2 },
+                { fader->getWidth() / 2, 2 });
+    const float draggedGain = readProjectSnapshot (bundlePath).tracks.front().strip.linearGain;
+    REQUIRE (draggedGain != 1.0f);
+    // A second, separate drag is its OWN step.
+    dragFromTo (*fader, { fader->getWidth() / 2, 2 },
+                { fader->getWidth() / 2, fader->getHeight() / 2 });
+    const float secondGain = readProjectSnapshot (bundlePath).tracks.front().strip.linearGain;
+    REQUIRE (secondGain != draggedGain);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == draggedGain);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 1.0f);
+    // The sentinel survived both undos: the drags really were their own steps.
+    REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
+
+    // A single pan set is one step.
+    pan->setValue (0.25, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.pan == 0.25f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.pan == 0.0f);
+
+    // Two mute toggles NEVER coalesce — each is its own step.
+    clickButton (*mute);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    clickButton (*mute);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+
+    // Solo toggles undo the same way.
+    clickButton (*solo);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.soloed);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.front().strip.soloed);
+
+    // Rail mini edits (panel-preserving path) are undoable too: a VOL drag is one step, and a
+    // rail mute click undoes without touching anything else.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> level =
+        row.withRight (row.getRight() - L::trackListLevelRightInset)
+            .removeFromRight (L::trackListLevelWidth)
+            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
+            .withHeight (L::trackListLevelHeight);
+    dragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
+                { level.getX() + 2, level.getCentreY() });
+    const float railGain = readProjectSnapshot (bundlePath).tracks.front().strip.linearGain;
+    REQUIRE (railGain != 1.0f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 1.0f);
+
+    juce::Rectangle<int> buttonsArea =
+        row.withTrimmedLeft (L::trackListNameLeftInset)
+            .withTrimmedTop (L::trackListButtonsTop)
+            .withHeight (L::trackListButtonsHeight);
+    const juce::Rectangle<int> muteCell = buttonsArea.removeFromLeft (L::trackListButtonWidth);
+    mouseDownAt (*rail, muteCell.getCentre());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+
+    // Everything above undone; exactly the sentinel remains, and one more undo removes it.
+    REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).markers.empty());
+}
+
 TEST_CASE ("bus and send controls route the selected track undoably through real controls",
            "[ui][input][shell][mixer][sendsui]")
 {

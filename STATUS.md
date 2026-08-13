@@ -516,11 +516,27 @@ E20 is certified: exact-head GitHub Actions run `31656108777` green for full SHA
 green **348/348** (owner file isolated + restored, SHA verified). E20 is ticked in the backlog.
 **Phase 2 (FX tools, E14–E20) is COMPLETE.**
 
-**Now:** E21 (undo covers direct strip edits) — Phase 3 begins. Audited: extend verb
-coalescing to the three scalar-strip verbs (chain-checked; mute/solo flag equality so toggles
-never merge), a coalescing seal fired on slider drag-end so separate drags stay separate undo
-steps, route track scalar + panel-preserving rail edits through `SetTrackMixScalars`,
-`[strip-undo]` gate pinning the Ctrl+Z law for every control with a sentinel edit.
+**E21 implementation candidate — undo covers direct strip edits:** audited before changing: THE
+correctness gap — mixer/rail fader, pan, mute, solo mutated the project WITHOUT an undo
+transaction, so Ctrl+Z after a fader drag silently reverted some OTHER earlier edit. Every
+scalar strip edit now rides an undoable verb (`SetTrackMixScalars` for tracks — mixer lane AND
+the panel-preserving rail path — `SetBusMixScalars` for buses); the dead direct-edit helper is
+REMOVED, not stranded. Gesture law: the undo stack grew safe scalar-gesture coalescing — while
+a gesture is open, consecutive strip-scalar entries merge into ONE undo step; chain-checked
+(after==before), mute/solo flag equality keeps toggles as their own steps, any non-coalescable
+verb AUTO-ENDS the gesture (an unclosed gesture can never swallow unrelated edits — the
+track-duplicate gate caught exactly that hazard in the first group-based design, which was
+replaced), and a new gesture SEALS the previous entry so two separate drags stay two steps.
+The shell brackets gestures on slider drag-start/drag-end (with a lazy begin on the first
+mouse-down value change) and on the rail's every-mouse-up signal. The shipped-boundary
+`[strip-undo]` gate FAILED before (36 in — the old law ate the sentinel marker) and passes
+after with 95 assertions: a real fader drag as ONE step and a second drag as its OWN step
+(sentinel surviving both), single-step pan, two mute toggles as two steps, solo, the
+panel-preserving rail VOL drag and rail mute each undoing exactly themselves, and the final
+undo removing exactly the sentinel.
+
+**Now:** E21 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E22 (bus meters live).
 

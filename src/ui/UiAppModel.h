@@ -2124,6 +2124,12 @@ public:
             : -1;
     }
 
+    // E21: strip-scalar gestures — the shell brackets a drag so its repeated verb applies
+    // coalesce into ONE undo step; discrete clicks and non-scalar edits stay their own steps
+    // (the stack auto-ends the gesture on any non-coalescable verb).
+    void beginStripGesture() noexcept { undo_.beginScalarCoalescing(); }
+    void endStripGesture() noexcept { undo_.endScalarCoalescing(); }
+
     [[nodiscard]] UiActionDispatchResult setSelectedMixerFader (float linearGain)
     {
         const UiActionId id = UiActionId::MixerTargetSetFader;
@@ -5623,15 +5629,19 @@ private:
         return &project.buses[selectedMixerTarget_.index].strip;
     }
 
-    // E16: scalar strip edits route by target kind — a selected BUS goes through the undoable
-    // SetBusMixScalars verb; tracks keep the historical direct edit (E21 routes them through
-    // SetTrackMixScalars).
+    // E16/E21: every scalar strip edit rides an UNDOABLE verb — SetBusMixScalars for a selected
+    // bus, SetTrackMixScalars for a selected track. Ctrl+Z reverts THIS edit, never an earlier
+    // unrelated one.
     template <typename Fn>
     [[nodiscard]] UiActionDispatchResult editSelectedScalarStrip (UiActionId id,
                                                                   UiActionState state,
                                                                   Fn&& fn)
     {
-        if (context_.mixerTargetSelected && selectedMixerTarget_.kind == MixerTargetKind::Bus)
+        if (! context_.mixerTargetSelected)
+            return { id, { false, "selected mixer target missing" }, false };
+
+        engine::ProjectEditCommand command;
+        if (selectedMixerTarget_.kind == MixerTargetKind::Bus)
         {
             if (selectedMixerTarget_.index >= project_.buses.size())
                 return { id, { false, "selected mixer target missing" }, false };
@@ -5639,43 +5649,28 @@ private:
             const engine::Bus& bus = project_.buses[selectedMixerTarget_.index];
             engine::MixerStripState edited = bus.strip;
             fn (edited);
+            command = engine::ProjectEditCommand::setBusMixScalars (
+                bus.id, edited.linearGain, edited.pan,
+                edited.muted, edited.soloed, edited.soloSafe);
+        }
+        else
+        {
+            if (selectedMixerTarget_.index >= project_.tracks.size())
+                return { id, { false, "selected mixer target missing" }, false };
 
-            engine::Project nextProject = project_;
-            engine::ProjectUndoStack nextUndo = undo_;
-            if (! nextUndo.apply (nextProject,
-                                  engine::ProjectEditCommand::setBusMixScalars (
-                                      bus.id, edited.linearGain, edited.pan,
-                                      edited.muted, edited.soloed, edited.soloSafe)).applied())
-                return { id, { false, "invalid mixer strip" }, false };
-
-            if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-                return { id, { false, "mixer edit did not persist" }, false };
-
-            context_.mixerTargetSelected = true;
-            context_.activePanel = UiPanel::Mixer;
-            ++context_.commandDispatchCount;
-            ++context_.mixerEditCount;
-            return { id, state, true };
+            const engine::Track& track = project_.tracks[selectedMixerTarget_.index];
+            engine::MixerStripState edited = track.strip;
+            fn (edited);
+            command = engine::ProjectEditCommand::setTrackMixScalars (
+                track.id, edited.linearGain, edited.pan,
+                edited.muted, edited.soloed, edited.soloSafe);
         }
 
-        return editSelectedMixerStrip (id, state, std::forward<Fn> (fn));
-    }
-
-    template <typename Fn>
-    [[nodiscard]] UiActionDispatchResult editSelectedMixerStrip (UiActionId id,
-                                                                 UiActionState state,
-                                                                 Fn&& fn)
-    {
         engine::Project nextProject = project_;
-        engine::MixerStripState* const strip = selectedMixerStrip (nextProject);
-        if (strip == nullptr)
-            return { id, { false, "selected mixer target missing" }, false };
-
-        fn (*strip);
-        if (! nextProject.hasValidAssetClipIndirection())
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, command).applied())
             return { id, { false, "invalid mixer strip" }, false };
 
-        engine::ProjectUndoStack nextUndo = undo_;
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "mixer edit did not persist" }, false };
 
@@ -5686,8 +5681,8 @@ private:
         return { id, state, true };
     }
 
-    // Same persisted strip edit as editSelectedMixerStrip, but addressed by Track id and
-    // panel-preserving: neither the active panel nor the mixer target selection changes (B28).
+    // The strip edit addressed by Track id and panel-preserving: neither the active panel nor
+    // the mixer target selection changes (B28).
     template <typename Fn>
     [[nodiscard]] UiActionDispatchResult editTrackStripPanelPreserving (UiActionId id,
                                                                         engine::EntityId trackId,
@@ -5697,19 +5692,26 @@ private:
         if (! state.enabled)
             return { id, state, false };
 
-        engine::Project nextProject = project_;
-        engine::MixerStripState* strip = nullptr;
-        for (engine::Track& track : nextProject.tracks)
+        const engine::Track* sourceTrack = nullptr;
+        for (const engine::Track& track : project_.tracks)
             if (track.id == trackId)
-                strip = &track.strip;
-        if (strip == nullptr)
+                sourceTrack = &track;
+        if (sourceTrack == nullptr)
             return { id, { false, "selected track missing" }, false };
 
-        fn (*strip);
-        if (! nextProject.hasValidAssetClipIndirection())
+        // E21: the edit rides the UNDOABLE SetTrackMixScalars verb — Ctrl+Z after a rail edit
+        // reverts THIS edit, never some earlier one. Panel and mixer target stay untouched.
+        engine::MixerStripState edited = sourceTrack->strip;
+        fn (edited);
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setTrackMixScalars (
+                                  trackId, edited.linearGain, edited.pan,
+                                  edited.muted, edited.soloed, edited.soloSafe)).applied())
             return { id, { false, "invalid strip edit" }, false };
 
-        engine::ProjectUndoStack nextUndo = undo_;
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "strip edit did not persist" }, false };
 

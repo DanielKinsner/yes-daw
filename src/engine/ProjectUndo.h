@@ -1811,7 +1811,11 @@ namespace detail {
            || verb == ProjectEditVerb::SetClipGain
            || verb == ProjectEditVerb::SetClipFades
            || verb == ProjectEditVerb::MoveNote
-           || verb == ProjectEditVerb::SetNoteLength;
+           || verb == ProjectEditVerb::SetNoteLength
+           // E21: continuous strip-scalar gestures (fader/pan drags) coalesce inside a group.
+           || verb == ProjectEditVerb::SetTrackMixScalars
+           || verb == ProjectEditVerb::SetBusMixScalars
+           || verb == ProjectEditVerb::SetMasterGain;
 }
 
 [[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
@@ -1831,6 +1835,29 @@ namespace detail {
                && newer.midiDiff.after.size() == 1u
                && older.midiDiff.after == newer.midiDiff.before;
     }
+
+    // E21: strip-scalar gestures coalesce only while the flags stay put — a drag moves gain or
+    // pan continuously; mute/solo toggles always keep their own undo steps.
+    if (older.command.verb == ProjectEditVerb::SetTrackMixScalars)
+    {
+        return older.command.trackId == newer.command.trackId
+               && older.command.trackMuted == newer.command.trackMuted
+               && older.command.trackSoloed == newer.command.trackSoloed
+               && older.command.trackSoloSafe == newer.command.trackSoloSafe
+               && older.trackDiff.after == newer.trackDiff.before;
+    }
+
+    if (older.command.verb == ProjectEditVerb::SetBusMixScalars)
+    {
+        return older.command.busId == newer.command.busId
+               && older.command.trackMuted == newer.command.trackMuted
+               && older.command.trackSoloed == newer.command.trackSoloed
+               && older.command.trackSoloSafe == newer.command.trackSoloSafe
+               && older.busDiff.after == newer.busDiff.before;
+    }
+
+    if (older.command.verb == ProjectEditVerb::SetMasterGain)
+        return older.masterDiff.after == newer.masterDiff.before;
 
     return older.command.clipId == newer.command.clipId
            && older.diff.firstClipIndex == newer.diff.firstClipIndex
@@ -1973,12 +2000,56 @@ public:
         return true;
     }
 
+    // E21: scalar-gesture coalescing — while active, consecutive strip-scalar entries merge
+    // into one undo step. Any non-coalescable verb auto-ends it, so an unclosed gesture can
+    // never swallow unrelated edits (entries stay groupless and undo one at a time).
+    void beginScalarCoalescing() noexcept
+    {
+        // A NEW gesture never merges into the previous one: seal the current top entry.
+        if (! scalarCoalescing_ && ! undo_.empty())
+            undo_.back().sealed = true;
+        scalarCoalescing_ = true;
+    }
+
+    void endScalarCoalescing() noexcept
+    {
+        if (scalarCoalescing_ && ! undo_.empty())
+            undo_.back().sealed = true;
+        scalarCoalescing_ = false;
+    }
+
     [[nodiscard]] ProjectEditApplyResult apply (Project& project, const ProjectEditCommand& command)
     {
         ProjectEditTransaction transaction;
         ProjectEditApplyResult result = applyProjectEditCommand (project, command, transaction);
         if (! result.applied())
             return result;
+
+        if (! detail::canCoalesceProjectEditVerb (command.verb))
+            scalarCoalescing_ = false;
+
+        if (scalarCoalescing_ && activeGroupId_ == 0 && ! undo_.empty())
+        {
+            UndoEntry& previous = undo_.back();
+            if (previous.groupId == 0
+                && ! previous.sealed
+                && detail::canCoalesceProjectEditTransactions (previous.transaction, transaction))
+            {
+                previous.transaction.command = transaction.command;
+                if (detail::isTrackEditVerb (transaction.command.verb))
+                    previous.transaction.trackDiff.after = transaction.trackDiff.after;
+                else if (detail::isBusEditVerb (transaction.command.verb))
+                    previous.transaction.busDiff.after = transaction.busDiff.after;
+                else if (detail::isMasterEditVerb (transaction.command.verb))
+                    previous.transaction.masterDiff.after = transaction.masterDiff.after;
+                else
+                    previous.transaction.diff.after = transaction.diff.after;
+
+                redo_.clear();
+                result.coalesced = true;
+                return result;
+            }
+        }
 
         if (activeGroupId_ != 0 && ! undo_.empty())
         {
@@ -1989,6 +2060,12 @@ public:
                 previous.transaction.command = transaction.command;
                 if (detail::isMidiNoteEditVerb (transaction.command.verb))
                     previous.transaction.midiDiff.after = transaction.midiDiff.after;
+                else if (detail::isTrackEditVerb (transaction.command.verb))
+                    previous.transaction.trackDiff.after = transaction.trackDiff.after;
+                else if (detail::isBusEditVerb (transaction.command.verb))
+                    previous.transaction.busDiff.after = transaction.busDiff.after;
+                else if (detail::isMasterEditVerb (transaction.command.verb))
+                    previous.transaction.masterDiff.after = transaction.masterDiff.after;
                 else
                     previous.transaction.diff.after = transaction.diff.after;
 
@@ -2070,6 +2147,7 @@ private:
     {
         ProjectEditTransaction transaction;
         std::uint64_t groupId = 0;
+        bool sealed = false;   // E21: a gesture boundary — later scalar edits never merge in
     };
 
     [[nodiscard]] static std::size_t trailingGroupEntryCount (const std::vector<UndoEntry>& entries) noexcept
@@ -2088,6 +2166,7 @@ private:
     std::vector<UndoEntry> redo_;
     std::uint64_t activeGroupId_ = 0;
     std::uint64_t nextGroupId_ = 1;
+    bool scalarCoalescing_ = false;   // E21: an open strip-scalar gesture
 };
 
 } // namespace yesdaw::engine

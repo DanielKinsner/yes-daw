@@ -3019,7 +3019,10 @@ public:
         };
         // Rail mini controls (usable-DAW P2): the painted PAN/VOL/M/S become live per-track edits
         // through the same selected-strip verbs the mixer uses (rail selection stays on the rail).
+        // E21: rail mini drags bracket a strip gesture so one drag is ONE undo step; the rail's
+        // every-mouse-up signal closes it (plain clicks stay single steps either way).
         trackListInput.onPanEdited = [this] (int row, float pan) {
+            appModel.beginStripGesture();
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.setSelectedMixerPan (pan);
@@ -3027,6 +3030,7 @@ public:
             repaint();
         };
         trackListInput.onVolumeEdited = [this] (int row, float linearGain) {
+            appModel.beginStripGesture();
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.setSelectedMixerFader (linearGain);
@@ -3036,7 +3040,10 @@ public:
             refreshActionState();
             repaint();
         };
-        trackListInput.onMiniDragEnded = [this] { hideDragDbReadout(); };
+        trackListInput.onMiniDragEnded = [this] {
+            appModel.endStripGesture();
+            hideDragDbReadout();
+        };
         trackListInput.onMeterClicked = [this] (int row) { clearTrackMeterHold (row); };
         trackListInput.onMuteToggled = [this] (int row) {
             selectTrackLane (row);
@@ -4410,9 +4417,15 @@ private:
         mixerMasterFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                                    juce::dontSendNotification);
         mixerMasterFader.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault);
+        // E21: a master fader drag is ONE undo step.
+        mixerMasterFader.onDragStart = [this] { appModel.beginStripGesture(); };
+        mixerMasterFader.onDragEnd = [this] { appModel.endStripGesture(); };
         mixerMasterFader.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerMasterFader.isEnabled())
                 return;
+
+            if (mixerMasterFader.isMouseButtonDown())
+                appModel.beginStripGesture();
 
             (void) appModel.setMasterFader (static_cast<float> (mixerMasterFader.getValue()));
             refreshActionState();
@@ -4651,6 +4664,10 @@ private:
             if (refreshingMixerControls || ! mixerFader.isEnabled())
                 return;
 
+            // E21: a fader drag is ONE undo step — any mouse-down edit joins the gesture the
+            // drag-end closes (lazy so the very first mouse-down value change is included).
+            if (mixerFader.isMouseButtonDown())
+                appModel.beginStripGesture();
             (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
             if (dragDbReadout.isVisible())
                 dragDbReadout.setText (dbReadoutText (mixerFader.getValue()), juce::dontSendNotification);
@@ -4659,9 +4676,14 @@ private:
         };
         // Live dB readout while the fader is dragged (B31); the rail VOL shares the same label.
         mixerFader.onDragStart = [this] {
+            appModel.beginStripGesture();
             showDragDbReadout (mixerFader.getBounds(), mixerFader.getValue());
         };
-        mixerFader.onDragEnd = [this] { hideDragDbReadout(); };
+        // E21: the drag-end both closes the undo gesture and hides the dB readout.
+        mixerFader.onDragEnd = [this] {
+            appModel.endStripGesture();
+            hideDragDbReadout();
+        };
         addAndMakeVisible (mixerFader);
 
         dragDbReadout.setComponentID ("shell.drag.db");
@@ -4687,9 +4709,15 @@ private:
                            juce::dontSendNotification);
         // Alt+click (or double-click) recentres the pan through the same persisted edit.
         mixerPan.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault);
+        // E21: a pan drag is ONE undo step.
+        mixerPan.onDragStart = [this] { appModel.beginStripGesture(); };
+        mixerPan.onDragEnd = [this] { appModel.endStripGesture(); };
         mixerPan.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerPan.isEnabled())
                 return;
+
+            if (mixerPan.isMouseButtonDown())
+                appModel.beginStripGesture();
 
             // JUCE snaps values as `rangeStart + interval * n`; with the pan range starting at
             // -1.0, ARM FMA contraction leaves ~2e-17 dust where x64 lands exactly on 0.0. Snap
