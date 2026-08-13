@@ -449,9 +449,24 @@ E17 is certified: exact-head GitHub Actions run `31651580430` green for full SHA
 `e9d1e88c8281c8f31ac417a55c88ec350b7601cc` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E17 is ticked in the backlog.
 
-**Now:** E18 (send tap + destination editing) — audited: `SetSendTap` engine verb in the track
-diff family + property arm, per-row Pre/Post toggle, destination chooser re-routing as
-remove+add in one undo group.
+**E18 implementation candidate — send tap + destination editing:** audited before changing: the
+tap was hardcoded PostFader at creation with NO mutating verb anywhere (the `tap` column has
+been persisted since schema v9), and a send's destination could never be re-edited. New engine
+verb `SetSendTap` (rides the whole-vector track diff like the other send verbs; the property
+arm grew a `pick(4)` tap branch with unknown-send no-op contract). Each visible send row grew a
+second row of controls: a tap toggle (`mixer.send.N.tap`, button text names the CURRENT tap)
+flipping pre/post through the undoable verb, and a destination chooser (`mixer.send.N.dest`,
+listing every bus with the current route selected, disabled when there is nowhere else to
+route) that re-routes as remove+add of the SAME send id in ONE undo group, preserving tap and
+level; routing to the current bus refuses as a no-op. Two new action ids (`MixerSendSetTap`
+`Alt+Shift+T`, `MixerSendSetDestination` `Ctrl+Alt+E`). Shell childCount re-pinned 114→122.
+The shipped-boundary `[send-tap-dest]` gate FAILED before (30 in — no tap toggle exists) and
+passes after with 67 assertions: the Post→Pre flip persisted with the button naming the current
+tap and undone, the one-bus chooser honestly disabled, the re-route preserving id/tap/level,
+and ONE Ctrl+Z restoring the original route.
+
+**Now:** E18 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E19 (master fader).
 

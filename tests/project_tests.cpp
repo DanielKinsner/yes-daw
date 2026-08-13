@@ -2132,7 +2132,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                             idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                     break;
                 case 17:
-                    switch (pick (3))
+                    switch (pick (4))
                     {
                         case 0:
                             if (freshLowByte < 250)
@@ -2149,11 +2149,19 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                                 idFromLowByte (pick (2) == 0 ? 36 : 41),
                                 idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                             break;
-                        default:
+                        case 2:
                             command = ProjectEditCommand::setSendLevel (
                                 idFromLowByte (pick (2) == 0 ? 36 : 41),
                                 idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))),
                                 static_cast<float> (pick (200)) / 100.0f);
+                            break;
+                        // E18: tap flips on random (often unknown) sends are no-ops by contract.
+                        default:
+                            command = ProjectEditCommand::setSendTap (
+                                idFromLowByte (pick (2) == 0 ? 36 : 41),
+                                idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))),
+                                pick (2) == 0 ? yesdaw::engine::SendTap::PreFader
+                                              : yesdaw::engine::SendTap::PostFader);
                             break;
                     }
                     break;

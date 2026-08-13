@@ -2446,6 +2446,86 @@ public:
         return { id, state, true };
     }
 
+    // E18: flip a send's tap point (pre/post fader) through the undoable SetSendTap verb.
+    [[nodiscard]] UiActionDispatchResult toggleSendTapOnSelectedTrack (std::size_t sendIndex)
+    {
+        const UiActionId id = UiActionId::MixerSendSetTap;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        const engine::Track* const track = findTrack (trackId);
+        if (track == nullptr || sendIndex >= track->sends.size())
+            return { id, { false, "no send at index" }, false };
+
+        const engine::SendRow& send = track->sends[sendIndex];
+        const engine::SendTap nextTap = send.tap == engine::SendTap::PostFader
+            ? engine::SendTap::PreFader
+            : engine::SendTap::PostFader;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setSendTap (trackId, send.id, nextTap)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // E18: re-route a send to another bus as remove+add in ONE undo group, preserving the send's
+    // id, tap, and level. Routing to the send's current bus refuses as a no-op.
+    [[nodiscard]] UiActionDispatchResult setSendDestinationOnSelectedTrack (std::size_t sendIndex,
+                                                                            std::size_t busIndex)
+    {
+        const UiActionId id = UiActionId::MixerSendSetDestination;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        const engine::Track* const track = findTrack (trackId);
+        if (track == nullptr || sendIndex >= track->sends.size() || busIndex >= project_.buses.size())
+            return { id, { false, "no send or bus at index" }, false };
+
+        const engine::SendRow send = track->sends[sendIndex];
+        if (send.busId == project_.buses[busIndex].id)
+            return { id, { false, "send already routes there" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::removeSend (trackId, send.id)).applied())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::addSend (
+                                  trackId, send.id, project_.buses[busIndex].id,
+                                  send.tap, send.linearGain)).applied())
+            return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult removeSendOnSelectedTrack (std::size_t sendIndex)
     {
         const UiActionId id = UiActionId::MixerSendRemove;
@@ -4753,6 +4833,8 @@ public:
             case UiActionId::MixerFxInsertReorder:
             case UiActionId::MixerBusRename:
             case UiActionId::MixerBusRemove:
+            case UiActionId::MixerSendSetTap:
+            case UiActionId::MixerSendSetDestination:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

@@ -875,8 +875,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // marker rename editor (hidden until a marker double-click) + the E14 per-slot FX up/down
     // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
-    // editor — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 114u));
+    // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) —
+    // bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 122u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4165,6 +4166,81 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
     REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.name == "Bus 1");
+}
+
+TEST_CASE ("send tap toggles pre/post undoably and the destination chooser re-routes as one undo",
+           "[ui][input][shell][mixer][send-tap-dest]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("send-tap-dest");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { railComponent->getWidth() / 2,
+                                   yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                       + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.size() == 1u);
+    REQUIRE (project.tracks.front().sends.front().tap == yesdaw::engine::SendTap::PostFader);
+    auto* level0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (level0 != nullptr);
+    level0->setValue (0.5, juce::sendNotificationSync);
+
+    // With one bus the destination chooser has nowhere else to route — disabled.
+    auto* dest0 = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.0.dest"));
+    REQUIRE (dest0 != nullptr);
+    REQUIRE (dest0->isVisible());
+    REQUIRE_FALSE (dest0->isEnabled());
+
+    // The tap toggle flips Post -> Pre undoably; the button names the CURRENT tap.
+    auto* tap0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.tap"));
+    REQUIRE (tap0 != nullptr);
+    REQUIRE (tap0->isVisible());
+    REQUIRE (tap0->getButtonText() == "Post");
+    clickButton (*tap0);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.front().tap == yesdaw::engine::SendTap::PreFader);
+    REQUIRE (tap0->getButtonText() == "Pre");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.front().tap
+             == yesdaw::engine::SendTap::PostFader);
+
+    // A second bus enables re-routing; the chooser re-routes preserving id, tap, and level,
+    // and ONE Ctrl+Z restores the original route (remove+add rode one undo group).
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.buses.size() == 2u);
+    const yesdaw::engine::EntityId firstBusId = project.buses[0].id;
+    const yesdaw::engine::EntityId secondBusId = project.buses[1].id;
+    const yesdaw::engine::EntityId sendId = project.tracks.front().sends.front().id;
+    REQUIRE (dest0->isEnabled());
+    REQUIRE (dest0->getNumItems() == 2);
+    dest0->setSelectedId (2, juce::sendNotificationSync);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.size() == 1u);
+    REQUIRE (project.tracks.front().sends.front().busId == secondBusId);
+    REQUIRE (project.tracks.front().sends.front().id == sendId);
+    REQUIRE (project.tracks.front().sends.front().tap == yesdaw::engine::SendTap::PostFader);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().sends.size() == 1u);
+    REQUIRE (project.tracks.front().sends.front().busId == firstBusId);
+    REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",

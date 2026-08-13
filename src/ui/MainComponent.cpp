@@ -4467,6 +4467,39 @@ private:
                 repaint();
             };
             addChildComponent (remove);
+
+            // E18: per-row tap toggle (pre/post fader) through the undoable SetSendTap verb.
+            auto& tap = mixerSendTaps[row];
+            tap.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".tap");
+            tap.setTooltip ("Toggle send " + juce::String (static_cast<int> (row) + 1) + " pre/post fader tap");
+            tap.setName ("Toggle send " + juce::String (static_cast<int> (row + 1)) + " tap");
+            tap.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
+            tap.setColour (juce::TextButton::textColourOffId, kText);
+            tap.onClick = [this, row] {
+                (void) appModel.toggleSendTapOnSelectedTrack (row);
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (tap);
+
+            // E18: per-row destination chooser re-routes the send (remove+add, one undo group).
+            auto& destination = mixerSendDestinations[row];
+            destination.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".dest");
+            destination.setTooltip ("Re-route send " + juce::String (static_cast<int> (row) + 1) + " to another bus");
+            destination.onChange = [this, row] {
+                if (refreshingSendControls)
+                    return;
+
+                const int selected = mixerSendDestinations[row].getSelectedId();
+                if (selected <= 0)
+                    return;
+
+                (void) appModel.setSendDestinationOnSelectedTrack (
+                    row, static_cast<std::size_t> (selected - 1));
+                refreshActionState();
+                repaint();
+            };
+            addChildComponent (destination);
         }
 
         // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;
@@ -5291,15 +5324,22 @@ private:
                 mixerSendLevelSliders[row].setBounds ({});
                 mixerSendLabels[row].setBounds ({});
                 mixerSendRemoves[row].setBounds ({});
+                mixerSendTaps[row].setBounds ({});
+                mixerSendDestinations[row].setBounds ({});
                 continue;
             }
 
+            // E18: the send grows a second row for its tap toggle and destination chooser.
             auto sendRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerSendRowHeight);
             mixerSendRemoves[row].setBounds (
                 sendRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
             mixerSendLabels[row].setBounds (
                 sendRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
             mixerSendLevelSliders[row].setBounds (sendRow);
+            auto sendRouteRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerSendRowHeight);
+            mixerSendTaps[row].setBounds (
+                sendRouteRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
+            mixerSendDestinations[row].setBounds (sendRouteRow);
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         }
 
@@ -6200,12 +6240,20 @@ private:
             const bool sendEditEnabled =
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetLevel,
                                               appModel.context()).enabled;
+            const bool sendTapEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetTap,
+                                              appModel.context()).enabled;
+            const bool sendDestinationEnabled =
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetDestination,
+                                              appModel.context()).enabled;
             for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
             {
                 const bool present = row < sends.size();
                 mixerSendLevelSliders[row].setVisible (present);
                 mixerSendLabels[row].setVisible (present);
                 mixerSendRemoves[row].setVisible (present);
+                mixerSendTaps[row].setVisible (present);
+                mixerSendDestinations[row].setVisible (present);
                 if (! present)
                     continue;
 
@@ -6216,6 +6264,22 @@ private:
                 mixerSendLabels[row].setText (busName, juce::dontSendNotification);
                 mixerSendLevelSliders[row].setValue (sends[row].linearGain, juce::dontSendNotification);
                 mixerSendLevelSliders[row].setEnabled (sendEditEnabled);
+                // E18: the tap toggle names the CURRENT tap; the chooser lists every bus with
+                // the current destination selected.
+                mixerSendTaps[row].setButtonText (
+                    sends[row].tap == yesdaw::engine::SendTap::PreFader ? "Pre" : "Post");
+                mixerSendTaps[row].setEnabled (sendTapEnabled);
+                mixerSendDestinations[row].clear (juce::dontSendNotification);
+                int currentBusId = 0;
+                for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+                {
+                    mixerSendDestinations[row].addItem (juce::String (project.buses[busIndex].strip.name),
+                                                        static_cast<int> (busIndex) + 1);
+                    if (project.buses[busIndex].id == sends[row].busId)
+                        currentBusId = static_cast<int> (busIndex) + 1;
+                }
+                mixerSendDestinations[row].setSelectedId (currentBusId, juce::dontSendNotification);
+                mixerSendDestinations[row].setEnabled (sendDestinationEnabled && project.buses.size() > 1);
             }
             refreshingSendControls = false;
             const std::size_t visibleSendRows = std::min (sends.size(), mixerSendLevelSliders.size());
@@ -8386,6 +8450,9 @@ private:
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;
+    // E18: per-row send tap toggles + destination choosers
+    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendTaps;
+    std::array<juce::ComboBox, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendDestinations;
     bool refreshingSendControls = false;
     std::size_t lastVisibleFxParamRows = 0;
     std::size_t lastVisibleSendRows = 0;

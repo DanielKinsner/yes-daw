@@ -76,7 +76,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E16: bus strips are real strips — scalar edits mirror SetTrackMixScalars
     SetBusMixScalars,
     // E17: bus rename (the name rides the shared trackName array like markers do)
-    RenameBus
+    RenameBus,
+    // E18: send tap point (pre/post fader) — the first mutating verb for the persisted column
+    SetSendTap
 };
 
 struct ProjectEditCommand
@@ -755,6 +757,19 @@ struct ProjectEditCommand
         return command;
     }
 
+    // E18: send tap point (pre/post fader).
+    [[nodiscard]] static constexpr ProjectEditCommand setSendTap (EntityId trackId,
+                                                                  EntityId sendId,
+                                                                  SendTap tap) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetSendTap;
+        command.trackId = trackId;
+        command.sendId = sendId;
+        command.sendTap = tap;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -973,6 +988,7 @@ namespace detail {
            || verb == ProjectEditVerb::AddSend
            || verb == ProjectEditVerb::RemoveSend
            || verb == ProjectEditVerb::SetSendLevel
+           || verb == ProjectEditVerb::SetSendTap
            || verb == ProjectEditVerb::SetTrackMixScalars;
 }
 
@@ -1252,6 +1268,9 @@ namespace detail {
 
         case ProjectEditVerb::SetSendLevel:
             return setSendLevel (project, command.trackId, command.sendId, command.sendLinearGain);
+
+        case ProjectEditVerb::SetSendTap:
+            return setSendTap (project, command.trackId, command.sendId, command.sendTap);
 
         case ProjectEditVerb::RenameClip:
             if (command.clipName[0] == '\0')

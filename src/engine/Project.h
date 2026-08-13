@@ -2622,6 +2622,42 @@ namespace detail {
     return ProjectEditStatus::TrackNotFound;
 }
 
+// E18: change a send's tap point (pre/post fader) — the tap column has been persisted since
+// schema v9; this is its first mutating verb.
+[[nodiscard]] inline ProjectEditStatus setSendTap (Project& project,
+                                                   EntityId trackId,
+                                                   EntityId sendId,
+                                                   SendTap tap)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        for (SendRow& send : track.sends)
+        {
+            if (send.id == sendId)
+            {
+                send.tap = tap;
+                return ProjectEditStatus::Applied;
+            }
+        }
+
+        return ProjectEditStatus::SendNotFound;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
 [[nodiscard]] inline ProjectEditStatus setSendLevel (Project& project,
                                                      EntityId trackId,
                                                      EntityId sendId,
