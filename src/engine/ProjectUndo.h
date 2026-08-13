@@ -80,7 +80,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E18: send tap point (pre/post fader) — the first mutating verb for the persisted column
     SetSendTap,
     // E19: persisted master strip gain
-    SetMasterGain
+    SetMasterGain,
+    // E33: take management — removes the take, its clip, and comp segments referencing it
+    RemoveRecordingTake
 };
 
 struct ProjectEditCommand
@@ -326,6 +328,15 @@ struct ProjectEditCommand
         command.secondCompTimelineStart = secondTimelineStart;
         command.secondCompTimelineLength = secondTimelineLength;
         command.secondCompSourceOffset = secondSourceOffset;
+        return command;
+    }
+
+    // E33: removes the take, its clip, and comp segments referencing it — one undoable step.
+    [[nodiscard]] static constexpr ProjectEditCommand removeRecordingTake (EntityId takeId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveRecordingTake;
+        command.firstCompTakeId = takeId;
         return command;
     }
 
@@ -864,6 +875,18 @@ struct ProjectRecordingCompRowsDiff
     std::vector<ProjectRecordingCompSegment> after;
 };
 
+// E33: take removal touches THREE row families at once (takes + clips + comp segments), so
+// its diff snapshots all three whole — counts are small and undo stays bit-exact.
+struct ProjectRecordingTakeRowsDiff
+{
+    std::vector<RecordingTake> takesBefore;
+    std::vector<RecordingTake> takesAfter;
+    std::vector<Clip> clipsBefore;
+    std::vector<Clip> clipsAfter;
+    std::vector<ProjectRecordingCompSegment> compBefore;
+    std::vector<ProjectRecordingCompSegment> compAfter;
+};
+
 struct ProjectFxChainRowsDiff
 {
     EntityId ownerId;
@@ -922,6 +945,7 @@ struct ProjectEditTransaction
     ProjectClipRowsDiff diff;
     ProjectMidiClipRowsDiff midiDiff;
     ProjectRecordingCompRowsDiff recordingCompDiff;
+    ProjectRecordingTakeRowsDiff recordingTakeDiff;
     ProjectFxChainRowsDiff fxDiff;
     ProjectAutomationLaneRowsDiff automationDiff;
     ProjectTrackRowsDiff trackDiff;
@@ -1044,6 +1068,12 @@ namespace detail {
     return verb == ProjectEditVerb::SetMasterGain;
 }
 
+// E33: the take-removal verb owns the combined takes+clips+comp diff family.
+[[nodiscard]] constexpr bool isRecordingTakeEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::RemoveRecordingTake;
+}
+
 [[nodiscard]] constexpr bool isFxEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::AddFxInsert
@@ -1115,6 +1145,9 @@ namespace detail {
                 command.secondCompTimelineStart,
                 command.secondCompTimelineLength,
                 command.secondCompSourceOffset);
+
+        case ProjectEditVerb::RemoveRecordingTake:
+            return removeRecordingTake (project, command.firstCompTakeId);
 
         case ProjectEditVerb::AddFxInsert:
             return addFxInsert (
@@ -1762,6 +1795,49 @@ namespace detail {
     return true;
 }
 
+// E33: the combined takes+clips+comp diff — verify all three families, then replace all three.
+[[nodiscard]] inline bool buildProjectRecordingTakeRowsDiff (const Project& before,
+                                                             const Project& after,
+                                                             ProjectRecordingTakeRowsDiff& out)
+{
+    if (before.recordingTakes == after.recordingTakes
+        && before.clips == after.clips
+        && before.recordingCompSegments == after.recordingCompSegments)
+        return false;
+
+    out = {};
+    out.takesBefore = before.recordingTakes;
+    out.takesAfter = after.recordingTakes;
+    out.clipsBefore = before.clips;
+    out.clipsAfter = after.clips;
+    out.compBefore = before.recordingCompSegments;
+    out.compAfter = after.recordingCompSegments;
+    return true;
+}
+
+[[nodiscard]] inline bool applyRecordingTakeRowsDiff (Project& project,
+                                                      const ProjectRecordingTakeRowsDiff& diff,
+                                                      bool redo)
+{
+    const auto& takesExpected = redo ? diff.takesBefore : diff.takesAfter;
+    const auto& clipsExpected = redo ? diff.clipsBefore : diff.clipsAfter;
+    const auto& compExpected = redo ? diff.compBefore : diff.compAfter;
+    if (project.recordingTakes != takesExpected
+        || project.clips != clipsExpected
+        || project.recordingCompSegments != compExpected)
+        return false;
+
+    Project edited = project;
+    edited.recordingTakes = redo ? diff.takesAfter : diff.takesBefore;
+    edited.clips = redo ? diff.clipsAfter : diff.clipsBefore;
+    edited.recordingCompSegments = redo ? diff.compAfter : diff.compBefore;
+    if (! edited.hasValidAssetClipIndirection())
+        return false;
+
+    project = std::move (edited);
+    return true;
+}
+
 [[nodiscard]] inline bool applyFxChainRowsDiff (Project& project,
                                                 EntityId ownerId,
                                                 const std::vector<FxInsert>& expected,
@@ -1884,6 +1960,10 @@ namespace detail {
                     : applyRecordingCompRowsDiff (project, transaction.recordingCompDiff.after, transaction.recordingCompDiff.before);
     }
 
+    // E33: take removal replays its combined takes+clips+comp snapshot.
+    if (isRecordingTakeEditVerb (transaction.command.verb))
+        return applyRecordingTakeRowsDiff (project, transaction.recordingTakeDiff, redo);
+
     if (isFxEditVerb (transaction.command.verb))
     {
         return redo ? applyFxChainRowsDiff (project, transaction.fxDiff.ownerId, transaction.fxDiff.before, transaction.fxDiff.after)
@@ -1952,6 +2032,8 @@ namespace detail {
         diffBuilt = detail::buildProjectMidiClipRowsDiff (before, project, command, transaction.midiDiff);
     else if (detail::isRecordingCompEditVerb (command.verb))
         diffBuilt = detail::buildProjectRecordingCompRowsDiff (before, project, transaction.recordingCompDiff);
+    else if (detail::isRecordingTakeEditVerb (command.verb))
+        diffBuilt = detail::buildProjectRecordingTakeRowsDiff (before, project, transaction.recordingTakeDiff);
     else if (detail::isFxEditVerb (command.verb))
         diffBuilt = detail::buildProjectFxChainRowsDiff (before, project, command, transaction.fxDiff);
     else if (detail::isAutomationEditVerb (command.verb))

@@ -2905,6 +2905,36 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// E33: removes the take, its clip, and every comp segment referencing it in ONE edit, so
+// `recordingTakesReferenceProjectRows` and `recordingCompSegmentsReferenceTakes` stay green.
+// The take's asset stays (assets may be unreferenced); other takes are untouched.
+[[nodiscard]] inline ProjectEditStatus removeRecordingTake (Project& project, EntityId takeId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! takeId.isValid())
+        return ProjectEditStatus::InvalidRecordingTakeId;
+
+    const RecordingTake* const take = detail::findRecordingTake (project, takeId);
+    if (take == nullptr)
+        return ProjectEditStatus::RecordingTakeNotFound;
+
+    Project edited = project;
+    const EntityId clipId = take->clipId;
+    std::erase_if (edited.recordingTakes,
+                   [takeId] (const RecordingTake& row) { return row.id == takeId; });
+    std::erase_if (edited.clips,
+                   [clipId] (const Clip& row) { return row.id == clipId; });
+    std::erase_if (edited.recordingCompSegments,
+                   [takeId] (const ProjectRecordingCompSegment& row) { return row.takeId == takeId; });
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
 [[nodiscard]] inline ProjectEditStatus addFxInsert (Project& project,
                                                     EntityId ownerId,
                                                     FxInsert insert,

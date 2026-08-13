@@ -697,7 +697,29 @@ DirectInput summed nothing, exit 42). Full local ctest 348/348.
 E32 (loop recording) is certified: feature `65c4d63`, exact-head nine-job GitHub Actions run
 `31667984075` green (first try); full local ctest **348/348**. E32 is ticked in the backlog.
 
-**Now:** E33 (take management UI) — implementing per the settled design below.
+**Now:** E33 (take management UI) — ENGINE HALF DONE, uncommitted in the working tree:
+`RemoveRecordingTake` verb (enum tail after SetMasterGain; factory
+`ProjectEditCommand::removeRecordingTake(takeId)` reusing `firstCompTakeId`; apply fn
+`removeRecordingTake` in Project.h that erases the take + its clip + comp segments referencing
+it; NEW combined diff family `ProjectRecordingTakeRowsDiff` (takes+clips+comp whole-vector
+snapshots) with `isRecordingTakeEditVerb`, `buildProjectRecordingTakeRowsDiff`,
+`applyRecordingTakeRowsDiff(project, diff, redo)` wired into the transaction build and
+undo/redo dispatch; property arm case 23 (pick 23→24, refusal paths); dedicated
+`[take-remove]` unit test green (121 assertions incl. the comp fixture: removal scrubs the
+take's comp segment, undo/redo bit-identical). REMAINING for E33: (1) model verbs —
+`takesForSelectedClipWindow()` (takes on the selected clip's track with matching
+timelineStart; audible = that take's clip gain > 0), `switchAudibleTakeForSelectedClip(takeId)`
+(one transaction group of SetClipGain: chosen 1.0, others 0.0 — mirror
+deleteSelectedTimelineClip's copy/begin/apply/end/adoptEditedProject pattern at
+UiAppModel.h:3119), `deleteRecordingTake(takeId)` via the new verb (clear clip selection if the
+removed take's clip was selected); (2) UI — REPLACE the inspector's placeholder
+AUTOMATION-VOLUME section (it ALWAYS paints "No automation", a fake) with a real TAKES
+section: chooser listing the window's takes + Delete Take button, whole-section drop law
+applies; (3) gates: app_smoke [take-switch] (loop-record 3 takes → switch audible → only
+chosen clip gain 1.0 others 0.0, one undo restores; delete take → takes-1, clips-1) + ui_input
+[take-chooser] (chooser lists takes after a loop record, switching drives the verb) +
+childCount pin +2 if two new components; (4) fail-befores (engine verb compile-fail; model
+runtime red), full ctest, feature commit, nine-job CI, evidence.
 
 **Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
 their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching

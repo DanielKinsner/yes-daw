@@ -1126,6 +1126,52 @@ TEST_CASE ("Project undo stack records command diffs for recording Comp selectio
     requireProjectValueUnchanged (project, edited);
 }
 
+TEST_CASE ("RemoveRecordingTake removes the take, its clip, and its comp segments undoably",
+           "[project][recording][take-remove][undo]")
+{
+    Project project = makeRecordingCompEditableProject();
+    const Project original = project;
+    const EntityId firstTakeId = project.recordingTakes[0].id;
+    const EntityId secondTakeId = project.recordingTakes[1].id;
+    const EntityId firstClipId = project.recordingTakes[0].clipId;
+    const std::size_t clipsBefore = project.clips.size();
+
+    ProjectUndoStack undo;
+    // Comp segments referencing BOTH takes, so removal must scrub its take's segment too.
+    REQUIRE (undo.apply (
+        project,
+        ProjectEditCommand::setRecordingCompSelection (
+            idFromLowByte (60), firstTakeId, 0, 96, 0,
+            idFromLowByte (61), secondTakeId, 160, 96, 0)).applied());
+    const Project withComp = project;
+
+    // Invalid and unknown take ids are refused and record nothing.
+    REQUIRE_FALSE (undo.apply (project, ProjectEditCommand::removeRecordingTake (EntityId {})).applied());
+    REQUIRE_FALSE (undo.apply (project, ProjectEditCommand::removeRecordingTake (idFromLowByte (199))).applied());
+    requireProjectValueUnchanged (project, withComp);
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeRecordingTake (firstTakeId)).applied());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::RemoveRecordingTake);
+    REQUIRE (project.recordingTakes.size() == 1u);
+    REQUIRE (project.recordingTakes[0].id == secondTakeId);
+    REQUIRE (project.clips.size() == clipsBefore - 1u);
+    for (const Clip& clipRow : project.clips)
+        REQUIRE (clipRow.id != firstClipId);
+    for (const auto& segment : project.recordingCompSegments)
+        REQUIRE (segment.takeId != firstTakeId);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    const Project edited = project;
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, withComp);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
+}
+
 TEST_CASE ("Project undo stack records command diffs for MIDI Note edits", "[project][midi][note-edit][undo]")
 {
     Project project = makeMidiEditableProject();
@@ -2071,7 +2117,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (23))
+            switch (pick (24))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2236,6 +2282,14 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                 case 22:
                     command = ProjectEditCommand::setMasterGain (
                         pick (8) == 0 ? -1.0f : static_cast<float> (pick (200)) / 100.0f);
+                    break;
+                // E33 take removal: unknown/invalid take ids are no-ops by contract (the
+                // generator project has no takes, so this arm exercises the refusal paths and
+                // proves the verb never corrupts undo bookkeeping).
+                case 23:
+                    command = ProjectEditCommand::removeRecordingTake (
+                        pick (2) == 0 ? EntityId {}
+                                      : idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                     break;
                 default: break;
             }
