@@ -889,8 +889,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
-    // E19 master fader + the E20 automation target chooser — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 124u));
+    // E19 master fader + the E20 automation target chooser + the E29 input device chooser
+    // and recorded-channel pick — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 126u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -8060,6 +8061,51 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.automationLanes.front().points.size() == 2u);
+}
+
+TEST_CASE ("the input channel chooser lists the adopted device's channels and drives the pick",
+           "[ui][input][shell][input-chooser]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("input-chooser");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* inputChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "shell.device.input.chooser"));
+    auto* channelChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "shell.device.input.channel"));
+    REQUIRE (inputChooser != nullptr);
+    REQUIRE (channelChooser != nullptr);
+    REQUIRE_FALSE (channelChooser->isEnabled());   // nothing adopted yet
+
+    // The 2-input harness device: mono channels then the adjacent stereo pair.
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    REQUIRE (channelChooser->isEnabled());
+    REQUIRE (channelChooser->getNumItems() == 3);
+    REQUIRE (channelChooser->getItemText (0) == "In 1");
+    REQUIRE (channelChooser->getItemText (1) == "In 2");
+    REQUIRE (channelChooser->getItemText (2) == "In 1+2");
+
+    // Picking "In 2" drives the model verb; arming carries the pick.
+    channelChooser->setSelectedId (2, juce::sendNotificationSync);
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.context.selectedRecordingInputChannel == 1);
+    REQUIRE_FALSE (snapshot.context.selectedRecordingInputStereoPair);
+
+    // Picking the stereo pair updates the LIVE armed selection.
+    channelChooser->setSelectedId (1001, juce::sendNotificationSync);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.selectedRecordingInputChannel == 0);
+    REQUIRE (snapshot.context.selectedRecordingInputStereoPair);
 }
 
 TEST_CASE ("the automation lane is a full-width band between the ruler and the clips",

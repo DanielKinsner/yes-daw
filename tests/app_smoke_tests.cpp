@@ -587,6 +587,122 @@ TEST_CASE ("adopting the real device unlocks arm and records honest provenance",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the picked input channel drives the recorded take", "[ui][app][recording][input-pick]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("input-pick");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // No device: the pick is refused.
+    REQUIRE_FALSE (app.setRecordingInputChannel (0, false));
+
+    // A 4-input device: out-of-range picks are refused, in-range picks stick.
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x5117A0DEu, 48'000.0, 4, 128, 0, 0 }));
+    REQUIRE_FALSE (app.setRecordingInputChannel (4, false));
+    REQUIRE_FALSE (app.setRecordingInputChannel (3, true));   // pair (3,4) exceeds 4 inputs
+    REQUIRE (app.setRecordingInputChannel (2, false));
+
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.context().selectedRecordingInputChannel == 2);
+    REQUIRE_FALSE (app.context().selectedRecordingInputStereoPair);
+
+    // Four device channels carry distinct DC values; ONLY channel 2's samples may reach the take.
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    std::array<float, 128> ch2 {};
+    std::array<float, 128> ch3 {};
+    ch0.fill (0.1f);
+    ch1.fill (0.2f);
+    ch2.fill (0.5f);
+    ch3.fill (0.8f);
+    std::array<const float*, 4> inputs { ch0.data(), ch1.data(), ch2.data(), ch3.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    REQUIRE (app.startRealRecordingCapture (4, 48'000.0, 0, 0));
+    for (int block = 0; block < 4; ++block)
+    {
+        REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+    const yesdaw::ui::UiAppRecordResult monoTake = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (monoTake.ok());
+    REQUIRE (monoTake.take.channels == 1u);
+    REQUIRE (monoTake.take.frames == 512u);
+
+    Project persisted;
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+    REQUIRE (persisted.recordingTakes.size() == 1u);
+    REQUIRE (persisted.recordingTakes.front().inputChannel == 2u);
+
+    // The persisted float-WAV take holds channel 2's DC (0.5), not channel 0's.
+    const auto readFirstFloats = [&bundlePath, &persisted] (const yesdaw::engine::EntityId assetId,
+                                                            std::size_t count)
+    {
+        const yesdaw::engine::Asset* recorded = nullptr;
+        for (const Asset& asset : persisted.assets)
+            if (asset.id == assetId)
+                recorded = &asset;
+        REQUIRE (recorded != nullptr);
+        const std::filesystem::path wavPath =
+            bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (recorded->contentHash);
+        std::ifstream in (wavPath, std::ios::binary);
+        REQUIRE (in.good());
+        in.seekg (44);
+        std::vector<float> samples (count, 0.0f);
+        in.read (reinterpret_cast<char*> (samples.data()),
+                 static_cast<std::streamsize> (count * sizeof (float)));
+        REQUIRE (in.good());
+        return samples;
+    };
+    const std::vector<float> monoSamples = readFirstFloats (monoTake.take.assetId, 4);
+    for (float sample : monoSamples)
+        REQUIRE (sample == Approx (0.5f));
+
+    // Re-pick the stereo pair (0,1) while still armed: the next take is 2-channel and carries
+    // channel 0 and 1 interleaved.
+    REQUIRE (app.setRecordingInputChannel (0, true));
+    REQUIRE (app.context().selectedRecordingInputStereoPair);
+    REQUIRE (app.startRealRecordingCapture (4, 48'000.0, 0, 0));
+    for (int block = 0; block < 4; ++block)
+    {
+        REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+    const yesdaw::ui::UiAppRecordResult stereoTake = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (stereoTake.ok());
+    REQUIRE (stereoTake.take.channels == 2u);
+
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+    const std::vector<float> stereoSamples = readFirstFloats (stereoTake.take.assetId, 4);
+    REQUIRE (stereoSamples[0] == Approx (0.1f));
+    REQUIRE (stereoSamples[1] == Approx (0.2f));
+    REQUIRE (stereoSamples[2] == Approx (0.1f));
+    REQUIRE (stereoSamples[3] == Approx (0.2f));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");

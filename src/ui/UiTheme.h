@@ -304,12 +304,16 @@ struct UiTheme
         // cluster live INSIDE the header instead of floating over the track rail and timeline.
         static juce::Rectangle<int> exportBitDepthChooserBounds() noexcept { return { 156, 84, 108, 26 }; }
         static juce::Rectangle<int> exportRangeChooserBounds() noexcept { return { 268, 84, 112, 26 }; }
-        static juce::Rectangle<int> audioDeviceChooserBounds() noexcept { return { 388, 84, 220, 26 }; }
-        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 616, 84, 78, 26 }; }
-        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 698, 84, 104, 26 }; }
-        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 806, 84, 68, 26 }; }
-        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 878, 84, 96, 26 }; }
-        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 978, 84, 72, 26 }; }
+        // E29: the device row carries BOTH sides — output chooser, input chooser, and the
+        // recorded-channel pick — inside the window floor (right edge 1140 ≤ 1152).
+        static juce::Rectangle<int> audioDeviceChooserBounds() noexcept { return { 388, 84, 150, 26 }; }
+        static juce::Rectangle<int> audioInputDeviceChooserBounds() noexcept { return { 542, 84, 150, 26 }; }
+        static juce::Rectangle<int> recordingInputChannelChooserBounds() noexcept { return { 696, 84, 64, 26 }; }
+        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 764, 84, 76, 26 }; }
+        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 844, 84, 90, 26 }; }
+        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 938, 84, 56, 26 }; }
+        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 998, 84, 82, 26 }; }
+        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 1084, 84, 60, 26 }; }
         static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 504, 16, 56, 56 }; }
         static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 256, 50, 28, 26 }; }
         static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 288, 50, 28, 26 }; }

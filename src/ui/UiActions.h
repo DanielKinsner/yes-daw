@@ -289,6 +289,8 @@ struct UiActionContext
     std::uint32_t selectedRecordingDeviceId = 0;
     int selectedRecordingTrackIndex = -1;
     int selectedRecordingInputChannel = -1;
+    // E29: the armed pick records a stereo pair (channel, channel+1) instead of mono.
+    bool selectedRecordingInputStereoPair = false;
     int recordingArmCount = 0;
     int recordingMonitoringCount = 0;
     int recordingCommandCount = 0;

@@ -156,6 +156,8 @@ struct UiRecordingTrackInputSelection
     engine::EntityId trackId;
     std::size_t trackIndex = 0;
     std::uint16_t inputChannel = 0;
+    // E29: record the picked mono channel, or the stereo pair (inputChannel, inputChannel+1).
+    bool stereoPair = false;
 };
 
 struct UiRecordingCompSelection
@@ -297,8 +299,20 @@ public:
             && inputChannels != nullptr
             && numInputChannels > 0)
         {
-            (void) playback->captureRecordingInputBlock (
-                captureFifo_, captureConfig_, inputChannels, numInputChannels, numFrames);
+            // E29: the capture reads the PICKED channel window (mono channel N or the stereo
+            // pair N,N+1), published with the config before the active flag. Stack view only —
+            // no allocation on the audio thread.
+            const int base = captureBaseChannel_;
+            const int width = captureConfig_.channels;
+            if (base >= 0 && width > 0 && width <= engine::kMaxRecordingChannels
+                && base + width <= numInputChannels)
+            {
+                const float* picked[engine::kMaxRecordingChannels] = {};
+                for (int channel = 0; channel < width; ++channel)
+                    picked[channel] = inputChannels[base + channel];
+                (void) playback->captureRecordingInputBlock (
+                    captureFifo_, captureConfig_, picked, width, numFrames);
+            }
         }
 
         playback->processBlock (outputChannels, numOutputChannels, numFrames);
@@ -330,6 +344,30 @@ public:
         return true;
     }
 
+    // E29 (control thread): pick the recorded input — mono channel N, or the stereo pair
+    // (N, N+1). Guarded against the ADOPTED device's real input count; the pick survives
+    // arm toggles and re-adoption narrows it back in range on the next arm.
+    [[nodiscard]] bool setRecordingInputChannel (std::uint16_t baseChannel, bool stereoPair)
+    {
+        if (captureActive_.load (std::memory_order_acquire))
+            return false;
+        const std::uint16_t width = stereoPair ? 2u : 1u;
+        if (! recordingDevice_.selected
+            || static_cast<std::uint32_t> (baseChannel) + width > recordingDevice_.inputChannels)
+            return false;
+
+        pickedInputChannel_ = baseChannel;
+        pickedInputStereoPair_ = stereoPair;
+        if (recordingTrackInput_.armed)
+        {
+            recordingTrackInput_.inputChannel = baseChannel;
+            recordingTrackInput_.stereoPair = stereoPair;
+        }
+        ++context_.commandDispatchCount;
+        syncRecordingContext();
+        return true;
+    }
+
     // CONTROL THREAD: arm-and-roll a real capture session. The config is published before the active
     // flag so the audio thread never reads a torn config.
     [[nodiscard]] bool startRealRecordingCapture (int deviceInputChannels,
@@ -349,11 +387,21 @@ public:
             || recordingDevice_.inputChannels == 0u)
             return false;
 
+        // E29: the capture width and base come from the armed selection's channel pick — mono
+        // channel N or the stereo pair — never "whatever the device gives".
+        const int pickWidth = recordingTrackInput_.stereoPair ? 2 : 1;
+        const int pickBase = recordingTrackInput_.inputChannel;
+        if (pickBase + pickWidth > deviceInputChannels
+            || pickBase + pickWidth > static_cast<int> (recordingDevice_.inputChannels)
+            || pickWidth > engine::kMaxRecordingChannels)
+            return false;
+
         captureConfig_ = {};
         captureConfig_.sampleRateHz = deviceSampleRateHz;
-        captureConfig_.channels = std::min (deviceInputChannels, engine::kMaxRecordingChannels);
+        captureConfig_.channels = pickWidth;
         captureConfig_.latency.inputLatencyFrames = inputLatencyFrames;
         captureConfig_.latency.outputLatencyFrames = outputLatencyFrames;
+        captureBaseChannel_ = pickBase;
         std::optional<std::int64_t> countInEnd;
         if (context_.recordCountInEnabled)
         {
@@ -5315,6 +5363,7 @@ private:
         context_.recordingInputSelected = false;
         context_.selectedRecordingTrackIndex = -1;
         context_.selectedRecordingInputChannel = -1;
+        context_.selectedRecordingInputStereoPair = false;
         context_.isRecording = false;
     }
 
@@ -5353,11 +5402,12 @@ private:
         context_.selectedRecordingDeviceId = recordingDevice_.stableDeviceId;
         context_.recordingTrackAvailable = context_.projectLoaded && ! project_.tracks.empty();
 
+        const std::uint32_t armedPickWidth = recordingTrackInput_.stereoPair ? 2u : 1u;
         if (! recordingTrackInput_.armed
             || ! context_.recordingTrackAvailable
             || findTrack (recordingTrackInput_.trackId) == nullptr
             || ! recordingDevice_.selected
-            || recordingTrackInput_.inputChannel >= recordingDevice_.inputChannels)
+            || recordingTrackInput_.inputChannel + armedPickWidth > recordingDevice_.inputChannels)
         {
             clearRecordingTrackInput();
             return;
@@ -5367,6 +5417,7 @@ private:
         context_.recordingInputSelected = true;
         context_.selectedRecordingTrackIndex = static_cast<int> (recordingTrackInput_.trackIndex);
         context_.selectedRecordingInputChannel = static_cast<int> (recordingTrackInput_.inputChannel);
+        context_.selectedRecordingInputStereoPair = recordingTrackInput_.stereoPair;
     }
 
     void syncRecordingCompContext() noexcept
@@ -5544,7 +5595,19 @@ private:
             recordingTrackInput_.armed = true;
             recordingTrackInput_.trackId = project_.tracks.front().id;
             recordingTrackInput_.trackIndex = 0;
-            recordingTrackInput_.inputChannel = 0;
+            // E29: arm adopts the picked input, clamped back in range if the device changed.
+            const std::uint16_t pickWidth = pickedInputStereoPair_ ? 2u : 1u;
+            if (static_cast<std::uint32_t> (pickedInputChannel_) + pickWidth
+                <= recordingDevice_.inputChannels)
+            {
+                recordingTrackInput_.inputChannel = pickedInputChannel_;
+                recordingTrackInput_.stereoPair = pickedInputStereoPair_;
+            }
+            else
+            {
+                recordingTrackInput_.inputChannel = 0;
+                recordingTrackInput_.stereoPair = false;
+            }
         }
         else
         {
@@ -6605,6 +6668,11 @@ private:
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     UiRecordingTrackInputSelection recordingTrackInput_;
+    // E29: the picked input (survives arm toggles); the capture base channel is published
+    // with the config before captureActive_ so the audio thread never reads a torn pick.
+    std::uint16_t pickedInputChannel_ = 0;
+    bool pickedInputStereoPair_ = false;
+    int captureBaseChannel_ = 0;
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;

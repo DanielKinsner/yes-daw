@@ -654,19 +654,28 @@ E27 is certified: feature `aa8ab5f`, exact-head nine-job GitHub Actions run `316
 green (first try); full local ctest **348/348** (owner file isolated + restored, SHA
 verified). E27 is ticked in the backlog.
 
-**Now:** E28 (real devices honestly unlock Record) — implemented and locally green:
-`adoptRealRecordingDevice` adopts the REAL desktop device's profile (actual input count, a
-stable id hashed from the device name, driver-reported latencies) from
-`audioDeviceAboutToStart`, so Record unlocks from real hardware with no Test Device click;
-`startRealRecordingCapture` now REFUSES to roll unarmed (no silent fallback take onto the
-first track); take provenance persists the real device's stable id. The Test Device stamp
-remains only for the harness path. Locked by the `[real-device]` gate in app_smoke_tests
-(hostile profiles rejected; unarmed capture refused; armed capture commits a take whose
-persisted `deviceStableId` is the injected real id) — fail-before proven (compile-fail against
-the old model, which had no adoption API and rolled unarmed). Full local ctest 348/348.
-Committing + nine-job CI next.
+E28 is certified: feature `08ffd87`, exact-head nine-job GitHub Actions run `31665416424`
+green (first try); full local ctest **348/348**. E28 is ticked in the backlog.
 
-**Next:** E29 (input device + channel chooser).
+**Now:** E29 (input device + channel chooser) — CANDIDATE, awaiting CI. The model gained
+`setRecordingInputChannel(base, stereoPair)` (guarded against the ADOPTED device's real input
+count; the pick survives arm toggles and clamps back in range when the device changes), the
+capture session records the PICKED window — mono channel N or the stereo pair (N, N+1) — via a
+stack-only channel view on the audio thread (base published with the config before the active
+flag), and take provenance persists the picked channel. The header device row now carries an
+input device chooser (JUCE input-side enumeration/switch; a device switch restarts the device,
+which re-adopts the E28 profile) and a recorded-channel chooser listing the adopted device's
+real channels ("In N" mono + "In N+M" adjacent pairs), rebuilt whenever the device generation
+changes; the row re-balanced to fit the 1152 floor with every label whole (judged in pixels).
+LOCKED by: `[input-pick]` in app_smoke_tests (out-of-range picks refused; the persisted
+float-WAV take carries EXACTLY the picked channel's samples — channel 2's DC for the mono
+pick, channels 0+1 interleaved for the stereo pair; provenance `inputChannel` == 2) and
+`[input-chooser]` in ui_input_tests (chooser disabled until adoption, lists In 1/In 2/In 1+2
+for the 2-input harness device, picking drives the live armed selection). Fail-before proven
+(compile-fail vs the old model, which had no pick API and recorded whatever the device gave).
+Full local ctest **348/348** (owner file isolated + restored, SHA verified).
+
+**Next:** E30 (input metering + arm visibility).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

@@ -3468,6 +3468,56 @@ public:
             repaint();
         };
         addAndMakeVisible (audioDeviceChooser);
+
+        // E29: the INPUT side gets the same treatment — a real input device chooser plus the
+        // recorded-channel pick (mono channel N or the stereo pair) driving the model verb.
+        audioInputDeviceChooser.setComponentID ("shell.device.input.chooser");
+        audioInputDeviceChooser.setTooltip ("Audio input device");
+        audioInputDeviceChooser.setName ("Audio input device");
+        audioInputDeviceChooser.setTitle ("Audio input device");
+        audioInputDeviceChooser.setTextWhenNothingSelected ("Input Device");
+        audioInputDeviceChooser.setTextWhenNoChoicesAvailable ("No Inputs");
+        audioInputDeviceChooser.onChange = [this] {
+            if (refreshingAudioDeviceChooser)
+                return;
+
+            const int selected = audioInputDeviceChooser.getSelectedId();
+            if (selected <= 0
+                || static_cast<std::size_t> (selected - 1) >= audioInputDeviceChooserNames.size())
+                return;
+
+            suspendDesktopAudioCallback();
+            (void) selectAudioInputDeviceByName (
+                audioInputDeviceChooserNames[static_cast<std::size_t> (selected - 1)]);
+            resumeDesktopAudioCallback();
+            refreshAudioDeviceChooser();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (audioInputDeviceChooser);
+
+        recordingInputChannelChooser.setComponentID ("shell.device.input.channel");
+        recordingInputChannelChooser.setTooltip ("Recorded input: mono channel or stereo pair");
+        recordingInputChannelChooser.setName ("Recorded input channel");
+        recordingInputChannelChooser.setTitle ("Recorded input channel");
+        recordingInputChannelChooser.setTextWhenNothingSelected ("Input");
+        recordingInputChannelChooser.setTextWhenNoChoicesAvailable ("No Inputs");
+        recordingInputChannelChooser.onChange = [this] {
+            if (refreshingAudioDeviceChooser)
+                return;
+
+            const int selected = recordingInputChannelChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            // Ids: mono channel N -> N+1; stereo pair (N, N+1) -> 1000 + N + 1.
+            const bool stereo = selected > 1000;
+            const int base = stereo ? selected - 1001 : selected - 1;
+            (void) appModel.setRecordingInputChannel (static_cast<std::uint16_t> (base), stereo);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (recordingInputChannelChooser);
         refreshAudioDeviceChooser();
 
         configureInspectorControls();
@@ -3938,6 +3988,10 @@ public:
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
         audioDeviceChooser.setBounds (yesdaw::ui::UiTheme::Layout::audioDeviceChooserBounds());
+        audioInputDeviceChooser.setBounds (
+            yesdaw::ui::UiTheme::Layout::audioInputDeviceChooserBounds());
+        recordingInputChannelChooser.setBounds (
+            yesdaw::ui::UiTheme::Layout::recordingInputChannelChooserBounds());
         exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
         exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
         exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
@@ -5904,6 +5958,43 @@ private:
         return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
     }
 
+    // E29: input-side twins of the output plumbing. Switching the input device restarts the
+    // JUCE device, which re-runs audioDeviceAboutToStart and re-adopts the E28 profile.
+    [[nodiscard]] std::vector<std::string> enumerateAudioInputDeviceNames()
+    {
+        if (fileChoices.listAudioInputDevices)
+            return fileChoices.listAudioInputDevices();
+
+        std::vector<std::string> names;
+        if (! desktopAudioRequested)
+            return names;
+
+        for (juce::AudioIODeviceType* type : audioDeviceManager.getAvailableDeviceTypes())
+        {
+            if (type == nullptr)
+                continue;
+
+            type->scanForDevices();
+            for (const juce::String& name : type->getDeviceNames (true))
+                names.push_back (name.toStdString());
+        }
+        return names;
+    }
+
+    [[nodiscard]] bool selectAudioInputDeviceByName (const std::string& name)
+    {
+        if (fileChoices.selectAudioInputDevice)
+            return fileChoices.selectAudioInputDevice (name);
+
+        if (! desktopAudioRequested)
+            return false;
+
+        juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
+        setup.inputDeviceName = juce::String (name);
+        setup.useDefaultInputChannels = true;
+        return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+    }
+
     void refreshAudioDeviceChooser()
     {
         refreshingAudioDeviceChooser = true;
@@ -5923,7 +6014,50 @@ private:
         }
 
         audioDeviceChooser.setEnabled (! audioDeviceChooserNames.empty());
+
+        // E29: rebuild the input device list the same way...
+        audioInputDeviceChooserNames = enumerateAudioInputDeviceNames();
+        audioInputDeviceChooser.clear (juce::dontSendNotification);
+        juce::String currentInput;
+        if (desktopAudioRequested)
+            currentInput = audioDeviceManager.getAudioDeviceSetup().inputDeviceName;
+        for (std::size_t index = 0; index < audioInputDeviceChooserNames.size(); ++index)
+        {
+            audioInputDeviceChooser.addItem (juce::String (audioInputDeviceChooserNames[index]),
+                                             static_cast<int> (index) + 1);
+            if (currentInput.isNotEmpty()
+                && currentInput == juce::String (audioInputDeviceChooserNames[index]))
+                audioInputDeviceChooser.setSelectedId (static_cast<int> (index) + 1,
+                                                       juce::dontSendNotification);
+        }
+        audioInputDeviceChooser.setEnabled (! audioInputDeviceChooserNames.empty());
+
+        // ...and the channel pick from the ADOPTED device's real input count: mono "In N" for
+        // each channel, "In N+M" for each adjacent stereo pair.
+        refreshRecordingInputChannelChooser();
         refreshingAudioDeviceChooser = false;
+    }
+
+    // E29: options track the adopted profile's generation so a device change re-lists them.
+    void refreshRecordingInputChannelChooser()
+    {
+        const auto& device = appModel.recordingDeviceSelection();
+        recordingInputChannelChooser.clear (juce::dontSendNotification);
+        for (int channel = 0; channel < static_cast<int> (device.inputChannels); ++channel)
+            recordingInputChannelChooser.addItem ("In " + juce::String (channel + 1), channel + 1);
+        for (int channel = 0; channel + 1 < static_cast<int> (device.inputChannels); ++channel)
+            recordingInputChannelChooser.addItem (
+                "In " + juce::String (channel + 1) + "+" + juce::String (channel + 2),
+                1001 + channel);
+        const auto& context = appModel.context();
+        if (device.inputChannels > 0u)
+        {
+            const int pickBase = std::max (0, context.selectedRecordingInputChannel);
+            recordingInputChannelChooser.setSelectedId (
+                context.selectedRecordingInputStereoPair ? 1001 + pickBase : pickBase + 1,
+                juce::dontSendNotification);
+        }
+        recordingInputChannelChooser.setEnabled (device.selected && device.inputChannels > 0u);
     }
 
     void handleActionWhileAudioStopped (yesdaw::ui::UiActionId action)
@@ -6189,6 +6323,14 @@ private:
     void refreshActionState()
     {
         rebuildTimelineClipViews();
+        // E29: a device change (adoption, Test Device, refresh) re-lists the channel pick.
+        if (recordingChannelChooserGeneration != appModel.context().recordingDeviceGeneration)
+        {
+            recordingChannelChooserGeneration = appModel.context().recordingDeviceGeneration;
+            refreshingAudioDeviceChooser = true;
+            refreshRecordingInputChannelChooser();
+            refreshingAudioDeviceChooser = false;
+        }
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
@@ -8720,6 +8862,11 @@ private:
     juce::TooltipWindow tooltipWindow { nullptr };   // native tooltip display (B40)
     juce::ComboBox audioDeviceChooser;
     std::vector<std::string> audioDeviceChooserNames;
+    // E29: input device chooser + recorded-channel pick.
+    juce::ComboBox audioInputDeviceChooser;
+    std::vector<std::string> audioInputDeviceChooserNames;
+    juce::ComboBox recordingInputChannelChooser;
+    std::uint32_t recordingChannelChooserGeneration = 0xFFFFFFFFu;
     bool refreshingAudioDeviceChooser = false;
     const bool desktopAudioRequested = false;
     bool desktopAudioCallbackRegistered = false;

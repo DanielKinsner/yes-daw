@@ -31,6 +31,9 @@ struct MainComponentFileChoices
     // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
     std::function<std::vector<std::string>()> listAudioOutputDevices;
     std::function<bool (const std::string&)> selectAudioOutputDevice;
+    // E29: input-side seams for the input device chooser (native shell = JUCE device manager).
+    std::function<std::vector<std::string>()> listAudioInputDevices;
+    std::function<bool (const std::string&)> selectAudioInputDevice;
     // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
     // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
     // three-way box when unset.
