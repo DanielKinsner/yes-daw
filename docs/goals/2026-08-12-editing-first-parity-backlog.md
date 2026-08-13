@@ -259,8 +259,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     fade rows' value/thumb collisions and double-printed Curve value (inset 78→150,
     label-only Curve), and a RAW ENGINE NODE ID in a shipped readout (humanized; gate re-pinned
     to reject "meter node"). Deferred honestly to E25: the mixer strip/lane geometry mismatch.
-25. [ ] **E25 — Visual sweep: Mixer view.** Same protocol: strip widths/alignment, meter scales,
-    FX/send row spacing, bus/master panes, dB readouts, overflow behavior with many strips.
+25. [x] **E25 — Visual sweep: Mixer view.** DONE — feature `2a1dc3d`, exact-head nine-job CI
+    run `31662276616` green (first try), local 348/348. Mixer geometry is ONE law now:
+    `mixerStripBounds`/`stripAtPosition` share drawMixer's painted-strip law and
+    `paintedMixerMasterBounds()` mirrors the painted MASTER pane, so the control lane sits ON
+    its strip and the master fader lives in the pane's METER region (below the INTEGRATED /
+    TRUE PEAK cards, beside the painted dB scale — its rail no longer crosses the cards).
+    LOCKED by the `[mixer-geometry]` gate (painted-center clicks select exact ordinals; name
+    button in lane span; master fader inside the pane and below the cards; clicks past lanes
+    select nothing — red with the old code, exit 42) and the `[mixer-sizes]` three-size
+    screenshot capture. Judged clean at 1152×720 / 1536×960 / 1920×1080.
 26. [ ] **E26 — Visual sweep: Piano roll + automation lane.** Same protocol: key column, grid
     contrast, note/velocity readability, expression lanes, automation handles/curve legibility.
 27. [ ] **E27 — Visual sweep: whole-shell resize + consistency.** Min/max window sizes, header

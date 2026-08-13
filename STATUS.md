@@ -618,9 +618,17 @@ project rendered at three sizes with coverage assertions). Fail-before proven: w
 strip, exit 42). Full local ctest green **348/348** (owner file isolated + restored, SHA
 verified).
 
-**Now:** E25 — push + nine-job CI green, then evidence commit.
+E25 is certified: exact-head GitHub Actions run `31662276616` green for full SHA
+`2a1dc3d` (2a1dc3d…) across all nine jobs (first try); full local ctest green **348/348**
+(owner file isolated + restored, SHA verified). E25 is ticked in the backlog.
 
-**Next:** E26 (visual sweep: piano roll + automation lane).
+**Now:** E26 (visual sweep: piano roll + automation lane) — captures judged; the automation
+lane row (canvas + Add/Delete/Fader controls) overlaps the first track's clip because it is
+stamped at a hardcoded inset INSIDE the clip area, and the canvas is a fixed 320px strip
+instead of a full-width lane. Fix: the shared timelineCanvasGeometry law reserves a full-width
+automation band between the ruler and the clip area when the lane is visible.
+
+**Next:** E27 (visual sweep: whole-shell resize + consistency).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
