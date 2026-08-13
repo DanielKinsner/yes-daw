@@ -703,6 +703,55 @@ TEST_CASE ("the picked input channel drives the recorded take", "[ui][app][recor
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the armed input's live meter reads the picked channel", "[ui][app][recording][input-meter]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("input-meter");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x11223344u, 48'000.0, 2, 128, 0, 0 }));
+
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    ch0.fill (0.9f);
+    ch1.fill (0.3f);
+    std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    // Unarmed: no live input meter, whatever the device carries.
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (app.inputMeterPeak() == 0.0f);
+
+    // Armed on the PICKED mono channel 1: the meter reads 0.3 — the pick, not the loudest input.
+    REQUIRE (app.setRecordingInputChannel (1, false));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (app.inputMeterPeak() == Approx (0.3f));
+
+    // The stereo pair meters the pair's max.
+    REQUIRE (app.setRecordingInputChannel (0, true));
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (app.inputMeterPeak() == Approx (0.9f));
+
+    // Disarm silences the meter immediately.
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.inputMeterPeak() == 0.0f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");

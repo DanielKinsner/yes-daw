@@ -295,6 +295,28 @@ public:
             return false;
         }
 
+        // E30: live input metering while ARMED — the picked channel window's block peak is
+        // published for the UI meters, capture running or not. Atomics only; no locks.
+        const std::uint32_t armedPick = armedInputPickPacked_.load (std::memory_order_acquire);
+        if (armedPick != 0u && inputChannels != nullptr && numInputChannels > 0)
+        {
+            const int meterBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
+            const int meterWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
+            float peak = 0.0f;
+            if (meterBase >= 0 && meterBase + meterWidth <= numInputChannels)
+            {
+                for (int channel = 0; channel < meterWidth; ++channel)
+                {
+                    const float* samples = inputChannels[meterBase + channel];
+                    if (samples == nullptr)
+                        continue;
+                    for (int frame = 0; frame < numFrames; ++frame)
+                        peak = std::max (peak, std::abs (samples[frame]));
+                }
+            }
+            liveInputPeak_.store (peak, std::memory_order_release);
+        }
+
         if (captureActive_.load (std::memory_order_acquire)
             && inputChannels != nullptr
             && numInputChannels > 0)
@@ -584,6 +606,11 @@ public:
         enqueueWaveformBuildsForDecodedAssets();
         result.status = UiAppRecordStatus::Ok;
         return result;
+    }
+    // E30: the armed input's live block peak (0 when unarmed) — UI meter fuel.
+    [[nodiscard]] float inputMeterPeak() const noexcept
+    {
+        return liveInputPeak_.load (std::memory_order_acquire);
     }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
@@ -5365,6 +5392,9 @@ private:
         context_.selectedRecordingInputChannel = -1;
         context_.selectedRecordingInputStereoPair = false;
         context_.isRecording = false;
+        // E30: no armed pick — the live input meter reads silent.
+        armedInputPickPacked_.store (0u, std::memory_order_release);
+        liveInputPeak_.store (0.0f, std::memory_order_release);
     }
 
     static void applyDeterministicTestDeviceProfile (UiRecordingDeviceSelection& device) noexcept
@@ -5418,6 +5448,11 @@ private:
         context_.selectedRecordingTrackIndex = static_cast<int> (recordingTrackInput_.trackIndex);
         context_.selectedRecordingInputChannel = static_cast<int> (recordingTrackInput_.inputChannel);
         context_.selectedRecordingInputStereoPair = recordingTrackInput_.stereoPair;
+        // E30: publish the armed pick for the audio thread's live input meter.
+        armedInputPickPacked_.store (
+            (static_cast<std::uint32_t> (recordingTrackInput_.inputChannel) + 1u)
+                | (recordingTrackInput_.stereoPair ? 0x10000u : 0u),
+            std::memory_order_release);
     }
 
     void syncRecordingCompContext() noexcept
@@ -6673,6 +6708,10 @@ private:
     std::uint16_t pickedInputChannel_ = 0;
     bool pickedInputStereoPair_ = false;
     int captureBaseChannel_ = 0;
+    // E30: the armed pick packed for the audio thread ((base+1) | stereo<<16; 0 = unarmed)
+    // and the live input block peak it publishes for the UI meters.
+    std::atomic<std::uint32_t> armedInputPickPacked_ { 0 };
+    std::atomic<float> liveInputPeak_ { 0.0f };
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;

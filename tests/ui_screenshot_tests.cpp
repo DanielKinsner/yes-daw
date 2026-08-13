@@ -715,6 +715,58 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the rail arm badge lights red on the armed track", "[ui][screenshot][arm-badge]")
+{
+    juce::MessageManager::getInstance();
+
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-arm-badge.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = nullptr;
+    for (int child = 0; child < shell->getNumChildComponents(); ++child)
+        if (shell->getChildComponent (child)->getComponentID() == "shell.tracklist.input")
+            rail = shell->getChildComponent (child);
+    REQUIRE (rail != nullptr);
+
+    // Row 0's third rail cell ("O") center, in shell space — the shared row/cell token law.
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Point<int> badgeCentre {
+        rail->getX() + L::trackListNameLeftInset + 2 * L::trackListButtonWidth
+            + L::trackListButtonWidth / 2,
+        rail->getY() + L::trackListHeaderHeight + L::trackListButtonsTop
+            + L::trackListButtonsHeight / 2
+    };
+
+    const juce::Image before = renderShell (*shell);
+    REQUIRE (before.getPixelAt (badgeCentre.x, badgeCentre.y)
+             == yesdaw::ui::UiTheme::Color::mixerBack());
+
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+
+    const juce::Image armed = renderShell (*shell);
+    REQUIRE (armed.getPixelAt (badgeCentre.x, badgeCentre.y)
+             == yesdaw::ui::UiTheme::Color::dangerRed());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
 {
     const juce::Image blank (juce::Image::ARGB,

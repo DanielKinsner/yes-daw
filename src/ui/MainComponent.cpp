@@ -3695,6 +3695,10 @@ public:
     {
         return appModel.recordingDeviceSelection();
     }
+    [[nodiscard]] float harnessInputMeterPeak() const noexcept
+    {
+        return appModel.inputMeterPeak();
+    }
     [[nodiscard]] const yesdaw::ui::UiRecordingTrackInputSelection& harnessRecordingTrackInput() const noexcept
     {
         return appModel.recordingTrackInputSelection();
@@ -3817,6 +3821,19 @@ public:
                                                        int numFrames) noexcept
     {
         return processDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+    }
+    // E30: input-carrying harness block — drives the same input-aware model path the native
+    // device callback uses, so input metering is CI-deterministic.
+    [[nodiscard]] bool harnessProcessDeviceAudioBlock (const float* const* inputChannels,
+                                                       int numInputChannels,
+                                                       float* const* outputChannels,
+                                                       int numOutputChannels,
+                                                       int numFrames) noexcept
+    {
+        const bool processed = appModel.processDeviceAudioBlock (
+            inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
+        accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+        return processed;
     }
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
@@ -5234,8 +5251,15 @@ private:
         const auto& tracks = appModel.project().tracks;
         trackMeterHold.resize (tracks.size());
         for (std::size_t i = 0; i < tracks.size(); ++i)
-            advanceMeterHold (trackMeterHold[i],
-                              playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f);
+        {
+            float peak = playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f;
+            // E30: the ARMED track's rail meter also shows the live input peak, so signal is
+            // visible before recording — playing or stopped.
+            if (appModel.context().recordingTrackArmed
+                && static_cast<int> (i) == appModel.context().selectedRecordingTrackIndex)
+                peak = std::max (peak, appModel.inputMeterPeak());
+            advanceMeterHold (trackMeterHold[i], peak);
+        }
 
         // E22: bus meters live on exactly the same B32 law.
         const auto& buses = appModel.project().buses;
@@ -7515,20 +7539,24 @@ private:
             auto buttonsArea = row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
                                    .withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListButtonsTop)
                                    .withHeight (yesdaw::ui::UiTheme::Layout::trackListButtonsHeight);
+            // E30: the "O" cell is the REAL record-arm badge — lit red on the armed track.
+            const bool rowArmed = appModel.context().recordingTrackArmed
+                               && static_cast<int> (i) == appModel.context().selectedRecordingTrackIndex;
             const std::array<std::pair<const char*, bool>, 3> railCells {{
                 { "M", projectTrack.strip.muted },
                 { "S", projectTrack.strip.soloed },
-                { "O", false },
+                { "O", rowArmed },
             }};
             for (const auto& [label, active] : railCells)
             {
+                const bool armCell = label == std::string ("O");
                 auto cell = buttonsArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::trackListButtonWidth)
                                 .reduced (yesdaw::ui::UiTheme::Layout::trackListButtonInsetX,
                                           yesdaw::ui::UiTheme::Layout::trackListButtonInsetY);
-                g.setColour (active ? trackColour : yesdaw::ui::UiTheme::Color::mixerBack());
+                g.setColour (active ? (armCell ? kRed : trackColour)
+                                    : yesdaw::ui::UiTheme::Color::mixerBack());
                 g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
-                g.setColour (active ? kText
-                                    : (label == std::string ("O") ? kRed : kMutedText));
+                g.setColour (active ? kText : (armCell ? kRed : kMutedText));
                 g.setFont (yesdaw::ui::UiTheme::Type::font (
                     yesdaw::ui::UiTheme::Type::caption,
                     juce::Font::bold));
@@ -9166,6 +9194,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.context = mainComponent->harnessContext();
         snapshot.recordingDevice = mainComponent->harnessRecordingDevice();
         snapshot.recordingTrackInput = mainComponent->harnessRecordingTrackInput();
+        snapshot.liveInputMeterPeak = mainComponent->harnessInputMeterPeak();
         snapshot.lastRecordedAudioTake = mainComponent->harnessLastRecordedAudioTake();
         snapshot.lastRecordedMidiTake = mainComponent->harnessLastRecordedMidiTake();
         snapshot.recordingComp = mainComponent->harnessRecordingComp();
@@ -9211,6 +9240,20 @@ bool processMainComponentDeviceAudioBlock (juce::Component& component,
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessProcessDeviceAudioBlock (outputChannels, numOutputChannels, numFrames);
+
+    return false;
+}
+
+bool processMainComponentDeviceAudioBlock (juce::Component& component,
+                                           const float* const* inputChannels,
+                                           int numInputChannels,
+                                           float* const* outputChannels,
+                                           int numOutputChannels,
+                                           int numFrames)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessProcessDeviceAudioBlock (
+            inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
 
     return false;
 }

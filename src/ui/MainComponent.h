@@ -89,6 +89,8 @@ struct MainComponentSnapshot
     UiActionContext context;
     UiRecordingDeviceSelection recordingDevice;
     UiRecordingTrackInputSelection recordingTrackInput;
+    // E30: the armed input's live meter peak as the shell reads it.
+    float liveInputMeterPeak = 0.0f;
     UiRecordedAudioTake lastRecordedAudioTake;
     UiRecordedMidiTake lastRecordedMidiTake;
     UiRecordingCompSelection recordingComp;
@@ -106,6 +108,13 @@ struct MainComponentSnapshot
 // Save or Close through the confirm seam; false when the user cancelled.
 [[nodiscard]] bool mainComponentConfirmsClose (juce::Component& component);
 [[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
+                                                         float* const* outputChannels,
+                                                         int numOutputChannels,
+                                                         int numFrames);
+// E30: input-carrying harness block for CI-deterministic input metering.
+[[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
+                                                         const float* const* inputChannels,
+                                                         int numInputChannels,
                                                          float* const* outputChannels,
                                                          int numOutputChannels,
                                                          int numFrames);

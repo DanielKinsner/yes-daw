@@ -675,7 +675,18 @@ for the 2-input harness device, picking drives the live armed selection). Fail-b
 (compile-fail vs the old model, which had no pick API and recorded whatever the device gave).
 Full local ctest **348/348** (owner file isolated + restored, SHA verified).
 
-**Next:** E30 (input metering + arm visibility).
+E30 (input metering + arm visibility) — implemented locally on top of E29, awaiting its
+commit slot: the audio thread publishes the ARMED pick's live block peak through atomics
+(packed pick released on arm/pick/disarm; no locks), the armed track's rail meter shows the
+live input peak playing or stopped, and the rail's "O" cell — previously painted permanently
+inactive — is now the REAL record-arm badge (lit `dangerRed` on the armed track). Locked by
+`[input-meter]` (the meter reads the PICKED channel's 0.3, not the loudest input's 0.9;
+stereo pair meters the pair's max; disarm silences immediately), `[arm-meter]` (injected
+input blocks through the new input-carrying harness export reach the shell snapshot), and
+`[arm-badge]` (pixel probe: the O cell paints `mixerBack` unarmed and `dangerRed` armed —
+RUNTIME red vs the old paint, exit 42). Full local ctest 348/348.
+
+**Next:** E31 (direct input monitoring).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

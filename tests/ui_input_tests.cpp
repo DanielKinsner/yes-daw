@@ -8108,6 +8108,40 @@ TEST_CASE ("the input channel chooser lists the adopted device's channels and dr
     REQUIRE (snapshot.context.selectedRecordingInputStereoPair);
 }
 
+TEST_CASE ("the shell's armed rail meter shows the live input peak", "[ui][input][shell][arm-meter]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("arm-meter");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+
+    // The injected input block's picked-channel peak reaches the shell meter snapshot.
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    ch0.fill (0.7f);
+    ch1.fill (0.2f);
+    std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (
+        *shell, inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == Catch::Approx (0.7f));
+
+    // Disarm: the meter reads silent again.
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);
+}
+
 TEST_CASE ("the automation lane is a full-width band between the ruler and the clips",
            "[ui][input][shell][automation-geometry]")
 {
