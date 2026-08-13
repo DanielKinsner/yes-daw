@@ -109,6 +109,8 @@ struct MixerProjectionInputs
     NodeId  masterNodeId    = GraphBuilder::kDefaultMasterNodeId;
     double  sampleRate      = 48000.0;
     int     maxBlockSize    = 512;
+    // E19: persisted master strip gain, applied between the final sum and the master stage.
+    float   masterLinearGain = 1.0f;
     const CompiledGraph* previousForCarryOver = nullptr;
     std::vector<MixerTrackProjection> tracks;
     std::vector<MixerBusProjection> buses;
@@ -591,10 +593,18 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     SumNode* const masterSumPtr = masterSum.get();
     masterSum->setInputNodes (std::move (masterBusInputs));
 
+    // E19: the persisted master gain rides a FaderNode between the final sum and the master
+    // stage — one node id below the master sum, mirroring the sum/master id convention.
+    auto masterFader = std::make_unique<FaderNode> (projection.masterSumNodeId - 1u, 2);
+    FaderNode* const masterFaderPtr = masterFader.get();
+    masterFaderPtr->setInput (masterSumPtr);
+    masterFaderPtr->setTargetGain (projection.masterLinearGain);
+
     auto master = std::make_unique<MasterNode> (projection.masterNodeId, 2);
-    master->setInputNodes ({ masterSumPtr });
+    master->setInputNodes ({ masterFaderPtr });
 
     inputs.nodes.push_back (std::move (masterSum));
+    inputs.nodes.push_back (std::move (masterFader));
     inputs.nodes.push_back (std::move (master));
 
     GraphBuildError graphError;

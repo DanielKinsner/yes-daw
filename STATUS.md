@@ -471,10 +471,27 @@ green **348/348** (one GPU-gate red under the parallel run was a load spike — 
 and green on the rerun; owner file isolated + restored, SHA verified). E18 is ticked in the
 backlog.
 
-**Now:** E19 (master fader) — audited: `masterLinearGain` on Project, additive v12 schema
-(`master_strip` table, locate-points pattern), `SetMasterGain` verb in a new master diff
-family, projection applies it at the master stage, interactive undoable master fader with a
-render-scaling gate. Honest scope: gain only.
+**E19 implementation candidate — master fader:** audited before changing: the master strip was
+decorative — no persisted master gain existed on `engine::Project` at all. `masterLinearGain`
+(default 1.0) now lives on Project with the additive v12 schema (`master_strip` single-row
+table, locate-points pattern: the row is written only when the gain leaves unity, so default
+projects round-trip byte-identically with legacy bundles and a missing row reads as the
+historical default). New engine verb `SetMasterGain` in its own tiny master diff family
+(scalar before/after with the expected-state guard; `pick(23)` property arm with invalid-gain
+no-op contract). The projection applies the gain through a FaderNode between the final sum and
+the master stage — four mixer-projection fader-count pins re-pinned +1 with E19 comments (at
+unity the fader is a bit-exact passthrough, so no golden moved). The master pane's fader
+(`mixer.master.fader`, fine-drag, Alt+click reset to unity, laid out on the master column)
+edits the gain undoably; it needs only a project, not a strip selection. Shell childCount
+re-pinned 122→123. The shipped-boundary `[master-fader]` gate FAILS BEFORE at the COMPILER
+(`masterLinearGain` is not a member of the pre-E19 Project — the gate is unsatisfiable against
+the old product) and passes after with 41 assertions: the persisted 0.5 round-trip through an
+independently-opened bundle, the render peak halving EXACTLY (0.5 is a power of two), and one
+undo restoring persisted unity AND bit-identical audio. Both schema-migration gates re-pinned to the v12 reality (their
+fabricated old bundles now also strip the `master_strip` artifacts, and reopening lands on 12).
+
+**Now:** E19 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
 
 **Next:** E20 (automation targeting).
 

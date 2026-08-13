@@ -284,6 +284,7 @@ void requireProjectValueUnchanged (const Project& actual, const Project& expecte
     REQUIRE (actual.recordingTakes == expected.recordingTakes);
     REQUIRE (actual.recordingCompSegments == expected.recordingCompSegments);
     REQUIRE (actual.automationLanes == expected.automationLanes);
+    REQUIRE (actual.masterLinearGain == expected.masterLinearGain);
 }
 
 enum class GeneratedUndoSequenceStepKind : std::uint8_t
@@ -2070,7 +2071,7 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
             const EntityId note = noteIds[static_cast<std::size_t> (pick (2))];
 
             ProjectEditCommand command = ProjectEditCommand::moveClip (clip, tick (0, 40'000));
-            switch (pick (22))
+            switch (pick (23))
             {
                 case 0: command = ProjectEditCommand::moveClip (clip, tick (0, 40'000)); break;
                 case 1: command = ProjectEditCommand::trimClip (clip, tick (0, 40'000), tick (1, 20'000),
@@ -2230,6 +2231,11 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                         command = ProjectEditCommand::renameBus (
                             idFromLowByte (pick (2) == 0 ? 44 : static_cast<std::uint8_t> (100 + pick (50))),
                             pick (2) == 0 ? "Renamed Bus" : "Verb Bus");
+                    break;
+                // E19 master gain: invalid (negative) gains are no-ops by contract.
+                case 22:
+                    command = ProjectEditCommand::setMasterGain (
+                        pick (8) == 0 ? -1.0f : static_cast<float> (pick (200)) / 100.0f);
                     break;
                 default: break;
             }

@@ -2025,6 +2025,31 @@ public:
             : nullptr;
     }
 
+    // E19: the persisted, undoable master gain — the master fader's one edit.
+    [[nodiscard]] UiActionDispatchResult setMasterFader (float linearGain)
+    {
+        const UiActionId id = UiActionId::MixerMasterSetFader;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        if (! engine::mixerGainIsValid (linearGain))
+            return { id, { false, "invalid master gain" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setMasterGain (linearGain)).applied())
+            return { id, { false, "master gain unchanged" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "master edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     // E17: rename a bus by index through the undoable RenameBus verb; empty names refuse.
     [[nodiscard]] UiActionDispatchResult renameBusAt (std::size_t busIndex, const std::string& name)
     {
@@ -4835,6 +4860,7 @@ public:
             case UiActionId::MixerBusRemove:
             case UiActionId::MixerSendSetTap:
             case UiActionId::MixerSendSetDestination:
+            case UiActionId::MixerMasterSetFader:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

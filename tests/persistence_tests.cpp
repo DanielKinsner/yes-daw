@@ -1347,12 +1347,17 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    REQUIRE (value == 11);
+    // E19 re-pin: migrations now run through v12 (master_strip).
+    REQUIRE (value == 12);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 12;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM master_strip;", value).ok());
     REQUIRE (value == 0);
 
     std::string storedName;
@@ -1376,9 +1381,11 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
+        // E19: a fresh bundle is v12 now — the v10 simulation also strips the v12 artifacts.
         REQUIRE (db.executeSql (
-            "DROP TABLE locate_points; "
+            "DROP TABLE locate_points; DROP TABLE master_strip; "
             "DELETE FROM schema_migrations WHERE version = 11; "
+            "DELETE FROM schema_migrations WHERE version = 12; "
             "PRAGMA user_version = 10;").ok());
     }
 
@@ -1386,10 +1393,13 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
     REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    REQUIRE (value == 11);
+    // E19 re-pin: reopening migrates through v12 (master_strip).
+    REQUIRE (value == 12);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM master_strip;", value).ok());
     REQUIRE (value == 0);
 
     Project readback;

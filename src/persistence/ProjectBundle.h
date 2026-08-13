@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 11;
+inline constexpr int          kCodeSchemaVersion = 12;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1217,13 +1217,22 @@ CREATE TABLE locate_points (
 );
 )SQL";
 
+// E19: persisted master strip gain (locate-points pattern — a v11 bundle migrates by gaining
+// the empty table; a missing row means the historical unity default).
+inline constexpr std::string_view kSchemaV12Sql = R"SQL(
+CREATE TABLE master_strip (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  linear_gain REAL NOT NULL CHECK (linear_gain >= 0 AND linear_gain <= 1000.0)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 11> kMigrations {
+inline constexpr std::array<SchemaMigration, 12> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1235,6 +1244,7 @@ inline constexpr std::array<SchemaMigration, 11> kMigrations {
     SchemaMigration { 9, kSchemaV9Sql },
     SchemaMigration { 10, kSchemaV10Sql },
     SchemaMigration { 11, kSchemaV11Sql },
+    SchemaMigration { 12, kSchemaV12Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1840,6 +1850,7 @@ public:
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
+                "DELETE FROM master_strip; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2255,6 +2266,15 @@ public:
                 if (auto result = locateStmt.bindInt64 (2, *project.locatePoints[index]); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, locateStmt); ! result.ok()) { rollback(); return result; }
             }
+        }
+
+        // E19: the master strip row is written only when the gain left the unity default, so a
+        // default project round-trips byte-identically with a legacy one.
+        if (project.masterLinearGain != 1.0f)
+        {
+            detail::Statement masterStmt (db_, "INSERT INTO master_strip(slot, linear_gain) VALUES (1, ?);");
+            if (auto result = masterStmt.bindDouble (1, static_cast<double> (project.masterLinearGain)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, masterStmt); ! result.ok()) { rollback(); return result; }
         }
 
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
@@ -2916,6 +2936,27 @@ public:
                     return detail::semanticInvalid ("locate_points value is outside the Project value range");
 
                 project.locatePoints[static_cast<std::size_t> (slot - 1)] = tick;
+            }
+        }
+
+        // E19: the master strip row is optional — absent means the historical unity default.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT linear_gain FROM master_strip WHERE slot = 1;");
+                ! result.ok())
+                return result;
+
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+            {
+                const double gain = sqlite3_column_double (stmt.get(), 0);
+                if (! engine::mixerGainIsValid (static_cast<float> (gain)))
+                    return detail::semanticInvalid ("master_strip gain is outside the Project value range");
+                project.masterLinearGain = static_cast<float> (gain);
+            }
+            else if (step != SQLITE_DONE)
+            {
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
             }
         }
 

@@ -753,6 +753,9 @@ struct Project
     // H15 automation surface (ADR-0039): normalized Breakpoints target stable Project entities by role.
     // Runtime NodeId resolution, schema v8 persistence, and undo verbs land in later CP1/CP3 slices.
     std::vector<AutomationLaneData> automationLanes;
+    // E19: persisted master strip gain (schema v12, locate-points pattern: a missing row means
+    // the historical unity default). Honest scope: gain only — no master FX chain, no master pan.
+    float masterLinearGain = 1.0f;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -2359,6 +2362,19 @@ namespace detail {
     }
 
     return ProjectEditStatus::TrackNotFound;
+}
+
+// E19: the persisted master strip gain — one scalar, validated like every strip gain.
+[[nodiscard]] inline ProjectEditStatus setMasterGain (Project& project, float linearGain)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! mixerGainIsValid (linearGain))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    project.masterLinearGain = linearGain;
+    return ProjectEditStatus::Applied;
 }
 
 // E17: the bus twin of renameTrack — empty names are refused before dispatch reaches here.

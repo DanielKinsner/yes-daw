@@ -78,7 +78,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E17: bus rename (the name rides the shared trackName array like markers do)
     RenameBus,
     // E18: send tap point (pre/post fader) — the first mutating verb for the persisted column
-    SetSendTap
+    SetSendTap,
+    // E19: persisted master strip gain
+    SetMasterGain
 };
 
 struct ProjectEditCommand
@@ -770,6 +772,15 @@ struct ProjectEditCommand
         return command;
     }
 
+    // E19: persisted master strip gain (rides the shared `gain` field).
+    [[nodiscard]] static constexpr ProjectEditCommand setMasterGain (float linearGain) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMasterGain;
+        command.gain = linearGain;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -898,6 +909,13 @@ struct ProjectBusRowsDiff
     std::vector<Bus> after;
 };
 
+// E19: the master strip is one scalar; the diff stores both values whole.
+struct ProjectMasterGainDiff
+{
+    float before = 1.0f;
+    float after = 1.0f;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -910,6 +928,7 @@ struct ProjectEditTransaction
     ProjectBusRowsDiff busDiff;
     ProjectTimeMapRowsDiff timeMapDiff;
     ProjectMarkerRowsDiff markerDiff;
+    ProjectMasterGainDiff masterDiff;
 };
 
 struct ProjectEditApplyResult
@@ -1017,6 +1036,12 @@ namespace detail {
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::SetRecordingCompSelection;
+}
+
+// E19: the master strip family (one scalar today: gain).
+[[nodiscard]] constexpr bool isMasterEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::SetMasterGain;
 }
 
 [[nodiscard]] constexpr bool isFxEditVerb (ProjectEditVerb verb) noexcept
@@ -1272,6 +1297,9 @@ namespace detail {
         case ProjectEditVerb::SetSendTap:
             return setSendTap (project, command.trackId, command.sendId, command.sendTap);
 
+        case ProjectEditVerb::SetMasterGain:
+            return setMasterGain (project, command.gain);
+
         case ProjectEditVerb::RenameClip:
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;
@@ -1505,6 +1533,29 @@ namespace detail {
         return false;
 
     project = std::move (edited);
+    return true;
+}
+
+// E19: master gain diff — bit-exact scalar swap with the same expected-state guard.
+[[nodiscard]] inline bool buildProjectMasterGainDiff (const Project& before,
+                                                      const Project& after,
+                                                      ProjectMasterGainDiff& out)
+{
+    if (before.masterLinearGain == after.masterLinearGain)
+        return false;
+
+    out = {};
+    out.before = before.masterLinearGain;
+    out.after = after.masterLinearGain;
+    return true;
+}
+
+[[nodiscard]] inline bool applyMasterGainDiff (Project& project, float expected, float replacement)
+{
+    if (project.masterLinearGain != expected || ! mixerGainIsValid (replacement))
+        return false;
+
+    project.masterLinearGain = replacement;
     return true;
 }
 
@@ -1844,6 +1895,13 @@ namespace detail {
                     : applyMarkerRowsDiff (project, diff.after, diff.before);
     }
 
+    if (isMasterEditVerb (transaction.command.verb))
+    {
+        const ProjectMasterGainDiff& diff = transaction.masterDiff;
+        return redo ? applyMasterGainDiff (project, diff.before, diff.after)
+                    : applyMasterGainDiff (project, diff.after, diff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -1879,6 +1937,8 @@ namespace detail {
         diffBuilt = detail::buildProjectTimeMapRowsDiff (before, project, transaction.timeMapDiff);
     else if (detail::isMarkerEditVerb (command.verb))
         diffBuilt = detail::buildProjectMarkerRowsDiff (before, project, transaction.markerDiff);
+    else if (detail::isMasterEditVerb (command.verb))
+        diffBuilt = detail::buildProjectMasterGainDiff (before, project, transaction.masterDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

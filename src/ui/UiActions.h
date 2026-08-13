@@ -95,6 +95,7 @@ enum class UiActionId : std::uint8_t
     MixerBusRemove,
     MixerSendSetTap,
     MixerSendSetDestination,
+    MixerMasterSetFader,
     TransportSetTempo,
     TransportSetMeter,
     TimelineClipCopy,
@@ -518,6 +519,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerSendSetDestination, "mixer.send.set_destination", "Send Destination", "Ctrl+Alt+E", "Re-route send to another bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerMasterSetFader, "mixer.master.fader", "Master Fader", "Alt+Shift+F", "Set persisted master gain",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportSetMeter, "transport.set_meter", "Set Time Signature", "Ctrl+Alt+N", "Set project time signature",
@@ -1279,6 +1282,7 @@ public:
             case UiActionId::MixerBusRemove:
             case UiActionId::MixerSendSetTap:
             case UiActionId::MixerSendSetDestination:
+            case UiActionId::MixerMasterSetFader:
             case UiActionId::MixerFxInsertParamSet:
             case UiActionId::MixerBusAdd:
             case UiActionId::MixerSendAdd:

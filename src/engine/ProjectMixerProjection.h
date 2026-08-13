@@ -344,6 +344,7 @@ template <typename SourceFactory>
     projection.masterNodeId = config.masterNodeId;
     projection.sampleRate = project.sampleRate.hz;
     projection.maxBlockSize = config.maxBlockSize;
+    projection.masterLinearGain = project.masterLinearGain;   // E19
     projection.previousForCarryOver = config.previousForCarryOver;
     projection.tracks.reserve (project.tracks.size());
 

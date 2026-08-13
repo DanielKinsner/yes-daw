@@ -411,7 +411,8 @@ TEST_CASE ("Mixer projection renders an empty master bus as silence", "[mixer][p
     REQUIRE (graph != nullptr);
     REQUIRE (error.code == MixerProjectionError::Code::None);
     REQUIRE (graph->debugMultiInputNodesBound());
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 0u);
+    // E19 re-pin: +1 fader — the persisted master gain rides a FaderNode before the master stage.
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 1u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == 0u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == 0u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sum) == 1u);
@@ -436,7 +437,8 @@ TEST_CASE ("Mixer projection builds track fader pan meter chains into the master
     REQUIRE (graph != nullptr);
     REQUIRE (error.code == MixerProjectionError::Code::None);
     REQUIRE (graph->debugMultiInputNodesBound());
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 2u);
+    // E19 re-pin: +1 fader — the persisted master gain rides a FaderNode before the master stage.
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 3u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == 2u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == 2u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sum) == 1u);
@@ -490,7 +492,8 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
     REQUIRE (graph != nullptr);
     REQUIRE (graphError.code == MixerProjectionError::Code::None);
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 1u);
+    // E19 re-pin: +1 fader — the persisted master gain rides a FaderNode before the master stage.
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 2u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Pan) == 1u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Meter) == 1u);
     REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Sum) == 2u);
@@ -983,7 +986,8 @@ TEST_CASE ("Mixer projection gives Send levels real FaderNode targets", "[mixer]
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
     REQUIRE (graph != nullptr);
     REQUIRE (error.code == MixerProjectionError::Code::None);
-    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 3u);
+    // E19 re-pin: +1 fader — the persisted master gain rides a FaderNode before the master stage.
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Fader) == 4u);
 
     const CompiledNode* const sendFader = compiledNodeById (*graph, kSendFaderId);
     REQUIRE (sendFader != nullptr);

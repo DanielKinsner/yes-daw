@@ -4370,6 +4370,29 @@ private:
 
         // Send routing (ADR-0044): + Bus creates a persisted Bus; the send chooser routes the
         // selected track to a bus; each visible send row edits its level and removes undoably.
+        // E19: the master fader edits the persisted master gain undoably.
+        configureActionComponent (mixerMasterFader, yesdaw::ui::UiActionId::MixerMasterSetFader, "Master fader");
+        mixerMasterFader.setSliderStyle (juce::Slider::LinearVertical);
+        mixerMasterFader.setTextBoxStyle (juce::Slider::NoTextBox,
+                                          false,
+                                          yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                          yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+        mixerMasterFader.setRange (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMin,
+                                   yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax,
+                                   yesdaw::ui::UiTheme::Layout::mixerFaderSliderInterval);
+        mixerMasterFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
+                                   juce::dontSendNotification);
+        mixerMasterFader.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault);
+        mixerMasterFader.onValueChange = [this] {
+            if (refreshingMixerControls || ! mixerMasterFader.isEnabled())
+                return;
+
+            (void) appModel.setMasterFader (static_cast<float> (mixerMasterFader.getValue()));
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerMasterFader);
+
         configureActionComponent (mixerBusAddButton, yesdaw::ui::UiActionId::MixerBusAdd, "Add bus");
         mixerBusAddButton.setButtonText ("+ Bus");
         mixerBusAddButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
@@ -5406,6 +5429,23 @@ private:
                         lane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
         mixerFader.setBounds (faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
                                   .withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
+
+        // E19: the master fader lives on the MASTER column (the +1 strip after tracks + buses).
+        const auto& masterProject = appModel.project();
+        const int masterOrdinal = appModel.context().projectLoaded
+            ? static_cast<int> (masterProject.tracks.size() + masterProject.buses.size())
+            : 0;
+        auto masterLane = mixerStripBounds (masterOrdinal)
+                              .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
+                                        yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
+        masterLane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight);
+        masterLane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
+        auto masterFaderArea = masterLane.removeFromTop (
+            juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
+                        masterLane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
+        mixerMasterFader.setBounds (
+            masterFaderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
+                .withCentre ({ masterFaderArea.getCentreX(), masterFaderArea.getCentreY() }));
     }
 
     void layoutAutomationLaneControls()
@@ -6631,6 +6671,14 @@ private:
             && firstFxSlotAvailable);
 
         refreshingMixerControls = true;
+        // E19: the master fader reflects the persisted master gain and enables with a project.
+        mixerMasterFader.setEnabled (
+            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerMasterSetFader,
+                                          appModel.context()).enabled);
+        mixerMasterFader.setValue (appModel.context().projectLoaded
+                                       ? static_cast<double> (appModel.project().masterLinearGain)
+                                       : yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
+                                   juce::dontSendNotification);
         if (projectHasTrack)
         {
             // E16: the control lane reads the SELECTED strip (track or bus), falling back to the
@@ -8441,6 +8489,8 @@ private:
     bool lastFxParamPagerVisible = false;
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
+    // E19: the interactive, undoable master fader on the master pane.
+    FineDragSlider mixerMasterFader;
     juce::TextButton mixerBusAddButton;
     // E17: bus rename + remove
     juce::TextButton mixerBusRemoveButton;

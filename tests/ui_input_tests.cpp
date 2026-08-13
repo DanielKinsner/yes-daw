@@ -875,9 +875,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // marker rename editor (hidden until a marker double-click) + the E14 per-slot FX up/down
     // pairs (5 slots x 2, hidden until inserts exist) + the E15 per-row FX param choice
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
-    // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) —
-    // bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 122u));
+    // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
+    // E19 master fader — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 123u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4241,6 +4241,53 @@ TEST_CASE ("send tap toggles pre/post undoably and the destination chooser re-ro
     REQUIRE (project.tracks.front().sends.size() == 1u);
     REQUIRE (project.tracks.front().sends.front().busId == firstBusId);
     REQUIRE (project.tracks.front().sends.front().linearGain == 0.5f);
+}
+
+TEST_CASE ("the master fader persists an undoable master gain that scales the whole mix",
+           "[ui][input][shell][mixer][master-fader]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("master-fader");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    auto* masterFader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.master.fader"));
+    REQUIRE (masterFader != nullptr);
+    REQUIRE (masterFader->isEnabled());
+    REQUIRE (masterFader->getValue() == 1.0);
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> atUnity = renderFromStart();
+    const double unityPeak = peakAbs (std::span<const float> (atUnity.data(), atUnity.size()));
+    REQUIRE (unityPeak > 0.05);
+
+    // Half gain persists (readProjectSnapshot opens the bundle independently — the round trip)
+    // and audibly halves the mix exactly.
+    masterFader->setValue (0.5, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).masterLinearGain == 0.5f);
+    const std::vector<float> atHalf = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (atHalf.data(), atHalf.size()))
+             == Catch::Approx (unityPeak * 0.5));
+    REQUIRE (atHalf != atUnity);
+
+    // One undo restores the persisted unity default AND bit-identical audio.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).masterLinearGain == 1.0f);
+    const std::vector<float> restored = renderFromStart();
+    REQUIRE (restored == atUnity);
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",
