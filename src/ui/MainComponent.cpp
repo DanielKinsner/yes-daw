@@ -3560,7 +3560,21 @@ public:
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override
     {
         if (device != nullptr)
+        {
             appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
+            // E28: the model adopts the REAL device profile — actual input count, a stable id
+            // hashed from the device name, and the driver-reported latencies — so Record
+            // unlocks from real hardware and take provenance records the real device.
+            yesdaw::ui::UiRealRecordingDeviceProfile profile;
+            const auto nameHash = static_cast<std::uint32_t> (device->getName().hashCode());
+            profile.stableDeviceId = nameHash != 0u ? nameHash : 0xFFFFFFFFu;
+            profile.sampleRateHz = device->getCurrentSampleRate();
+            profile.inputChannels = device->getActiveInputChannels().countNumberOfSetBits();
+            profile.maxBlockSize = device->getCurrentBufferSizeSamples();
+            profile.inputLatencyFrames = std::max (0, device->getInputLatencyInSamples());
+            profile.outputLatencyFrames = std::max (0, device->getOutputLatencyInSamples());
+            (void) appModel.adoptRealRecordingDevice (profile);
+        }
         desktopAudioOpen.store (device != nullptr, std::memory_order_release);
     }
 

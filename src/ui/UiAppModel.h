@@ -138,6 +138,18 @@ struct UiRecordingDeviceSelection
     std::int64_t outputLatencyFrames = 0;
 };
 
+// E28: the REAL desktop device's opened profile — adopted into the recording device selection
+// so Record unlocks from actual hardware with honest provenance (never the Test Device stamp).
+struct UiRealRecordingDeviceProfile
+{
+    std::uint32_t stableDeviceId = 0;
+    double sampleRateHz = 0.0;
+    int inputChannels = 0;
+    int maxBlockSize = 0;
+    std::int64_t inputLatencyFrames = 0;
+    std::int64_t outputLatencyFrames = 0;
+};
+
 struct UiRecordingTrackInputSelection
 {
     bool armed = false;
@@ -293,6 +305,31 @@ public:
         return true;
     }
 
+    // E28 (control thread): a real device opened — adopt its ACTUAL profile (input count,
+    // stable id, driver latencies). Inputless devices adopt honestly: Record stays locked by
+    // inputChannels == 0. The Test Device stamp remains only for the harness path.
+    [[nodiscard]] bool adoptRealRecordingDevice (const UiRealRecordingDeviceProfile& profile)
+    {
+        if (profile.stableDeviceId == 0u || profile.sampleRateHz <= 0.0
+            || profile.inputChannels < 0 || profile.maxBlockSize <= 0
+            || profile.inputLatencyFrames < 0 || profile.outputLatencyFrames < 0)
+            return false;
+
+        recordingDevice_.selected = true;
+        recordingDevice_.stableDeviceId = profile.stableDeviceId;
+        ++recordingDevice_.generation;
+        recordingDevice_.sampleRate = engine::SampleRate { profile.sampleRateHz };
+        recordingDevice_.inputChannels = static_cast<std::uint16_t> (
+            std::min (profile.inputChannels,
+                      static_cast<int> (std::numeric_limits<std::uint16_t>::max())));
+        recordingDevice_.maxBlockSize = static_cast<std::uint32_t> (profile.maxBlockSize);
+        recordingDevice_.latencyCalibrated = false;   // driver-reported, never claimed calibrated
+        recordingDevice_.inputLatencyFrames = profile.inputLatencyFrames;
+        recordingDevice_.outputLatencyFrames = profile.outputLatencyFrames;
+        syncRecordingContext();
+        return true;
+    }
+
     // CONTROL THREAD: arm-and-roll a real capture session. The config is published before the active
     // flag so the audio thread never reads a torn config.
     [[nodiscard]] bool startRealRecordingCapture (int deviceInputChannels,
@@ -304,6 +341,12 @@ public:
             || captureActive_.load (std::memory_order_acquire)
             || deviceInputChannels <= 0 || deviceSampleRateHz <= 0.0
             || inputLatencyFrames < 0 || outputLatencyFrames < 0)
+            return false;
+
+        // E28: capture NEVER rolls unarmed — a real take's target track and provenance come
+        // from the armed selection, not a silent fallback to the first track.
+        if (! recordingTrackInput_.armed || ! recordingDevice_.selected
+            || recordingDevice_.inputChannels == 0u)
             return false;
 
         captureConfig_ = {};

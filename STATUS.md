@@ -650,21 +650,23 @@ E26 is certified: feature `3058d13` + CI fix `f36287f` (one real red round — G
 accepted them), exact-head nine-job GitHub Actions run `31664452334` green; full local ctest
 **348/348** (owner file isolated + restored, SHA verified). E26 is ticked in the backlog.
 
-**Now:** E27 (visual sweep: whole-shell resize + consistency) — implemented locally, awaiting
-its turn: the window was NOT resizable at all (no `setResizable`/`setResizeLimits` in
-`Main.cpp`) — now resizable between token limits with the floor at the judged-honest 1152×720;
-judged at 1024×640 (below floor: header gear/loop collision, truncated Comp, Automation toggle
-bleeding onto the inspector — the floor excludes that zone) and at 2560×1440 (honest). Judged
-DEFECT fixed: the inspector painted the "Fade Out" row PAST the panel's bottom edge onto the
-MASTER pane at the floor — paint and layout now share ONE whole-section drop law (a section
-that no longer fits the column is dropped whole: card, labels, and controls). Locked by the
-`[shell-sizes]` gate (renders at the exact token floor + 2560×1440: coverage, whole-section
-control pins, and a no-bright-pixels pin on the old bleed band — red vs old paint, exit 42).
-Full local ctest 348/348. E28 (real devices honestly unlock Record) also implemented locally:
-`adoptRealRecordingDevice` + arm enforcement + real provenance, gated in app_smoke_tests;
-local 348/348.
+E27 is certified: feature `aa8ab5f`, exact-head nine-job GitHub Actions run `31664962854`
+green (first try); full local ctest **348/348** (owner file isolated + restored, SHA
+verified). E27 is ticked in the backlog.
 
-**Next:** E27 feature commit + CI (after E26's evidence), then E28.
+**Now:** E28 (real devices honestly unlock Record) — implemented and locally green:
+`adoptRealRecordingDevice` adopts the REAL desktop device's profile (actual input count, a
+stable id hashed from the device name, driver-reported latencies) from
+`audioDeviceAboutToStart`, so Record unlocks from real hardware with no Test Device click;
+`startRealRecordingCapture` now REFUSES to roll unarmed (no silent fallback take onto the
+first track); take provenance persists the real device's stable id. The Test Device stamp
+remains only for the harness path. Locked by the `[real-device]` gate in app_smoke_tests
+(hostile profiles rejected; unarmed capture refused; armed capture commits a take whose
+persisted `deviceStableId` is the injected real id) — fail-before proven (compile-fail against
+the old model, which had no adoption API and rolled unarmed). Full local ctest 348/348.
+Committing + nine-job CI next.
+
+**Next:** E29 (input device + channel chooser).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

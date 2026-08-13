@@ -510,6 +510,83 @@ TEST_CASE ("real capture count-in rejects pre-roll input and starts the Take at 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("adopting the real device unlocks arm and records honest provenance",
+           "[ui][app][recording][real-device]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("real-device");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // No device yet: arm is refused and capture never rolls.
+    REQUIRE_FALSE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE_FALSE (app.startRealRecordingCapture (2, 44'100.0, 12, 34));
+
+    // Hostile profiles are rejected outright.
+    REQUIRE_FALSE (app.adoptRealRecordingDevice ({}));
+    REQUIRE_FALSE (app.adoptRealRecordingDevice ({ 0u, 44'100.0, 2, 256, 12, 34 }));
+    REQUIRE_FALSE (app.adoptRealRecordingDevice ({ 0xABCD1234u, 0.0, 2, 256, 12, 34 }));
+    REQUIRE_FALSE (app.adoptRealRecordingDevice ({ 0xABCD1234u, 44'100.0, -1, 256, 12, 34 }));
+    REQUIRE_FALSE (app.context().recordingDeviceSelected);
+
+    // The REAL device profile (injected seam for the audioDeviceAboutToStart wiring): its
+    // actual input count, stable id, and driver latencies become the recording selection.
+    const yesdaw::ui::UiRealRecordingDeviceProfile profile { 0xABCD1234u, 44'100.0, 2, 256, 12, 34 };
+    REQUIRE (app.adoptRealRecordingDevice (profile));
+    REQUIRE (app.context().recordingDeviceSelected);
+    REQUIRE (app.context().selectedRecordingDeviceId == 0xABCD1234u);
+    REQUIRE (app.recordingDeviceSelection().inputChannels == 2u);
+    REQUIRE (app.recordingDeviceSelection().inputLatencyFrames == 12);
+    REQUIRE (app.recordingDeviceSelection().outputLatencyFrames == 34);
+    REQUIRE_FALSE (app.recordingDeviceSelection().latencyCalibrated);
+
+    // E28: capture NEVER rolls unarmed — no silent fallback take onto the first track.
+    REQUIRE_FALSE (app.startRealRecordingCapture (2, 44'100.0, 12, 34));
+    REQUIRE_FALSE (app.realRecordingCaptureActive());
+
+    // Armed (no Test Device click anywhere), the real capture path commits a take whose
+    // provenance records the REAL device's stable id — never the fake stamp.
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.startRealRecordingCapture (2, 44'100.0, 12, 34));
+    REQUIRE (app.realRecordingCaptureActive());
+
+    std::array<float, 128> inLeft {};
+    std::array<float, 128> inRight {};
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<const float*, 2> inputs { inLeft.data(), inRight.data() };
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    for (int block = 0; block < 4; ++block)
+    {
+        inLeft.fill (0.5f);
+        inRight.fill (-0.25f);
+        REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+
+    const yesdaw::ui::UiAppRecordResult committed = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (committed.ok());
+
+    ProjectBundleDb verify;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+    Project persisted;
+    REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    REQUIRE (persisted.recordingTakes.size() == 1u);
+    REQUIRE (persisted.recordingTakes.front().deviceStableId == 0xABCD1234u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");
