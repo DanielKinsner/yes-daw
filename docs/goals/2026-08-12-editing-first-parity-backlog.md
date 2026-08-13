@@ -269,8 +269,19 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     button in lane span; master fader inside the pane and below the cards; clicks past lanes
     select nothing — red with the old code, exit 42) and the `[mixer-sizes]` three-size
     screenshot capture. Judged clean at 1152×720 / 1536×960 / 1920×1080.
-26. [ ] **E26 — Visual sweep: Piano roll + automation lane.** Same protocol: key column, grid
-    contrast, note/velocity readability, expression lanes, automation handles/curve legibility.
+26. [x] **E26 — Visual sweep: Piano roll + automation lane.** DONE — feature `3058d13` + CI fix
+    `f36287f` (a real `-Werror=range-loop-construct` red on Linux/macOS, one round), exact-head
+    nine-job CI run `31664452334` green, local 348/348. Piano roll judged honest via the new
+    `[roll-sizes]` three-size capture (pencilled notes, velocity + pitch lanes). Judged DEFECT
+    fixed: the automation lane row was stamped OVER the first track's clip with a fixed 320px
+    canvas — `timelineCanvasGeometry` now reserves a full-width band between ruler and clips
+    when the lane is open (header row + full-width canvas aligned with the arrangement's time
+    axis), locked by the `[automation-geometry]` gate (red vs old layout, exit 42). BONUS
+    engine defect the widened canvas exposed, fixed: play-from-0 never primed a lane whose
+    first breakpoint lay ahead (a single-point lane was silent until its frame; seek and
+    play-through disagreed) — `emitCompiledLaneAutomationEvents` now primes the start value on
+    the first evaluated block (clamp-before-first), locked by the `[automation-target]` pan
+    gate (red before) and three re-pinned builder gates (red vs old engine).
 27. [ ] **E27 — Visual sweep: whole-shell resize + consistency.** Min/max window sizes, header
     row behavior under width pressure, menu/tooltip/theming consistency, token drift; lock with
     layout gates (the B41 SNAP-label gate is the model).

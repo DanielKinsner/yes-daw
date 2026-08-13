@@ -645,9 +645,26 @@ pan gate (red before the fix — pan breakpoint at 0.5s was inaudible) and three
 builder gates asserting the priming event (red against the old engine, 3 failures). Full local
 ctest green **348/348** (owner file isolated + restored, SHA verified).
 
-**Now:** E26 — push + nine-job CI green, then evidence commit.
+E26 is certified: feature `3058d13` + CI fix `f36287f` (one real red round — GCC/Clang
+`-Werror=range-loop-construct` on the capture loops' by-value structured bindings; MSVC had
+accepted them), exact-head nine-job GitHub Actions run `31664452334` green; full local ctest
+**348/348** (owner file isolated + restored, SHA verified). E26 is ticked in the backlog.
 
-**Next:** E27 (visual sweep: whole-shell resize + consistency).
+**Now:** E27 (visual sweep: whole-shell resize + consistency) — implemented locally, awaiting
+its turn: the window was NOT resizable at all (no `setResizable`/`setResizeLimits` in
+`Main.cpp`) — now resizable between token limits with the floor at the judged-honest 1152×720;
+judged at 1024×640 (below floor: header gear/loop collision, truncated Comp, Automation toggle
+bleeding onto the inspector — the floor excludes that zone) and at 2560×1440 (honest). Judged
+DEFECT fixed: the inspector painted the "Fade Out" row PAST the panel's bottom edge onto the
+MASTER pane at the floor — paint and layout now share ONE whole-section drop law (a section
+that no longer fits the column is dropped whole: card, labels, and controls). Locked by the
+`[shell-sizes]` gate (renders at the exact token floor + 2560×1440: coverage, whole-section
+control pins, and a no-bright-pixels pin on the old bleed band — red vs old paint, exit 42).
+Full local ctest 348/348. E28 (real devices honestly unlock Record) also implemented locally:
+`adoptRealRecordingDevice` + arm enforcement + real provenance, gated in app_smoke_tests;
+local 348/348.
+
+**Next:** E27 feature commit + CI (after E26's evidence), then E28.
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
