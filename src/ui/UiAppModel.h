@@ -332,8 +332,15 @@ public:
                 const float* picked[engine::kMaxRecordingChannels] = {};
                 for (int channel = 0; channel < width; ++channel)
                     picked[channel] = inputChannels[base + channel];
-                (void) playback->captureRecordingInputBlock (
-                    captureFifo_, captureConfig_, picked, width, numFrames);
+                // E32: the mapping needs a MONOTONIC device frame — the transport playhead
+                // wraps while looping, which would pin every cycle to take ordinal 0. The
+                // cursor seeds from the playhead on the first captured block and then advances
+                // by block size (audio-thread-only while the session is active).
+                if (captureDeviceFrameCursor_ < 0)
+                    captureDeviceFrameCursor_ = playback->playheadFrame();
+                (void) engine::captureRecordingInputBlock (
+                    captureFifo_, captureConfig_, captureDeviceFrameCursor_, picked, width, numFrames);
+                captureDeviceFrameCursor_ += numFrames;
             }
         }
 
@@ -455,11 +462,27 @@ public:
                 return false;
             captureConfig_.window.punchStartFrame = *countInEnd;
         }
+        // E32: with the transport loop ON, the capture window loops too — each cycle becomes
+        // its own take (H5 primitive), capped so a forgotten session can't grow unbounded.
+        if (context_.loopEnabled && playback_ != nullptr)
+        {
+            const std::int64_t loopStart = playbackLoopStartFrame();
+            const std::int64_t loopEnd = playbackLoopEndFrame();
+            if (loopStart >= 0 && loopEnd > loopStart)
+            {
+                captureConfig_.window.loopEnabled = true;
+                captureConfig_.window.loopStartFrame = loopStart;
+                captureConfig_.window.loopEndFrame = loopEnd;
+                captureConfig_.window.maxLoopTakes = static_cast<std::uint32_t> (kMaxLoopRecordingTakes);
+            }
+        }
         if (! captureConfig_.isValid())
             return false;
 
         captureInterleaved_.clear();
+        captureLoopTakes_.clear();
         captureTimelineStartFrame_ = -1;
+        captureDeviceFrameCursor_ = -1;
         captureChannels_ = static_cast<std::uint16_t> (captureConfig_.channels);
         captureActive_.store (true, std::memory_order_release);
         if (countInEnd)
@@ -485,7 +508,9 @@ public:
         return true;
     }
 
-    // CONTROL THREAD (shell timer): drain captured chunks out of the RT FIFO into the session buffer.
+    // CONTROL THREAD (shell timer): drain captured chunks out of the RT FIFO into the session
+    // buffers. E32: loop cycles arrive with their H5 take ordinal — cycle 0 fills the primary
+    // buffer, later cycles fill their own per-cycle buffer for per-cycle take commits.
     void drainRealRecordingCapture()
     {
         engine::RecordingChunk chunk;
@@ -494,14 +519,29 @@ public:
             if (chunk.frameCount == 0 || chunk.channels == 0)
                 continue;
 
-            if (captureTimelineStartFrame_ < 0)
-                captureTimelineStartFrame_ = chunk.timelineStartFrame;
-
             const std::size_t samples = static_cast<std::size_t> (chunk.frameCount)
                                       * static_cast<std::size_t> (chunk.channels);
-            captureInterleaved_.insert (captureInterleaved_.end(),
-                                        chunk.samples.begin(),
-                                        chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+            if (chunk.takeOrdinal == 0u)
+            {
+                if (captureTimelineStartFrame_ < 0)
+                    captureTimelineStartFrame_ = chunk.timelineStartFrame;
+                captureInterleaved_.insert (captureInterleaved_.end(),
+                                            chunk.samples.begin(),
+                                            chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+                continue;
+            }
+
+            const std::size_t cycle = static_cast<std::size_t> (chunk.takeOrdinal) - 1u;
+            if (cycle >= kMaxLoopRecordingTakes)
+                continue;
+            if (captureLoopTakes_.size() <= cycle)
+                captureLoopTakes_.resize (cycle + 1u);
+            CaptureLoopTake& take = captureLoopTakes_[cycle];
+            if (take.startFrame < 0)
+                take.startFrame = chunk.timelineStartFrame;
+            take.samples.insert (take.samples.end(),
+                                 chunk.samples.begin(),
+                                 chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
         }
     }
 
@@ -540,57 +580,78 @@ public:
         ++context_.recordingCommandCount;
         ++context_.commandDispatchCount;
 
+        // E32: the session may hold several takes — the primary buffer (cycle 0) plus one per
+        // completed loop cycle, each committed as its OWN take, placed identically.
         const std::uint16_t channels = captureChannels_ > 0 ? captureChannels_ : 1;
-        const std::uint64_t frames = captureInterleaved_.size() / channels;
-        if (frames == 0 || captureTimelineStartFrame_ < 0)
+        struct PendingCaptureTake
+        {
+            std::int64_t startFrame = -1;
+            const std::vector<float>* samples = nullptr;
+        };
+        std::vector<PendingCaptureTake> pendingTakes;
+        if (captureInterleaved_.size() / channels > 0 && captureTimelineStartFrame_ >= 0)
+            pendingTakes.push_back ({ captureTimelineStartFrame_, &captureInterleaved_ });
+        for (const CaptureLoopTake& loopTake : captureLoopTakes_)
+            if (loopTake.startFrame >= 0 && loopTake.samples.size() / channels > 0)
+                pendingTakes.push_back ({ loopTake.startFrame, &loopTake.samples });
+        if (pendingTakes.empty())
         {
             result.status = UiAppRecordStatus::PreconditionsNotMet;
             return result;
         }
 
-        app::RecordedAudioTakeRequest request;
-        request.sampleRate = engine::SampleRate { captureConfig_.sampleRateHz };
-        request.frames = frames;
-        request.channels = channels;
-        request.interleavedSamples = std::span<const float> (
-            captureInterleaved_.data(), static_cast<std::size_t> (frames) * channels);
-        request.targetTrackId = recordingTrackInput_.trackId;
-        request.timelineStart = static_cast<engine::Tick> (captureTimelineStartFrame_);
-        request.deviceStableId = recordingDevice_.stableDeviceId;
-        request.inputChannel = recordingTrackInput_.inputChannel;
-        request.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
-        request.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
-
-        app::RecordedTakeCommitResult commit = app::commitRecordedAudioTake (
-            bundleDb_,
-            project_,
-            request,
-            [this] (std::uint8_t seedByte, const engine::Project& project)
-            { return allocateSessionEntityId (seedByte, project); },
-            [this] (engine::Project& project) -> engine::Track&
-            { return ensureDefaultAudioTrack (project); });
-
-        result.importResult.bundleResult = commit.bundleResult;
-        if (! commit.ok())
-        {
-            result.status = UiAppRecordStatus::AssetImportFailed;
-            return result;
-        }
-
-        // Adopt the committed project exactly like the deterministic take path (no synthetic MIDI).
-        UiDecodedAsset decoded;
-        decoded.assetId = commit.importedAsset.id;
-        decoded.sampleRate = commit.importedAsset.sampleRate;
-        decoded.frames = commit.importedAsset.frames;
-        decoded.channels = commit.importedAsset.channels;
-        decoded.interleavedSamples.assign (captureInterleaved_.begin(), captureInterleaved_.end());
-
+        const std::uint32_t baseOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
+        engine::Project working = project_;
         std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
-        upsertDecodedAsset (nextDecoded, std::move (decoded));
+        app::RecordedTakeCommitResult commit;
+        for (std::size_t pending = 0; pending < pendingTakes.size(); ++pending)
+        {
+            const std::uint64_t takeFrames = pendingTakes[pending].samples->size() / channels;
+            app::RecordedAudioTakeRequest request;
+            request.sampleRate = engine::SampleRate { captureConfig_.sampleRateHz };
+            request.frames = takeFrames;
+            request.channels = channels;
+            request.interleavedSamples = std::span<const float> (
+                pendingTakes[pending].samples->data(),
+                static_cast<std::size_t> (takeFrames) * channels);
+            request.targetTrackId = recordingTrackInput_.trackId;
+            request.timelineStart = static_cast<engine::Tick> (pendingTakes[pending].startFrame);
+            request.deviceStableId = recordingDevice_.stableDeviceId;
+            request.inputChannel = recordingTrackInput_.inputChannel;
+            request.takeOrdinal = baseOrdinal + static_cast<std::uint32_t> (pending);
+            request.monitoringPolicy =
+                engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
+
+            commit = app::commitRecordedAudioTake (
+                bundleDb_,
+                working,
+                request,
+                [this] (std::uint8_t seedByte, const engine::Project& project)
+                { return allocateSessionEntityId (seedByte, project); },
+                [this] (engine::Project& project) -> engine::Track&
+                { return ensureDefaultAudioTrack (project); });
+
+            result.importResult.bundleResult = commit.bundleResult;
+            if (! commit.ok())
+            {
+                result.status = UiAppRecordStatus::AssetImportFailed;
+                return result;
+            }
+
+            working = std::move (commit.project);
+            UiDecodedAsset decoded;
+            decoded.assetId = commit.importedAsset.id;
+            decoded.sampleRate = commit.importedAsset.sampleRate;
+            decoded.frames = commit.importedAsset.frames;
+            decoded.channels = commit.importedAsset.channels;
+            decoded.interleavedSamples.assign (pendingTakes[pending].samples->begin(),
+                                               pendingTakes[pending].samples->end());
+            upsertDecodedAsset (nextDecoded, std::move (decoded));
+        }
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            commit.project,
+            working,
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
@@ -603,7 +664,7 @@ public:
         (void) built.engine->stop();
         drainTransport (*built.engine);
 
-        project_ = std::move (commit.project);
+        project_ = std::move (working);
         decodedAssets_ = std::move (nextDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
@@ -6742,6 +6803,17 @@ private:
     std::atomic<float> liveInputPeak_ { 0.0f };
     // E31: DirectInput monitoring routes the armed pick into the live outputs.
     std::atomic<bool> monitorDirectInput_ { false };
+    // E32: loop-recording cycle buffers (index = H5 take ordinal - 1) and the session cap.
+    static constexpr std::size_t kMaxLoopRecordingTakes = 8;
+    struct CaptureLoopTake
+    {
+        std::int64_t startFrame = -1;
+        std::vector<float> samples;
+    };
+    std::vector<CaptureLoopTake> captureLoopTakes_;
+    // E32: monotonic device-frame cursor for the capture mapping (audio-thread-owned while a
+    // session is active; -1 seeds from the playhead on the first captured block).
+    std::int64_t captureDeviceFrameCursor_ = -1;
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;

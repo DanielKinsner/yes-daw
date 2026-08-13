@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -817,6 +818,88 @@ TEST_CASE ("DirectInput monitoring routes the armed pick into the live outputs; 
     REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);   // disarm
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
     REQUIRE (outLeft[0] == 0.0f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("loop recording commits one take per cycle, placed identically",
+           "[ui][app][recording][loop-record]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("loop-record");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x100731F5u, 48'000.0, 1, 128, 0, 0 }));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+
+    // An 8-frame transport loop (setPlaybackLoopRegion enables the loop): one 128-frame device
+    // block covers 16 cycles; the session cap keeps the first 8 as takes and drops the rest.
+    REQUIRE (app.setPlaybackLoopRegion (0, 8).dispatched);
+    REQUIRE (app.context().loopEnabled);
+
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    std::array<float, 128> input {};
+    for (int i = 0; i < 128; ++i)
+        input[static_cast<std::size_t> (i)] = static_cast<float> (i) * 0.001f;
+    const float* inputs[1] = { input.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+    app.drainRealRecordingCapture();
+
+    const yesdaw::ui::UiAppRecordResult committed = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (committed.ok());
+
+    Project persisted;
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+
+    // Eight takes — every cycle placed IDENTICALLY at the loop start, 8 frames each, with
+    // distinct consecutive ordinals.
+    REQUIRE (persisted.recordingTakes.size() == 8u);
+    std::set<std::uint32_t> ordinals;
+    for (const yesdaw::engine::RecordingTake& take : persisted.recordingTakes)
+    {
+        REQUIRE (take.timelineStart == 0);
+        REQUIRE (take.frameCount == 8u);
+        ordinals.insert (take.takeOrdinal);
+    }
+    REQUIRE (ordinals.size() == 8u);
+    REQUIRE (persisted.clips.size() == 9u);   // the original + one clip per cycle take
+
+    // Cycle 2's asset carries frames 16..23 of the device ramp — proof each cycle keeps its
+    // OWN audio, not a copy of cycle 0.
+    {
+        const yesdaw::engine::RecordingTake& cycleTake = persisted.recordingTakes[2];
+        const yesdaw::engine::Asset* recorded = nullptr;
+        for (const Asset& asset : persisted.assets)
+            if (asset.id == cycleTake.assetId)
+                recorded = &asset;
+        REQUIRE (recorded != nullptr);
+        const std::filesystem::path wavPath =
+            bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (recorded->contentHash);
+        std::ifstream in (wavPath, std::ios::binary);
+        REQUIRE (in.good());
+        in.seekg (44);
+        float firstSample = 0.0f;
+        in.read (reinterpret_cast<char*> (&firstSample), sizeof (float));
+        REQUIRE (in.good());
+        REQUIRE (firstSample == Approx (0.016f));
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
