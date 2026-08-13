@@ -229,10 +229,13 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     group-swallowing hazard in the first design, which was replaced), and a new gesture SEALS
     the previous entry so two drags stay two steps. The `[strip-undo]` gate failed before (the
     old law ate the sentinel marker) and passes after with 95 assertions.
-22. [ ] **E22 — Bus meters live.** Engine builds per-bus MeterNodes (`MixerGraphProjection.h:575-586`)
-    but the shell never harvests them — bus strips paint permanent zero
-    (`UiMixerSurface.h:400`, `MainComponent.cpp:6702-6703`). Surface bus peaks exactly like track
-    peaks (B32 pattern: peak-hold, clip-latch, click-clear).
+22. [x] **E22 — Bus meters live.** Landed in `8267576` (run `31658312970` green for the full
+    SHA across all nine jobs, first try). `PlaybackEngine` harvests the per-bus MeterNode taps
+    at create on the track-meter contract (an unrouted FX-less bus projects no meter node and
+    honestly reads 0); `busMeterPeak` flows through the model; `busMeterHold` advances on the
+    B32 tick law; bus strips paint held-peak/clip-latch instead of permanent zero; a bus meter
+    click clears exactly its own hold. The `[bus-meter]` gate failed before (only the track's
+    clip light existed) and passes after with 40 assertions.
 23. [ ] **E23 — Cross-strip/slot coverage gates.** Audit-first: prove (and fix where broken) that
     every per-strip/per-slot control works beyond index 0 — FX param editing on a non-zero strip
     and a non-zero slot, sends on the third track, inspector on a clip on the third track,

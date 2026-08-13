@@ -552,10 +552,15 @@ assertions: a full-scale clip through a unity send latching TWO clip lights afte
 (more pixels than a single light can paint), and a click on the self-located rightmost (bus)
 light clearing only the bus latch while the track light stays.
 
-**Now:** E22 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E22 is certified: exact-head GitHub Actions run `31658312970` green for full SHA
+`82675769c873e6d620a70e1bdfe86172e9882dd4` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E22 is ticked in the backlog.
 
-**Next:** E23 (cross-strip/slot coverage gates).
+**Now:** E23 (cross-strip/slot coverage gates) — audit-first: extend `[fxparam]`, `[sendsui]`,
+and `[inspector]` to third-track / non-zero-slot fixtures; fix the painted-mixer selected
+highlight to the E16 strip ordinal (bus strips never highlighted).
+
+**Next:** E24 (visual sweep: Timeline view).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
