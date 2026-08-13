@@ -2629,7 +2629,8 @@ public:
 class MainComponent : public juce::Component,
                       public juce::MenuBarModel,
                       private juce::Timer,
-                      private juce::AudioIODeviceCallback
+                      private juce::AudioIODeviceCallback,
+                      private juce::MidiInputCallback
 {
 public:
     explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool enableDesktopAudio)
@@ -3566,6 +3567,20 @@ public:
             }
         }
 
+        // E34: open every MIDI input so played notes reach a live capture session (native
+        // shell only — harness runs stay deterministic with the injected model seam).
+        if (desktopAudioRequested)
+        {
+            for (const auto& midiDevice : juce::MidiInput::getAvailableDevices())
+            {
+                if (auto midiInput = juce::MidiInput::openDevice (midiDevice.identifier, this))
+                {
+                    midiInput->start();
+                    midiInputs.push_back (std::move (midiInput));
+                }
+            }
+        }
+
         // H17 CP4: scheduled autosave is ON by default (policy lives in the headless app model, so the
         // default is covered by a headless test). The Timer fires on the message thread — which is this
         // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
@@ -3576,6 +3591,10 @@ public:
     {
         menuBar.setModel (nullptr);
         stopTimer();
+        for (auto& midiInput : midiInputs)
+            if (midiInput != nullptr)
+                midiInput->stop();
+        midiInputs.clear();
         if (desktopAudioCallbackRegistered)
             audioDeviceManager.removeAudioCallback (this);
         audioDeviceManager.closeAudioDevice();
@@ -3605,6 +3624,46 @@ public:
             autosaveElapsedMs = 0;
             (void) appModel.writeAutosaveTick();
         }
+    }
+
+    // E34: real MIDI inputs — note on/off pairs collected on the message thread and stamped
+    // with the capture session's published device-frame cursor; outside a session the model
+    // refuses them, so this is inert until Record rolls.
+    void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage& message) override
+    {
+        if (! message.isNoteOn() && ! message.isNoteOff())
+            return;
+
+        const std::int64_t frame = appModel.captureDeviceFrameApprox();
+        const bool noteOn = message.isNoteOn();
+        const int note = message.getNoteNumber();
+        const float velocity = message.getFloatVelocity();
+        juce::Component::SafePointer<MainComponent> safeThis (this);
+        juce::MessageManager::callAsync ([safeThis, frame, noteOn, note, velocity] {
+            if (safeThis != nullptr)
+                safeThis->handleCapturedMidiNote (frame, noteOn, note, velocity);
+        });
+    }
+
+    void handleCapturedMidiNote (std::int64_t frame, bool noteOn, int note, float velocity)
+    {
+        if (noteOn)
+        {
+            pendingMidiNoteOns[note] = { frame, velocity };
+            return;
+        }
+
+        const auto pending = pendingMidiNoteOns.find (note);
+        if (pending == pendingMidiNoteOns.end())
+            return;
+
+        const auto [startFrame, onVelocity] = pending->second;
+        pendingMidiNoteOns.erase (pending);
+        if (frame <= startFrame)
+            return;
+
+        (void) appModel.captureMidiEventDuringRecording (
+            { startFrame, static_cast<std::uint8_t> (note), onVelocity, frame - startFrame });
     }
 
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override
@@ -9108,6 +9167,9 @@ private:
     juce::ComboBox inspectorTakeChooser;
     juce::TextButton inspectorTakeDelete;
     std::vector<yesdaw::ui::UiClipTakeView> inspectorTakeViews;
+    // E34: open MIDI inputs + the message-thread note-on pairing map (note -> frame, velocity).
+    std::vector<std::unique_ptr<juce::MidiInput>> midiInputs;
+    std::map<int, std::pair<std::int64_t, float>> pendingMidiNoteOns;
     FineDragSlider inspectorStart;
     FineDragSlider inspectorEnd;
     FineDragSlider inspectorLength;

@@ -711,7 +711,21 @@ take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed):
 `switchAudibleTakeForSelectedClip` (one SetClipGain transaction group: chosen 1.0 others 0.0),
 `deleteRecordingTake` (via the verb; clears clip selection if the removed take's clip was
 selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
-gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). UI HALF ALSO DONE: the inspector's
+gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). E33 IS CERTIFIED (CI run `31670095158` green on `0a7857f`; ticked in the backlog).
+
+**Now:** E34 (MIDI recording) — implemented and locally green (349/349):
+`captureMidiEventDuringRecording` collects notes during a LIVE capture session only; the last
+take's commit places them as a real MidiClip on the take's track via the commit-hook machinery
+(`appendCapturedMidiTake` maps device frames through the SAME recording window as audio —
+latency-compensated, punch/loop aware, loop cycles beyond the first honest-scope dropped;
+clip-relative note ticks); the native shell opens every `juce::MidiInput` whose callback pairs
+note on/off on the message thread and stamps frames from the audio thread's published cursor
+(`captureDeviceFrameApprox`). Locked by `[midi-record]` (in-window note lands at the
+compensated position, pre-window note rejected by the mapping, hostile events refused,
+persisted MidiClip pinned) — fail-before proven (compile-fail vs the old model). Feature
+commit + CI next, then E35 (hardware record proof).
+
+Historical E33 detail: the inspector's
 placeholder AUTOMATION-VOLUME section (which ALWAYS painted "No automation" — a fake) is now a
 real TAKES section — chooser listing the selected window's takes with a ● audible mark
 (UTF-8 via CharPointer_UTF8; MSVC codepage mangles raw literals) driving

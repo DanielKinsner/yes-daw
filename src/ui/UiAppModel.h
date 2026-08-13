@@ -105,6 +105,17 @@ struct UiRecordedAudioTake
     std::uint16_t channels = 0;
 };
 
+// E34: one note collected during a REAL capture session, stamped in DEVICE frames (the
+// native shell's MIDI-input callback pairs on/off and stamps with the published cursor;
+// tests inject directly).
+struct UiCapturedMidiEvent
+{
+    std::int64_t deviceInputFrame = 0;
+    std::uint8_t note = 60;
+    float normalizedVelocity = 0.75f;
+    std::int64_t lengthFrames = 0;
+};
+
 // E33: one row of the selected clip's take stack (takes on its track sharing its window).
 struct UiClipTakeView
 {
@@ -350,6 +361,9 @@ public:
                 (void) engine::captureRecordingInputBlock (
                     captureFifo_, captureConfig_, captureDeviceFrameCursor_, picked, width, numFrames);
                 captureDeviceFrameCursor_ += numFrames;
+                // E34: publish the cursor so the shell's MIDI-input callback can stamp notes.
+                captureDeviceFramePublished_.store (captureDeviceFrameCursor_,
+                                                    std::memory_order_release);
             }
         }
 
@@ -490,6 +504,7 @@ public:
 
         captureInterleaved_.clear();
         captureLoopTakes_.clear();
+        capturedMidi_.clear();
         captureTimelineStartFrame_ = -1;
         captureDeviceFrameCursor_ = -1;
         captureChannels_ = static_cast<std::uint16_t> (captureConfig_.channels);
@@ -514,6 +529,28 @@ public:
         }
         ++context_.recordingCommandCount;
         ++context_.commandDispatchCount;
+        return true;
+    }
+
+    // E34: the session's device-frame cursor as last published by the audio thread — the
+    // shell's MIDI callback stamps incoming notes with this.
+    [[nodiscard]] std::int64_t captureDeviceFrameApprox() const noexcept
+    {
+        return captureDeviceFramePublished_.load (std::memory_order_acquire);
+    }
+
+    // E34 (control thread): collect a note played during the LIVE capture session. Rejected
+    // outside a session; the stop-commit maps device frames through the same recording window
+    // as audio (latency-compensated, punch- and loop-aware) so pre-roll notes never land.
+    [[nodiscard]] bool captureMidiEventDuringRecording (const UiCapturedMidiEvent& event)
+    {
+        if (! captureActive_.load (std::memory_order_acquire)
+            || event.lengthFrames <= 0
+            || event.deviceInputFrame < 0
+            || event.normalizedVelocity <= 0.0f || event.normalizedVelocity > 1.0f)
+            return false;
+
+        capturedMidi_.push_back (event);
         return true;
     }
 
@@ -631,14 +668,33 @@ public:
             request.monitoringPolicy =
                 engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
 
-            commit = app::commitRecordedAudioTake (
-                bundleDb_,
-                working,
-                request,
-                [this] (std::uint8_t seedByte, const engine::Project& project)
-                { return allocateSessionEntityId (seedByte, project); },
-                [this] (engine::Project& project) -> engine::Track&
-                { return ensureDefaultAudioTrack (project); });
+            // E34: the LAST take's commit also places the MIDI captured during the session
+            // (mapped through the same recording window as the audio).
+            const bool placesCapturedMidi = pending == pendingTakes.size() - 1u
+                                         && ! capturedMidi_.empty();
+            UiRecordedMidiTake placedMidiTake;
+            if (placesCapturedMidi)
+                commit = app::commitRecordedAudioTake (
+                    bundleDb_,
+                    working,
+                    request,
+                    [this] (std::uint8_t seedByte, const engine::Project& project)
+                    { return allocateSessionEntityId (seedByte, project); },
+                    [this] (engine::Project& project) -> engine::Track&
+                    { return ensureDefaultAudioTrack (project); },
+                    [this, &placedMidiTake] (engine::Project& nextProject)
+                    { placedMidiTake = appendCapturedMidiTake (nextProject); });
+            else
+                commit = app::commitRecordedAudioTake (
+                    bundleDb_,
+                    working,
+                    request,
+                    [this] (std::uint8_t seedByte, const engine::Project& project)
+                    { return allocateSessionEntityId (seedByte, project); },
+                    [this] (engine::Project& project) -> engine::Track&
+                    { return ensureDefaultAudioTrack (project); });
+            if (placedMidiTake.midiClipId.isValid())
+                lastRecordedMidiTake_ = placedMidiTake;
 
             result.importResult.bundleResult = commit.bundleResult;
             if (! commit.ok())
@@ -1313,6 +1369,60 @@ private:
     // The paired synthetic MIDI take the H13 recording skeleton places next to a recorded audio
     // take. UI-model-only scaffolding: it rides the shared commit's decoration hook and is never
     // part of the canonical recorded-audio service (the packaged checker must not produce it).
+    // E34: place the session's captured MIDI as a real MidiClip on the take's track — device
+    // frames map through the SAME recording window as the audio (compensated, punch/loop
+    // aware; loop cycles beyond the first are honest-scope dropped), notes clip-relative.
+    [[nodiscard]] UiRecordedMidiTake appendCapturedMidiTake (engine::Project& nextProject)
+    {
+        const engine::Clip& clip = nextProject.clips.back();
+
+        engine::MidiClip midiClip;
+        midiClip.id = allocateSessionEntityId (0xE1u, nextProject);
+        midiClip.trackId = clip.trackId;
+        midiClip.timelineStart = clip.timelineStart;
+        midiClip.timelineLength = clip.timelineLength;
+        midiClip.timeBase = engine::TimeBase::SampleLocked;
+
+        std::uint8_t noteSeed = 0xE2u;
+        for (const UiCapturedMidiEvent& event : capturedMidi_)
+        {
+            std::int64_t timelineFrame = 0;
+            std::uint32_t takeOrdinal = 0;
+            if (! engine::mapDeviceInputFrameToRecordingFrame (
+                    captureConfig_, event.deviceInputFrame, timelineFrame, takeOrdinal)
+                || takeOrdinal != 0u
+                || timelineFrame < clip.timelineStart
+                || timelineFrame >= clip.timelineStart + clip.timelineLength)
+                continue;
+
+            engine::Note note;
+            note.id = allocateSessionEntityId (noteSeed++, nextProject);
+            note.startTick = timelineFrame - clip.timelineStart;
+            note.lengthTicks = std::min<engine::Tick> (
+                static_cast<engine::Tick> (event.lengthFrames),
+                clip.timelineLength - note.startTick);
+            note.key = event.note;
+            note.pitchNote = static_cast<double> (event.note);
+            note.normalizedVelocity = static_cast<double> (event.normalizedVelocity);
+            note.portIndex = 0;
+            note.channel = static_cast<std::int16_t> (recordingTrackInput_.inputChannel);
+            midiClip.notes.push_back (note);
+        }
+
+        if (midiClip.notes.empty())
+            return {};
+
+        const UiRecordedMidiTake placed {
+            midiClip.id,
+            clip.trackId,
+            midiClip.timelineStart,
+            midiClip.timelineLength,
+            midiClip.notes.size()
+        };
+        nextProject.midiClips.push_back (std::move (midiClip));
+        return placed;
+    }
+
     [[nodiscard]] UiRecordedMidiTake appendDeterministicMidiTake (engine::Project& nextProject,
                                                                   std::uint16_t inputChannel)
     {
@@ -6915,6 +7025,10 @@ private:
     // E32: monotonic device-frame cursor for the capture mapping (audio-thread-owned while a
     // session is active; -1 seeds from the playhead on the first captured block).
     std::int64_t captureDeviceFrameCursor_ = -1;
+    // E34: notes collected during the live capture session (control thread only) + the
+    // audio thread's published device-frame cursor for MIDI stamping.
+    std::vector<UiCapturedMidiEvent> capturedMidi_;
+    std::atomic<std::int64_t> captureDeviceFramePublished_ { 0 };
     UiRecordedAudioTake lastRecordedAudioTake_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;

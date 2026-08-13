@@ -982,6 +982,75 @@ TEST_CASE ("the take stack lists, switches the audible take, and deletes takes u
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recording window",
+           "[ui][app][recording][midi-record]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-record");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x3D1D0001u, 48'000.0, 1, 128, 64, 0 }));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    const std::size_t midiClipsBefore = app.project().midiClips.size();
+
+    // MIDI outside a live session is refused outright.
+    REQUIRE_FALSE (app.captureMidiEventDuringRecording ({ 100, 60, 0.8f, 200 }));
+
+    // A 64-frame input-latency session: device frames map back by 64.
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 64, 0));
+    std::array<float, 128> input {};
+    input.fill (0.25f);
+    const float* inputs[1] = { input.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    for (int block = 0; block < 4; ++block)
+    {
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+
+    // One note inside the window (device 164 -> timeline 100) and one in the pre-window
+    // region the latency mapping rejects (device 10 -> timeline -54).
+    REQUIRE (app.captureMidiEventDuringRecording ({ 164, 72, 0.9f, 96 }));
+    REQUIRE (app.captureMidiEventDuringRecording ({ 10, 40, 0.5f, 50 }));
+    // Hostile events are refused (zero length, out-of-range velocity).
+    REQUIRE_FALSE (app.captureMidiEventDuringRecording ({ 164, 72, 0.9f, 0 }));
+    REQUIRE_FALSE (app.captureMidiEventDuringRecording ({ 164, 72, 1.5f, 96 }));
+
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+
+    // Exactly ONE MidiClip landed, holding exactly the in-window note at the compensated spot.
+    REQUIRE (app.project().midiClips.size() == midiClipsBefore + 1u);
+    const yesdaw::engine::MidiClip& placed = app.project().midiClips.back();
+    REQUIRE (placed.notes.size() == 1u);
+    REQUIRE (placed.notes.front().key == 72);
+    REQUIRE (placed.notes.front().startTick == 100 - placed.timelineStart);
+    REQUIRE (placed.notes.front().lengthTicks == 96);
+    REQUIRE (app.lastRecordedMidiTake().midiClipId.isValid());
+
+    Project persisted;
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+    REQUIRE (persisted.midiClips.size() == midiClipsBefore + 1u);
+    REQUIRE (persisted.midiClips.back().notes.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");
