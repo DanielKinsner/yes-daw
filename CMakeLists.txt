@@ -530,6 +530,31 @@ if (YESDAW_BUILD_APPS)
            COMMAND $<TARGET_FILE:YesDawHardwareRecordingCheck> --version)
   set_tests_properties(YesDawHardwareRecordingCheckVersion PROPERTIES
     PASS_REGULAR_EXPRESSION "YesDawHardwareRecordingCheck ${YESDAW_GIT_VERSION}")
+
+  # --- Shipped-path record checker (E35) ---
+  # YesDawShippedRecordCheck drives the SAME model verbs the shipped Record button calls
+  # (adoptRealRecordingDevice -> arm -> startRealRecordingCapture -> processDeviceAudioBlock ->
+  # stopRealRecordingCaptureAndCommit) against the real device, and self-asserts the committed
+  # take contains the played coded burst. CI compiles it and runs --version only — real capture
+  # is owner-machine evidence via tools/verify-hardware.ps1. Never "listen and check".
+  juce_add_console_app(YesDawShippedRecordCheck PRODUCT_NAME "YesDawShippedRecordCheck")
+  target_sources(YesDawShippedRecordCheck PRIVATE tools/hardware/ShippedRecordCheckMain.cpp)
+  target_include_directories(YesDawShippedRecordCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawShippedRecordCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawShippedRecordCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+  target_link_libraries(YesDawShippedRecordCheck
+    PRIVATE
+      sqlite3_amalgamation
+      juce::juce_audio_devices
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawShippedRecordCheck)
+  add_test(NAME YesDawShippedRecordCheckVersion
+           COMMAND $<TARGET_FILE:YesDawShippedRecordCheck> --version)
+  set_tests_properties(YesDawShippedRecordCheckVersion PROPERTIES
+    PASS_REGULAR_EXPRESSION "YesDawShippedRecordCheck ${YESDAW_GIT_VERSION}")
 endif()
 
 # --- Node-trait check (spike #3; pure, proves block-size-independent processing) ---

@@ -1051,6 +1051,67 @@ TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recordin
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the shipped Record button's exact verb sequence commits a latency-compensated take",
+           "[ui][app][recording][record-button-path]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("record-button-path");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // The EXACT sequence MainComponent's Record button runs on the real-device branch:
+    // adoption (audioDeviceAboutToStart), arm-if-unarmed, then startRealRecordingCapture with
+    // the device's live parameters — here with NONZERO driver latencies.
+    REQUIRE (app.adoptRealRecordingDevice ({ 0xB0770001u, 48'000.0, 2, 128, 128, 64 }));
+    REQUIRE_FALSE (app.context().recordingTrackArmed);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.startRealRecordingCapture (2, 48'000.0, 128, 64));
+
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    for (int block = 0; block < 4; ++block)
+    {
+        ch0.fill (0.4f);
+        ch1.fill (-0.4f);
+        REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+
+    const yesdaw::ui::UiAppRecordResult committed = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (committed.ok());
+
+    // ADR-0018 compensation: with 128+64 driver latency and a mono pick default of channel 0,
+    // the first 192 device frames map before the timeline start and are rejected — the take
+    // starts at frame 0 and holds the remaining 320 frames.
+    REQUIRE (committed.take.timelineStart == 0);
+    REQUIRE (committed.take.frames == 512u - 192u);
+
+    Project persisted;
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+    REQUIRE (persisted.recordingTakes.size() == 1u);
+    REQUIRE (persisted.recordingTakes.front().deviceStableId == 0xB0770001u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");
