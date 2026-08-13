@@ -548,8 +548,8 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     };
     REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
     const juce::Rectangle<int> grid = pencilGrid();
-    for (const auto [fx, fy] : { std::pair { 0.08, 0.62 }, { 0.22, 0.55 }, { 0.36, 0.48 },
-                                 { 0.52, 0.55 }, { 0.68, 0.42 }, { 0.84, 0.35 } })
+    for (const auto& [fx, fy] : { std::pair { 0.08, 0.62 }, { 0.22, 0.55 }, { 0.36, 0.48 },
+                                  { 0.52, 0.55 }, { 0.68, 0.42 }, { 0.84, 0.35 } })
         mouseDownUpAt (*pianoRoll,
                        { grid.getX() + juce::roundToInt (grid.getWidth() * fx),
                          grid.getY() + juce::roundToInt (grid.getHeight() * fy) });
@@ -588,7 +588,7 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     juce::Component* automationCanvas = findChildById ("timeline.automation.canvas");
     REQUIRE (automationCanvas != nullptr);
     REQUIRE (automationCanvas->isVisible());
-    for (const auto [fx, fy] : { std::pair { 0.15, 0.75 }, { 0.45, 0.25 }, { 0.8, 0.55 } })
+    for (const auto& [fx, fy] : { std::pair { 0.15, 0.75 }, { 0.45, 0.25 }, { 0.8, 0.55 } })
         mouseDownUpAt (*automationCanvas,
                        { juce::roundToInt (automationCanvas->getWidth() * fx),
                          juce::roundToInt (automationCanvas->getHeight() * fy) });
