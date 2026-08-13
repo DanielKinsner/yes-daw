@@ -186,10 +186,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     stays. Action ids `MixerBusRename`/`MixerBusRemove`; childCount re-pinned 112→114. The
     `[bus-rename-remove]` gate failed before (no rename editor) and passes after with 63
     assertions including the refused removal and the undo restoring the removed bus.
-18. [ ] **E18 — Send tap + destination editing.** Tap is hardcoded PostFader at creation
-    (`UiAppModel.h:2055`) with no engine verb to change it (the `tap` column IS already persisted in
-    schema v9); destination is never re-editable. Add `SetSendTap` (property-tested) + a per-row
-    pre/post toggle, and a destination chooser that re-routes as remove+add in one undo group.
+18. [x] **E18 — Send tap + destination editing.** Landed in `3115daf` (run `31652951911` green
+    for the full SHA across all nine jobs, first try). New engine verb `SetSendTap` (track diff
+    family, `pick(4)` property arm) — the first mutating verb for the tap column persisted
+    since schema v9. Each send row grew a tap toggle naming the CURRENT tap and a destination
+    chooser (disabled when there is nowhere else to route) re-routing as remove+add of the SAME
+    send id in ONE undo group, preserving tap and level; routing to the current bus refuses.
+    Action ids `MixerSendSetTap`/`MixerSendSetDestination`; childCount re-pinned 114→122. The
+    `[send-tap-dest]` gate failed before (no tap toggle) and passes after with 67 assertions.
 19. [ ] **E19 — Master fader.** The master strip is decorative: no persisted master gain exists on
     `engine::Project` at all. Additive schema bump (v11 → v12, locate-points pattern): persisted
     master strip gain; projection applies it at the master stage; interactive, undoable master

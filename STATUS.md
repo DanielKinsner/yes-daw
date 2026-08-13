@@ -465,10 +465,18 @@ passes after with 67 assertions: the Post→Pre flip persisted with the button n
 tap and undone, the one-bus chooser honestly disabled, the re-route preserving id/tap/level,
 and ONE Ctrl+Z restoring the original route.
 
-**Now:** E18 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E18 is certified: exact-head GitHub Actions run `31652951911` green for full SHA
+`3115dafad1bf6e00f7ae90d2c02504e95536e952` across all nine jobs (first try); full local ctest
+green **348/348** (one GPU-gate red under the parallel run was a load spike — green standalone
+and green on the rerun; owner file isolated + restored, SHA verified). E18 is ticked in the
+backlog.
 
-**Next:** E19 (master fader).
+**Now:** E19 (master fader) — audited: `masterLinearGain` on Project, additive v12 schema
+(`master_strip` table, locate-points pattern), `SetMasterGain` verb in a new master diff
+family, projection applies it at the master stage, interactive undoable master fader with a
+render-scaling gate. Honest scope: gain only.
+
+**Next:** E20 (automation targeting).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
