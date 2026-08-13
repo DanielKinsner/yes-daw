@@ -706,20 +706,22 @@ snapshots) with `isRecordingTakeEditVerb`, `buildProjectRecordingTakeRowsDiff`,
 `applyRecordingTakeRowsDiff(project, diff, redo)` wired into the transaction build and
 undo/redo dispatch; property arm case 23 (pick 23→24, refusal paths); dedicated
 `[take-remove]` unit test green (121 assertions incl. the comp fixture: removal scrubs the
-take's comp segment, undo/redo bit-identical). REMAINING for E33: (1) model verbs —
-`takesForSelectedClipWindow()` (takes on the selected clip's track with matching
-timelineStart; audible = that take's clip gain > 0), `switchAudibleTakeForSelectedClip(takeId)`
-(one transaction group of SetClipGain: chosen 1.0, others 0.0 — mirror
-deleteSelectedTimelineClip's copy/begin/apply/end/adoptEditedProject pattern at
-UiAppModel.h:3119), `deleteRecordingTake(takeId)` via the new verb (clear clip selection if the
-removed take's clip was selected); (2) UI — REPLACE the inspector's placeholder
-AUTOMATION-VOLUME section (it ALWAYS paints "No automation", a fake) with a real TAKES
-section: chooser listing the window's takes + Delete Take button, whole-section drop law
-applies; (3) gates: app_smoke [take-switch] (loop-record 3 takes → switch audible → only
-chosen clip gain 1.0 others 0.0, one undo restores; delete take → takes-1, clips-1) + ui_input
-[take-chooser] (chooser lists takes after a loop record, switching drives the verb) +
-childCount pin +2 if two new components; (4) fail-befores (engine verb compile-fail; model
-runtime red), full ctest, feature commit, nine-job CI, evidence.
+take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed): `UiClipTakeView` +
+`takesForSelectedClipWindow()` (audible = that take's clip gain > 0),
+`switchAudibleTakeForSelectedClip` (one SetClipGain transaction group: chosen 1.0 others 0.0),
+`deleteRecordingTake` (via the verb; clears clip selection if the removed take's clip was
+selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
+gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). REMAINING for E33:
+(1) UI — REPLACE the inspector's placeholder AUTOMATION-VOLUME section (it ALWAYS paints "No
+automation", a fake) with a real TAKES section: a chooser listing the window's takes ("Take
+N" + audible mark, drives `switchAudibleTakeForSelectedClip`) + a Delete Take button (drives
+`deleteRecordingTake`), whole-section drop law applies (mirror the E27 pattern:
+drawInspectorSectionCard gate + sectionFits in layoutInspectorControls); (2) ui_input
+[take-chooser] gate (loop-record 3 takes through the shell → chooser lists them → switching
+drives the verb → snapshot gains) + childCount pin (+2 → mainShellToolbarActions().size() +
+128u at ui_input_tests.cpp:~895); (3) fail-before (stash MainComponent.cpp → chooser missing/
+inactive → red), full ctest, feature commit, nine-job CI, evidence. THEN E34 (MIDI recording),
+E35 (hardware record proof) — see the backlog for their audit notes.
 
 **Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
 their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching

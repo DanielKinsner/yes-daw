@@ -905,6 +905,83 @@ TEST_CASE ("loop recording commits one take per cycle, placed identically",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the take stack lists, switches the audible take, and deletes takes undoably",
+           "[ui][app][recording][take-switch]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("take-switch");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x7A4E0001u, 48'000.0, 1, 128, 0, 0 }));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.setPlaybackLoopRegion (0, 8).dispatched);
+
+    // Three loop cycles -> a three-take stack, all clips at gain 1.0 (all summing).
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    std::array<float, 24> input {};
+    input.fill (0.5f);
+    const float* inputs[1] = { input.data() };
+    std::array<float, 24> outLeft {};
+    std::array<float, 24> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 24));
+    app.drainRealRecordingCapture();
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+    REQUIRE (app.project().recordingTakes.size() == 3u);
+    REQUIRE (app.context().timelineClipSelected);
+
+    const std::vector<yesdaw::ui::UiClipTakeView> takes = app.takesForSelectedClipWindow();
+    REQUIRE (takes.size() == 3u);
+    for (const yesdaw::ui::UiClipTakeView& view : takes)
+        REQUIRE (view.audible);
+
+    // Switching makes EXACTLY the chosen take audible (its clip gain 1.0, the others 0.0).
+    REQUIRE_FALSE (app.switchAudibleTakeForSelectedClip (idFromLowByte (199)));
+    REQUIRE (app.switchAudibleTakeForSelectedClip (takes[0].takeId));
+    const auto gainOfClip = [&app] (const EntityId clipId)
+    {
+        for (const Clip& clip : app.project().clips)
+            if (clip.id == clipId)
+                return clip.gain;
+        return -1.0f;
+    };
+    REQUIRE (gainOfClip (takes[0].clipId) == 1.0f);
+    REQUIRE (gainOfClip (takes[1].clipId) == 0.0f);
+    REQUIRE (gainOfClip (takes[2].clipId) == 0.0f);
+    const std::vector<yesdaw::ui::UiClipTakeView> switched = app.takesForSelectedClipWindow();
+    REQUIRE (switched[0].audible);
+    REQUIRE_FALSE (switched[1].audible);
+    REQUIRE_FALSE (switched[2].audible);
+
+    // ONE undo restores every gain (the switch was a single group).
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (gainOfClip (takes[1].clipId) == 1.0f);
+    REQUIRE (gainOfClip (takes[2].clipId) == 1.0f);
+
+    // Deleting a take scrubs the take AND its clip, undoably.
+    const std::size_t clipsBefore = app.project().clips.size();
+    REQUIRE_FALSE (app.deleteRecordingTake (idFromLowByte (199)));
+    REQUIRE (app.deleteRecordingTake (takes[1].takeId));
+    REQUIRE (app.project().recordingTakes.size() == 2u);
+    REQUIRE (app.project().clips.size() == clipsBefore - 1u);
+    REQUIRE (gainOfClip (takes[1].clipId) == -1.0f);   // clip gone
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().recordingTakes.size() == 3u);
+    REQUIRE (gainOfClip (takes[1].clipId) == 1.0f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("rapid same-millisecond FX adds never drop an insert", "[ui][app][fx][rapid]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("rapid-fx");

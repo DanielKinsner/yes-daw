@@ -105,6 +105,15 @@ struct UiRecordedAudioTake
     std::uint16_t channels = 0;
 };
 
+// E33: one row of the selected clip's take stack (takes on its track sharing its window).
+struct UiClipTakeView
+{
+    engine::EntityId takeId;
+    engine::EntityId clipId;
+    std::uint32_t takeOrdinal = 0;
+    bool audible = false;
+};
+
 struct UiRecordedMidiTake
 {
     engine::EntityId midiClipId;
@@ -698,6 +707,98 @@ public:
     }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
+
+    // E33: the SELECTED clip's take stack — takes on its track sharing its timeline start.
+    // "Audible" is honest data, not a flag: that take's clip currently has gain > 0.
+    [[nodiscard]] std::vector<UiClipTakeView> takesForSelectedClipWindow() const
+    {
+        std::vector<UiClipTakeView> views;
+        if (! context_.timelineClipSelected)
+            return views;
+
+        const engine::Clip* selected = nullptr;
+        for (const engine::Clip& clip : project_.clips)
+            if (clip.id == selectedTimelineClipId_)
+                selected = &clip;
+        if (selected == nullptr)
+            return views;
+
+        for (const engine::RecordingTake& take : project_.recordingTakes)
+        {
+            if (take.trackId != selected->trackId || take.timelineStart != selected->timelineStart)
+                continue;
+
+            const engine::Clip* takeClip = nullptr;
+            for (const engine::Clip& clip : project_.clips)
+                if (clip.id == take.clipId)
+                    takeClip = &clip;
+            views.push_back ({ take.id, take.clipId, take.takeOrdinal,
+                               takeClip != nullptr && takeClip->gain > 0.0f });
+        }
+        return views;
+    }
+
+    // E33: switch the audible take — ONE undo group setting the chosen take's clip gain to
+    // 1.0 and every other same-window take's clip to 0.0 (takes are hard-linked to their
+    // clips, so audibility is a gain law, never clip removal).
+    [[nodiscard]] bool switchAudibleTakeForSelectedClip (engine::EntityId takeId)
+    {
+        const std::vector<UiClipTakeView> takes = takesForSelectedClipWindow();
+        bool found = false;
+        for (const UiClipTakeView& view : takes)
+            found = found || view.takeId == takeId;
+        if (! found)
+            return false;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return false;
+        for (const UiClipTakeView& view : takes)
+        {
+            const float gain = view.takeId == takeId ? 1.0f : 0.0f;
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::setClipGain (view.clipId, gain)).applied())
+                return false;
+        }
+        if (! nextUndo.endTransactionGroup())
+            return false;
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return false;
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return true;
+    }
+
+    // E33: delete a take — the RemoveRecordingTake verb scrubs the take, its clip, and its
+    // comp segments in one undoable step.
+    [[nodiscard]] bool deleteRecordingTake (engine::EntityId takeId)
+    {
+        const engine::RecordingTake* target = nullptr;
+        for (const engine::RecordingTake& take : project_.recordingTakes)
+            if (take.id == takeId)
+                target = &take;
+        if (target == nullptr)
+            return false;
+
+        const engine::EntityId removedClipId = target->clipId;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::removeRecordingTake (takeId)).applied())
+            return false;
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return false;
+
+        if (selectedTimelineClipId_ == removedClipId)
+            clearTimelineClipSelection();
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return true;
+    }
     [[nodiscard]] const UiRecordedAudioTake& lastRecordedAudioTake() const noexcept { return lastRecordedAudioTake_; }
     [[nodiscard]] const UiRecordedMidiTake& lastRecordedMidiTake() const noexcept { return lastRecordedMidiTake_; }
     [[nodiscard]] const UiRecordingCompSelection& recordingCompSelection() const noexcept { return recordingCompSelection_; }
