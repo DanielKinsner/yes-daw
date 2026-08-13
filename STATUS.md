@@ -490,10 +490,16 @@ independently-opened bundle, the render peak halving EXACTLY (0.5 is a power of 
 undo restoring persisted unity AND bit-identical audio. Both schema-migration gates re-pinned to the v12 reality (their
 fabricated old bundles now also strip the `master_strip` artifacts, and reopening lands on 12).
 
-**Now:** E19 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E19 is certified: exact-head GitHub Actions run `31654737005` green for full SHA
+`5f7ea32cc2bf9178c1c39b70b04ac478a408d43b` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E19 is ticked in the backlog.
 
-**Next:** E20 (automation targeting).
+**Now:** E20 (automation targeting) — audited: generalize the model's lane accessors to
+(owner, role, paramId) with create-on-demand, a `timeline.automation.target` chooser listing
+fader/pan/each send/each FX param, breakpoint ticks through the snap chooser, gate proves
+audible pan and FX-param playback.
+
+**Next:** E21 (undo covers direct strip edits) — Phase 3 begins.
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 

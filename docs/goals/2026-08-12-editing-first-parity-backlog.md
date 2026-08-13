@@ -194,10 +194,18 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     send id in ONE undo group, preserving tap and level; routing to the current bus refuses.
     Action ids `MixerSendSetTap`/`MixerSendSetDestination`; childCount re-pinned 114→122. The
     `[send-tap-dest]` gate failed before (no tap toggle) and passes after with 67 assertions.
-19. [ ] **E19 — Master fader.** The master strip is decorative: no persisted master gain exists on
-    `engine::Project` at all. Additive schema bump (v11 → v12, locate-points pattern): persisted
-    master strip gain; projection applies it at the master stage; interactive, undoable master
-    fader on the master pane. Honest scope: master gain only — no master FX chain, no master pan.
+19. [x] **E19 — Master fader.** Landed in `5f7ea32` (run `31654737005` green for the full SHA
+    across all nine jobs, first try). `masterLinearGain` (default 1.0) on Project with the
+    additive v12 schema (`master_strip` single-row table, locate-points pattern — the row is
+    written only off unity, so default projects round-trip byte-identically with legacy
+    bundles). New verb `SetMasterGain` in its own tiny master diff family (`pick(23)` property
+    arm). The projection applies the gain through a FaderNode before the master stage (four
+    fader-count pins and both migration gates re-pinned; at unity the fader is a bit-exact
+    passthrough so no golden moved). Interactive, undoable `mixer.master.fader` on the master
+    column; childCount 122→123. The `[master-fader]` gate FAILS BEFORE AT THE COMPILER
+    (`masterLinearGain` not a member pre-E19) and passes after with 41 assertions: persisted 0.5
+    round trip, render peak halving EXACTLY, one undo restoring unity and bit-identical audio.
+    Honest scope: gain only — no master FX chain, no master pan.
 20. [ ] **E20 — Automation targeting.** The canvas hard-targets the selected track's FADER lane
     only (`MainComponent.cpp:6010-6020`) even though the engine compiles and plays back all six
     roles (`Project.h:583-598`, `CompiledGraph.h:340-431`). Add a lane-target chooser (track
