@@ -626,6 +626,95 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the shell renders honestly at the resize-limit extremes",
+           "[ui][screenshot][shell-sizes]")
+{
+    juce::MessageManager::getInstance();
+
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-shell-sizes.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    // The window's resize limits ARE the layout contract: every shipped panel must render
+    // honestly at the floor and at a beyond-default wide size (E27; B41 gate model).
+    const auto controlById = [&shell] (const char* id) -> juce::Component*
+    {
+        for (int child = 0; child < shell->getNumChildComponents(); ++child)
+            if (shell->getChildComponent (child)->getComponentID() == id)
+                return shell->getChildComponent (child);
+        return nullptr;
+    };
+    const auto renderAtSize = [&shell, &controlById] (int width, int height,
+                                                      bool expectFadesDropped,
+                                                      const char* filename)
+    {
+        shell->setSize (width, height);
+        const juce::Image image = renderShell (*shell);
+        REQUIRE (hasHeaderCoverage (image));
+        REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, height - 348 }) > 20u);
+        REQUIRE (sampledDifferentPixelCount (image, { 318, 88, width - 638, height - 348 }) > 60u);
+        REQUIRE (sampledDifferentPixelCount (image, { 0, height - 260, width, 260 }) > 40u);
+        // E27: the WHOLE-SECTION drop law — an inspector section fits entirely (all its
+        // controls laid out above the bottom mixer panel) or is dropped entirely (all its
+        // controls empty). The FADES section is the witness: dropped at the floor, present
+        // at the wide size. The stats section fits at both.
+        const int bottomPanelTop = height - yesdaw::ui::UiTheme::Layout::mixerHeight;
+        for (const char* id : { "clip.inspector.start", "clip.inspector.end",
+                                "clip.inspector.length" })
+        {
+            juce::Component* control = controlById (id);
+            REQUIRE (control != nullptr);
+            INFO ("control " << id << " bounds " << control->getBounds().toString().toStdString());
+            REQUIRE_FALSE (control->getBounds().isEmpty());
+            REQUIRE (control->getBounds().getBottom() <= bottomPanelTop);
+        }
+        for (const char* id : { "clip.inspector.fade_in", "clip.inspector.fade_out",
+                                "clip.inspector.fade_curve" })
+        {
+            juce::Component* control = controlById (id);
+            REQUIRE (control != nullptr);
+            INFO ("control " << id << " bounds " << control->getBounds().toString().toStdString());
+            REQUIRE (control->getBounds().isEmpty() == expectFadesDropped);
+            REQUIRE ((control->getBounds().isEmpty()
+                      || control->getBounds().getBottom() <= bottomPanelTop));
+        }
+        // A dropped section paints NOTHING: the inspector column's slice of the mixer's top
+        // edge holds no bright row text (the old paint stamped "Fade Out ..." over it).
+        if (expectFadesDropped)
+        {
+            for (int y = bottomPanelTop + 2; y < bottomPanelTop + 10; ++y)
+                for (int x = width - 312; x < width - 122; ++x)
+                    REQUIRE (image.getPixelAt (x, y).getBrightness() < 0.5f);
+        }
+        (void) captureShellPng (image, filename);
+    };
+
+    renderAtSize (yesdaw::ui::UiTheme::Layout::windowMinWidth,
+                  yesdaw::ui::UiTheme::Layout::windowMinHeight,
+                  true,
+                  "yesdaw-shell-min.png");
+    renderAtSize (2560, 1440, false, "yesdaw-shell-wide.png");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
 {
     const juce::Image blank (juce::Image::ARGB,

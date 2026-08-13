@@ -207,6 +207,12 @@ struct UiTheme
         static constexpr int headerHeight = 118;   // three control rows; row 3 hosts export/device/recording
         static constexpr int defaultWindowWidth = 1536;
         static constexpr int defaultWindowHeight = 960;
+        // E27: the window resize floor is the smallest size every shipped layout stays honest
+        // at (the judged laptop size) — below it the header rows and panels collide.
+        static constexpr int windowMinWidth = 1152;
+        static constexpr int windowMinHeight = 720;
+        static constexpr int windowMaxWidth = 8192;
+        static constexpr int windowMaxHeight = 4320;
         static constexpr int leftRailWidth = 318;
         static constexpr int inspectorWidth = 320;
         static constexpr int mixerHeight = 260;

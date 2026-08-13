@@ -1,6 +1,7 @@
 // YES DAW - JUCE application wrapper.
 
 #include "ui/MainComponent.h"
+#include "ui/UiTheme.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -36,6 +37,13 @@ private:
         {
             setUsingNativeTitleBar (true);
             setContentOwned (content, true);
+            // E27: the shell is resizable between the judged layout limits — the floor is the
+            // smallest size every shipped panel renders honestly at ([shell-sizes] gate).
+            setResizable (true, false);
+            setResizeLimits (yesdaw::ui::UiTheme::Layout::windowMinWidth,
+                             yesdaw::ui::UiTheme::Layout::windowMinHeight,
+                             yesdaw::ui::UiTheme::Layout::windowMaxWidth,
+                             yesdaw::ui::UiTheme::Layout::windowMaxHeight);
             centreWithSize (getWidth(), getHeight());
             setVisible (true);
         }

@@ -5342,15 +5342,17 @@ private:
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
-        // E24: a small window drops the sections that no longer fit inside the inspector column
-        // instead of bleeding their controls over the bottom mixer panel.
+        // E24/E27: ONE law for paint and controls — an inspector section that no longer fits
+        // the column is dropped WHOLE (card, labels, and controls), never split across the
+        // panel edge or bled over the bottom mixer panel.
         const juce::Rectangle<int> content = area;
-        const auto clampToInspector = [content] (juce::Rectangle<int> rect)
+        const auto sectionFits = [content] (juce::Rectangle<int> section)
         {
-            return content.contains (rect) ? rect : juce::Rectangle<int>();
+            return content.contains (section);
         };
-        auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
-                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
+        const auto statsSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
+                                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
+        auto stats = statsSection;
         auto startCell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
                               .reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
                                         yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
@@ -5359,34 +5361,42 @@ private:
                                       yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
         auto lengthCell = stats.reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
                                          yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
-        inspectorStart.setBounds (clampToInspector (startCell));
-        inspectorEnd.setBounds (clampToInspector (endCell));
-        inspectorLength.setBounds (clampToInspector (lengthCell));
+        const bool statsFit = sectionFits (statsSection);
+        inspectorStart.setBounds (statsFit ? startCell : juce::Rectangle<int>());
+        inspectorEnd.setBounds (statsFit ? endCell : juce::Rectangle<int>());
+        inspectorLength.setBounds (statsFit ? lengthCell : juce::Rectangle<int>());
 
-        auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
-                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
+        const auto gainSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
+                                     .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
+        auto gain = gainSection;
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
-        inspectorGain.setBounds (clampToInspector (
-            gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)));
+        inspectorGain.setBounds (sectionFits (gainSection)
+            ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
+                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
+            : juce::Rectangle<int>());
 
-        auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
-                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        const auto fadesSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
+                                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        auto fades = fadesSection;
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadesControlTopInset);
-        inspectorFadeIn.setBounds (clampToInspector (
-            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
-                .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
-                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)));
-        inspectorFadeOut.setBounds (clampToInspector (
-            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
-                .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
-                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)));
+        const bool fadesFit = sectionFits (fadesSection);
+        inspectorFadeIn.setBounds (fadesFit
+            ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
+                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
+                  .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
+                            yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)
+            : juce::Rectangle<int>());
+        inspectorFadeOut.setBounds (fadesFit
+            ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
+                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
+                  .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
+                            yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)
+            : juce::Rectangle<int>());
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlTopGap);
-        inspectorFadeCurve.setBounds (clampToInspector (
-            fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)));
+        inspectorFadeCurve.setBounds (fadesFit
+            ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
+                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
+            : juce::Rectangle<int>());
     }
 
     void layoutMixerControls()
@@ -8093,8 +8103,15 @@ private:
                     juce::Justification::centredLeft,
                     false);
 
-        const auto drawInspectorSectionCard = [&g] (juce::Rectangle<int> section)
+        // E24/E27: the SAME whole-section drop law as layoutInspectorControls — a section
+        // whose card no longer fits the column paints nothing at all.
+        const juce::Rectangle<int> inspectorContent = area;
+        const auto drawInspectorSectionCard =
+            [&g, inspectorContent] (juce::Rectangle<int> section) -> bool
         {
+            if (! inspectorContent.contains (section))
+                return false;
+
             g.setColour (yesdaw::ui::UiTheme::Color::panelRaised());
             g.fillRoundedRectangle (section.toFloat(), yesdaw::ui::UiTheme::Radius::md);
             g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
@@ -8104,102 +8121,113 @@ private:
                     yesdaw::ui::UiTheme::Layout::panelOutlineInset),
                 yesdaw::ui::UiTheme::Radius::md,
                 yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
+            return true;
         };
 
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
+        if (inspectorContent.contains (stats))
+        {
         const double selectedSampleRate = appModel.project().sampleRate.hz;
         const double selectedStartSeconds = static_cast<double> (selectedClip->timelineStart) / selectedSampleRate;
         const double selectedLengthSeconds = static_cast<double> (selectedClip->timelineLength) / selectedSampleRate;
-        const std::array<std::pair<const char*, juce::String>, 3> statsText {{
-            { "Start", juce::String (selectedStartSeconds, 3) + " s" },
-            { "End", juce::String (selectedStartSeconds + selectedLengthSeconds, 3) + " s" },
-            { "Length", juce::String (selectedLengthSeconds, 3) + " s" }
-        }};
-        for (const auto& [label, value] : statsText)
-        {
-            auto cell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
-                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetX,
-                                      yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetY);
-            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-            g.setColour (kMutedText);
-            g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
-                yesdaw::ui::UiTheme::Type::caption));
-            auto textArea = cell.reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsTextInset);
-            g.drawText (label,
-                        textArea.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorStatsLabelHeight),
-                        juce::Justification::centred,
-                        false);
-            g.setColour (kText);
-            g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
-                yesdaw::ui::UiTheme::Type::body,
-                juce::Font::bold));
-            g.drawFittedText (value,
-                              textArea.withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsValueHeight),
-                              juce::Justification::centred,
-                              1);
+            const std::array<std::pair<const char*, juce::String>, 3> statsText {{
+                { "Start", juce::String (selectedStartSeconds, 3) + " s" },
+                { "End", juce::String (selectedStartSeconds + selectedLengthSeconds, 3) + " s" },
+                { "Length", juce::String (selectedLengthSeconds, 3) + " s" }
+            }};
+            for (const auto& [label, value] : statsText)
+            {
+                auto cell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
+                                .reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetX,
+                                          yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetY);
+                g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+                g.setColour (kMutedText);
+                g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+                    yesdaw::ui::UiTheme::Type::caption));
+                auto textArea = cell.reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsTextInset);
+                g.drawText (label,
+                            textArea.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorStatsLabelHeight),
+                            juce::Justification::centred,
+                            false);
+                g.setColour (kText);
+                g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+                    yesdaw::ui::UiTheme::Type::body,
+                    juce::Font::bold));
+                g.drawFittedText (value,
+                                  textArea.withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsValueHeight),
+                                  juce::Justification::centred,
+                                  1);
+            }
         }
 
         auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
-        drawInspectorSectionCard (gain);
-        drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        g.setColour (kText);
-        g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
-            yesdaw::ui::UiTheme::Type::title));
-        const float gainValue = selectedClip->gain;
-        const float gainDb = 20.0f * std::log10 (std::max (
-            yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
-            gainValue));
-        g.drawText ((gainDb >= 0.0f ? "+" : "") + juce::String (gainDb, 1) + " dB",
-                    gain.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutLeftInset)
-                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutHeight),
-                    juce::Justification::centredLeft,
-                    false);
-
-        auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
-                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
-        drawInspectorSectionCard (fades);
-        drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        const double sampleRate = appModel.project().sampleRate.isValid()
-                                      ? appModel.project().sampleRate.hz
-                                      : yesdaw::ui::UiTheme::Layout::inspectorReadoutFallbackSampleRate;
-        const double fadeInSeconds = selectedClip != nullptr
-                                         ? static_cast<double> (selectedClip->fadeIn) / sampleRate
-                                         : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
-        const double fadeOutSeconds = selectedClip != nullptr
-                                          ? static_cast<double> (selectedClip->fadeOut) / sampleRate
-                                          : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
-        // E24: the Curve row paints only its label — the overlaid combo IS the value display
-        // (the old painted "Equal power" collided with the combo's own text).
-        for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
-                                   juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s",
-                                   juce::String ("Curve") })
+        if (drawInspectorSectionCard (gain))
         {
-            auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
-                           .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
-                                     yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
-            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
-            g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
             g.setColour (kText);
-            g.drawText (label,
-                        row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetX,
-                                     yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetY),
+            g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
+                yesdaw::ui::UiTheme::Type::title));
+            const float gainValue = selectedClip->gain;
+            const float gainDb = 20.0f * std::log10 (std::max (
+                yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
+                gainValue));
+            g.drawText ((gainDb >= 0.0f ? "+" : "") + juce::String (gainDb, 1) + " dB",
+                        gain.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutLeftInset)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutHeight),
                         juce::Justification::centredLeft,
                         false);
         }
 
+        auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
+                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
+        if (drawInspectorSectionCard (fades))
+        {
+            drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+            const double sampleRate = appModel.project().sampleRate.isValid()
+                                          ? appModel.project().sampleRate.hz
+                                          : yesdaw::ui::UiTheme::Layout::inspectorReadoutFallbackSampleRate;
+            const double fadeInSeconds = selectedClip != nullptr
+                                             ? static_cast<double> (selectedClip->fadeIn) / sampleRate
+                                             : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
+            const double fadeOutSeconds = selectedClip != nullptr
+                                              ? static_cast<double> (selectedClip->fadeOut) / sampleRate
+                                              : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
+            // E24: the Curve row paints only its label — the overlaid combo IS the value display
+            // (the old painted "Equal power" collided with the combo's own text).
+            for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
+                                       juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s",
+                                       juce::String ("Curve") })
+            {
+                auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
+                               .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
+                                         yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
+                g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+                g.setColour (kText);
+                g.drawText (label,
+                            row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetX,
+                                         yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetY),
+                            juce::Justification::centredLeft,
+                            false);
+            }
+        }
+
         auto fx = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop)
                       .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFxSectionHeight);
-        drawInspectorSectionCard (fx);
-        drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-        drawSmallLabel (g, "None", fx.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
-                                                yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY));
+        if (drawInspectorSectionCard (fx))
+        {
+            drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+            drawSmallLabel (g, "None", fx.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
+                                                    yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY));
+        }
 
         auto automation = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
-        drawInspectorSectionCard (automation);
+        if (! drawInspectorSectionCard (automation))
+            return;
         drawSmallLabel (
             g,
             "AUTOMATION  -  VOLUME",
