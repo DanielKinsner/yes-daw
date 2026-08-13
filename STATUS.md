@@ -694,18 +694,10 @@ Disarm kills monitoring instantly regardless of policy. Locked by `[monitoring]`
 app_smoke_tests (policy-by-policy output assertions; RUNTIME red vs the old model where
 DirectInput summed nothing, exit 42). Full local ctest 348/348.
 
-E32 (loop recording) — implemented locally, awaiting its commit slot: with the transport loop
-ON, `startRealRecordingCapture` arms the H5 loop window (loop bounds from the real transport
-loop, `maxLoopTakes` capped at 8 so a forgotten session can't grow unbounded); the capture
-mapping now feeds a MONOTONIC device-frame cursor (seeded from the playhead on the first
-captured block — the wrapping transport playhead would have pinned every cycle to ordinal 0);
-the drain routes each cycle's chunks into its own buffer by H5 take ordinal; and stop-commit
-chains one take per cycle through the shared commit service (identical placement at the loop
-start, consecutive ordinals, one clip per take), adopting the final project + playback once.
-Locked by `[loop-record]` (8-frame loop, one 128-frame block → EXACTLY 8 takes placed
-identically with distinct ordinals, 9 clips, and cycle 2's asset carrying frames 16..23 of the
-device ramp — proof each cycle keeps its own audio; RUNTIME red vs the old single-take model,
-exit 42). Full local ctest 348/348.
+E32 (loop recording) is certified: feature `65c4d63`, exact-head nine-job GitHub Actions run
+`31667984075` green (first try); full local ctest **348/348**. E32 is ticked in the backlog.
+
+**Now:** E33 (take management UI) — implementing per the settled design below.
 
 **Next:** E33 (take management UI). Settled design (from the audit): takes are HARD-LINKED to
 their clips by `recordingTakesReferenceProjectRows` (every take's clip must exist with matching

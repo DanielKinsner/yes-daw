@@ -335,10 +335,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     Off/Unselected are truly off; LatencyCompensated stays an honest no-op; disarm kills
     monitoring instantly. LOCKED by `[monitoring]` (policy-by-policy output assertions —
     RUNTIME red vs the old metadata-only model, exit 42).
-32. [ ] **E32 — Loop recording.** The H5 primitive supports loop takes and is unit-tested
-    (`recording_tests.cpp:240-295`) but `startRealRecordingCapture` never sets
-    `window.loopEnabled`. Wire transport loop + record: each cycle commits a take
-    (`maxLoopTakes` capped), placed identically; CI via the model-level capture API.
+32. [x] **E32 — Loop recording.** DONE — feature `65c4d63`, exact-head nine-job CI run
+    `31667984075` green (first try), local 348/348. With the transport loop ON the capture
+    window arms the H5 loop primitive (bounds from the real transport loop, capped at 8
+    takes); the capture mapping feeds a MONOTONIC device-frame cursor (the wrapping playhead
+    would have pinned every cycle to ordinal 0); the drain routes each cycle into its own
+    buffer; stop-commit chains one take per cycle through the shared commit service, placed
+    identically with consecutive ordinals, one clip per take. LOCKED by `[loop-record]`
+    (8-frame loop, one 128-frame block → exactly 8 takes, distinct ordinals, and cycle 2's
+    asset carrying frames 16..23 of the device ramp — RUNTIME red vs the old single-take
+    model, exit 42).
 33. [ ] **E33 — Take management UI.** Takes exist engine-side with ordinals but there is no way to
     see, switch, or delete a take. Per-clip take chooser (list takes on the clip's track/window,
     switch the audible take, delete a take) — honest scope: no comping UI beyond the existing Comp
