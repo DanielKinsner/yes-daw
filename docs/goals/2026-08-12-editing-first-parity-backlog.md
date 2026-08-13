@@ -320,10 +320,14 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     provenance `inputChannel` pinned) and `[input-chooser]` (chooser disabled until adoption;
     lists per the adopted profile; picking drives the live armed selection). Fail-before:
     compile-fail vs the old model (no pick API; recorded whatever the device gave).
-30. [ ] **E30 — Input metering + arm visibility.** No input level is computed or shown anywhere —
-    you cannot see signal before recording. Live input peak meter while armed (through
-    `processDeviceAudioBlock`), painted on the armed track's rail/strip meter plus a transport arm
-    indicator; CI-deterministic via injected input blocks.
+30. [x] **E30 — Input metering + arm visibility.** DONE — feature `196168b`, exact-head
+    nine-job CI run `31666835268` green (first try), local 348/348. The audio thread publishes
+    the ARMED pick's live block peak through atomics (packed pick, no locks); the armed
+    track's rail meter shows live input playing or stopped; the rail's "O" cell — previously
+    painted permanently inactive — is the REAL record-arm badge (dangerRed on the armed
+    track). LOCKED by `[input-meter]` (meter reads the PICKED channel, not the loudest),
+    `[arm-meter]` (injected input blocks via the new input-carrying harness export reach the
+    shell snapshot), and `[arm-badge]` (pixel probe — RUNTIME red vs the old paint, exit 42).
 31. [ ] **E31 — Direct input monitoring.** The Monitor button cycles a metadata-only enum; nothing
     ever routes input to output (`UiAppModel.h:288-292`). Make DirectInput policy actually sum the
     armed input into the output RT-safely (no allocation/locks on the audio thread; RTSan-clean);
