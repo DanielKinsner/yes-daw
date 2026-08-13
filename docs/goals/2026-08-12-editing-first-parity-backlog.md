@@ -236,11 +236,16 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     B32 tick law; bus strips paint held-peak/clip-latch instead of permanent zero; a bus meter
     click clears exactly its own hold. The `[bus-meter]` gate failed before (only the track's
     clip light existed) and passes after with 40 assertions.
-23. [ ] **E23 — Cross-strip/slot coverage gates.** Audit-first: prove (and fix where broken) that
-    every per-strip/per-slot control works beyond index 0 — FX param editing on a non-zero strip
-    and a non-zero slot, sends on the third track, inspector on a clip on the third track,
-    Alt+reset / fine-drag on non-zero strips. Extend existing gates to 3-track / multi-slot
-    fixtures rather than adding parallel ones.
+23. [x] **E23 — Cross-strip/slot coverage gates.** Landed in `c3d0fce` (run `31659706970` green
+    for the full SHA across all nine jobs, first try). The audit BIT: extending `[fxparam]` to
+    a third track flushed a REAL CRASH — the control-lane refresh guarded the first-track FX
+    bypass readout with track 0's chain but dereferenced the SELECTED strip's chain (an E16
+    seam), segfaulting the shell when a chain-less non-zero strip was selected while track 0
+    had FX. Fixed to the control's own first-track law. The painted-mixer selected highlight
+    now keys on the E16 strip ordinal (bus strips finally highlight), pinned via the new
+    `selectedMixerStripOrdinal` snapshot field. Gates EXTENDED rather than duplicated:
+    `[fxparam]` non-zero strip + non-zero slot, `[sendsui]` third-track sends, `[inspector]`
+    third-track clip with the first clip bit-identical.
 24. [ ] **E24 — Visual sweep: Timeline view.** Launch the real app; screenshot at ≥3 real window
     sizes (small laptop, default, large); judge against Pro Tools/Logic-class quality — header
     crowding, ruler/marker/brace legibility, lane labels, clip name/fade/gain readouts, tool

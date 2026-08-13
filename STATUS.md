@@ -571,10 +571,15 @@ edits a clip imported onto the THIRD track (first track's clip bit-identical, un
 fail-before is compile-level (the ordinal snapshot field doesn't exist pre-E23) and the
 pre-fix product demonstrably SEGFAULTED on the extended `[fxparam]` gate.
 
-**Now:** E23 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E23 is certified: exact-head GitHub Actions run `31659706970` green for full SHA
+`c3d0fce77b2b1daa0dfdd91d7e111555d37feba3` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E23 is ticked in the backlog.
 
-**Next:** E24 (visual sweep: Timeline view).
+**Now:** E24 (visual sweep: Timeline view) — launch the real app, screenshot at ≥3 window
+sizes, judge against Pro Tools/Logic-class quality, fix, lock with gates. Owner-file isolation
+applies around the real app launch (it auto-opens the last project).
+
+**Next:** E25 (visual sweep: Mixer view).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
