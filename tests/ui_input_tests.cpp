@@ -1526,16 +1526,16 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track meter through an action-b
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
+    // E24 re-pin: the shipped readout speaks user language — no raw engine node ids.
     juce::Button& meters = requireButtonForAction (*shell, UiActionId::MixerReadMeters);
     REQUIRE (meters.isEnabled());
     REQUIRE (meters.getButtonText().contains ("Audio 1"));
-    REQUIRE (meters.getButtonText().contains ("meter node"));
+    REQUIRE (meters.getButtonText().contains ("meters:"));
     REQUIRE (meters.getButtonText().contains ("peak n/a"));
+    REQUIRE_FALSE (meters.getButtonText().contains ("meter node"));
 
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 1u);
-    const auto meterNodeId = projectMixerNodeIdForTrack (project.tracks.front().id, ProjectMixerNodeRole::Meter);
-    REQUIRE (meters.getButtonText().contains (juce::String (static_cast<int> (meterNodeId))));
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (meters);

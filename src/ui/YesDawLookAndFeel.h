@@ -133,6 +133,29 @@ public:
                            || style == juce::Slider::LinearBarVertical;
         const float trackThickness = static_cast<float> (UiTheme::Layout::sliderTrackThickness);
 
+        // E24: a horizontal LinearBar is a value SCRUB CELL — a quiet filled bar with the value
+        // text drawn over it, and NO round thumb (the thumb used to paint over the digits).
+        if (style == juce::Slider::LinearBar)
+        {
+            const auto cell = juce::Rectangle<float> (static_cast<float> (x),
+                                                      static_cast<float> (y),
+                                                      static_cast<float> (width),
+                                                      static_cast<float> (height));
+            g.setColour (slider.findColour (juce::Slider::backgroundColourId));
+            g.fillRoundedRectangle (cell, UiTheme::Radius::sm);
+            auto fill = cell.withRight (juce::jlimit (cell.getX(), cell.getRight(), sliderPos));
+            g.setColour (slider.findColour (juce::Slider::trackColourId)
+                             .withAlpha (UiTheme::Tone::trackSliderFillAlpha));
+            g.fillRoundedRectangle (fill, UiTheme::Radius::sm);
+            g.setColour (slider.findColour (juce::Slider::textBoxTextColourId));
+            g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
+            g.drawText (slider.getTextFromValue (slider.getValue()),
+                        cell.toNearestInt(),
+                        juce::Justification::centred,
+                        false);
+            return;
+        }
+
         if (vertical)
         {
             const auto rail = juce::Rectangle<float> (

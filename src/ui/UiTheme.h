@@ -365,7 +365,8 @@ struct UiTheme
         static constexpr int inspectorFadeControlHeight = 32;
         static constexpr int inspectorFadeCurveControlTopGap = 4;
         static constexpr int inspectorFadeCurveControlHeight = 26;
-        static constexpr int inspectorFadeControlLeftInset = 78;
+        // E24: the fade sliders start past the painted "Fade In 0.000 s" readout, never over it.
+        static constexpr int inspectorFadeControlLeftInset = 150;
         static constexpr int inspectorFadeControlHorizontalInset = 0;
         static constexpr int inspectorFadeControlVerticalInset = 6;
         static constexpr double inspectorFadeSliderMinSeconds = 0.0;

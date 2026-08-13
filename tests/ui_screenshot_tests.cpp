@@ -341,6 +341,105 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     REQUIRE (differentPixelCount (timelineImage, pianoRollImage, headerRegion) == 0u);
 }
 
+TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes with real content",
+           "[ui][screenshot][timeline-sizes]")
+{
+    juce::MessageManager::getInstance();
+
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-timeline-sizes.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+
+    // Real content through real controls: two audio tracks with clips, a third track with a
+    // MIDI clip, and a marker — the E24 judging fixture. Each import/clip lands on ITS track
+    // via a real rail row click.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component* rail = nullptr;
+    for (int child = 0; child < shell->getNumChildComponents(); ++child)
+        if (shell->getChildComponent (child)->getComponentID() == "shell.tracklist.input")
+            rail = shell->getChildComponent (child);
+    REQUIRE (rail != nullptr);
+    const auto selectRailRow = [&shell, rail] (int row, int rowCount)
+    {
+        const int rowHeight = juce::jmax (
+            yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+            (rail->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / rowCount);
+        const juce::Point<int> point { rail->getWidth() / 2,
+                                       yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                           + row * rowHeight + rowHeight / 2 };
+        const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(),
+                                      point.toFloat(), juce::ModifierKeys::leftButtonModifier,
+                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                      rail, rail, juce::Time::getCurrentTime(),
+                                      point.toFloat(), juce::Time::getCurrentTime(), 1, false);
+        rail->mouseDown (event);
+        (void) shell;
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    selectRailRow (1, 2);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    selectRailRow (2, 3);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m')));   // marker at the playhead
+
+    const yesdaw::ui::MainComponentSnapshot content = yesdaw::ui::snapshotMainComponent (*shell);
+    REQUIRE (content.context.projectLoaded);
+    REQUIRE (content.visibleTimelineTrackCount == 3);
+    REQUIRE (content.visibleTimelineClipCount >= 2);
+    REQUIRE (content.context.activePanel == UiPanel::Timeline);
+
+    const auto renderAtSize = [&shell] (int width, int height, const char* filename)
+    {
+        shell->setSize (width, height);
+        const juce::Image image = renderShell (*shell);
+        REQUIRE (image.getWidth() == width);
+        REQUIRE (image.getHeight() == height);
+        // Size-relative honesty: the header row, the rail column, the arrangement body, and
+        // the bottom section all paint real structure at EVERY size.
+        REQUIRE (sampledDifferentPixelCount (image, { 0, 0, width, 88 }) > 60u);
+        REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, height - 348 }) > 20u);
+        REQUIRE (sampledDifferentPixelCount (image, { 318, 88, width - 638, height - 348 }) > 100u);
+        REQUIRE (sampledDifferentPixelCount (image, { 0, height - 260, width, 260 }) > 40u);
+        // E24: NO inspector control may bleed into the bottom mixer panel — small windows drop
+        // the sections that no longer fit instead of overlapping.
+        const int bottomPanelTop = height - yesdaw::ui::UiTheme::Layout::mixerHeight;
+        for (const char* id : { "clip.inspector.start", "clip.inspector.fade_curve" })
+        {
+            juce::Component* control = nullptr;
+            for (int child = 0; child < shell->getNumChildComponents(); ++child)
+                if (shell->getChildComponent (child)->getComponentID() == id)
+                    control = shell->getChildComponent (child);
+            REQUIRE (control != nullptr);
+            INFO ("control " << id << " bounds " << control->getBounds().toString().toStdString());
+            REQUIRE ((control->getBounds().isEmpty()
+                      || control->getBounds().getBottom() <= bottomPanelTop));
+        }
+        (void) captureShellPng (image, filename);
+    };
+
+    renderAtSize (1152, 720, "yesdaw-timeline-laptop.png");
+    renderAtSize (1536, 960, "yesdaw-timeline-default.png");
+    renderAtSize (1920, 1080, "yesdaw-timeline-large.png");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][screenshot][negative]")
 {
     const juce::Image blank (juce::Image::ARGB,

@@ -3065,7 +3065,9 @@ public:
         // undoable controls. Tempo is a drag/scrub bar over the TEMPO cell; meter picks common signatures.
         configureActionComponent (headerTempoControl, yesdaw::ui::UiActionId::TransportSetTempo, "Set tempo");
         headerTempoControl.setSliderStyle (juce::Slider::LinearBar);
-        headerTempoControl.setTextBoxStyle (juce::Slider::TextBoxLeft,
+        // E24: the LinearBar shows its value inside the bar; the old separate TextBoxLeft was
+        // narrower than "120.00" and the thumb painted over the clipped digits.
+        headerTempoControl.setTextBoxStyle (juce::Slider::NoTextBox,
                                             false,
                                             yesdaw::ui::UiTheme::Layout::headerTempoTextWidth,
                                             yesdaw::ui::UiTheme::Layout::headerTempoTextHeight);
@@ -5331,6 +5333,13 @@ private:
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+        // E24: a small window drops the sections that no longer fit inside the inspector column
+        // instead of bleeding their controls over the bottom mixer panel.
+        const juce::Rectangle<int> content = area;
+        const auto clampToInspector = [content] (juce::Rectangle<int> rect)
+        {
+            return content.contains (rect) ? rect : juce::Rectangle<int>();
+        };
         auto stats = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
         auto startCell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
@@ -5341,34 +5350,34 @@ private:
                                       yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
         auto lengthCell = stats.reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
                                          yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
-        inspectorStart.setBounds (startCell);
-        inspectorEnd.setBounds (endCell);
-        inspectorLength.setBounds (lengthCell);
+        inspectorStart.setBounds (clampToInspector (startCell));
+        inspectorEnd.setBounds (clampToInspector (endCell));
+        inspectorLength.setBounds (clampToInspector (lengthCell));
 
         auto gain = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
-        inspectorGain.setBounds (
+        inspectorGain.setBounds (clampToInspector (
             gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset));
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)));
 
         auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
                          .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadesControlTopInset);
-        inspectorFadeIn.setBounds (
+        inspectorFadeIn.setBounds (clampToInspector (
             fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
                 .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
                 .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
-                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset));
-        inspectorFadeOut.setBounds (
+                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)));
+        inspectorFadeOut.setBounds (clampToInspector (
             fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
                 .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
                 .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHorizontalInset,
-                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset));
+                          yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)));
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlTopGap);
-        inspectorFadeCurve.setBounds (
+        inspectorFadeCurve.setBounds (clampToInspector (
             fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
-                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset));
+                .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)));
     }
 
     void layoutMixerControls()
@@ -6838,15 +6847,15 @@ private:
         if (surface.tracks.empty())
             return "Meters: no Track";
 
+        // E24: a shipped readout speaks user language — no raw engine node ids.
         const auto& track = surface.tracks.front();
-        juce::String text = juce::String (track.name.empty() ? "Track 1" : track.name)
-            + " meter node " + juce::String (static_cast<int> (track.meterNodeId));
+        juce::String text = juce::String (track.name.empty() ? "Track 1" : track.name) + " meters:";
 
         if (! track.meter.valid)
             return text + " peak n/a";
 
         return text
-            + " peak L " + juce::String (track.meter.peakLeft, 2)
+            + " L " + juce::String (track.meter.peakLeft, 2)
             + " R " + juce::String (track.meter.peakRight, 2);
     }
 
@@ -8124,9 +8133,11 @@ private:
         const double fadeOutSeconds = selectedClip != nullptr
                                           ? static_cast<double> (selectedClip->fadeOut) / sampleRate
                                           : yesdaw::ui::UiTheme::Layout::inspectorFadeReadoutDefaultSeconds;
+        // E24: the Curve row paints only its label — the overlaid combo IS the value display
+        // (the old painted "Equal power" collided with the combo's own text).
         for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
                                    juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s",
-                                   juce::String ("Curve       Equal power") })
+                                   juce::String ("Curve") })
         {
             auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,

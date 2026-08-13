@@ -575,11 +575,33 @@ E23 is certified: exact-head GitHub Actions run `31659706970` green for full SHA
 `c3d0fce77b2b1daa0dfdd91d7e111555d37feba3` across all nine jobs (first try); full local ctest
 green **348/348** (owner file isolated + restored, SHA verified). E23 is ticked in the backlog.
 
-**Now:** E24 (visual sweep: Timeline view) — launch the real app, screenshot at ≥3 window
-sizes, judge against Pro Tools/Logic-class quality, fix, lock with gates. Owner-file isolation
-applies around the real app launch (it auto-opens the last project).
+**E24 implementation candidate — visual sweep: Timeline view:** the real-app desktop
+screenshot path was honestly blocked (the computer-use permission dialog auto-denied with
+nobody at the keyboard; the real app WAS launched against a three-track bundle first, with the
+owner file isolated and restored), so the sweep ran on the shipped-component render path —
+`paintEntireComponent` at real window sizes through the same paint pipeline. A new
+`[timeline-sizes]` screenshot gate builds a REAL three-track fixture through real controls
+(rail-selected imports + a MIDI clip + a marker) and renders 1152×720 / 1536×960 / 1920×1080
+PNGs with size-relative coverage assertions. JUDGED DEFECTS, all fixed and re-verified in the
+rendered pixels: (1) the header tempo readout was ILLEGIBLE — the L&F drew a round thumb over
+digits clipped by a too-narrow text box; horizontal LinearBar is now a quiet filled scrub cell
+with the value text drawn whole ("120.0" reads clean); (2) at 1152×720 the inspector's
+fade/curve controls BLED OVER the bottom mixer panel — the inspector layout now clamps every
+control to its column (small windows drop sections that no longer fit), LOCKED by bounds
+assertions in the gate at every size; (3) the fade rows' painted values collided with the
+slider thumbs and the Curve row double-printed its value — the sliders start past the readout
+(token 78→150) and the Curve row paints label-only; (4) a shipped readout printed a RAW ENGINE
+NODE ID ("Audio 1 meter node -156014…") — humanized to "Audio 1 meters: …" with the pinning
+gate re-pinned to reject "meter node". Honest deferrals: the detached mixer control-lane
+geometry seen at the bottom of the Timeline view is the MIXER view's core defect (E25), and
+ruler bar-number legibility was judged adequate-not-great and left for a future sweep.
 
-**Next:** E25 (visual sweep: Mixer view).
+**Now:** E24 — full local suite running under the owner-file ritual; then commit, push,
+exact-head nine-job green, evidence commit.
+
+**Next:** E25 (visual sweep: Mixer view) — the painted-strip vs overlay/control-lane geometry
+mismatch is the headline defect (clicks and the control lane use width/(count+1) while paint
+uses the clamped painted-strip law; they diverge at real window sizes).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
