@@ -328,10 +328,13 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     track). LOCKED by `[input-meter]` (meter reads the PICKED channel, not the loudest),
     `[arm-meter]` (injected input blocks via the new input-carrying harness export reach the
     shell snapshot), and `[arm-badge]` (pixel probe — RUNTIME red vs the old paint, exit 42).
-31. [ ] **E31 — Direct input monitoring.** The Monitor button cycles a metadata-only enum; nothing
-    ever routes input to output (`UiAppModel.h:288-292`). Make DirectInput policy actually sum the
-    armed input into the output RT-safely (no allocation/locks on the audio thread; RTSan-clean);
-    Off is truly off. Honest scope: LatencyCompensated monitoring stays a no-op and says so.
+31. [x] **E31 — Direct input monitoring.** DONE — feature `09e4b72`, exact-head nine-job CI
+    run `31667526323` green (first try, RTSan job included), local 348/348. DirectInput SUMS
+    the armed pick into the live outputs on the audio thread (mono pick to every output,
+    stereo pair channel-to-channel; atomics + plain loops, no allocation/locks);
+    Off/Unselected are truly off; LatencyCompensated stays an honest no-op; disarm kills
+    monitoring instantly. LOCKED by `[monitoring]` (policy-by-policy output assertions —
+    RUNTIME red vs the old metadata-only model, exit 42).
 32. [ ] **E32 — Loop recording.** The H5 primitive supports loop takes and is unit-tested
     (`recording_tests.cpp:240-295`) but `startRealRecordingCapture` never sets
     `window.loopEnabled`. Wire transport loop + record: each cycle commits a take
