@@ -246,10 +246,19 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
     `selectedMixerStripOrdinal` snapshot field. Gates EXTENDED rather than duplicated:
     `[fxparam]` non-zero strip + non-zero slot, `[sendsui]` third-track sends, `[inspector]`
     third-track clip with the first clip bit-identical.
-24. [ ] **E24 — Visual sweep: Timeline view.** Launch the real app; screenshot at ≥3 real window
-    sizes (small laptop, default, large); judge against Pro Tools/Logic-class quality — header
-    crowding, ruler/marker/brace legibility, lane labels, clip name/fade/gain readouts, tool
-    palette states; fix what reads amateur; lock every fix with token/layout gates.
+24. [x] **E24 — Visual sweep: Timeline view.** Landed in `75be649` (run `31661114262` green for
+    the full SHA across all nine jobs, first try). The real app WAS launched against a
+    three-track bundle (owner file isolated + restored), but the desktop-screenshot permission
+    dialog auto-denied with nobody at the keyboard — the sweep ran on the shipped-component
+    render path (`paintEntireComponent` at real window sizes, same paint pipeline). New
+    `[timeline-sizes]` gate renders a real three-track fixture at 1152×720/1536×960/1920×1080
+    with size-relative coverage + inspector-bounds assertions. Judged and FIXED (re-verified in
+    pixels): the illegible header tempo readout (L&F thumb over clipped digits → LinearBar is
+    now a filled scrub cell drawing the whole value), the 1152×720 inspector bleeding over the
+    bottom mixer panel (layout clamps every control to its column — GATED at every size), the
+    fade rows' value/thumb collisions and double-printed Curve value (inset 78→150,
+    label-only Curve), and a RAW ENGINE NODE ID in a shipped readout (humanized; gate re-pinned
+    to reject "meter node"). Deferred honestly to E25: the mixer strip/lane geometry mismatch.
 25. [ ] **E25 — Visual sweep: Mixer view.** Same protocol: strip widths/alignment, meter scales,
     FX/send row spacing, bus/master panes, dB readouts, overflow behavior with many strips.
 26. [ ] **E26 — Visual sweep: Piano roll + automation lane.** Same protocol: key column, grid

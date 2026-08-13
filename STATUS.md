@@ -596,12 +596,16 @@ gate re-pinned to reject "meter node". Honest deferrals: the detached mixer cont
 geometry seen at the bottom of the Timeline view is the MIXER view's core defect (E25), and
 ruler bar-number legibility was judged adequate-not-great and left for a future sweep.
 
-**Now:** E24 — full local suite running under the owner-file ritual; then commit, push,
-exact-head nine-job green, evidence commit.
+E24 is certified: exact-head GitHub Actions run `31661114262` green for full SHA
+`75be6490e5e766b5bb6dabb4a820a4e28c6d23d6` across all nine jobs (first try); full local ctest
+green **348/348** (owner file isolated + restored, SHA verified). E24 is ticked in the backlog.
 
-**Next:** E25 (visual sweep: Mixer view) — the painted-strip vs overlay/control-lane geometry
+**Now:** E25 (visual sweep: Mixer view) — the painted-strip vs overlay/control-lane geometry
 mismatch is the headline defect (clicks and the control lane use width/(count+1) while paint
-uses the clamped painted-strip law; they diverge at real window sizes).
+uses the clamped painted-strip law; they visibly diverge at real window sizes — the control
+lane floats detached from its painted strip).
+
+**Next:** E26 (visual sweep: piano roll + automation lane).
 
 ## 2026-08-10 shortcut & workflow parity backlog (in progress)
 
