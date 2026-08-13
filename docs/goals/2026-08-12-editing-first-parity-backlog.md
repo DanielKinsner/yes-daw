@@ -299,14 +299,15 @@ token/layout gate. Multi-track behavior must be gated on projects with 3+ tracks
 
 ## Phase 4 — recording (last)
 
-28. [ ] **E28 — Real devices honestly unlock Record.** Today the Record button unlocks ONLY after
-    clicking "Test Device", which stamps a FAKE profile (`UiAppModel.h:4670-4686` is the only
-    setter of `recordingDevice_.selected`); every real take then persists `deviceStableId = 1` (a
-    provenance lie), and `startRealRecordingCapture` never checks the arm state (silent fallback to
-    "Audio 1"). Populate `recordingDevice_` from the REAL desktop device (real input count, stable
-    id, latencies) when it opens; enforce arm before capture; take provenance records the real
-    device. CI via the injected device seams; the synthetic path remains only for
-    harness/inputless devices.
+28. [x] **E28 — Real devices honestly unlock Record.** DONE — feature `08ffd87`, exact-head
+    nine-job CI run `31665416424` green (first try), local 348/348.
+    `adoptRealRecordingDevice` adopts the REAL device profile (actual input count, name-hash
+    stable id, driver latencies) from `audioDeviceAboutToStart`; `startRealRecordingCapture`
+    REFUSES to roll unarmed (no silent fallback take onto the first track); take provenance
+    persists the real device id. Test Device stamp remains harness-only. LOCKED by the
+    `[real-device]` gate (hostile profiles rejected, unarmed capture refused, armed capture
+    persists the injected real `deviceStableId`) — fail-before proven (compile-fail vs the old
+    model, which had no adoption API and rolled unarmed).
 29. [ ] **E29 — Input device + channel chooser.** The header chooser is output-only
     (`MainComponent.cpp:4462-4494`); input is whatever the OS default gives and `inputChannel` is
     hardcoded 0 (`UiAppModel.h:1858,4705`). Add an input device chooser and a channel picker
