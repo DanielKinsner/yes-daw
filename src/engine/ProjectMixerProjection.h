@@ -379,31 +379,15 @@ template <typename SourceFactory>
     {
         const Track& owningTrack = project.tracks[trackIndex];
 
-        bool ownsAudioClip = false;
-        for (const Clip& clip : project.clips)
-        {
-            if (clip.trackId == owningTrack.id)
-            {
-                ownsAudioClip = true;
-                break;
-            }
-        }
-
         // M1 (supersedes ADR-0026's per-Clip auto-wire, see ADR-0045): a MIDI Clip is content on
-        // its Track, so a Track that owns only MIDI still projects a full strip and its MIDI plays
+        // its Track, so a Track that owns only MIDI projects a full strip and its MIDI plays
         // THROUGH that strip.
-        bool ownsMidiClip = false;
-        for (const MidiClip& midiClip : project.midiClips)
-        {
-            if (midiClip.trackId == owningTrack.id)
-            {
-                ownsMidiClip = true;
-                break;
-            }
-        }
-
-        if (! ownsAudioClip && ! ownsMidiClip)
-            continue;
+        //
+        // M2: EVERY Track projects, content or not. A Track was previously skipped when it owned no
+        // audio Clip, which made its strip and its automation targets vanish from the graph — so a
+        // lane on a clip-less Track failed the whole projection and silently froze the edit that
+        // emptied it (deleting your own last Clip did nothing). A contentless strip is a Sum with no
+        // inputs: exact silence, and every control and lane still resolves.
 
         // Track width derives from the Track's Clips (ADR-0042): any stereo Asset makes the strip
         // stereo. Assets beyond stereo are rejected before the factory runs.

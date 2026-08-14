@@ -689,6 +689,46 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
     return { x, y };
 }
 
+// Lane-aware twin of the above: the historical helper always returns LANE 0's row (only x follows
+// the clip), which silently hits the wrong clip on a multi-lane project. This one lands on the
+// clip's OWN lane, honouring the E5 vertical scroll offset.
+juce::Point<int> timelineClipCenterPointOnItsLane (juce::Component& timeline,
+                                                   const yesdaw::engine::Project& project,
+                                                   std::size_t clipIndex)
+{
+    REQUIRE (clipIndex < project.clips.size());
+
+    const juce::Point<int> laneZero = timelineClipCenterPoint (timeline, project, clipIndex);
+
+    std::vector<yesdaw::ui::Clip> clips;
+    clips.reserve (project.clips.size());
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = static_cast<int> (project.tracks.size());
+    state.clips = clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (1.0, endSeconds * 1.25);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (1, timeline.getWidth() - 26))
+                                   / std::max (1.0, state.totalSeconds);
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const int laneTop = geometry.clipArea.getY()
+                      + clips[clipIndex].lane * geometry.laneHeight
+                      - static_cast<int> (geometry.viewport.laneScrollPixels);
+    return { laneZero.x, laneTop + std::max (1, geometry.laneHeight / 2) };
+}
+
 juce::Rectangle<int> timelineClipHitBounds (juce::Component& timeline,
                                              const yesdaw::engine::Project& project,
                                              std::size_t clipIndex)
@@ -4759,6 +4799,200 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
         const std::vector<float> withoutSend = renderFromStart();
         REQUIRE (peakOf (windowOf (withoutSend, 0, kMidiWindowEnd)) < baselineMidiPeak * 0.75);
         REQUIRE (windowOf (withoutSend, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
+    }
+}
+
+// M2 — an automation lane must never be able to freeze the edit that removes what it automates.
+// The projection resolves every lane against the projected graph and fails the WHOLE projection
+// when a target is missing; `adoptEditedProject` turns that into a silent `false`, so the edit just
+// does not happen and the user sees a dead key. Three ways to reach it: delete the last Clip of an
+// automated Track (the Track stopped projecting), remove an automated FX insert, and remove a send
+// that sits before an automated one (send lanes address sends by ORDINAL, so the survivors shift).
+TEST_CASE ("removing an automated target is never silently refused",
+           "[ui][input][shell][automation][lane-orphan]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("lane-orphan");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Three tracks, one clip each: the multi-track shape the run's rules require. Tracks are
+    // selected by clicking their rail row (the [three-track] gate's law), then imported onto.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    {
+        const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                          (rail->getHeight() - headerHeight) / 3);
+        for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
+        {
+            mouseDownAt (*rail, { rail->getWidth() / 2,
+                                  headerHeight + rowHeight * trackIndex + rowHeight / 2 });
+            clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        }
+    }
+    {
+        const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+        REQUIRE (seeded.tracks.size() == 3u);
+        REQUIRE (seeded.clips.size() == 3u);
+        REQUIRE (seeded.clips[2].trackId == seeded.tracks[2].id);
+    }
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, 24'000, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+
+    // 1. A Fader lane on the THIRD track, created through the shipped automation canvas.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    auto* targetChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (canvas != nullptr);
+    REQUIRE (targetChooser != nullptr);
+    targetChooser->setSelectedId (1, juce::sendNotificationSync);        // Fader
+    mouseDownAt (*canvas, { canvas->getWidth() / 3, canvas->getHeight() / 2 });
+    {
+        const yesdaw::engine::Project automated = readProjectSnapshot (bundlePath);
+        REQUIRE (automated.automationLanes.size() == 1u);
+        REQUIRE (automated.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::TrackFader);
+        REQUIRE (automated.automationLanes.front().ownerEntity == automated.tracks[2].id);
+    }
+
+    // Deleting that track's only clip APPLIES — the lane survives on a now clip-less track, the
+    // remaining tracks still play, and one undo puts the clip back bit-identically.
+    const std::vector<float> withClip = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (withClip.data(), withClip.size())) > 0.01);
+    {
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        mouseDownAt (timeline, timelineClipCenterPointOnItsLane (timeline, project, 2u));
+        REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    }
+    {
+        const yesdaw::engine::Project deleted = readProjectSnapshot (bundlePath);
+        REQUIRE (deleted.clips.size() == 2u);                            // the delete really happened
+        REQUIRE (deleted.tracks.size() == 3u);
+        // ...and it was the AUTOMATED track's clip that went, leaving that track clip-less.
+        REQUIRE (std::none_of (deleted.clips.begin(), deleted.clips.end(),
+                               [&deleted] (const yesdaw::engine::Clip& clip) {
+                                   return clip.trackId == deleted.tracks[2].id;
+                               }));
+        REQUIRE (deleted.automationLanes.size() == 1u);                  // and the lane is still there
+        const std::vector<float> withoutClip = renderFromStart();
+        REQUIRE (peakAbs (std::span<const float> (withoutClip.data(), withoutClip.size())) > 0.01);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
+    REQUIRE (renderFromStart() == withClip);
+
+    // 2. An automated FX insert can be removed: the insert and its lane go in ONE undo step.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 3));
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));                  // back to the Timeline view
+    REQUIRE (targetChooser->getNumItems() > 2);
+    targetChooser->setSelectedId (5, juce::sendNotificationSync);        // FX1 eq.band.gain
+    mouseDownAt (*canvas, { canvas->getWidth() / 2, canvas->getHeight() / 2 });
+    {
+        const yesdaw::engine::Project automated = readProjectSnapshot (bundlePath);
+        REQUIRE (automated.automationLanes.size() == 2u);
+        REQUIRE (automated.automationLanes.back().role == yesdaw::engine::AutomationTargetRole::FxInsertParam);
+        REQUIRE (automated.tracks[2].strip.fxChain.size() == 1u);
+    }
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    auto* slotRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.remove"));
+    REQUIRE (slotRemove != nullptr);
+    clickButton (*slotRemove);
+    {
+        const yesdaw::engine::Project removed = readProjectSnapshot (bundlePath);
+        REQUIRE (removed.tracks[2].strip.fxChain.empty());               // the removal really happened
+        REQUIRE (removed.automationLanes.size() == 1u);                  // its lane went with it
+        REQUIRE (removed.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::TrackFader);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.tracks[2].strip.fxChain.size() == 1u);         // ONE undo restores both
+        REQUIRE (restored.automationLanes.size() == 2u);
+    }
+
+    // 3. Send lanes address sends by ordinal. Automate the SECOND send, remove the FIRST: the
+    //    removal applies and the lane FOLLOWS its own send down to ordinal 0 instead of silently
+    //    automating a different row (or freezing the edit).
+    auto* busAdd = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.add"));
+    REQUIRE (busAdd != nullptr);
+    clickButton (*busAdd);
+    clickButton (*busAdd);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 3));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    sendChooser->setSelectedId (2, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project sends = readProjectSnapshot (bundlePath);
+        REQUIRE (sends.tracks[2].sends.size() == 2u);
+    }
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    const int sendLevelItem = targetChooser->getNumItems() - 1;          // sends are listed after Pan
+    REQUIRE (sendLevelItem >= 3);
+    targetChooser->setSelectedId (4, juce::sendNotificationSync);        // second send's level
+    mouseDownAt (*canvas, { (canvas->getWidth() * 2) / 3, canvas->getHeight() / 2 });
+    yesdaw::engine::EntityId automatedSendBusId {};
+    {
+        const yesdaw::engine::Project automated = readProjectSnapshot (bundlePath);
+        const auto lane = std::find_if (automated.automationLanes.begin(), automated.automationLanes.end(),
+                                        [] (const yesdaw::engine::AutomationLaneData& candidate) {
+                                            return candidate.role == yesdaw::engine::AutomationTargetRole::SendLevel;
+                                        });
+        REQUIRE (lane != automated.automationLanes.end());
+        REQUIRE (lane->paramId == 1u);                                   // the SECOND send
+        automatedSendBusId = automated.tracks[2].sends[1].busId;
+    }
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    auto* sendRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
+    REQUIRE (sendRemove != nullptr);
+    clickButton (*sendRemove);
+    {
+        const yesdaw::engine::Project removed = readProjectSnapshot (bundlePath);
+        REQUIRE (removed.tracks[2].sends.size() == 1u);                  // the removal really happened
+        REQUIRE (removed.tracks[2].sends.front().busId == automatedSendBusId);
+        const auto lane = std::find_if (removed.automationLanes.begin(), removed.automationLanes.end(),
+                                        [] (const yesdaw::engine::AutomationLaneData& candidate) {
+                                            return candidate.role == yesdaw::engine::AutomationTargetRole::SendLevel;
+                                        });
+        REQUIRE (lane != removed.automationLanes.end());
+        REQUIRE (lane->paramId == 0u);                                   // it followed its own send
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.tracks[2].sends.size() == 2u);
+        const auto lane = std::find_if (restored.automationLanes.begin(), restored.automationLanes.end(),
+                                        [] (const yesdaw::engine::AutomationLaneData& candidate) {
+                                            return candidate.role == yesdaw::engine::AutomationTargetRole::SendLevel;
+                                        });
+        REQUIRE (lane != restored.automationLanes.end());
+        REQUIRE (lane->paramId == 1u);
     }
 }
 

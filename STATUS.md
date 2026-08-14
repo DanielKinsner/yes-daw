@@ -793,7 +793,42 @@ M1 is certified: exact-head GitHub Actions run `31842604705` is green for full S
 `a02f912aee43416c2232ac4f5839f1e807eb68be` across all nine jobs (Linux, Windows, macOS, RTSan,
 TSan, both package jobs, both alpha-verifier jobs), first try. M1 is ticked in the backlog.
 
-**Now:** M2 (every Track projects; automation never orphans) — implementation candidate, see below.
+**M2 implementation candidate — every Track projects; automation never orphans:** audited before
+changing anything — the projection's lane resolution (`findProjectedAutomationTarget` → whole-
+projection failure), `adoptEditedProject`'s silent `false`, the removal verbs' existing lane
+guards (track and bus removal REFUSE honestly while a lane targets them — left alone), and the two
+that had none: `removeFxInsert` and `removeSend`. Three real bites, each proven red on its own:
+1. **Deleting the last Clip of an automated Track was a dead key** — the Track stopped projecting,
+   its lane failed the projection, the edit vanished. Every Track projects now (a contentless strip
+   is a Sum with no inputs — exact silence, all controls and lanes still resolve).
+2. **Removing an automated FX insert was a dead click** — the orphaned lane made the Project
+   unprojectable. The insert's lanes now go with it in the SAME undo step.
+3. **Removing a send before an automated one was a dead click** (and, had it applied, would have
+   silently handed the lane a different send row, since SendLevel lanes address sends by ORDINAL).
+   The removed send's lane is dropped and every later lane is re-seated one ordinal down —
+   breakpoints and lane ids preserved — all inside the one undo step.
+
+New shipped-boundary `[lane-orphan]` gate (137 assertions) on a three-track project, driving the
+shipped controls: automation canvas → lane, timeline click → Delete, `mixer.fx.slot.0.remove`,
+`mixer.send.0.remove`, each followed by the undo. FAIL-BEFORE PROVEN THREE TIMES: bite 1 died at
+assertion 63 (clips stayed 3), bite 2 at assertion 101 with only the projection fix in place (the
+chain stayed non-empty), bite 3 at assertion 128 with only the send re-seat removed (2 sends
+remained). The gate also flushed a latent TEST defect: `timelineClipCenterPoint` always returned
+LANE 0's row, so multi-lane gates could click the wrong clip; a lane-aware twin
+(`timelineClipCenterPointOnItsLane`, E5 scroll-aware) was added rather than changing the historical
+helper under existing gates.
+
+One legacy assertion was re-pinned to the new semantics, strictly stronger: the H15/CP3
+`[mixer][projection][automation][invalid]` case pinned that a lane on a clip-less track FAILS the
+projection — exactly the behavior that froze edits. It now pins three things instead of one: that
+case must SUCCEED (lane resolved, every track projected), a lane on an unprojected Bus is still
+rejected with `InvalidAutomationTarget`, and a SendLevel lane whose ordinal has no send row is
+still rejected.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M2 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M3 (track output routing), then strictly top-to-bottom through M14.
 

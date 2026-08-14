@@ -2680,6 +2680,18 @@ public:
         return true;
     }
 
+    // M2: every automation lane whose TARGET is this entity (an FX insert owns its param lanes).
+    // Callers remove them in the same transaction as the target itself.
+    [[nodiscard]] std::vector<engine::AutomationLaneData> automationLanesOwnedBy (
+        engine::EntityId ownerEntity) const
+    {
+        std::vector<engine::AutomationLaneData> owned;
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+            if (lane.ownerEntity == ownerEntity)
+                owned.push_back (lane);
+        return owned;
+    }
+
     [[nodiscard]] UiActionDispatchResult addFxInsertToSelectedStrip (engine::FxKind kind)
     {
         const UiActionId id = UiActionId::MixerFxInsertAdd;
@@ -2738,7 +2750,18 @@ public:
         command.verb = engine::ProjectEditVerb::RemoveFxInsert;
         command.fxOwnerId = ownerId;
         command.fxInsertId = strip->fxChain[slotIndex].id;
+
+        // M2: automation lanes owned by this insert go WITH it, in the same undo step. Leaving them
+        // behind makes the Project unprojectable, which turned this button into a dead click.
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        for (const engine::AutomationLaneData& lane : automationLanesOwnedBy (command.fxInsertId))
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::removeAutomationLane (lane.id)).applied())
+                return { id, state, false };
         if (! nextUndo.apply (nextProject, command).applied())
+            return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
@@ -2993,9 +3016,53 @@ public:
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
+
+        // M2: SendLevel lanes address sends by ORDINAL, so removing a send both orphans the lane
+        // that pointed at it and would silently hand every later lane a DIFFERENT send row. In one
+        // undo step: drop the removed send's lane, then re-seat each later lane one ordinal down
+        // (remove + re-add with its own breakpoints, keeping its lane id).
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+
+        std::vector<engine::AutomationLaneData> reseated;
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+        {
+            if (lane.role != engine::AutomationTargetRole::SendLevel || ! (lane.ownerEntity == trackId))
+                continue;
+            if (static_cast<std::size_t> (lane.paramId) < sendIndex)
+                continue;
+
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::removeAutomationLane (lane.id)).applied())
+                return { id, state, false };
+
+            if (static_cast<std::size_t> (lane.paramId) > sendIndex)
+            {
+                engine::AutomationLaneData moved = lane;
+                moved.paramId = lane.paramId - 1u;
+                reseated.push_back (std::move (moved));
+            }
+        }
+
+        for (const engine::AutomationLaneData& lane : reseated)
+        {
+            if (! nextUndo.apply (nextProject,
+                                  engine::ProjectEditCommand::addAutomationLane (
+                                      lane.id, lane.ownerEntity, lane.role, lane.paramId)).applied())
+                return { id, state, false };
+
+            for (const engine::AutomationBreakpoint& point : lane.points)
+                if (! nextUndo.apply (nextProject,
+                                      engine::ProjectEditCommand::addAutomationBreakpoint (
+                                          lane.id, point.tick, point.value, point.curveType)).applied())
+                    return { id, state, false };
+        }
+
         if (! nextUndo.apply (nextProject,
                               engine::ProjectEditCommand::removeSend (
                                   trackId, track->sends[sendIndex].id)).applied())
+            return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))

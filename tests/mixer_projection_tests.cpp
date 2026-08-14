@@ -743,37 +743,73 @@ TEST_CASE ("Project projector resolves BusFader automation to the projected bus 
     REQUIRE (automatedRender.back() > 1.0e-3f);
 }
 
-TEST_CASE ("Project projector rejects automation lanes whose target is not projected",
+// M2 re-pin (strictly stronger, new semantics): a clip-less TRACK used to be skipped by the
+// projection, so a lane on it failed the WHOLE projection — which silently froze the very edit that
+// emptied the track. Every Track projects now, so that case must SUCCEED; the rejection law itself
+// still bites for targets that genuinely are not in the graph (an unprojected Bus, and a SendLevel
+// lane whose ordinal has no send row).
+TEST_CASE ("Project projector resolves lanes on clip-less tracks and rejects targets that are not projected",
            "[mixer][projection][project][automation][invalid][h15][cp3]")
 {
-    Project project = makeMixerProjectionProject();
-    Track silentTrack;
-    silentTrack.id = entityIdFromLowByte (90);
-    silentTrack.strip.name = "No clips";
-    project.tracks.push_back (silentTrack);
-    project.automationLanes = {
-        makeAutomationLane (73, silentTrack.id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId),
-    };
-
     ProjectMixerProjectionConfig config;
     config.masterSumNodeId = kMasterSumId;
     config.masterNodeId = kMasterId;
 
-    MixerProjectionInputs projection;
-    ProjectMixerProjectionError error;
-    REQUIRE_FALSE (projectToMixerProjectionInputs (
-        project,
-        config,
-        [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
-            -> std::unique_ptr<Node>
-        {
-            return std::make_unique<IdentityDcNode> (expectedSourceId, 1.0f, 1);
-        },
-        projection,
-        &error));
+    const auto sourceFactory = [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
+        -> std::unique_ptr<Node>
+    {
+        return std::make_unique<IdentityDcNode> (expectedSourceId, 1.0f, 1);
+    };
 
-    REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidAutomationTarget);
-    REQUIRE (error.clipIndex == 0u);
+    SECTION ("a lane on a track with no clips projects")
+    {
+        Project project = makeMixerProjectionProject();
+        Track silentTrack;
+        silentTrack.id = entityIdFromLowByte (90);
+        silentTrack.strip.name = "No clips";
+        project.tracks.push_back (silentTrack);
+        project.automationLanes = {
+            makeAutomationLane (73, silentTrack.id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId),
+        };
+
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE (projectToMixerProjectionInputs (project, config, sourceFactory, projection, &error));
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::None);
+        REQUIRE (projection.tracks.size() == project.tracks.size());
+        REQUIRE (projection.automationLanes.size() == 1u);
+    }
+
+    SECTION ("a lane on an unprojected bus is still rejected")
+    {
+        Project project = makeMixerProjectionProject();
+        Bus bareBus;                                  // no FX and nothing routed to it
+        bareBus.id = entityIdFromLowByte (91);
+        bareBus.strip.name = "Bare";
+        project.buses.push_back (bareBus);
+        project.automationLanes = {
+            makeAutomationLane (74, bareBus.id, AutomationTargetRole::BusFader, FaderNode::kGainParameterId),
+        };
+
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (project, config, sourceFactory, projection, &error));
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidAutomationTarget);
+        REQUIRE (error.clipIndex == 0u);
+    }
+
+    SECTION ("a send-level lane whose ordinal has no send row is still rejected")
+    {
+        Project project = makeMixerProjectionProject();
+        project.automationLanes = {
+            makeAutomationLane (75, project.tracks.front().id, AutomationTargetRole::SendLevel, 0u),
+        };
+
+        MixerProjectionInputs projection;
+        ProjectMixerProjectionError error;
+        REQUIRE_FALSE (projectToMixerProjectionInputs (project, config, sourceFactory, projection, &error));
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::InvalidAutomationTarget);
+    }
 }
 
 TEST_CASE ("Project projector applies Track fader after independent Clip gains",
