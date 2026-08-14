@@ -263,6 +263,17 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
     return false;
 }
 
+// M3: a Bus that a Track's MAIN output lands on must project even with no FX and no sends — it is
+// carrying the whole strip, not a parallel tap.
+[[nodiscard]] inline bool busHasTrackOutput (const Project& project, EntityId busId) noexcept
+{
+    for (const Track& track : project.tracks)
+        if (track.outputBusId == busId)
+            return true;
+
+    return false;
+}
+
 [[nodiscard]] inline std::size_t projectedBusIndexForRoute (
     const Project& project,
     const std::vector<std::size_t>& projectedBusIndices,
@@ -365,7 +376,9 @@ template <typename SourceFactory>
     for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
     {
         const Bus& bus = project.buses[busIndex];
-        if (! bus.strip.fxChain.empty() || detail::busHasSendRoute (config, bus.id))
+        if (! bus.strip.fxChain.empty()
+            || detail::busHasSendRoute (config, bus.id)
+            || detail::busHasTrackOutput (project, bus.id))
             projectedBusIndices[busIndex] = projectedBusCount++;
     }
 
@@ -566,6 +579,22 @@ template <typename SourceFactory>
                                            FaderNode::kGainParameterId,
                                            true });
             ++sendOrdinal;
+        }
+
+        // M3: resolve the Track's main-output destination to a PROJECTED bus index.
+        if (owningTrack.outputBusId.isValid())
+        {
+            const std::size_t projectedBusIndex =
+                detail::projectedBusIndexForRoute (project, projectedBusIndices, owningTrack.outputBusId);
+            if (projectedBusIndex == kMissingProjectedBus)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, trackIndex, 0,
+                               ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            track.outputBusIndex = projectedBusIndex;
         }
 
         automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::TrackFader, faderId });

@@ -832,7 +832,36 @@ M2 is certified: exact-head GitHub Actions run `31843851909` is green for full S
 `71e652e2a4370a97b6668df2cbd235ef097b149a` across all nine jobs, first try. M2 is ticked in the
 backlog.
 
-**Now:** M3 (track output routing / submix groups) — implementation candidate, see below.
+**M3 implementation candidate — track output routing (submix groups):** audited before changing
+anything — bus inputs came ONLY from send taps (`pushUniqueMixerInput (busInputs[send.busIndex],
+sendFaderPtr)`), each strip ended with `masterBusInputs.push_back (meterPtr)`, buses projected only
+when they had FX or a send route, and the schema's locate-points / `master_strip` pattern for
+additive tables. A Track now carries `outputBusId` (invalid = master, the historical default):
+- **Engine:** `setTrackOutput` verb (`SetTrackOutput`, track diff family, property-test arm 24
+  covering master / real bus / unknown ids), `trackOutputsReferenceBuses()` validation, and bus
+  removal refuses while a Track's output lands on it — the same honesty sends already had.
+- **Projection:** the bridge resolves the destination to a projected bus index, a bus carrying a
+  track output projects even with no FX and no sends, and the strip's post-meter output feeds THAT
+  bus's sum instead of the master sum. Buses never feed tracks, so no cycle is possible; an
+  out-of-range index refuses honestly.
+- **Persistence:** additive schema **v13** (`track_outputs`, FK'd both ways) written ONLY for
+  non-default routing, so a default project's bytes are exactly what v12 wrote. Both migration
+  gates re-pinned to v13 and extended to assert the new table arrives empty.
+- **UI:** an `mixer.track.output` chooser ("Out: Master" + every bus) on the mixer control lane,
+  enabled for track strips, reflecting and driving the persisted route. childCount re-pinned
+  128→129.
+
+New shipped-boundary `[track-output]` gate (90 assertions): three imported tracks + one bus; the
+default project writes NO routing rows; routing all three to the bus leaves the mix identical
+(same signal, new path); the BUS fader at 0.5 then halves all three EXACTLY — the thing sends can
+never do; bus removal is refused while it carries outputs; undo returns each track to master and
+the render is bit-identical to the straight-to-master baseline. FAIL-BEFORE: compile-fail against
+the pre-M3 engine (no `Track::outputBusId`, no `mixer.track.output` chooser) — the E19 pattern.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M3 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M4 (FX insert slots on the strip), then strictly top-to-bottom through M14.
 

@@ -2291,6 +2291,14 @@ TEST_CASE ("Randomized edit sequences fully undo to a bit-identical Project and 
                         pick (2) == 0 ? EntityId {}
                                       : idFromLowByte (static_cast<std::uint8_t> (100 + pick (50))));
                     break;
+                // M3 track output routing: master (invalid bus id), a real bus, and unknown ids —
+                // the refusals must leave the Project and the undo bookkeeping untouched.
+                case 24:
+                    command = ProjectEditCommand::setTrackOutput (
+                        idFromLowByte (pick (2) == 0 ? 36 : 41),
+                        pick (3) == 0 ? EntityId {}
+                                      : idFromLowByte (static_cast<std::uint8_t> (pick (2) == 0 ? 44 : 200 + pick (50))));
+                    break;
                 default: break;
             }
 

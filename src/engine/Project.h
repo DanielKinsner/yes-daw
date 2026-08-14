@@ -342,6 +342,10 @@ struct Track
     EntityId id;
     MixerStripState strip;
     std::vector<SendRow> sends;   // ordered; ordinal = index (ADR-0039 SendLevel paramId)
+    // M3: where this Track's MAIN output lands. Invalid (the default) = straight to master, the
+    // historical law; a valid id must name a Bus, and the Track's post-pan signal feeds THAT Bus's
+    // sum instead — the submix/group workflow sends alone cannot express.
+    EntityId outputBusId;
 
     [[nodiscard]] bool isValid() const noexcept
     {
@@ -1227,6 +1231,16 @@ struct Project
         return true;
     }
 
+    // M3: a Track's main output either goes to master (invalid id, the default) or names a real Bus.
+    [[nodiscard]] bool trackOutputsReferenceBuses() const noexcept
+    {
+        for (const Track& track : tracks)
+            if (track.outputBusId.isValid() && findBus (track.outputBusId) == nullptr)
+                return false;
+
+        return true;
+    }
+
     [[nodiscard]] bool clipsReferenceTracks() const noexcept
     {
         for (const Clip& clip : clips)
@@ -1343,6 +1357,7 @@ struct Project
                && hasUniqueEntityIds()
                && clipsReferenceAssets()
                && clipsReferenceTracks()
+               && trackOutputsReferenceBuses()
                && recordingTakesReferenceProjectRows()
                && recordingCompSegmentsReferenceTakes()
                && automationTargetsReferenceProjectRows();
@@ -2562,6 +2577,11 @@ namespace detail {
             if (send.busId == busId)
                 return ProjectEditStatus::BusInUse;
 
+    // M3: a Bus that a Track's MAIN output lands on is in use exactly like a send destination.
+    for (const Track& track : project.tracks)
+        if (track.outputBusId == busId)
+            return ProjectEditStatus::BusInUse;
+
     for (const AutomationLaneData& lane : project.automationLanes)
         if (lane.ownerEntity == busId)
             return ProjectEditStatus::BusInUse;
@@ -2669,6 +2689,34 @@ namespace detail {
         }
 
         return ProjectEditStatus::SendNotFound;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// M3: route a Track's MAIN output. An invalid busId means master (the historical default); a valid
+// one must name an existing Bus. Buses feed the master directly and nothing feeds a Track, so this
+// routing cannot make a cycle — the only refusals are unknown Track and unknown Bus.
+[[nodiscard]] inline ProjectEditStatus setTrackOutput (Project& project,
+                                                       EntityId trackId,
+                                                       EntityId busId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (busId.isValid() && project.findBus (busId) == nullptr)
+        return ProjectEditStatus::BusNotFound;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.outputBusId = busId;
+        return ProjectEditStatus::Applied;
     }
 
     return ProjectEditStatus::TrackNotFound;

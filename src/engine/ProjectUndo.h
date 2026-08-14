@@ -82,7 +82,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E19: persisted master strip gain
     SetMasterGain,
     // E33: take management — removes the take, its clip, and comp segments referencing it
-    RemoveRecordingTake
+    RemoveRecordingTake,
+    // M3: a Track's main output target (invalid bus id = master)
+    SetTrackOutput
 };
 
 struct ProjectEditCommand
@@ -783,6 +785,17 @@ struct ProjectEditCommand
         return command;
     }
 
+    // M3: a Track's main output target. An invalid busId routes the Track to master.
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackOutput (EntityId trackId,
+                                                                      EntityId busId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackOutput;
+        command.trackId = trackId;
+        command.busId = busId;
+        return command;
+    }
+
     // E19: persisted master strip gain (rides the shared `gain` field).
     [[nodiscard]] static constexpr ProjectEditCommand setMasterGain (float linearGain) noexcept
     {
@@ -1032,6 +1045,7 @@ namespace detail {
            || verb == ProjectEditVerb::RemoveSend
            || verb == ProjectEditVerb::SetSendLevel
            || verb == ProjectEditVerb::SetSendTap
+           || verb == ProjectEditVerb::SetTrackOutput
            || verb == ProjectEditVerb::SetTrackMixScalars;
 }
 
@@ -1329,6 +1343,9 @@ namespace detail {
 
         case ProjectEditVerb::SetSendTap:
             return setSendTap (project, command.trackId, command.sendId, command.sendTap);
+
+        case ProjectEditVerb::SetTrackOutput:
+            return setTrackOutput (project, command.trackId, command.busId);
 
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);

@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 12;
+inline constexpr int          kCodeSchemaVersion = 13;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1226,13 +1226,25 @@ CREATE TABLE master_strip (
 );
 )SQL";
 
+// M3: persisted Track main-output routing (locate-points / master_strip pattern — a v12 bundle
+// migrates by gaining the empty table, and a Track with no row keeps the historical "straight to
+// master" default, so default projects round-trip byte-identically).
+inline constexpr std::string_view kSchemaV13Sql = R"SQL(
+CREATE TABLE track_outputs (
+  track_id BLOB PRIMARY KEY,
+  bus_id   BLOB NOT NULL,
+  FOREIGN KEY (track_id) REFERENCES tracks(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  FOREIGN KEY (bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 12> kMigrations {
+inline constexpr std::array<SchemaMigration, 13> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1245,6 +1257,7 @@ inline constexpr std::array<SchemaMigration, 12> kMigrations {
     SchemaMigration { 10, kSchemaV10Sql },
     SchemaMigration { 11, kSchemaV11Sql },
     SchemaMigration { 12, kSchemaV12Sql },
+    SchemaMigration { 13, kSchemaV13Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1848,7 +1861,7 @@ public:
                 "DELETE FROM automation_breakpoints; DELETE FROM automation_lanes; "
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
-                "DELETE FROM sends; DELETE FROM buses; DELETE FROM tracks; "
+                "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
                 "DELETE FROM master_strip; "
                 "DELETE FROM assets; DELETE FROM project;");
@@ -1974,6 +1987,24 @@ public:
                 if (auto result = sendStmt.bindInt64 (5, static_cast<sqlite3_int64> (send.tap)); ! result.ok()) { rollback(); return result; }
                 if (auto result = sendStmt.bindDouble (6, send.linearGain); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, sendStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        // M3: only Tracks routed somewhere other than master get a row, so a default project's
+        // bytes are exactly what they were before the v13 table existed.
+        {
+            detail::Statement outputStmt (
+                db_,
+                "INSERT INTO track_outputs(track_id, bus_id) VALUES (?, ?);");
+            for (const engine::Track& track : project.tracks)
+            {
+                if (! track.outputBusId.isValid())
+                    continue;
+
+                outputStmt.reset();
+                if (auto result = outputStmt.bindBlob (1, track.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = outputStmt.bindBlob (2, track.outputBusId.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, outputStmt); ! result.ok()) { rollback(); return result; }
             }
         }
 
@@ -2464,6 +2495,44 @@ public:
                     return detail::semanticInvalid ("sends.bus_id does not reference a Bus row");
 
                 owner->sends.push_back (send);
+            }
+        }
+
+        // M3: Track main-output routing. No row means master — the historical default every bundle
+        // written before schema v13 carries.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT track_id, bus_id FROM track_outputs;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::EntityId trackId;
+                engine::EntityId busId;
+                if (auto result = detail::columnBlob (stmt.get(), 0, trackId.bytes, "track_outputs.track_id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, busId.bytes, "track_outputs.bus_id"); ! result.ok())
+                    return result;
+
+                engine::Track* owner = nullptr;
+                for (engine::Track& track : project.tracks)
+                    if (track.id == trackId)
+                    {
+                        owner = &track;
+                        break;
+                    }
+                if (owner == nullptr)
+                    return detail::semanticInvalid ("track_outputs.track_id does not reference a Track row");
+                if (project.findBus (busId) == nullptr)
+                    return detail::semanticInvalid ("track_outputs.bus_id does not reference a Bus row");
+
+                owner->outputBusId = busId;
             }
         }
 

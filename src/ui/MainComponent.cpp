@@ -4684,6 +4684,31 @@ private:
         };
         addAndMakeVisible (mixerSendAddChooser);
 
+        // M3: where the selected TRACK's main output lands — master (the default) or a bus. This is
+        // the submix/group route, not a parallel send: the whole strip moves.
+        configureActionComponent (mixerTrackOutputChooser, yesdaw::ui::UiActionId::MixerTrackSetOutput,
+                                  "Track output");
+        mixerTrackOutputChooser.setTextWhenNothingSelected ("Out: Master");
+        mixerTrackOutputChooser.setTextWhenNoChoicesAvailable ("Out: Master");
+        mixerTrackOutputChooser.onChange = [this] {
+            if (refreshingSendControls)
+                return;
+
+            const int selected = mixerTrackOutputChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            const auto& buses = appModel.project().buses;
+            const yesdaw::engine::EntityId target =
+                selected == 1 || static_cast<std::size_t> (selected - 2) >= buses.size()
+                    ? yesdaw::engine::EntityId {}
+                    : buses[static_cast<std::size_t> (selected - 2)].id;
+            (void) appModel.setOutputOnSelectedTrack (target);
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerTrackOutputChooser);
+
         for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
         {
             auto& label = mixerSendLabels[row];
@@ -5671,6 +5696,8 @@ private:
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         // E17: bus removal lives with the bus tools.
         mixerBusRemoveButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
+        mixerTrackOutputChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         mixerSendAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
@@ -6716,6 +6743,24 @@ private:
                 && ! project.buses.empty()
                 && appModel.selectedMixerTrackStripIndex() >= 0;
             mixerSendAddChooser.setEnabled (sendAddEnabled);
+
+            // M3: Master first, then every bus; the selection mirrors the Track's persisted route.
+            mixerTrackOutputChooser.clear (juce::dontSendNotification);
+            mixerTrackOutputChooser.addItem ("Out: Master", 1);
+            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+                mixerTrackOutputChooser.addItem ("Out: " + juce::String (project.buses[busIndex].strip.name),
+                                                 static_cast<int> (busIndex) + 2);
+
+            const yesdaw::engine::EntityId routedBusId = appModel.selectedTrackOutputBusId();
+            int routedItemId = 1;
+            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+                if (project.buses[busIndex].id == routedBusId)
+                    routedItemId = static_cast<int> (busIndex) + 2;
+            mixerTrackOutputChooser.setSelectedId (routedItemId, juce::dontSendNotification);
+            mixerTrackOutputChooser.setEnabled (
+                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTrackSetOutput,
+                                              appModel.context()).enabled
+                && appModel.selectedMixerTrackStripIndex() >= 0);
 
             const std::vector<yesdaw::engine::SendRow> sends = appModel.selectedTrackSends();
             const bool sendEditEnabled =
@@ -9108,6 +9153,7 @@ private:
     juce::TextEditor busRenameEditor;
     int busRenameIndex = -1;
     juce::ComboBox mixerSendAddChooser;
+    juce::ComboBox mixerTrackOutputChooser;   // M3: track main-output routing
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;

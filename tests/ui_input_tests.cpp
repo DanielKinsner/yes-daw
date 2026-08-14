@@ -982,8 +982,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // choosers (8) and the param page chooser + the E17 bus remove button and bus rename
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
-    // and recorded-channel pick + the E33 take chooser and delete button — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 128u));
+    // and recorded-channel pick + the E33 take chooser and delete button + the M3 track output
+    // chooser — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 129u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4800,6 +4801,122 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
         REQUIRE (peakOf (windowOf (withoutSend, 0, kMidiWindowEnd)) < baselineMidiPeak * 0.75);
         REQUIRE (windowOf (withoutSend, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
     }
+}
+
+// M3 — submix groups. Sends are parallel taps; until now a Track's MAIN output always landed on
+// master, so there was no way to put three tracks under one fader. The gate routes all three tracks
+// of a real project to one bus and proves the bus's fader now carries them.
+TEST_CASE ("tracks route their main output to a bus and the bus fader carries them",
+           "[ui][input][shell][mixer][track-output]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-output");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
+    {
+        mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
+
+    // A default project writes NO routing rows: the v13 table exists but stays empty, which is what
+    // keeps pre-M3 bundles byte-identical through a round trip.
+    {
+        const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+        REQUIRE (std::all_of (seeded.tracks.begin(), seeded.tracks.end(),
+                              [] (const yesdaw::engine::Track& track) { return ! track.outputBusId.isValid(); }));
+    }
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, 8'192, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> straightToMaster = renderFromStart();
+    const double masterPeak = peakAbs (std::span<const float> (straightToMaster.data(), straightToMaster.size()));
+    REQUIRE (masterPeak > 0.02);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* busAdd = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.add"));
+    REQUIRE (busAdd != nullptr);
+    clickButton (*busAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    auto* outputChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.track.output"));
+    REQUIRE (outputChooser != nullptr);
+    REQUIRE (outputChooser->getNumItems() == 2);              // Master + the one bus
+    REQUIRE (outputChooser->getSelectedId() == 1);            // master is the default
+
+    for (int stripIndex = 0; stripIndex < 3; ++stripIndex)
+    {
+        mouseDownAt (*strips, paintedStripCentre (*strips, stripIndex, 4));
+        REQUIRE (outputChooser->isEnabled());
+        outputChooser->setSelectedId (2, juce::sendNotificationSync);   // the bus
+    }
+    {
+        const yesdaw::engine::Project routed = readProjectSnapshot (bundlePath);
+        REQUIRE (routed.buses.size() == 1u);
+        for (const yesdaw::engine::Track& track : routed.tracks)
+            REQUIRE (track.outputBusId == routed.buses.front().id);
+    }
+
+    // Routing alone must not change the mix: the same signal now arrives through the bus.
+    const std::vector<float> throughBus = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (throughBus.data(), throughBus.size()))
+             == Catch::Approx (masterPeak).epsilon (0.001));
+
+    // The BUS fader now carries all three tracks — the thing sends could never do.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 3, 4));            // the bus strip
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (0.5, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.linearGain == 0.5f);
+    {
+        const std::vector<float> halved = renderFromStart();
+        REQUIRE (peakAbs (std::span<const float> (halved.data(), halved.size()))
+                 == Catch::Approx (masterPeak * 0.5).epsilon (0.001));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.linearGain == 1.0f);
+
+    // A bus carrying track outputs is in use: removal is refused and the bus stays, exactly as it
+    // is refused while sends route to it.
+    auto* busRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.remove"));
+    REQUIRE (busRemove != nullptr);
+    clickButton (*busRemove);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    // Routing survives save/reopen, and one undo per track puts each back on master.
+    for (int stripIndex = 2; stripIndex >= 0; --stripIndex)
+    {
+        (void) stripIndex;
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    }
+    {
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        for (const yesdaw::engine::Track& track : restored.tracks)
+            REQUIRE_FALSE (track.outputBusId.isValid());
+    }
+    REQUIRE (renderFromStart() == straightToMaster);
 }
 
 // M2 — an automation lane must never be able to freeze the edit that removes what it automates.

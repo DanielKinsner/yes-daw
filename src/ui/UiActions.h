@@ -166,6 +166,8 @@ enum class UiActionId : std::uint8_t
     PianoRollNoteOctaveDown,
     PianoRollNoteDuplicate,
     PianoRollNoteQuantizeSelection,
+    // M3: a Track's main output destination (master or a Bus)
+    MixerTrackSetOutput,
     Count
 };
 
@@ -660,7 +662,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollNoteDuplicate, "piano_roll.note.duplicate", "Duplicate Note", "Alt+Shift+D", "Duplicate selected note one grid step later",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::PianoRollNoteQuantizeSelection, "piano_roll.note.quantize_selection", "Quantize Notes", "Q", "Quantize selected notes to the snap grid",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
+    { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "Ctrl+Alt+G", "Route the selected Track's main output to master or a bus",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -1290,6 +1294,7 @@ public:
             case UiActionId::MixerSendAdd:
             case UiActionId::MixerSendRemove:
             case UiActionId::MixerSendSetLevel:
+            case UiActionId::MixerTrackSetOutput:
                 context.activePanel = UiPanel::Mixer;
                 context.canUndo = true;
                 context.canRedo = false;

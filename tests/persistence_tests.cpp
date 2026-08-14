@@ -1347,17 +1347,21 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    // E19 re-pin: migrations now run through v12 (master_strip).
-    REQUIRE (value == 12);
+    // M3 re-pin: migrations now run through v13 (track_outputs).
+    REQUIRE (value == 13);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 12;", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 13;", value).ok());
+    REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
     REQUIRE (value == 0);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM master_strip;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM track_outputs;", value).ok());
     REQUIRE (value == 0);
 
     std::string storedName;
@@ -1381,11 +1385,12 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // E19: a fresh bundle is v12 now — the v10 simulation also strips the v12 artifacts.
+        // M3: a fresh bundle is v13 now — the v10 simulation also strips the v12/v13 artifacts.
         REQUIRE (db.executeSql (
-            "DROP TABLE locate_points; DROP TABLE master_strip; "
+            "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
+            "DELETE FROM schema_migrations WHERE version = 13; "
             "PRAGMA user_version = 10;").ok());
     }
 
@@ -1393,13 +1398,15 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
     REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    // E19 re-pin: reopening migrates through v12 (master_strip).
-    REQUIRE (value == 12);
+    // M3 re-pin: reopening migrates through v13 (track_outputs).
+    REQUIRE (value == 13);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
     REQUIRE (value == 0);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM master_strip;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM track_outputs;", value).ok());
     REQUIRE (value == 0);
 
     Project readback;

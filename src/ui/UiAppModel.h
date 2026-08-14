@@ -3073,6 +3073,45 @@ public:
         return { id, state, true };
     }
 
+    // M3: route the selected Track's MAIN output. An invalid busId means master (the default);
+    // otherwise the bus must exist. This is a submix group, not a parallel send: the whole strip
+    // lands on the bus and the bus's fader/FX carry it.
+    [[nodiscard]] UiActionDispatchResult setOutputOnSelectedTrack (engine::EntityId busId)
+    {
+        const UiActionId id = UiActionId::MixerTrackSetOutput;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return { id, { false, "no track strip selected" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setTrackOutput (trackId, busId)).applied())
+            return { id, { false, "track output refused" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track output did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // The selected Track's current main-output destination (invalid = master).
+    [[nodiscard]] engine::EntityId selectedTrackOutputBusId() const noexcept
+    {
+        engine::EntityId trackId;
+        if (! selectedTrackIdForSends (trackId))
+            return {};
+
+        const engine::Track* const track = findTrack (trackId);
+        return track != nullptr ? track->outputBusId : engine::EntityId {};
+    }
+
     [[nodiscard]] UiActionDispatchResult setSendLevelOnSelectedTrack (std::size_t sendIndex, float linearGain)
     {
         const UiActionId id = UiActionId::MixerSendSetLevel;
@@ -5458,6 +5497,9 @@ public:
             case UiActionId::MixerSendRemove:
             case UiActionId::MixerSendSetLevel:
                 return { id, { false, "send payload required" }, false };
+
+            case UiActionId::MixerTrackSetOutput:
+                return { id, { false, "track output payload required" }, false };
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();

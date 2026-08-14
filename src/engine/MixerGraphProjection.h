@@ -89,6 +89,11 @@ struct MixerTrackProjection
     // sidechain gate proves.
     std::unique_ptr<Node> sidechainSource;
     NodeId                sidechainNodeId = 0;
+    // M3: where the strip's MAIN output lands. kOutputToMaster (the default) is the historical
+    // straight-to-master path; any other value is an index into `buses`, and the strip's post-meter
+    // output feeds THAT bus's sum instead of the master sum (a submix group, not a parallel send).
+    static constexpr std::size_t kOutputToMaster = static_cast<std::size_t> (-1);
+    std::size_t outputBusIndex = kOutputToMaster;
 };
 
 struct MixerBusProjection
@@ -475,7 +480,26 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         if (track.insertNodes.empty())
             inputs.nodes.push_back (std::move (pan));
         inputs.nodes.push_back (std::move (meter));
-        masterBusInputs.push_back (meterPtr);
+
+        // M3: a routed strip feeds its destination bus's sum instead of the master sum. Buses never
+        // feed tracks, so this cannot make a cycle; an out-of-range index is an honest refusal.
+        if (track.outputBusIndex == MixerTrackProjection::kOutputToMaster)
+        {
+            masterBusInputs.push_back (meterPtr);
+        }
+        else if (track.outputBusIndex < projection.buses.size())
+        {
+            pushUniqueMixerInput (busInputs[track.outputBusIndex], meterPtr);
+        }
+        else
+        {
+            if (error != nullptr)
+            {
+                error->code = MixerProjectionError::Code::InvalidSendDestination;
+                error->trackIndex = i;
+            }
+            return nullptr;
+        }
     }
 
     for (std::size_t i = 0; i < projection.buses.size(); ++i)
