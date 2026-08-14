@@ -1152,7 +1152,11 @@ TEST_CASE ("clips paint what they contain: MIDI notes, and no invented waveform"
                     != image.getPixelAt (x, geometry.clipArea.getY() + geometry.laneHeight + y))
                     ++laneDifferences;
 
-        REQUIRE (laneDifferences == 0);
+        // A 1% tolerance for renderer edge antialiasing (CoreGraphics and Direct2D round the
+        // rounded-clip corners differently at different y offsets). The defect this pins is a
+        // per-clip INVENTED waveform, which differed across thousands of body pixels.
+        const int probeArea = probeWidth * std::max (1, geometry.laneHeight - 8);
+        REQUIRE (laneDifferences < probeArea / 100);
     }
 }
 

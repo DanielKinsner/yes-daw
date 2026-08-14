@@ -990,6 +990,12 @@ preview path and `TimelineClipNote` do not exist pre-M7, and the old paint hashe
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
+**M7 CI round 1 was a REAL red** (macOS only): the lane-identity probe demanded pixel-exact
+equality between two lanes, and CoreGraphics antialiases the rounded clip corners differently at
+different y offsets than Direct2D does. The probe now allows 1% of its area — the defect it pins
+(a per-clip INVENTED waveform) differed across thousands of body pixels, so the tolerance costs
+the gate nothing.
+
 **Now:** M6 repair + M7 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M8 (piano roll keyboard + velocity bars), then strictly top-to-bottom through M14.
