@@ -106,7 +106,19 @@ evidence commit.
 
 ## Phase 2 — the mixer looks and works like a mixer
 
-4. [ ] **M4 — FX insert slots on the strip.** Judged from the rendered mixer at 1536×960: the only
+4. [x] **M4 — FX insert slots on the strip.** DONE — feature `cf948e1` + adaptive-height repair
+   `4828185` + CI fix `71a78b8`; exact-head nine-job CI run `31847432954` green on the final SHA
+   `639dad8`, local 350/350. Every strip paints its chain between the S/M row and the fader (name,
+   bypass dot, empty wells, selected slot outlined); ONE law drives paint, click and gates
+   (`paintedInsertRowBoundsForLane`, exported as `mainComponentPaintedInsertSlotBounds`); clicking a
+   row selects that strip and opens exactly that insert's params, an empty row closes the panel.
+   Judged in pixels at all three sizes and iterated twice (empty wells gained an outline;
+   "Compressor" → "Comp" after it overflowed a 112px strip), plus a self-caught regression repaired
+   before certification: the fixed-height block starved the timeline view's mini-mixer fader, so the
+   block is adaptive now and a strip with no room falls back to the exact historical fader top.
+   `[strip-inserts]` gate: 212 assertions. TWO RED CI ROUNDS, both real: `-Werror=range-loop-construct`
+   on Linux/macOS (the E26 trap), then a fixture that described a send nothing routed.
+   Original spec: judged from the rendered mixer at 1536×960: the only
    way to touch inserts is a stack of debug text buttons in the left control lane ("Audio 1 FX:
    none", "FX", "+ FX", "Audio 1 GR: none") while the strips themselves carry name + pan knob +
    S/M + fader and nothing else — no DAW mixer looks like that. Put a real insert slot column on
@@ -117,7 +129,18 @@ evidence commit.
    insert on that strip (non-zero strip AND non-zero slot), bypass toggles the real verb and the
    render changes audibly, and slot geometry stays inside the strip at 1152×720 / 1536×960 /
    1920×1080.
-5. [ ] **M5 — Sends on the strip.** Same finding, send half: sends live only in the debug lane
+5. [x] **M5 — Sends on the strip.** DONE — the feature landed inside commit `71a78b8` (a staging
+   slip: it is labelled as M4's CI fix but carries M5's whole change; pushed history is never
+   rewritten, and STATUS records it) plus fixture re-pins in `639dad8`; exact-head nine-job CI run
+   `31847432954` green on `639dad8`, local 350/350. Each strip paints one row per PERSISTED send row
+   (destination bus name, PRE/PST tap, a level bar), and a drag on the bar sets the level — press
+   previews transiently, release commits ONE undoable `SetSendLevel`. The send readout was rewritten
+   to read the real send rows (ADR-0044) and merge automation into them: it was built from
+   AUTOMATION LANES alone before, so a send you added but never automated did not exist as far as
+   the mixer surface was concerned. Two legacy fixtures that carried a SendLevel lane for an ordinal
+   nothing routed were re-pinned with the real send row (every existing assertion held unchanged).
+   Rows drop on a short strip exactly like the insert slots. `[strip-sends]` gate: 63 assertions.
+   Original spec: same finding, send half: sends live only in the debug lane
    ("Audio 1 sends: none", "Send", "+ Send"). Put a send row per send on each strip: destination
    bus name, level, pre/post tap marker, and a control that edits the level through the existing
    `SetSendLevel` verb; the destination and tap choosers from E18 stay reachable from the row.

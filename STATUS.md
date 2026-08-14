@@ -922,9 +922,28 @@ change** (painted send rows, the send-row drag law, the send-readout rewrite and
 commit each. Nothing is hidden: both items are certified against the same exact-head run below,
 and the M5 entry says so too.
 
-**Now:** M4 committed locally; awaiting exact-head nine-job CI.
+M4 and M5 are certified together: exact-head GitHub Actions run `31847432954` is green for full
+SHA `639dad8b08b55bc9a346f5a0e6d471b3d2d5e64c` across all nine jobs. Both are ticked in the backlog,
+each recording that they share a head because of the staging slip above.
 
-**Next:** M5 (sends on the strip), then strictly top-to-bottom through M14.
+**M5 — sends on the strip (landed in the same head):** audited first — `sendReadoutsForTrack` built
+the mixer surface's send list from AUTOMATION LANES, so a send you added but never automated was
+invisible to the strips (a leftover from before ADR-0044 persisted send rows). The readout now reads
+the REAL send rows and merges any matching lane into them. Each strip paints one row per send —
+destination bus name, PRE/PST tap, and a level bar — and a drag on the bar sets the level: the press
+previews transiently (nothing persisted), the release commits ONE undoable `SetSendLevel` through
+the same model verb the control lane uses, so a drag is one undo step rather than dozens. Rows are
+adaptive like the insert slots: a short strip drops them rather than starving the fader. Two legacy
+fixtures (`makeMixerSendsInputProject`, the `ui_action_tests` mixer surface fixture) carried a
+SendLevel lane for an ordinal nothing routed; both were re-pinned with the real send row and every
+existing assertion held unchanged. New `[strip-sends]` gate (63 assertions): the painted row exists
+only on the routed strip and above the fader region, a drag lands a level between 0 and 1 that
+audibly changes the bus contribution, ONE undo restores unity, the E18 tap toggle is reflected, and
+the row is empty at the floor in Timeline view.
+
+**Now:** M6 (fader scale, unity and readouts) — next item, not started.
+
+**Next:** M7 (honest clip paint), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
