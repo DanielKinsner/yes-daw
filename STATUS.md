@@ -1017,9 +1017,13 @@ sizes: the roll now reads as a piano roll.
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M8 committed locally; awaiting exact-head nine-job CI.
+M8 is certified: exact-head GitHub Actions run `31850912382` is green for full SHA
+`f0dc2e84b73f34cf32a46827b6c194b5aaf9055c` across all nine jobs, first try. M8 is ticked in the
+backlog.
 
-**Next:** M9 (floor-size layout defects), then strictly top-to-bottom through M14.
+**Now:** M9 (floor-size layout defects) — next item, not started.
+
+**Next:** M10 (OS file drag-and-drop), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

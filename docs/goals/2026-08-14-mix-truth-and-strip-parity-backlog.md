@@ -194,7 +194,17 @@ evidence commit.
    notes (moving a note moves the painted bar; an empty MIDI clip paints NO bars), the pending
    audio clip paints no invented peaks, and `YesDawTimelineGpuCheck`'s dense fixture stays inside
    the 16.6 ms budget.
-8. [ ] **M8 — Piano roll: a real keyboard and real velocity bars.** Judged from the rendered roll:
+8. [x] **M8 — Piano roll: a real keyboard and real velocity bars.** DONE — feature `f0dc2e8`,
+   exact-head nine-job CI run `31850912382` green (first try), local 350/350. The audit sharpened
+   the carve: the key column DID paint per-key rows, but white keys used the panel's raised grey, so
+   it read as striped rows; white keys are now genuinely light with a dark label and black keys are
+   dark, narrower, and sit ON them from the left edge. Velocity paints one bar per note anchored at
+   its start (the joined path read as a curve through values that do not exist between notes); the
+   Pitch lane keeps its line because it is a per-note MPE value. `[roll-sizes]` extended (106
+   assertions) with pixel probes: the key column must hold BOTH genuinely light and genuinely dark
+   pixels, and the velocity lane's painted columns must be isolated bars (< 1/4 of the lane width,
+   longest run ≤ 8px) rather than a stroke spanning the lane.
+   Original spec: judged from the rendered roll:
    the key column is just alternating dark rows with C3/C4/C5 text — there is no piano keyboard —
    and the velocity lane draws a LINE GRAPH between note points
    (`src/ui/UiPianoRollSurface.h:235`–`242` feeds points, the paint connects them) where every DAW
