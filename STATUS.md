@@ -910,6 +910,18 @@ fader top; the live control lane reserves the same block so the live fader start
 one does. Pinned in the gate: at the floor, in Timeline view, slot 0's rect is empty; back in the
 Mixer view it is not.
 
+**CI round 1 for M4 was a REAL red** (Linux + macOS): the gate's size sweep bound each
+`std::pair` by value, which AppleClang and GCC reject under `-Werror=range-loop-construct` (the
+E26 trap; MSVC stays silent). Fixed by binding `const auto&`.
+
+**STAGING SLIP (recorded honestly, pushed history is never rewritten):** that fix was committed
+with `git add -A` while M5's implementation was already in the working tree, so commit `71a78b8`
+— labelled `fix(tests): bind the size pairs by reference` — actually carries **M5's whole feature
+change** (painted send rows, the send-row drag law, the send-readout rewrite and the
+`[strip-sends]` gate) as well. M4 and M5 therefore share a head instead of getting one feature
+commit each. Nothing is hidden: both items are certified against the same exact-head run below,
+and the M5 entry says so too.
+
 **Now:** M4 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M5 (sends on the strip), then strictly top-to-bottom through M14.

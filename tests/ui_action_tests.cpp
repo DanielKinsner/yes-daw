@@ -819,6 +819,18 @@ TEST_CASE ("H11 mixer actions project fader pan mute solo meters and loudness to
             false,
             true,
             { { idFromLowByte (83), yesdaw::engine::FxKind::Reverb, true, {} } } } });
+    // M5 re-pin: the mixer surface reads the PERSISTED send rows (ADR-0044) and merges automation
+    // into them, so the fixture needs the row this lane automates — a lane for an ordinal nothing
+    // routes describes a send that does not exist.
+    {
+        yesdaw::engine::SendRow sendRow;
+        sendRow.id = idFromLowByte (84);
+        sendRow.busId = idFromLowByte (82);
+        sendRow.tap = yesdaw::engine::SendTap::PostFader;
+        sendRow.linearGain = 0.5f;
+        project.tracks[0].sends.push_back (sendRow);
+    }
+
     AutomationLaneData sendLane;
     sendLane.id = idFromLowByte (80);
     sendLane.ownerEntity = firstTrackId;
