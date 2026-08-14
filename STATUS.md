@@ -713,6 +713,60 @@ take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed):
 selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
 gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). E33 IS CERTIFIED (CI run `31670095158` green on `0a7857f`; ticked in the backlog).
 
+## 2026-08-14 mix-truth & strip-parity run (in progress)
+
+Canonical list: `docs/goals/2026-08-14-mix-truth-and-strip-parity-backlog.md` — 14 items M1–M14 in
+five phases: MIDI through the strip (M1–M3), a real mixer strip (M4–M6), honest paint (M7–M9),
+workflow gaps (M10–M12), monitoring truth + the H18 precondition smoke (M13–M14). Process rules
+chain unchanged from the 2026-08-11 and 2026-08-12 briefs: one item at a time, strict order,
+audit-before-build, shipped-boundary gates that fail before and pass after, full local ctest under
+the owner-file ritual, one feature commit + exact-head nine-job CI green + a separate docs-only
+evidence commit per item.
+
+**Shipped-path hardware record check (E35) re-run 2026-08-14 on the owner machine:** `pwsh
+tools/shipped-record-check.ps1` → **FAIL, exit 1**, as expected with no loopback cable routed:
+`captured frames=144480 channels=1 peak=0.0000 burst-snr=0.00 device="Speakers (Focusrite USB
+Audio)"`, then `FAIL: coded burst not found in the capture (loopback route required — route an
+output back into the recorded input)`. Read honestly: the shipped Record path ran end-to-end on
+real hardware again (144,480 frames captured and committed through the exact button verbs), and
+the checker correctly refuses to call it a PASS without the physical return path. The full PASS
+remains the one owner action: route an output into input 1 of the Focusrite and re-run. Logged in
+`docs/reality-lane.md`.
+
+**Carve evidence (2026-08-14):** adversarial re-audit of current `main` (head `66cb10b`) reading
+the real projection/paint code paths plus judged renders of the shipped shell at 1152×720 /
+1536×960 / 1920×1080. Load-bearing findings, each quoted with file:line in the backlog doc:
+- **The mix lies about MIDI.** Every Track gets a mixer strip (`UiMixerSurface.h:339`) but the
+  engine only projects a Track that owns an AUDIO clip (`ProjectMixerProjection.h:388`); each MIDI
+  clip gets its own hidden unity strip straight to master (`OfflineRenderer.h:426`–`457`) and
+  inherits only mute/solo. On a MIDI track the fader, pan, FX, sends and automation are dead
+  controls that persist and change nothing audible.
+- **Automation can orphan and silently refuse edits.** A lane whose owner Track is unprojected
+  fails the whole projection (`ProjectMixerProjection.h:599`), which `adoptEditedProject` turns
+  into a silent `false` (`UiAppModel.h:6284`) — deleting the last clip of an automated track is
+  predicted to be a dead keypress (to be confirmed by M2's fail-before gate).
+- **No submix groups.** Buses are fed only by sends (`MixerGraphProjection.h:434`); a track's main
+  output always lands on master.
+- **Fabricated waveforms.** `drawClipWaveform` (`TimelineCanvas.h:183`) synthesizes peaks from a
+  hashed seed when no cache exists, and MIDI clips always take that path
+  (`MainComponent.cpp:7902` pushes an empty asset hash) — every MIDI clip paints a fake waveform.
+- **The mixer is not a mixer.** Inserts and sends exist only as a stack of debug text buttons in a
+  left control lane; strips carry name + pan + S/M + fader and nothing else. Track faders have no
+  dB scale and put unity at the top (no boost range) while the master pane has a labeled scale.
+- **The piano roll has no keyboard** (alternating rows + C3/C4/C5 text only) and draws velocity as
+  a connected line graph instead of one bar per note.
+- **Floor-size defects at 1152×720:** the header MASTER card half-drops (label kept, meter + LUFS
+  gone) and the mixer control lane's bottom row is clipped.
+- **No OS file drag-and-drop** — no `FileDragAndDropTarget` anywhere in `src/ui`.
+- **H18 is not unattended-unblockable:** ADR-0037 preconditions it on reality-lane Smoke 2 (one
+  real VST3 through the worker), which has never run, and the owner machine has **no VST3
+  installed** (`C:\Program Files\Common Files\VST3` is empty). M14 builds the one-command smoke;
+  installing a plugin and writing the H18 kickoff ADR are Dan's calls.
+
+**Now:** backlog carved and committed; starting M1 (MIDI plays through its owning Track's strip).
+
+**Next:** M2, then strictly top-to-bottom through M14.
+
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
 Every item certified: feature commit(s) + exact-head nine-job CI green + evidence commit.
