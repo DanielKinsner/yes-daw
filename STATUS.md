@@ -996,9 +996,12 @@ different y offsets than Direct2D does. The probe now allows 1% of its area — 
 (a per-clip INVENTED waveform) differed across thousands of body pixels, so the tolerance costs
 the gate nothing.
 
-**Now:** M6 repair + M7 committed locally; awaiting exact-head nine-job CI.
+M6 and M7 are certified: exact-head GitHub Actions run `31850019863` is green for full SHA
+`7252d63d5f47c2af779d0779ecfe6e2dbd8c3ad6` across all nine jobs. Both are ticked in the backlog.
 
-**Next:** M8 (piano roll keyboard + velocity bars), then strictly top-to-bottom through M14.
+**Now:** M8 (piano roll keyboard + velocity bars) — next item, not started.
+
+**Next:** M9 (floor-size layout defects), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

@@ -148,7 +148,17 @@ evidence commit.
    dragging a painted send level changes the rendered bus contribution EXACTLY, tap/destination
    edits ride their existing verbs, one undo restores, and rows stay inside the strip at all three
    sizes.
-6. [ ] **M6 — Fader scale, unity and readouts.** Judged: track faders paint a bare rail with
+6. [x] **M6 — Fader scale, unity and readouts.** DONE — feature `7b3c73c` + macOS repair inside
+   `c1a3bd8`; exact-head nine-job CI run `31850019863` green on `7252d63`, local 350/350. The audit
+   found a worse defect than the carve guessed: the live faders already travel 0..2 in LINEAR gain
+   (unity at half travel) while the painted thumb multiplied gain by the rail height (unity at the
+   TOP) — paint and control disagreed by half a fader on every unselected strip, and the rail's
+   ticks marked nothing. ONE law now drives the painted thumb, dB ticks (0/-6/-12/-24/-60) and a
+   distinct unity mark, and the readout carries its unit ("0.0 dB" / "-inf dB"). Persisted gain
+   semantics unchanged, so no existing gate moved. `[fader-scale]` gate: 43 assertions incl. a 1.5
+   boost raising the rendered peak by exactly 1.5. ONE RED ROUND (macOS `-Werror=unused-variable`
+   on the factored-out rail local).
+   Original spec: judged: track faders paint a bare rail with
    unlabeled dashes, unity sits at the very TOP (no boost range), and the numeric readout is a bare
    `0.0` with no unit; the master pane's fader sits mid-scale beside a labeled 0/-12/-24/-60 scale,
    so the two disagree. Give track/bus faders the master's dB law: labeled ticks, a unity mark
@@ -161,7 +171,18 @@ evidence commit.
 
 ## Phase 3 — honest paint
 
-7. [ ] **M7 — No fabricated waveforms; MIDI clips show their notes.** `drawClipWaveform`
+7. [x] **M7 — No fabricated waveforms; MIDI clips show their notes.** DONE — feature `c1a3bd8` +
+   renderer-tolerance repair `7252d63`; exact-head nine-job CI run `31850019863` green on `7252d63`,
+   local 350/350. The canvas carries the real notes of each MIDI clip (mapped through the tempo
+   map) and paints them as a mini piano roll inside the clip body — auto-ranged, strided to a token
+   cap for the frame budget — while a clip with neither notes nor peaks paints an honest pending
+   body (one centre line, no invented peaks). A clip whose notes share one pitch draws mid-band
+   instead of pretending its pitch means a position. `[clip-paint-honest]` gate: 10 pixel-exact
+   assertions on the shipped canvas paint, including that two pending clips on adjacent lanes paint
+   identical bodies — the old hash-seeded placeholder never could. ONE RED ROUND (macOS: the
+   lane-identity probe demanded pixel-exact equality across renderers; it now allows 1% of its
+   area, which the pinned defect exceeds by orders of magnitude).
+   Original spec: `drawClipWaveform`
    (`src/ui/TimelineCanvas.h:183`–`226`) synthesizes a waveform from a hashed seed when no peak
    cache is available, and MIDI clips always take that path (`src/ui/MainComponent.cpp:7902` pushes
    an EMPTY asset hash) — so every MIDI clip on the timeline paints a fake audio waveform of
