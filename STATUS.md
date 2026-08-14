@@ -999,7 +999,25 @@ the gate nothing.
 M6 and M7 are certified: exact-head GitHub Actions run `31850019863` is green for full SHA
 `7252d63d5f47c2af779d0779ecfe6e2dbd8c3ad6` across all nine jobs. Both are ticked in the backlog.
 
-**Now:** M8 (piano roll keyboard + velocity bars) — next item, not started.
+**M8 implementation candidate — a real keyboard and real velocity bars:** audited first and
+sharpened the carve's claim: the key column DID paint per-key rows, but white keys used the panel's
+raised grey, so the column read as striped rows rather than a keyboard; and the velocity lane drew a
+joined path between note points, which reads as an automation curve through values that do not
+exist between notes. White keys are now genuinely light with a dark label, black keys are dark and
+narrower and sit ON the white ones from the column's left edge (the piano law), and velocity paints
+one bar per note anchored at the note's start, rising from the lane floor. The Pitch lane keeps its
+line: it is a per-note MPE value, and nothing about it changed.
+
+Gate: `[roll-sizes]` extended (106 assertions) with two pixel probes on the shipped render — the key
+column must contain BOTH genuinely light and genuinely dark pixels (before M8 it had no light pixels
+at all), and the velocity lane's painted columns must be isolated (fewer than a quarter of the lane
+width, longest run ≤ 8px) instead of a stroke joining every note. Judged in pixels at all three
+sizes: the roll now reads as a piano roll.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M8 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M9 (floor-size layout defects), then strictly top-to-bottom through M14.
 

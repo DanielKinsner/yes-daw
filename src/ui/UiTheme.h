@@ -62,6 +62,10 @@ struct UiTheme
         static juce::Colour selectedLane() noexcept { return juce::Colour (0xff20182c); }
         static juce::Colour mixerBack() noexcept { return juce::Colour (0xff080c10); }
         static juce::Colour pianoBlackKey() noexcept { return juce::Colour (0xff0a0e13); }
+        // M8: a piano roll needs to READ as a keyboard. The white keys were painted in the panel's
+        // raised grey, so the column looked like striped rows rather than keys.
+        static juce::Colour pianoWhiteKey() noexcept { return juce::Colour (0xffd8dde6); }
+        static juce::Colour pianoWhiteKeyText() noexcept { return juce::Colour (0xff2a3038); }
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
         static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
         static juce::Colour inspectorTab() noexcept { return juce::Colour (0xff151a22); }
@@ -534,6 +538,11 @@ struct UiTheme
         // cap on how many notes one clip paints per frame (strided, like the waveform path).
         static constexpr int timelineCanvasNotePreviewMinKeySpan = 11;
         static constexpr int timelineCanvasNotePreviewMaxNotes = 64;
+        // M8: the black keys sit ON the white ones, as on a real keyboard — narrower, from the
+        // column's left edge — and velocity paints one bar per note instead of a joined line.
+        static constexpr float pianoRollBlackKeyWidthScale = 0.62f;
+        static constexpr int pianoRollVelocityBarWidth = 3;
+        static constexpr int pianoRollVelocityBarMinHeight = 2;
         static constexpr int mixerPaintedScaleTickCount = 7;
         static constexpr int mixerPaintedScaleTickWidth = 5;
         static constexpr int mixerPaintedScaleTickGap = 2;

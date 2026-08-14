@@ -8674,10 +8674,21 @@ private:
                                                 geometry.keyboard.getWidth(),
                                                 juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
                                                             juce::roundToInt (geometry.rowHeight)));
-            g.setColour (isBlackMidiKey (key) ? yesdaw::ui::UiTheme::Color::pianoBlackKey()
-                                               : yesdaw::ui::UiTheme::Color::panelRaised());
-            g.fillRect (keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetX,
-                                        yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetY));
+            // M8: a real keyboard — white keys light and full width, black keys dark and narrower,
+            // sitting on top from the left edge exactly as they do on a piano.
+            const auto keyBody = keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetX,
+                                                 yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetY);
+            g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKey());
+            g.fillRect (keyBody);
+            g.setColour (kPanelStroke);
+            g.drawRect (keyBody, yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth);
+            if (isBlackMidiKey (key))
+            {
+                g.setColour (yesdaw::ui::UiTheme::Color::pianoBlackKey());
+                g.fillRect (keyBody.withWidth (juce::roundToInt (
+                    static_cast<float> (keyBody.getWidth())
+                    * yesdaw::ui::UiTheme::Layout::pianoRollBlackKeyWidthScale)));
+            }
             g.setColour (kPanelStroke.withAlpha (0.72f));
             g.fillRect (juce::Rectangle<int> (geometry.grid.getX(),
                                              y,
@@ -8686,7 +8697,7 @@ private:
 
             if (key % 12 == 0)
             {
-                g.setColour (kMutedText);
+                g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
                 g.setFont (yesdaw::ui::UiTheme::Type::font (
                     yesdaw::ui::UiTheme::Type::caption,
                     juce::Font::bold));
@@ -8752,6 +8763,30 @@ private:
 
             const double minValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 0.0 : 48.0;
             const double maxValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 1.0 : 76.0;
+
+            // M8: velocity is a BAR per note, anchored at the note's start and rising from the lane
+            // floor — the joined line read as an automation curve between notes that never existed.
+            if (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity)
+            {
+                const int floorY = laneArea.getBottom()
+                                 - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathBottomInset;
+                const int span = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollVelocityBarMinHeight,
+                                             laneArea.getHeight()
+                                                 - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathVerticalInset);
+                g.setColour (yesdaw::ui::UiTheme::Meter::nominalFill());
+                for (const auto& point : lane.points)
+                {
+                    const double normalized = juce::jlimit (0.0, 1.0,
+                                                            (point.value - minValue) / (maxValue - minValue));
+                    const int x = pianoRollTickX (geometry, surface, point.tick);
+                    const int height = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollVelocityBarMinHeight,
+                                                   juce::roundToInt (normalized * static_cast<double> (span)));
+                    g.fillRect (x, floorY - height,
+                                yesdaw::ui::UiTheme::Layout::pianoRollVelocityBarWidth, height);
+                }
+                continue;
+            }
+
             juce::Path path;
 
             for (std::size_t i = 0; i < lane.points.size(); ++i)

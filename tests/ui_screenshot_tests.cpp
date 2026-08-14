@@ -635,6 +635,64 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     renderRollAtSize (1536, 960, "yesdaw-roll-default.png");
     renderRollAtSize (1920, 1080, "yesdaw-roll-large.png");
 
+    // M8: the key column is a KEYBOARD and the velocity lane is BARS.
+    {
+        shell->setSize (1536, 960);
+        const juce::Image image = renderShell (*shell);
+        juce::Component* canvas = findChildById ("piano-roll.canvas");
+        REQUIRE (canvas != nullptr);
+        auto local = canvas->getBounds();
+        local.removeFromTop (38);
+        local.reduce (12, 8);
+        const auto expression = local.removeFromBottom (84);
+        const auto keys = local.removeFromLeft (70);
+
+        // White keys are genuinely light and black keys genuinely dark — before M8 the whole
+        // column was painted in the panel's raised grey, so it had no light pixels at all.
+        int lightKeyPixels = 0;
+        int darkKeyPixels = 0;
+        for (int y = keys.getY(); y < keys.getBottom(); ++y)
+            for (int x = keys.getX(); x < keys.getRight(); ++x)
+            {
+                const float brightness = image.getPixelAt (x, y).getBrightness();
+                if (brightness > 0.70f)
+                    ++lightKeyPixels;
+                else if (brightness < 0.12f)
+                    ++darkKeyPixels;
+            }
+        REQUIRE (lightKeyPixels > 400);
+        REQUIRE (darkKeyPixels > 200);
+
+        // Velocity paints one bar per note: the lane's painted columns are ISOLATED, not a
+        // continuous stroke joining every note (which is what the old line graph drew).
+        const auto velocityLane = expression.reduced (0, 6).removeFromTop (36).reduced (0, 2);
+        int paintedColumns = 0;
+        int longestRun = 0;
+        int run = 0;
+        for (int x = velocityLane.getX(); x < velocityLane.getRight(); ++x)
+        {
+            bool painted = false;
+            for (int y = velocityLane.getY(); y < velocityLane.getBottom() && ! painted; ++y)
+            {
+                const juce::Colour pixel = image.getPixelAt (x, y);
+                painted = pixel.getGreen() > 140 && pixel.getRed() < 140;
+            }
+
+            if (painted)
+            {
+                ++paintedColumns;
+                longestRun = std::max (longestRun, ++run);
+            }
+            else
+            {
+                run = 0;
+            }
+        }
+        REQUIRE (paintedColumns > 0);
+        REQUIRE (paintedColumns < velocityLane.getWidth() / 4);   // bars, not a joined line
+        REQUIRE (longestRun <= 8);                                // no stroke spanning the lane
+    }
+
     // The automation lane, open on the timeline with real breakpoints clicked into the canvas.
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
