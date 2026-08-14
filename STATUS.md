@@ -789,10 +789,13 @@ engine the gate died at assertion 52 — the fader-at-0.5 render came back 0.226
 chain the new path is bit-identical, so the full local suite is green **350/350** (owner's
 last-project record isolated and restored byte-identical, SHA-256 verified).
 
-**Now:** M1 committed locally; awaiting exact-head nine-job CI.
+M1 is certified: exact-head GitHub Actions run `31842604705` is green for full SHA
+`a02f912aee43416c2232ac4f5839f1e807eb68be` across all nine jobs (Linux, Windows, macOS, RTSan,
+TSan, both package jobs, both alpha-verifier jobs), first try. M1 is ticked in the backlog.
 
-**Next:** M2 (every Track projects; automation never orphans), then strictly top-to-bottom
-through M14.
+**Now:** M2 (every Track projects; automation never orphans) — implementation candidate, see below.
+
+**Next:** M3 (track output routing), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

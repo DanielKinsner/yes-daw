@@ -33,7 +33,15 @@ evidence commit.
 
 ## Phase 1 — the mix tells the truth about MIDI
 
-1. [ ] **M1 — MIDI plays through its owning Track's strip.** Today a MIDI Clip is projected as its
+1. [x] **M1 — MIDI plays through its owning Track's strip.** DONE — feature `a02f912`, exact-head
+   nine-job CI run `31842604705` green (first try), local 350/350 with NO assertions re-pinned (the
+   unity/centre/dry path is bit-identical). Decision recorded in **ADR-0045**. The `[midi-strip]`
+   gate (116 assertions) measures MIDI and audio in separate windows of one render: the MIDI Track's
+   fader at 0.5 halves the MIDI peak exactly with the audio window bit-identical, hard-left pan
+   silences only the MIDI window's right channel, bypassing the Track's EQ changes only MIDI,
+   removing the Track's send drops the MIDI level, every edit undoes bit-identically. Red before at
+   assertion 52 (0.22697 where 0.11349 was required — the fader did nothing).
+   Original spec: a MIDI Clip was projected as its
    own `DecodedMidiClipNode -> SimpleSynthNode -> Fader(1.0) -> Pan(0) -> Meter -> Master` chain
    (`src/engine/OfflineRenderer.h:441`–`457`) — the ADR-0026 H9 stopgap, whose own text calls
    persisted instrument/track wiring "later product work". Route each MIDI Clip's instrument into
