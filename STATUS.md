@@ -865,7 +865,43 @@ M3 is certified: exact-head GitHub Actions run `31844767502` is green for full S
 `e192fc7d9f3d9c057a4be1f7441cb5b8db0a8354` across all nine jobs, first try. M3 is ticked in the
 backlog.
 
-**Now:** M4 (FX insert slots on the strip) — implementation candidate, see below.
+**M4 implementation candidate — FX insert slots ON the strip:** audited before changing anything —
+`drawMixer`'s per-strip walk (header, pan knob, S/M row, sidechain badge, fader area, meter), the
+E25 shared painted-strip geometry (`paintedMixerLaneBounds` / `paintedMeterBoundsForLane`), the
+strips overlay's click routing (meter hit test first, then the strip law), and the control lane's
+`selectedFxParamSlot` state that the "e" buttons drive. Judged from the rendered mixer: inserts
+were reachable ONLY through debug text buttons in the left lane ("Audio 1 FX: none", "FX", "+ FX")
+while the strips carried name + pan + S/M + fader and nothing else — no DAW mixer looks like that.
+
+Every strip now paints its FX chain between the S/M row and the fader: one row per slot with the
+insert's short name and a bypass dot, empty slots as visible wells, the selected slot outlined.
+ONE law drives paint, clicks and gates (`paintedInsertRowBoundsForLane`, exported to the harness as
+`mainComponentPaintedInsertSlotBounds`), so a painted slot can never drift from the slot a click
+selects: clicking a row selects that strip AND opens exactly that insert's params; clicking an
+EMPTY row closes the panel instead of lying. The fader top derives from the insert block
+(`mixerPaintedFaderTop = mixerPaintedInsertsTop + mixerPaintedInsertsHeight + gap`) so the painted
+and live geometry stay one walk. Judged in pixels at 1152/1536/1920 and iterated twice: empty wells
+gained an outline (they read as smudges without it), and "Compressor" was replaced by the
+strip-width label set ("Comp") after it visibly overflowed a 112px strip.
+
+New shipped-boundary `[strip-inserts]` gate (210 assertions): a 3-track project with chain lengths
+0/1/2; slot rows stack without overlap, stay inside their own strip and above the fader region at
+all three sizes, and belong to exactly one strip (out-of-range asks return an honest empty rect);
+clicking the painted SECOND slot of the THIRD strip selects that strip and opens its params;
+clicking an empty slot closes the panel; pushing one of the opened insert's params changes the
+render; the painted chain's bypass changes the render, round-trips, and is undoable. FAIL-BEFORE:
+compile-fail against pre-M4 (`mainComponentPaintedInsertSlotBounds` does not exist; no strip
+painted a slot row). The `[mixer-sizes]` capture now seeds a real EQ→Comp→Limiter chain, so the
+committed screenshots show a real mixer instead of an empty one.
+
+HONEST FINDING recorded while gating: a bypass OFF→ON round trip is NOT bit-identical when the
+chain contains a lookahead limiter — the projection carries delay-line state across rebuilds
+(ADR-0007), so the gate pins same-peak (1e-5) rather than same-bytes for that step, and says so.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M4 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M5 (sends on the strip), then strictly top-to-bottom through M14.
 

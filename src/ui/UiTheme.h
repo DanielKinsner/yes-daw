@@ -486,7 +486,19 @@ struct UiTheme
         static constexpr int mixerPaintedSidechainHeight = 14;
         static constexpr int mixerPaintedSidechainLeftInset = 8;
         static constexpr int mixerPaintedSidechainWidth = 28;
-        static constexpr int mixerPaintedFaderTop = 112;
+        // M4: the insert-slot column lives between the S/M row and the fader — a mixer strip
+        // shows its FX chain, it does not hide it in a side panel.
+        static constexpr int mixerPaintedInsertsTop = 112;
+        static constexpr int mixerPaintedInsertRowHeight = 15;
+        static constexpr int mixerPaintedInsertRowGap = 2;
+        static constexpr int mixerPaintedInsertRowCount = 4;
+        static constexpr int mixerPaintedInsertsInsetX = 6;
+        static constexpr int mixerPaintedInsertsHeight =
+            mixerPaintedInsertRowCount * (mixerPaintedInsertRowHeight + mixerPaintedInsertRowGap);
+        static constexpr int mixerPaintedInsertBypassDotInset = 4;
+        static constexpr int mixerPaintedInsertBypassDotSize = 5;
+        static constexpr int mixerPaintedInsertLabelInsetX = 12;
+        static constexpr int mixerPaintedFaderTop = mixerPaintedInsertsTop + mixerPaintedInsertsHeight + 6;
         static constexpr int mixerPaintedFaderBottomInset = 28;
         static constexpr int mixerPaintedMeterWidth = 16;
         static constexpr int mixerPaintedMeterInsetX = 2;

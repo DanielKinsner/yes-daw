@@ -2589,11 +2589,24 @@ public:
     // held peak and latched clip light instead of retargeting the strip.
     std::function<int (juce::Point<int>)> meterStripAtPosition;
     std::function<void (int)> onMeterClicked;
+    // M4: painted insert-slot hit test — a click on a slot row selects the strip and that slot.
+    std::function<std::pair<int, int> (juce::Point<int>)> insertSlotAtPosition;
+    std::function<void (int, int)> onInsertSlotClicked;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+
+        if (insertSlotAtPosition && onInsertSlotClicked)
+        {
+            const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition);
+            if (slotStrip >= 0 && slotIndex >= 0)
+            {
+                onInsertSlotClicked (slotStrip, slotIndex);
+                return;
+            }
+        }
 
         if (meterStripAtPosition && onMeterClicked)
         {
@@ -3894,6 +3907,20 @@ public:
         accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
         return processed;
     }
+    // M4: the painted insert-slot rect for a strip, in SHELL coordinates — the same law the paint
+    // and the click hit-test read.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedInsertSlotBounds (int stripIndex, int slotIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal
+            || slotIndex < 0 || slotIndex >= yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount)
+            return {};
+
+        return paintedInsertRowBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+                                              static_cast<std::size_t> (slotIndex));
+    }
+
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -4490,6 +4517,46 @@ private:
                 clearTrackMeterHold (stripIndex);
             else
                 clearBusMeterHold (stripIndex - trackCount);   // E22
+        };
+        // M4: a click on a painted insert row selects the strip and opens THAT slot's params.
+        mixerStripsInput.insertSlotAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+            {
+                const auto lane = paintedMixerLaneBounds (i);
+                for (std::size_t slot = 0; slot < static_cast<std::size_t> (
+                         yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount); ++slot)
+                    if (paintedInsertRowBoundsForLane (lane, slot).contains (positionInShell))
+                        return std::pair<int, int> { static_cast<int> (i), static_cast<int> (slot) };
+            }
+            return std::pair<int, int> { -1, -1 };
+        };
+        mixerStripsInput.onInsertSlotClicked = [this] (int stripIndex, int slotIndex) {
+            const auto surface = currentMixerSurface();
+            const int trackCount = static_cast<int> (surface.tracks.size());
+            const int busCount = static_cast<int> (surface.buses.size());
+            if (stripIndex < 0 || stripIndex >= trackCount + busCount)
+                return;
+
+            if (stripIndex < trackCount)
+            {
+                (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+                selectedTrackLane = stripIndex;
+            }
+            else
+            {
+                (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
+            }
+
+            // An empty slot has nothing to edit — the param panel closes instead of lying.
+            const std::size_t chainSize = appModel.selectedStripFxChain().size();
+            selectedFxParamSlot = static_cast<std::size_t> (slotIndex) < chainSize ? slotIndex : -1;
+            selectedFxParamPage = 0;
+            layoutMixerControls();
+            refreshActionState();
+            resized();
+            repaint();
         };
         // E25: clicks hit-test the PAINTED lanes — the same geometry the eye sees.
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
@@ -5534,6 +5601,20 @@ private:
                                      area.getHeight())
                    .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
                              yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+    }
+
+    // M4: ONE insert-slot row law — the paint, the click hit-test and the gates all read it, so a
+    // painted slot can never drift from the slot a click selects.
+    [[nodiscard]] static juce::Rectangle<int> paintedInsertRowBoundsForLane (juce::Rectangle<int> lane,
+                                                                             std::size_t slotIndex)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int top = lane.getY() + L::mixerPaintedInsertsTop
+                      + static_cast<int> (slotIndex) * (L::mixerPaintedInsertRowHeight + L::mixerPaintedInsertRowGap);
+        return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
+                                     top,
+                                     juce::jmax (0, lane.getWidth() - 2 * L::mixerPaintedInsertsInsetX),
+                                     L::mixerPaintedInsertRowHeight);
     }
 
     [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane)
@@ -7295,6 +7376,22 @@ private:
              + " points " + juce::String (static_cast<int> (send.breakpointCount));
     }
 
+    // M4: the strip-width name. "Compressor" does not fit a mixer strip — the slot rows use the
+    // same short labels the control lane's slot buttons already use.
+    [[nodiscard]] static const char* fxKindStripName (yesdaw::engine::FxKind kind) noexcept
+    {
+        switch (kind)
+        {
+            case yesdaw::engine::FxKind::Eq: return "EQ";
+            case yesdaw::engine::FxKind::Compressor: return "Comp";
+            case yesdaw::engine::FxKind::Delay: return "Delay";
+            case yesdaw::engine::FxKind::Reverb: return "Reverb";
+            case yesdaw::engine::FxKind::Limiter: return "Limiter";
+        }
+
+        return "FX";
+    }
+
     [[nodiscard]] static const char* fxKindName (yesdaw::engine::FxKind kind) noexcept
     {
         switch (kind)
@@ -8780,6 +8877,62 @@ private:
                 g.drawText ("SC", badge, juce::Justification::centred, false);
             }
 
+            // M4: the strip's FX chain, ON the strip. One row per slot: the insert's name, a
+            // bypass dot when it is disabled, and an empty well when the chain is shorter. The
+            // selected slot of the selected strip reads as selected — clicking a row opens exactly
+            // these params in the panel (shared law: paintedInsertRowBoundsForLane).
+            {
+                const std::vector<yesdaw::ui::UiMixerFxSlotReadout>& chain = state.fxSlots;
+                for (std::size_t slot = 0;
+                     slot < static_cast<std::size_t> (yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount);
+                     ++slot)
+                {
+                    const auto row = paintedInsertRowBoundsForLane (lane, slot);
+                    const bool filled = slot < chain.size();
+                    const bool slotSelected = selected && selectedFxParamSlot >= 0
+                                           && static_cast<std::size_t> (selectedFxParamSlot) == slot;
+                    g.setColour (filled ? yesdaw::ui::UiTheme::Color::darkControl()
+                                        : yesdaw::ui::UiTheme::Color::controlInset());
+                    g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
+                    // An empty slot is a visible WELL, not a smudge — a mixer strip should read as
+                    // "four inserts, none used", the way every DAW draws it.
+                    g.setColour (kPanelStroke);
+                    g.drawRoundedRectangle (row.toFloat().reduced (
+                                                yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
+                                            yesdaw::ui::UiTheme::Radius::sm,
+                                            yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
+                    if (slotSelected)
+                    {
+                        g.setColour (kPurple);
+                        g.drawRoundedRectangle (row.toFloat().reduced (
+                                                    yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
+                                                yesdaw::ui::UiTheme::Radius::sm,
+                                                yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
+                    }
+
+                    if (! filled)
+                        continue;
+
+                    const yesdaw::ui::UiMixerFxSlotReadout& insert = chain[slot];
+                    auto dot = juce::Rectangle<int> (
+                        row.getX() + yesdaw::ui::UiTheme::Layout::mixerPaintedInsertBypassDotInset,
+                        row.getCentreY() - yesdaw::ui::UiTheme::Layout::mixerPaintedInsertBypassDotSize / 2,
+                        yesdaw::ui::UiTheme::Layout::mixerPaintedInsertBypassDotSize,
+                        yesdaw::ui::UiTheme::Layout::mixerPaintedInsertBypassDotSize);
+                    g.setColour (insert.enabled ? yesdaw::ui::UiTheme::Color::accentTeal()
+                                                : yesdaw::ui::UiTheme::Color::mutedText());
+                    g.fillEllipse (dot.toFloat());
+
+                    g.setColour (insert.enabled ? kText : kMutedText);
+                    g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+                    g.drawFittedText (
+                        juce::String (fxKindStripName (insert.kind)),
+                        row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedInsertLabelInsetX),
+                        juce::Justification::centredLeft,
+                        1);
+                }
+            }
+
             auto faderArea =
                 lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
                     .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
@@ -9417,6 +9570,16 @@ std::vector<float> renderMainComponentPlayback (juce::Component& component,
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessRenderPlaybackFrames (frames, blockSize);
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedInsertSlotBounds (const juce::Component& component,
+                                                            int stripIndex,
+                                                            int slotIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedInsertSlotBounds (stripIndex, slotIndex);
 
     return {};
 }

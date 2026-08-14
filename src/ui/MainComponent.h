@@ -119,6 +119,12 @@ struct MainComponentSnapshot
                                                          int numOutputChannels,
                                                          int numFrames);
 
+// M4: the shell's OWN painted insert-slot rect (shell coordinates), so gates hit-test the exact
+// geometry the paint and the click law use. Empty rect when the strip or slot is out of range.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedInsertSlotBounds (const juce::Component& component,
+                                                                         int stripIndex,
+                                                                         int slotIndex);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

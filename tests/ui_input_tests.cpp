@@ -4803,6 +4803,169 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     }
 }
 
+// M4 — a mixer strip shows its FX chain. Before M4 the only way to see or touch an insert was a
+// stack of debug text buttons in the left control lane ("Audio 1 FX: none", "FX", "+ FX"); the
+// strips themselves carried name + pan + S/M + fader and nothing else. Now every strip paints its
+// insert slots, and clicking a painted slot selects that strip AND opens exactly that insert's
+// params — one geometry law (paintedInsertRowBoundsForLane) drives the paint, the click and this
+// gate, so a painted slot can never drift from the slot a click selects.
+TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot opens its params",
+           "[ui][input][shell][mixer][strip-inserts]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("strip-inserts");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
+    {
+        mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+
+    // Different chain lengths per strip: track 0 empty, track 1 one insert, track 2 two inserts.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 3));
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 3));
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1, juce::sendNotificationSync);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+        REQUIRE (seeded.tracks[0].strip.fxChain.empty());
+        REQUIRE (seeded.tracks[1].strip.fxChain.size() == 1u);
+        REQUIRE (seeded.tracks[2].strip.fxChain.size() == 2u);
+    }
+
+    // The painted slot rows exist for every strip and stay INSIDE their strip at every supported
+    // window size (the run's floor, the default, and a large window).
+    using L = yesdaw::ui::UiTheme::Layout;
+    for (const auto [width, height] : std::array<std::pair<int, int>, 3> {
+             std::pair { 1152, 720 }, std::pair { 1536, 960 }, std::pair { 1920, 1080 } })
+    {
+        shell->setSize (width, height);
+        for (int stripIndex = 0; stripIndex < 3; ++stripIndex)
+        {
+            juce::Rectangle<int> previous;
+            for (int slot = 0; slot < L::mixerPaintedInsertRowCount; ++slot)
+            {
+                const juce::Rectangle<int> row =
+                    yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, stripIndex, slot);
+                REQUIRE (row.getHeight() == L::mixerPaintedInsertRowHeight);
+                REQUIRE (row.getWidth() > 0);
+                if (slot > 0)
+                    REQUIRE (row.getY() > previous.getBottom());     // rows stack, never overlap
+                previous = row;
+            }
+            // Every row sits inside its own strip and above the fader region.
+            const juce::Rectangle<int> first =
+                yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, stripIndex, 0);
+            REQUIRE (first.getX() > 0);
+            REQUIRE (previous.getBottom() < shell->getHeight());
+            REQUIRE (previous.getBottom() - first.getY()
+                     <= L::mixerPaintedInsertsHeight);
+        }
+        // Different strips get different columns — a slot rect belongs to exactly one strip.
+        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).getX()
+                 < yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 1, 0).getX());
+        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 1, 0).getRight()
+                 <= yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 2, 0).getX());
+        // Out-of-range asks get an honest empty rect, never a guess.
+        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 3, 0).isEmpty());
+        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (
+                     *shell, 0, L::mixerPaintedInsertRowCount).isEmpty());
+    }
+    shell->setSize (1536, 960);
+
+    // Clicking the painted second slot of the THIRD strip selects that strip and opens THAT
+    // insert's params — a non-zero strip and a non-zero slot, per the E23 cross-strip rule.
+    mouseDownAt (*strips, strips->getLocalPoint (
+                     shell.get(), yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 2, 1).getCentre()));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
+    {
+        auto* paramSlider = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+        REQUIRE (paramSlider != nullptr);
+        REQUIRE (paramSlider->isVisible());   // the panel really opened on the clicked slot
+    }
+
+    // Clicking an EMPTY slot closes the param panel instead of lying about what it is editing.
+    mouseDownAt (*strips, strips->getLocalPoint (
+                     shell.get(), yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).getCentre()));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+    {
+        auto* paramSlider = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+        REQUIRE ((paramSlider == nullptr || ! paramSlider->isVisible()));
+    }
+
+    // Bypassing through the slot's control changes what the mixer renders — the painted chain is
+    // the real chain, not decoration.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 3));
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    // Open the FIRST slot of this strip through its painted row, then prove the panel really is
+    // editing THAT insert: pushing one of its params changes what the mixer renders.
+    mouseDownAt (*strips, strips->getLocalPoint (
+                     shell.get(), yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 2, 0).getCentre()));
+    const std::vector<float> defaults = renderFromStart();
+    bool aParamBit = false;
+    for (int paramIndex = 0; paramIndex < 8 && ! aParamBit; ++paramIndex)
+    {
+        auto* paramSlider = dynamic_cast<juce::Slider*> (findChildWithComponentId (
+            *shell, "mixer.fx.param." + juce::String (paramIndex)));
+        if (paramSlider == nullptr || ! paramSlider->isVisible())
+            continue;
+
+        paramSlider->setValue (paramSlider->getMaximum(), juce::sendNotificationSync);
+        aParamBit = renderFromStart() != defaults;
+    }
+    REQUIRE (aParamBit);
+
+    // The painted chain's bypass is the real verb: it changes the render and undoes bit-identically.
+    const std::vector<float> withChain = renderFromStart();
+    auto* slotBypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle"));
+    REQUIRE (slotBypass != nullptr);
+    clickButton (*slotBypass);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[2].strip.fxChain.front().enabled);
+    REQUIRE (renderFromStart() != withChain);
+    clickButton (*slotBypass);                                   // and back
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].strip.fxChain.front().enabled);
+    // The re-enabled chain renders the same signal again. NOT bit-identical by contract: the
+    // projection carries delay-line state over between rebuilds (ADR-0007), and this chain has a
+    // lookahead limiter — so the honest claim is same peak, not same bytes.
+    {
+        const std::vector<float> reEnabled = renderFromStart();
+        REQUIRE (peakAbs (std::span<const float> (reEnabled.data(), reEnabled.size()))
+                 == Catch::Approx (peakAbs (std::span<const float> (withChain.data(), withChain.size())))
+                        .epsilon (1.0e-5));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[2].strip.fxChain.front().enabled);
+
+}
+
 // M3 — submix groups. Sends are parallel taps; until now a Track's MAIN output always landed on
 // master, so there was no way to put three tracks under one fader. The gate routes all three tracks
 // of a real project to one bus and proves the bus's fader now carries them.

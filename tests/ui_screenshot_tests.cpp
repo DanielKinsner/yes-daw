@@ -1,5 +1,6 @@
 // YES DAW - H16 CP8 mechanical UI screenshot harness.
 
+#include "engine/Project.h"
 #include "ui/MainComponent.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
@@ -137,6 +138,43 @@ juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
     REQUIRE (button->getWidth() > 0);
     REQUIRE (button->getHeight() > 0);
     return *button;
+}
+
+// M4: the mixer capture needs the FX chooser by id — same recursive walk the input harness uses.
+juce::Component* findChildWithComponentId (juce::Component& component, const juce::String& componentId)
+{
+    if (component.getComponentID() == componentId)
+        return &component;
+
+    for (int i = 0; i < component.getNumChildComponents(); ++i)
+        if (juce::Component* child = component.getChildComponent (i))
+            if (juce::Component* found = findChildWithComponentId (*child, componentId))
+                return found;
+
+    return nullptr;
+}
+
+// M4: click a painted mixer strip so the capture can seed a real FX chain on it.
+void mouseDownAtPoint (juce::Component& component, juce::Point<int> position)
+{
+    const juce::Time now = juce::Time::getCurrentTime();
+    juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(),
+                            position.toFloat(),
+                            juce::ModifierKeys::leftButtonModifier,
+                            juce::MouseInputSource::defaultPressure,
+                            juce::MouseInputSource::defaultOrientation,
+                            juce::MouseInputSource::defaultRotation,
+                            juce::MouseInputSource::defaultTiltX,
+                            juce::MouseInputSource::defaultTiltY,
+                            &component,
+                            &component,
+                            now,
+                            position.toFloat(),
+                            now,
+                            1,
+                            false);
+    component.mouseDown (event);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
 }
 
 void clickButton (juce::Button& button)
@@ -467,6 +505,24 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     REQUIRE (shell->keyPressed (addTrack));
     REQUIRE (shell->keyPressed (addTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    // M4: the strips paint their FX chains, so the mixer capture carries a REAL chain — an empty
+    // mixer would hide the very thing these screenshots are for.
+    {
+        auto* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        auto* fxChooser = dynamic_cast<juce::ComboBox*> (
+            findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+        REQUIRE (strips != nullptr);
+        REQUIRE (fxChooser != nullptr);
+        mouseDownAtPoint (*strips, { strips->getWidth() / 8, strips->getHeight() / 2 });
+        REQUIRE (fxChooser->isEnabled());
+        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1,
+                                  juce::sendNotificationSync);
+        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                                  juce::sendNotificationSync);
+        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1,
+                                  juce::sendNotificationSync);
+    }
 
     const auto renderAtSize = [&shell] (int width, int height, const char* filename)
     {
