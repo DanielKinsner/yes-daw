@@ -521,6 +521,15 @@ struct UiTheme
         static constexpr int mixerPaintedThumbCenterInset = 8;
         static constexpr int mixerPaintedThumbWidthOverhang = 10;
         static constexpr int mixerPaintedThumbHeight = 18;
+        // M6: the painted rail's dB marks. The fader travels 0..mixerFaderSliderMax in LINEAR gain
+        // (unity therefore sits at half travel, not at the top), so every mark is placed through the
+        // same law the thumb uses instead of being spread evenly down the rail.
+        static constexpr int mixerPaintedScaleDbCount = 5;
+        static constexpr float mixerPaintedScaleDbMarks[mixerPaintedScaleDbCount] = {
+            0.0f, -6.0f, -12.0f, -24.0f, -60.0f
+        };
+        static constexpr int mixerPaintedUnityMarkOverhang = 4;
+        static constexpr float mixerPaintedUnityMarkThickness = 1.6f;
         static constexpr int mixerPaintedScaleTickCount = 7;
         static constexpr int mixerPaintedScaleTickWidth = 5;
         static constexpr int mixerPaintedScaleTickGap = 2;

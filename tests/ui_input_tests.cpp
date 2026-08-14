@@ -4818,6 +4818,79 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     }
 }
 
+// M6 — the fader scale tells the truth. The sliders travel 0..2 in linear gain, but the painted
+// thumb multiplied the gain by the rail height, so unity painted at the TOP of the rail while the
+// live slider put it at half travel — the two disagreed by half a fader, and the rail's ticks were
+// spread evenly instead of marking dB. One law now drives thumb, ticks and unity mark.
+TEST_CASE ("the painted fader scale puts unity at half travel with boost above it",
+           "[ui][input][shell][mixer][fader-scale]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("fader-scale");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* busAdd = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.add"));
+    REQUIRE (busAdd != nullptr);
+    clickButton (*busAdd);                                        // a bus strip to prove the shared law
+
+    const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0);
+    REQUIRE_FALSE (rail.isEmpty());
+    REQUIRE (rail.getHeight() >= yesdaw::ui::UiTheme::Layout::mixerPaintedFaderMinHeight);
+
+    // Unity sits at HALF travel (the slider's 0..max span), not at the top.
+    const int unityY = yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 1.0f);
+    REQUIRE (std::abs (unityY - rail.getCentreY()) <= 1);
+    REQUIRE (unityY - rail.getY() > rail.getHeight() / 4);        // ...decidedly not the top
+
+    // The ends are exact: silence at the bottom, the token's max boost at the top.
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 0.0f) == rail.getBottom());
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderThumbY (
+                 *shell, 0, static_cast<float> (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax))
+             == rail.getY());
+
+    // Monotone in gain, and the same law on the BUS strip (strip 1 is the bus).
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 0.25f)
+             > yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 0.75f));
+    const juce::Rectangle<int> busRail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 1);
+    REQUIRE_FALSE (busRail.isEmpty());
+    REQUIRE (std::abs (yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 1, 1.0f) - busRail.getCentreY()) <= 1);
+
+    // The LIVE fader carries the same span, so the painted rail and the control agree end to end.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (fader->getMaximum() == yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+    REQUIRE (fader->getMinimum() == yesdaw::ui::UiTheme::Layout::mixerFaderSliderMin);
+
+    // A real boost persists and is audible — the headroom above unity is not decoration.
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> atUnity = renderFromStart();
+    fader->setValue (1.5, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 1.5f);
+    const std::vector<float> boosted = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (boosted.data(), boosted.size()))
+             == Catch::Approx (peakAbs (std::span<const float> (atUnity.data(), atUnity.size())) * 1.5)
+                    .epsilon (0.001));
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 1.5f) < unityY);   // above unity
+}
+
 // M5 — a mixer strip shows what it sends, and lets you set it there. Before M5 sends lived only in
 // the left control lane's debug rows, and the mixer surface's send readout was built from
 // AUTOMATION LANES, so a send you added but never automated did not exist as far as the strips were

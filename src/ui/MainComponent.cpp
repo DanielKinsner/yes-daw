@@ -3979,6 +3979,24 @@ public:
                                             static_cast<std::size_t> (sendIndex));
     }
 
+    // M6: the painted fader rail and the y the thumb sits at for a given gain — the same law the
+    // paint uses, so a gate can prove unity is NOT at the top of the rail.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedFaderRailBounds (int stripIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal)
+            return {};
+
+        return paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+    }
+
+    [[nodiscard]] int harnessPaintedFaderThumbY (int stripIndex, float linearGain) const
+    {
+        const auto rail = harnessPaintedFaderRailBounds (stripIndex);
+        return rail.isEmpty() ? 0 : mixerFaderThumbYForGain (rail, linearGain);
+    }
+
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -5726,6 +5744,36 @@ private:
                             - L::mixerPaintedFaderBottomInset - L::mixerPaintedFaderMinHeight
                             - L::mixerPaintedInsertsFaderGap;
         return std::clamp (available / L::mixerPaintedInsertRowPitch, 0, L::mixerPaintedInsertRowCount);
+    }
+
+    // M6: ONE fader mapping. The sliders travel 0..mixerFaderSliderMax in LINEAR gain, so the
+    // painted thumb, the unity mark and every dB tick must read the same law — before M6 the paint
+    // put unity at the TOP of the rail while the live slider put it at half travel.
+    [[nodiscard]] static float mixerFaderFractionForGain (float linearGain) noexcept
+    {
+        const float span = static_cast<float> (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+        return span > 0.0f ? std::clamp (linearGain / span, 0.0f, 1.0f) : 0.0f;
+    }
+
+    [[nodiscard]] static float mixerFaderFractionForDb (float db) noexcept
+    {
+        return mixerFaderFractionForGain (std::pow (10.0f, db / 20.0f));
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedFaderRailForLane (juce::Rectangle<int> lane)
+    {
+        const auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane))
+                                   .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
+        return faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
+                        .withCentre ({ lane.getCentreX()
+                                           - yesdaw::ui::UiTheme::Layout::mixerPaintedRailCenterOffsetX,
+                                       faderArea.getCentreY() });
+    }
+
+    [[nodiscard]] static int mixerFaderThumbYForGain (juce::Rectangle<int> rail, float linearGain) noexcept
+    {
+        return rail.getBottom()
+             - juce::roundToInt (mixerFaderFractionForGain (linearGain) * static_cast<float> (rail.getHeight()));
     }
 
     // M5: the send rows follow the inserts, and take space only after the inserts have taken
@@ -9183,24 +9231,16 @@ private:
                 drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
             }
 
-            auto rail = faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
-                            .withCentre ({ lane.getCentreX()
-                                               - yesdaw::ui::UiTheme::Layout::mixerPaintedRailCenterOffsetX,
-                                           faderArea.getCentreY() });
+            auto rail = paintedFaderRailForLane (lane);
             if (! interactiveStrip)
             {
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
                 g.fillRoundedRectangle (rail.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
                 g.setColour (yesdaw::ui::UiTheme::Color::faintText());
-                for (int tick = 0;
-                     tick < yesdaw::ui::UiTheme::Layout::mixerPaintedScaleTickCount;
-                     ++tick)
+                for (const float markDb : yesdaw::ui::UiTheme::Layout::mixerPaintedScaleDbMarks)
                 {
-                    const float fraction = static_cast<float> (tick)
-                                         / static_cast<float> (
-                                               yesdaw::ui::UiTheme::Layout::mixerPaintedScaleTickCount - 1);
-                    const float tickY = static_cast<float> (rail.getY())
-                                      + fraction * static_cast<float> (rail.getHeight());
+                    const float tickY = static_cast<float> (rail.getBottom())
+                                      - mixerFaderFractionForDb (markDb) * static_cast<float> (rail.getHeight());
                     g.drawHorizontalLine (
                         juce::roundToInt (tickY),
                         static_cast<float> (rail.getX()
@@ -9209,8 +9249,21 @@ private:
                         static_cast<float> (rail.getX()
                                             - yesdaw::ui::UiTheme::Layout::mixerPaintedScaleTickGap));
                 }
+
+                // Unity reads at a glance: a wider, brighter mark straight across the rail.
+                {
+                    const float unityY = static_cast<float> (rail.getBottom())
+                                       - mixerFaderFractionForDb (0.0f) * static_cast<float> (rail.getHeight());
+                    g.setColour (kMutedText);
+                    g.fillRect (juce::Rectangle<float> (
+                        static_cast<float> (rail.getX() - yesdaw::ui::UiTheme::Layout::mixerPaintedUnityMarkOverhang),
+                        unityY - yesdaw::ui::UiTheme::Layout::mixerPaintedUnityMarkThickness * 0.5f,
+                        static_cast<float> (rail.getWidth() + 2 * yesdaw::ui::UiTheme::Layout::mixerPaintedUnityMarkOverhang),
+                        yesdaw::ui::UiTheme::Layout::mixerPaintedUnityMarkThickness));
+                }
+
                 const int thumbY =
-                    rail.getBottom() - juce::roundToInt (state.linearGain * static_cast<float> (rail.getHeight()))
+                    mixerFaderThumbYForGain (rail, state.linearGain)
                     - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbCenterInset;
                 auto thumb = juce::Rectangle<int> (
                     rail.getX() - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbWidthOverhang / 2,
@@ -9245,7 +9298,13 @@ private:
             const float gainDb = 20.0f * std::log10 (std::max (
                 yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
                 state.linearGain));
-            g.drawText (juce::String (gainDb, 1), readout, juce::Justification::centred, false);
+            // M6: a bare "0.0" is not a level. Silence reads as -inf, everything else carries dB.
+            g.drawText (state.linearGain <= yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor
+                            ? juce::String ("-inf dB")
+                            : juce::String (gainDb, 1) + " dB",
+                        readout,
+                        juce::Justification::centred,
+                        false);
         }
 
         auto masterLane = area.removeFromRight (stripWidth)
@@ -9832,6 +9891,22 @@ juce::Rectangle<int> mainComponentPaintedSendRowBounds (const juce::Component& c
         return mainComponent->harnessPaintedSendRowBounds (stripIndex, sendIndex);
 
     return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedFaderRailBounds (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedFaderRailBounds (stripIndex);
+
+    return {};
+}
+
+int mainComponentPaintedFaderThumbY (const juce::Component& component, int stripIndex, float linearGain)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedFaderThumbY (stripIndex, linearGain);
+
+    return 0;
 }
 
 bool serviceMainComponentUiTimer (juce::Component& component)

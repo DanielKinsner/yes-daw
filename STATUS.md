@@ -941,7 +941,32 @@ only on the routed strip and above the fader region, a drag lands a level betwee
 audibly changes the bus contribution, ONE undo restores unity, the E18 tap toggle is reflected, and
 the row is empty at the floor in Timeline view.
 
-**Now:** M6 (fader scale, unity and readouts) — next item, not started.
+**M6 implementation candidate — fader scale, unity and readouts:** audited first and found the
+real defect, which was worse than the carve guessed: the live faders already travel
+0..`mixerFaderSliderMax` (2.0) in LINEAR gain, so unity is at HALF travel — but the painted thumb
+multiplied the gain straight by the rail height, painting unity at the TOP. Paint and control
+disagreed by half a fader on every unselected strip. The rail's ticks were also spread evenly down
+the rail, marking nothing.
+
+ONE law now (`mixerFaderFractionForGain` / `mixerFaderFractionForDb` / `mixerFaderThumbYForGain`,
+with the rail rect itself factored into `paintedFaderRailForLane`): the painted thumb, the dB ticks
+(0 / -6 / -12 / -24 / -60, each placed through the law) and a distinct unity mark all read it, and
+the strip readout carries its unit ("0.0 dB", "-inf dB" at silence) instead of a bare number.
+Persisted gain semantics are untouched — this is the mapping and the paint, so no existing gate
+moved. Judged in pixels: thumbs now sit mid-rail at unity with real headroom above.
+
+New shipped-boundary `[fader-scale]` gate (43 assertions): unity lands within a pixel of the rail
+centre and decidedly not at the top, silence is exactly the rail bottom, the token's max boost is
+exactly the rail top, the mapping is monotone, a BUS strip follows the same law, the live fader
+carries the same span, and a 1.5 boost persists and raises the rendered peak by exactly 1.5.
+FAIL-BEFORE: compile-fail against pre-M6 (`mainComponentPaintedFaderRailBounds` /
+`mainComponentPaintedFaderThumbY` do not exist); the behavioural red is the unity assertion, which
+the old paint put at the rail TOP.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M6 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M7 (honest clip paint), then strictly top-to-bottom through M14.
 

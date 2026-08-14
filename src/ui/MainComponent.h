@@ -131,6 +131,14 @@ struct MainComponentSnapshot
                                                                       int stripIndex,
                                                                       int sendIndex);
 
+// M6: the painted fader rail, and the y its thumb sits at for a given linear gain — one law with
+// the paint, so gates can pin that unity is at half travel and boost lives above it.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedFaderRailBounds (const juce::Component& component,
+                                                                        int stripIndex);
+[[nodiscard]] int mainComponentPaintedFaderThumbY (const juce::Component& component,
+                                                   int stripIndex,
+                                                   float linearGain);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 
