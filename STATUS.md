@@ -861,9 +861,13 @@ the pre-M3 engine (no `Track::outputBusId`, no `mixer.track.output` chooser) —
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M3 committed locally; awaiting exact-head nine-job CI.
+M3 is certified: exact-head GitHub Actions run `31844767502` is green for full SHA
+`e192fc7d9f3d9c057a4be1f7441cb5b8db0a8354` across all nine jobs, first try. M3 is ticked in the
+backlog.
 
-**Next:** M4 (FX insert slots on the strip), then strictly top-to-bottom through M14.
+**Now:** M4 (FX insert slots on the strip) — implementation candidate, see below.
+
+**Next:** M5 (sends on the strip), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

@@ -79,7 +79,19 @@ evidence commit.
    3-track fixture, delete the last clip of an automated track — the delete APPLIES, one undo
    restores it bit-identically, the project reopens, and the remaining tracks render bit-identically
    to before the deleted clip existed.
-3. [ ] **M3 — Track output routing (submix groups).** Buses are fed ONLY by sends today
+3. [x] **M3 — Track output routing (submix groups).** DONE — feature `e192fc7`, exact-head nine-job
+   CI run `31844767502` green (first try), local 350/350. A Track carries `outputBusId` (invalid =
+   master, the historical default): new `SetTrackOutput` verb (track diff family, property arm 24),
+   `trackOutputsReferenceBuses()` validation, bus removal refused while a Track's output lands on
+   it, projection routing the strip's post-meter output into the destination bus's sum (a bus
+   carrying a track output projects even with no FX and no sends), additive schema **v13**
+   (`track_outputs`) written only for non-default routing so default projects keep their v12 bytes,
+   both migration gates re-pinned to v13, and an `mixer.track.output` chooser on the control lane
+   (childCount 128→129). The `[track-output]` gate (90 assertions) proves routing three tracks to
+   one bus leaves the mix identical, the BUS fader then halves all three EXACTLY, removal is
+   refused while it carries outputs, and undo returns a bit-identical straight-to-master render.
+   Compile-fail before (no `Track::outputBusId`, no chooser).
+   Original spec: buses were fed ONLY by sends
    (`src/engine/MixerGraphProjection.h:434`) — a Track's main output always lands on master, so
    there is no group/submix workflow (drums under one fader). Add a persisted per-Track output
    target (master or a Bus) with an additive schema bump + migration gate (v12 is current; follow
