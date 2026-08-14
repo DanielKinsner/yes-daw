@@ -67,6 +67,13 @@ struct UiMixerSendReadout
     double normalizedLevel = 0.0;
     std::size_t breakpointCount = 0;
     bool automated = false;
+    // M5: the send ROW itself (ADR-0044), so a strip can paint what it actually routes. Before M5
+    // this readout was built from automation lanes alone, so a plain send was invisible.
+    engine::EntityId sendId {};
+    engine::EntityId busId {};
+    std::string busName;
+    bool preFader = false;
+    float linearGain = 1.0f;
 };
 
 struct UiMixerFxSlotReadout
@@ -218,28 +225,51 @@ inline std::string fallbackBusName (std::size_t index)
     return "Bus " + std::to_string (index + 1u);
 }
 
+// M5: the strip's REAL send rows (ADR-0044 persists them on the Track), with any automation lane
+// for that ordinal merged in. The old law walked the lanes instead, so a send you added but never
+// automated did not exist as far as the mixer surface was concerned.
 inline std::vector<UiMixerSendReadout> sendReadoutsForTrack (const engine::Project& project,
                                                              engine::EntityId trackId)
 {
     std::vector<UiMixerSendReadout> sends;
 
-    for (const engine::AutomationLaneData& lane : project.automationLanes)
+    const engine::Track* const track = project.findTrack (trackId);
+    if (track == nullptr)
+        return sends;
+
+    sends.reserve (track->sends.size());
+    for (std::size_t ordinal = 0; ordinal < track->sends.size(); ++ordinal)
     {
-        if (lane.ownerEntity != trackId || lane.role != engine::AutomationTargetRole::SendLevel)
-            continue;
+        const engine::SendRow& send = track->sends[ordinal];
 
         UiMixerSendReadout readout;
-        readout.sendOrdinal = lane.paramId;
-        readout.faderNodeId = engine::projectMixerSendLevelNodeIdForTrack (trackId, lane.paramId);
-        readout.breakpointCount = lane.points.size();
-        readout.automated = ! lane.points.empty();
-        readout.normalizedLevel = readout.automated ? lane.points.back().value : 0.0;
-        sends.push_back (readout);
+        readout.sendOrdinal = static_cast<std::uint32_t> (ordinal);
+        readout.faderNodeId = engine::projectMixerSendLevelNodeIdForTrack (
+            trackId, static_cast<std::uint32_t> (ordinal));
+        readout.sendId = send.id;
+        readout.busId = send.busId;
+        readout.preFader = send.tap == engine::SendTap::PreFader;
+        readout.linearGain = send.linearGain;
+        readout.normalizedLevel = static_cast<double> (send.linearGain);
+        if (const engine::Bus* const bus = project.findBus (send.busId))
+            readout.busName = bus->strip.name;
+
+        for (const engine::AutomationLaneData& lane : project.automationLanes)
+        {
+            if (! (lane.ownerEntity == trackId)
+                || lane.role != engine::AutomationTargetRole::SendLevel
+                || lane.paramId != readout.sendOrdinal)
+                continue;
+
+            readout.breakpointCount = lane.points.size();
+            readout.automated = ! lane.points.empty();
+            if (readout.automated)
+                readout.normalizedLevel = lane.points.back().value;
+        }
+
+        sends.push_back (std::move (readout));
     }
 
-    std::sort (sends.begin(), sends.end(), [] (const UiMixerSendReadout& lhs, const UiMixerSendReadout& rhs) {
-        return lhs.sendOrdinal < rhs.sendOrdinal;
-    });
     return sends;
 }
 

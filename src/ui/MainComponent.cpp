@@ -2592,11 +2592,29 @@ public:
     // M4: painted insert-slot hit test — a click on a slot row selects the strip and that slot.
     std::function<std::pair<int, int> (juce::Point<int>)> insertSlotAtPosition;
     std::function<void (int, int)> onInsertSlotClicked;
+    // M5: painted send rows — press picks the row, drag sets the level, release commits ONE
+    // undoable edit (a per-pixel commit would bury the undo stack).
+    std::function<std::pair<int, int> (juce::Point<int>)> sendRowAtPosition;
+    std::function<double (int, int, juce::Point<int>)> sendLevelForPosition;
+    std::function<void (int, int, double, bool)> onSendRowDragged;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+
+        if (sendRowAtPosition && sendLevelForPosition && onSendRowDragged)
+        {
+            const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition);
+            if (sendStrip >= 0 && sendIndex >= 0)
+            {
+                draggingSendStrip = sendStrip;
+                draggingSendIndex = sendIndex;
+                onSendRowDragged (sendStrip, sendIndex,
+                                  sendLevelForPosition (sendStrip, sendIndex, shellPosition), false);
+                return;
+            }
+        }
 
         if (insertSlotAtPosition && onInsertSlotClicked)
         {
@@ -2626,6 +2644,30 @@ public:
             onStripClicked (strip);
     }
 
+    void mouseDrag (const juce::MouseEvent& event) override
+    {
+        if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
+            return;
+
+        const juce::Point<int> shellPosition =
+            event.getEventRelativeTo (getParentComponent()).getPosition();
+        onSendRowDragged (draggingSendStrip, draggingSendIndex,
+                          sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition), false);
+    }
+
+    void mouseUp (const juce::MouseEvent& event) override
+    {
+        if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
+            return;
+
+        const juce::Point<int> shellPosition =
+            event.getEventRelativeTo (getParentComponent()).getPosition();
+        onSendRowDragged (draggingSendStrip, draggingSendIndex,
+                          sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition), true);
+        draggingSendStrip = -1;
+        draggingSendIndex = -1;
+    }
+
     void mouseDoubleClick (const juce::MouseEvent& event) override
     {
         if (! stripAtPosition || ! onStripDoubleClicked)
@@ -2637,6 +2679,10 @@ public:
         if (strip >= 0)
             onStripDoubleClicked (strip);
     }
+
+private:
+    int draggingSendStrip = -1;
+    int draggingSendIndex = -1;
 };
 
 class MainComponent : public juce::Component,
@@ -3921,6 +3967,18 @@ public:
                                               static_cast<std::size_t> (slotIndex));
     }
 
+    // M5: the painted send-row rect for a strip, in SHELL coordinates.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedSendRowBounds (int stripIndex, int sendIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal || sendIndex < 0)
+            return {};
+
+        return paintedSendRowBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+                                            static_cast<std::size_t> (sendIndex));
+    }
+
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -4531,6 +4589,61 @@ private:
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (slot) };
             }
             return std::pair<int, int> { -1, -1 };
+        };
+        // M5: painted send rows. The press selects the strip and previews the level; the release
+        // commits ONE undoable SetSendLevel through the same model verb the control lane uses.
+        mixerStripsInput.sendRowAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+            {
+                const auto lane = paintedMixerLaneBounds (i);
+                for (std::size_t sendIndex = 0;
+                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane));
+                     ++sendIndex)
+                    if (paintedSendRowBoundsForLane (lane, sendIndex).contains (positionInShell))
+                        return std::pair<int, int> { static_cast<int> (i), static_cast<int> (sendIndex) };
+            }
+            return std::pair<int, int> { -1, -1 };
+        };
+        mixerStripsInput.sendLevelForPosition = [this] (int stripIndex, int sendIndex, juce::Point<int> positionInShell) {
+            const auto row = paintedSendRowBoundsForLane (
+                paintedMixerLaneBounds (static_cast<std::size_t> (juce::jmax (0, stripIndex))),
+                static_cast<std::size_t> (juce::jmax (0, sendIndex)));
+            const auto bar = row.reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX,
+                                          yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX);
+            if (bar.getWidth() <= 0)
+                return 0.0;
+
+            return std::clamp (static_cast<double> (positionInShell.x - bar.getX())
+                                   / static_cast<double> (bar.getWidth()),
+                               0.0,
+                               1.0);
+        };
+        mixerStripsInput.onSendRowDragged = [this] (int stripIndex, int sendIndex, double level, bool commit) {
+            const auto surface = currentMixerSurface();
+            const int trackCount = static_cast<int> (surface.tracks.size());
+            if (stripIndex < 0 || stripIndex >= trackCount)
+                return;                                   // sends originate on TRACKS only (E16)
+
+            if (static_cast<std::size_t> (sendIndex) >= surface.tracks[static_cast<std::size_t> (stripIndex)].sends.size())
+                return;                                   // an empty send well has nothing to set
+
+            (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+            selectedTrackLane = stripIndex;
+            if (! commit)
+            {
+                paintedSendDragPreview = { stripIndex, sendIndex, static_cast<float> (level) };
+                repaint();
+                return;
+            }
+
+            paintedSendDragPreview = {};
+            (void) appModel.setSendLevelOnSelectedTrack (static_cast<std::size_t> (sendIndex),
+                                                        static_cast<float> (level));
+            layoutMixerControls();
+            refreshActionState();
+            repaint();
         };
         mixerStripsInput.onInsertSlotClicked = [this] (int stripIndex, int slotIndex) {
             const auto surface = currentMixerSurface();
@@ -5615,13 +5728,48 @@ private:
         return std::clamp (available / L::mixerPaintedInsertRowPitch, 0, L::mixerPaintedInsertRowCount);
     }
 
+    // M5: the send rows follow the inserts, and take space only after the inserts have taken
+    // theirs — a short strip drops sends first, then inserts, and never starves the fader.
+    [[nodiscard]] static int paintedSendRowCountForLane (juce::Rectangle<int> lane) noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int used = paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch;
+        const int available = lane.getHeight() - L::mixerPaintedInsertsTop - used
+                            - L::mixerPaintedFaderBottomInset - L::mixerPaintedFaderMinHeight
+                            - L::mixerPaintedInsertsFaderGap;
+        return std::clamp (available / L::mixerPaintedSendRowPitch, 0, L::mixerPaintedSendRowCount);
+    }
+
+    [[nodiscard]] static int paintedSendsTopForLane (juce::Rectangle<int> lane) noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        return L::mixerPaintedInsertsTop
+             + paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch;
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedSendRowBoundsForLane (juce::Rectangle<int> lane,
+                                                                           std::size_t sendIndex)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        if (static_cast<int> (sendIndex) >= paintedSendRowCountForLane (lane))
+            return {};
+
+        const int top = lane.getY() + paintedSendsTopForLane (lane)
+                      + static_cast<int> (sendIndex) * L::mixerPaintedSendRowPitch;
+        return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
+                                     top,
+                                     juce::jmax (0, lane.getWidth() - 2 * L::mixerPaintedInsertsInsetX),
+                                     L::mixerPaintedSendRowHeight);
+    }
+
     [[nodiscard]] static int paintedFaderTopForLane (juce::Rectangle<int> lane) noexcept
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        const int rows = paintedInsertRowCountForLane (lane);
+        const int rows = paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch
+                       + paintedSendRowCountForLane (lane) * L::mixerPaintedSendRowPitch;
         return rows == 0
             ? L::mixerPaintedFaderTop
-            : L::mixerPaintedFaderTop + rows * L::mixerPaintedInsertRowPitch + L::mixerPaintedInsertsFaderGap;
+            : L::mixerPaintedFaderTop + rows + L::mixerPaintedInsertsFaderGap;
     }
 
     // M4: ONE insert-slot row law — the paint, the click hit-test and the gates all read it, so a
@@ -8963,6 +9111,58 @@ private:
                 }
             }
 
+            // M5: the strip's sends, ON the strip: destination bus, pre/post tap, and a level bar
+            // you can drag. Empty rows are wells, exactly like the insert slots above.
+            {
+                const std::vector<yesdaw::ui::UiMixerSendReadout>& sends = state.sends;
+                for (std::size_t sendIndex = 0;
+                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane));
+                     ++sendIndex)
+                {
+                    const auto row = paintedSendRowBoundsForLane (lane, sendIndex);
+                    const bool routed = sendIndex < sends.size();
+                    g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                    g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
+                    g.setColour (kPanelStroke);
+                    g.drawRoundedRectangle (row.toFloat().reduced (
+                                                yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
+                                            yesdaw::ui::UiTheme::Radius::sm,
+                                            yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
+                    if (! routed)
+                        continue;
+
+                    const yesdaw::ui::UiMixerSendReadout& send = sends[sendIndex];
+                    // The level paints as a filled bar across the row — the drag law reads the same
+                    // rect, so what you see is what you set.
+                    auto levelBar = row.reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX,
+                                                 yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX);
+                    const bool previewing = paintedSendDragPreview.stripIndex == static_cast<int> (stripIndex)
+                                         && paintedSendDragPreview.sendIndex == static_cast<int> (sendIndex);
+                    const double paintedLevel = previewing
+                        ? static_cast<double> (paintedSendDragPreview.level)
+                        : static_cast<double> (send.linearGain);
+                    levelBar = levelBar.withWidth (juce::roundToInt (
+                        static_cast<double> (levelBar.getWidth()) * std::clamp (paintedLevel, 0.0, 1.0)));
+                    g.setColour (stripColour.withAlpha (yesdaw::ui::UiTheme::Tone::mixerHeaderAlpha));
+                    g.fillRoundedRectangle (levelBar.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
+
+                    auto tapCell = row.withTrimmedLeft (
+                        juce::jmax (yesdaw::ui::UiTheme::Space::none,
+                                    row.getWidth() - yesdaw::ui::UiTheme::Layout::mixerPaintedSendTapWidth));
+                    g.setColour (kMutedText);
+                    g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+                    g.drawText (send.preFader ? "PRE" : "PST", tapCell, juce::Justification::centred, false);
+
+                    g.setColour (kText);
+                    g.drawFittedText (
+                        juce::String (send.busName.empty() ? std::string ("Bus") : send.busName),
+                        row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX)
+                           .withTrimmedRight (yesdaw::ui::UiTheme::Layout::mixerPaintedSendTapWidth),
+                        juce::Justification::centredLeft,
+                        1);
+                }
+            }
+
             auto faderArea =
                 lane.withTrimmedTop (paintedFaderTopForLane (lane))
                     .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
@@ -9337,6 +9537,16 @@ private:
     int busRenameIndex = -1;
     juce::ComboBox mixerSendAddChooser;
     juce::ComboBox mixerTrackOutputChooser;   // M3: track main-output routing
+
+    // M5: transient painted-send drag preview (strip, send, level). Nothing persists until the
+    // release commits, so a drag is exactly one undo step.
+    struct PaintedSendDragPreview
+    {
+        int stripIndex = -1;
+        int sendIndex = -1;
+        float level = 0.0f;
+    };
+    PaintedSendDragPreview paintedSendDragPreview;
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
     std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;
@@ -9610,6 +9820,16 @@ juce::Rectangle<int> mainComponentPaintedInsertSlotBounds (const juce::Component
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedInsertSlotBounds (stripIndex, slotIndex);
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedSendRowBounds (const juce::Component& component,
+                                                         int stripIndex,
+                                                         int sendIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedSendRowBounds (stripIndex, sendIndex);
 
     return {};
 }

@@ -159,6 +159,21 @@ yesdaw::engine::Project makeMixerSendsInputProject()
     yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
     REQUIRE (project.tracks.size() == 1u);
 
+    // M5 re-pin: the fixture carries a REAL send row now (ADR-0044), not just an automation lane
+    // for an ordinal nothing routes. The mixer surface reads the persisted rows, so a lane-only
+    // fixture describes a send that does not exist.
+    yesdaw::engine::Bus sendBus;
+    sendBus.id = idFromLowByte (95);
+    sendBus.strip.name = "Send Bus";
+    project.buses.push_back (sendBus);
+
+    yesdaw::engine::SendRow sendRow;
+    sendRow.id = idFromLowByte (96);
+    sendRow.busId = sendBus.id;
+    sendRow.tap = yesdaw::engine::SendTap::PostFader;
+    sendRow.linearGain = 0.60f;
+    project.tracks.front().sends.push_back (sendRow);
+
     AutomationLaneData sendLane;
     sendLane.id = idFromLowByte (90);
     sendLane.ownerEntity = project.tracks.front().id;
@@ -4803,6 +4818,105 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     }
 }
 
+// M5 — a mixer strip shows what it sends, and lets you set it there. Before M5 sends lived only in
+// the left control lane's debug rows, and the mixer surface's send readout was built from
+// AUTOMATION LANES, so a send you added but never automated did not exist as far as the strips were
+// concerned. Now each strip paints one row per persisted send row (ADR-0044) — destination bus,
+// pre/post tap, and a level bar you drag — and the drag commits ONE undoable edit on release.
+TEST_CASE ("every mixer strip paints its sends and a painted send row sets its level",
+           "[ui][input][shell][mixer][strip-sends]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("strip-sends");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
+    {
+        mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+
+    // A bus, and a send to it from the THIRD track — a non-zero strip, per the E23 rule.
+    auto* busAdd = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.bus.add"));
+    REQUIRE (busAdd != nullptr);
+    clickButton (*busAdd);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 4));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project routed = readProjectSnapshot (bundlePath);
+        REQUIRE (routed.tracks[2].sends.size() == 1u);
+        REQUIRE (routed.tracks[2].sends.front().linearGain == 1.0f);
+    }
+
+    // The painted row exists on THAT strip only — a track with no sends paints an empty well, and
+    // the row sits above the fader region.
+    const juce::Rectangle<int> sendRow = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0);
+    REQUIRE_FALSE (sendRow.isEmpty());
+    REQUIRE (sendRow.getHeight() == yesdaw::ui::UiTheme::Layout::mixerPaintedSendRowHeight);
+    REQUIRE (sendRow.getY() > yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 2, 0).getBottom());
+    REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 0, 0).getX()
+             < sendRow.getX());                                    // strip 0 has its own column
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> atUnitySend = renderFromStart();
+
+    // Drag the painted level bar to a quarter of its width: the drag commits ONCE, on release.
+    const juce::Point<int> rowStart { sendRow.getX() + sendRow.getWidth() / 8, sendRow.getCentreY() };
+    const juce::Point<int> rowQuarter { sendRow.getX() + sendRow.getWidth() / 4, sendRow.getCentreY() };
+    dragFromTo (*strips,
+                strips->getLocalPoint (shell.get(), rowStart),
+                strips->getLocalPoint (shell.get(), rowQuarter));
+    const float draggedLevel = readProjectSnapshot (bundlePath).tracks[2].sends.front().linearGain;
+    REQUIRE (draggedLevel < 1.0f);
+    REQUIRE (draggedLevel > 0.0f);
+    REQUIRE (renderFromStart() != atUnitySend);                    // the bus contribution changed
+
+    // ONE undo puts the level back — a per-pixel commit would need dozens.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].sends.front().linearGain == 1.0f);
+
+    // The painted row reports the REAL routing: destination name and tap come from the send row,
+    // and flipping the tap through E18's toggle is reflected without touching automation.
+    auto* tapToggle = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.tap"));
+    REQUIRE (tapToggle != nullptr);
+    clickButton (*tapToggle);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].sends.front().tap
+             == yesdaw::engine::SendTap::PreFader);
+
+    // A strip with no room (the timeline view's short mini-mixer) drops the send rows instead of
+    // starving the fader, exactly as the insert slots do.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    shell->setSize (1152, 720);
+    REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0).isEmpty());
+}
+
 // M4 — a mixer strip shows its FX chain. Before M4 the only way to see or touch an insert was a
 // stack of debug text buttons in the left control lane ("Audio 1 FX: none", "FX", "+ FX"); the
 // strips themselves carried name + pan + S/M + fader and nothing else. Now every strip paints its
@@ -4858,7 +4972,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     // The painted slot rows exist for every strip and stay INSIDE their strip at every supported
     // window size (the run's floor, the default, and a large window).
     using L = yesdaw::ui::UiTheme::Layout;
-    for (const auto [width, height] : std::array<std::pair<int, int>, 3> {
+    for (const auto& [width, height] : std::array<std::pair<int, int>, 3> {
              std::pair { 1152, 720 }, std::pair { 1536, 960 }, std::pair { 1920, 1080 } })
     {
         shell->setSize (width, height);

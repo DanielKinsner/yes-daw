@@ -125,6 +125,12 @@ struct MainComponentSnapshot
                                                                          int stripIndex,
                                                                          int slotIndex);
 
+// M5: the shell's OWN painted send-row rect (shell coordinates), same law as the paint and the
+// drag. Empty rect when the strip or row is out of range or the strip has no room for it.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedSendRowBounds (const juce::Component& component,
+                                                                      int stripIndex,
+                                                                      int sendIndex);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

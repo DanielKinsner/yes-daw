@@ -504,6 +504,13 @@ struct UiTheme
         static constexpr int mixerPaintedFaderMinHeight = 96;
         static constexpr int mixerPaintedInsertRowPitch =
             mixerPaintedInsertRowHeight + mixerPaintedInsertRowGap;
+        // M5: the send rows sit under the inserts, the way a channel strip reads top to bottom.
+        static constexpr int mixerPaintedSendRowHeight = 13;
+        static constexpr int mixerPaintedSendRowGap = 2;
+        static constexpr int mixerPaintedSendRowCount = 3;
+        static constexpr int mixerPaintedSendRowPitch = mixerPaintedSendRowHeight + mixerPaintedSendRowGap;
+        static constexpr int mixerPaintedSendLevelInsetX = 3;
+        static constexpr int mixerPaintedSendTapWidth = 22;
         static constexpr int mixerPaintedFaderTop = mixerPaintedInsertsTop;
         static constexpr int mixerPaintedFaderBottomInset = 28;
         static constexpr int mixerPaintedMeterWidth = 16;
