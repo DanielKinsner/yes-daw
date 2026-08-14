@@ -35,8 +35,13 @@ public:
     static constexpr double kReleaseSeconds = 0.120;
     static constexpr double kOutputGain = 0.30;   // headroom for 8 voices
 
+    // Width (ADR-0042, M1): the synth is inherently mono. On a stereo strip it widens with the same
+    // equal-power centre compensation DecodedClipNode uses for a mono Asset, so a MIDI Clip on a
+    // stereo Track sits at the same centred loudness as one on a mono Track.
     explicit SimpleSynthNode (NodeId id, int channels = 1) noexcept
-        : id_ (id), channels_ (channels > 0 ? channels : 1)
+        : id_ (id),
+          channels_ (channels > 0 ? channels : 1),
+          widenGain_ (channels > 1 ? kEqualPowerCentreGain : 1.0f)
     {
     }
 
@@ -225,7 +230,8 @@ private:
                     index = kWavetableSize - 1;
                 const float sample = table[index]
                                    * voice.envelope
-                                   * static_cast<float> (kOutputGain);
+                                   * static_cast<float> (kOutputGain)
+                                   * widenGain_;
 
                 for (int c = 0; c < channels; ++c)
                     args.audio.channels[c][i] += sample;
@@ -237,8 +243,13 @@ private:
         }
     }
 
+    // Equal-power centre gain (cos(pi/4)) — the ADR-0042 mono-widening law, shared with
+    // DecodedClipNode so mono sources match whatever strip width they land on.
+    static constexpr float kEqualPowerCentreGain = 0.70710678118654752440f;
+
     NodeId id_;
     int channels_ = 1;
+    float widenGain_ = 1.0f;
     Node* eventInput_ = nullptr;
     std::array<Voice, kMaxVoices> voices_ {};
     std::array<float, 128> phaseIncrementForKey_ {};

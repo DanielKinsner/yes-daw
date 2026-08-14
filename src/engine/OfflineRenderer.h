@@ -170,32 +170,6 @@ struct ResolvedClipWindow
         && decoded.interleavedSamples.size() == static_cast<std::size_t> (expectedSamples);
 }
 
-[[nodiscard]] inline MidiFlattenStatus flattenMidiClipForProjection (const MidiClip& clip,
-                                                                     TempoMapView tempoMap,
-                                                                     SampleRate sampleRate,
-                                                                     std::vector<ScheduledMidiEvent>& outTimeline)
-{
-    if (clip.timeBase == TimeBase::SampleLocked)
-    {
-        return flattenMidiClipToTimeline (
-            clip,
-            [] (Tick tick, double& frame) noexcept
-            {
-                if (tick < 0)
-                    return false;
-                frame = static_cast<double> (tick);
-                return std::isfinite (frame);
-            },
-            outTimeline);
-    }
-
-    if (clip.timeBase == TimeBase::TempoLocked)
-        return flattenMidiClipToTimeline (clip, tempoMap, sampleRate, outTimeline);
-
-    outTimeline.clear();
-    return MidiFlattenStatus::InvalidInput;
-}
-
 [[nodiscard]] inline bool midiClipEndFrame (const MidiClip& clip,
                                             TempoMapView tempoMap,
                                             SampleRate sampleRate,
@@ -423,40 +397,8 @@ struct ResolvedClipWindow
         return result;
     }
 
-    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
-    {
-        const MidiClip& midiClip = project.midiClips[i];
-
-        std::vector<ScheduledMidiEvent> timeline;
-        if (detail::flattenMidiClipForProjection (midiClip,
-                                                  TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
-                                                  project.sampleRate,
-                                                  timeline)
-            != MidiFlattenStatus::Ok)
-        {
-            result.status = OfflineRenderStatus::MidiProjectionFailed;
-            return result;
-        }
-
-        const NodeId midiSourceId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::MidiSource);
-        const NodeId instrumentId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument);
-        auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
-        // ADR-0043: MIDI is MUSICAL — the built-in SimpleSynth replaces the impulse timing stub in the
-        // production projection (the impulse node remains the H4 timing-gate instrument).
-        auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, 1);
-        instrument->setEventInput (midiSource.get());
-
-        MixerTrackProjection track;
-        track.supportNodes.push_back (std::move (midiSource));
-        track.source = std::move (instrument);
-        track.faderNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Fader);
-        track.panNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Pan);
-        track.meterNodeId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Meter);
-        track.linearGain = 1.0f;
-        track.pan = 0.0f;
-        projection.tracks.push_back (std::move (track));
-        (void) i;
-    }
+    // M1 (ADR-0045): MIDI Clips are projected BY the mixer projection, into their owning Track's
+    // strip Sum — there is no per-Clip MIDI strip any more, so nothing to append here.
 
     std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &result.mixerError);
     if (graph == nullptr || result.mixerError.code != MixerProjectionError::Code::None)
@@ -493,9 +435,9 @@ struct ResolvedClipWindow
 
     // ADR-0014 mute/solo policy, finally WIRED to the Project's strip state: explicit Mute wins,
     // active solo mutes every non-soloed non-solo-safe strip, and the mask applies identically to
-    // playback and offline render (export == playback). An audio Track's contribution node is its
-    // per-Track source Sum; a MIDI Clip strip contributes through its per-Clip instrument and
-    // inherits the OWNING Track's mute/solo; a Bus contributes through its Sum.
+    // playback and offline render (export == playback). A Track's contribution node is its
+    // per-Track source Sum — which since M1 carries the Track's MIDI as well as its audio, so MIDI
+    // rides the Track's mute/solo through the same node; a Bus contributes through its Sum.
     {
         bool anyActiveSolo = false;
         for (const Track& track : project.tracks)
@@ -517,11 +459,6 @@ struct ResolvedClipWindow
 
         for (const Track& track : project.tracks)
             applyStripMute (track.strip, projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Source));
-
-        for (const MidiClip& midiClip : project.midiClips)
-            if (const Track* const owner = project.findTrack (midiClip.trackId))
-                applyStripMute (owner->strip,
-                                projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument));
 
         for (const Bus& bus : project.buses)
             applyStripMute (bus.strip, projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source));

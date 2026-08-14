@@ -58,6 +58,11 @@ how "measure twice, cut once" leaves a paper trail.
 | [0038](0038-built-in-fx-suite.md) | Built-in FX suite: five Nodes, ParamSpec, insert chains, tails | Accepted |
 | [0039](0039-automation-lanes-runtime.md) | Automation lanes: storage, targeting, compiled runtime | Accepted |
 | [0040](0040-packaged-hardware-verifier.md) | Packaged, one-command hardware verification | Accepted |
+| [0041](0041-empty-project-transport.md) | Empty Project transport | Accepted |
+| [0042](0042-stereo-sources-track-width-and-balance.md) | Stereo sources, Track width, and the balance law | Accepted |
+| [0043](0043-simple-synth-instrument.md) | SimpleSynth — the built-in musical Instrument | Accepted |
+| [0044](0044-persisted-send-routing.md) | Persisted send routing — sends live on the Track | Accepted |
+| [0045](0045-midi-plays-through-its-track-strip.md) | MIDI plays through its owning Track's strip (supersedes ADR-0026's per-Clip projection shape) | Accepted |
 
 ## Decision status (the five research forks)
 

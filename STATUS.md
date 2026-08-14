@@ -763,9 +763,36 @@ the real projection/paint code paths plus judged renders of the shipped shell at
   installed** (`C:\Program Files\Common Files\VST3` is empty). M14 builds the one-command smoke;
   installing a plugin and writing the H18 kickoff ADR are Dan's calls.
 
-**Now:** backlog carved and committed; starting M1 (MIDI plays through its owning Track's strip).
+**M1 implementation candidate — MIDI plays through its owning Track's strip:** audited before
+changing anything — the per-MIDI-Clip projection loop in `buildProjectGraph`, the audio Track
+assembly in `projectToMixerProjectionInputs` (source Sum ← clip sources, then FX → fader → pan →
+meter, sends, automation targets), `DecodedClipNode`'s ADR-0042 mono-widening law (equal-power
+centre gain cos(pi/4)), `SimpleSynthNode`'s channel handling, and the ADR-0014 mute application
+points. Each MIDI Clip's `DecodedMidiClipNode -> SimpleSynthNode` pair is now built by the MIXER
+projection and feeds the OWNING Track's strip Sum, so the Track's FX chain, fader, pan, meter,
+sends, automation and mute/solo apply to MIDI exactly as to audio; a Track projects when it owns an
+audio Clip OR a MIDI Clip; `SimpleSynthNode` carries the same equal-power widen when it lands on a
+stereo strip. The offline renderer's per-Clip MIDI loop and its MIDI-specific mute loop are DELETED
+(not left as dead code), and `flattenMidiClipForProjection` moved to `Midi.h` beside its siblings so
+one law serves both callers. Decision recorded in **ADR-0045** (supersedes ADR-0026's per-Clip
+projection shape only; ADR-0026's file is deliberately left untouched under the run's "never edit
+accepted ADRs" rule — Dan can flip its status line if he wants the cross-reference there too).
 
-**Next:** M2, then strictly top-to-bottom through M14.
+New shipped-boundary `[midi-strip]` gate (116 assertions): one render carries the MIDI note in its
+first half-second and the imported audio four bars later, so each source is measured in its own
+window. It proves the MIDI Track's fader at 0.5 halves the MIDI peak EXACTLY while the audio window
+stays bit-identical, hard-left pan silences the right channel of the MIDI window only, bypassing the
+Track's EQ insert changes the MIDI window and nothing else, removing the Track's send drops the MIDI
+level, and every edit undoes to a bit-identical render. FAIL-BEFORE PROVEN: against the pre-M1
+engine the gate died at assertion 52 — the fader-at-0.5 render came back 0.22697 instead of 0.11349
+(the fader did nothing). No re-pinning was needed anywhere: at unity gain, centre pan and an empty
+chain the new path is bit-identical, so the full local suite is green **350/350** (owner's
+last-project record isolated and restored byte-identical, SHA-256 verified).
+
+**Now:** M1 committed locally; awaiting exact-head nine-job CI.
+
+**Next:** M2 (every Track projects; automation never orphans), then strictly top-to-bottom
+through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

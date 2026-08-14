@@ -506,4 +506,34 @@ template <typename TickToFrame>
     return flattenMidiClipToTimeline (clip, compiled, outTimeline);
 }
 
+// The Project projection's entry point: pick the flattening law from the Clip's TimeBase.
+// SampleLocked Clips address frames directly; TempoLocked Clips resolve through the tempo map.
+// (Lived in OfflineRenderer's detail namespace until M1 gave the mixer projection its own MIDI
+// path — it belongs with its siblings so both callers share one law.)
+[[nodiscard]] inline MidiFlattenStatus flattenMidiClipForProjection (const MidiClip& clip,
+                                                                     TempoMapView tempoMap,
+                                                                     SampleRate sampleRate,
+                                                                     std::vector<ScheduledMidiEvent>& outTimeline)
+{
+    if (clip.timeBase == TimeBase::SampleLocked)
+    {
+        return flattenMidiClipToTimeline (
+            clip,
+            [] (Tick tick, double& frame) noexcept
+            {
+                if (tick < 0)
+                    return false;
+                frame = static_cast<double> (tick);
+                return std::isfinite (frame);
+            },
+            outTimeline);
+    }
+
+    if (clip.timeBase == TimeBase::TempoLocked)
+        return flattenMidiClipToTimeline (clip, tempoMap, sampleRate, outTimeline);
+
+    outTimeline.clear();
+    return MidiFlattenStatus::InvalidInput;
+}
+
 } // namespace yesdaw::engine

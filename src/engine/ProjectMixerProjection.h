@@ -6,13 +6,16 @@
 
 #pragma once
 
+#include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/Project.h"
 #include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
@@ -69,7 +72,8 @@ struct ProjectMixerProjectionError
         SourceNodeIdMismatch,
         FxNodeFactoryFailed,
         InvalidAutomationTarget,
-        InvalidAutomationLane
+        InvalidAutomationLane,
+        MidiProjectionFailed
     };
 
     Code code = Code::None;
@@ -385,7 +389,20 @@ template <typename SourceFactory>
             }
         }
 
-        if (! ownsAudioClip)
+        // M1 (supersedes ADR-0026's per-Clip auto-wire, see ADR-0045): a MIDI Clip is content on
+        // its Track, so a Track that owns only MIDI still projects a full strip and its MIDI plays
+        // THROUGH that strip.
+        bool ownsMidiClip = false;
+        for (const MidiClip& midiClip : project.midiClips)
+        {
+            if (midiClip.trackId == owningTrack.id)
+            {
+                ownsMidiClip = true;
+                break;
+            }
+        }
+
+        if (! ownsAudioClip && ! ownsMidiClip)
             continue;
 
         // Track width derives from the Track's Clips (ADR-0042): any stereo Asset makes the strip
@@ -471,6 +488,46 @@ template <typename SourceFactory>
 
             sumInputs.push_back (source.get());
             clipSources.push_back (std::move (source));
+        }
+
+        // M1: every MIDI Clip on this Track becomes flattened-source -> instrument feeding the SAME
+        // strip Sum the Track's audio Clips feed, so the chain below (FX, fader, pan, meter, sends,
+        // automation, mute/solo) applies to MIDI exactly as it does to audio. The instrument emits
+        // the strip's width; SimpleSynthNode carries the ADR-0042 mono-widening law itself.
+        for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+        {
+            const MidiClip& midiClip = project.midiClips[i];
+            if (! (midiClip.trackId == owningTrack.id))
+                continue;
+
+            std::vector<ScheduledMidiEvent> timeline;
+            if (flattenMidiClipForProjection (midiClip,
+                                              TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                              project.sampleRate,
+                                              timeline)
+                != MidiFlattenStatus::Ok)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::MidiProjectionFailed, i, 0,
+                               ProjectMixerNodeRole::MidiSource };
+                return false;
+            }
+
+            const NodeId midiSourceId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::MidiSource);
+            const NodeId instrumentId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument);
+            if (! detail::registerProjectMixerNodeId (usedIds, midiSourceId, i, ProjectMixerNodeRole::MidiSource, error)
+                || ! detail::registerProjectMixerNodeId (usedIds, instrumentId, i, ProjectMixerNodeRole::Instrument, error))
+                return false;
+
+            auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
+            // ADR-0043: the built-in SimpleSynth is the production instrument (the impulse node
+            // stays the H4 timing-gate instrument).
+            auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
+            instrument->setEventInput (midiSource.get());
+
+            sumInputs.push_back (instrument.get());
+            clipSources.push_back (std::move (midiSource));
+            clipSources.push_back (std::move (instrument));
         }
 
         auto sum = std::make_unique<SumNode> (sourceId, stripChannels);

@@ -204,6 +204,58 @@ yesdaw::engine::Project makeMixerBusFxSlotsInputProject()
     return project;
 }
 
+// M1: two tracks — one audio-only, one MIDI-only — plus a bus fed by a post-fader send from the
+// MIDI track and an EQ insert on the MIDI track's chain. Everything on the MIDI track's strip is
+// supposed to shape what the MIDI Clip sounds like; before M1 the engine gave each MIDI Clip its
+// own hidden unity strip, so none of it did anything.
+yesdaw::engine::Project makeMidiStripInputProject()
+{
+    yesdaw::engine::Project project;
+    project.id = idFromLowByte (1);
+    project.sampleRate = yesdaw::engine::SampleRate { 48000.0 };
+    project.tempoMap.push_back ({ 0, 120.0, yesdaw::engine::TempoCurve::Jump });
+    project.meterMap.push_back ({ 0, 4, 4 });
+
+    yesdaw::engine::Track audioTrack;
+    audioTrack.id = yesdaw::engine::kDefaultAudioTrackId;
+    audioTrack.strip.name = "Audio";
+    project.tracks.push_back (audioTrack);
+
+    yesdaw::engine::Track midiTrack;
+    midiTrack.id = idFromLowByte (21);
+    midiTrack.strip.name = "MIDI Only";
+    midiTrack.strip.fxChain = {
+        { idFromLowByte (24), yesdaw::engine::FxKind::Eq, true,
+          { { yesdaw::engine::EqNode::parameterIdFor (0, yesdaw::engine::EqNode::kGainParamOffset), 1.0 } } },
+    };
+
+    yesdaw::engine::Bus bus;
+    bus.id = idFromLowByte (25);
+    bus.strip.name = "MIDI Bus";
+    project.buses.push_back (bus);
+
+    yesdaw::engine::SendRow send;
+    send.id = idFromLowByte (26);
+    send.busId = bus.id;
+    send.tap = yesdaw::engine::SendTap::PostFader;
+    send.linearGain = 1.0f;
+    midiTrack.sends.push_back (send);
+    project.tracks.push_back (std::move (midiTrack));
+
+    yesdaw::engine::MidiClip midiClip;
+    midiClip.id = idFromLowByte (22);
+    midiClip.trackId = idFromLowByte (21);
+    midiClip.timelineStart = 0;
+    midiClip.timelineLength = 61440;                 // one 4/4 bar at PPQ 15360
+    midiClip.timeBase = yesdaw::engine::TimeBase::TempoLocked;
+    midiClip.notes = { makeMidiInputNote (idFromLowByte (23), 0, 15360, 60, 0.9) };
+    project.midiClips.push_back (std::move (midiClip));
+
+    REQUIRE (project.hasValidAssetClipIndirection());
+    REQUIRE (project.automationTargetsReferenceProjectRows());
+    return project;
+}
+
 yesdaw::engine::Project makeAutomationInputProject()
 {
     yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
@@ -4570,6 +4622,144 @@ TEST_CASE ("the master fader persists an undoable master gain that scales the wh
     REQUIRE (readProjectSnapshot (bundlePath).masterLinearGain == 1.0f);
     const std::vector<float> restored = renderFromStart();
     REQUIRE (restored == atUnity);
+}
+
+// M1 — a MIDI Track's strip is the thing that shapes its sound. Before M1 every MIDI Clip was
+// projected as its own hidden unity strip straight to master (OfflineRenderer's per-Clip loop), so
+// the fader, pan, FX chain and sends painted on that Track's strip moved, persisted, and changed
+// nothing audible. The gate renders ONE timeline that carries MIDI in its first half-second and the
+// imported audio four bars later, so each source is measured in its own window from the same render.
+TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
+           "[ui][input][shell][mixer][midi-strip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-strip");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    writeProjectSnapshot (bundlePath, makeMidiStripInputProject());
+
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
+
+    // Park the audio four bars in (2 s per bar at 120 BPM 4/4) on the FIRST track, so the MIDI
+    // window and the audio window never overlap.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0)));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+        REQUIRE (imported.clips.size() == 1u);
+        REQUIRE (imported.clips.front().trackId == yesdaw::engine::kDefaultAudioTrackId);
+        REQUIRE (imported.clips.front().timelineStart == 4 * 48'000);
+    }
+
+    constexpr std::uint64_t kRenderFrames = 5 * 48'000;
+    constexpr std::size_t kMidiWindowEnd = 24'000;          // the note is one beat long
+    constexpr std::size_t kAudioWindowStart = 4 * 48'000;
+    constexpr std::size_t kAudioWindowEnd = kAudioWindowStart + 4'096;
+
+    std::size_t channels = 0;
+    const auto renderFromStart = [&shell, &channels] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        std::vector<float> rendered = renderMainComponentPlayback (*shell, kRenderFrames, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        REQUIRE (rendered.size() % kRenderFrames == 0u);
+        channels = rendered.size() / kRenderFrames;
+        REQUIRE (channels >= 1u);
+        return rendered;
+    };
+    const auto windowOf = [&channels] (const std::vector<float>& rendered, std::size_t first, std::size_t last) {
+        return std::vector<float> (rendered.begin() + static_cast<std::ptrdiff_t> (first * channels),
+                                   rendered.begin() + static_cast<std::ptrdiff_t> (last * channels));
+    };
+    const auto peakOf = [] (const std::vector<float>& window) {
+        return peakAbs (std::span<const float> (window.data(), window.size()));
+    };
+
+    const std::vector<float> baseline = renderFromStart();
+    const std::vector<float> baselineMidi = windowOf (baseline, 0, kMidiWindowEnd);
+    const std::vector<float> baselineAudio = windowOf (baseline, kAudioWindowStart, kAudioWindowEnd);
+    const double baselineMidiPeak = peakOf (baselineMidi);
+    const double baselineAudioPeak = peakOf (baselineAudio);
+    REQUIRE (baselineMidiPeak > 0.02);
+    REQUIRE (baselineAudioPeak > 0.02);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));   // the MIDI-only track's strip
+
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    auto* pan = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_pan"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (pan != nullptr);
+
+    // 1. The MIDI track's fader halves the MIDI it owns EXACTLY and leaves the audio track alone.
+    fader->setValue (0.5, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.linearGain == 0.5f);
+    {
+        const std::vector<float> halved = renderFromStart();
+        REQUIRE (peakOf (windowOf (halved, 0, kMidiWindowEnd))
+                 == Catch::Approx (baselineMidiPeak * 0.5).epsilon (0.001));
+        REQUIRE (windowOf (halved, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
+    }
+
+    // One undo restores unity AND bit-identical audio.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.linearGain == 1.0f);
+    REQUIRE (renderFromStart() == baseline);
+
+    // 2. The MIDI track's pan places the MIDI it owns: hard left silences the right channel in the
+    //    MIDI window while the audio window is untouched.
+    if (channels >= 2u)
+    {
+        pan->setValue (-1.0, juce::sendNotificationSync);
+        REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.pan == -1.0f);
+        const std::vector<float> panned = renderFromStart();
+        const std::vector<float> pannedMidi = windowOf (panned, 0, kMidiWindowEnd);
+        // The equal-power pan law's hard-left sin() leaves ~1e-16 on the right, not a literal zero.
+        REQUIRE (channelPeakAbs (std::span<const float> (pannedMidi.data(), pannedMidi.size()), 1, channels)
+                 < 1.0e-9);
+        REQUIRE (channelPeakAbs (std::span<const float> (pannedMidi.data(), pannedMidi.size()), 0, channels)
+                 > 0.02);
+        REQUIRE (windowOf (panned, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
+
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.pan == 0.0f);
+        REQUIRE (renderFromStart() == baseline);
+    }
+
+    // 3. The MIDI track's FX chain processes the MIDI it owns: bypassing the EQ insert changes what
+    //    the MIDI window sounds like and leaves the audio window bit-identical.
+    auto* slotBypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle"));
+    REQUIRE (slotBypass != nullptr);
+    clickButton (*slotBypass);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.at (1).strip.fxChain.front().enabled);
+    {
+        const std::vector<float> bypassed = renderFromStart();
+        REQUIRE (windowOf (bypassed, 0, kMidiWindowEnd) != baselineMidi);
+        REQUIRE (windowOf (bypassed, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.fxChain.front().enabled);
+    REQUIRE (renderFromStart() == baseline);
+
+    // 4. The MIDI track's send feeds its bus: removing the send drops the MIDI window's level
+    //    (the parallel bus path disappears) and again leaves the audio window bit-identical.
+    auto* sendRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
+    REQUIRE (sendRemove != nullptr);
+    clickButton (*sendRemove);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).sends.empty());
+    {
+        const std::vector<float> withoutSend = renderFromStart();
+        REQUIRE (peakOf (windowOf (withoutSend, 0, kMidiWindowEnd)) < baselineMidiPeak * 0.75);
+        REQUIRE (windowOf (withoutSend, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
+    }
 }
 
 TEST_CASE ("header tempo and time-signature controls edit the project time map undoably",
