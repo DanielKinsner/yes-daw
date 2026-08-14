@@ -57,7 +57,18 @@ evidence commit.
    MIDI track audibly changes the MIDI render; a send from the MIDI track feeds its bus; a Fader
    automation lane on the MIDI track renders the closed-form curve; RT playback matches offline
    within 1e-6. Expected to fail before at the first assertion (fader 0.5 changes nothing).
-2. [ ] **M2 — Every Track projects; automation never orphans.** After M1 a Track with no Clips at
+2. [x] **M2 — Every Track projects; automation never orphans.** DONE — feature `71e652e`,
+   exact-head nine-job CI run `31843851909` green (first try), local 350/350. Three dead controls,
+   one cause; each proven red on its own (assertions 63, 101, 128 of the new gate): deleting the
+   last Clip of an automated Track, removing an automated FX insert, and removing a send that sits
+   before an automated one. Every Track projects now; an insert's lanes go with it in one undo step;
+   a removed send's lane is dropped and later lanes are re-seated one ordinal down. The
+   `[lane-orphan]` gate (137 assertions) drives the shipped controls on a three-track project. It
+   also flushed a latent TEST defect — `timelineClipCenterPoint` always returned lane 0, so
+   multi-lane gates could click the wrong clip; a lane-aware twin was added beside it. The H15/CP3
+   projection-rejection case was re-pinned strictly stronger (clip-less track must PROJECT;
+   unprojected bus and out-of-range send ordinal still rejected).
+   Original spec: after M1 a Track with no Clips at
    all is still skipped, and any automation lane whose owner is unprojected fails the WHOLE
    projection (`src/engine/ProjectMixerProjection.h:599`–`609` → `InvalidAutomationTarget`), which
    surfaces as `adoptEditedProject` returning false (`src/ui/UiAppModel.h:6284`) — a SILENT

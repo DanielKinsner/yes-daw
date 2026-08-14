@@ -828,9 +828,13 @@ still rejected.
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M2 committed locally; awaiting exact-head nine-job CI.
+M2 is certified: exact-head GitHub Actions run `31843851909` is green for full SHA
+`71e652e2a4370a97b6668df2cbd235ef097b149a` across all nine jobs, first try. M2 is ticked in the
+backlog.
 
-**Next:** M3 (track output routing), then strictly top-to-bottom through M14.
+**Now:** M3 (track output routing / submix groups) — implementation candidate, see below.
+
+**Next:** M4 (FX insert slots on the strip), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
