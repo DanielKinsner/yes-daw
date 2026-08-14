@@ -901,6 +901,15 @@ chain contains a lookahead limiter — the projection carries delay-line state a
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
+SELF-CAUGHT REGRESSION, repaired before certification: the first M4 commit made the insert block a
+fixed height, which in the TIMELINE view's short mini-mixer squeezed the fader rail into a ~40px
+stub (seen at the 1152×720 floor in the re-rendered capture). The block is adaptive now — one law
+(`paintedInsertRowCountForLane` / `paintedFaderTopForLane`) gives a strip only the rows it can
+afford above a minimum fader height, and a strip with no room falls back to the EXACT historical
+fader top; the live control lane reserves the same block so the live fader starts where the painted
+one does. Pinned in the gate: at the floor, in Timeline view, slot 0's rect is empty; back in the
+Mixer view it is not.
+
 **Now:** M4 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M5 (sends on the strip), then strictly top-to-bottom through M14.

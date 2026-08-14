@@ -498,7 +498,13 @@ struct UiTheme
         static constexpr int mixerPaintedInsertBypassDotInset = 4;
         static constexpr int mixerPaintedInsertBypassDotSize = 5;
         static constexpr int mixerPaintedInsertLabelInsetX = 12;
-        static constexpr int mixerPaintedFaderTop = mixerPaintedInsertsTop + mixerPaintedInsertsHeight + 6;
+        static constexpr int mixerPaintedInsertsFaderGap = 6;
+        // The shortest fader rail worth painting. A strip too short for slot rows drops them and
+        // hands the space back to the fader (the timeline view's mini-mixer is that short).
+        static constexpr int mixerPaintedFaderMinHeight = 96;
+        static constexpr int mixerPaintedInsertRowPitch =
+            mixerPaintedInsertRowHeight + mixerPaintedInsertRowGap;
+        static constexpr int mixerPaintedFaderTop = mixerPaintedInsertsTop;
         static constexpr int mixerPaintedFaderBottomInset = 28;
         static constexpr int mixerPaintedMeterWidth = 16;
         static constexpr int mixerPaintedMeterInsetX = 2;

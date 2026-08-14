@@ -4526,7 +4526,7 @@ private:
             {
                 const auto lane = paintedMixerLaneBounds (i);
                 for (std::size_t slot = 0; slot < static_cast<std::size_t> (
-                         yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount); ++slot)
+                         paintedInsertRowCountForLane (lane)); ++slot)
                     if (paintedInsertRowBoundsForLane (lane, slot).contains (positionInShell))
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (slot) };
             }
@@ -5603,14 +5603,39 @@ private:
                              yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
     }
 
+    // M4: how many insert rows this strip can afford. A tall mixer-view strip shows the whole
+    // column; the timeline view's short mini-mixer drops rows rather than starving the fader, and a
+    // strip with no room at all falls back to the exact historical fader top.
+    [[nodiscard]] static int paintedInsertRowCountForLane (juce::Rectangle<int> lane) noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int available = lane.getHeight() - L::mixerPaintedInsertsTop
+                            - L::mixerPaintedFaderBottomInset - L::mixerPaintedFaderMinHeight
+                            - L::mixerPaintedInsertsFaderGap;
+        return std::clamp (available / L::mixerPaintedInsertRowPitch, 0, L::mixerPaintedInsertRowCount);
+    }
+
+    [[nodiscard]] static int paintedFaderTopForLane (juce::Rectangle<int> lane) noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int rows = paintedInsertRowCountForLane (lane);
+        return rows == 0
+            ? L::mixerPaintedFaderTop
+            : L::mixerPaintedFaderTop + rows * L::mixerPaintedInsertRowPitch + L::mixerPaintedInsertsFaderGap;
+    }
+
     // M4: ONE insert-slot row law — the paint, the click hit-test and the gates all read it, so a
-    // painted slot can never drift from the slot a click selects.
+    // painted slot can never drift from the slot a click selects. An empty rect means the strip has
+    // no room for that row.
     [[nodiscard]] static juce::Rectangle<int> paintedInsertRowBoundsForLane (juce::Rectangle<int> lane,
                                                                              std::size_t slotIndex)
     {
         using L = yesdaw::ui::UiTheme::Layout;
+        if (static_cast<int> (slotIndex) >= paintedInsertRowCountForLane (lane))
+            return {};
+
         const int top = lane.getY() + L::mixerPaintedInsertsTop
-                      + static_cast<int> (slotIndex) * (L::mixerPaintedInsertRowHeight + L::mixerPaintedInsertRowGap);
+                      + static_cast<int> (slotIndex) * L::mixerPaintedInsertRowPitch;
         return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
                                      top,
                                      juce::jmax (0, lane.getWidth() - 2 * L::mixerPaintedInsertsInsetX),
@@ -5619,7 +5644,7 @@ private:
 
     [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane)
     {
-        auto faderArea = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
+        auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane))
                              .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
         return faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetX,
@@ -5866,6 +5891,11 @@ private:
         for (juce::Button* button : mixerButtons)
             button->setBounds (buttonRow.removeFromLeft (mixerButtonWidth));
         lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
+        // M4: reserve exactly the painted insert block on the SELECTED strip, so the live fader
+        // starts where the painted one does instead of sitting on top of the slot rows.
+        lane.removeFromTop (juce::jmax (yesdaw::ui::UiTheme::Space::none,
+                                        paintedFaderTopForLane (mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0))
+                                            - yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop));
         auto faderArea = lane.removeFromTop (
             juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
                         lane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
@@ -8884,7 +8914,7 @@ private:
             {
                 const std::vector<yesdaw::ui::UiMixerFxSlotReadout>& chain = state.fxSlots;
                 for (std::size_t slot = 0;
-                     slot < static_cast<std::size_t> (yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount);
+                     slot < static_cast<std::size_t> (paintedInsertRowCountForLane (lane));
                      ++slot)
                 {
                     const auto row = paintedInsertRowBoundsForLane (lane, slot);
@@ -8934,7 +8964,7 @@ private:
             }
 
             auto faderArea =
-                lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop)
+                lane.withTrimmedTop (paintedFaderTopForLane (lane))
                     .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
             const auto meter = paintedMeterBoundsForLane (lane);
             if (! isBus && stripIndex < trackMeterHold.size())

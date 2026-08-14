@@ -4895,6 +4895,16 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     }
     shell->setSize (1536, 960);
 
+    // A SHORT strip drops the slot rows instead of starving the fader: the timeline view's
+    // mini-mixer is barely tall enough for a fader, and painting four wells there squeezed the
+    // rail into a stub (caught by eye at the 1152x720 floor and pinned here).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));            // Timeline view
+    shell->setSize (1152, 720);
+    REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).isEmpty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));            // back to the Mixer view
+    shell->setSize (1536, 960);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).isEmpty());
+
     // Clicking the painted second slot of the THIRD strip selects that strip and opens THAT
     // insert's params — a non-zero strip and a non-zero slot, per the E23 cross-strip rule.
     mouseDownAt (*strips, strips->getLocalPoint (
