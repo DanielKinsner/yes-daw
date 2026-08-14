@@ -1013,6 +1013,149 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.visiblePianoRollNoteCount == 0);
 }
 
+// M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a
+// hash of the clip id whenever no peak cache was ready, and MIDI clips ALWAYS took that path (they
+// carry no asset), so every MIDI clip painted confident audio detail for audio that does not exist.
+// A MIDI clip now paints its real notes; a clip with peaks still pending paints an honest body.
+TEST_CASE ("clips paint what they contain: MIDI notes, and no invented waveform",
+           "[ui][input][timeline][clip-paint-honest][paint]")
+{
+    const yesdaw::ui::TimelineCanvasClipStyle style { yesdaw::ui::UiTheme::Color::accentCyan(), 0.75f };
+
+    const auto renderClip = [&style] (std::span<const yesdaw::ui::TimelineClipNote> notes)
+    {
+        juce::Image image (juce::Image::ARGB, 640, 240, true);
+        juce::Graphics graphics (image);
+        const yesdaw::ui::Clip clip { 1, 0, 0.0, 4.0, "MIDI" };
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = &clip;
+        state.clipStyles = &style;
+        state.clipCount = 1;
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        state.clipNotes = notes.empty() ? nullptr : notes.data();
+        state.clipNoteCount = static_cast<int> (notes.size());
+        (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+        return image;
+    };
+
+    // Pixel-exact difference against the SAME clip with no notes: whatever changed is the note
+    // preview, with no brightness threshold to argue about.
+    const auto changedPixelsIn = [] (const juce::Image& first, const juce::Image& second,
+                                     juce::Rectangle<int> area)
+    {
+        int count = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                if (first.getPixelAt (x, y) != second.getPixelAt (x, y))
+                    ++count;
+        return count;
+    };
+
+    // An EMPTY MIDI clip paints no note bars — the old code drew a full fake waveform here.
+    const juce::Image empty = renderClip ({});
+
+    // One note in the FIRST half of the clip: bars appear there and nowhere else.
+    const std::array<yesdaw::ui::TimelineClipNote, 1> firstHalf {
+        yesdaw::ui::TimelineClipNote { 1, 0.2, 1.0, 72 }
+    };
+    const juce::Image early = renderClip (std::span<const yesdaw::ui::TimelineClipNote> (firstHalf));
+
+    // The same note moved into the SECOND half moves the painted bar with it.
+    const std::array<yesdaw::ui::TimelineClipNote, 1> secondHalf {
+        yesdaw::ui::TimelineClipNote { 1, 2.6, 1.0, 72 }
+    };
+    const juce::Image late = renderClip (std::span<const yesdaw::ui::TimelineClipNote> (secondHalf));
+
+    // Halves of the CLIP's own painted span, derived from the shipped canvas geometry (image
+    // coordinates would straddle the rail and the ruler).
+    juce::Rectangle<int> leftHalf;
+    juce::Rectangle<int> rightHalf;
+    {
+        const yesdaw::ui::Clip clip { 1, 0, 0.0, 4.0, "MIDI" };
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = &clip;
+        state.clipStyles = &style;
+        state.clipCount = 1;
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (juce::Rectangle<int> (0, 0, 640, 240), state);
+        const int clipX = geometry.clipArea.getX();
+        const int clipWidth = std::min (geometry.clipArea.getWidth(),
+                                        static_cast<int> (4.0 * geometry.viewport.pixelsPerSecond));
+        leftHalf = { clipX, geometry.clipArea.getY(), clipWidth / 2, geometry.laneHeight };
+        rightHalf = { clipX + clipWidth / 2 + 4, geometry.clipArea.getY(),
+                      clipWidth / 2 - 8, geometry.laneHeight };
+    }
+
+    // Notes paint, and the bar FOLLOWS the note: moving it across the clip changes both halves
+    // (it leaves one and arrives in the other), while the clip frame itself is untouched.
+    REQUIRE (changedPixelsIn (empty, early, leftHalf) > 0);
+    REQUIRE (changedPixelsIn (early, late, leftHalf) > 0);
+    REQUIRE (changedPixelsIn (early, late, rightHalf) > 0);
+    REQUIRE (early.getPixelAt (0, 0) == late.getPixelAt (0, 0));   // same frame, moved content
+
+    // Pitch placement is real, and honest about its limits: a clip whose notes share ONE pitch has
+    // no range to show, so it draws mid-band (a lone note at key 48 and at key 72 paint the same —
+    // the preview does not pretend otherwise). Add a second note an octave apart and the pair
+    // separates into different row bands.
+    const std::array<yesdaw::ui::TimelineClipNote, 1> lowNote {
+        yesdaw::ui::TimelineClipNote { 1, 0.2, 1.0, 48 }
+    };
+    const juce::Image lower = renderClip (std::span<const yesdaw::ui::TimelineClipNote> (lowNote));
+    REQUIRE (changedPixelsIn (early, lower, leftHalf) == 0);
+
+    const std::array<yesdaw::ui::TimelineClipNote, 2> chord {
+        yesdaw::ui::TimelineClipNote { 1, 0.2, 1.0, 72 },
+        yesdaw::ui::TimelineClipNote { 1, 0.2, 1.0, 48 }
+    };
+    const juce::Image spread = renderClip (std::span<const yesdaw::ui::TimelineClipNote> (chord));
+    REQUIRE (changedPixelsIn (early, spread, leftHalf) > 0);
+
+    // The chord reaches rows the lone mid-band note never touches, top AND bottom of the lane.
+    const juce::Rectangle<int> topBand { leftHalf.getX(), leftHalf.getY() + 2,
+                                         leftHalf.getWidth(), leftHalf.getHeight() / 4 };
+    const juce::Rectangle<int> bottomBand { leftHalf.getX(),
+                                            leftHalf.getBottom() - leftHalf.getHeight() / 4 - 2,
+                                            leftHalf.getWidth(), leftHalf.getHeight() / 4 };
+    REQUIRE (changedPixelsIn (empty, spread, topBand) > 0);
+    REQUIRE (changedPixelsIn (empty, spread, bottomBand) > 0);
+    REQUIRE (changedPixelsIn (empty, early, topBand) == 0);
+
+    // No invented per-clip detail: two pending clips on adjacent lanes paint IDENTICAL bodies.
+    // The old placeholder hashed the clip id into a waveform, so each clip grew its own fake
+    // peaks — two lanes could never match.
+    {
+        juce::Image image (juce::Image::ARGB, 640, 240, true);
+        juce::Graphics graphics (image);
+        const std::array<yesdaw::ui::Clip, 2> clips {
+            yesdaw::ui::Clip { 0, 0, 0.0, 4.0, "Pending" },
+            yesdaw::ui::Clip { 1, 1, 0.0, 4.0, "Pending" }
+        };
+        const std::array<yesdaw::ui::TimelineCanvasClipStyle, 2> styles { style, style };
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = clips.data();
+        state.clipStyles = styles.data();
+        state.clipCount = static_cast<int> (clips.size());
+        state.trackCount = 2;
+        state.viewport.pixelsPerSecond = 100.0;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (image.getBounds(), state);
+        (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+
+        int laneDifferences = 0;
+        const int probeWidth = std::min (geometry.clipArea.getWidth(), 300);
+        for (int y = 4; y < geometry.laneHeight - 4; ++y)
+            for (int x = geometry.clipArea.getX(); x < geometry.clipArea.getX() + probeWidth; ++x)
+                if (image.getPixelAt (x, geometry.clipArea.getY() + y)
+                    != image.getPixelAt (x, geometry.clipArea.getY() + geometry.laneHeight + y))
+                    ++laneDifferences;
+
+        REQUIRE (laneDifferences == 0);
+    }
+}
+
 TEST_CASE ("timeline canvas paints each Clip display name", "[ui][input][timeline][clip-name][paint]")
 {
     const auto renderNamedClip = [] (const char* name)

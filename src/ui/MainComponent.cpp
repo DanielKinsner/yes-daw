@@ -8114,6 +8114,8 @@ private:
             state.clips = timelineClips.data();
             state.clipStyles = timelineClipStyles.data();
             state.clipCount = static_cast<int> (timelineClips.size());
+            state.clipNotes = timelineClipNotes.empty() ? nullptr : timelineClipNotes.data();
+            state.clipNoteCount = static_cast<int> (timelineClipNotes.size());
             state.waveformCacheLookup = [this] (int layoutClipId)
                 -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache>
             {
@@ -8192,6 +8194,7 @@ private:
     void rebuildTimelineClipViews()
     {
         timelineClips.clear();
+        timelineClipNotes.clear();
         timelineClipStyles.clear();
         timelineClipIds.clear();
         timelineClipAssetHashes.clear();
@@ -8262,6 +8265,31 @@ private:
             const double lengthSeconds = static_cast<double> (midiClip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
             timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, "MIDI" });
+            // M7: hand the canvas this clip's real notes so it can paint what the clip CONTAINS
+            // instead of falling through to the placeholder waveform.
+            for (const yesdaw::engine::Note& note : midiClip.notes)
+            {
+                double noteStartFrame = 0.0;
+                double noteEndFrame = 0.0;
+                if (! yesdaw::engine::tickToFrame (
+                        yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                        project.sampleRate,
+                        midiClip.timelineStart + note.startTick,
+                        noteStartFrame)
+                    || ! yesdaw::engine::tickToFrame (
+                        yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                        project.sampleRate,
+                        midiClip.timelineStart + note.startTick + note.lengthTicks,
+                        noteEndFrame))
+                {
+                    continue;
+                }
+
+                timelineClipNotes.push_back ({ id,
+                                               noteStartFrame / sampleRate,
+                                               std::max (0.0, (noteEndFrame - noteStartFrame) / sampleRate),
+                                               static_cast<int> (note.key) });
+            }
             timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (midiClip.id)
                                                 ? yesdaw::ui::UiTheme::Color::accentBlue()
                                                 : yesdaw::ui::UiTheme::Color::accentCyan(),
@@ -9211,9 +9239,8 @@ private:
                 }
             }
 
-            auto faderArea =
-                lane.withTrimmedTop (paintedFaderTopForLane (lane))
-                    .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
+            // M6: the rail and the meter each derive from the shared lane laws now — there is no
+            // local fader rect left to keep in sync.
             const auto meter = paintedMeterBoundsForLane (lane);
             if (! isBus && stripIndex < trackMeterHold.size())
             {
@@ -9548,6 +9575,7 @@ private:
     std::atomic<float> liveMasterPeakRight { 0.0f };
     std::vector<TrackRow> projectTimelineTracks;
     std::vector<yesdaw::ui::Clip> timelineClips;
+    std::vector<yesdaw::ui::TimelineClipNote> timelineClipNotes;   // M7: MIDI clip note previews
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     std::vector<yesdaw::engine::AssetContentHash> timelineClipAssetHashes;

@@ -530,6 +530,10 @@ struct UiTheme
         };
         static constexpr int mixerPaintedUnityMarkOverhang = 4;
         static constexpr float mixerPaintedUnityMarkThickness = 1.6f;
+        // M7: the MIDI clip note preview — the pitch band a single-note clip still gets, and the
+        // cap on how many notes one clip paints per frame (strided, like the waveform path).
+        static constexpr int timelineCanvasNotePreviewMinKeySpan = 11;
+        static constexpr int timelineCanvasNotePreviewMaxNotes = 64;
         static constexpr int mixerPaintedScaleTickCount = 7;
         static constexpr int mixerPaintedScaleTickWidth = 5;
         static constexpr int mixerPaintedScaleTickGap = 2;

@@ -966,9 +966,33 @@ the old paint put at the rail TOP.
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M6 committed locally; awaiting exact-head nine-job CI.
+**M6 CI round 1 was a REAL red** (macOS only): factoring the fader rail out of `drawMixer` left the
+old `faderArea` local unused, and AppleClang's `-Werror=unused-variable` caught what MSVC ignored.
+The local is deleted (the rail and the meter each derive from the shared lane laws now).
 
-**Next:** M7 (honest clip paint), then strictly top-to-bottom through M14.
+**M7 implementation candidate — no fabricated waveforms; MIDI clips show their notes:** audited
+first — `drawClipWaveform` synthesized a waveform from a hash of the clip id whenever no peak cache
+was ready, and MIDI clips ALWAYS took that path (`MainComponent.cpp` pushes an empty asset hash for
+them), so every MIDI clip painted confident audio detail for audio that does not exist. The canvas
+state now carries `TimelineClipNote` rows (fed from the real MidiClip notes through the tempo map),
+`drawClipNotePreview` paints a mini piano roll inside the clip body — auto-ranged to the notes
+present, strided to a token cap so a dense arrangement keeps its frame budget — and a clip with no
+notes and no peaks paints `drawClipPendingBody`: one honest centre line, no invented peaks. A clip
+whose notes share ONE pitch draws mid-band rather than pretending its pitch means a position.
+
+New shipped-boundary `[clip-paint-honest]` gate (10 pixel-exact assertions on the shipped canvas
+paint): notes paint, moving a note moves the painted bar in both halves, a chord reaches row bands a
+lone note never touches, a lone note's pitch does NOT move it (the honest limit, pinned so nobody
+"fixes" it into a lie), and two pending clips on adjacent lanes paint IDENTICAL bodies — the old
+hash-seeded placeholder could never match across clip ids. Fail-before is structural: the note-
+preview path and `TimelineClipNote` do not exist pre-M7, and the old paint hashed the clip id.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M6 repair + M7 committed locally; awaiting exact-head nine-job CI.
+
+**Next:** M8 (piano roll keyboard + velocity bars), then strictly top-to-bottom through M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

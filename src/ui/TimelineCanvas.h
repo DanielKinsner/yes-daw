@@ -44,6 +44,17 @@ struct TimelineMarker
     const char* label;
 };
 
+// M7: a MIDI Clip's own notes, so the timeline can draw what the clip CONTAINS. Before M7 a MIDI
+// clip fell through to the hash-seeded placeholder waveform — a fabricated audio wiggle for a clip
+// that has no audio at all.
+struct TimelineClipNote
+{
+    int    clipId = 0;
+    double startSeconds = 0.0;
+    double lengthSeconds = 0.0;
+    int    key = 60;
+};
+
 struct TimelineCanvasState
 {
     const TimelineCanvasTrack* tracks = nullptr;
@@ -55,6 +66,10 @@ struct TimelineCanvasState
 
     const TimelineMarker* markers = nullptr;
     int markerCount = 0;
+
+    // M7: notes for MIDI clips, sorted by clipId. A clip with no entries here is an audio clip.
+    const TimelineClipNote* clipNotes = nullptr;
+    int clipNoteCount = 0;
 
     std::function<std::shared_ptr<const persistence::WaveformPeakCache> (int clipId)> waveformCacheLookup;
 
@@ -180,49 +195,105 @@ inline const Clip* clipForId (const TimelineCanvasState& state, int clipId)
     return nullptr;
 }
 
-inline void drawClipWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
-                              float amplitude, int clipId)
+// M7: a clip whose peaks are not ready yet paints an honest PENDING body — a single centre line,
+// no invented peaks. This used to synthesize a waveform from a hash of the clip id, which meant the
+// timeline drew confident audio detail for content it had never read (and for MIDI clips, which
+// have no audio at all).
+inline void drawClipPendingBody (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour)
 {
     area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
                  UiTheme::Layout::timelineCanvasWaveformInsetY);
     if (area.isEmpty())
         return;
 
-    const float midY = static_cast<float> (area.getCentreY());
-    const float half = static_cast<float> (area.getHeight())
-                     * std::clamp (amplitude,
-                                   UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
-                                   UiTheme::Layout::timelineCanvasWaveformMaxAmplitude)
-                     * UiTheme::Layout::timelineCanvasWaveformHeightScale;
-    // Row-height clips draw a coarser stride (E5 perf repair): a dense overflow arrangement can
-    // paint hundreds of these per frame on CI hardware, and small rows cannot show fine detail
-    // anyway. Integer fills replace antialiased vertical lines for the same reason.
-    const bool compactDetail = area.getHeight() < UiTheme::Layout::timelineCanvasClipRichPaintHeight;
-    const int step = std::max (compactDetail ? UiTheme::Layout::timelineCanvasWaveformCompactMinStep
-                                             : UiTheme::Layout::timelineCanvasWaveformMinStep,
-                               area.getWidth() / UiTheme::Layout::timelineCanvasWaveformStepDivisor);
+    g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness)
+                       .withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha));
+    g.fillRect (area.getX(),
+                area.getCentreY(),
+                area.getWidth(),
+                UiTheme::Layout::timelineCanvasGridLineWidth);
+}
+
+// M7: how many notes this clip owns (the stats branch asks before painting, so a MIDI clip is
+// never counted as a pending WAVEFORM).
+inline int drawClipNotePreviewCount (const TimelineCanvasState& state, const Clip& clip)
+{
+    if (state.clipNotes == nullptr || state.clipNoteCount <= 0)
+        return 0;
+
+    int count = 0;
+    for (int i = 0; i < state.clipNoteCount; ++i)
+        if (state.clipNotes[i].clipId == clip.id)
+            ++count;
+
+    return count;
+}
+
+// M7: a MIDI clip paints its NOTES — a mini piano roll inside the clip body, pitch-scaled to the
+// notes actually present. Strided like the waveform path so a dense arrangement stays inside the
+// frame budget.
+inline int drawClipNotePreview (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
+                                const TimelineCanvasState& state, const Clip& clip)
+{
+    if (state.clipNotes == nullptr || state.clipNoteCount <= 0)
+        return 0;
+
+    area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
+                 UiTheme::Layout::timelineCanvasWaveformInsetY);
+    if (area.isEmpty() || clip.lengthSeconds <= 0.0)
+        return 0;
+
+    int lowKey = 127;
+    int highKey = 0;
+    int noteCount = 0;
+    for (int i = 0; i < state.clipNoteCount; ++i)
+    {
+        if (state.clipNotes[i].clipId != clip.id)
+            continue;
+
+        lowKey = std::min (lowKey, state.clipNotes[i].key);
+        highKey = std::max (highKey, state.clipNotes[i].key);
+        ++noteCount;
+    }
+
+    if (noteCount == 0)
+        return 0;
+
+    // A clip whose notes share one pitch has no pitch RANGE to show: it draws in the middle of the
+    // band rather than pretending the pitch means a position.
+    const bool degenerateSpan = highKey == lowKey;
+    const int keySpan = std::max (UiTheme::Layout::timelineCanvasNotePreviewMinKeySpan, highKey - lowKey);
+    const int rowHeight = std::max (UiTheme::Layout::timelineCanvasGridLineWidth,
+                                    area.getHeight() / (keySpan + 1));
+    const int stride = std::max (1, noteCount / UiTheme::Layout::timelineCanvasNotePreviewMaxNotes);
 
     g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
-    for (int x = 0; x < area.getWidth(); x += step)
+    int drawn = 0;
+    int seen = 0;
+    for (int i = 0; i < state.clipNoteCount; ++i)
     {
-        std::uint32_t seed = static_cast<std::uint32_t> (
-            (clipId + 1) * UiTheme::Layout::timelineCanvasWaveformClipPhaseMultiplier
-            + (x + UiTheme::Layout::timelineCanvasWaveformHashOffset)
-                  * UiTheme::Layout::timelineCanvasWaveformXPhaseMultiplier);
-        seed ^= seed >> UiTheme::Layout::timelineCanvasWaveformHashShiftA;
-        seed *= static_cast<std::uint32_t> (UiTheme::Layout::timelineCanvasWaveformHashMultiplier);
-        seed ^= seed >> UiTheme::Layout::timelineCanvasWaveformHashShiftB;
-        const int phase = static_cast<int> (seed)
-                        & UiTheme::Layout::timelineCanvasWaveformPhaseMask;
-        const float scaled = UiTheme::Layout::timelineCanvasWaveformMinScale
-                           + static_cast<float> (phase)
-                                 / static_cast<float> (UiTheme::Layout::timelineCanvasWaveformPhaseMask)
-                                 * UiTheme::Layout::timelineCanvasWaveformScaleRange;
-        const int top = juce::roundToInt (midY - half * scaled);
-        const int bottom = juce::roundToInt (midY + half * scaled);
-        g.fillRect (area.getX() + x, top, UiTheme::Layout::timelineCanvasGridLineWidth,
-                    std::max (UiTheme::Layout::timelineCanvasGridLineWidth, bottom - top));
+        const TimelineClipNote& note = state.clipNotes[i];
+        if (note.clipId != clip.id)
+            continue;
+
+        if ((seen++ % stride) != 0)
+            continue;
+
+        const double startFraction = std::clamp ((note.startSeconds - clip.startSeconds) / clip.lengthSeconds, 0.0, 1.0);
+        const double endFraction = std::clamp (
+            (note.startSeconds + note.lengthSeconds - clip.startSeconds) / clip.lengthSeconds, 0.0, 1.0);
+        const int x = area.getX() + juce::roundToInt (startFraction * static_cast<double> (area.getWidth()));
+        const int width = std::max (UiTheme::Layout::timelineCanvasGridLineWidth,
+                                    juce::roundToInt ((endFraction - startFraction)
+                                                      * static_cast<double> (area.getWidth())));
+        const int keyOffset = degenerateSpan ? keySpan / 2
+                                            : std::clamp (highKey - note.key, 0, keySpan);
+        const int y = area.getY() + keyOffset * rowHeight;
+        g.fillRect (x, std::min (y, area.getBottom() - rowHeight), width, rowHeight);
+        ++drawn;
     }
+
+    return drawn;
 }
 
 inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
@@ -337,13 +408,18 @@ inline bool drawClipFrame (juce::Graphics& g, juce::Rectangle<int> area,
     return true;
 }
 
+// M7: a clip with no cached peaks draws its notes when it HAS notes (MIDI), and an honest pending
+// body otherwise. Nothing is ever invented.
 inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasClipStyle& style,
-                      int clipId)
+                      const TimelineCanvasState& state, const Clip* clip)
 {
     if (! drawClipFrame (g, area, style))
         return;
 
-    drawClipWaveform (g, area, style.colour, style.amplitude, clipId);
+    if (clip != nullptr && drawClipNotePreview (g, area, style.colour, state, *clip) > 0)
+        return;
+
+    drawClipPendingBody (g, area, style.colour);
 }
 
 inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
@@ -743,12 +819,15 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         }
         else
         {
-            if (state.waveformCacheLookup)
+            const Clip* const pendingClip = clipForId (state, rect.id);
+            const bool hasNotes = pendingClip != nullptr
+                               && drawClipNotePreviewCount (state, *pendingClip) > 0;
+            if (state.waveformCacheLookup && ! hasNotes)
             {
                 ++stats.pendingWaveformClips;
                 ++stats.placeholderWaveformClips;
             }
-            drawClip (g, clipRect, style, rect.id);
+            drawClip (g, clipRect, style, state, pendingClip);
         }
 
         const Clip* const clip = clipForId (state, rect.id);
