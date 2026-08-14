@@ -139,6 +139,10 @@ struct MainComponentSnapshot
                                                    int stripIndex,
                                                    float linearGain);
 
+// M9: the header's master card rect (shell coordinates). Empty when the window is too narrow to
+// carry it — the card drops WHOLE rather than keeping a label over a clipped meter.
+[[nodiscard]] juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

@@ -1021,7 +1021,29 @@ M8 is certified: exact-head GitHub Actions run `31850912382` is green for full S
 `f0dc2e84b73f34cf32a46827b6c194b5aaf9055c` across all nine jobs, first try. M8 is ticked in the
 backlog.
 
-**Now:** M9 (floor-size layout defects) — next item, not started.
+**M9 implementation candidate — floor-size layout defects:** audited first: the header's master
+card was drawn at a FIXED x (`headerMasterX = 1110`) with a fixed 300px width, so at the supported
+floor (1152×720) it ran past the window edge — the "MASTER" label survived while the meter and the
+LUFS readout were clipped away, exactly the half-drop E27 outlawed for the inspector. The mixer's
+utility column placed every row with `removeFromTop` regardless of remaining height, so the last
+chooser was painted half-off the panel's bottom edge.
+
+The master card is RIGHT-anchored against the gear now and drops WHOLE below a token minimum width
+(label included; the LUFS readout rides the card's right edge and drops with it, and the gear stays
+at the window edge either way). Every mixer utility row goes through one `placeUtilityRow` law: a
+row that does not fit gets EMPTY bounds — the same "hidden rows take no column space" rule the send
+rows already used — instead of hanging past the panel. Judged in pixels at the floor: the orphan
+"MASTER" label is gone and the utility column ends cleanly.
+
+Gate: `[shell-sizes]` extended — the card law is exported (`mainComponentHeaderMasterCardBounds`)
+and pinned at both resize extremes: empty (dropped whole) exactly when the LUFS readout is empty,
+otherwise entirely inside the window with the readout on its right edge; and no utility row may
+have bounds hanging past the window bottom.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M9 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M10 (OS file drag-and-drop), then strictly top-to-bottom through M14.
 

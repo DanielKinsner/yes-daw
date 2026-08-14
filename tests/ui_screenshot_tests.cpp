@@ -816,6 +816,45 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
                 for (int x = width - 312; x < width - 122; ++x)
                     REQUIRE (image.getPixelAt (x, y).getBrightness() < 0.5f);
         }
+        // M9: the HEADER's master card obeys the same whole-section law. At the floor the card
+        // used to keep its "MASTER" label while its meter and LUFS readout were clipped off the
+        // window; now the card is right-anchored and drops WHOLE. The LUFS readout is the witness:
+        // present and inside the window when the card fits, empty bounds when it does not — never
+        // placed past the right edge.
+        {
+            juce::Component* const lufs = yesdaw::ui::findMainComponentChildForAction (
+                *shell, UiActionId::MixerReadLoudness);
+            REQUIRE (lufs != nullptr);
+            INFO ("LUFS bounds " << lufs->getBounds().toString().toStdString()
+                  << " in width " << width);
+            REQUIRE ((lufs->getBounds().isEmpty() || lufs->getBounds().getRight() <= width));
+            // The card itself is the law: empty (dropped whole, label included) or entirely inside
+            // the window with the LUFS readout sitting on its right edge.
+            const juce::Rectangle<int> card =
+                yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell);
+            INFO ("master card " << card.toString().toStdString());
+            REQUIRE (card.isEmpty() == lufs->getBounds().isEmpty());
+            if (! card.isEmpty())
+            {
+                REQUIRE (card.getRight() <= width);
+                REQUIRE (card.getX() >= 0);
+                REQUIRE (lufs->getBounds().getRight() == card.getRight());
+            }
+        }
+
+        // M9: no mixer utility row may hang past the panel's bottom edge — a row that does not
+        // fit drops to empty bounds instead of being painted half-off.
+        for (const char* id : { "mixer.bus.add", "mixer.bus.remove", "mixer.track.output",
+                                "mixer.send.add", "mixer.fx.insert.add" })
+        {
+            juce::Component* const control = controlById (id);
+            if (control == nullptr)
+                continue;
+
+            INFO ("utility row " << id << " bounds " << control->getBounds().toString().toStdString());
+            REQUIRE ((control->getBounds().isEmpty() || control->getBounds().getBottom() <= height));
+        }
+
         (void) captureShellPng (image, filename);
     };
 

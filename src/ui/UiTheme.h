@@ -267,6 +267,12 @@ struct UiTheme
         static constexpr int headerMasterLufsY = 33;
         static constexpr int headerMasterLufsWidth = 76;
         static constexpr int headerMasterLufsHeight = 16;
+        // M9: the master card is RIGHT-anchored now. Below this width it drops WHOLE (label
+        // included) instead of keeping a label over a clipped meter — E27's whole-section law,
+        // applied to the header.
+        static constexpr int headerMasterMinWidth = 150;
+        static constexpr int headerMasterGearGap = 12;
+        static constexpr int headerMasterLufsGap = 8;
         static constexpr int headerStatusIconRightInset = 54;
         static constexpr int headerStatusIconY = 34;
         static constexpr int headerStatusIconSize = 24;

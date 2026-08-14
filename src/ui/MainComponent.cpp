@@ -4177,10 +4177,9 @@ public:
         exportBitDepthChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportBitDepthChooserBounds());
         exportRangeChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportRangeChooserBounds());
         menuBar.setBounds (yesdaw::ui::UiTheme::Layout::headerMenuBarBounds());
-        masterLoudnessReadout.setBounds (juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterLufsX,
-                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsY,
-                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth,
-                                                               yesdaw::ui::UiTheme::Layout::headerMasterLufsHeight));
+        // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
+        masterLoudnessReadout.setBounds (headerMasterLufsBounds());
+        masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
         timelineInput.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
         trackListInput.setBounds (leftRailPanelBounds());
@@ -5950,6 +5949,19 @@ private:
                            .reduced (yesdaw::ui::UiTheme::Layout::mixerUtilityInsetX,
                                      yesdaw::ui::UiTheme::Space::none);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityTop);
+        // M9: a row that does not fit the column DROPS (zero bounds) instead of being painted
+        // half-off the panel's bottom edge, which is what the shipped floor size did to the last
+        // chooser. Same law the send rows already used: hidden rows take no column space.
+        const auto placeUtilityRow = [&utility] (juce::Component& component, int height) {
+            if (utility.getHeight() < height)
+            {
+                component.setBounds ({});
+                return false;
+            }
+
+            component.setBounds (utility.removeFromTop (height));
+            return true;
+        };
         const std::array<juce::Button*, 7> utilityButtons {
             &mixerMetersReadout,
             &mixerSendsReadout,
@@ -5961,11 +5973,11 @@ private:
         };
         for (juce::Button* button : utilityButtons)
         {
-            button->setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityHeight));
+            (void) placeUtilityRow (*button, yesdaw::ui::UiTheme::Layout::mixerUtilityHeight);
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
         }
 
-        mixerFxAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        (void) placeUtilityRow (mixerFxAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
         {
@@ -5994,14 +6006,14 @@ private:
 
         // Hidden rows take no column space — the tools column would otherwise overflow. The refresh
         // path calls resized() whenever a row-visibility count changes.
-        mixerBusAddButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        (void) placeUtilityRow (mixerBusAddButton, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         // E17: bus removal lives with the bus tools.
-        mixerBusRemoveButton.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        (void) placeUtilityRow (mixerBusRemoveButton, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        mixerTrackOutputChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        (void) placeUtilityRow (mixerTrackOutputChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        mixerSendAddChooser.setBounds (utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
+        (void) placeUtilityRow (mixerSendAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
         {
@@ -7838,15 +7850,60 @@ private:
 
     }
 
+public:
+    // M9: the header's master card, right-anchored against the gear. At the supported floor the
+    // fixed x ran the card past the window edge, so the label survived while the meter and the LUFS
+    // readout were clipped away — a section that half-drops is exactly what E27 outlawed for the
+    // inspector. Empty rect = the card does not fit and drops whole.
+    [[nodiscard]] juce::Rectangle<int> headerMasterCardBounds() const
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int right = getWidth() - L::headerStatusIconRightInset - L::headerMasterGearGap;
+        const int width = juce::jmin (L::headerMasterWidth, right - L::headerMasterX);
+        if (width < L::headerMasterMinWidth)
+            return {};
+
+        return juce::Rectangle<int> (right - width, L::headerMasterY, width, L::headerMasterHeight);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> headerMasterLufsBounds() const
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const auto card = headerMasterCardBounds();
+        if (card.isEmpty())
+            return {};
+
+        return juce::Rectangle<int> (card.getRight() - L::headerMasterLufsWidth,
+                                     L::headerMasterLufsY,
+                                     L::headerMasterLufsWidth,
+                                     L::headerMasterLufsHeight);
+    }
+
+private:
     void drawMasterMeter (juce::Graphics& g) const
     {
-        auto master = juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::headerMasterX,
-                                            yesdaw::ui::UiTheme::Layout::headerMasterY,
-                                            yesdaw::ui::UiTheme::Layout::headerMasterWidth,
-                                            yesdaw::ui::UiTheme::Layout::headerMasterHeight);
+        auto master = headerMasterCardBounds();
+        if (master.isEmpty())
+        {
+            // The card is gone; the gear still belongs to the window edge.
+            yesdaw::ui::drawSettingsIcon (
+                g,
+                juce::Rectangle<float> (
+                    static_cast<float> (getWidth() - yesdaw::ui::UiTheme::Layout::headerStatusIconRightInset),
+                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconY),
+                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize),
+                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize)),
+                kMutedText);
+            return;
+        }
+
         drawSmallLabel (g, "MASTER", master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterLabelHeight));
+        const int meterWidth = juce::jmin (yesdaw::ui::UiTheme::Layout::headerMasterMeterWidth,
+                                           master.getWidth()
+                                               - yesdaw::ui::UiTheme::Layout::headerMasterLufsWidth
+                                               - yesdaw::ui::UiTheme::Layout::headerMasterLufsGap);
         auto meter = master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterMeterHeight)
-                         .withWidth (yesdaw::ui::UiTheme::Layout::headerMasterMeterWidth);
+                         .withWidth (juce::jmax (yesdaw::ui::UiTheme::Layout::headerMasterLufsGap, meterWidth));
         drawHorizontalMeter (g, meter, liveMasterPeakLeft.load (std::memory_order_acquire));
 
         yesdaw::ui::drawSettingsIcon (
@@ -9970,6 +10027,14 @@ int mainComponentPaintedFaderThumbY (const juce::Component& component, int strip
         return mainComponent->harnessPaintedFaderThumbY (stripIndex, linearGain);
 
     return 0;
+}
+
+juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->headerMasterCardBounds();
+
+    return {};
 }
 
 bool serviceMainComponentUiTimer (juce::Component& component)
