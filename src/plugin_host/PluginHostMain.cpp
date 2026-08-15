@@ -312,12 +312,34 @@ private:
             return;
         }
 
+        // M14: the load message may name ONE plugin file to host. No path = the synthetic
+        // processor, exactly as before. A named file that will not load is an honest rejection —
+        // never a silent fall back to the synthetic one, which would make the smoke a lie.
+        const std::string pluginPath = yesdaw::plugin_host::rtLanePluginPath (message);
+        const int channels = static_cast<int> (std::max (1u, message.config.channels));
+        const int maxBlockSize = static_cast<int> (std::max (1u, message.config.maxBlockSize));
+        std::unique_ptr<juce::AudioProcessor> hosted;
+        if (pluginPath.empty())
+        {
+            hosted = std::make_unique<SyntheticTestProcessor> (SyntheticProcessorMode::passthrough);
+        }
+        else
+        {
+            hosted = loadHostedPluginFile (pluginPath, channels, maxBlockSize);
+            if (hosted == nullptr)
+            {
+                const auto reply = yesdaw::plugin_host::makeRtLaneLoadReplyMessage (
+                    yesdaw::plugin_host::RtLaneLoadReplyStatus::rejectedPluginLoadFailed,
+                    sharedMemoryName);
+                sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+                resetHostedRtLane();
+                return;
+            }
+        }
+
         {
             std::lock_guard<std::mutex> lock (rtLaneMutex_);
-            const int channels = static_cast<int> (std::max (1u, message.config.channels));
-            const int maxBlockSize = static_cast<int> (std::max (1u, message.config.maxBlockSize));
-
-            hostedProcessor_ = std::make_unique<SyntheticTestProcessor> (SyntheticProcessorMode::passthrough);
+            hostedProcessor_ = std::move (hosted);
             hostedProcessorBuffer_.setSize (channels, maxBlockSize);
             hostedProcessorBuffer_.clear();
             hostedMidi_.clear();
@@ -374,7 +396,14 @@ private:
 
         const auto bytes = yesdaw::plugin_host::pluginStateChunkBytes (message);
         hostedProcessor_->setStateInformation (bytes.data(), static_cast<int> (bytes.size()));
-        const bool accepted = hostedProcessor_->stateAccepted();
+        // M14: acceptance is a real ROUND TRIP, not a processor-specific flag — pull the state
+        // back and compare bytes. Works for the synthetic processor and for any real plugin, and
+        // a plugin that silently ignored the chunk fails it.
+        juce::MemoryBlock restoredState;
+        hostedProcessor_->getStateInformation (restoredState);
+        const bool accepted = restoredState.getSize() == bytes.size()
+            && (bytes.empty()
+                || std::memcmp (restoredState.getData(), bytes.data(), bytes.size()) == 0);
         sendPluginStateReply (yesdaw::plugin_host::makePluginStateReplyMessage (
             accepted ? yesdaw::plugin_host::PluginStateReplyStatus::restored
                      : yesdaw::plugin_host::PluginStateReplyStatus::rejectedSetStateFailed,
@@ -385,6 +414,46 @@ private:
     void sendPluginStateReply (const yesdaw::plugin_host::PluginStateReplyMessage& reply)
     {
         sendMessageToCoordinator (juce::MemoryBlock (&reply, sizeof (reply)));
+    }
+
+    // M14 (reality-lane Smoke 2): load ONE named plugin file. This is the whole hosting surface —
+    // no search path, no scan cache, no plugin identity/blacklist, no editor. The file is named by
+    // the coordinator; the worker only asks the format that claims it to instantiate it.
+    static std::unique_ptr<juce::AudioProcessor> loadHostedPluginFile (const std::string& path,
+                                                                       int channels,
+                                                                       int maxBlockSize)
+    {
+        const juce::File pluginFile { juce::String (path) };
+        if (! pluginFile.exists())
+            return nullptr;
+
+        juce::AudioPluginFormatManager formats;
+        formats.addDefaultFormats();
+
+        for (juce::AudioPluginFormat* format : formats.getFormats())
+        {
+            if (format == nullptr || ! format->fileMightContainThisPluginType (pluginFile.getFullPathName()))
+                continue;
+
+            juce::OwnedArray<juce::PluginDescription> descriptions;
+            format->findAllTypesForFile (descriptions, pluginFile.getFullPathName());
+            for (const juce::PluginDescription* description : descriptions)
+            {
+                if (description == nullptr)
+                    continue;
+
+                juce::String error;
+                std::unique_ptr<juce::AudioPluginInstance> instance = formats.createPluginInstance (
+                    *description, 48000.0, maxBlockSize, error);
+                if (instance == nullptr)
+                    continue;
+
+                instance->setPlayConfigDetails (channels, channels, 48000.0, maxBlockSize);
+                return instance;
+            }
+        }
+
+        return nullptr;
     }
 
     void resetHostedRtLane()
@@ -432,7 +501,9 @@ private:
     std::atomic<bool> rtLaneHung_ { false };
     std::mutex rtLaneMutex_;
     std::unique_ptr<yesdaw::engine::RtLaneRing> rtLane_;
-    std::unique_ptr<SyntheticTestProcessor> hostedProcessor_;
+    // M14: the hosted processor is the synthetic one OR a real plugin instance named by the load
+    // message — both behind the same juce::AudioProcessor surface.
+    std::unique_ptr<juce::AudioProcessor> hostedProcessor_;
     juce::AudioBuffer<float> hostedProcessorBuffer_;
     juce::MidiBuffer hostedMidi_;
 };

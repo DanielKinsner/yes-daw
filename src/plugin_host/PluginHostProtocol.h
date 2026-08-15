@@ -27,8 +27,12 @@ inline constexpr const char* kChildCrashCommandMessage = "yesdaw-host-child-cras
 
 inline constexpr std::uint32_t kRtLaneLoadMessageMagic = 0x59445254u; // YDRT
 inline constexpr std::uint32_t kRtLaneLoadReplyMagic = 0x59445252u;   // YDRR
-inline constexpr std::uint32_t kRtLaneLoadMessageVersion = 1u;
+// v2 (M14 / reality-lane Smoke 2): the load message may name ONE plugin file to host by absolute
+// path. Empty path == the in-repo synthetic processor, i.e. every pre-M14 caller is unchanged.
+// This is deliberately NOT a scanner: no search, no cache, no identity/blacklist, no editor.
+inline constexpr std::uint32_t kRtLaneLoadMessageVersion = 2u;
 inline constexpr std::size_t kRtLaneSharedMemoryNameCapacity = 128u;
+inline constexpr std::size_t kRtLanePluginPathCapacity = 512u;
 
 inline constexpr std::uint32_t kPluginStateRequestMagic = 0x59445351u; // YDSQ
 inline constexpr std::uint32_t kPluginStateReplyMagic = 0x59445352u;   // YDSR
@@ -40,7 +44,10 @@ enum class RtLaneLoadReplyStatus : std::uint32_t
     none = 0,
     accepted = 1,
     rejectedInvalidIdentity = 2,
-    rejectedAttachFailed = 3
+    rejectedAttachFailed = 3,
+    // M14: the named plugin file could not be loaded as a hosted AudioProcessor. An honest
+    // rejection, never a silent fall back to the synthetic processor.
+    rejectedPluginLoadFailed = 4
 };
 
 enum class PluginStateRequestKind : std::uint32_t
@@ -78,6 +85,9 @@ struct RtLaneLoadMessage
     RtLaneLoadConfig config;
     std::uint32_t sharedMemoryNameLength = 0;
     char sharedMemoryName[kRtLaneSharedMemoryNameCapacity] {};
+    // M14: absolute path of the ONE plugin file to host. Zero length = the synthetic processor.
+    std::uint32_t pluginPathLength = 0;
+    char pluginPath[kRtLanePluginPathCapacity] {};
 };
 
 struct RtLaneLoadReplyMessage
@@ -160,8 +170,23 @@ inline bool isValidRtLaneLoadConfig (RtLaneLoadConfig config) noexcept
         && config.bypassAfterMisses >= config.lastGoodHoldBlocks;
 }
 
+// M14: a hosted plugin path is optional and bounded. Empty is legal and means "the synthetic
+// processor" — the pre-M14 behaviour every existing caller relies on.
+inline bool isValidRtLanePluginPath (std::string_view path) noexcept
+{
+    if (path.size() >= kRtLanePluginPathCapacity)
+        return false;
+
+    for (const char ch : path)
+        if (ch == '\0')
+            return false;
+
+    return true;
+}
+
 inline RtLaneLoadMessage makeRtLaneLoadMessage (std::string_view sharedMemoryName,
-                                                RtLaneLoadConfig config) noexcept
+                                                RtLaneLoadConfig config,
+                                                std::string_view pluginPath = {}) noexcept
 {
     RtLaneLoadMessage message;
     message.config = config;
@@ -172,7 +197,21 @@ inline RtLaneLoadMessage makeRtLaneLoadMessage (std::string_view sharedMemoryNam
         std::memcpy (message.sharedMemoryName, sharedMemoryName.data(), sharedMemoryName.size());
     }
 
+    if (! pluginPath.empty() && isValidRtLanePluginPath (pluginPath))
+    {
+        message.pluginPathLength = static_cast<std::uint32_t> (pluginPath.size());
+        std::memcpy (message.pluginPath, pluginPath.data(), pluginPath.size());
+    }
+
     return message;
+}
+
+inline std::string rtLanePluginPath (const RtLaneLoadMessage& message)
+{
+    if (message.pluginPathLength == 0u || message.pluginPathLength >= kRtLanePluginPathCapacity)
+        return {};
+
+    return std::string (message.pluginPath, message.pluginPathLength);
 }
 
 inline RtLaneLoadReplyMessage makeRtLaneLoadReplyMessage (RtLaneLoadReplyStatus status,
@@ -249,6 +288,14 @@ inline bool isValidRtLaneLoadMessage (const RtLaneLoadMessage& message) noexcept
         || message.sharedMemoryNameLength == 0u
         || message.sharedMemoryNameLength >= kRtLaneSharedMemoryNameCapacity
         || message.sharedMemoryName[message.sharedMemoryNameLength] != '\0')
+        return false;
+
+    // M14: the optional plugin path must be bounded and NUL-terminated in place, exactly like the
+    // shared-memory name — a torn path must never reach a file-system call in the worker.
+    if (message.pluginPathLength >= kRtLanePluginPathCapacity
+        || message.pluginPath[message.pluginPathLength] != '\0'
+        || ! isValidRtLanePluginPath (
+               std::string_view (message.pluginPath, message.pluginPathLength)))
         return false;
 
     return isValidRtLaneSharedMemoryName (

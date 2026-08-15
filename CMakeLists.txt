@@ -280,6 +280,34 @@ if (YESDAW_BUILD_APPS)
            COMMAND ${CMAKE_COMMAND} -E env
                    "YESDAW_PLUGIN_HOST_PATH=$<TARGET_FILE:YesDawPluginHost>"
                    $<TARGET_FILE:YesDawHostIsolationCheck>)
+
+  # --- Reality-lane Smoke 2: one real plugin across the worker boundary (M14; ADR-0037) ---
+  # YesDawPluginSmoke launches the worker, loads ONE named plugin into it, processes real blocks
+  # through the OS-shared-memory RT lane, and self-asserts liveness, finiteness, actual processing
+  # and an opaque-state round-trip. CI compiles it, pins --version, and runs the WHOLE
+  # load -> process -> assert path against the in-repo synthetic worker plugin; the real-VST3 run is
+  # the owner-machine action (tools/plugin-smoke.ps1). Deliberately NOT hosting: no scanner, no
+  # plugin identity/blacklist surface, no parameter surface, no editor.
+  juce_add_console_app(YesDawPluginSmoke PRODUCT_NAME "YesDawPluginSmoke")
+  target_sources(YesDawPluginSmoke PRIVATE tools/plugin/PluginSmokeMain.cpp)
+  target_include_directories(YesDawPluginSmoke PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawPluginSmoke SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawPluginSmoke PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    YESDAW_VERSION_STRING="${YESDAW_GIT_VERSION}")
+  target_link_libraries(YesDawPluginSmoke
+    PRIVATE
+      juce::juce_events
+      juce::juce_recommended_config_flags)
+  add_dependencies(YesDawPluginSmoke YesDawPluginHost)
+  yesdaw_harden(YesDawPluginSmoke)
+  add_test(NAME YesDawPluginSmokeVersion COMMAND $<TARGET_FILE:YesDawPluginSmoke> --version)
+  set_tests_properties(YesDawPluginSmokeVersion PROPERTIES
+    PASS_REGULAR_EXPRESSION "YesDawPluginSmoke ${YESDAW_GIT_VERSION}")
+  add_test(NAME YesDawPluginSmokeSynthetic
+           COMMAND $<TARGET_FILE:YesDawPluginSmoke>
+                   --worker $<TARGET_FILE:YesDawPluginHost> --synthetic)
 endif()
 
 add_executable(YesDawCheck tests/dsp_tests.cpp)

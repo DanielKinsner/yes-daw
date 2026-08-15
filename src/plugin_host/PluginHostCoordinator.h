@@ -513,6 +513,9 @@ public:
     {
         std::string sharedMemoryName;
         RtLaneLoadConfig config;
+        // M14: absolute path of the ONE plugin file the worker should host. Empty = the in-repo
+        // synthetic processor (every pre-M14 caller).
+        std::string pluginPath;
     };
 
     struct RtLaneLoadResult
@@ -610,11 +613,14 @@ public:
         return result (HandshakeStatus::success);
     }
 
+    // M14: `pluginPath` names ONE plugin file for the worker to host. Empty (the default) keeps the
+    // in-repo synthetic processor, so every existing caller is byte-for-byte unchanged.
     RtLaneLoadResult launchAndLoadRtLane (const juce::File& workerExecutable,
-                                          yesdaw::engine::RtLaneConfig config)
+                                          yesdaw::engine::RtLaneConfig config,
+                                          std::string pluginPath = {})
     {
         const std::string sharedMemoryName = yesdaw::engine::RtLaneRing::makeUniqueSharedMemoryName();
-        RtLaneLoadIdentity identity { sharedMemoryName, rtLaneLoadConfigFor (config) };
+        RtLaneLoadIdentity identity { sharedMemoryName, rtLaneLoadConfigFor (config), std::move (pluginPath) };
 
         auto ownerEndpoint = std::make_unique<yesdaw::engine::RtLaneRing>();
         try
@@ -631,6 +637,105 @@ public:
 
         return launchAndSendRtLaneLoadIdentityInternal (workerExecutable, std::move (identity),
                                                        std::move (ownerEndpoint));
+    }
+
+    // M14: has the worker child died (crash or watchdog kill) since it was launched? The smoke
+    // asks this after processing; the coordinator learns it through handleConnectionLost.
+    [[nodiscard]] bool workerConnectionLost() const { return connectionLost(); }
+
+    // M14: exchange ONE block with the active RT lane — publish this block's input and take the
+    // previous block's output (the ring's fail-open pipeline). The reality-lane smoke drives real
+    // audio through the worker with this; it is the same call the audio thread makes.
+    yesdaw::engine::RtLaneExchangeResult exchangeActiveRtLaneBlock (const float* const* inputChannels,
+                                                                    int numInputChannels,
+                                                                    int numFrames,
+                                                                    float* const* outputChannels,
+                                                                    int numOutputChannels)
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        if (activeRtLane_ == nullptr)
+            return {};
+
+        return activeRtLane_->exchangeBlock (inputChannels, numInputChannels, numFrames, {},
+                                             outputChannels, numOutputChannels);
+    }
+
+    // M14: pull the hosted plugin's opaque state chunk and push it straight back, on the ALREADY
+    // RUNNING worker (the reality-lane smoke does this after processing real audio, without
+    // relaunching). The worker proves acceptance by pulling the state back and comparing bytes.
+    struct LivePluginStateRoundTrip
+    {
+        bool pulled = false;
+        bool restored = false;
+        std::uint32_t chunkLength = 0;
+        std::uint32_t crc32 = 0;
+        PluginStateReplyStatus pullStatus { PluginStateReplyStatus::none };
+        PluginStateReplyStatus pushStatus { PluginStateReplyStatus::none };
+    };
+
+    LivePluginStateRoundTrip roundTripPluginStateOnLiveWorker()
+    {
+        LivePluginStateRoundTrip result;
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePullRequestSent_ = false;
+            pluginStatePullReplySeen_ = false;
+            pluginStatePushRequestSent_ = false;
+            pluginStatePushReplySeen_ = false;
+            lastPluginStatePullReply_ = {};
+            lastPluginStatePushReply_ = {};
+        }
+
+        if (! sendMessageToWorker (makeMessage (makePluginStatePullRequestMessage())))
+            return result;
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePullRequestSent_ = true;
+        }
+
+        if (! waitFor ([this] { return pluginStatePullReplySeen_ || connectionLost_; }) || connectionLost())
+            return result;
+
+        PluginStateReplyMessage pullReply;
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pullReply = lastPluginStatePullReply_;
+        }
+
+        result.pullStatus = pullReply.status;
+        result.chunkLength = pullReply.chunkLength;
+        result.crc32 = pullReply.crc32;
+        if (pullReply.status != PluginStateReplyStatus::pulled || ! pluginStateReplyCrcMatches (pullReply))
+            return result;
+
+        result.pulled = true;
+
+        if (! sendMessageToWorker (makeMessage (
+                makePluginStatePushRequestMessage (pluginStateChunkBytes (pullReply), pullReply.crc32))))
+            return result;
+
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pluginStatePushRequestSent_ = true;
+        }
+
+        if (! waitFor ([this] { return pluginStatePushReplySeen_ || connectionLost_; }) || connectionLost())
+            return result;
+
+        PluginStateReplyMessage pushReply;
+        {
+            std::lock_guard<std::mutex> lock (mutex_);
+            pushReply = lastPluginStatePushReply_;
+        }
+
+        result.pushStatus = pushReply.status;
+        result.restored = pushReply.status == PluginStateReplyStatus::restored
+            && pushReply.stateAccepted != 0u
+            && pushReply.chunkLength == pullReply.chunkLength
+            && pushReply.crc32 == pullReply.crc32;
+        return result;
     }
 
     PluginStateRoundTripResult launchAndRoundTripSyntheticPluginState (
@@ -1748,7 +1853,8 @@ private:
             childState_ = ChildState::handshaking;
         }
 
-        const RtLaneLoadMessage loadMessage = makeRtLaneLoadMessage (identity.sharedMemoryName, identity.config);
+        const RtLaneLoadMessage loadMessage =
+            makeRtLaneLoadMessage (identity.sharedMemoryName, identity.config, identity.pluginPath);
         if (! sendMessageToWorker (makeMessage (loadMessage)))
             return rtLaneLoadResult (RtLaneLoadStatus::messageSendFailed, identity,
                                      coordinatorAllocated, coordinatorUsesOsSharedMemory);
