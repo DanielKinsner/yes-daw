@@ -232,7 +232,17 @@ evidence commit.
 
 ## Phase 4 — workflow gaps a PT user hits in the first hour
 
-10. [ ] **M10 — Drag and drop audio files from the OS.** There is no `FileDragAndDropTarget`
+10. [x] **M10 — Drag and drop audio files from the OS.** DONE — feature `fa45939`, exact-head
+    nine-job CI run `31852819727` green (first try), local 350/350. The timeline input component is
+    a `FileDragAndDropTarget`: a drop is interesting only with a project open and at least one WAV,
+    and the drop POINT maps through the shipped canvas geometry to a lane and a snapped tick. The
+    shared import verb gained an optional explicit start (all other callers keep the playhead law)
+    behind a new `importAudioFileAt`; several files land on consecutive lanes at the same tick; a
+    refused file changes nothing. `[file-drop]` gate: 79 assertions. HONEST LAW pinned rather than
+    faked: an import is not an undo step (the verb clears the undo stack — the asset copy is a
+    filesystem act), so the gate pins the import count and proves that DELETING a dropped clip
+    undoes back to exactly where it landed. Making imports undoable is a separate product decision.
+    Original spec: there is no `FileDragAndDropTarget`
     anywhere in `src/ui` — the only import path is Ctrl+I / the Import button, which always lands
     on the selected track. Accept file drops on the timeline: the drop point picks the TRACK (the
     lane under the mouse) and the START (the snapped tick under the mouse), multiple files import

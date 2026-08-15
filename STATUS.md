@@ -1075,9 +1075,16 @@ computed from the SHELL's real canvas state, not a default-constructed one.
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M10 committed locally; awaiting exact-head nine-job CI.
+M10 is certified: exact-head GitHub Actions run `31852819727` is green for full SHA
+`fa459396aefab9e43185338b04b323a181d41300` across all nine jobs, first try. M10 is ticked in the
+backlog.
 
-**Next:** M11 (multi-track record arm), then M12–M14.
+**Now:** M11 (multi-track record arm) — next item, not started. It is the largest remaining item:
+the arm model is single-track by construction (E28–E35), so it needs an arm SET, per-armed-track
+input picks, one capture buffer per armed track, and one take per armed track at stop.
+
+**Next:** M12 (loop-cycle MIDI beyond cycle 0), M13 (latency-compensated monitoring), M14
+(reality-lane Smoke 2 harness for one real VST3).
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
