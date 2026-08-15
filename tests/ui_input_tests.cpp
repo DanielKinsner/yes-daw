@@ -5261,6 +5261,126 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0).isEmpty());
 }
 
+// N1 — Mute and Solo are real controls on EVERY strip. Before N1 the painted S/M cells were drawn
+// only on the strips you were NOT working on (`if (! interactiveStrip)`), and the selected strip
+// instead carried two juce::ToggleButtons configured as if they were TextButtons — so they rendered
+// as blank check boxes with a truncated ".." label, and no other strip's M/S did anything at all.
+// Now one geometry law (paintedMuteSoloCellBoundsForLane) drives the paint, the click law and this
+// gate, and a click mutes THAT strip without stealing the selection.
+TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
+           "[ui][input][shell][mixer][strip-mute-solo]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("strip-mute-solo");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+
+    // Select the FIRST strip deliberately; every assertion below must leave that selection
+    // alone — a mute is not a selection gesture.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 3));
+    const int selectedBefore = snapshotMainComponent (*shell).selectedMixerStripOrdinal;
+    REQUIRE (selectedBefore == 0);
+
+    // The painted cells are a SHARED law: the same rects the paint uses and the click law hits.
+    const juce::Rectangle<int> thirdSolo = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 0);
+    const juce::Rectangle<int> thirdMute = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 1);
+    REQUIRE_FALSE (thirdSolo.isEmpty());
+    REQUIRE_FALSE (thirdMute.isEmpty());
+    REQUIRE (thirdSolo.getRight() <= thirdMute.getX());   // S then M, left to right, no overlap
+
+    // Clicking the THIRD strip's Mute mutes the THIRD track — not the selected one.
+    mouseDownAt (*strips, strips->getLocalPoint (shell.get(), thirdMute.getCentre()));
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[2].strip.muted);
+        REQUIRE_FALSE (project.tracks[0].strip.muted);
+        REQUIRE_FALSE (project.tracks[1].strip.muted);
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == selectedBefore);
+    }
+
+    // ...and it is one undoable edit.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[2].strip.muted);
+
+    // The same for Solo, on the SECOND strip this time.
+    const juce::Rectangle<int> secondSolo = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 1, 0);
+    REQUIRE_FALSE (secondSolo.isEmpty());
+    mouseDownAt (*strips, strips->getLocalPoint (shell.get(), secondSolo.getCentre()));
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[1].strip.soloed);
+        REQUIRE_FALSE (project.tracks[0].strip.soloed);
+        REQUIRE_FALSE (project.tracks[2].strip.soloed);
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == selectedBefore);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[1].strip.soloed);
+
+    // A muted track really is silent — the click reaches the engine, not just the paint.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> beforeMute = renderMainComponentPlayback (*shell, 2048, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (beforeMute.data(), beforeMute.size())) > 0.0);
+
+    const juce::Rectangle<int> firstMute = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, 1);
+    mouseDownAt (*strips, strips->getLocalPoint (shell.get(), firstMute.getCentre()));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> afterMute = renderMainComponentPlayback (*shell, 2048, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (afterMute.data(), afterMute.size())) == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+
+    // The SELECTED strip's live controls are the same shape as every other strip's painted
+    // cells — same bounds, and NOT the mis-typed ToggleButtons that rendered as blank check
+    // boxes with a truncated label.
+    auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_mute"));
+    auto* solo = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.target.toggle_solo"));
+    REQUIRE (mute != nullptr);
+    REQUIRE (solo != nullptr);
+    REQUIRE (dynamic_cast<juce::ToggleButton*> (mute) == nullptr);
+    REQUIRE (dynamic_cast<juce::ToggleButton*> (solo) == nullptr);
+    REQUIRE (mute->getButtonText() == "M");
+    REQUIRE (solo->getButtonText() == "S");
+
+    // ...and NOTHING live sits on any strip's painted cells, so the selected strip is painted
+    // exactly like the rest. (The verbs keep a labelled home in the control lane.)
+    for (int stripIndex = 0; stripIndex < 3; ++stripIndex)
+    {
+        for (int cellIndex = 0; cellIndex < 2; ++cellIndex)
+        {
+            const auto cell = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, stripIndex, cellIndex);
+            REQUIRE_FALSE (cell.isEmpty());
+            REQUIRE_FALSE (cell.intersects (shell->getLocalArea (mute->getParentComponent(), mute->getBounds())));
+            REQUIRE_FALSE (cell.intersects (shell->getLocalArea (solo->getParentComponent(), solo->getBounds())));
+        }
+    }
+
+    // Every strip's cells are the same size and sit at the same height — one law, no special case.
+    REQUIRE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, 0).getHeight()
+             == yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 0).getHeight());
+    REQUIRE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, 1).getY()
+             == yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 1).getY());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // M4 — a mixer strip shows its FX chain. Before M4 the only way to see or touch an insert was a
 // stack of debug text buttons in the left control lane ("Audio 1 FX: none", "FX", "+ FX"); the
 // strips themselves carried name + pan + S/M + fader and nothing else. Now every strip paints its

@@ -2910,6 +2910,24 @@ public:
                                               });
     }
 
+    // N1: the Bus twins — a painted Mute/Solo cell on a BUS strip toggles that bus by id, with
+    // the same undoable verb and the same "never steal the selection" law as the Track ones.
+    [[nodiscard]] UiActionDispatchResult toggleBusMute (engine::EntityId busId)
+    {
+        return editBusStripPanelPreserving (UiActionId::MixerTargetToggleMute, busId,
+                                            [] (engine::MixerStripState& strip) {
+                                                strip.muted = ! strip.muted;
+                                            });
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleBusSolo (engine::EntityId busId)
+    {
+        return editBusStripPanelPreserving (UiActionId::MixerTargetToggleSolo, busId,
+                                            [] (engine::MixerStripState& strip) {
+                                                strip.soloed = ! strip.soloed;
+                                            });
+    }
+
     // Toggle the transient recording arm onto a specific Track (B28). Arming ADDS this Track to
     // the arm SET (M11) on input 0; pressing again on an armed Track drops just that Track and
     // leaves the rest of the set armed. Arm state is honestly transient session state.
@@ -6765,6 +6783,43 @@ private:
         if (! nextUndo.apply (nextProject,
                               engine::ProjectEditCommand::setTrackMixScalars (
                                   trackId, edited.linearGain, edited.pan,
+                                  edited.muted, edited.soloed, edited.soloSafe)).applied())
+            return { id, { false, "invalid strip edit" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "strip edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // N1: the Bus twin of editTrackStripPanelPreserving — same undoable verb shape, same
+    // selection- and panel-preserving law, targeted by Bus id.
+    template <typename Fn>
+    [[nodiscard]] UiActionDispatchResult editBusStripPanelPreserving (UiActionId id,
+                                                                      engine::EntityId busId,
+                                                                      Fn&& fn)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::Bus* sourceBus = nullptr;
+        for (const engine::Bus& bus : project_.buses)
+            if (bus.id == busId)
+                sourceBus = &bus;
+        if (sourceBus == nullptr)
+            return { id, { false, "selected bus missing" }, false };
+
+        engine::MixerStripState edited = sourceBus->strip;
+        fn (edited);
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setBusMixScalars (
+                                  busId, edited.linearGain, edited.pan,
                                   edited.muted, edited.soloed, edited.soloSafe)).applied())
             return { id, { false, "invalid strip edit" }, false };
 

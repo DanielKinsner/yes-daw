@@ -65,6 +65,8 @@ constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
+// N1: a mixer strip carries exactly two painted toggle cells — Solo then Mute, left to right.
+constexpr std::size_t kMixerPaintedMuteSoloCellCount = 2;
 constexpr const char* kExportAudioProgressComponentId = "project.export_audio.progress";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 
@@ -2629,11 +2631,24 @@ public:
     std::function<std::pair<int, int> (juce::Point<int>)> sendRowAtPosition;
     std::function<double (int, int, juce::Point<int>)> sendLevelForPosition;
     std::function<void (int, int, double, bool)> onSendRowDragged;
+    // N1: painted Mute/Solo cells — a click toggles THAT strip without stealing the selection.
+    std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
+    std::function<void (int, int)> onMuteSoloCellClicked;
 
     void mouseDown (const juce::MouseEvent& event) override
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+
+        if (muteSoloCellAtPosition && onMuteSoloCellClicked)
+        {
+            const auto [cellStrip, cellIndex] = muteSoloCellAtPosition (shellPosition);
+            if (cellStrip >= 0 && cellIndex >= 0)
+            {
+                onMuteSoloCellClicked (cellStrip, cellIndex);
+                return;
+            }
+        }
 
         if (sendRowAtPosition && sendLevelForPosition && onSendRowDragged)
         {
@@ -4047,6 +4062,21 @@ public:
         accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
         return processed;
     }
+    // N1: the painted Mute/Solo cell rect for a strip, in SHELL coordinates (cell 0 = Solo,
+    // 1 = Mute) — the same law the paint, the click hit-test and the live buttons read.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedMuteSoloCellBounds (int stripIndex, int cellIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal
+            || cellIndex < 0 || cellIndex >= static_cast<int> (kMixerPaintedMuteSoloCellCount))
+            return {};
+
+        return paintedMuteSoloCellBoundsForLane (
+            paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+            static_cast<std::size_t> (cellIndex));
+    }
+
     // M4: the painted insert-slot rect for a strip, in SHELL coordinates — the same law the paint
     // and the click hit-test read.
     [[nodiscard]] juce::Rectangle<int> harnessPaintedInsertSlotBounds (int stripIndex, int slotIndex) const
@@ -4686,6 +4716,42 @@ private:
                 clearTrackMeterHold (stripIndex);
             else
                 clearBusMeterHold (stripIndex - trackCount);   // E22
+        };
+        // N1: a click on a painted Mute/Solo cell toggles THAT strip. It is not a selection
+        // gesture — the mixer target the control lane edits stays where the user put it.
+        mixerStripsInput.muteSoloCellAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+            {
+                const auto lane = paintedMixerLaneBounds (i);
+                for (std::size_t cell = 0; cell < kMixerPaintedMuteSoloCellCount; ++cell)
+                    if (paintedMuteSoloCellBoundsForLane (lane, cell).contains (positionInShell))
+                        return std::pair<int, int> { static_cast<int> (i), static_cast<int> (cell) };
+            }
+            return std::pair<int, int> { -1, -1 };
+        };
+        mixerStripsInput.onMuteSoloCellClicked = [this] (int stripIndex, int cellIndex) {
+            const auto& tracks = appModel.project().tracks;
+            const auto& buses = appModel.project().buses;
+            if (stripIndex < 0)
+                return;
+
+            const std::size_t strip = static_cast<std::size_t> (stripIndex);
+            const bool solo = cellIndex == 0;
+            if (strip < tracks.size())
+            {
+                const yesdaw::engine::EntityId trackId = tracks[strip].id;
+                (void) (solo ? appModel.toggleTrackSolo (trackId) : appModel.toggleTrackMute (trackId));
+            }
+            else if (strip - tracks.size() < buses.size())
+            {
+                const yesdaw::engine::EntityId busId = buses[strip - tracks.size()].id;
+                (void) (solo ? appModel.toggleBusSolo (busId) : appModel.toggleBusMute (busId));
+            }
+
+            refreshActionState();
+            repaint();
         };
         // M4: a click on a painted insert row selects the strip and opens THAT slot's params.
         mixerStripsInput.insertSlotAtPosition = [this] (juce::Point<int> positionInShell) {
@@ -5913,6 +5979,24 @@ private:
             : L::mixerPaintedFaderTop + rows + L::mixerPaintedInsertsFaderGap;
     }
 
+    // N1: ONE Mute/Solo cell law — the paint, the click hit-test, the SELECTED strip's live
+    // buttons and the gates all read it, so the control you see is exactly the control you hit,
+    // on every strip. Cell 0 is Solo, cell 1 is Mute (left to right, as painted).
+    [[nodiscard]] static juce::Rectangle<int> paintedMuteSoloCellBoundsForLane (juce::Rectangle<int> lane,
+                                                                                std::size_t cellIndex)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        if (cellIndex >= kMixerPaintedMuteSoloCellCount)
+            return {};
+
+        auto buttonsRow = lane.withTrimmedTop (L::mixerPaintedButtonsTop)
+                              .withHeight (L::mixerPaintedButtonsHeight)
+                              .reduced (L::mixerPaintedButtonsInsetX, L::mixerPaintedButtonsInsetY);
+        buttonsRow.removeFromLeft (static_cast<int> (cellIndex) * L::mixerPaintedButtonWidth);
+        return buttonsRow.removeFromLeft (L::mixerPaintedButtonWidth)
+                         .reduced (L::mixerPaintedButtonInsetX, L::mixerPaintedButtonInsetY);
+    }
+
     // M4: ONE insert-slot row law — the paint, the click hit-test and the gates all read it, so a
     // painted slot can never drift from the slot a click selects. An empty rect means the strip has
     // no room for that row.
@@ -6071,6 +6155,26 @@ private:
             utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
         }
 
+        // N1: the selected target's Solo/Mute verbs share one utility row, split in half. They are
+        // real labelled buttons here; on the strips themselves Mute/Solo are painted cells driven
+        // by the click law, on EVERY strip.
+        {
+            const int soloMuteRowHeight = yesdaw::ui::UiTheme::Layout::mixerUtilityHeight;
+            if (utility.getHeight() >= soloMuteRowHeight)
+            {
+                auto row = utility.removeFromTop (soloMuteRowHeight);
+                mixerSolo.setBounds (row.removeFromLeft (
+                    row.getWidth() / static_cast<int> (kMixerPaintedMuteSoloCellCount)));
+                mixerMute.setBounds (row);
+                utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
+            }
+            else
+            {
+                mixerSolo.setBounds ({});
+                mixerMute.setBounds ({});
+            }
+        }
+
         (void) placeUtilityRow (mixerFxAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
         for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
@@ -6183,16 +6287,13 @@ private:
         mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
                                 .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
                                           yesdaw::ui::UiTheme::Layout::mixerPanInsetY));
-        auto buttonRow = lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight)
-                             .reduced (yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetX,
-                                       yesdaw::ui::UiTheme::Layout::mixerButtonRowInsetY);
-        const std::array<juce::Button*, 2> mixerButtons { &mixerSolo, &mixerMute };
-        const int mixerButtonWidth = juce::jmin (
-            yesdaw::ui::UiTheme::Layout::mixerButtonWidth,
-            buttonRow.getWidth() / static_cast<int> (mixerButtons.size()));
-        for (juce::Button* button : mixerButtons)
-            button->setBounds (buttonRow.removeFromLeft (mixerButtonWidth));
-        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
+        // N1: NOTHING live sits on the strip's Mute/Solo cells any more. Every strip — selected or
+        // not — paints those cells and the click law drives them, so the strip you are working on
+        // looks and behaves exactly like the others. The Solo/Mute VERBS keep a home in the
+        // selected-target control lane (laid out with the other utility rows), where a labelled
+        // button has room to be a labelled button.
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight
+                            + yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
         // M4: reserve exactly the painted insert block on the SELECTED strip, so the live fader
         // starts where the painted one does instead of sitting on top of the slot rows.
         lane.removeFromTop (juce::jmax (yesdaw::ui::UiTheme::Space::none,
@@ -9280,25 +9381,23 @@ private:
                             yesdaw::ui::UiTheme::Layout::iconBoldStrokeWidth);
             }
 
-            if (! interactiveStrip)
+            // N1: EVERY strip paints its Mute/Solo cells — the selected strip used to skip them
+            // and show two mis-typed ToggleButtons instead, so the strip you were working on was
+            // the one whose controls looked broken. The selected strip's live buttons now sit on
+            // exactly these rects (paintedMuteSoloCellBoundsForLane), so the two agree by law.
             {
-                auto buttonsRow = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsTop)
-                                      .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsHeight)
-                                      .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsInsetX,
-                                                yesdaw::ui::UiTheme::Layout::mixerPaintedButtonsInsetY);
-                for (const auto* label : { "S", "M" })
+                const std::array<const char*, kMixerPaintedMuteSoloCellCount> cellLabels { "S", "M" };
+                for (std::size_t cellIndex = 0; cellIndex < cellLabels.size(); ++cellIndex)
                 {
-                    auto cell = buttonsRow.removeFromLeft (
-                                              yesdaw::ui::UiTheme::Layout::mixerPaintedButtonWidth)
-                                    .reduced (
-                                        yesdaw::ui::UiTheme::Layout::mixerPaintedButtonInsetX,
-                                        yesdaw::ui::UiTheme::Layout::mixerPaintedButtonInsetY);
+                    const auto cell = paintedMuteSoloCellBoundsForLane (lane, cellIndex);
+                    if (cell.isEmpty())
+                        continue;
+
                     g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                     g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-                    const bool on = (label == std::string ("S") && state.soloed)
-                                 || (label == std::string ("M") && state.muted);
+                    const bool on = cellIndex == 0 ? state.soloed : state.muted;
                     g.setColour (on ? stripColour.brighter (0.55f) : kText);
-                    g.drawText (label, cell, juce::Justification::centred, false);
+                    g.drawText (cellLabels[cellIndex], cell, juce::Justification::centred, false);
                 }
             }
 
@@ -9856,8 +9955,10 @@ private:
     juce::TextButton mixerGainReductionReadout;
     juce::TextButton mixerBusFxSlotsReadout;
     juce::TextButton mixerFxSlotToggle;
-    juce::ToggleButton mixerMute;
-    juce::ToggleButton mixerSolo;
+    // N1: TextButtons, not ToggleButtons — the strip's Mute/Solo are labelled cells, and a
+    // ToggleButton ignores the TextButton colour ids this code configures and paints a check box.
+    juce::TextButton mixerMute;
+    juce::TextButton mixerSolo;
     juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
@@ -10085,6 +10186,16 @@ std::vector<float> renderMainComponentPlayback (juce::Component& component,
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessRenderPlaybackFrames (frames, blockSize);
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedMuteSoloCellBounds (const juce::Component& component,
+                                                              int stripIndex,
+                                                              int cellIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedMuteSoloCellBounds (stripIndex, cellIndex);
 
     return {};
 }
