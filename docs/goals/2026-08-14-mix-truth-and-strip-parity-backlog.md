@@ -213,7 +213,16 @@ evidence commit.
    keys paint at the exact semitone rows across the viewport (including after an E10 scroll/zoom),
    and `[roll-velocity-bars]` — one bar per note at the note's x with height proportional to
    velocity, no line segments between notes; both red against the current paint.
-9. [ ] **M9 — Floor-size layout defects.** At the supported floor (1152×720) the header's MASTER
+9. [x] **M9 — Floor-size layout defects.** DONE — feature `31ea2d0`, exact-head nine-job CI run
+   `31851814735` green (first try), local 350/350. The header's master card was drawn at a FIXED x
+   with a fixed width, so at the floor it ran past the window edge — label kept, meter and LUFS
+   clipped. It is right-anchored against the gear now and drops WHOLE below a token minimum, with
+   the LUFS readout riding its right edge. Every mixer utility row goes through one
+   place-if-it-fits law, so nothing hangs past the panel's bottom edge. `[shell-sizes]` extended:
+   the exported card law is empty exactly when the LUFS readout is empty, otherwise fully inside
+   the window with the readout on its right edge, and no utility row's bounds may exceed the
+   window bottom.
+   Original spec: at the supported floor (1152×720) the header's MASTER
    card keeps its label but loses its meter and LUFS readout (a half-drop — E27's whole-section
    drop law applies to the inspector only), and the mixer control lane's bottom row is clipped by
    the panel edge. Apply the whole-section drop law to the header master card and make the control

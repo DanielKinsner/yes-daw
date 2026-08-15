@@ -1043,9 +1043,13 @@ have bounds hanging past the window bottom.
 Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
 restored byte-identical, SHA-256 verified).
 
-**Now:** M9 committed locally; awaiting exact-head nine-job CI.
+M9 is certified: exact-head GitHub Actions run `31851814735` is green for full SHA
+`31ea2d0fe201d676408f12db9677af1e7bcac355` across all nine jobs, first try. M9 is ticked in the
+backlog — Phase 3 (honest paint) is complete.
 
-**Next:** M10 (OS file drag-and-drop), then strictly top-to-bottom through M14.
+**Now:** M10 (OS file drag-and-drop) — next item, not started.
+
+**Next:** M11 (multi-track record arm), then M12–M14.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
