@@ -32,7 +32,7 @@ surfaces and cannot earn H17 packaged-artifact credit. The package-aware require
 - **Cadence:** record a PASS now, then re-run after any change to `RuntimeAudioDriver`,
   `PlaybackEngine`, or device hot-swap code, and at every horizon close.
 
-## Smoke 2 — One real VST3 across the worker boundary (small build task, then run)
+## Smoke 2 — One real VST3 across the worker boundary (BUILT 2026-08-14; awaiting a plugin)
 
 - **What it proves:** the out-of-process hosting boundary (ADR-0015: spawned `YesDawPluginHost`
   worker, shared-memory RT lane, watchdog) survives contact with **real third-party plugin code**
@@ -46,6 +46,18 @@ surfaces and cannot earn H17 packaged-artifact credit. The package-aware require
   **Guardrail:** this smoke must NOT grow into hosting features — no editor UI, no parameter
   surface, no scanner. Load → process → assert → exit.
 - **Asserts:** exit 0 `PASS` with plugin name/version/hash; nonzero on any of the above.
+- **BUILT (M14, 2026-08-14):** `pwsh tools/plugin-smoke.ps1` (harness `YesDawPluginSmoke`). It
+  launches the real worker child, loads ONE named plugin file into it over the control lane,
+  processes 32 blocks of a known signal through the OS-shared-memory RT lane, and asserts exactly
+  the list above. `-Synthetic` runs the identical path against the in-repo synthetic worker plugin
+  and is a CI test (`YesDawPluginSmokeSynthetic`), so the harness itself can never rot; `--version`
+  is pinned too. Setup problems exit 2 (no worker binary, no plugin installed, a file that will not
+  load as a plugin) — never a false FAIL and never a false PASS.
+- **STILL NOT RUN with a real plugin:** the owner machine has **no VST3 installed**
+  (`C:\Program Files\Common Files\VST3` is empty), so the harness honestly exits 2. The remaining
+  owner action is: install one free redistributable VST3 that processes audio at its default
+  settings, then run `pwsh tools/plugin-smoke.ps1` and log the line below. Until that PASS exists,
+  ADR-0037's H18 precondition is NOT satisfied.
 
 ## Smoke 3 — Hardware recording round-trip (after H13 closes)
 
@@ -79,6 +91,7 @@ applicable row controls gate accounting; an administrative correction is not its
 
 | Date | Smoke | Result | Machine | Detail |
 |---|---|---|---|---|
+| 2026-08-14 | Smoke 2 — One real VST3 across the worker boundary | SETUP (exit 2) | Dan's Windows 11 box | The harness is BUILT and proven on the synthetic path — `YesDawPluginSmoke --synthetic` exits 0: `PASS: the synthetic worker plugin crossed the worker boundary; blocks=30 peak=0.2500 state-bytes=26 signal=passthrough-exact` (real worker child, real OS-shared-memory RT lane, real opaque-state round-trip), and that exact path is now a CI test. With a REAL plugin it exits 2: `SETUP: no VST3 installed and none named` — `C:\Program Files\Common Files\VST3` is empty on this machine. Not a PASS and not a FAIL: nothing third-party has crossed the boundary yet, so **ADR-0037's H18 precondition is still unmet**. Owner action: install one free redistributable VST3 that processes audio at its defaults, run `pwsh tools/plugin-smoke.ps1`, and log the result row. Negative controls also verified by hand: a non-existent path and a non-plugin file (`README.md`) both exit 2 with the honest reason. |
 | 2026-08-14 | Smoke 3 — Hardware recording round-trip (shipped-path checker) | FAIL | Dan's Windows 11 box | `pwsh tools/shipped-record-check.ps1` exit 1 on "Speakers (Focusrite USB Audio)": `captured frames=144480 channels=1 peak=0.0000 burst-snr=0.00`, then `FAIL: coded burst not found in the capture (loopback route required)`. The shipped Record path ran end-to-end on real hardware (capture + commit through the exact button verbs); the burst cross-correlation correctly refuses to PASS with no physical loopback routed. Owner action for the full PASS: route an output into input 1 and re-run. |
 | 2026-07-28 | Smoke 1 — Hardware playback (gate correction) | FAIL | Dan's Windows 11 box | The locked command requested a 128-frame Block, the Focusrite WASAPI device granted 480 shared-mode frames, and `soak.ps1` correctly exited 1 with `block 480 > target 128`. This supersedes the 2026-07-27 PASS classification for gate accounting. The separate `-BlockSize 480` exit-0 run remains useful stability evidence, but it changed the target and therefore is not a Smoke 1 PASS. Administrative correction from the already committed output; not new smoke evidence and not H17 packaged-artifact credit. |
 | 2026-07-27 | Smoke 1 — Hardware playback | PASS | Dan's Windows 11 box | `playback-smoke.ps1 -Seconds 120 -BlockSize 480` on "Speakers (Focusrite USB Audio)", 48 kHz, exit 0: deadline_misses=0, device_error=false, max_block_ms=0.318/10.0. **Caveat: 480-frame shared-mode block, not the 128 H8 target** — this device's WASAPI floor is 480 shared / 144 exclusive (measured), so 128 needs an ASIO backend (owner decision). Run at the default 128 request, the script correctly FAILs with "block 480 > target 128". Pre-fix note: before `fix(soak)` this smoke soaked pure silence (track-less project → PlaybackEngine::create failed); this PASS is real rendered Project audio. |

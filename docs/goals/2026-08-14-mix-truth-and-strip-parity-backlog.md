@@ -309,7 +309,21 @@ evidence commit.
     never leave the chooser value inert. *Gate:* `[monitor-compensated]` — policy-by-policy output
     assertions proving the compensated policy differs from DirectInput by exactly the compensation
     and that the strip's gain/pan/FX apply; RUNTIME red against today's no-op.
-14. [ ] **M14 — Reality-lane Smoke 2: one real VST3 across the worker boundary.** ADR-0037 makes
+14. [x] **M14 — Reality-lane Smoke 2: one real VST3 across the worker boundary.** DONE — feature
+    `a2b1de1` + CI fix `09e1ba1`, exact-head nine-job CI run `31860149112` green, local 352/352.
+    The RT-lane load message (v2) may now name ONE plugin file; the worker loads it through JUCE's
+    format manager behind the same `AudioProcessor` surface as the synthetic one, an empty path
+    keeps the synthetic processor unchanged, and a file that will not load is an honest
+    `rejectedPluginLoadFailed` — never a silent fall back. `pwsh tools/plugin-smoke.ps1` launches
+    the real worker, processes 32 blocks through the OS-shared-memory RT lane and asserts liveness,
+    finiteness, real processing and an opaque-state round-trip (now a real byte round-trip in the
+    worker, not a synthetic-only flag). CI pins `--version` and runs the whole path against the
+    synthetic plugin. **The real-plugin run did not happen and is not claimed:** this machine has
+    no VST3 installed, so the harness honestly exits 2 — recorded as a SETUP row in
+    `docs/reality-lane.md`, and ADR-0037's H18 precondition is still unmet. CI was red once, on
+    Linux/macOS only (`-Werror=switch` + `-Werror=missing-field-initializers`, neither present on
+    MSVC).
+    Original spec: ADR-0037 makes
     this smoke H18's precondition and `docs/reality-lane.md` records that it has NEVER run; the
     worker has only ever run passthrough and `src/plugin_host/PluginHostCoordinator.h` has no
     scanner. Build the smoke exactly as the reality lane specifies — point the existing worker at

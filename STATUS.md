@@ -1188,7 +1188,64 @@ M13 is certified: exact-head GitHub Actions run `31859274754` is green for full 
 `852365141019e9060afb5011cf14e29d4ee40e70` across all nine jobs, first try. M13 is ticked in the
 backlog.
 
-**Now:** M14 (reality-lane Smoke 2 harness for one real VST3) — the last item.
+**M14 implementation candidate — reality-lane Smoke 2:** audited the worker boundary first. The
+worker hosted ONLY the in-repo `SyntheticTestProcessor` and the RT-lane load message could not even
+name a file, so "point the worker at one real VST3" was not a script — it needed a protocol field.
+`PluginHostCoordinator` has no scanner (correct, per the guardrail) and must not grow one.
+
+The load message is now v2 and may carry ONE absolute plugin path; the worker loads that file
+through JUCE's format manager and hosts it behind the same `AudioProcessor` surface as the
+synthetic one. An empty path keeps the synthetic processor, so every pre-M14 caller is byte-for-byte
+unchanged, and a named file that will not load is an honest rejection
+(`rejectedPluginLoadFailed`) — never a silent fall back to the synthetic processor, which would
+make the whole smoke a lie. Opaque-state acceptance became a real byte ROUND TRIP in the worker
+(push, pull back, compare) instead of a synthetic-only flag, so it means the same thing for a real
+plugin; the synthetic verdict is unchanged.
+
+New one-command harness on the E35 pattern: `pwsh tools/plugin-smoke.ps1` → `YesDawPluginSmoke`.
+It launches the real worker child, loads one named plugin, processes 32 blocks of a known signal
+through the OS-shared-memory RT lane, and self-asserts liveness (no crash, no watchdog kill), that
+every returned sample is finite, that the plugin actually processed the signal (or passed it
+through exactly, in `--synthetic` mode), and that the opaque state chunk round-trips. PASS/FAIL
+exit 0/1; setup problems exit 2.
+
+CI compiles it, pins `--version`, and runs the WHOLE load→process→assert path against the synthetic
+worker plugin (`YesDawPluginSmokeSynthetic`), so the harness cannot rot silently. Local suite is
+now **352/352**.
+
+**The real-plugin run did NOT happen and is not claimed.** This machine has no VST3 installed
+(`C:\Program Files\Common Files\VST3` is empty), so the harness honestly exits 2:
+`SETUP: no VST3 installed and none named`. Verified by hand alongside it: `--synthetic` exits 0
+(`blocks=30 peak=0.2500 state-bytes=26 signal=passthrough-exact`), a non-existent path exits 2, and
+a non-plugin file (`README.md`) exits 2 with the worker's honest load rejection. `docs/reality-lane.md`
+records all of that as a SETUP row, not a PASS. **ADR-0037's H18 precondition is still unmet** until
+Dan installs one plugin and runs it.
+
+M14 is certified: feature `a2b1de1` + CI fix `09e1ba1`; exact-head GitHub Actions run `31860149112`
+is green for full SHA `09e1ba1ca071d396d28facaa946f178f71294bb3` across all nine jobs. The first
+round was RED on Linux and macOS only (`-Werror=switch` on the new reply status and
+`-Werror=missing-field-initializers` on four brace-initialised `RtLaneLoadIdentity` aggregates —
+neither warning exists on MSVC); one round, no gate weakened.
+
+## RUN COMPLETE 2026-08-14 — the mix-truth & strip-parity backlog is DONE (M1–M14)
+
+Every item certified: feature commit + exact-head nine-job CI green + a docs-only evidence commit.
+Thirteen of fourteen items were green on the first CI round; only M14 needed one fix round, for two
+compiler-warning classes MSVC does not have.
+
+**Owner actions this run surfaced (neither is agent-doable):**
+1. **Route a loopback cable** and run `pwsh tools/shipped-record-check.ps1` for the full Smoke 3
+   PASS. Without it the shipped Record path is still proven end-to-end on real hardware; only the
+   burst-return check fails.
+2. **Install one free redistributable VST3** that processes audio at its defaults and run
+   `pwsh tools/plugin-smoke.ps1` for the Smoke 2 PASS. That is ADR-0037's H18 precondition; H18
+   also needs its own kickoff ADR, which is Dan's call.
+
+**Next:** the deferrals this backlog deliberately did not fake are still open and still honest —
+MIDI CC (no CC model exists anywhere), same-track clip overlap policy (a product decision only Dan
+can make; the recommendation is recorded in the backlog), MIDI clip trim/split, punch-in/out UI,
+per-track instrument choice, stems export, track height/colour. H18 proper is gated on the two
+owner actions above.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
