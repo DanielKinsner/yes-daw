@@ -66,7 +66,18 @@ commit.
    for S; the widget carries its label at the shipped strip width (no truncation); one undo restores;
    the selected strip's controls are the same type and bounds as every other strip's. Expected to
    fail before on the third-strip click doing nothing.
-2. [ ] **N2 — Every mixer readout names the strip you selected.** Five shipped readouts are
+2. [x] **N2 — Every mixer readout names the strip you selected.** DONE — feature `035ea93`,
+   exact-head nine-job CI run `31910424452` green (first try), local 352/352. One law
+   (`readoutStripFor`) picks the strip all five readouts describe: the SELECTED strip, tracks first
+   then buses, falling back to the first strip only when nothing is selected — and every readout
+   NAMES the strip it describes, so it can never claim to be about another one. Buses report their
+   own meters and FX, and report sends as `n/a` because a Bus carries no sends in this model rather
+   than borrowing a Track's. The Bus FX readout stays Bus-specific but follows the selected bus.
+   Every `" node <id>"` is gone. `[mixer-readouts]` (120 assertions, 3 tracks + a bus with distinct
+   FX per strip) red before at assertion 66 (meters said "Audio 1 meters: peak n/a" with track 3
+   selected). Four legacy assertions that pinned the node id INTO the readout are re-pinned to prove
+   its absence.
+   Original spec: Five shipped readouts are
    hardwired to `surface.tracks.front()` — meters (`:7690`), sends (`:7699`), FX (`:7749`), gain
    reduction (`:7778`) — and one prints a raw engine node id (`:7705`). Point every readout at the
    SELECTED mixer target (track or bus), and drop the node id: an engine identity is not a user

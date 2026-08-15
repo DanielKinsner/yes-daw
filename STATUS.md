@@ -778,10 +778,41 @@ N1 is certified: exact-head GitHub Actions run `31873919992` is green for full S
 `2f4aadcabc36a29300066c0fc967a17312810e72` across all nine jobs, first try. N1 is ticked in the
 backlog.
 
-**Now:** N2 (every mixer readout names the strip you selected) — next item.
+**N2 implementation candidate — readouts that name their strip:** audited all five readout builders
+first. Every one opened with `surface.tracks.front()` (`mixerMetersReadoutText`,
+`mixerSendsReadoutText`, `mixerFxSlotsReadoutText`, `mixerGainReductionReadoutText`) — the meters one
+even carried an E24 comment promising "no raw engine node ids" while the other three printed
+`" node " + fxNodeId`/`faderNodeId` straight at the user. `mixerBusFxSlotsReadoutText` did the same
+with `buses.front()`.
 
-**Next:** N3 (the Mixer fills its window; master as a strip), N4–N5 (automation lane ownership and
-Touch/Latch write), N6–N7 (track height and colour), N8 (punch in/out).
+One law (`readoutStripFor`) now picks the strip they describe: the SELECTED strip, tracks first then
+buses, falling back to the first strip only when nothing is selected. The key property is that every
+readout NAMES the strip it describes — so the fallback is honest rather than a lie, and there is no
+state in which the text is about a different strip than it claims. Buses work through the same law
+(`UiMixerStrip` is one type for both), reporting their own meters and FX, and reporting sends as
+`n/a` because a Bus carries no sends in this model. The Bus FX readout stays Bus-specific by design
+but follows the selected bus. Every `" node <id>"` is gone.
+
+`[mixer-readouts]` (120 assertions) builds 3 tracks plus a bus with a DIFFERENT insert on each strip,
+so a readout following the wrong strip cannot accidentally agree: selecting the third track makes all
+four strip-following readouts say "Audio 3" and none say "Audio 1"; the second says "Audio 2" and
+shows ITS insert; a bus selection names the bus, reports its Reverb and says sends `n/a`; and no
+readout in any selection contains `" node "`. **Red before at assertion 66** (meters said "Audio 1
+meters: peak n/a" with track 3 selected).
+
+Four legacy assertions that pinned the node id INTO the readout are re-pinned to the new law — they
+now prove its absence, which is strictly stronger.
+
+Full local `ctest --test-dir build-ci` green **352/352** (owner-file ritual, hash verified).
+
+N2 is certified: exact-head GitHub Actions run `31910424452` is green for full SHA
+`035ea93593fd00363898519fbb48d903f89f05d3` across all nine jobs, first try. N2 is ticked in the
+backlog.
+
+**Now:** N3 (the Mixer fills its window; master as a strip) — next item.
+
+**Next:** N4–N5 (automation lane ownership and Touch/Latch write), N6–N7 (track height and colour),
+N8 (punch in/out).
 
 ## 2026-08-14 mix-truth & strip-parity run (COMPLETE — M1–M14)
 
