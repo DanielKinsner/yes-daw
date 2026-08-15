@@ -743,6 +743,46 @@ findings, each quoted with `file:line` in the backlog doc:
   a 1080p window), and **no punch region** is reachable — the engine's `punchStartFrame/EndFrame` only
   ever carry the count-in boundary.
 
+**N1 implementation candidate — Mute/Solo on every strip:** audited the paint and the widgets before
+building. The painted `S`/`M` cells were drawn only for NON-selected strips (`if (! interactiveStrip)`),
+and on the selected strip two `juce::ToggleButton`s took their place — configured with
+`setButtonText` and `juce::TextButton::buttonColourId` colours that a ToggleButton ignores, so it drew
+a tick box plus text truncated to `..`. And the painted cells on the other strips were pure
+decoration: the strips' input component had hit laws for send rows, insert slots, meters and strip
+selection, but none for Mute/Solo, so clicking any other strip's M did nothing.
+
+Now one law (`paintedMuteSoloCellBoundsForLane`) drives the paint, the click law, the harness export
+and the gate. Every strip paints its cells; a click on ANY strip's cell toggles THAT strip — track or
+bus — through the same undoable verb, and does NOT steal the mixer selection (a mute is not a
+selection gesture). Buses gained the Track twins on a shared `editBusStripPanelPreserving` helper
+riding the existing `SetBusMixScalars` verb. The Solo/Mute VERBS keep a labelled home in the
+selected-target control lane, and the widgets are TextButtons so the colours the code always
+configured finally apply.
+
+Judged visually before the gate was written: at 1920×1080 all three strips now render identical,
+legible S/M cells; before, the selected strip showed two blank check boxes with a `..` label.
+
+`[strip-mute-solo]` (87 assertions, 3-track shell) — clicking the THIRD strip's painted Mute mutes
+the third track with the selection unchanged, the same for Solo on the second, one undo restores
+each, a muted track really renders silent, no live widget overlaps any strip's painted cells, and the
+cells share size and height across strips. **Red before at assertion 31** (the third strip's click
+did nothing), proven by reverting the behaviour while keeping the geometry export.
+
+**Process note worth keeping:** `build-ci/ui-screenshots/*.png` are only rewritten when
+`YESDAW_UI_SCREENSHOT_DIR` points at that directory; otherwise the harness writes to TEMP. A stale
+PNG cost half an hour of chasing a bug that was already fixed — set the variable when judging.
+
+Full local `ctest --test-dir build-ci` green **352/352** (owner-file ritual, hash verified).
+
+N1 is certified: exact-head GitHub Actions run `31873919992` is green for full SHA
+`2f4aadcabc36a29300066c0fc967a17312810e72` across all nine jobs, first try. N1 is ticked in the
+backlog.
+
+**Now:** N2 (every mixer readout names the strip you selected) — next item.
+
+**Next:** N3 (the Mixer fills its window; master as a strip), N4–N5 (automation lane ownership and
+Touch/Latch write), N6–N7 (track height and colour), N8 (punch in/out).
+
 ## 2026-08-14 mix-truth & strip-parity run (COMPLETE — M1–M14)
 
 Canonical list: `docs/goals/2026-08-14-mix-truth-and-strip-parity-backlog.md` — 14 items M1–M14 in

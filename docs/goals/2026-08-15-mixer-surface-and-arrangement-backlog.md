@@ -42,7 +42,20 @@ commit.
 
 ## Phase 1 — the mixer stops looking (and lying) like a debug console
 
-1. [ ] **N1 — Mute and Solo are real buttons, on every strip.** The selected strip's M/S are
+1. [x] **N1 — Mute and Solo are real buttons, on every strip.** DONE — feature `2f4aadc`,
+   exact-head nine-job CI run `31873919992` green (first try), local 352/352. ONE law
+   (`paintedMuteSoloCellBoundsForLane`) now drives the paint, the click law, the harness export and
+   the gate; every strip paints its cells and a click on ANY strip's cell toggles THAT strip — track
+   or bus — through the same undoable verb without stealing the selection. Buses got the Track twins
+   (`toggleBusMute`/`toggleBusSolo` on a shared `editBusStripPanelPreserving` helper riding the
+   existing `SetBusMixScalars` verb). The Solo/Mute verbs kept a labelled home in the control lane
+   and their widgets are TextButtons, so the colours the code always configured finally apply.
+   Judged visually before gating: all three strips now render identical, legible S/M cells at
+   1920×1080. `[strip-mute-solo]` (87 assertions) red before at assertion 31 — the third strip's
+   click did nothing. **Process note:** the repo's `build-ci/ui-screenshots/*.png` are only rewritten
+   when `YESDAW_UI_SCREENSHOT_DIR` points there; without it the harness writes to TEMP, so a stale
+   PNG can look like an unfixed bug. Set it when judging.
+   Original spec: The selected strip's M/S are
    mis-typed `juce::ToggleButton`s styled as TextButtons, so they paint as two blank checkboxes with
    a `..` label (`src/ui/MainComponent.cpp:5326`–`:5359`, `:9859`–`:9860`) — the one strip the user is
    working on is the one whose controls look broken. Make them the same painted, correctly-typed
