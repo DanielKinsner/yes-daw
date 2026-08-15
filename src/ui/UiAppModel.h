@@ -212,6 +212,10 @@ public:
     static constexpr engine::Tick kFirstTrackAutomationBreakpointAddTick = 1'920;
     static constexpr double kFirstTrackAutomationBreakpointAddValue = 0.50;
     static constexpr double kFirstTrackSendLevelEditValue = 0.80;
+    // M11: how many Tracks may be armed at once. Each armed Track owns a fixed capture slot
+    // (its own SPSC FIFO + picked channel window), so the ceiling is real storage, not a policy
+    // number — the audio thread never allocates to add a track mid-session.
+    static constexpr std::size_t kMaxArmedRecordingTracks = 8;
 
     [[nodiscard]] const UiActionRegistry& registry() const noexcept { return registry_; }
     [[nodiscard]] const UiActionContext& context() const noexcept { return context_; }
@@ -317,24 +321,33 @@ public:
 
         // E30: live input metering while ARMED — the picked channel window's block peak is
         // published for the UI meters, capture running or not. Atomics only; no locks.
-        const std::uint32_t armedPick = armedInputPickPacked_.load (std::memory_order_acquire);
-        if (armedPick != 0u && inputChannels != nullptr && numInputChannels > 0)
+        // M11: one peak per ARMED Track, so every armed strip meters its OWN input.
+        const std::size_t armedPickCount = std::min (armedPickCount_.load (std::memory_order_acquire),
+                                                     kMaxArmedRecordingTracks);
+        if (armedPickCount > 0 && inputChannels != nullptr && numInputChannels > 0)
         {
-            const int meterBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
-            const int meterWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
-            float peak = 0.0f;
-            if (meterBase >= 0 && meterBase + meterWidth <= numInputChannels)
+            for (std::size_t pick = 0; pick < armedPickCount; ++pick)
             {
-                for (int channel = 0; channel < meterWidth; ++channel)
+                const std::uint32_t armedPick = armedPicksPacked_[pick].load (std::memory_order_acquire);
+                if (armedPick == 0u)
+                    continue;
+
+                const int meterBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
+                const int meterWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
+                float peak = 0.0f;
+                if (meterBase >= 0 && meterBase + meterWidth <= numInputChannels)
                 {
-                    const float* samples = inputChannels[meterBase + channel];
-                    if (samples == nullptr)
-                        continue;
-                    for (int frame = 0; frame < numFrames; ++frame)
-                        peak = std::max (peak, std::abs (samples[frame]));
+                    for (int channel = 0; channel < meterWidth; ++channel)
+                    {
+                        const float* samples = inputChannels[meterBase + channel];
+                        if (samples == nullptr)
+                            continue;
+                        for (int frame = 0; frame < numFrames; ++frame)
+                            peak = std::max (peak, std::abs (samples[frame]));
+                    }
                 }
+                armedInputPeaks_[pick].store (peak, std::memory_order_release);
             }
-            liveInputPeak_.store (peak, std::memory_order_release);
         }
 
         if (captureActive_.load (std::memory_order_acquire)
@@ -344,11 +357,19 @@ public:
             // E29: the capture reads the PICKED channel window (mono channel N or the stereo
             // pair N,N+1), published with the config before the active flag. Stack view only —
             // no allocation on the audio thread.
-            const int base = captureBaseChannel_;
-            const int width = captureConfig_.channels;
-            if (base >= 0 && width > 0 && width <= engine::kMaxRecordingChannels
-                && base + width <= numInputChannels)
+            // M11: one slot per armed Track, each reading its own picked window out of the SAME
+            // device block into its own FIFO.
+            const std::size_t slotCount = std::min (captureSlotCount_.load (std::memory_order_acquire),
+                                                    kMaxArmedRecordingTracks);
+            for (std::size_t index = 0; index < slotCount; ++index)
             {
+                CaptureSlot& slot = captureSlots_[index];
+                const int base = slot.baseChannel;
+                const int width = slot.config.channels;
+                if (base < 0 || width <= 0 || width > engine::kMaxRecordingChannels
+                    || base + width > numInputChannels)
+                    continue;
+
                 const float* picked[engine::kMaxRecordingChannels] = {};
                 for (int channel = 0; channel < width; ++channel)
                     picked[channel] = inputChannels[base + channel];
@@ -356,14 +377,16 @@ public:
                 // wraps while looping, which would pin every cycle to take ordinal 0. The
                 // cursor seeds from the playhead on the first captured block and then advances
                 // by block size (audio-thread-only while the session is active).
-                if (captureDeviceFrameCursor_ < 0)
-                    captureDeviceFrameCursor_ = playback->playheadFrame();
+                if (slot.deviceFrameCursor < 0)
+                    slot.deviceFrameCursor = playback->playheadFrame();
                 (void) engine::captureRecordingInputBlock (
-                    captureFifo_, captureConfig_, captureDeviceFrameCursor_, picked, width, numFrames);
-                captureDeviceFrameCursor_ += numFrames;
+                    slot.fifo, slot.config, slot.deviceFrameCursor, picked, width, numFrames);
+                slot.deviceFrameCursor += numFrames;
                 // E34: publish the cursor so the shell's MIDI-input callback can stamp notes.
-                captureDeviceFramePublished_.store (captureDeviceFrameCursor_,
-                                                    std::memory_order_release);
+                // Every slot advances identically, so the primary slot's cursor IS the session's.
+                if (index == 0)
+                    captureDeviceFramePublished_.store (slot.deviceFrameCursor,
+                                                        std::memory_order_release);
             }
         }
 
@@ -372,13 +395,21 @@ public:
         // E31: DirectInput monitoring — the armed pick SUMS into the live outputs (mono pick
         // to every output, stereo pair channel-to-channel). Plain loops, no allocation or
         // locks; Off/Unselected/LatencyCompensated sum nothing.
+        // M11: every armed Track's pick monitors, so a whole armed kit is audible.
         if (monitorDirectInput_.load (std::memory_order_acquire)
-            && armedPick != 0u && inputChannels != nullptr && numInputChannels > 0)
+            && armedPickCount > 0 && inputChannels != nullptr && numInputChannels > 0)
         {
-            const int monitorBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
-            const int monitorWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
-            if (monitorBase >= 0 && monitorBase + monitorWidth <= numInputChannels)
+            for (std::size_t pick = 0; pick < armedPickCount; ++pick)
             {
+                const std::uint32_t armedPick = armedPicksPacked_[pick].load (std::memory_order_acquire);
+                if (armedPick == 0u)
+                    continue;
+
+                const int monitorBase = static_cast<int> (armedPick & 0xFFFFu) - 1;
+                const int monitorWidth = (armedPick & 0x10000u) != 0u ? 2 : 1;
+                if (monitorBase < 0 || monitorBase + monitorWidth > numInputChannels)
+                    continue;
+
                 for (int out = 0; out < numOutputChannels; ++out)
                 {
                     float* dest = outputChannels[out];
@@ -433,10 +464,12 @@ public:
 
         pickedInputChannel_ = baseChannel;
         pickedInputStereoPair_ = stereoPair;
-        if (recordingTrackInput_.armed)
+        // M11: the global pick retargets the PRIMARY armed Track only — the other armed Tracks
+        // keep their own picks (setRecordingInputChannelForTrack is the per-Track verb).
+        if (! armedTrackInputs_.empty())
         {
-            recordingTrackInput_.inputChannel = baseChannel;
-            recordingTrackInput_.stereoPair = stereoPair;
+            armedTrackInputs_.front().inputChannel = baseChannel;
+            armedTrackInputs_.front().stereoPair = stereoPair;
         }
         ++context_.commandDispatchCount;
         syncRecordingContext();
@@ -458,32 +491,40 @@ public:
 
         // E28: capture NEVER rolls unarmed — a real take's target track and provenance come
         // from the armed selection, not a silent fallback to the first track.
-        if (! recordingTrackInput_.armed || ! recordingDevice_.selected
-            || recordingDevice_.inputChannels == 0u)
+        if (armedTrackInputs_.empty() || ! recordingDevice_.selected
+            || recordingDevice_.inputChannels == 0u
+            || armedTrackInputs_.size() > kMaxArmedRecordingTracks)
             return false;
 
         // E29: the capture width and base come from the armed selection's channel pick — mono
         // channel N or the stereo pair — never "whatever the device gives".
-        const int pickWidth = recordingTrackInput_.stereoPair ? 2 : 1;
-        const int pickBase = recordingTrackInput_.inputChannel;
-        if (pickBase + pickWidth > deviceInputChannels
-            || pickBase + pickWidth > static_cast<int> (recordingDevice_.inputChannels)
-            || pickWidth > engine::kMaxRecordingChannels)
-            return false;
+        // M11: EVERY armed Track's pick is validated before a single slot is published, so a
+        // half-armed session can never roll.
+        for (const UiRecordingTrackInputSelection& armed : armedTrackInputs_)
+        {
+            const int pickWidth = armed.stereoPair ? 2 : 1;
+            const int pickBase = armed.inputChannel;
+            if (! armed.armed
+                || pickBase + pickWidth > deviceInputChannels
+                || pickBase + pickWidth > static_cast<int> (recordingDevice_.inputChannels)
+                || pickWidth > engine::kMaxRecordingChannels)
+                return false;
+        }
 
-        captureConfig_ = {};
-        captureConfig_.sampleRateHz = deviceSampleRateHz;
-        captureConfig_.channels = pickWidth;
-        captureConfig_.latency.inputLatencyFrames = inputLatencyFrames;
-        captureConfig_.latency.outputLatencyFrames = outputLatencyFrames;
-        captureBaseChannel_ = pickBase;
+        // The recording WINDOW is shared by every armed Track: one count-in, one loop region,
+        // one latency model, so every take of the session lands on the same compensated frame.
+        engine::RecordingConfig sharedConfig;
+        sharedConfig.sampleRateHz = deviceSampleRateHz;
+        sharedConfig.channels = 1;
+        sharedConfig.latency.inputLatencyFrames = inputLatencyFrames;
+        sharedConfig.latency.outputLatencyFrames = outputLatencyFrames;
         std::optional<std::int64_t> countInEnd;
         if (context_.recordCountInEnabled)
         {
             countInEnd = nextRecordCountInEndFrame();
             if (! countInEnd)
                 return false;
-            captureConfig_.window.punchStartFrame = *countInEnd;
+            sharedConfig.window.punchStartFrame = *countInEnd;
         }
         // E32: with the transport loop ON, the capture window loops too — each cycle becomes
         // its own take (H5 primitive), capped so a forgotten session can't grow unbounded.
@@ -493,21 +534,40 @@ public:
             const std::int64_t loopEnd = playbackLoopEndFrame();
             if (loopStart >= 0 && loopEnd > loopStart)
             {
-                captureConfig_.window.loopEnabled = true;
-                captureConfig_.window.loopStartFrame = loopStart;
-                captureConfig_.window.loopEndFrame = loopEnd;
-                captureConfig_.window.maxLoopTakes = static_cast<std::uint32_t> (kMaxLoopRecordingTakes);
+                sharedConfig.window.loopEnabled = true;
+                sharedConfig.window.loopStartFrame = loopStart;
+                sharedConfig.window.loopEndFrame = loopEnd;
+                sharedConfig.window.maxLoopTakes = static_cast<std::uint32_t> (kMaxLoopRecordingTakes);
             }
         }
-        if (! captureConfig_.isValid())
-            return false;
 
-        captureInterleaved_.clear();
-        captureLoopTakes_.clear();
+        for (std::size_t index = 0; index < armedTrackInputs_.size(); ++index)
+        {
+            const UiRecordingTrackInputSelection& armed = armedTrackInputs_[index];
+            CaptureSlot& slot = captureSlots_[index];
+            slot.config = sharedConfig;
+            slot.config.channels = armed.stereoPair ? 2 : 1;
+            if (! slot.config.isValid())
+                return false;
+
+            slot.baseChannel = armed.inputChannel;
+            slot.trackId = armed.trackId;
+            slot.inputChannel = armed.inputChannel;
+            slot.channels = static_cast<std::uint16_t> (slot.config.channels);
+            slot.deviceFrameCursor = -1;
+            slot.timelineStartFrame = -1;
+            slot.interleaved.clear();
+            slot.loopTakes.clear();
+            // A previous session may have left chunks the shell never drained; the FIFO is the
+            // audio thread's writer, so it is emptied HERE, before the slot goes live.
+            engine::RecordingChunk stale;
+            while (slot.fifo.pop (stale))
+            {
+            }
+        }
+
         capturedMidi_.clear();
-        captureTimelineStartFrame_ = -1;
-        captureDeviceFrameCursor_ = -1;
-        captureChannels_ = static_cast<std::uint16_t> (captureConfig_.channels);
+        captureSlotCount_.store (armedTrackInputs_.size(), std::memory_order_release);
         captureActive_.store (true, std::memory_order_release);
         if (countInEnd)
         {
@@ -559,35 +619,42 @@ public:
     // buffer, later cycles fill their own per-cycle buffer for per-cycle take commits.
     void drainRealRecordingCapture()
     {
-        engine::RecordingChunk chunk;
-        while (captureFifo_.pop (chunk))
+        // M11: every armed Track's slot drains into its own session buffers.
+        const std::size_t slotCount = std::min (captureSlotCount_.load (std::memory_order_acquire),
+                                                kMaxArmedRecordingTracks);
+        for (std::size_t index = 0; index < slotCount; ++index)
         {
-            if (chunk.frameCount == 0 || chunk.channels == 0)
-                continue;
-
-            const std::size_t samples = static_cast<std::size_t> (chunk.frameCount)
-                                      * static_cast<std::size_t> (chunk.channels);
-            if (chunk.takeOrdinal == 0u)
+            CaptureSlot& slot = captureSlots_[index];
+            engine::RecordingChunk chunk;
+            while (slot.fifo.pop (chunk))
             {
-                if (captureTimelineStartFrame_ < 0)
-                    captureTimelineStartFrame_ = chunk.timelineStartFrame;
-                captureInterleaved_.insert (captureInterleaved_.end(),
-                                            chunk.samples.begin(),
-                                            chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
-                continue;
-            }
+                if (chunk.frameCount == 0 || chunk.channels == 0)
+                    continue;
 
-            const std::size_t cycle = static_cast<std::size_t> (chunk.takeOrdinal) - 1u;
-            if (cycle >= kMaxLoopRecordingTakes)
-                continue;
-            if (captureLoopTakes_.size() <= cycle)
-                captureLoopTakes_.resize (cycle + 1u);
-            CaptureLoopTake& take = captureLoopTakes_[cycle];
-            if (take.startFrame < 0)
-                take.startFrame = chunk.timelineStartFrame;
-            take.samples.insert (take.samples.end(),
-                                 chunk.samples.begin(),
-                                 chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+                const std::size_t samples = static_cast<std::size_t> (chunk.frameCount)
+                                          * static_cast<std::size_t> (chunk.channels);
+                if (chunk.takeOrdinal == 0u)
+                {
+                    if (slot.timelineStartFrame < 0)
+                        slot.timelineStartFrame = chunk.timelineStartFrame;
+                    slot.interleaved.insert (slot.interleaved.end(),
+                                             chunk.samples.begin(),
+                                             chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+                    continue;
+                }
+
+                const std::size_t cycle = static_cast<std::size_t> (chunk.takeOrdinal) - 1u;
+                if (cycle >= kMaxLoopRecordingTakes)
+                    continue;
+                if (slot.loopTakes.size() <= cycle)
+                    slot.loopTakes.resize (cycle + 1u);
+                CaptureLoopTake& take = slot.loopTakes[cycle];
+                if (take.startFrame < 0)
+                    take.startFrame = chunk.timelineStartFrame;
+                take.samples.insert (take.samples.end(),
+                                     chunk.samples.begin(),
+                                     chunk.samples.begin() + static_cast<std::ptrdiff_t> (samples));
+            }
         }
     }
 
@@ -628,90 +695,136 @@ public:
 
         // E32: the session may hold several takes — the primary buffer (cycle 0) plus one per
         // completed loop cycle, each committed as its OWN take, placed identically.
-        const std::uint16_t channels = captureChannels_ > 0 ? captureChannels_ : 1;
+        // M11: and one such stack PER ARMED TRACK, each committed to its own Track with its own
+        // per-Track take ordinals and its own picked channel's samples.
         struct PendingCaptureTake
         {
             std::int64_t startFrame = -1;
             const std::vector<float>* samples = nullptr;
         };
-        std::vector<PendingCaptureTake> pendingTakes;
-        if (captureInterleaved_.size() / channels > 0 && captureTimelineStartFrame_ >= 0)
-            pendingTakes.push_back ({ captureTimelineStartFrame_, &captureInterleaved_ });
-        for (const CaptureLoopTake& loopTake : captureLoopTakes_)
-            if (loopTake.startFrame >= 0 && loopTake.samples.size() / channels > 0)
-                pendingTakes.push_back ({ loopTake.startFrame, &loopTake.samples });
-        if (pendingTakes.empty())
+        struct PendingSlotTakes
+        {
+            std::size_t slotIndex = 0;
+            std::vector<PendingCaptureTake> takes;
+        };
+        const std::size_t slotCount = std::min (captureSlotCount_.load (std::memory_order_acquire),
+                                                kMaxArmedRecordingTracks);
+        std::vector<PendingSlotTakes> pendingSlots;
+        for (std::size_t index = 0; index < slotCount; ++index)
+        {
+            const CaptureSlot& slot = captureSlots_[index];
+            const std::uint16_t slotChannels = slot.channels > 0 ? slot.channels : 1;
+            PendingSlotTakes pending;
+            pending.slotIndex = index;
+            if (slot.interleaved.size() / slotChannels > 0 && slot.timelineStartFrame >= 0)
+                pending.takes.push_back ({ slot.timelineStartFrame, &slot.interleaved });
+            for (const CaptureLoopTake& loopTake : slot.loopTakes)
+                if (loopTake.startFrame >= 0 && loopTake.samples.size() / slotChannels > 0)
+                    pending.takes.push_back ({ loopTake.startFrame, &loopTake.samples });
+            if (! pending.takes.empty())
+                pendingSlots.push_back (std::move (pending));
+        }
+        if (pendingSlots.empty())
         {
             result.status = UiAppRecordStatus::PreconditionsNotMet;
             return result;
         }
 
-        const std::uint32_t baseOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
         engine::Project working = project_;
         std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
-        app::RecordedTakeCommitResult commit;
-        for (std::size_t pending = 0; pending < pendingTakes.size(); ++pending)
+        std::vector<engine::EntityId> committedClipIds;
+        std::vector<UiRecordedAudioTake> committedTakes;
+        UiRecordedAudioTake primaryTake;
+        engine::EntityId primaryClipId;
+        for (const PendingSlotTakes& pendingSlot : pendingSlots)
         {
-            const std::uint64_t takeFrames = pendingTakes[pending].samples->size() / channels;
-            app::RecordedAudioTakeRequest request;
-            request.sampleRate = engine::SampleRate { captureConfig_.sampleRateHz };
-            request.frames = takeFrames;
-            request.channels = channels;
-            request.interleavedSamples = std::span<const float> (
-                pendingTakes[pending].samples->data(),
-                static_cast<std::size_t> (takeFrames) * channels);
-            request.targetTrackId = recordingTrackInput_.trackId;
-            request.timelineStart = static_cast<engine::Tick> (pendingTakes[pending].startFrame);
-            request.deviceStableId = recordingDevice_.stableDeviceId;
-            request.inputChannel = recordingTrackInput_.inputChannel;
-            request.takeOrdinal = baseOrdinal + static_cast<std::uint32_t> (pending);
-            request.monitoringPolicy =
-                engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
-
-            // E34: the LAST take's commit also places the MIDI captured during the session
-            // (mapped through the same recording window as the audio).
-            const bool placesCapturedMidi = pending == pendingTakes.size() - 1u
-                                         && ! capturedMidi_.empty();
-            UiRecordedMidiTake placedMidiTake;
-            if (placesCapturedMidi)
-                commit = app::commitRecordedAudioTake (
-                    bundleDb_,
-                    working,
-                    request,
-                    [this] (std::uint8_t seedByte, const engine::Project& project)
-                    { return allocateSessionEntityId (seedByte, project); },
-                    [this] (engine::Project& project) -> engine::Track&
-                    { return ensureDefaultAudioTrack (project); },
-                    [this, &placedMidiTake] (engine::Project& nextProject)
-                    { placedMidiTake = appendCapturedMidiTake (nextProject); });
-            else
-                commit = app::commitRecordedAudioTake (
-                    bundleDb_,
-                    working,
-                    request,
-                    [this] (std::uint8_t seedByte, const engine::Project& project)
-                    { return allocateSessionEntityId (seedByte, project); },
-                    [this] (engine::Project& project) -> engine::Track&
-                    { return ensureDefaultAudioTrack (project); });
-            if (placedMidiTake.midiClipId.isValid())
-                lastRecordedMidiTake_ = placedMidiTake;
-
-            result.importResult.bundleResult = commit.bundleResult;
-            if (! commit.ok())
+            const CaptureSlot& slot = captureSlots_[pendingSlot.slotIndex];
+            const std::uint16_t channels = slot.channels > 0 ? slot.channels : 1;
+            // Per-TRACK ordinals: each armed Track continues its own take numbering.
+            const std::uint32_t baseOrdinal = nextRecordingTakeOrdinal (slot.trackId);
+            app::RecordedTakeCommitResult commit;
+            for (std::size_t pending = 0; pending < pendingSlot.takes.size(); ++pending)
             {
-                result.status = UiAppRecordStatus::AssetImportFailed;
-                return result;
+                const std::uint64_t takeFrames = pendingSlot.takes[pending].samples->size() / channels;
+                app::RecordedAudioTakeRequest request;
+                request.sampleRate = engine::SampleRate { slot.config.sampleRateHz };
+                request.frames = takeFrames;
+                request.channels = channels;
+                request.interleavedSamples = std::span<const float> (
+                    pendingSlot.takes[pending].samples->data(),
+                    static_cast<std::size_t> (takeFrames) * channels);
+                request.targetTrackId = slot.trackId;
+                request.timelineStart = static_cast<engine::Tick> (pendingSlot.takes[pending].startFrame);
+                request.deviceStableId = recordingDevice_.stableDeviceId;
+                request.inputChannel = slot.inputChannel;
+                request.takeOrdinal = baseOrdinal + static_cast<std::uint32_t> (pending);
+                request.monitoringPolicy =
+                    engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
+
+                // E34: the LAST take's commit also places the MIDI captured during the session
+                // (mapped through the same recording window as the audio). M11: MIDI rides the
+                // PRIMARY armed Track — the one the MIDI input is stamped against.
+                const bool placesCapturedMidi = pendingSlot.slotIndex == 0
+                                             && pending == pendingSlot.takes.size() - 1u
+                                             && ! capturedMidi_.empty();
+                UiRecordedMidiTake placedMidiTake;
+                if (placesCapturedMidi)
+                    commit = app::commitRecordedAudioTake (
+                        bundleDb_,
+                        working,
+                        request,
+                        [this] (std::uint8_t seedByte, const engine::Project& project)
+                        { return allocateSessionEntityId (seedByte, project); },
+                        [this] (engine::Project& project) -> engine::Track&
+                        { return ensureDefaultAudioTrack (project); },
+                        [this, &placedMidiTake] (engine::Project& nextProject)
+                        { placedMidiTake = appendCapturedMidiTake (nextProject); });
+                else
+                    commit = app::commitRecordedAudioTake (
+                        bundleDb_,
+                        working,
+                        request,
+                        [this] (std::uint8_t seedByte, const engine::Project& project)
+                        { return allocateSessionEntityId (seedByte, project); },
+                        [this] (engine::Project& project) -> engine::Track&
+                        { return ensureDefaultAudioTrack (project); });
+                if (placedMidiTake.midiClipId.isValid())
+                    lastRecordedMidiTake_ = placedMidiTake;
+
+                result.importResult.bundleResult = commit.bundleResult;
+                if (! commit.ok())
+                {
+                    result.status = UiAppRecordStatus::AssetImportFailed;
+                    return result;
+                }
+
+                working = std::move (commit.project);
+                UiDecodedAsset decoded;
+                decoded.assetId = commit.importedAsset.id;
+                decoded.sampleRate = commit.importedAsset.sampleRate;
+                decoded.frames = commit.importedAsset.frames;
+                decoded.channels = commit.importedAsset.channels;
+                decoded.interleavedSamples.assign (pendingSlot.takes[pending].samples->begin(),
+                                                   pendingSlot.takes[pending].samples->end());
+                upsertDecodedAsset (nextDecoded, std::move (decoded));
             }
 
-            working = std::move (commit.project);
-            UiDecodedAsset decoded;
-            decoded.assetId = commit.importedAsset.id;
-            decoded.sampleRate = commit.importedAsset.sampleRate;
-            decoded.frames = commit.importedAsset.frames;
-            decoded.channels = commit.importedAsset.channels;
-            decoded.interleavedSamples.assign (pendingTakes[pending].samples->begin(),
-                                               pendingTakes[pending].samples->end());
-            upsertDecodedAsset (nextDecoded, std::move (decoded));
+            const UiRecordedAudioTake slotTake {
+                commit.importedAsset.id,
+                commit.clipId,
+                commit.trackId,
+                commit.takeId,
+                commit.timelineStart,
+                commit.importedAsset.frames,
+                commit.importedAsset.channels
+            };
+            committedTakes.push_back (slotTake);
+            committedClipIds.push_back (commit.clipId);
+            if (pendingSlot.slotIndex == 0 || ! primaryClipId.isValid())
+            {
+                primaryTake = slotTake;
+                primaryClipId = commit.clipId;
+            }
         }
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
@@ -734,23 +847,18 @@ public:
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
         ++editSerial_;   // a committed recording is an edit since the last explicit Save (B37)
-        selectedTimelineClipIds_.assign (1, commit.clipId);
-        selectedTimelineClipId_ = commit.clipId;
+        // M11: the session's newest Clip on EVERY armed Track is selected (with one armed Track
+        // that is exactly the single clip the single-arm path always selected).
+        selectedTimelineClipIds_ = committedClipIds;
+        selectedTimelineClipId_ = primaryClipId;
         context_.timelineClipSelected = true;
         context_.canUndo = false;
         context_.canRedo = false;
         syncProjectEditContext();
         resetContextForFreshPlayback();
 
-        lastRecordedAudioTake_ = {
-            commit.importedAsset.id,
-            commit.clipId,
-            commit.trackId,
-            commit.takeId,
-            commit.timelineStart,
-            commit.importedAsset.frames,
-            commit.importedAsset.channels
-        };
+        lastRecordedAudioTake_ = primaryTake;
+        lastRecordedAudioTakes_ = std::move (committedTakes);
         result.take = lastRecordedAudioTake_;
         enqueueWaveformBuildsForDecodedAssets();
         result.status = UiAppRecordStatus::Ok;
@@ -759,10 +867,80 @@ public:
     // E30: the armed input's live block peak (0 when unarmed) — UI meter fuel.
     [[nodiscard]] float inputMeterPeak() const noexcept
     {
-        return liveInputPeak_.load (std::memory_order_acquire);
+        return armedInputPeaks_[0].load (std::memory_order_acquire);
     }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
-    [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept { return recordingTrackInput_; }
+    // The PRIMARY armed input (the first armed Track). With one armed Track this is the whole
+    // arm set, so every single-arm caller keeps its exact meaning.
+    [[nodiscard]] const UiRecordingTrackInputSelection& recordingTrackInputSelection() const noexcept
+    {
+        return primaryArmedInput();
+    }
+
+    // M11: the whole arm SET, in arm order.
+    [[nodiscard]] const std::vector<UiRecordingTrackInputSelection>& armedRecordingTrackInputs() const noexcept
+    {
+        return armedTrackInputs_;
+    }
+
+    [[nodiscard]] bool isRecordingTrackIndexArmed (std::size_t trackIndex) const noexcept
+    {
+        for (const UiRecordingTrackInputSelection& armed : armedTrackInputs_)
+            if (armed.armed && armed.trackIndex == trackIndex)
+                return true;
+
+        return false;
+    }
+
+    // M11 (control thread): pick the input for ONE armed Track. Same guards as the primary
+    // pick — refused while a capture session is live, refused off the armed set, refused past
+    // the adopted device's real input count.
+    [[nodiscard]] bool setRecordingInputChannelForTrack (std::size_t trackIndex,
+                                                        std::uint16_t baseChannel,
+                                                        bool stereoPair)
+    {
+        if (captureActive_.load (std::memory_order_acquire))
+            return false;
+
+        const std::uint16_t width = stereoPair ? 2u : 1u;
+        if (! recordingDevice_.selected
+            || static_cast<std::uint32_t> (baseChannel) + width > recordingDevice_.inputChannels)
+            return false;
+
+        UiRecordingTrackInputSelection* target = nullptr;
+        for (UiRecordingTrackInputSelection& armed : armedTrackInputs_)
+            if (armed.armed && armed.trackIndex == trackIndex)
+                target = &armed;
+        if (target == nullptr)
+            return false;
+
+        target->inputChannel = baseChannel;
+        target->stereoPair = stereoPair;
+        if (target == &armedTrackInputs_.front())
+        {
+            pickedInputChannel_ = baseChannel;
+            pickedInputStereoPair_ = stereoPair;
+        }
+        ++context_.commandDispatchCount;
+        syncRecordingContext();
+        return true;
+    }
+
+    // M11: the live input block peak for ONE armed Track (0 when that Track is not armed).
+    [[nodiscard]] float inputMeterPeakForTrackIndex (std::size_t trackIndex) const noexcept
+    {
+        for (std::size_t i = 0; i < armedTrackInputs_.size() && i < kMaxArmedRecordingTracks; ++i)
+            if (armedTrackInputs_[i].armed && armedTrackInputs_[i].trackIndex == trackIndex)
+                return armedInputPeaks_[i].load (std::memory_order_acquire);
+
+        return 0.0f;
+    }
+
+    // M11: the last committed take for EACH armed Track of the finished session, in arm order.
+    [[nodiscard]] const std::vector<UiRecordedAudioTake>& lastRecordedAudioTakes() const noexcept
+    {
+        return lastRecordedAudioTakes_;
+    }
 
     // E33: the SELECTED clip's take stack — takes on its track sharing its timeline start.
     // "Audible" is honest data, not a flag: that take's clip currently has gain > 0.
@@ -1275,11 +1453,11 @@ public:
         request.channels = decoded.channels;
         request.interleavedSamples = std::span<const float> (decoded.interleavedSamples.data(),
                                                              decoded.interleavedSamples.size());
-        request.targetTrackId = recordingTrackInput_.trackId;
+        request.targetTrackId = primaryArmedInput().trackId;
         request.timelineStart = deferredTimelineStart;
         request.deviceStableId = recordingDevice_.stableDeviceId;
-        request.inputChannel = recordingTrackInput_.inputChannel;
-        request.takeOrdinal = nextRecordingTakeOrdinal (recordingTrackInput_.trackId);
+        request.inputChannel = primaryArmedInput().inputChannel;
+        request.takeOrdinal = nextRecordingTakeOrdinal (primaryArmedInput().trackId);
         request.monitoringPolicy = engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
 
         UiRecordedMidiTake placedMidiTake;
@@ -1413,7 +1591,7 @@ private:
             std::int64_t timelineFrame = 0;
             std::uint32_t takeOrdinal = 0;
             if (! engine::mapDeviceInputFrameToRecordingFrame (
-                    captureConfig_, event.deviceInputFrame, timelineFrame, takeOrdinal)
+                    captureSlots_[0].config, event.deviceInputFrame, timelineFrame, takeOrdinal)
                 || takeOrdinal != 0u
                 || timelineFrame < clip.timelineStart
                 || timelineFrame >= clip.timelineStart + clip.timelineLength)
@@ -1429,7 +1607,7 @@ private:
             note.pitchNote = static_cast<double> (event.note);
             note.normalizedVelocity = static_cast<double> (event.normalizedVelocity);
             note.portIndex = 0;
-            note.channel = static_cast<std::int16_t> (recordingTrackInput_.inputChannel);
+            note.channel = static_cast<std::int16_t> (primaryArmedInput().inputChannel);
             midiClip.notes.push_back (note);
         }
 
@@ -2651,9 +2829,9 @@ public:
                                               });
     }
 
-    // Toggle the transient recording arm onto a specific Track (B28). Arming an unarmed session or
-    // retargeting from another Track arms this Track's input 0; pressing again on the armed Track
-    // disarms. Arm state is honestly transient session state, exactly like the default-track arm.
+    // Toggle the transient recording arm onto a specific Track (B28). Arming ADDS this Track to
+    // the arm SET (M11) on input 0; pressing again on an armed Track drops just that Track and
+    // leaves the rest of the set armed. Arm state is honestly transient session state.
     [[nodiscard]] UiActionDispatchResult toggleRecordingArmForTrack (std::size_t trackIndex)
     {
         syncRecordingContext();
@@ -2669,17 +2847,31 @@ public:
         if (! recordingDevice_.selected || recordingDevice_.inputChannels == 0u)
             return { id, { false, "no armed recording Track/input" }, false };
 
+        // Arming never changes the take path mid-capture.
+        if (captureActive_.load (std::memory_order_acquire))
+            return { id, { false, "capture session live" }, false };
+
         const engine::EntityId trackId = project_.tracks[trackIndex].id;
-        if (recordingTrackInput_.armed && recordingTrackInput_.trackId == trackId)
+        const auto existing = std::find_if (
+            armedTrackInputs_.begin(),
+            armedTrackInputs_.end(),
+            [trackId] (const UiRecordingTrackInputSelection& armed) { return armed.trackId == trackId; });
+
+        if (existing != armedTrackInputs_.end())
         {
-            clearRecordingTrackInput();
+            armedTrackInputs_.erase (existing);
         }
         else
         {
-            recordingTrackInput_.armed = true;
-            recordingTrackInput_.trackId = trackId;
-            recordingTrackInput_.trackIndex = trackIndex;
-            recordingTrackInput_.inputChannel = 0;
+            if (armedTrackInputs_.size() >= kMaxArmedRecordingTracks)
+                return { id, { false, "arm set full" }, false };
+
+            UiRecordingTrackInputSelection armed;
+            armed.armed = true;
+            armed.trackId = trackId;
+            armed.trackIndex = trackIndex;
+            armed.inputChannel = 0;
+            armedTrackInputs_.push_back (armed);
         }
 
         ++context_.commandDispatchCount;
@@ -5816,19 +6008,30 @@ private:
         return nullptr;
     }
 
+    // Drops the WHOLE arm set (M11) — the disarm-one path is toggleRecordingArmForTrack.
     void clearRecordingTrackInput() noexcept
     {
-        recordingTrackInput_ = {};
+        armedTrackInputs_.clear();
         context_.recordingTrackArmed = false;
         context_.recordingInputSelected = false;
         context_.selectedRecordingTrackIndex = -1;
         context_.selectedRecordingInputChannel = -1;
         context_.selectedRecordingInputStereoPair = false;
         context_.isRecording = false;
-        // E30/E31: no armed pick — the live input meter reads silent and monitoring stops.
-        armedInputPickPacked_.store (0u, std::memory_order_release);
-        liveInputPeak_.store (0.0f, std::memory_order_release);
+        // E30/E31: no armed pick — the live input meters read silent and monitoring stops.
+        armedPickCount_.store (0u, std::memory_order_release);
+        for (std::size_t index = 0; index < kMaxArmedRecordingTracks; ++index)
+        {
+            armedPicksPacked_[index].store (0u, std::memory_order_release);
+            armedInputPeaks_[index].store (0.0f, std::memory_order_release);
+        }
         monitorDirectInput_.store (false, std::memory_order_release);
+    }
+
+    [[nodiscard]] const UiRecordingTrackInputSelection& primaryArmedInput() const noexcept
+    {
+        static const UiRecordingTrackInputSelection unarmed {};
+        return armedTrackInputs_.empty() ? unarmed : armedTrackInputs_.front();
     }
 
     static void applyDeterministicTestDeviceProfile (UiRecordingDeviceSelection& device) noexcept
@@ -5866,27 +6069,60 @@ private:
         context_.selectedRecordingDeviceId = recordingDevice_.stableDeviceId;
         context_.recordingTrackAvailable = context_.projectLoaded && ! project_.tracks.empty();
 
-        const std::uint32_t armedPickWidth = recordingTrackInput_.stereoPair ? 2u : 1u;
-        if (! recordingTrackInput_.armed
-            || ! context_.recordingTrackAvailable
-            || findTrack (recordingTrackInput_.trackId) == nullptr
-            || ! recordingDevice_.selected
-            || recordingTrackInput_.inputChannel + armedPickWidth > recordingDevice_.inputChannels)
+        // M11: every armed entry is re-validated against the CURRENT project and device; an
+        // entry whose Track vanished or whose pick fell out of range is dropped from the set
+        // (never silently retargeted, and never left pointing at a dead Track).
+        if (! context_.recordingTrackAvailable || ! recordingDevice_.selected)
         {
             clearRecordingTrackInput();
             return;
         }
 
+        std::vector<UiRecordingTrackInputSelection> valid;
+        for (const UiRecordingTrackInputSelection& armed : armedTrackInputs_)
+        {
+            const std::uint32_t armedPickWidth = armed.stereoPair ? 2u : 1u;
+            const engine::Track* track = findTrack (armed.trackId);
+            if (! armed.armed
+                || track == nullptr
+                || armed.inputChannel + armedPickWidth > recordingDevice_.inputChannels
+                || valid.size() >= kMaxArmedRecordingTracks)
+                continue;
+
+            UiRecordingTrackInputSelection entry = armed;
+            // Track rows move (reorder/remove): the index follows the Track's identity.
+            for (std::size_t index = 0; index < project_.tracks.size(); ++index)
+                if (project_.tracks[index].id == armed.trackId)
+                    entry.trackIndex = index;
+            valid.push_back (entry);
+        }
+
+        armedTrackInputs_ = std::move (valid);
+        if (armedTrackInputs_.empty())
+        {
+            clearRecordingTrackInput();
+            return;
+        }
+
+        const UiRecordingTrackInputSelection& primary = armedTrackInputs_.front();
         context_.recordingTrackArmed = true;
         context_.recordingInputSelected = true;
-        context_.selectedRecordingTrackIndex = static_cast<int> (recordingTrackInput_.trackIndex);
-        context_.selectedRecordingInputChannel = static_cast<int> (recordingTrackInput_.inputChannel);
-        context_.selectedRecordingInputStereoPair = recordingTrackInput_.stereoPair;
-        // E30: publish the armed pick for the audio thread's live input meter.
-        armedInputPickPacked_.store (
-            (static_cast<std::uint32_t> (recordingTrackInput_.inputChannel) + 1u)
-                | (recordingTrackInput_.stereoPair ? 0x10000u : 0u),
-            std::memory_order_release);
+        context_.selectedRecordingTrackIndex = static_cast<int> (primary.trackIndex);
+        context_.selectedRecordingInputChannel = static_cast<int> (primary.inputChannel);
+        context_.selectedRecordingInputStereoPair = primary.stereoPair;
+        // E30: publish each armed pick for the audio thread's live input meters. The picks are
+        // written BEFORE the count, so the audio thread never reads a stale slot.
+        for (std::size_t index = 0; index < armedTrackInputs_.size(); ++index)
+            armedPicksPacked_[index].store (
+                (static_cast<std::uint32_t> (armedTrackInputs_[index].inputChannel) + 1u)
+                    | (armedTrackInputs_[index].stereoPair ? 0x10000u : 0u),
+                std::memory_order_release);
+        for (std::size_t index = armedTrackInputs_.size(); index < kMaxArmedRecordingTracks; ++index)
+        {
+            armedPicksPacked_[index].store (0u, std::memory_order_release);
+            armedInputPeaks_[index].store (0.0f, std::memory_order_release);
+        }
+        armedPickCount_.store (armedTrackInputs_.size(), std::memory_order_release);
         // E31: DirectInput is the ONLY policy that actually routes input to output.
         monitorDirectInput_.store (
             context_.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::DirectInput,
@@ -6060,27 +6296,26 @@ private:
         if (! state.enabled)
             return { id, state, false };
 
-        if (! recordingTrackInput_.armed)
+        // The default-track arm stays a whole-set toggle: it arms the first Track when NOTHING
+        // is armed, and clears the entire arm set otherwise.
+        if (armedTrackInputs_.empty())
         {
             if (project_.tracks.empty() || ! recordingDevice_.selected || recordingDevice_.inputChannels == 0u)
                 return { id, { false, "no armed recording Track/input" }, false };
 
-            recordingTrackInput_.armed = true;
-            recordingTrackInput_.trackId = project_.tracks.front().id;
-            recordingTrackInput_.trackIndex = 0;
+            UiRecordingTrackInputSelection armed;
+            armed.armed = true;
+            armed.trackId = project_.tracks.front().id;
+            armed.trackIndex = 0;
             // E29: arm adopts the picked input, clamped back in range if the device changed.
             const std::uint16_t pickWidth = pickedInputStereoPair_ ? 2u : 1u;
             if (static_cast<std::uint32_t> (pickedInputChannel_) + pickWidth
                 <= recordingDevice_.inputChannels)
             {
-                recordingTrackInput_.inputChannel = pickedInputChannel_;
-                recordingTrackInput_.stereoPair = pickedInputStereoPair_;
+                armed.inputChannel = pickedInputChannel_;
+                armed.stereoPair = pickedInputStereoPair_;
             }
-            else
-            {
-                recordingTrackInput_.inputChannel = 0;
-                recordingTrackInput_.stereoPair = false;
-            }
+            armedTrackInputs_.push_back (armed);
         }
         else
         {
@@ -6125,7 +6360,7 @@ private:
         const engine::RecordingTake* secondTake = nullptr;
         for (const engine::RecordingTake& take : project_.recordingTakes)
         {
-            if (recordingTrackInput_.armed && take.trackId != recordingTrackInput_.trackId)
+            if (primaryArmedInput().armed && take.trackId != primaryArmedInput().trackId)
                 continue;
 
             if (firstTake == nullptr)
@@ -6823,8 +7058,9 @@ private:
         timelineRangeStartFrame_ = -1;
         timelineRangeEndFrame_ = -1;
         recordingDevice_ = {};
-        recordingTrackInput_ = {};
+        clearRecordingTrackInput();
         lastRecordedAudioTake_ = {};
+        lastRecordedAudioTakes_.clear();
         lastRecordedMidiTake_ = {};
         pendingAudioPlacement_ = {};
         pendingMidiPlacement_ = {};
@@ -7035,8 +7271,12 @@ private:
     {
         captureActive_.store (false, std::memory_order_release);
         drainRealRecordingCapture();
-        captureInterleaved_.clear();
-        captureTimelineStartFrame_ = -1;
+        for (CaptureSlot& slot : captureSlots_)
+        {
+            slot.interleaved.clear();
+            slot.loopTakes.clear();
+            slot.timelineStartFrame = -1;
+        }
         context_.recordCountInActive = false;
         deterministicRecordCountInPending_ = false;
         if (playback_ != nullptr)
@@ -7140,17 +7380,21 @@ private:
     std::uint64_t lastSavedEditSerial_ = 0;
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
-    UiRecordingTrackInputSelection recordingTrackInput_;
+    // M11: the ARM SET, in arm order. The FIRST entry is the primary — the one the single-arm
+    // context surface (selectedRecordingTrackIndex/Channel) reports, the one the global pick
+    // retargets, and the one captured MIDI rides. Empty = nothing armed.
+    std::vector<UiRecordingTrackInputSelection> armedTrackInputs_;
     // E29: the picked input (survives arm toggles); the capture base channel is published
     // with the config before captureActive_ so the audio thread never reads a torn pick.
     std::uint16_t pickedInputChannel_ = 0;
     bool pickedInputStereoPair_ = false;
-    int captureBaseChannel_ = 0;
-    // E30: the armed pick packed for the audio thread ((base+1) | stereo<<16; 0 = unarmed)
-    // and the live input block peak it publishes for the UI meters.
-    std::atomic<std::uint32_t> armedInputPickPacked_ { 0 };
-    std::atomic<float> liveInputPeak_ { 0.0f };
-    // E31: DirectInput monitoring routes the armed pick into the live outputs.
+    // E30: each armed pick packed for the audio thread ((base+1) | stereo<<16; 0 = unarmed)
+    // and the live input block peak it publishes for that Track's UI meter (M11: one per
+    // armed Track, so every armed strip meters its own input).
+    std::array<std::atomic<std::uint32_t>, kMaxArmedRecordingTracks> armedPicksPacked_ {};
+    std::array<std::atomic<float>, kMaxArmedRecordingTracks> armedInputPeaks_ {};
+    std::atomic<std::size_t> armedPickCount_ { 0 };
+    // E31: DirectInput monitoring routes the armed picks into the live outputs.
     std::atomic<bool> monitorDirectInput_ { false };
     // E32: loop-recording cycle buffers (index = H5 take ordinal - 1) and the session cap.
     static constexpr std::size_t kMaxLoopRecordingTakes = 8;
@@ -7159,15 +7403,13 @@ private:
         std::int64_t startFrame = -1;
         std::vector<float> samples;
     };
-    std::vector<CaptureLoopTake> captureLoopTakes_;
-    // E32: monotonic device-frame cursor for the capture mapping (audio-thread-owned while a
-    // session is active; -1 seeds from the playhead on the first captured block).
-    std::int64_t captureDeviceFrameCursor_ = -1;
     // E34: notes collected during the live capture session (control thread only) + the
     // audio thread's published device-frame cursor for MIDI stamping.
     std::vector<UiCapturedMidiEvent> capturedMidi_;
     std::atomic<std::int64_t> captureDeviceFramePublished_ { 0 };
     UiRecordedAudioTake lastRecordedAudioTake_;
+    // M11: the last committed take for EACH armed Track of the finished session, in arm order.
+    std::vector<UiRecordedAudioTake> lastRecordedAudioTakes_;
     UiRecordedAudioTake pendingAudioPlacement_;
     UiRecordedMidiTake lastRecordedMidiTake_;
     UiRecordedMidiTake pendingMidiPlacement_;
@@ -7317,14 +7559,28 @@ private:
     }
 
     std::vector<UiDecodedAsset> decodedAssets_;
-    // RT capture session state (P0-1). Config is published before the active flag; the FIFO is
+    // RT capture session state (P0-1). Config is published before the active flag; the FIFOs are
     // drained on the shell's control timer, never the audio thread.
-    engine::RecordingChunkFifo captureFifo_;
-    engine::RecordingConfig captureConfig_ {};
+    // M11: ONE SLOT PER ARMED TRACK. Slot storage is fixed (never allocated while a session is
+    // live) and the count is published before captureActive_, so the audio thread can only ever
+    // see fully-built slots. Each slot reads its own picked channel window out of the SAME
+    // device block, so every armed Track shares one recording window and one latency model.
+    struct CaptureSlot
+    {
+        engine::RecordingChunkFifo fifo;
+        engine::RecordingConfig config {};
+        int baseChannel = 0;
+        engine::EntityId trackId;
+        std::uint16_t inputChannel = 0;
+        std::uint16_t channels = 0;
+        std::int64_t deviceFrameCursor = -1;    // audio-thread-owned while the session is live
+        std::int64_t timelineStartFrame = -1;   // control thread (drain onwards)
+        std::vector<float> interleaved;
+        std::vector<CaptureLoopTake> loopTakes;
+    };
+    std::array<CaptureSlot, kMaxArmedRecordingTracks> captureSlots_;
+    std::atomic<std::size_t> captureSlotCount_ { 0 };
     std::atomic<bool> captureActive_ { false };
-    std::vector<float> captureInterleaved_;
-    std::int64_t captureTimelineStartFrame_ = -1;
-    std::uint16_t captureChannels_ = 0;
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
     std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };

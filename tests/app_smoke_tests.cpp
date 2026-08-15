@@ -122,6 +122,25 @@ Project makeSmokeProject()
     return project;
 }
 
+// M11: three real Tracks so multi-track arming is gated on a 3+ track fixture. Track 0 keeps the
+// smoke project's asset+clip; tracks 1 and 2 start empty, exactly like freshly added tracks.
+Project makeThreeTrackRecordingProject()
+{
+    Project project = makeSmokeProject();
+
+    Track second;
+    second.id = idFromLowByte (0x21);
+    second.strip.name = "Audio 2";
+    Track third;
+    third.id = idFromLowByte (0x22);
+    third.strip.name = "Audio 3";
+    project.tracks.push_back (second);
+    project.tracks.push_back (third);
+
+    REQUIRE (project.hasValidAssetClipIndirection());
+    return project;
+}
+
 void writeProjectAssetFiles (const std::filesystem::path& bundlePath, const Project& project)
 {
     for (const Asset& asset : project.assets)
@@ -1046,6 +1065,255 @@ TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recordin
     }
     REQUIRE (persisted.midiClips.size() == midiClipsBefore + 1u);
     REQUIRE (persisted.midiClips.back().notes.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("M11 an arm SET records one take per armed track", "[ui][app][recording][multi-arm]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("multi-arm");
+    const Project project = makeThreeTrackRecordingProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.project().tracks.size() == 3u);
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x4A11ED00u, 48'000.0, 4, 128, 0, 0 }));
+    const EntityId trackId0 = app.project().tracks[0].id;
+    const EntityId trackId1 = app.project().tracks[1].id;
+    const EntityId trackId2 = app.project().tracks[2].id;
+
+    // Four device channels carry distinct DC values; each armed track may only ever receive its
+    // OWN picked channel's samples.
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    std::array<float, 128> ch2 {};
+    std::array<float, 128> ch3 {};
+    ch0.fill (0.1f);
+    ch1.fill (0.2f);
+    ch2.fill (0.5f);
+    ch3.fill (0.8f);
+    std::array<const float*, 4> inputs { ch0.data(), ch1.data(), ch2.data(), ch3.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    const auto runCaptureSession = [&app, &inputs, &outputs] ()
+    {
+        REQUIRE (app.startRealRecordingCapture (4, 48'000.0, 0, 0));
+        for (int block = 0; block < 4; ++block)
+        {
+            REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+            app.drainRealRecordingCapture();
+        }
+        REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+    };
+
+    const auto readPersisted = [&bundlePath] ()
+    {
+        Project persisted;
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+        return persisted;
+    };
+
+    const auto takesOnTrack = [] (const Project& snapshot, const EntityId trackId)
+    {
+        std::vector<yesdaw::engine::RecordingTake> found;
+        for (const yesdaw::engine::RecordingTake& take : snapshot.recordingTakes)
+            if (take.trackId == trackId)
+                found.push_back (take);
+        return found;
+    };
+
+    const auto readTakeSamples = [&bundlePath] (const Project& snapshot,
+                                                const EntityId assetId,
+                                                std::size_t count)
+    {
+        const Asset* recorded = nullptr;
+        for (const Asset& asset : snapshot.assets)
+            if (asset.id == assetId)
+                recorded = &asset;
+        REQUIRE (recorded != nullptr);
+        const std::filesystem::path wavPath =
+            bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (recorded->contentHash);
+        std::ifstream in (wavPath, std::ios::binary);
+        REQUIRE (in.good());
+        in.seekg (44);
+        std::vector<float> samples (count, 0.0f);
+        in.read (reinterpret_cast<char*> (samples.data()),
+                 static_cast<std::streamsize> (count * sizeof (float)));
+        REQUIRE (in.good());
+        return samples;
+    };
+
+    // ------------------------------------------------------------------ single-arm laws hold
+    // One armed track behaves exactly as it always has: one take, on that track, ordinal 0,
+    // carrying the picked channel — and the single-arm context surface names it.
+    REQUIRE (app.toggleRecordingArmForTrack (1).dispatched);
+    REQUIRE (app.armedRecordingTrackInputs().size() == 1u);
+    REQUIRE (app.context().recordingTrackArmed);
+    REQUIRE (app.context().selectedRecordingTrackIndex == 1);
+    REQUIRE (app.recordingTrackInputSelection().trackId == trackId1);
+    REQUIRE (app.setRecordingInputChannel (1, false));
+    runCaptureSession();
+    {
+        const Project persisted = readPersisted();
+        REQUIRE (persisted.recordingTakes.size() == 1u);
+        const std::vector<yesdaw::engine::RecordingTake> seeded = takesOnTrack (persisted, trackId1);
+        REQUIRE (seeded.size() == 1u);
+        REQUIRE (seeded.front().takeOrdinal == 0u);
+        REQUIRE (seeded.front().inputChannel == 1u);
+        REQUIRE (app.lastRecordedAudioTakes().size() == 1u);
+        REQUIRE (app.lastRecordedAudioTakes().front().trackId == trackId1);
+        REQUIRE (app.lastRecordedAudioTake().trackId == trackId1);
+        REQUIRE (app.selectedTimelineClipCount() == 1u);
+    }
+    REQUIRE (app.toggleRecordingArmForTrack (1).dispatched);
+    REQUIRE (app.armedRecordingTrackInputs().empty());
+    REQUIRE_FALSE (app.context().recordingTrackArmed);
+
+    // ------------------------------------------------------------------------- the arm SET
+    // Arming a second and third track ADDS them: arming no longer retargets the arm off the
+    // first. The FIRST armed track stays the primary the single-arm surface reports.
+    REQUIRE (app.toggleRecordingArmForTrack (0).dispatched);
+    REQUIRE (app.toggleRecordingArmForTrack (1).dispatched);
+    REQUIRE (app.toggleRecordingArmForTrack (2).dispatched);
+    REQUIRE (app.armedRecordingTrackInputs().size() == 3u);
+    REQUIRE (app.isRecordingTrackIndexArmed (0));
+    REQUIRE (app.isRecordingTrackIndexArmed (1));
+    REQUIRE (app.isRecordingTrackIndexArmed (2));
+    REQUIRE (app.context().recordingTrackArmed);
+    REQUIRE (app.context().selectedRecordingTrackIndex == 0);
+
+    // Per-track input picks: mono channel 0, mono channel 3, and the stereo pair (1,2).
+    REQUIRE (app.setRecordingInputChannelForTrack (0, 0, false));
+    REQUIRE (app.setRecordingInputChannelForTrack (1, 3, false));
+    REQUIRE (app.setRecordingInputChannelForTrack (2, 1, true));
+    // Hostile picks are refused per track, and an unarmed track has no pick to set.
+    REQUIRE_FALSE (app.setRecordingInputChannelForTrack (1, 4, false));
+    REQUIRE_FALSE (app.setRecordingInputChannelForTrack (1, 3, true));   // pair (3,4) > 4 inputs
+    REQUIRE_FALSE (app.setRecordingInputChannelForTrack (7, 0, false));  // no such track row
+    REQUIRE (app.armedRecordingTrackInputs()[0].inputChannel == 0u);
+    REQUIRE_FALSE (app.armedRecordingTrackInputs()[0].stereoPair);
+    REQUIRE (app.armedRecordingTrackInputs()[1].inputChannel == 3u);
+    REQUIRE (app.armedRecordingTrackInputs()[2].inputChannel == 1u);
+    REQUIRE (app.armedRecordingTrackInputs()[2].stereoPair);
+
+    // Each armed track meters its OWN input, live, before the transport rolls.
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+    REQUIRE (app.inputMeterPeakForTrackIndex (0) == Approx (0.1f));
+    REQUIRE (app.inputMeterPeakForTrackIndex (1) == Approx (0.8f));
+    REQUIRE (app.inputMeterPeakForTrackIndex (2) == Approx (0.5f));   // the pair's max
+    REQUIRE (app.inputMeterPeak() == Approx (0.1f));                  // the primary's meter
+
+    runCaptureSession();
+
+    // One take per armed track, each on its OWN track, each carrying EXACTLY its picked
+    // channel's samples at its own per-track ordinal.
+    {
+        const Project persisted = readPersisted();
+        REQUIRE (persisted.recordingTakes.size() == 4u);   // the seed take plus one per armed track
+
+        const std::vector<yesdaw::engine::RecordingTake> onTrack0 = takesOnTrack (persisted, trackId0);
+        const std::vector<yesdaw::engine::RecordingTake> onTrack1 = takesOnTrack (persisted, trackId1);
+        const std::vector<yesdaw::engine::RecordingTake> onTrack2 = takesOnTrack (persisted, trackId2);
+        REQUIRE (onTrack0.size() == 1u);
+        REQUIRE (onTrack1.size() == 2u);
+        REQUIRE (onTrack2.size() == 1u);
+
+        // Per-track ordinals: track 1 continues its own numbering; the others start at 0.
+        REQUIRE (onTrack0.front().takeOrdinal == 0u);
+        REQUIRE (onTrack1.back().takeOrdinal == 1u);
+        REQUIRE (onTrack2.front().takeOrdinal == 0u);
+
+        // Per-track provenance: the picked channel and the REAL device id ride each take.
+        REQUIRE (onTrack0.front().inputChannel == 0u);
+        REQUIRE (onTrack1.back().inputChannel == 3u);
+        REQUIRE (onTrack2.front().inputChannel == 1u);
+        for (const yesdaw::engine::RecordingTake& take : persisted.recordingTakes)
+            REQUIRE (take.deviceStableId == 0x4A11ED00u);
+
+        // The bytes themselves: channel 0's DC, channel 3's DC, and the (1,2) pair interleaved.
+        const std::vector<float> track0Samples = readTakeSamples (persisted, onTrack0.front().assetId, 4);
+        for (float sample : track0Samples)
+            REQUIRE (sample == Approx (0.1f));
+        const std::vector<float> track1Samples = readTakeSamples (persisted, onTrack1.back().assetId, 4);
+        for (float sample : track1Samples)
+            REQUIRE (sample == Approx (0.8f));
+        const std::vector<float> track2Samples = readTakeSamples (persisted, onTrack2.front().assetId, 4);
+        REQUIRE (track2Samples[0] == Approx (0.2f));
+        REQUIRE (track2Samples[1] == Approx (0.5f));
+        REQUIRE (track2Samples[2] == Approx (0.2f));
+        REQUIRE (track2Samples[3] == Approx (0.5f));
+
+        // Every armed track's take is reported, in arm order, and the session selects all three
+        // new clips with the primary's clip as the focused one.
+        REQUIRE (app.lastRecordedAudioTakes().size() == 3u);
+        REQUIRE (app.lastRecordedAudioTakes()[0].trackId == trackId0);
+        REQUIRE (app.lastRecordedAudioTakes()[1].trackId == trackId1);
+        REQUIRE (app.lastRecordedAudioTakes()[2].trackId == trackId2);
+        REQUIRE (app.lastRecordedAudioTake().trackId == trackId0);
+        REQUIRE (app.selectedTimelineClipCount() == 3u);
+        for (const yesdaw::ui::UiRecordedAudioTake& take : app.lastRecordedAudioTakes())
+            REQUIRE (app.isTimelineClipSelected (take.clipId));
+    }
+
+    // A multi-track commit follows the SAME undo law as a single-track one and as an import:
+    // the commit is not an undo step (it is bundle-owned persistence, not a project edit), so
+    // the stack is clear. Takes are removed with the shipped delete verb, which IS undoable —
+    // and removing one leaves the other armed tracks' takes untouched.
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE_FALSE (app.context().canRedo);
+    {
+        const yesdaw::ui::UiRecordedAudioTake removed = app.lastRecordedAudioTakes()[1];
+        REQUIRE (app.deleteRecordingTake (removed.takeId));
+        REQUIRE (app.project().recordingTakes.size() == 3u);
+        REQUIRE (takesOnTrack (app.project(), trackId0).size() == 1u);
+        REQUIRE (takesOnTrack (app.project(), trackId2).size() == 1u);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.project().recordingTakes.size() == 4u);
+    }
+
+    // ------------------------------------------------------- disarming ONE track mid-session
+    // Toggling an armed track drops just that track; the rest of the set stays armed and its
+    // dropped meter reads silent.
+    REQUIRE (app.toggleRecordingArmForTrack (1).dispatched);
+    REQUIRE (app.armedRecordingTrackInputs().size() == 2u);
+    REQUIRE (app.isRecordingTrackIndexArmed (0));
+    REQUIRE_FALSE (app.isRecordingTrackIndexArmed (1));
+    REQUIRE (app.isRecordingTrackIndexArmed (2));
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+    REQUIRE (app.inputMeterPeakForTrackIndex (1) == 0.0f);
+
+    runCaptureSession();
+    {
+        const Project persisted = readPersisted();
+        REQUIRE (persisted.recordingTakes.size() == 6u);   // two more, none on the disarmed track
+        REQUIRE (takesOnTrack (persisted, trackId0).size() == 2u);
+        REQUIRE (takesOnTrack (persisted, trackId1).size() == 2u);
+        REQUIRE (takesOnTrack (persisted, trackId2).size() == 2u);
+        REQUIRE (takesOnTrack (persisted, trackId0).back().takeOrdinal == 1u);
+        REQUIRE (takesOnTrack (persisted, trackId2).back().takeOrdinal == 1u);
+    }
+
+    // Arming never changes the take path mid-capture.
+    REQUIRE (app.startRealRecordingCapture (4, 48'000.0, 0, 0));
+    REQUIRE_FALSE (app.toggleRecordingArmForTrack (1).dispatched);
+    REQUIRE_FALSE (app.setRecordingInputChannelForTrack (0, 2, false));
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+    app.drainRealRecordingCapture();
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+    REQUIRE (app.armedRecordingTrackInputs().size() == 2u);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

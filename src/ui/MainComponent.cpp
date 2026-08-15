@@ -3909,6 +3909,12 @@ public:
     {
         return appModel.recordingTrackInputSelection();
     }
+    // M11: the whole arm set, so gates can pin that several rows are armed at once.
+    [[nodiscard]] const std::vector<yesdaw::ui::UiRecordingTrackInputSelection>&
+        harnessArmedRecordingTrackInputs() const noexcept
+    {
+        return appModel.armedRecordingTrackInputs();
+    }
     [[nodiscard]] const yesdaw::ui::UiRecordedAudioTake& harnessLastRecordedAudioTake() const noexcept
     {
         return appModel.lastRecordedAudioTake();
@@ -5665,10 +5671,10 @@ private:
         {
             float peak = playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f;
             // E30: the ARMED track's rail meter also shows the live input peak, so signal is
-            // visible before recording — playing or stopped.
-            if (appModel.context().recordingTrackArmed
-                && static_cast<int> (i) == appModel.context().selectedRecordingTrackIndex)
-                peak = std::max (peak, appModel.inputMeterPeak());
+            // visible before recording — playing or stopped. M11: each armed track shows its
+            // OWN picked input, so a whole armed kit meters honestly.
+            if (appModel.isRecordingTrackIndexArmed (i))
+                peak = std::max (peak, appModel.inputMeterPeakForTrackIndex (i));
             advanceMeterHold (trackMeterHold[i], peak);
         }
 
@@ -8202,8 +8208,8 @@ private:
                                    .withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListButtonsTop)
                                    .withHeight (yesdaw::ui::UiTheme::Layout::trackListButtonsHeight);
             // E30: the "O" cell is the REAL record-arm badge — lit red on the armed track.
-            const bool rowArmed = appModel.context().recordingTrackArmed
-                               && static_cast<int> (i) == appModel.context().selectedRecordingTrackIndex;
+            // M11: EVERY armed track's badge lights, not just the primary's.
+            const bool rowArmed = appModel.isRecordingTrackIndexArmed (i);
             const std::array<std::pair<const char*, bool>, 3> railCells {{
                 { "M", projectTrack.strip.muted },
                 { "S", projectTrack.strip.soloed },
@@ -10062,6 +10068,7 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.context = mainComponent->harnessContext();
         snapshot.recordingDevice = mainComponent->harnessRecordingDevice();
         snapshot.recordingTrackInput = mainComponent->harnessRecordingTrackInput();
+        snapshot.armedRecordingTrackInputs = mainComponent->harnessArmedRecordingTrackInputs();
         snapshot.liveInputMeterPeak = mainComponent->harnessInputMeterPeak();
         snapshot.lastRecordedAudioTake = mainComponent->harnessLastRecordedAudioTake();
         snapshot.lastRecordedMidiTake = mainComponent->harnessLastRecordedMidiTake();

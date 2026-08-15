@@ -11005,24 +11005,40 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     REQUIRE_FALSE (project.tracks.back().strip.soloed);
 
     // Shift+R arms the SELECTED track once a device with inputs exists; arm state is honestly
-    // transient — project.db never changes while arming, retargeting, and disarming.
+    // transient — project.db never changes while arming, adding to the arm set, and disarming.
+    // M11 re-pin: Shift+R on a second row ADDS it to the arm set (it used to retarget the arm
+    // off the first row), and disarming one row leaves the rest of the set armed.
     const std::vector<std::uint8_t> persistedBeforeArm = readBytes (bundlePath / "project.db");
     clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingTrackArmed);
     REQUIRE (snapshot.context.selectedRecordingTrackIndex == 1);
+    REQUIRE (snapshot.armedRecordingTrackInputs.size() == 1u);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingTrackArmed);
-    REQUIRE (snapshot.context.selectedRecordingTrackIndex == 0);
+    REQUIRE (snapshot.armedRecordingTrackInputs.size() == 2u);
+    REQUIRE (snapshot.armedRecordingTrackInputs[0].trackIndex == 1u);   // first armed = primary
+    REQUIRE (snapshot.armedRecordingTrackInputs[1].trackIndex == 0u);
+    REQUIRE (snapshot.context.selectedRecordingTrackIndex == 1);
 
+    // Disarming row 0 leaves row 1 armed; disarming row 1 empties the set.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.armedRecordingTrackInputs.size() == 1u);
+    REQUIRE (snapshot.armedRecordingTrackInputs.front().trackIndex == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.armedRecordingTrackInputs.empty());
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBeforeArm);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));   // back on the first row
 
     // The marker-remove chord moved to Ctrl+Shift+M: M adds a Marker at the playhead, Shift+M only
     // mutes, and Ctrl+Shift+M removes the Marker.

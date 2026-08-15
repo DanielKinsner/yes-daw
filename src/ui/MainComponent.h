@@ -89,6 +89,9 @@ struct MainComponentSnapshot
     UiActionContext context;
     UiRecordingDeviceSelection recordingDevice;
     UiRecordingTrackInputSelection recordingTrackInput;
+    // M11: the whole arm SET as the shell reads it, in arm order (recordingTrackInput above is
+    // its first entry — the primary).
+    std::vector<UiRecordingTrackInputSelection> armedRecordingTrackInputs;
     // E30: the armed input's live meter peak as the shell reads it.
     float liveInputMeterPeak = 0.0f;
     UiRecordedAudioTake lastRecordedAudioTake;
