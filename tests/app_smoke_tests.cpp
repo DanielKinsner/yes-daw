@@ -1066,6 +1066,83 @@ TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recordin
     REQUIRE (persisted.midiClips.size() == midiClipsBefore + 1u);
     REQUIRE (persisted.midiClips.back().notes.size() == 1u);
 
+    // ------------------------------------------------------- M12: loop cycles beyond cycle 0
+    // A LOOP capture commits one MidiClip per cycle that carries notes, beside that cycle's own
+    // audio take — E34 dropped everything after the first cycle.
+    const std::size_t midiClipsBeforeLoop = app.project().midiClips.size();
+    const std::size_t takesBeforeLoop = app.project().recordingTakes.size();
+    REQUIRE (app.setPlaybackLoopRegion (0, 8).dispatched);
+    REQUIRE (app.context().loopEnabled);
+
+    // 8-frame loop, 8 frames of input latency: device frame F lands on cycle (F-8)/8 at tick
+    // (F-8)%8, and anything before device frame 8 is pre-roll the mapping must reject.
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 8, 0));
+    std::array<float, 64> loopInput {};
+    loopInput.fill (0.25f);
+    const float* loopInputs[1] = { loopInput.data() };
+    std::array<float, 64> loopOutLeft {};
+    std::array<float, 64> loopOutRight {};
+    std::array<float*, 2> loopOutputs { loopOutLeft.data(), loopOutRight.data() };
+    REQUIRE (app.processDeviceAudioBlock (loopInputs, 1, loopOutputs.data(), 2, 64));
+    app.drainRealRecordingCapture();
+
+    REQUIRE (app.captureMidiEventDuringRecording ({ 11, 60, 0.9f, 2 }));   // cycle 0, tick 3
+    REQUIRE (app.captureMidiEventDuringRecording ({ 26, 62, 0.9f, 2 }));   // cycle 2, tick 2
+    REQUIRE (app.captureMidiEventDuringRecording ({ 51, 65, 0.9f, 2 }));   // cycle 5, tick 3
+    REQUIRE (app.captureMidiEventDuringRecording ({ 2, 40, 0.9f, 2 }));    // pre-roll: rejected
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+
+    // Seven cycles of audio (device frames 8..63 map to cycles 0..6) and THREE MidiClips — one
+    // per cycle that carried a note, each on the armed track at that cycle's own position.
+    REQUIRE (app.project().recordingTakes.size() == takesBeforeLoop + 7u);
+    std::vector<yesdaw::engine::MidiClip> loopClips;
+    for (std::size_t i = midiClipsBeforeLoop; i < app.project().midiClips.size(); ++i)
+        loopClips.push_back (app.project().midiClips[i]);
+    REQUIRE (loopClips.size() == 3u);
+
+    // Cycle order, clip-relative ticks, and the loop-normalised placement (every cycle's take
+    // sits at the same timeline window — the E32 take-stack law, now shared by MIDI).
+    REQUIRE (loopClips[0].notes.size() == 1u);
+    REQUIRE (loopClips[0].notes.front().key == 60);
+    REQUIRE (loopClips[0].notes.front().startTick == 3);
+    REQUIRE (loopClips[1].notes.size() == 1u);
+    REQUIRE (loopClips[1].notes.front().key == 62);
+    REQUIRE (loopClips[1].notes.front().startTick == 2);
+    REQUIRE (loopClips[2].notes.size() == 1u);
+    REQUIRE (loopClips[2].notes.front().key == 65);
+    REQUIRE (loopClips[2].notes.front().startTick == 3);
+    for (const yesdaw::engine::MidiClip& loopClip : loopClips)
+    {
+        REQUIRE (loopClip.timelineStart == 0);
+        REQUIRE (loopClip.timelineLength == 8);
+        REQUIRE (loopClip.trackId == app.project().tracks.front().id);
+        for (const yesdaw::engine::Note& note : loopClip.notes)
+            REQUIRE (note.key != 40);   // the pre-roll note never lands, in any cycle
+    }
+
+    // Each MidiClip shares its cycle's audio take window exactly.
+    {
+        const Project loopPersisted = [&bundlePath] ()
+        {
+            Project snapshot;
+            ProjectBundleDb verify;
+            REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+            REQUIRE (verify.readProjectSnapshot (snapshot).ok());
+            return snapshot;
+        }();
+        REQUIRE (loopPersisted.midiClips.size() == midiClipsBeforeLoop + 3u);
+        for (const yesdaw::engine::MidiClip& loopClip : loopClips)
+        {
+            bool matchedAudioWindow = false;
+            for (const yesdaw::engine::Clip& audioClip : loopPersisted.clips)
+                matchedAudioWindow = matchedAudioWindow
+                                  || (audioClip.trackId == loopClip.trackId
+                                      && audioClip.timelineStart == loopClip.timelineStart
+                                      && audioClip.timelineLength == loopClip.timelineLength);
+            REQUIRE (matchedAudioWindow);
+        }
+    }
+
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }

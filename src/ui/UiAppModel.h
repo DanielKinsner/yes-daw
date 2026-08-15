@@ -701,6 +701,9 @@ public:
         {
             std::int64_t startFrame = -1;
             const std::vector<float>* samples = nullptr;
+            // M12: the H5 take ordinal this buffer came from — 0 for the first cycle, N for
+            // loop cycle N. Captured MIDI is placed against the SAME ordinal.
+            std::uint32_t captureOrdinal = 0;
         };
         struct PendingSlotTakes
         {
@@ -717,10 +720,15 @@ public:
             PendingSlotTakes pending;
             pending.slotIndex = index;
             if (slot.interleaved.size() / slotChannels > 0 && slot.timelineStartFrame >= 0)
-                pending.takes.push_back ({ slot.timelineStartFrame, &slot.interleaved });
-            for (const CaptureLoopTake& loopTake : slot.loopTakes)
+                pending.takes.push_back ({ slot.timelineStartFrame, &slot.interleaved, 0u });
+            for (std::size_t cycle = 0; cycle < slot.loopTakes.size(); ++cycle)
+            {
+                const CaptureLoopTake& loopTake = slot.loopTakes[cycle];
                 if (loopTake.startFrame >= 0 && loopTake.samples.size() / slotChannels > 0)
-                    pending.takes.push_back ({ loopTake.startFrame, &loopTake.samples });
+                    pending.takes.push_back ({ loopTake.startFrame,
+                                              &loopTake.samples,
+                                              static_cast<std::uint32_t> (cycle + 1u) });
+            }
             if (! pending.takes.empty())
                 pendingSlots.push_back (std::move (pending));
         }
@@ -761,11 +769,13 @@ public:
                 request.monitoringPolicy =
                     engineMonitoringPolicyForUi (context_.selectedRecordingMonitoringPolicy);
 
-                // E34: the LAST take's commit also places the MIDI captured during the session
+                // E34: the take's commit also places the MIDI captured during the session
                 // (mapped through the same recording window as the audio). M11: MIDI rides the
-                // PRIMARY armed Track — the one the MIDI input is stamped against.
+                // PRIMARY armed Track — the one the MIDI input is stamped against. M12: EVERY
+                // cycle's take places its own cycle's notes, so a loop capture keeps the MIDI
+                // it played after the first pass.
+                const std::uint32_t cycleOrdinal = pendingSlot.takes[pending].captureOrdinal;
                 const bool placesCapturedMidi = pendingSlot.slotIndex == 0
-                                             && pending == pendingSlot.takes.size() - 1u
                                              && ! capturedMidi_.empty();
                 UiRecordedMidiTake placedMidiTake;
                 if (placesCapturedMidi)
@@ -777,8 +787,8 @@ public:
                         { return allocateSessionEntityId (seedByte, project); },
                         [this] (engine::Project& project) -> engine::Track&
                         { return ensureDefaultAudioTrack (project); },
-                        [this, &placedMidiTake] (engine::Project& nextProject)
-                        { placedMidiTake = appendCapturedMidiTake (nextProject); });
+                        [this, &placedMidiTake, cycleOrdinal] (engine::Project& nextProject)
+                        { placedMidiTake = appendCapturedMidiTake (nextProject, cycleOrdinal); });
                 else
                     commit = app::commitRecordedAudioTake (
                         bundleDb_,
@@ -1573,8 +1583,11 @@ private:
     // part of the canonical recorded-audio service (the packaged checker must not produce it).
     // E34: place the session's captured MIDI as a real MidiClip on the take's track — device
     // frames map through the SAME recording window as the audio (compensated, punch/loop
-    // aware; loop cycles beyond the first are honest-scope dropped), notes clip-relative.
-    [[nodiscard]] UiRecordedMidiTake appendCapturedMidiTake (engine::Project& nextProject)
+    // aware), notes clip-relative.
+    // M12: this runs once per CYCLE of a loop capture, beside that cycle's own audio take —
+    // only the notes whose mapped H5 take ordinal IS this cycle's land here.
+    [[nodiscard]] UiRecordedMidiTake appendCapturedMidiTake (engine::Project& nextProject,
+                                                             std::uint32_t cycleOrdinal)
     {
         const engine::Clip& clip = nextProject.clips.back();
 
@@ -1592,7 +1605,7 @@ private:
             std::uint32_t takeOrdinal = 0;
             if (! engine::mapDeviceInputFrameToRecordingFrame (
                     captureSlots_[0].config, event.deviceInputFrame, timelineFrame, takeOrdinal)
-                || takeOrdinal != 0u
+                || takeOrdinal != cycleOrdinal
                 || timelineFrame < clip.timelineStart
                 || timelineFrame >= clip.timelineStart + clip.timelineLength)
                 continue;
