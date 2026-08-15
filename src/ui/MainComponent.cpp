@@ -7773,38 +7773,69 @@ private:
         refreshingMixerControls = false;
     }
 
+    // N2: the strip every readout describes — the one the user SELECTED (tracks first, then
+    // buses), falling back to the first strip when nothing is selected. Before N2 they all read
+    // surface.tracks.front() regardless, so selecting track 3 left the panel reporting track 1.
+    // Every readout NAMES the strip it describes, so it can never claim to be about another one.
+    [[nodiscard]] static const yesdaw::ui::UiMixerStrip* readoutStripFor (
+        const yesdaw::ui::UiMixerSurfaceSnapshot& surface, int selectedOrdinal) noexcept
+    {
+        const std::size_t trackCount = surface.tracks.size();
+        const std::size_t stripTotal = trackCount + surface.buses.size();
+        if (stripTotal == 0)
+            return nullptr;
+
+        const std::size_t ordinal =
+            selectedOrdinal >= 0 && static_cast<std::size_t> (selectedOrdinal) < stripTotal
+                ? static_cast<std::size_t> (selectedOrdinal)
+                : 0;
+        return ordinal < trackCount ? &surface.tracks[ordinal]
+                                    : &surface.buses[ordinal - trackCount];
+    }
+
+    [[nodiscard]] static juce::String readoutStripName (const yesdaw::ui::UiMixerStrip& strip)
+    {
+        if (! strip.name.empty())
+            return juce::String (strip.name);
+
+        return strip.kind == yesdaw::ui::UiMixerTargetKind::Bus ? "Bus 1" : "Track 1";
+    }
+
     [[nodiscard]] juce::String mixerMetersReadoutText() const
     {
         const auto surface = currentMixerSurface();
-        if (surface.tracks.empty())
+        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
+        if (strip == nullptr)
             return "Meters: no Track";
 
         // E24: a shipped readout speaks user language — no raw engine node ids.
-        const auto& track = surface.tracks.front();
-        juce::String text = juce::String (track.name.empty() ? "Track 1" : track.name) + " meters:";
+        juce::String text = readoutStripName (*strip) + " meters:";
 
-        if (! track.meter.valid)
+        if (! strip->meter.valid)
             return text + " peak n/a";
 
         return text
-            + " L " + juce::String (track.meter.peakLeft, 2)
-            + " R " + juce::String (track.meter.peakRight, 2);
+            + " L " + juce::String (strip->meter.peakLeft, 2)
+            + " R " + juce::String (strip->meter.peakRight, 2);
     }
 
     [[nodiscard]] juce::String mixerSendsReadoutText() const
     {
         const auto surface = currentMixerSurface();
-        if (surface.tracks.empty())
+        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
+        if (strip == nullptr)
             return "Sends: no Track";
 
-        const auto& track = surface.tracks.front();
-        if (track.sends.empty())
-            return juce::String (track.name.empty() ? "Track 1" : track.name) + " sends: none";
+        // A Bus carries no sends in this model — say so instead of reporting some Track's.
+        if (strip->kind == yesdaw::ui::UiMixerTargetKind::Bus)
+            return readoutStripName (*strip) + " sends: n/a";
 
-        const yesdaw::ui::UiMixerSendReadout& send = track.sends.front();
-        return juce::String (track.name.empty() ? "Track 1" : track.name)
+        if (strip->sends.empty())
+            return readoutStripName (*strip) + " sends: none";
+
+        const yesdaw::ui::UiMixerSendReadout& send = strip->sends.front();
+        return readoutStripName (*strip)
              + " Send " + juce::String (static_cast<int> (send.sendOrdinal))
-             + " node " + juce::String (static_cast<int> (send.faderNodeId))
              + " level " + juce::String (send.normalizedLevel, 2)
              + " points " + juce::String (static_cast<int> (send.breakpointCount));
     }
@@ -7842,18 +7873,17 @@ private:
     [[nodiscard]] juce::String mixerFxSlotsReadoutText() const
     {
         const auto surface = currentMixerSurface();
-        if (surface.tracks.empty())
+        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
+        if (strip == nullptr)
             return "FX: no Track";
 
-        const auto& track = surface.tracks.front();
-        if (track.fxSlots.empty())
-            return juce::String (track.name.empty() ? "Track 1" : track.name) + " FX: none";
+        if (strip->fxSlots.empty())
+            return readoutStripName (*strip) + " FX: none";
 
-        const yesdaw::ui::UiMixerFxSlotReadout& slot = track.fxSlots.front();
-        return juce::String (track.name.empty() ? "Track 1" : track.name)
+        const yesdaw::ui::UiMixerFxSlotReadout& slot = strip->fxSlots.front();
+        return readoutStripName (*strip)
              + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
              + " " + juce::String (fxKindName (slot.kind))
-             + " node " + juce::String (static_cast<int> (slot.fxNodeId))
              + " params " + juce::String (static_cast<int> (slot.parameterCount))
              + (slot.enabled ? " on" : " off");
     }
@@ -7861,12 +7891,12 @@ private:
     [[nodiscard]] juce::String mixerGainReductionReadoutText() const
     {
         const auto surface = currentMixerSurface();
-        if (surface.tracks.empty())
+        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
+        if (strip == nullptr)
             return "GR: no Track";
 
-        const auto& track = surface.tracks.front();
         const yesdaw::ui::UiMixerFxSlotReadout* readout = nullptr;
-        for (const yesdaw::ui::UiMixerFxSlotReadout& slot : track.fxSlots)
+        for (const yesdaw::ui::UiMixerFxSlotReadout& slot : strip->fxSlots)
         {
             if (slot.gainReductionValid || slot.gainReductionAvailable)
             {
@@ -7876,12 +7906,11 @@ private:
         }
 
         if (readout == nullptr)
-            return juce::String (track.name.empty() ? "Track 1" : track.name) + " GR: none";
+            return readoutStripName (*strip) + " GR: none";
 
-        juce::String text = juce::String (track.name.empty() ? "Track 1" : track.name)
+        juce::String text = readoutStripName (*strip)
             + " GR " + juce::String (static_cast<int> (readout->slotOrdinal))
-            + " " + juce::String (fxKindName (readout->kind))
-            + " node " + juce::String (static_cast<int> (readout->fxNodeId));
+            + " " + juce::String (fxKindName (readout->kind));
 
         if (readout->gainReductionValid)
             return text + " " + juce::String (readout->gainReductionDb, 2) + " dB";
@@ -7895,15 +7924,20 @@ private:
         if (surface.buses.empty())
             return "Bus FX: no Bus";
 
-        const auto& bus = surface.buses.front();
+        // N2: this one is Bus-specific by design — it follows the SELECTED bus, and falls back to
+        // the first bus only when the selection is not a bus at all.
+        const auto* selected = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
+        const yesdaw::ui::UiMixerStrip& bus =
+            selected != nullptr && selected->kind == yesdaw::ui::UiMixerTargetKind::Bus
+                ? *selected
+                : surface.buses.front();
         if (bus.fxSlots.empty())
-            return juce::String (bus.name.empty() ? "Bus 1" : bus.name) + " FX: none";
+            return readoutStripName (bus) + " FX: none";
 
         const yesdaw::ui::UiMixerFxSlotReadout& slot = bus.fxSlots.front();
-        return juce::String (bus.name.empty() ? "Bus 1" : bus.name)
+        return readoutStripName (bus)
              + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
              + " " + juce::String (fxKindName (slot.kind))
-             + " node " + juce::String (static_cast<int> (slot.fxNodeId))
              + " params " + juce::String (static_cast<int> (slot.parameterCount))
              + (slot.enabled ? " on" : " off");
     }

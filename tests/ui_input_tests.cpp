@@ -1802,7 +1802,9 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.automationLanes.size() == 1u);
     const auto sendFaderNodeId = projectMixerSendLevelNodeIdForTrack (project.tracks.front().id, 0);
-    REQUIRE (sends.getButtonText().contains (juce::String (static_cast<int> (sendFaderNodeId))));
+    // N2 re-pin: the readout no longer prints the engine node id at the user.
+    REQUIRE_FALSE (sends.getButtonText().contains (juce::String (static_cast<int> (sendFaderNodeId))));
+    REQUIRE_FALSE (sends.getButtonText().contains (" node "));
     REQUIRE (sends.getButtonText().contains ("level 0.60"));
     REQUIRE (sends.getButtonText().contains ("points 2"));
 
@@ -1944,7 +1946,9 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
     const auto fxNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain.front().id,
                                                        ProjectMixerNodeRole::Fx);
-    REQUIRE (fxSlots.getButtonText().contains (juce::String (static_cast<int> (fxNodeId))));
+    // N2 re-pin: the readout no longer prints the engine node id at the user.
+    REQUIRE_FALSE (fxSlots.getButtonText().contains (juce::String (static_cast<int> (fxNodeId))));
+    REQUIRE_FALSE (fxSlots.getButtonText().contains (" node "));
     REQUIRE (fxSlots.getButtonText().contains ("params 1"));
     REQUIRE (fxSlots.getButtonText().contains ("on"));
 
@@ -2051,7 +2055,9 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an actio
     REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Compressor);
     const auto compressorNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain[1].id,
                                                                ProjectMixerNodeRole::Fx);
-    REQUIRE (gr.getButtonText().contains (juce::String (static_cast<int> (compressorNodeId))));
+    // N2 re-pin: the readout no longer prints the engine node id at the user.
+    REQUIRE_FALSE (gr.getButtonText().contains (juce::String (static_cast<int> (compressorNodeId))));
+    REQUIRE_FALSE (gr.getButtonText().contains (" node "));
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (gr);
@@ -2090,7 +2096,9 @@ TEST_CASE ("H16 CP6 UI input harness reads first Bus FX slot through an action-b
     REQUIRE (project.buses.front().strip.fxChain.size() == 1u);
     const auto busFxNodeId = projectMixerNodeIdForEntity (project.buses.front().strip.fxChain.front().id,
                                                          ProjectMixerNodeRole::Fx);
-    REQUIRE (busFxSlots.getButtonText().contains (juce::String (static_cast<int> (busFxNodeId))));
+    // N2 re-pin: the readout no longer prints the engine node id at the user.
+    REQUIRE_FALSE (busFxSlots.getButtonText().contains (juce::String (static_cast<int> (busFxNodeId))));
+    REQUIRE_FALSE (busFxSlots.getButtonText().contains (" node "));
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
     clickButton (busFxSlots);
@@ -5259,6 +5267,127 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     shell->setSize (1152, 720);
     REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0).isEmpty());
+}
+
+// N2 — the mixer's readouts describe the strip you SELECTED. Before N2 all five read
+// surface.tracks.front() no matter what was selected, so selecting track 3 left the panel
+// reporting "Audio 1 …", and three of them printed a raw engine node id at the user.
+TEST_CASE ("N2 every mixer readout names the selected strip and prints no engine node ids",
+           "[ui][input][shell][mixer][mixer-readouts]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-readouts");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+
+    juce::Button& meters = requireButtonForAction (*shell, UiActionId::MixerReadMeters);
+    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
+    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
+    juce::Button& gainReduction = requireButtonForAction (*shell, UiActionId::MixerReadGainReduction);
+    juce::Button& busFxSlots = requireButtonForAction (*shell, UiActionId::MixerReadBusFxSlots);
+
+    // Distinct FX per strip, so a readout that follows the wrong strip cannot accidentally agree.
+    const int stripTotal = 4;   // three tracks plus the bus
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, stripTotal));
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, stripTotal));
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                              juce::sendNotificationSync);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 3, stripTotal));
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1,
+                              juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+        REQUIRE (seeded.tracks[0].strip.fxChain.empty());
+        REQUIRE (seeded.tracks[1].strip.fxChain.size() == 1u);
+        REQUIRE (seeded.tracks[2].strip.fxChain.size() == 1u);
+        REQUIRE (seeded.buses.front().strip.fxChain.size() == 1u);
+    }
+
+    const auto readoutTexts = [&] {
+        return std::array<juce::String, 5> { meters.getButtonText(), sends.getButtonText(),
+                                             fxSlots.getButtonText(), gainReduction.getButtonText(),
+                                             busFxSlots.getButtonText() };
+    };
+
+    // The THIRD track: every strip-following readout names it, and none names track 1.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, stripTotal));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
+    {
+        const auto texts = readoutTexts();
+        for (std::size_t i = 0; i < 4u; ++i)   // meters, sends, fx, GR follow the selection
+        {
+            INFO ("readout " << i << ": " << texts[i]);
+            REQUIRE (texts[i].contains ("Audio 3"));
+            REQUIRE_FALSE (texts[i].contains ("Audio 1"));
+        }
+        REQUIRE (texts[2].contains ("Compressor"));   // the third track's insert, not the second's
+        REQUIRE_FALSE (texts[2].contains ("EQ"));
+    }
+
+    // The SECOND track.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, stripTotal));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+    {
+        const auto texts = readoutTexts();
+        for (std::size_t i = 0; i < 4u; ++i)
+        {
+            INFO ("readout " << i << ": " << texts[i]);
+            REQUIRE (texts[i].contains ("Audio 2"));
+            REQUIRE_FALSE (texts[i].contains ("Audio 3"));
+        }
+        REQUIRE (texts[2].contains ("EQ"));
+    }
+
+    // A BUS selection: the readouts describe the bus, and say honestly that a bus has no sends.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 3, stripTotal));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 3);
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        const juce::String busName (project.buses.front().strip.name);
+        REQUIRE_FALSE (busName.isEmpty());
+        const auto texts = readoutTexts();
+        REQUIRE (texts[0].contains (busName));            // meters
+        REQUIRE (texts[1].contains (busName));            // sends
+        REQUIRE (texts[1].contains ("n/a"));              // a Bus has no sends in this model
+        REQUIRE (texts[2].contains (busName));            // FX
+        REQUIRE (texts[2].contains ("Reverb"));
+        REQUIRE (texts[4].contains (busName));            // the Bus FX readout
+        for (const juce::String& text : texts)
+            REQUIRE_FALSE (text.contains ("Audio 1"));
+    }
+
+    // No readout, in any selection, prints an engine node id at the user.
+    for (int stripIndex = 0; stripIndex < stripTotal; ++stripIndex)
+    {
+        mouseDownAt (*strips, paintedStripCentre (*strips, stripIndex, stripTotal));
+        for (const juce::String& text : readoutTexts())
+        {
+            INFO ("strip " << stripIndex << " readout: " << text);
+            REQUIRE_FALSE (text.contains (" node "));
+        }
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 // N1 — Mute and Solo are real controls on EVERY strip. Before N1 the painted S/M cells were drawn
