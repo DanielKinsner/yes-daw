@@ -713,7 +713,37 @@ take's comp segment, undo/redo bit-identical). MODEL HALF ALSO DONE (committed):
 selected) — all green under the `[take-switch]` gate (3-take loop stack: list → switch → exact
 gains → ONE undo restores; delete → takes-1/clips-1 → undo restores). E33 IS CERTIFIED (CI run `31670095158` green on `0a7857f`; ticked in the backlog).
 
-## 2026-08-14 mix-truth & strip-parity run (in progress)
+## 2026-08-15 mixer-surface & arrangement run (in progress)
+
+Canonical list: `docs/goals/2026-08-15-mixer-surface-and-arrangement-backlog.md` — 8 items N1–N8 in
+four phases: the mixer stops being a debug console (N1–N3), automation you can trust (N4–N5),
+arrangement ergonomics (N6–N7), recording completeness (N8). Process rules unchanged (the 2026-08-11
++ 2026-08-12 briefs, verbatim).
+
+**Carve evidence (2026-08-15):** fresh adversarial audit of current `main` (head `db361b4`) reading
+the real paint/control code AND judging rendered shipped-shell screenshots at 1920×1080. Load-bearing
+findings, each quoted with `file:line` in the backlog doc:
+
+- **The mixer's control surface is a debug console wired to the wrong track.** Five shipped readouts
+  (`Audio 1 meters: peak n/a`, `… sends: none`, `… FX: none`, `… GR: none`, `Bus FX: no Bus`) all read
+  `surface.tracks.front()`, not the selection — select track 3 and the panel still reports track 1 —
+  and one of them prints a raw engine node id into the UI. Beside them the real verbs live as a column
+  of unlabelled `…` buttons.
+- **The selected strip's Mute/Solo are the wrong widget type:** `juce::ToggleButton`s configured with
+  `setButtonText` and TextButton colour ids, so they render as two blank checkboxes with a truncated
+  `..` label. Unselected strips paint a clean `S`/`M`; the strip you are working on is the broken one.
+- **The Mixer wastes ~65% of a 1920×1080 window** (three ~100 px strips far left, master island far
+  right, ~1250 px of dead black between) and the strips are ~9:1 tall.
+- **The automation lane is detached and mislabelled:** one global strip floating above ALL clips
+  rather than a sub-lane of its track row, with a header hardwired to `tracks.front()` + "Track fader"
+  while the canvas edits the SELECTED track's chosen target.
+- **Automation is draw-only** — no Read/Touch/Latch/Write anywhere in the model, so a fader ride
+  during playback is lost.
+- **No track height and no track colour** exist in `Track`/`MixerStripState` at all (four tracks fill
+  a 1080p window), and **no punch region** is reachable — the engine's `punchStartFrame/EndFrame` only
+  ever carry the count-in boundary.
+
+## 2026-08-14 mix-truth & strip-parity run (COMPLETE — M1–M14)
 
 Canonical list: `docs/goals/2026-08-14-mix-truth-and-strip-parity-backlog.md` — 14 items M1–M14 in
 five phases: MIDI through the strip (M1–M3), a real mixer strip (M4–M6), honest paint (M7–M9),
