@@ -8,6 +8,7 @@
 #include "app/RecordingAssetCommit.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "engine/ProjectMixerProjection.h"   // M13: the shared FX-insert node factory
 #include "engine/ProjectUndo.h"
 #include "engine/Recording.h"
 #include "io/WavFile.h"
@@ -420,6 +421,65 @@ public:
                     for (int frame = 0; frame < numFrames; ++frame)
                         dest[frame] += source[frame];
                 }
+            }
+        }
+
+        // M13: LatencyCompensated monitoring — the armed pick runs through the ARMED TRACK'S OWN
+        // STRIP DSP (pan/FX/fader, in the strip's order), so the performer hears the mix path and
+        // the monitored signal carries exactly the strip's own latency — the same delay the
+        // recorded take will have when it plays back through that strip. The chain is built and
+        // prepared on the control thread and published as a pointer; the audio thread only copies,
+        // calls the same Node::process the graph calls, and sums. No allocation, no locks.
+        MonitorChain* const monitorChain = audioMonitorChain_.load (std::memory_order_acquire);
+        if (monitorChain != nullptr
+            && inputChannels != nullptr
+            && numInputChannels > 0
+            && numFrames <= monitorChain->maxBlockSize
+            && monitorChain->baseChannel >= 0
+            && monitorChain->baseChannel + monitorChain->pickWidth <= numInputChannels)
+        {
+            float* const* const chainChannels = monitorChain->channelPointers.data();
+            for (int channel = 0; channel < kMonitorChainChannels; ++channel)
+            {
+                float* const dest = chainChannels[channel];
+                const float* const source = channel < monitorChain->pickWidth
+                    ? inputChannels[monitorChain->baseChannel + channel]
+                    : nullptr;
+                if (source != nullptr)
+                {
+                    for (int frame = 0; frame < numFrames; ++frame)
+                        dest[frame] = source[frame];
+                }
+                else
+                {
+                    for (int frame = 0; frame < numFrames; ++frame)
+                        dest[frame] = 0.0f;
+                }
+            }
+
+            engine::EventStream monitorEvents;
+            engine::Transport monitorTransport;
+            monitorTransport.projectSampleRate = engine::SampleRate { monitorChain->sampleRateHz };
+            monitorTransport.timelineFrame = playback->playheadFrame();
+            monitorTransport.hasTimelineFrame = true;
+            monitorTransport.isPlaying = playback->isPlaying();
+            const engine::ProcessArgs monitorArgs {
+                engine::AudioBlock { chainChannels, kMonitorChainChannels },
+                monitorEvents,
+                monitorTransport,
+                numFrames
+            };
+            for (const std::unique_ptr<engine::Node>& node : monitorChain->nodes)
+                node->process (monitorArgs);
+
+            for (int out = 0; out < numOutputChannels; ++out)
+            {
+                float* const dest = outputChannels[out];
+                const float* const source = chainChannels[std::min (out, kMonitorChainChannels - 1)];
+                if (dest == nullptr || source == nullptr)
+                    continue;
+                for (int frame = 0; frame < numFrames; ++frame)
+                    dest[frame] += source[frame];
             }
         }
         return true;
@@ -874,6 +934,14 @@ public:
         result.status = UiAppRecordStatus::Ok;
         return result;
     }
+    // M13: the compensation the LatencyCompensated monitor path currently carries, in samples —
+    // the armed Track strip's own reported latency. 0 when no compensated path is live.
+    [[nodiscard]] std::int64_t monitorCompensatedLatencySamples() const noexcept
+    {
+        const MonitorChain* const chain = audioMonitorChain_.load (std::memory_order_acquire);
+        return chain != nullptr ? chain->latencySamples : 0;
+    }
+
     // E30: the armed input's live block peak (0 when unarmed) — UI meter fuel.
     [[nodiscard]] float inputMeterPeak() const noexcept
     {
@@ -6032,6 +6100,10 @@ private:
         context_.selectedRecordingInputStereoPair = false;
         context_.isRecording = false;
         // E30/E31: no armed pick — the live input meters read silent and monitoring stops.
+        // M13: the compensated path goes with it (a chain with no armed input is a lie).
+        audioMonitorChain_.store (nullptr, std::memory_order_release);
+        monitorChain_.reset();
+        monitorChainBuilt_ = false;
         armedPickCount_.store (0u, std::memory_order_release);
         for (std::size_t index = 0; index < kMaxArmedRecordingTracks; ++index)
         {
@@ -6045,6 +6117,155 @@ private:
     {
         static const UiRecordingTrackInputSelection unarmed {};
         return armedTrackInputs_.empty() ? unarmed : armedTrackInputs_.front();
+    }
+
+    // M13: the LatencyCompensated monitor path — the armed Track's strip DSP applied to the
+    // monitored input. Always stereo: PanNode widens/balances to 2 channels, exactly as the
+    // strip does in the graph.
+    static constexpr int kMonitorChainChannels = 2;
+    struct MonitorChain
+    {
+        std::vector<std::unique_ptr<engine::Node>> nodes;   // the strip's order, head first
+        std::array<std::vector<float>, kMonitorChainChannels> channelBuffers;
+        std::array<float*, kMonitorChainChannels> channelPointers {};
+        int baseChannel = 0;
+        int pickWidth = 1;
+        int maxBlockSize = 0;
+        double sampleRateHz = 0.0;
+        std::int64_t latencySamples = 0;
+    };
+
+    // M13: what the live compensated monitor path depends on. Everything here changes the DSP, so
+    // the chain is rebuilt only when this changes — a strip edit, an arm change, a re-pick, a
+    // policy change or a device change, never on every context sync.
+    struct MonitorChainSignature
+    {
+        UiRecordingMonitoringPolicy policy = UiRecordingMonitoringPolicy::Unselected;
+        engine::EntityId trackId;
+        std::uint16_t inputChannel = 0;
+        bool stereoPair = false;
+        int maxBlockSize = 0;
+        double sampleRateHz = 0.0;
+        engine::MixerStripState strip;
+
+        friend bool operator== (const MonitorChainSignature&, const MonitorChainSignature&) = default;
+    };
+
+    [[nodiscard]] MonitorChainSignature currentMonitorChainSignature() const
+    {
+        MonitorChainSignature signature;
+        signature.policy = context_.selectedRecordingMonitoringPolicy;
+        if (armedTrackInputs_.empty() || ! recordingDevice_.selected)
+            return signature;
+
+        const UiRecordingTrackInputSelection& primary = armedTrackInputs_.front();
+        const engine::Track* const track = findTrack (primary.trackId);
+        if (track == nullptr)
+            return signature;
+
+        signature.trackId = primary.trackId;
+        signature.inputChannel = primary.inputChannel;
+        signature.stereoPair = primary.stereoPair;
+        signature.maxBlockSize = playbackMaxBlockSize_;
+        signature.sampleRateHz = recordingDevice_.sampleRate.hz;
+        signature.strip = track->strip;
+        return signature;
+    }
+
+    // CONTROL THREAD: (re)build the compensated monitor chain. Node construction, parameter
+    // application and prepare() all happen here — the audio thread only ever processes a fully
+    // prepared chain. Published under the SAME audio-suspend seam a playback swap uses.
+    void rebuildMonitorChain()
+    {
+        MonitorChainSignature signature = currentMonitorChainSignature();
+        if (monitorChainBuilt_ && signature == monitorChainSignature_)
+            return;
+
+        monitorChainSignature_ = signature;
+        monitorChainBuilt_ = true;
+
+        std::unique_ptr<MonitorChain> next;
+        if (signature.policy == UiRecordingMonitoringPolicy::LatencyCompensated
+            && signature.trackId.isValid()
+            && signature.sampleRateHz > 0.0
+            && signature.maxBlockSize > 0)
+        {
+            next = buildMonitorChain (signature);
+        }
+
+        if (playbackReplacementWillBegin_)
+            playbackReplacementWillBegin_();
+
+        audioMonitorChain_.store (nullptr, std::memory_order_release);
+        monitorChain_ = std::move (next);
+        audioMonitorChain_.store (monitorChain_.get(), std::memory_order_release);
+
+        if (playbackReplacementDidEnd_)
+            playbackReplacementDidEnd_();
+    }
+
+    [[nodiscard]] std::unique_ptr<MonitorChain> buildMonitorChain (const MonitorChainSignature& signature)
+    {
+        auto chain = std::make_unique<MonitorChain>();
+        chain->baseChannel = static_cast<int> (signature.inputChannel);
+        chain->pickWidth = signature.stereoPair ? 2 : 1;
+        chain->maxBlockSize = signature.maxBlockSize;
+        chain->sampleRateHz = signature.sampleRateHz;
+
+        // The strip's own order (MixerGraphProjection): with inserts it is Pan -> FX... -> Fader;
+        // without them it is Fader -> Pan. A mono pick widens equal-power, a stereo pair balances
+        // — the same ADR-0042 law the Track's own source width picks.
+        const engine::PanNode::Mode panMode = chain->pickWidth == 2
+            ? engine::PanNode::Mode::Balance
+            : engine::PanNode::Mode::Widen;
+        engine::NodeId nodeId = 1u;
+        if (! signature.strip.fxChain.empty())
+        {
+            auto pan = std::make_unique<engine::PanNode> (nodeId++, panMode);
+            pan->setPan (signature.strip.pan);
+            chain->nodes.push_back (std::move (pan));
+
+            for (const engine::FxInsert& insert : signature.strip.fxChain)
+            {
+                std::unique_ptr<engine::Node> fx =
+                    engine::detail::makeProjectFxInsertNode (insert, nodeId++);
+                if (fx == nullptr)
+                    return nullptr;
+                chain->nodes.push_back (std::move (fx));
+            }
+
+            auto fader = std::make_unique<engine::FaderNode> (nodeId++, kMonitorChainChannels);
+            fader->setTargetGain (signature.strip.linearGain);
+            chain->nodes.push_back (std::move (fader));
+        }
+        else
+        {
+            auto fader = std::make_unique<engine::FaderNode> (nodeId++, chain->pickWidth);
+            fader->setTargetGain (signature.strip.linearGain);
+            chain->nodes.push_back (std::move (fader));
+
+            auto pan = std::make_unique<engine::PanNode> (nodeId++, panMode);
+            pan->setPan (signature.strip.pan);
+            chain->nodes.push_back (std::move (pan));
+        }
+
+        chain->latencySamples = 0;
+        for (const std::unique_ptr<engine::Node>& node : chain->nodes)
+        {
+            // Gains and pans are snapped by prepare(), so the monitor path never opens with a
+            // 5 ms ramp up from the previous chain's value.
+            node->prepare (chain->sampleRateHz, chain->maxBlockSize);
+            chain->latencySamples += node->properties().latencySamples;
+        }
+
+        for (int channel = 0; channel < kMonitorChainChannels; ++channel)
+        {
+            chain->channelBuffers[static_cast<std::size_t> (channel)]
+                .assign (static_cast<std::size_t> (chain->maxBlockSize), 0.0f);
+            chain->channelPointers[static_cast<std::size_t> (channel)] =
+                chain->channelBuffers[static_cast<std::size_t> (channel)].data();
+        }
+        return chain;
     }
 
     static void applyDeterministicTestDeviceProfile (UiRecordingDeviceSelection& device) noexcept
@@ -6136,10 +6357,12 @@ private:
             armedInputPeaks_[index].store (0.0f, std::memory_order_release);
         }
         armedPickCount_.store (armedTrackInputs_.size(), std::memory_order_release);
-        // E31: DirectInput is the ONLY policy that actually routes input to output.
+        // E31: DirectInput is the ONLY policy that routes the RAW input to the output.
         monitorDirectInput_.store (
             context_.selectedRecordingMonitoringPolicy == UiRecordingMonitoringPolicy::DirectInput,
             std::memory_order_release);
+        // M13: LatencyCompensated routes it through the armed Track's strip instead.
+        rebuildMonitorChain();
     }
 
     void syncRecordingCompContext() noexcept
@@ -6687,6 +6910,8 @@ private:
         ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
+        // M13: a strip edit changes the monitor path's DSP too.
+        rebuildMonitorChain();
         return true;
     }
 
@@ -6725,6 +6950,8 @@ private:
         ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
+        // M13: a strip edit changes the monitor path's DSP too.
+        rebuildMonitorChain();
         return true;
     }
 
@@ -7409,6 +7636,10 @@ private:
     std::atomic<std::size_t> armedPickCount_ { 0 };
     // E31: DirectInput monitoring routes the armed picks into the live outputs.
     std::atomic<bool> monitorDirectInput_ { false };
+    std::unique_ptr<MonitorChain> monitorChain_;
+    std::atomic<MonitorChain*> audioMonitorChain_ { nullptr };
+    MonitorChainSignature monitorChainSignature_ {};
+    bool monitorChainBuilt_ = false;
     // E32: loop-recording cycle buffers (index = H5 take ordinal - 1) and the session cap.
     static constexpr std::size_t kMaxLoopRecordingTakes = 8;
     struct CaptureLoopTake

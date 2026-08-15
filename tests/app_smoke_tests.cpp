@@ -7,6 +7,7 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -821,10 +822,14 @@ TEST_CASE ("DirectInput monitoring routes the armed pick into the live outputs; 
     REQUIRE (outLeft[0] == Approx (0.8f));
     REQUIRE (outRight[0] == Approx (0.25f));
 
-    // LatencyCompensated is an honest no-op; Off is truly off.
+    // M13 re-pin: LatencyCompensated used to be an honest no-op. It now routes the pick through
+    // the armed track's strip — which on THIS default strip (unity gain, centre pan, no inserts,
+    // stereo pair pick) is unity, so the pair still arrives channel-to-channel. Off is truly off.
+    // (The discriminating gain/pan/FX/latency assertions live in [monitor-compensated].)
     REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // LatencyCompensated
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
-    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (outLeft[0] == Approx (0.8f));
+    REQUIRE (outRight[0] == Approx (0.25f));
     REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // Off
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
     REQUIRE (outLeft[0] == 0.0f);
@@ -1142,6 +1147,109 @@ TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recordin
             REQUIRE (matchedAudioWindow);
         }
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("M13 latency-compensated monitoring runs the armed pick through the armed track's strip",
+           "[ui][app][recording][monitor-compensated]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("monitor-compensated");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0xC0FFEE01u, 48'000.0, 2, 128, 0, 0 }));
+    REQUIRE (app.setRecordingInputChannel (0, false));   // mono pick: channel 0
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+
+    std::array<float, 128> ch0 {};
+    std::array<float, 128> ch1 {};
+    ch0.fill (0.4f);
+    ch1.fill (0.9f);
+    std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    // DirectInput is the RAW pick: no strip, no compensation.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);
+    REQUIRE (app.context().selectedRecordingMonitoringPolicy
+             == yesdaw::ui::UiRecordingMonitoringPolicy::DirectInput);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.4f));
+    REQUIRE (outRight[0] == Approx (0.4f));
+    REQUIRE (app.monitorCompensatedLatencySamples() == 0);   // no compensated path is live
+
+    // The armed track's strip: half gain, centre pan.
+    REQUIRE (app.selectMixerTrack (0));
+    REQUIRE (app.setSelectedMixerFader (0.5f).dispatched);
+
+    // LatencyCompensated: the SAME pick, but through the strip — the fader applies and the mono
+    // pick widens equal-power at centre (ADR-0042), so it is emphatically not the direct signal.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);
+    REQUIRE (app.context().selectedRecordingMonitoringPolicy
+             == yesdaw::ui::UiRecordingMonitoringPolicy::LatencyCompensated);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    const float centreGain = 0.4f * 0.5f * 0.70710678f;
+    REQUIRE (outLeft[0] == Approx (centreGain));
+    REQUIRE (outRight[0] == Approx (centreGain));
+    REQUIRE (outLeft[127] == Approx (centreGain));
+    REQUIRE (outLeft[0] != Approx (0.4f));
+
+    // The strip's pan applies too: hard left silences the right side of the monitor path.
+    REQUIRE (app.setSelectedMixerPan (-1.0f).dispatched);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.4f * 0.5f));
+    REQUIRE (std::abs (outRight[0]) < 1.0e-9f);   // equal-power sin at the extreme
+
+    // The strip's FX apply, and their reported latency IS the compensation: a Limiter's 5 ms
+    // lookahead at 48 kHz delays the monitored signal by exactly 240 frames.
+    REQUIRE (app.addFxInsertToSelectedStrip (yesdaw::engine::FxKind::Limiter).dispatched);
+    REQUIRE (app.project().tracks.front().strip.fxChain.size() == 1u);
+    REQUIRE (app.monitorCompensatedLatencySamples() == 240);
+
+    // Block 1 (frames 0..127) is still inside the lookahead: silence.
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    for (int frame = 0; frame < 128; ++frame)
+        REQUIRE (std::abs (outLeft[frame]) < 1.0e-9f);
+
+    // Block 2 crosses frame 240: silent up to it, then the strip value.
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (std::abs (outLeft[111]) < 1.0e-9f);
+    REQUIRE (outLeft[112] == Approx (0.4f * 0.5f));
+    REQUIRE (outLeft[127] == Approx (0.4f * 0.5f));
+
+    // Block 3 is fully past the compensation.
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == Approx (0.4f * 0.5f));
+    REQUIRE (outLeft[127] == Approx (0.4f * 0.5f));
+    REQUIRE (std::abs (outRight[127]) < 1.0e-9f);
+
+    // Off is off, and disarming kills the compensated path even with the policy still set.
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // Off
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (outRight[0] == 0.0f);
+    REQUIRE (app.monitorCompensatedLatencySamples() == 0);
+
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // DirectInput
+    REQUIRE (app.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);   // LatencyCompensated
+    REQUIRE (app.monitorCompensatedLatencySamples() == 240);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);              // disarm
+    REQUIRE (app.monitorCompensatedLatencySamples() == 0);
+    REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    REQUIRE (outLeft[0] == 0.0f);
+    REQUIRE (outRight[0] == 0.0f);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
