@@ -1130,10 +1130,33 @@ M11 is certified: exact-head GitHub Actions run `31857667381` is green for full 
 `b5c896153b6a89527ea13d39d2fc1fde5f07515e` across all nine jobs, first try. M11 is ticked in the
 backlog.
 
-**Now:** M12 (loop-cycle MIDI beyond cycle 0) — next item, not started.
+**M12 implementation candidate — loop-cycle MIDI beyond cycle 0:** audited the E34 placement path
+first. The MIDI hook ran ONCE, on the session's last audio take, and rejected any event whose
+mapped H5 take ordinal was not 0 (`appendCapturedMidiTake`) — so every note played after the first
+loop pass was silently dropped, even though its audio take was committed. The pending-take list
+had also LOST the H5 ordinal (sparse loop cycles are skipped when building it), so the ordinal had
+to be carried explicitly rather than inferred from the index.
 
-**Next:** M13 (latency-compensated monitoring), M14 (reality-lane Smoke 2 harness for one real
-VST3).
+Each pending capture buffer now carries the H5 take ordinal it came from, and the MIDI hook runs
+for EVERY cycle's take, placing only that cycle's notes. A loop capture commits one MidiClip per
+cycle that carried notes, beside that cycle's own audio take, sharing its exact window — MIDI now
+follows the same E32 take-stack law audio already did. The mapping itself is untouched, so
+pre-roll and out-of-punch events stay rejected in every cycle.
+
+`[midi-record]` extended (69 assertions): an 8-frame loop with 8 frames of input latency and notes
+in cycles 0, 2 and 5 commits exactly three MidiClips at the right clip-relative ticks (3, 2, 3),
+each matching an audio take's window on the armed track, with the pre-roll note landing in no
+cycle. **Red before at assertion 42** (one MidiClip where three were required).
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner-file ritual, hash verified).
+
+M12 is certified: exact-head GitHub Actions run `31858341164` is green for full SHA
+`b986434906cf188ed748484fa995a4bc58b61c01` across all nine jobs, first try. M12 is ticked in the
+backlog.
+
+**Now:** M13 (latency-compensated monitoring) — next item.
+
+**Next:** M14 (reality-lane Smoke 2 harness for one real VST3).
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

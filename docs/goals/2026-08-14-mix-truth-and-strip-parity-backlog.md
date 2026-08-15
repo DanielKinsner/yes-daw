@@ -273,7 +273,14 @@ evidence commit.
     each; each committed take carries EXACTLY its own picked channel's samples; ordinals and
     provenance are per track; disarming one mid-session drops only that track; undo removes all
     three as one step. Expected to fail before at the compiler (no arm-set API).
-12. [ ] **M12 — Loop-cycle MIDI beyond cycle 0.** E34 honestly dropped MIDI captured after the
+12. [x] **M12 — Loop-cycle MIDI beyond cycle 0.** DONE — feature `b986434`, exact-head nine-job CI
+    run `31858341164` green (first try), local 350/350. Each pending capture buffer now carries the
+    H5 take ordinal it came from (the pending list had LOST it — sparse cycles are skipped when
+    building it), and the MIDI hook runs for every cycle's take placing only that cycle's notes.
+    One MidiClip per cycle that carried notes, beside that cycle's own audio take, sharing its
+    exact window. The mapping is untouched, so pre-roll stays rejected in every cycle. Red before
+    at assertion 42 of the extended `[midi-record]` gate (one MidiClip where three were required).
+    Original spec: E34 honestly dropped MIDI captured after the
     first loop cycle. Map each cycle's MIDI events through the same per-cycle window audio already
     uses and commit one MidiClip per cycle alongside that cycle's audio take. *Gate:* extend
     `[midi-record]` — an 8-frame loop with events in cycles 0, 2 and 5 commits three MidiClips at
