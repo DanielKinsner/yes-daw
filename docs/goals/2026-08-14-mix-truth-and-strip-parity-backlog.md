@@ -251,7 +251,20 @@ evidence commit.
     `filesDropped` with real fixture paths at real coordinates on a 3-track project lands clips on
     the exact lane at the exact snapped tick, playback changes audibly, one undo removes them all,
     and a junk path is refused with the project byte-identical.
-11. [ ] **M11 — Multi-track record arm.** The arm model is single-track by construction (E28–E35
+11. [x] **M11 — Multi-track record arm.** DONE — feature `b5c8961`, exact-head nine-job CI run
+    `31857667381` green (first try), local 350/350. Arming ADDS a Track to an arm SET; each armed
+    Track owns a fixed capture slot (own SPSC FIFO, own picked channel window, own session
+    buffers) fed from the SAME device block under one shared recording window, and commits its own
+    take to its own Track with per-Track ordinals and provenance. Single-arm laws hold by
+    construction (the set IS the primary at size 1). Every armed row's badge lights and meters its
+    own input. The `[multi-arm]` gate (148 assertions) proves distinct picks land distinct samples
+    read back from the persisted WAVs; red before at assertion 18 (arming the third Track
+    retargeted the arm off the first). The Shift+R shell gate was re-pinned to the additive law.
+    **Honest substitution:** the gate below asked for "undo removes all three as one step" — a
+    recorded commit is not an undo step in this app (bundle-owned persistence, same law as an
+    import, see M10). The gate pins that real law instead and proves each take is removable with
+    the undoable `deleteRecordingTake` verb without touching the other armed Tracks' takes.
+    Original spec: the arm model is single-track by construction (E28–E35
     honest scope) — you cannot record a drum kit. Move to an arm SET: per-armed-track input channel
     picks, one capture buffer per armed track fed from the same device block, and one take per
     armed track at stop, each committed to its own track with the shared latency compensation. Keep

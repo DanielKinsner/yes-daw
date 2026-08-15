@@ -1079,17 +1079,61 @@ M10 is certified: exact-head GitHub Actions run `31852819727` is green for full 
 `fa459396aefab9e43185338b04b323a181d41300` across all nine jobs, first try. M10 is ticked in the
 backlog.
 
-**SESSION ENDED HERE (2026-08-14), not a hard stop.** M1–M10 are certified; the run stopped at a
-clean item boundary because the session ran out, not because of the 3-red rule or a Dan-only
-decision. Everything is committed and pushed, the working tree is clean, and the next agent starts
-at M11 with nothing to reconstruct.
+*(Session boundary at M10 — the run resumed the same day at M11. Not a hard stop; the 3-red rule
+was never hit.)*
 
-**Now:** M11 (multi-track record arm) — next item, not started. It is the largest remaining item:
-the arm model is single-track by construction (E28–E35), so it needs an arm SET, per-armed-track
-input picks, one capture buffer per armed track, and one take per armed track at stop.
+**M11 implementation candidate — multi-track record arm:** audited the whole single-track arm
+spine before writing anything: `UiRecordingTrackInputSelection` was ONE struct
+(`recordingTrackInput_`), `toggleRecordingArmForTrack` *retargeted* rather than added, there was
+ONE capture FIFO + ONE config + ONE base channel + ONE set of session buffers, and
+`stopRealRecordingCaptureAndCommit` committed every pending take to that single track. You could
+not record a drum kit.
 
-**Next:** M12 (loop-cycle MIDI beyond cycle 0), M13 (latency-compensated monitoring), M14
-(reality-lane Smoke 2 harness for one real VST3).
+Arming now ADDS a Track to an arm SET. Each armed Track owns a fixed capture slot — its own SPSC
+FIFO, its own picked channel window (mono N or the pair N,N+1), its own session buffers — all fed
+from the SAME device block under ONE shared recording window (one count-in, one loop region, one
+latency model), so every take of a session lands on the same compensated frame. At stop each
+armed Track commits its own take to its own Track through the same shared commit service, with
+per-Track take ordinals and per-Track provenance. Every armed row's arm badge now lights and each
+armed row meters its OWN picked input (it used to be the primary's only).
+
+Single-arm laws hold by construction: with one armed Track the set IS the primary, so the context
+surface (`selectedRecordingTrackIndex`/`Channel`), the global input pick, captured MIDI, the comp
+filter and the deterministic test path keep their exact meaning. RT safety: slot storage is fixed
+and the slot count is published before the active flag, so the audio thread never allocates and
+never sees a half-built slot (RTSan green).
+
+New shipped-boundary `[multi-arm]` gate (148 assertions) on a 3-track project: a single-arm
+session first seeds one take on track 1 (proving the old law intact), then three armed Tracks with
+DISTINCT picks (mono ch0, mono ch3, the stereo pair (1,2)) record one deterministic block each —
+each committed take carries EXACTLY its own picked channel's samples read back out of the
+persisted float-WAV, track 1's ordinal continues at 1 while the others start at 0, provenance is
+per-Track, disarming one drops only that Track and silences only its meter, and arming or
+re-picking mid-capture is refused. **Red before at assertion 18** (`selectedRecordingTrackIndex`
+was 2 where 0 was required — arming the third Track had retargeted the arm off the first).
+
+HONEST SUBSTITUTION, not a weakened gate: the backlog asked for "undo removes all three as one
+step". A recorded commit is NOT an undo step in this app — it is bundle-owned persistence, exactly
+like an import (M10 recorded the same law). Faking it would mean changing that law under cover of
+a recording item. The gate instead pins the real law — a multi-track commit clears the undo stack
+exactly as a single-track one does — and proves each take is removable with the shipped
+`deleteRecordingTake` verb, which IS undoable, without touching the other armed Tracks' takes.
+
+The Shift+R shell gate was re-pinned to the additive law (it previously pinned retargeting) and is
+now strictly stronger: it proves two rows armed at once, the first armed row staying primary, and
+disarming one row leaving the other armed.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+M11 is certified: exact-head GitHub Actions run `31857667381` is green for full SHA
+`b5c896153b6a89527ea13d39d2fc1fde5f07515e` across all nine jobs, first try. M11 is ticked in the
+backlog.
+
+**Now:** M12 (loop-cycle MIDI beyond cycle 0) — next item, not started.
+
+**Next:** M13 (latency-compensated monitoring), M14 (reality-lane Smoke 2 harness for one real
+VST3).
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 
