@@ -1079,6 +1079,11 @@ M10 is certified: exact-head GitHub Actions run `31852819727` is green for full 
 `fa459396aefab9e43185338b04b323a181d41300` across all nine jobs, first try. M10 is ticked in the
 backlog.
 
+**SESSION ENDED HERE (2026-08-14), not a hard stop.** M1–M10 are certified; the run stopped at a
+clean item boundary because the session ran out, not because of the 3-red rule or a Dan-only
+decision. Everything is committed and pushed, the working tree is clean, and the next agent starts
+at M11 with nothing to reconstruct.
+
 **Now:** M11 (multi-track record arm) — next item, not started. It is the largest remaining item:
 the arm model is single-track by construction (E28–E35), so it needs an arm SET, per-armed-track
 input picks, one capture buffer per armed track, and one take per armed track at stop.
