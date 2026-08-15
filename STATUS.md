@@ -1154,9 +1154,41 @@ M12 is certified: exact-head GitHub Actions run `31858341164` is green for full 
 `b986434906cf188ed748484fa995a4bc58b61c01` across all nine jobs, first try. M12 is ticked in the
 backlog.
 
-**Now:** M13 (latency-compensated monitoring) — next item.
+**M13 implementation candidate — latency-compensated monitoring:** audited the E31 monitoring path
+and the strip's own DSP order first. `LatencyCompensated` was a shipped chooser value that did
+NOTHING (only `DirectInput` set `monitorDirectInput_`), so choosing it silenced monitoring — a
+dishonest control. The strip's order in `MixerGraphProjection` is NOT uniform: with inserts it is
+Pan → FX… → Fader, without them Fader → Pan; the monitor path has to mirror that or it is not the
+strip.
 
-**Next:** M14 (reality-lane Smoke 2 harness for one real VST3).
+The compensated policy now routes the armed pick through the armed Track's OWN strip DSP, built
+from the same FX-insert node factory (`makeProjectFxInsertNode`) and the same ADR-0042
+widen/balance law the graph uses. The performer hears the mix path — fader, pan, FX colour — and
+the monitored signal carries exactly the strip's own reported latency, which is the same delay the
+recorded take will have when it plays back through that strip.
+
+RT-safety (non-negotiable, and RTSan is green): the chain is constructed, parameterised and
+prepared on the CONTROL thread and published as a pointer under the same audio-suspend seam a
+playback swap uses; the audio thread only copies the picked window, calls the same `Node::process`
+the graph calls, and sums. No allocation, no locks. Rebuilds are signature-guarded (policy, armed
+track, pick, strip state, block size, device rate), so an ordinary context sync costs nothing.
+
+New shipped-boundary `[monitor-compensated]` gate (183 assertions): DirectInput gives the RAW pick;
+LatencyCompensated on a half-gain centre strip gives pick × 0.5 × cos(π/4); hard-left pan silences
+the right side; adding a Limiter insert makes the reported compensation exactly 240 samples (5 ms
+lookahead at 48 kHz) and the monitored signal appears exactly 240 frames late; Off and disarm kill
+the path. **Red before at assertion 22** (silence where the strip value was required) — proven by
+reverting the implementation and re-running, plus the compile-fail on the new accessor. The E31
+`[monitoring]` gate's "LatencyCompensated is an honest no-op" line is re-pinned: on a unity default
+strip the pair still arrives channel-to-channel.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner-file ritual, hash verified).
+
+M13 is certified: exact-head GitHub Actions run `31859274754` is green for full SHA
+`852365141019e9060afb5011cf14e29d4ee40e70` across all nine jobs, first try. M13 is ticked in the
+backlog.
+
+**Now:** M14 (reality-lane Smoke 2 harness for one real VST3) — the last item.
 
 ## RUN COMPLETE 2026-08-13 — the 2026-08-12 editing-first parity backlog is DONE (E1–E35)
 

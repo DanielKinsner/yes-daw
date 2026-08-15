@@ -288,7 +288,18 @@ evidence commit.
 
 ## Phase 5 — monitoring truth and the H18 precondition
 
-13. [ ] **M13 — Latency-compensated monitoring (honest subset).** `LatencyCompensated` is a shipped
+13. [x] **M13 — Latency-compensated monitoring (honest subset).** DONE — feature `8523651`,
+    exact-head nine-job CI run `31859274754` green (first try), local 350/350. The compensated
+    policy routes the armed pick through the armed Track's OWN strip DSP, in the strip's own order
+    (with inserts Pan → FX… → Fader, without them Fader → Pan), built from the same FX node factory
+    and the same ADR-0042 widen/balance law the graph uses — so the monitored signal carries the
+    strip's gain, pan, FX colour AND exactly the strip's own reported latency (the delay the
+    recorded take will have on playback). The chain is built and prepared on the control thread and
+    published under the audio-suspend seam; the audio thread only copies, processes and sums, so
+    RTSan stays green. `[monitor-compensated]` (183 assertions) pins it policy by policy; red before
+    at assertion 22 (silence where the strip value was required). The E31 `[monitoring]` no-op
+    assertion is re-pinned.
+    Original spec: `LatencyCompensated` is a shipped
     chooser value that does NOTHING (E31 left it an honest no-op) — a dishonest control. Honest
     subset: monitor the armed pick through the armed Track's strip so the performer hears the mix
     path (FX chain, fader, pan), with the strip's reported latency aligned against the transport so
