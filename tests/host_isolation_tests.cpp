@@ -613,7 +613,7 @@ RtLaneControlLoadProof computeRtLaneIdentityPassesControlLane()
     PluginHostCoordinator missingCoordinator;
     const auto missing =
         missingCoordinator.launchAndSendRtLaneLoadIdentity (juce::File (juce::String (workerPath)),
-                                                            { {}, loadConfig });
+                                                            { {}, loadConfig, {} });
     const auto missingStop = missingCoordinator.requestStopAndWait();
     proof.missingStatus = missing.status;
     proof.missingReplyStatus = missing.workerReplyStatus;
@@ -633,7 +633,7 @@ RtLaneControlLoadProof computeRtLaneIdentityPassesControlLane()
     PluginHostCoordinator absentCoordinator;
     const auto absent =
         absentCoordinator.launchAndSendRtLaneLoadIdentity (juce::File (juce::String (workerPath)),
-                                                           { absentName, loadConfig });
+                                                           { absentName, loadConfig, {} });
     const auto absentStop = absentCoordinator.requestStopAndWait();
     proof.absentStatus = absent.status;
     proof.absentReplyStatus = absent.workerReplyStatus;

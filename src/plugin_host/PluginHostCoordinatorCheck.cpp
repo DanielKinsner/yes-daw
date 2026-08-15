@@ -345,10 +345,11 @@ const char* statusName (yesdaw::plugin_host::RtLaneLoadReplyStatus status) noexc
 
     switch (status)
     {
-        case Status::none:                    return "none";
-        case Status::accepted:                return "accepted";
-        case Status::rejectedInvalidIdentity: return "rejectedInvalidIdentity";
-        case Status::rejectedAttachFailed:    return "rejectedAttachFailed";
+        case Status::none:                     return "none";
+        case Status::accepted:                 return "accepted";
+        case Status::rejectedInvalidIdentity:  return "rejectedInvalidIdentity";
+        case Status::rejectedAttachFailed:     return "rejectedAttachFailed";
+        case Status::rejectedPluginLoadFailed: return "rejectedPluginLoadFailed";
     }
 
     return "unknown";
@@ -1203,7 +1204,7 @@ int main (int argc, char** argv)
     const auto missingRtLaneIdentity =
         missingRtLaneIdentityCoordinator.launchAndSendRtLaneLoadIdentity (
             workerExecutable,
-            { {}, rtLaneLoadConfig });
+            { {}, rtLaneLoadConfig, {} });
     const auto missingRtLaneStop = missingRtLaneIdentityCoordinator.requestStopAndWait();
     if (missingRtLaneIdentity.status
             != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::workerRejected
@@ -1238,7 +1239,7 @@ int main (int argc, char** argv)
     const auto absentRtLaneIdentity =
         absentRtLaneIdentityCoordinator.launchAndSendRtLaneLoadIdentity (
             workerExecutable,
-            { absentRtLaneName, rtLaneLoadConfig });
+            { absentRtLaneName, rtLaneLoadConfig, {} });
     const auto absentRtLaneStop = absentRtLaneIdentityCoordinator.requestStopAndWait();
     if (absentRtLaneIdentity.status
             != yesdaw::plugin_host::PluginHostCoordinator::RtLaneLoadStatus::workerRejected
