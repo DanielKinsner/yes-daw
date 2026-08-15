@@ -704,6 +704,33 @@ juce::Point<int> timelineClipCenterPoint (juce::Component& timeline,
     return { x, y };
 }
 
+// The canvas geometry the SHELL is using right now, rebuilt from the same project state the shell
+// paints from — default-constructed state gives a different clip area and maps drop points wrong.
+yesdaw::ui::TimelineCanvasGeometry timelineGeometryForProject (juce::Component& timeline,
+                                                               const yesdaw::engine::Project& project)
+{
+    std::vector<yesdaw::ui::Clip> clips;
+    double endSeconds = 0.0;
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        const yesdaw::engine::Clip& clip = project.clips[i];
+        const double startSeconds = static_cast<double> (clip.timelineStart) / project.sampleRate.hz;
+        const double lengthSeconds = static_cast<double> (clip.timelineLength) / project.sampleRate.hz;
+        clips.push_back ({ static_cast<int> (i), timelineLaneForClip (project, clip), startSeconds, lengthSeconds });
+        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+    }
+
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = static_cast<int> (project.tracks.size());
+    state.clips = clips.empty() ? nullptr : clips.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.totalSeconds = std::max (1.0, endSeconds * 1.25);
+    state.viewport.scrollSeconds = 0.0;
+    state.viewport.pixelsPerSecond = static_cast<double> (std::max (1, timeline.getWidth() - 26))
+                                   / std::max (1.0, state.totalSeconds);
+    return yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+}
+
 // Lane-aware twin of the above: the historical helper always returns LANE 0's row (only x follows
 // the clip), which silently hits the wrong clip on a multi-lane project. This one lands on the
 // clip's OWN lane, honouring the E5 vertical scroll offset.
@@ -4963,6 +4990,103 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
         REQUIRE (peakOf (windowOf (withoutSend, 0, kMidiWindowEnd)) < baselineMidiPeak * 0.75);
         REQUIRE (windowOf (withoutSend, kAudioWindowStart, kAudioWindowEnd) == baselineAudio);
     }
+}
+
+// M10 — dropping files from the OS. There was no `FileDragAndDropTarget` anywhere in the shell:
+// the only way in was Ctrl+I, which always lands on the SELECTED track at the PLAYHEAD. A drop
+// carries its own target — the lane under the pointer and the tick under the pointer.
+TEST_CASE ("dropping audio files onto the timeline imports them where they land",
+           "[ui][input][shell][timeline][file-drop]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("file-drop");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+
+    // A WAV is interesting; a project file or a text file is not.
+    const juce::StringArray wavOnly { juce::String (fixturePath.string()) };
+    REQUIRE (dropTarget->isInterestedInFileDrag (wavOnly));
+    REQUIRE_FALSE (dropTarget->isInterestedInFileDrag (juce::StringArray { "C:/notes.txt" }));
+    REQUIRE_FALSE (dropTarget->isInterestedInFileDrag (juce::StringArray {}));
+
+    // Drop on the THIRD lane, a third of the way across the timeline: the clip lands on THAT
+    // track at the snapped tick under the pointer — not on the selected track at the playhead.
+    const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int laneHeight = juce::jmax (1, geometry.laneHeight);
+    const int thirdLaneY = geometry.clipArea.getY() + laneHeight * 2 + laneHeight / 2;
+    dropTarget->filesDropped (wavOnly, dropX, thirdLaneY);
+
+    yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
+    REQUIRE (dropped.clips.size() == 1u);
+    REQUIRE (dropped.clips.front().trackId == dropped.tracks[2].id);
+    REQUIRE (dropped.clips.front().timelineStart > 0);                   // not the playhead at zero
+    const yesdaw::engine::Tick droppedStart = dropped.clips.front().timelineStart;
+
+    // It is a REAL clip: the project plays it, and it is in the bundle on its own (every
+    // readProjectSnapshot here opens the bundle independently).
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered =
+            renderMainComponentPlayback (*shell, static_cast<std::uint64_t> (droppedStart) + 8'192, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.02);
+    }
+
+    // HONEST LAW, pinned rather than papered over: an import is NOT an undo step in this app —
+    // `addAudioAssetClipFromSource` clears the undo stack because the asset copy into the bundle is
+    // a filesystem act. A drop is an import, so it obeys the same law; removing a dropped clip is
+    // the Delete key's job, and THAT undoes.
+    REQUIRE (snapshotMainComponent (*shell).context.importCount == 1);
+    {
+        juce::Component& canvas = requireTimelineComponent (*shell);
+        const yesdaw::engine::Project current = readProjectSnapshot (bundlePath);
+        mouseDownAt (canvas, timelineClipCenterPointOnItsLane (canvas, current, 0u));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+        REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+        // ...and THAT is undoable, so the dropped clip comes back exactly where it landed.
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.clips.size() == 1u);
+        REQUIRE (restored.clips.front().timelineStart == droppedStart);
+        REQUIRE (restored.clips.front().trackId == restored.tracks[2].id);
+        mouseDownAt (canvas, timelineClipCenterPointOnItsLane (canvas, restored, 0u));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    }
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+
+    // Two files at once go onto CONSECUTIVE lanes from the drop point, both at the drop tick.
+    const juce::StringArray twoFiles { juce::String (fixturePath.string()),
+                                       juce::String (fixturePath.string()) };
+    const int firstLaneY = geometry.clipArea.getY() + laneHeight / 2;
+    dropTarget->filesDropped (twoFiles, dropX, firstLaneY);
+    dropped = readProjectSnapshot (bundlePath);
+    REQUIRE (dropped.clips.size() == 2u);
+    REQUIRE (dropped.clips[0].trackId == dropped.tracks[0].id);
+    REQUIRE (dropped.clips[1].trackId == dropped.tracks[1].id);
+    REQUIRE (dropped.clips[0].timelineStart == dropped.clips[1].timelineStart);
+
+    // A junk path is refused honestly: nothing imports, and the project is untouched.
+    const yesdaw::engine::Project beforeJunk = readProjectSnapshot (bundlePath);
+    dropTarget->filesDropped (juce::StringArray { "C:/does/not/exist.wav" }, dropX, firstLaneY);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == beforeJunk.clips.size());
+    (void) before;
 }
 
 // M6 — the fader scale tells the truth. The sliders travel 0..2 in linear gain, but the painted

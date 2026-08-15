@@ -1047,7 +1047,35 @@ M9 is certified: exact-head GitHub Actions run `31851814735` is green for full S
 `31ea2d0fe201d676408f12db9677af1e7bcac355` across all nine jobs, first try. M9 is ticked in the
 backlog — Phase 3 (honest paint) is complete.
 
-**Now:** M10 (OS file drag-and-drop) — next item, not started.
+**M10 implementation candidate — OS file drag-and-drop:** audited first: there was no
+`FileDragAndDropTarget` anywhere in `src/ui`; the only import path was Ctrl+I / the Import button,
+which always lands on the SELECTED track at the PLAYHEAD, and the shared import verb hard-coded the
+clip start to the playhead. The timeline input component is a drop target now:
+`isInterestedInFileDrag` accepts a drop only when a project is open and at least one file is a WAV,
+and `filesDropped` maps the drop POINT through the shipped canvas geometry to a lane and a snapped
+tick. The shared import verb gained an optional explicit start (every other caller keeps the
+playhead law), and a new `importAudioFileAt` model verb lands a file on a chosen track at a chosen
+tick. Several files at once go onto consecutive lanes from the drop point at the same tick; a file
+the WAV reader refuses is recorded and changes nothing.
+
+New shipped-boundary `[file-drop]` gate (79 assertions) on a 3-track project: a WAV is interesting
+and a .txt is not, an empty list is not; a drop on the THIRD lane a third of the way across lands
+on THAT track at a nonzero snapped tick and plays; two files land on consecutive lanes at the same
+tick; a junk path leaves the project untouched. Fail-before is structural (no drop target existed).
+
+HONEST LAW pinned by the gate rather than papered over: an import is NOT an undo step in this app —
+`addAudioAssetClipFromSource` clears the undo stack because copying the asset into the bundle is a
+filesystem act. A drop is an import, so it obeys the same law; the gate pins the import count and
+proves that DELETING a dropped clip is undoable and restores it exactly where it landed. Making
+imports undoable is a separate product decision, recorded here rather than faked.
+
+Also added a test-side geometry helper (`timelineGeometryForProject`): the drop coordinates must be
+computed from the SHELL's real canvas state, not a default-constructed one.
+
+Full local `ctest --test-dir build-ci` green **350/350** (owner's last-project record isolated and
+restored byte-identical, SHA-256 verified).
+
+**Now:** M10 committed locally; awaiting exact-head nine-job CI.
 
 **Next:** M11 (multi-track record arm), then M12–M14.
 

@@ -369,9 +369,41 @@ std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> decodeStoredProjectAssets
 } // namespace
 
 class TimelineInputComponent final : public juce::Component,
+                                     public juce::FileDragAndDropTarget,
                                      public juce::SettableTooltipClient
 {
 public:
+    // M10: dropping files from the OS. The drop POINT picks the track and the start tick; the
+    // shell decides what is importable and reports refusals honestly.
+    std::function<bool (const juce::StringArray&)> filesAreImportable;
+    std::function<void (const juce::StringArray&, int, double)> onFilesDropped;   // files, lane, seconds
+
+    bool isInterestedInFileDrag (const juce::StringArray& files) override
+    {
+        return filesAreImportable && filesAreImportable (files);
+    }
+
+    void filesDropped (const juce::StringArray& files, int x, int y) override
+    {
+        if (! onFilesDropped || ! stateProvider)
+            return;
+
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        if (state.trackCount <= 0 || geometry.laneHeight <= 0)
+            return;
+
+        const juce::Point<int> position { x, y };
+        const int lane = std::clamp (
+            (position.y - geometry.clipArea.getY()
+             + juce::roundToInt (geometry.viewport.laneScrollPixels))
+                / geometry.laneHeight,
+            0, state.trackCount - 1);
+        const double seconds = timelineSecondsAt (state, getLocalBounds(), position).value_or (0.0);
+        onFilesDropped (files, lane, seconds);
+    }
+
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
     std::function<yesdaw::ui::TimelineTool()> activeToolProvider;
     std::function<void (int, bool)> onClipClicked;
@@ -2832,6 +2864,62 @@ public:
         };
         timelineInput.onVerticalScrollRows = [this] (int rowDelta) {
             scrollTrackRowsBy (rowDelta);
+        };
+        // M10: OS file drops land on the track under the pointer at the snapped tick under the
+        // pointer. Several files go onto consecutive lanes in ONE undo group; anything the WAV
+        // reader refuses is reported and changes nothing.
+        timelineInput.filesAreImportable = [this] (const juce::StringArray& files) {
+            if (! appModel.context().projectLoaded || files.isEmpty())
+                return false;
+
+            for (const juce::String& file : files)
+                if (juce::File (file).hasFileExtension ("wav"))
+                    return true;
+
+            return false;
+        };
+        timelineInput.onFilesDropped = [this] (const juce::StringArray& files, int lane, double seconds) {
+            const auto& tracks = appModel.project().tracks;
+            if (lane < 0 || lane >= static_cast<int> (tracks.size()))
+                return;
+
+            const auto tick = timelineTickFromSeconds (seconds);
+            if (! tick.has_value())
+                return;
+
+            const yesdaw::engine::Tick start = snappedTimelineTick (*tick, false);
+            int laneOffset = 0;
+            bool anyImported = false;
+            for (const juce::String& file : files)
+            {
+                const std::filesystem::path path (file.toStdString());
+                auto decoded = decodeProjectWav (path);
+                if (! decoded)
+                {
+                    droppedFileRefusals.push_back (path.filename().string());
+                    continue;
+                }
+
+                const int targetLane = std::min (lane + laneOffset,
+                                                 static_cast<int> (appModel.project().tracks.size()) - 1);
+                const yesdaw::engine::EntityId trackId =
+                    appModel.project().tracks[static_cast<std::size_t> (targetLane)].id;
+                if (appModel.importAudioFileAt (path, std::move (*decoded), trackId, start).ok())
+                {
+                    anyImported = true;
+                    ++laneOffset;
+                }
+                else
+                {
+                    droppedFileRefusals.push_back (path.filename().string());
+                }
+            }
+
+            if (anyImported)
+                selectedTrackLane = lane;
+
+            refreshActionState();
+            repaint();
         };
         timelineInput.onPencilEmptyLane = [this] (int lane, double seconds) {
             const auto& tracks = appModel.project().tracks;
@@ -9667,6 +9755,7 @@ private:
     std::atomic<float> liveMasterPeakRight { 0.0f };
     std::vector<TrackRow> projectTimelineTracks;
     std::vector<yesdaw::ui::Clip> timelineClips;
+    std::vector<std::string> droppedFileRefusals;   // M10: files a drop could not import, in order
     std::vector<yesdaw::ui::TimelineClipNote> timelineClipNotes;   // M7: MIDI clip note previews
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;

@@ -1194,6 +1194,30 @@ public:
         return result;
     }
 
+    // M10: drop-targeted import — the file lands on the TRACK under the pointer at the tick under
+    // the pointer, instead of on the selected track at the playhead.
+    [[nodiscard]] UiAppImportResult importAudioFileAt (const std::filesystem::path& sourcePath,
+                                                       UiDecodedAsset decoded,
+                                                       engine::EntityId targetTrackId,
+                                                       engine::Tick timelineStart)
+    {
+        UiAppImportResult result = addAudioAssetClipFromSource (
+            sourcePath,
+            std::move (decoded),
+            targetTrackId,
+            0xA1u,
+            0xC1u,
+            timelineStart);
+
+        if (result.ok())
+        {
+            ++context_.importCount;
+            ++context_.commandDispatchCount;
+        }
+
+        return result;
+    }
+
     [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake (
         std::optional<engine::Tick> deferredTimelineStart = std::nullopt,
         bool servicingCountIn = false)
@@ -1473,7 +1497,8 @@ private:
                                                                  UiDecodedAsset decoded,
                                                                  std::optional<engine::EntityId> targetTrackId,
                                                                  std::uint8_t assetSeed,
-                                                                 std::uint8_t clipSeed)
+                                                                 std::uint8_t clipSeed,
+                                                                 std::optional<engine::Tick> timelineStart = std::nullopt)
     {
         UiAppImportResult result;
 
@@ -1529,7 +1554,11 @@ private:
         clip.trackId = placedTrackId;
         // Import lands at the PLAYHEAD (usable-DAW P1), the Pro Tools insertion-point model; the
         // playhead starts at zero, so a fresh project's first import still begins the timeline.
-        clip.timelineStart = static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
+        // M10: a dropped file starts where it was DROPPED; every other import keeps the historical
+        // playhead law.
+        clip.timelineStart = timelineStart.has_value()
+            ? std::max<engine::Tick> (0, *timelineStart)
+            : static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
         clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
         clip.srcOffset = 0;
         clip.srcLen = decoded.frames;
