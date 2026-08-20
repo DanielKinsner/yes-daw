@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 13;
+inline constexpr int          kCodeSchemaVersion = 14;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1238,13 +1238,23 @@ CREATE TABLE track_outputs (
 );
 )SQL";
 
+// N5: persisted automation write mode (locate-points / master_strip pattern — a v13 bundle
+// migrates by gaining the empty table, and a missing row keeps the historical Read-only
+// default, so default projects round-trip byte-identically).
+inline constexpr std::string_view kSchemaV14Sql = R"SQL(
+CREATE TABLE automation_mode (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  mode INTEGER NOT NULL CHECK (mode >= 0 AND mode <= 2)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 13> kMigrations {
+inline constexpr std::array<SchemaMigration, 14> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1258,6 +1268,7 @@ inline constexpr std::array<SchemaMigration, 13> kMigrations {
     SchemaMigration { 11, kSchemaV11Sql },
     SchemaMigration { 12, kSchemaV12Sql },
     SchemaMigration { 13, kSchemaV13Sql },
+    SchemaMigration { 14, kSchemaV14Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1863,7 +1874,7 @@ public:
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
-                "DELETE FROM master_strip; "
+                "DELETE FROM master_strip; DELETE FROM automation_mode; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2306,6 +2317,15 @@ public:
             detail::Statement masterStmt (db_, "INSERT INTO master_strip(slot, linear_gain) VALUES (1, ?);");
             if (auto result = masterStmt.bindDouble (1, static_cast<double> (project.masterLinearGain)); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, masterStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // N5: the automation-mode row is written only when it left the Read default, so a
+        // default project round-trips byte-identically with a legacy one.
+        if (project.automationMode != engine::AutomationMode::Read)
+        {
+            detail::Statement modeStmt (db_, "INSERT INTO automation_mode(slot, mode) VALUES (1, ?);");
+            if (auto result = modeStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.automationMode)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, modeStmt); ! result.ok()) { rollback(); return result; }
         }
 
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
@@ -3022,6 +3042,27 @@ public:
                 if (! engine::mixerGainIsValid (static_cast<float> (gain)))
                     return detail::semanticInvalid ("master_strip gain is outside the Project value range");
                 project.masterLinearGain = static_cast<float> (gain);
+            }
+            else if (step != SQLITE_DONE)
+            {
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+            }
+        }
+
+        // N5: the automation-mode row is optional — absent means the historical Read default.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT mode FROM automation_mode WHERE slot = 1;");
+                ! result.ok())
+                return result;
+
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+            {
+                const sqlite3_int64 mode = sqlite3_column_int64 (stmt.get(), 0);
+                if (mode < 0 || mode > 2)
+                    return detail::semanticInvalid ("automation_mode mode is outside the known enum range");
+                project.automationMode = static_cast<engine::AutomationMode> (mode);
             }
             else if (step != SQLITE_DONE)
             {

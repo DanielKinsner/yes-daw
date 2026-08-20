@@ -743,6 +743,8 @@ struct UiTheme
         static constexpr int automationTargetChooserLeftInset = automationBreakpointDeleteButtonLeftInset
                                                               + automationBreakpointDeleteButtonWidth + 8;
         static constexpr int automationTargetChooserWidth = 172;
+        // N5: the write-mode chooser (Read/Touch/Latch) — shorter labels than the target chooser.
+        static constexpr int automationModeChooserWidth = 88;
         static juce::Rectangle<int> automationTargetChooserBounds (juce::Rectangle<int> timeline) noexcept
         {
             return timeline.withTrimmedLeft (automationTargetChooserLeftInset)

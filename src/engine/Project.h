@@ -602,6 +602,25 @@ enum class AutomationTargetRole : std::uint8_t
            || role == AutomationTargetRole::FxInsertParam;
 }
 
+// N5: a per-project automation write mode. Read (the historical, only behaviour) plays back
+// existing breakpoints and never writes; Touch/Latch write new breakpoints from a live control
+// move while the transport rolls. Latch shares Touch's write-while-moving semantics today — full
+// "keep writing after release until playback stops" behaviour is deferred (honest subset, logged
+// in STATUS.md rather than faked).
+enum class AutomationMode : std::uint8_t
+{
+    Read = 0,
+    Touch = 1,
+    Latch = 2
+};
+
+[[nodiscard]] constexpr bool automationModeIsKnown (AutomationMode mode) noexcept
+{
+    return mode == AutomationMode::Read
+           || mode == AutomationMode::Touch
+           || mode == AutomationMode::Latch;
+}
+
 [[nodiscard]] constexpr bool automationStripParameterIdIsValid (AutomationTargetRole role, std::uint32_t paramId) noexcept
 {
     switch (role)
@@ -760,6 +779,9 @@ struct Project
     // E19: persisted master strip gain (schema v12, locate-points pattern: a missing row means
     // the historical unity default). Honest scope: gain only — no master FX chain, no master pan.
     float masterLinearGain = 1.0f;
+    // N5: persisted automation write mode (schema v14, locate-points pattern: a missing row
+    // means the historical Read-only default).
+    AutomationMode automationMode = AutomationMode::Read;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -2389,6 +2411,19 @@ namespace detail {
         return ProjectEditStatus::InvalidTrackMixState;
 
     project.masterLinearGain = linearGain;
+    return ProjectEditStatus::Applied;
+}
+
+// N5: the persisted automation write mode — one scalar, like the master strip gain.
+[[nodiscard]] inline ProjectEditStatus setAutomationMode (Project& project, AutomationMode mode)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! automationModeIsKnown (mode))
+        return ProjectEditStatus::InvalidProject;
+
+    project.automationMode = mode;
     return ProjectEditStatus::Applied;
 }
 

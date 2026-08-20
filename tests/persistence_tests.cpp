@@ -1347,8 +1347,8 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    // M3 re-pin: migrations now run through v13 (track_outputs).
-    REQUIRE (value == 13);
+    // N5 re-pin: migrations now run through v14 (automation_mode).
+    REQUIRE (value == kCodeSchemaVersion);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 10;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
@@ -1385,12 +1385,14 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // M3: a fresh bundle is v13 now — the v10 simulation also strips the v12/v13 artifacts.
+        // N5: a fresh bundle is v14 now — the v10 simulation also strips the v12/v13/v14 artifacts.
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
+            "DROP TABLE automation_mode; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
+            "DELETE FROM schema_migrations WHERE version = 14; "
             "PRAGMA user_version = 10;").ok());
     }
 
@@ -1398,8 +1400,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
     REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
-    // M3 re-pin: reopening migrates through v13 (track_outputs).
-    REQUIRE (value == 13);
+    // N5 re-pin: reopening migrates through v14 (automation_mode).
+    REQUIRE (value == kCodeSchemaVersion);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 11;", value).ok());
     REQUIRE (value == 1);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM locate_points;", value).ok());
@@ -1407,6 +1409,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM master_strip;", value).ok());
     REQUIRE (value == 0);
     REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM track_outputs;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM automation_mode;", value).ok());
     REQUIRE (value == 0);
 
     Project readback;

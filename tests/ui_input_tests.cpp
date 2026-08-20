@@ -1025,8 +1025,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
     // and recorded-channel pick + the E33 take chooser and delete button + the M3 track output
-    // chooser — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 129u));
+    // chooser + the N5 automation mode chooser — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 130u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -9886,6 +9886,153 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// N5 — automation write from a control move (Touch/Latch). Automation was draw-only: no
+// Read/Touch/Latch mode existed anywhere in the model, so a fader ride during playback was lost.
+// In Touch mode, rolling the transport and dragging the selected track's fader across a span
+// writes breakpoints at the MOVED ticks with the MOVED values, as one undo step; Read mode (the
+// default) writes nothing, matching today's behaviour exactly.
+TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one undo step; Read writes nothing",
+           "[ui][input][shell][automation-write]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-write");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    // Open the automation lane once, only to set the write mode through the shipped chooser —
+    // the ride itself does not require the lane to stay open (it keys on the persisted
+    // project.automationMode, not lane visibility). The toggle and the mode chooser both live
+    // only in Timeline view, so this happens BEFORE switching to the Mixer for the fader itself.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* modeChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.automation.mode"));
+    REQUIRE (modeChooser != nullptr);
+    REQUIRE (modeChooser->getItemText (0) == "Read");
+    REQUIRE (modeChooser->getItemText (1) == "Touch");
+    REQUIRE (modeChooser->getItemText (2) == "Latch");
+    modeChooser->setSelectedId (2, juce::sendNotificationSync);   // Touch
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Touch);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));   // close
+
+    // Select the SECOND track (index 1) in the mixer — the fader that follows must be its own,
+    // not track 1's.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 3));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (fader->isEnabled());
+
+    // Roll the transport, then move the fader across a span — three distinct positions, each
+    // separated by real rendered playback so the playhead genuinely advances between them (the
+    // deterministic equivalent of "moving the fader while the song plays").
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+
+    const juce::Point<int> bottom { fader->getWidth() / 2, fader->getHeight() - 4 };
+    const juce::Point<int> middle { fader->getWidth() / 2, fader->getHeight() / 2 };
+    const juce::Point<int> top { fader->getWidth() / 2, 4 };
+
+    juce::MouseEvent down = makeMouseEvent (*fader, bottom, bottom, false, 1);
+    fader->mouseDown (down);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+    (void) renderMainComponentPlayback (*shell, 4800, 128);
+    juce::MouseEvent dragMiddle = makeMouseEvent (*fader, middle, bottom, true, 1);
+    fader->mouseDrag (dragMiddle);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+    (void) renderMainComponentPlayback (*shell, 4800, 128);
+    juce::MouseEvent dragTop = makeMouseEvent (*fader, top, bottom, true, 1);
+    fader->mouseDrag (dragTop);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+    // Nothing is written to the project until the ride ends — the whole point of buffering
+    // client-side (see recordAutomationTouchSample's comment: committing per-tick would reset
+    // the transport on every write, collapsing every point to tick 0).
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+
+    juce::MouseEvent up = makeMouseEvent (*fader, top, bottom, true, 1);
+    fader->mouseUp (up);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+    // The whole ride landed as ONE undo-grouped edit: one lane, multiple breakpoints at DIFFERENT
+    // ticks with DIFFERENT (moved) values, owned by track 2 — not track 1.
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    const yesdaw::engine::AutomationLaneData& lane = project.automationLanes.front();
+    REQUIRE (lane.role == yesdaw::engine::AutomationTargetRole::TrackFader);
+    REQUIRE (lane.ownerEntity == project.tracks[1].id);
+    REQUIRE (lane.points.size() >= 2u);
+    for (std::size_t i = 1; i < lane.points.size(); ++i)
+    {
+        REQUIRE (lane.points[i].tick > lane.points[i - 1].tick);
+        REQUIRE (lane.points[i].value != lane.points[i - 1].value);
+    }
+    // The bottom-to-top drag raised gain: the LAST point's value is higher than the first's.
+    REQUIRE (lane.points.back().value > lane.points.front().value);
+
+    // The render follows the written automation — stopping and replaying from the top no longer
+    // matches a flat unity-gain render.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> automated = renderMainComponentPlayback (*shell, 48'000, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (peakAbs (std::span<const float> (automated.data(), automated.size())) > 0.0);
+
+    // One undo removes the WHOLE ride.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+    clickButton (requireButtonForAction (*shell, UiActionId::EditRedo));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+
+    // Read mode (the default, restored) writes NOTHING — a fader move during playback is a
+    // plain, immediate edit exactly like today, never an automation point.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // Timeline view, to reopen the lane
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    modeChooser->setSelectedId (1, juce::sendNotificationSync);   // Read
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Read);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    // Setting the mode is itself a project edit, which (like every edit in this engine) resets
+    // playback — so the transport rolls AFTER the mode switch, not before it.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    const float gainBeforeReadDrag = readProjectSnapshot (bundlePath).tracks[1].strip.linearGain;
+
+    juce::MouseEvent readDown = makeMouseEvent (*fader, top, top, false, 1);
+    fader->mouseDown (readDown);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    juce::MouseEvent readDrag = makeMouseEvent (*fader, bottom, top, true, 1);
+    fader->mouseDrag (readDrag);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    juce::MouseEvent readUp = makeMouseEvent (*fader, bottom, top, true, 1);
+    fader->mouseUp (readUp);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].strip.linearGain != gainBeforeReadDrag);
+
+    std::error_code ec2;
+    std::filesystem::remove_all (bundlePath, ec2);
 }
 
 TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",

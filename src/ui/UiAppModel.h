@@ -2815,6 +2815,19 @@ public:
         return { id, state, true };
     }
 
+    // N5: the selected mixer strip's Track id — invalid unless the selection is a Track (buses
+    // carry no automation lanes in this model). Lets a Touch/Latch fader/pan ride resolve which
+    // Track's automation lane to write to, independent of the timeline rail's own selection.
+    [[nodiscard]] engine::EntityId selectedMixerTargetTrackId() const noexcept
+    {
+        if (! context_.mixerTargetSelected || selectedMixerTarget_.kind != MixerTargetKind::Track)
+            return {};
+
+        return selectedMixerTarget_.index < project_.tracks.size()
+            ? project_.tracks[selectedMixerTarget_.index].id
+            : engine::EntityId {};
+    }
+
     // E16: the selected strip's display ordinal (tracks first, then buses) for lane placement.
     [[nodiscard]] int selectedMixerStripOrdinal() const noexcept
     {
@@ -5343,6 +5356,121 @@ public:
         ++context_.commandDispatchCount;
         ++context_.timelineAutomationBreakpointEditCount;
         return { id, state, true };
+    }
+
+    // N5: the persisted, undoable automation write mode (Read/Touch/Latch). No UiActionId — like
+    // the automation target chooser, this is a plain dropdown with no natural keyboard shortcut;
+    // enablement is decided directly (a project must be loaded), not through the registry.
+    [[nodiscard]] UiActionDispatchResult setAutomationMode (engine::AutomationMode mode)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        if (! context_.projectLoaded)
+            return { id, { false, "no project loaded" }, false };
+
+        if (! engine::automationModeIsKnown (mode))
+            return { id, { false, "invalid automation mode" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setAutomationMode (mode)).applied())
+            return { id, { false, "automation mode unchanged" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation mode did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        return { id, {}, true };
+    }
+
+    // N5: one sampled point of a live Touch/Latch control ride — (tick, normalized value).
+    struct AutomationTouchSample
+    {
+        engine::Tick tick = 0;
+        double value = 0.0;
+    };
+
+    // N5: commit an entire Touch/Latch "ride" — every breakpoint sampled during one continuous
+    // control move — as ONE undo step. addAutomationBreakpointToLane (above) resolves its lane
+    // against the LIVE project_, which would try to create a second lane on a second call within
+    // the same working copy; this resolves the lane ONCE against the working copy (nextProject)
+    // instead, then loops every sample into the SAME transaction group before adopting once. The
+    // caller (a mixer fader/pan drag) never calls adoptEditedProject mid-drag — every edit
+    // adoption resets the transport to stopped (resetContextForFreshPlayback), so writing on
+    // every drag tick would collapse "breakpoints across a span" to one point at tick 0. Sampling
+    // client-side and committing once, here, at the end of the ride is what makes multiple
+    // distinct tick positions possible at all.
+    [[nodiscard]] UiActionDispatchResult commitAutomationTouchRide (
+        engine::EntityId ownerEntity,
+        engine::AutomationTargetRole role,
+        std::uint32_t paramId,
+        const std::vector<AutomationTouchSample>& samples)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        if (! context_.projectLoaded || samples.empty() || ! ownerEntity.isValid())
+            return { id, { false, "no ride to commit" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const bool grouped = nextUndo.beginTransactionGroup();
+
+        engine::EntityId laneId;
+        const auto existingLane = std::find_if (
+            nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
+            [&] (const engine::AutomationLaneData& lane) {
+                return lane.ownerEntity == ownerEntity && lane.role == role && lane.paramId == paramId;
+            });
+        if (existingLane != nextProject.automationLanes.end())
+        {
+            laneId = existingLane->id;
+        }
+        else
+        {
+            laneId = allocateSessionEntityId (0xE2u, nextProject);
+            engine::ProjectEditCommand createLane;
+            createLane.verb = engine::ProjectEditVerb::AddAutomationLane;
+            createLane.automationLaneId = laneId;
+            createLane.automationOwnerId = ownerEntity;
+            createLane.automationRole = role;
+            createLane.automationParamId = paramId;
+            if (! nextUndo.apply (nextProject, createLane).applied())
+            {
+                if (grouped)
+                    (void) nextUndo.endTransactionGroup();
+                return { id, { false, "automation lane create failed" }, false };
+            }
+        }
+
+        bool ok = true;
+        for (const AutomationTouchSample& sample : samples)
+        {
+            if (sample.tick < 0 || ! std::isfinite (sample.value))
+            {
+                ok = false;
+                break;
+            }
+
+            const double clampedValue = std::clamp (sample.value, 0.0, 1.0);
+            ok = nextUndo.apply (nextProject,
+                                 engine::ProjectEditCommand::addAutomationBreakpoint (
+                                     laneId, sample.tick, clampedValue,
+                                     engine::AutomationCurveType::Linear))
+                     .applied();
+            if (! ok)
+                break;
+        }
+
+        if (grouped)
+            (void) nextUndo.endTransactionGroup();
+        if (! ok)
+            return { id, { false, "automation ride payload invalid" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation ride did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, {}, true };
     }
 
     [[nodiscard]] UiActionDispatchResult addFirstTrackAutomationBreakpoint (

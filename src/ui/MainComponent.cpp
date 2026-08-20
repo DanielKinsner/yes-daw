@@ -4458,6 +4458,29 @@ private:
         };
         addChildComponent (automationTargetChooser);
 
+        // N5: the automation write mode — Read (default, playback only) or Touch/Latch (a fader
+        // or pan drag during playback writes breakpoints instead of a plain edit).
+        automationModeChooser.setComponentID ("timeline.automation.mode");
+        automationModeChooser.setTooltip ("Automation write mode: Read plays back; Touch/Latch "
+                                          "record a fader/pan ride while the transport rolls");
+        automationModeChooser.addItem ("Read", 1);
+        automationModeChooser.addItem ("Touch", 2);
+        automationModeChooser.addItem ("Latch", 3);
+        automationModeChooser.onChange = [this] {
+            if (refreshingAutomationTarget)
+                return;
+
+            const int selected = automationModeChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+
+            (void) appModel.setAutomationMode (
+                static_cast<yesdaw::engine::AutomationMode> (selected - 1));
+            refreshActionState();
+            repaint();
+        };
+        addChildComponent (automationModeChooser);
+
         automationLaneRow.setComponentID (kAutomationLaneRowComponentId);
         automationLaneRow.setTooltip ("First Track automation lane row");
         automationLaneRow.setName ("First Track automation lane");
@@ -5284,7 +5307,12 @@ private:
             // drag-end closes (lazy so the very first mouse-down value change is included).
             if (mixerFader.isMouseButtonDown())
                 appModel.beginStripGesture();
-            (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
+            // N5: an armed Touch/Latch ride buffers the point instead of persisting it — see
+            // recordAutomationTouchSample for why persisting on every tick would break it.
+            if (automationTouchRideActive)
+                recordAutomationTouchSample (automationNormalizedForFaderGain (mixerFader.getValue()));
+            else
+                (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
             if (dragDbReadout.isVisible())
                 dragDbReadout.setText (dbReadoutText (mixerFader.getValue()), juce::dontSendNotification);
             refreshActionState();
@@ -5293,10 +5321,13 @@ private:
         // Live dB readout while the fader is dragged (B31); the rail VOL shares the same label.
         mixerFader.onDragStart = [this] {
             appModel.beginStripGesture();
+            beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackFader,
+                                             yesdaw::engine::FaderNode::kGainParameterId);
             showDragDbReadout (mixerFader.getBounds(), mixerFader.getValue());
         };
         // E21: the drag-end both closes the undo gesture and hides the dB readout.
         mixerFader.onDragEnd = [this] {
+            endAutomationTouchRideIfActive();
             appModel.endStripGesture();
             hideDragDbReadout();
         };
@@ -5326,8 +5357,15 @@ private:
         // Alt+click (or double-click) recentres the pan through the same persisted edit.
         mixerPan.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault);
         // E21: a pan drag is ONE undo step.
-        mixerPan.onDragStart = [this] { appModel.beginStripGesture(); };
-        mixerPan.onDragEnd = [this] { appModel.endStripGesture(); };
+        mixerPan.onDragStart = [this] {
+            appModel.beginStripGesture();
+            beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackPan,
+                                             yesdaw::engine::PanNode::kPanParameterId);
+        };
+        mixerPan.onDragEnd = [this] {
+            endAutomationTouchRideIfActive();
+            appModel.endStripGesture();
+        };
         mixerPan.onValueChange = [this] {
             if (refreshingMixerControls || ! mixerPan.isEnabled())
                 return;
@@ -5342,7 +5380,11 @@ private:
             const double snapped = std::round (mixerPan.getValue()
                                                / yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval)
                                  * yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval;
-            (void) appModel.setSelectedMixerPan (static_cast<float> (snapped));
+            // N5: an armed Touch/Latch ride buffers the point instead of persisting it.
+            if (automationTouchRideActive)
+                recordAutomationTouchSample (automationNormalizedForPan (snapped));
+            else
+                (void) appModel.setSelectedMixerPan (static_cast<float> (snapped));
             refreshActionState();
             repaint();
         };
@@ -6373,6 +6415,9 @@ private:
         auto header = band.removeFromTop (L::timelineCanvasAutomationHeaderHeight);
         automationTargetChooser.setBounds (
             header.removeFromRight (L::automationTargetChooserWidth));
+        header.removeFromRight (L::timelineCanvasAutomationHeaderGap);
+        automationModeChooser.setBounds (
+            header.removeFromRight (L::automationModeChooserWidth));
         header.removeFromRight (L::timelineCanvasAutomationHeaderGap);
         automationBreakpointDeleteButton.setBounds (
             header.removeFromRight (L::automationBreakpointDeleteButtonWidth));
@@ -7438,6 +7483,12 @@ private:
                                                    juce::dontSendNotification);
         automationTargetChooser.setVisible (laneVisible);
         automationTargetChooser.setEnabled (laneVisible && ! automationTargetOptions.empty());
+
+        // N5: the mode chooser reflects the persisted project.automationMode.
+        automationModeChooser.setSelectedId (
+            static_cast<int> (appModel.project().automationMode) + 1, juce::dontSendNotification);
+        automationModeChooser.setVisible (laneVisible);
+        automationModeChooser.setEnabled (laneVisible && appModel.context().projectLoaded);
         refreshingAutomationTarget = false;
 
         automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
@@ -7509,6 +7560,83 @@ private:
         const juce::String trackName = track->strip.name.empty() ? "Track 1" : juce::String (track->strip.name);
         const int breakpointCount = lane == nullptr ? 0 : static_cast<int> (lane->points.size());
         return trackName + " - " + target.label + " - " + juce::String (breakpointCount) + " breakpoints";
+    }
+
+    // N5: normalized [0,1] breakpoint value for a live linear-gain fader read, matching
+    // FaderNode::linearGainForNormalizedEvent's dB-range mapping exactly (its inverse) — so a
+    // point recorded here plays back at the SAME gain the fader was actually at.
+    [[nodiscard]] static double automationNormalizedForFaderGain (double linearGain) noexcept
+    {
+        const double gainDb = linearGain > 0.0
+            ? 20.0 * std::log10 (linearGain)
+            : yesdaw::engine::FaderNode::kMinGainDb;
+        return yesdaw::engine::unmapToNormalized (
+            yesdaw::engine::FaderNode::parameterSpec (yesdaw::engine::FaderNode::kGainParameterId),
+            gainDb);
+    }
+
+    // N5: normalized [0,1] breakpoint value for a live pan read, the exact inverse of
+    // PanNode::panForNormalizedEvent (-1..1 maps linearly to 0..1).
+    [[nodiscard]] static double automationNormalizedForPan (double pan) noexcept
+    {
+        return std::clamp ((pan + 1.0) / 2.0, 0.0, 1.0);
+    }
+
+    // N5: arm a Touch/Latch ride if the mode is armed AND the transport was already rolling when
+    // the drag started — moving a control while stopped, even in Touch/Latch mode, is just a
+    // normal edit (matches real-DAW semantics: Touch/Latch only writes DURING playback). Scoped
+    // to the mixer's selected TRACK strip only — buses carry no automation lanes in this model.
+    void beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole role, std::uint32_t paramId)
+    {
+        automationTouchRideActive = false;
+        automationTouchRideSamples.clear();
+
+        if (! appModel.context().projectLoaded || ! appModel.context().isPlaying)
+            return;
+        if (appModel.project().automationMode == yesdaw::engine::AutomationMode::Read)
+            return;
+
+        const yesdaw::engine::EntityId trackId = appModel.selectedMixerTargetTrackId();
+        if (! trackId.isValid())
+            return;
+
+        automationTouchRideActive = true;
+        automationTouchRideRole = role;
+        automationTouchRideParamId = paramId;
+        automationTouchRideTrackId = trackId;
+    }
+
+    // N5: sample the live playhead tick and the control's current value into the ride buffer.
+    // Deliberately does NOT touch project_/adoptEditedProject — every edit adoption resets the
+    // transport to stopped (resetContextForFreshPlayback), so committing per-tick would collapse
+    // every point in the ride to tick 0 after the very first write. Buffering client-side and
+    // committing once, at the end of the ride, is what makes "breakpoints across a moved span"
+    // possible at all.
+    void recordAutomationTouchSample (double normalizedValue)
+    {
+        if (! automationTouchRideActive || ! appModel.project().sampleRate.isValid())
+            return;
+
+        const yesdaw::engine::Tick tick = static_cast<yesdaw::engine::Tick> (
+            std::max<std::int64_t> (0, appModel.context().playheadFrame));
+        automationTouchRideSamples.push_back ({ tick, normalizedValue });
+    }
+
+    // N5: commit the whole buffered ride as ONE undo step (the actual project write happens
+    // here, and only here — see recordAutomationTouchSample's note on why).
+    void endAutomationTouchRideIfActive()
+    {
+        if (! automationTouchRideActive)
+            return;
+
+        automationTouchRideActive = false;
+        if (! automationTouchRideSamples.empty())
+            (void) appModel.commitAutomationTouchRide (
+                automationTouchRideTrackId, automationTouchRideRole, automationTouchRideParamId,
+                automationTouchRideSamples);
+        automationTouchRideSamples.clear();
+        refreshActionState();
+        repaint();
     }
 
     void refreshAutosaveRecoveryControls()
@@ -10063,6 +10191,14 @@ private:
     juce::ComboBox automationTargetChooser;
     juce::TextButton automationLaneToggle;
     juce::Label automationLaneRow;
+    // N5: the client-side Touch/Latch ride buffer — see beginAutomationTouchRideIfArmed().
+    juce::ComboBox automationModeChooser;
+    bool automationTouchRideActive = false;
+    yesdaw::engine::AutomationTargetRole automationTouchRideRole =
+        yesdaw::engine::AutomationTargetRole::TrackFader;
+    std::uint32_t automationTouchRideParamId = 0;
+    yesdaw::engine::EntityId automationTouchRideTrackId;
+    std::vector<yesdaw::ui::UiAppModel::AutomationTouchSample> automationTouchRideSamples;
     juce::TextButton automationBreakpointAddButton;
     juce::TextButton automationBreakpointDeleteButton;
     // E26: whether the lane controls were last laid out with the band reserved.

@@ -84,7 +84,9 @@ enum class ProjectEditVerb : std::uint8_t
     // E33: take management — removes the take, its clip, and comp segments referencing it
     RemoveRecordingTake,
     // M3: a Track's main output target (invalid bus id = master)
-    SetTrackOutput
+    SetTrackOutput,
+    // N5: the persisted automation write mode (Read/Touch/Latch)
+    SetAutomationMode
 };
 
 struct ProjectEditCommand
@@ -131,6 +133,7 @@ struct ProjectEditCommand
     Tick automationNewTick = 0;
     double automationValue = 0.0;
     AutomationCurveType automationCurveType = AutomationCurveType::Linear;
+    AutomationMode automationMode = AutomationMode::Read;
     // Arrangement verb payloads. trackName is a fixed array so the command stays trivially copyable;
     // names longer than the array are rejected at the factory, never silently truncated.
     EntityId trackId;
@@ -805,6 +808,15 @@ struct ProjectEditCommand
         return command;
     }
 
+    // N5: persisted automation write mode.
+    [[nodiscard]] static constexpr ProjectEditCommand setAutomationMode (AutomationMode mode) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetAutomationMode;
+        command.automationMode = mode;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -952,6 +964,13 @@ struct ProjectMasterGainDiff
     float after = 1.0f;
 };
 
+// N5: the automation mode is one scalar; the diff stores both values whole.
+struct ProjectAutomationModeDiff
+{
+    AutomationMode before = AutomationMode::Read;
+    AutomationMode after = AutomationMode::Read;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -966,6 +985,7 @@ struct ProjectEditTransaction
     ProjectTimeMapRowsDiff timeMapDiff;
     ProjectMarkerRowsDiff markerDiff;
     ProjectMasterGainDiff masterDiff;
+    ProjectAutomationModeDiff automationModeDiff;
 };
 
 struct ProjectEditApplyResult
@@ -1080,6 +1100,12 @@ namespace detail {
 [[nodiscard]] constexpr bool isMasterEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::SetMasterGain;
+}
+
+// N5: the automation-mode family (one scalar today: mode).
+[[nodiscard]] constexpr bool isAutomationModeEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::SetAutomationMode;
 }
 
 // E33: the take-removal verb owns the combined takes+clips+comp diff family.
@@ -1350,6 +1376,9 @@ namespace detail {
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);
 
+        case ProjectEditVerb::SetAutomationMode:
+            return setAutomationMode (project, command.automationMode);
+
         case ProjectEditVerb::RenameClip:
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;
@@ -1606,6 +1635,29 @@ namespace detail {
         return false;
 
     project.masterLinearGain = replacement;
+    return true;
+}
+
+// N5: automation mode diff — bit-exact scalar swap with the same expected-state guard.
+[[nodiscard]] inline bool buildProjectAutomationModeDiff (const Project& before,
+                                                          const Project& after,
+                                                          ProjectAutomationModeDiff& out)
+{
+    if (before.automationMode == after.automationMode)
+        return false;
+
+    out = {};
+    out.before = before.automationMode;
+    out.after = after.automationMode;
+    return true;
+}
+
+[[nodiscard]] inline bool applyAutomationModeDiff (Project& project, AutomationMode expected, AutomationMode replacement)
+{
+    if (project.automationMode != expected || ! automationModeIsKnown (replacement))
+        return false;
+
+    project.automationMode = replacement;
     return true;
 }
 
@@ -2026,6 +2078,13 @@ namespace detail {
                     : applyMasterGainDiff (project, diff.after, diff.before);
     }
 
+    if (isAutomationModeEditVerb (transaction.command.verb))
+    {
+        const ProjectAutomationModeDiff& diff = transaction.automationModeDiff;
+        return redo ? applyAutomationModeDiff (project, diff.before, diff.after)
+                    : applyAutomationModeDiff (project, diff.after, diff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -2065,6 +2124,8 @@ namespace detail {
         diffBuilt = detail::buildProjectMarkerRowsDiff (before, project, transaction.markerDiff);
     else if (detail::isMasterEditVerb (command.verb))
         diffBuilt = detail::buildProjectMasterGainDiff (before, project, transaction.masterDiff);
+    else if (detail::isAutomationModeEditVerb (command.verb))
+        diffBuilt = detail::buildProjectAutomationModeDiff (before, project, transaction.automationModeDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 
