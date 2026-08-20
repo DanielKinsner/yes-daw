@@ -148,6 +148,14 @@ struct MainComponentSnapshot
                                                    int stripIndex,
                                                    float linearGain);
 
+// N3: the painted mixer-strip lane rect (shell coordinates) for a track/bus strip, and the
+// master pane's rect — both come from the SAME single law, so master is always the next
+// contiguous slot after the last strip rather than a detached island. Empty rect when the strip
+// is out of range.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedMixerStripBounds (const juce::Component& component,
+                                                                          int stripIndex);
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Component& component);
+
 // M9: the header's master card rect (shell coordinates). Empty when the window is too narrow to
 // carry it — the card drops WHOLE rather than keeping a label over a clipped meter.
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component);

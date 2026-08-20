@@ -259,17 +259,12 @@ bool hasMixerSurfaceCoverage (const juce::Image& image)
                > 300u;
 }
 
-bool hasMixerMasterSummaryCoverage (const juce::Image& image)
+// N3: master no longer pins to the window's right edge — it is the strip immediately after
+// the last track/bus strip (0 strips here, so master paints at the FIRST lane, right after the
+// tools column). The caller passes the real painted master rect (mainComponentPaintedMixerMasterBounds)
+// instead of a hardcoded right-edge guess, so this can never drift from where master actually paints.
+bool hasMixerMasterSummaryCoverage (const juce::Image& image, juce::Rectangle<int> masterRegion)
 {
-    const int regionWidth = 104;
-    const juce::Rectangle<int> masterRegion {
-        image.getWidth() - regionWidth - yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
-        yesdaw::ui::UiTheme::Layout::headerHeight
-            + yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset,
-        regionWidth,
-        image.getHeight() - yesdaw::ui::UiTheme::Layout::headerHeight
-            - 2 * yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset
-    };
     return sampledDifferentPixelCount (image, masterRegion) > 20u;
 }
 
@@ -355,9 +350,11 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
+    const juce::Rectangle<int> masterRegion = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+    REQUIRE_FALSE (masterRegion.isEmpty());
     const juce::Image mixerImage = renderShell (*shell);
     REQUIRE (hasMixerSurfaceCoverage (mixerImage));
-    REQUIRE (hasMixerMasterSummaryCoverage (mixerImage));
+    REQUIRE (hasMixerMasterSummaryCoverage (mixerImage, masterRegion));
     const std::uint64_t mixerFingerprint = captureShellPng (mixerImage, "yesdaw-mixer-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
@@ -927,7 +924,9 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
                              yesdaw::ui::UiTheme::Layout::defaultWindowHeight,
                              true);
     REQUIRE_FALSE (hasMixerSurfaceCoverage (blank));
-    REQUIRE_FALSE (hasMixerMasterSummaryCoverage (blank));
+    REQUIRE_FALSE (hasMixerMasterSummaryCoverage (
+        blank,
+        juce::Rectangle<int> { blank.getWidth() - 104, 88, 104, blank.getHeight() - 88 }));
     REQUIRE_FALSE (hasHeaderSectionHierarchy (blank));
     REQUIRE_FALSE (hasTrackMixSummaryCoverage (blank));
     REQUIRE_FALSE (hasInspectorSectionHierarchy (blank));

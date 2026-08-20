@@ -4121,6 +4121,24 @@ public:
         return rail.isEmpty() ? 0 : mixerFaderThumbYForGain (rail, linearGain);
     }
 
+    // N3: the painted mixer-strip lane rect for a track/bus strip, and the master pane's rect —
+    // exposed so a gate can prove they share ONE law (master is always the next contiguous slot
+    // after the last strip, never a detached island computed independently of it).
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedMixerStripBounds (int stripIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal)
+            return {};
+
+        return paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex));
+    }
+
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedMixerMasterBounds() const
+    {
+        return paintedMixerMasterBounds();
+    }
+
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -5851,23 +5869,17 @@ private:
 
     [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const { return mixerStripBounds (0); }
 
-    // E25: the painted MASTER pane rect — mirrors drawMixer's removeFromRight law exactly.
+    // N3: the painted MASTER pane rect. Master is lane index stripCount in the SAME
+    // paintedMixerLaneBounds law every track/bus strip uses — it is the strip immediately after
+    // the last one, never a detached island computed from the far right of a stale area. Before
+    // N3 this peeled its slice off the right edge of the FULL panel independently of how many
+    // strips were drawn from the left, so a clamped strip width (max 112px) left ~1250px of dead
+    // black between the last strip and master at 1920x1080.
     [[nodiscard]] juce::Rectangle<int> paintedMixerMasterBounds() const
     {
-        auto area = mixerPanelBounds();
-        area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
-
         const auto surface = currentMixerSurface();
         const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
-        const int stripWidth = std::clamp (
-            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
-                                           static_cast<int> (stripCount))
-                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
-        return area.removeFromRight (stripWidth)
-            .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
-                      yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+        return paintedMixerLaneBounds (stripCount);
     }
 
     // Shared painted-strip geometry law (B32): hit-testing must mirror drawMixer's lane math
@@ -9653,9 +9665,10 @@ private:
                         false);
         }
 
-        auto masterLane = area.removeFromRight (stripWidth)
-                              .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
-                                        yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+        // N3: master's lane comes from the SAME single law as every track/bus strip
+        // (paintedMixerLaneBounds via paintedMixerMasterBounds) — it is always the next
+        // contiguous slot after the last strip, so it can never drift into a detached island.
+        auto masterLane = paintedMixerMasterBounds();
         g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
             yesdaw::ui::UiTheme::Tone::shadowAlpha));
         g.fillRoundedRectangle (
@@ -10268,6 +10281,22 @@ int mainComponentPaintedFaderThumbY (const juce::Component& component, int strip
         return mainComponent->harnessPaintedFaderThumbY (stripIndex, linearGain);
 
     return 0;
+}
+
+juce::Rectangle<int> mainComponentPaintedMixerStripBounds (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedMixerStripBounds (stripIndex);
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedMixerMasterBounds();
+
+    return {};
 }
 
 juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component)

@@ -468,7 +468,12 @@ struct UiTheme
         static constexpr int mixerUtilityGap = 3;
         static constexpr int mixerUtilityInsetX = 10;
         static constexpr int mixerPaintedStripMinWidth = 84;
-        static constexpr int mixerPaintedStripMaxWidth = 112;
+        // N3: widened from 112 so a small track count still fills a real share of the panel
+        // instead of clamping to a sliver strip band with dead space beyond it. Judged against
+        // Logic's mixer at all three D7 sizes: 156 still left the panel reading over half-empty
+        // at 1920x1080 with 3 tracks; 220 fills 1152x720 completely and covers a legible
+        // majority of 1920x1080 without individual strips reading as stretched or oversized.
+        static constexpr int mixerPaintedStripMaxWidth = 220;
         static constexpr int mixerPaintedStripMinCount = 1;
         static constexpr int mixerPaintedStripExtraSlotCount = 1;
         static constexpr int mixerPaintedStripInsetX = 3;

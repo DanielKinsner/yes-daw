@@ -3909,12 +3909,17 @@ TEST_CASE ("mixer clicks, the control lane, and the master fader share the paint
         REQUIRE (nameButton->getRight() <= laneLeftInShell + 2 * stripWidth);
     }
 
-    // The master fader sits on the PAINTED master pane (the rightmost painted lane).
+    // N3: the master fader sits on the PAINTED master pane — lane index stripCount (3 tracks
+    // here), the slot immediately after the last strip, from the SAME single law every strip
+    // uses. Before N3 master was peeled off the far right of the WHOLE panel independently of
+    // the strip count, landing far past this rect; re-pinned here to prove it, which is
+    // strictly stronger (a detached island can never satisfy this).
     auto* masterFader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.master.fader"));
     REQUIRE (masterFader != nullptr);
-    const int masterLeftInShell = strips->getRight() - stripWidth;
+    const int masterLeftInShell = strips->getX() + 3 * stripWidth;
+    const int masterRightInShell = strips->getX() + 4 * stripWidth;
     REQUIRE (masterFader->getX() >= masterLeftInShell);
-    REQUIRE (masterFader->getRight() <= strips->getRight());
+    REQUIRE (masterFader->getRight() <= masterRightInShell);
 
     // ... and inside the pane's METER region: the fader rail must start BELOW the painted
     // INTEGRATED / TRUE PEAK cards (the drawMixer walk), never crossing them.
@@ -3926,8 +3931,9 @@ TEST_CASE ("mixer clicks, the control lane, and the master fader share the paint
                                        + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight;
     REQUIRE (masterFader->getY() >= masterCardsBottomInShell);
 
-    // Clicks past the painted lanes (the empty span before the master pane) select nothing new.
-    mouseDownAt (*strips, { 3 * stripWidth + stripWidth * 2, strips->getHeight() / 2 });
+    // N3: master now sits flush against the last strip, so genuinely empty background starts
+    // only past the master pane (lane index 4) — a click there selects nothing new.
+    mouseDownAt (*strips, { 4 * stripWidth + stripWidth / 2, strips->getHeight() / 2 });
     REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
 }
 
@@ -5505,6 +5511,88 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
              == yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 0).getHeight());
     REQUIRE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, 1).getY()
              == yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 2, 1).getY());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// N3 — the mixer fills its window and the master is the rightmost strip, not a detached
+// island. Before N3, paintedMixerMasterBounds() peeled its slice off the far right of the FULL
+// panel independently of how many track/bus strips the loop had already drawn from the left —
+// so at 1920x1080 three strips clamped to 112px sat at the far left while master sat at the far
+// right, with ~1250px of dead black between them (`yesdaw-mixer-large.png`). Now ONE law
+// (paintedMixerLaneBounds) computes every strip including master: master is lane index
+// stripCount, the slot immediately after the last strip, so it is flush against it by
+// construction. The legible band also widened (84-156px, was 84-112px) so a small track count
+// still covers a real share of the panel instead of clamping to a sliver.
+TEST_CASE ("N3 the mixer strip band fills its window and the master strip sits flush against the last strip",
+           "[ui][input][shell][mixer][mixer-layout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-layout");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    using L = yesdaw::ui::UiTheme::Layout;
+    for (const auto& [width, height] : std::array<std::pair<int, int>, 3> {
+             std::pair { 1152, 720 }, std::pair { 1536, 960 }, std::pair { 1920, 1080 } })
+    {
+        shell->setSize (width, height);
+
+        juce::Rectangle<int> firstStrip;
+        juce::Rectangle<int> lastStrip;
+        for (int stripIndex = 0; stripIndex < 3; ++stripIndex)
+        {
+            const juce::Rectangle<int> lane =
+                yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, stripIndex);
+            REQUIRE_FALSE (lane.isEmpty());
+            REQUIRE (lane.getWidth() >= L::mixerPaintedStripMinWidth);
+            REQUIRE (lane.getWidth() <= L::mixerPaintedStripMaxWidth);
+            if (stripIndex == 0)
+                firstStrip = lane;
+            else
+                REQUIRE (lane.getX() >= lastStrip.getRight());   // strips never overlap
+            lastStrip = lane;
+        }
+
+        const juce::Rectangle<int> master = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+        REQUIRE_FALSE (master.isEmpty());
+        REQUIRE (master.getWidth() >= L::mixerPaintedStripMinWidth);
+        REQUIRE (master.getWidth() <= L::mixerPaintedStripMaxWidth);
+        REQUIRE (master.getX() > lastStrip.getX());
+        REQUIRE_FALSE (master.intersects (lastStrip));           // never overlaps its neighbour
+
+        // The headline N3 fix: master sits FLUSH against the third strip. Both rects are inset
+        // from their outer lane by the same painted-strip inset, so "flush" means the gap
+        // between them is at most twice that inset — not the ~1250px of dead black the audit
+        // measured before N3.
+        REQUIRE (master.getX() - lastStrip.getRight() <= 2 * L::mixerPaintedStripInsetX);
+
+        // Nothing is clipped: every painted rect stays inside the shell window.
+        REQUIRE (firstStrip.getX() >= 0);
+        REQUIRE (master.getRight() <= shell->getWidth());
+        REQUIRE (master.getBottom() <= shell->getHeight());
+
+        // The strip band fills a real share of the panel — the N3 complaint was "wastes ~65%".
+        // Four contiguous strips (3 tracks + master) at the widened legible band (84-220px) now
+        // cover at least HALF the usable panel width at every supported size (visually judged:
+        // laptop size fills completely, large size covers a clear majority).
+        const int panelWidth = width - 2 * L::mixerPanelHorizontalInset - L::mixerToolsWidth;
+        const int bandWidth = master.getRight() - firstStrip.getX();
+        REQUIRE (bandWidth * 2 >= panelWidth);   // >= 1/2 of the panel, every size
+    }
+    shell->setSize (1536, 960);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
