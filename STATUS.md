@@ -1030,9 +1030,59 @@ N7 is certified: exact-head GitHub Actions run `32420981853` is green for full S
 `632eae06f723c6bff5e725be560cde1ec353cc50` across all nine jobs, first try. N7 is ticked in the
 backlog.
 
-**Now:** N8 (Punch in/out) — next item.
+**N8 implementation candidate — punch in/out:** audited first, which corrected the backlog's own
+claim. `punchStartFrame` really only ever carries the count-in boundary, but `punchEndFrame` is
+never assigned ANYWHERE outside `Recording.h` — it stays at `RecordingWindow`'s own unbounded
+default. So there was no persisted punch concept at all. And loop — the spec's suggested
+analogue — turned out NOT to be persisted either: it's pure transport-engine runtime state (no
+`Project` field, no schema, no undo verb), so only its ruler-gesture SHAPE was worth mirroring,
+not its persistence mechanism.
 
-**Next:** CP-A (before/after screenshots), then the V-run (Phase 2 of the long-horizon plan).
+Adds a persisted `PunchRegion` (schema v17, the locate-points/`automation_mode` pattern — a NEW
+table, since a punch region is a per-project scalar, not a per-row column like N6/N7's height and
+colour) and a `SetPunchRegion` undo verb with its own diff type. The persisted bounds feed
+`RecordingWindow.punchStartFrame/punchEndFrame` inside `startRealRecordingCapture`: punch-in
+composes with count-in (the LATER of the two wins, so punch can never let recording start before
+count-in finishes); disabled leaves `punchEndFrame` at its own unbounded default, reproducing
+today's count-in-only behaviour bit-identically. `Recording.h`'s own frame-rejection mapping
+needed NO changes — it already enforces `[punchStartFrame, punchEndFrame)` on both audio and MIDI;
+only the INPUTS feeding those bounds were the gap.
+
+**Deviation from the literal spec, logged:** the ruler gesture is Alt+Shift-drag, not Shift-drag
+(which "like the loop region" suggested). A first attempt used Ctrl-drag and was immediately
+proven wrong by 3 local test regressions: Ctrl is ALREADY reserved, across EVERY existing ruler
+drag gesture (loop brace resize/move, marker drag, range selection), as a release-time
+"invert snap" flag — read continuously via `event.mods.isCtrlDown()`, not usable as a mouse-down
+gesture SELECTOR. Alt+Shift was free (checked before plain Alt's marker-delete), and punch's own
+release honours Ctrl-inversion too, matching every sibling gesture. Also logged: punch has no
+brace resize handles like loop's — an honest subset; redefine by dragging a new region. Painted
+as a red band using the SAME minimal shape the pre-existing range-selection band already uses.
+
+`[punch-record]` (a 200-frame window `[200, 400)`, zero-latency capture spanning device frames
+0..639): the committed audio take covers EXACTLY `[200, 400)` — frame-exact at both edges; of
+three MIDI notes (before/inside/after the window) exactly the inside one lands; the region
+survives save/reopen; disabling it and re-recording starts at frame 0 exactly like before this
+field existed. A companion UI-shell test proves the real Alt+Shift ruler drag sets a real
+persisted region and that the SAME gesture (a click, not a drag) clears it. **Red before**,
+proven by disabling the punch-bounds-into-`RecordingWindow` wiring while leaving
+persistence/undo/paint/gesture code in place — the committed take started at frame 0 instead of
+200.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N8 is certified: exact-head GitHub Actions run `32424420380` is green for full SHA
+`893e3fb1f3df60d4fe64ae4c372b9d871040d65c` across all nine jobs, first try. N8 is ticked in the
+backlog.
+
+**The N1–N8 mixer-surface & arrangement backlog is COMPLETE.** Every item across all four phases
+is certified: feature commit + exact-head nine-job CI green + docs-only evidence commit, each.
+
+**Now:** the long-horizon plan's Phase 2 (the V-run — arrangement view visual parity against
+`docs/design/arrangement-view-reference.png`) per
+`docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md`.
+
+**Next:** Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written

@@ -249,7 +249,46 @@ commit.
 
 ## Phase 4 — recording completeness
 
-8. [ ] **N8 — Punch in/out.** The recording window supports count-in and loop cycles but has no
+8. [x] **N8 — Punch in/out.** DONE — feature `893e3fb`, exact-head nine-job CI run `32424420380`
+   green (first try), local 355/355. Audited first, correcting the backlog's own claim:
+   `punchStartFrame` really only ever carries the count-in boundary, but `punchEndFrame` is never
+   assigned ANYWHERE outside `Recording.h` — it stays at `RecordingWindow`'s own default
+   (`INT64_MAX`, effectively unbounded), so there was no persisted punch concept at all to "wire
+   up" (loop isn't persisted either — it is pure transport-engine runtime state with no
+   `Project` field, no schema, no undo verb — so it is NOT the right analogue for persistence,
+   only for the ruler-gesture SHAPE the spec asked to mirror).
+   Adds a persisted `PunchRegion` (schema v17, the locate-points/`automation_mode` pattern — a
+   NEW table, since this is a per-project scalar, not a per-row column like N6/N7 — a missing row
+   means disabled, today's no-punch default) and a `SetPunchRegion` undo verb with its own diff
+   type (mirroring `automation_mode`'s, since a region isn't a whole-row family). The persisted
+   bounds feed `RecordingWindow.punchStartFrame/punchEndFrame` inside
+   `startRealRecordingCapture` — punch-in composes with count-in (the LATER of the two wins, so
+   punch can never let recording start before count-in finishes); disabled leaves
+   `punchEndFrame` at its own unbounded default, reproducing today's count-in-only behaviour
+   bit-identically. `Recording.h`'s own rejection mapping needed NO changes — the audit found it
+   already enforces `[punchStartFrame, punchEndFrame)` on both audio and (looped) MIDI; only the
+   INPUTS feeding those bounds were the gap.
+   **Deviation from the literal spec, logged:** the ruler gesture is Alt+Shift-drag, not Shift-drag
+   (which the spec's "like the loop region" wording suggested). A first attempt used Ctrl-drag and
+   was immediately proven wrong by 3 local test regressions: Ctrl is ALREADY reserved, across
+   EVERY existing ruler drag gesture (loop brace resize/move, marker drag, range selection), as a
+   release-time "invert snap" modifier — checked continuously via `event.mods.isCtrlDown()`, not
+   as a mouse-down gesture SELECTOR — so grabbing it for punch broke every other gesture's snap
+   inversion. Alt+Shift was free (checked first, before plain Alt's marker-delete), and punch's
+   own release honours Ctrl-inversion too, for consistency with every sibling gesture. Also
+   logged: punch has no brace resize handles like loop's (an honest subset — redefine by dragging
+   a new region); painted as a red band using the SAME minimal shape the pre-existing range-
+   selection band already uses, not a new law.
+   `[punch-record]` (a 200-frame punch window `[200, 400)`, zero-latency capture spanning device
+   frames 0..639): the committed audio take covers EXACTLY `[200, 400)` — frame-exact at both
+   edges; of three MIDI notes (before/inside/after the window) exactly the inside one lands;
+   the region survives save/reopen; disabling it and re-recording starts at frame 0 exactly like
+   before this field existed. A companion UI-shell test proves the real Alt+Shift ruler drag sets
+   a real persisted region and that the SAME gesture (a click, not a drag) clears it. Red before,
+   proven by disabling the punch-bounds-into-`RecordingWindow` wiring while leaving
+   persistence/undo/paint/gesture code in place — the committed take started at frame 0 instead of
+   200.
+   Original spec: The recording window supports count-in and loop cycles but has no
    punch region: `RecordingWindow::punchStartFrame/punchEndFrame` exist in the engine
    (`src/engine/Recording.h:57`) and only ever carry the count-in boundary
    (`src/ui/UiAppModel.h:587`). Add a persisted punch region, a way to set it from the shipped UI
@@ -259,6 +298,13 @@ commit.
    it commits a take covering EXACTLY the punch span (frame-exact at both edges), MIDI outside the
    punch never lands, the region survives save/reopen, and disabling punch restores today's
    behaviour bit-identically.
+
+## N1–N8 run COMPLETE (2026-08-20)
+
+Every item in Phases 1–4 is certified: feature commit, exact-head nine-job CI green, docs-only
+evidence commit. See `STATUS.md`'s per-item certification paragraphs for audit findings and
+deviation logs. Next: the long-horizon plan's Phase 2 (the V-run) per
+`docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md`.
 
 ## Explicitly out of scope — do not fake
 
