@@ -438,6 +438,17 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
     REQUIRE (content.visibleTimelineClipCount >= 2);
     REQUIRE (content.context.activePanel == UiPanel::Timeline);
 
+    // N7/CP-A evidence: give each track a DIFFERENT colour (row N gets N+1 swatch clicks) so
+    // this screenshot actually shows the colourised-arrangement surface, not the historical
+    // uniform purple.
+    for (int row = 0; row < 3; ++row)
+    {
+        const juce::Rectangle<int> swatch = yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, row);
+        REQUIRE_FALSE (swatch.isEmpty());
+        for (int click = 0; click <= row; ++click)
+            mouseDownAtPoint (*rail, swatch.getCentre() - rail->getPosition());
+    }
+
     const auto renderAtSize = [&shell] (int width, int height, const char* filename)
     {
         shell->setSize (width, height);
