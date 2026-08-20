@@ -1693,7 +1693,9 @@ TEST_CASE ("H16 CP5 UI input harness edits the first automation lane through und
     REQUIRE (laneRow.getWidth() > 0);
     REQUIRE (laneRow.getHeight() > 0);
     REQUIRE (laneRow.getText().contains ("Audio 1"));
-    REQUIRE (laneRow.getText().contains ("Track fader"));
+    // N4: the header names the real TARGET, not a hardcoded "Track fader" string — the default
+    // target's label is "Fader" (buildAutomationTargetOptions), so the row reads "Audio 1 - Fader".
+    REQUIRE (laneRow.getText().contains ("Fader"));
     REQUIRE (laneRow.getText().contains ("2 breakpoints"));
     juce::Button& addPoint = requireButtonForAction (*shell, UiActionId::TimelineAutomationAddBreakpoint);
     REQUIRE (addPoint.isEnabled());
@@ -9711,7 +9713,13 @@ TEST_CASE ("the inspector take chooser lists the stack and drives switch and del
     REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.size() == 2u);
 }
 
-TEST_CASE ("the automation lane is a full-width band between the ruler and the clips",
+// N4: re-pinned from "the automation lane is a full-width band between the ruler and the
+// clips" — that pinned the OLD bug (a fixed band always above every track, divorced from which
+// track was actually being edited). The lane is now a SUB-LANE carved from the bottom of its
+// TARGET track's own row (not a separate row inserted elsewhere — the E5 "few tracks stretch to
+// fill the viewport" law means a lone row already fills the whole clip area, so there is no room
+// to insert a new one beside it, but there is always room to carve from its own space).
+TEST_CASE ("the automation lane anchors under its target track's row, not a fixed band above every track",
            "[ui][input][shell][automation-geometry]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("automation-geometry");
@@ -9726,25 +9734,35 @@ TEST_CASE ("the automation lane is a full-width band between the ruler and the c
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
+    // The one track is selected by default (row 0) — the lane must be carved from ITS row, not
+    // always sit at the top of the timeline regardless of which track is targeted.
     juce::Component& timeline = requireTimelineComponent (*shell);
     yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
     state.automationLaneVisible = true;
+    state.automationLaneTrackRow = 0;
     const yesdaw::ui::TimelineCanvasGeometry geometry =
         yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
     REQUIRE_FALSE (geometry.automationLaneArea.isEmpty());
+    const int expectedBandHeight = std::min (
+        yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight, geometry.laneHeight);
+    REQUIRE (geometry.automationLaneArea.getHeight() == expectedBandHeight);
+    REQUIRE (geometry.automationLaneArea.getBottom()
+             == geometry.clipArea.getY() + geometry.laneHeight);   // flush with row 0's own bottom
+    REQUIRE (geometry.automationLaneArea.getY() >= geometry.clipArea.getY());   // carved FROM row 0
 
-    // The canvas shares the ARRANGEMENT's horizontal span (breakpoints line up with clip
-    // time positions) and lives strictly between the ruler and the clip area.
+    // The canvas shares the ARRANGEMENT's horizontal span (breakpoints line up with clip time
+    // positions) and sits exactly on the painted band, flush under row 0 — not floating above
+    // clipArea the way the old fixed band did.
     juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
     REQUIRE (canvas != nullptr);
     REQUIRE (canvas->isVisible());
     REQUIRE (canvas->getX() == geometry.clipArea.getX());
     REQUIRE (canvas->getRight() == geometry.clipArea.getRight());
-    REQUIRE (canvas->getY() >= geometry.rulerArea.getBottom());
-    REQUIRE (canvas->getBottom() <= geometry.clipArea.getY());
+    REQUIRE (canvas->getY() >= geometry.automationLaneArea.getY());
+    REQUIRE (canvas->getBottom() <= geometry.automationLaneArea.getBottom());
 
-    // The lane's controls sit in the band's header row — NEVER over the curve canvas and
-    // never over clip content.
+    // The lane's controls sit in the band's header row — NEVER over the curve canvas.
     for (const char* id : { "timeline.automation.add_breakpoint",
                             "timeline.automation.delete_breakpoint",
                             "timeline.automation.target" })
@@ -9758,8 +9776,116 @@ TEST_CASE ("the automation lane is a full-width band between the ruler and the c
                     : UiActionId::TimelineAutomationDeleteBreakpoint);
         REQUIRE (control != nullptr);
         REQUIRE_FALSE (control->getBounds().intersects (canvas->getBounds()));
-        REQUIRE (control->getBounds().getBottom() <= geometry.clipArea.getY());
+        REQUIRE (control->getBounds().getY() >= geometry.automationLaneArea.getY());
+        REQUIRE (control->getBounds().getBottom() <= geometry.automationLaneArea.getBottom());
     }
+}
+
+// N4 — the automation lane belongs to its track, and its header tells the truth. Before N4 the
+// lane was one global strip floating above ALL clips regardless of which track was selected; its
+// header always named tracks.front() and the literal string "Track fader" even while editing a
+// DIFFERENT track's Pan; and — a deeper bug the audit missed — the header's Add/Delete BUTTONS
+// (unlike the canvas click path, which already read the selected target) were hardcoded to write
+// to track 1's fader lane no matter what was selected.
+TEST_CASE ("N4 the automation lane anchors under the selected track and its header names the real target",
+           "[ui][input][shell][automation-lane-owner]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-lane-owner");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    // Select the THIRD track (index 2).
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+                                      (rail->getHeight() - headerHeight) / 3);
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * 2 + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    auto* targetChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (targetChooser != nullptr);
+    REQUIRE (targetChooser->getItemText (1) == "Pan");
+    targetChooser->setSelectedId (2, juce::sendNotificationSync);   // Pan
+
+    // The header names the real owner AND the real target — not track 1, not "Track fader".
+    auto* laneRowComponent = dynamic_cast<juce::Label*> (
+        findChildWithComponentId (*shell, kAutomationLaneRowComponentId));
+    REQUIRE (laneRowComponent != nullptr);
+    REQUIRE (laneRowComponent->getText().contains ("Audio 3"));
+    REQUIRE (laneRowComponent->getText().contains ("Pan"));
+
+    // The painted lane rectangle sits under track 3's OWN row — not a fixed band at the top of
+    // the timeline, and not wherever track 1's row happens to be.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 3;
+    state.automationLaneVisible = true;
+    state.automationLaneTrackRow = 2;
+    const yesdaw::ui::TimelineCanvasGeometry expectedForRow2 =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
+    state.automationLaneTrackRow = 0;
+    const yesdaw::ui::TimelineCanvasGeometry expectedForRow0 =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
+    REQUIRE_FALSE (expectedForRow2.automationLaneArea.isEmpty());
+    REQUIRE (expectedForRow2.automationLaneArea.getY() != expectedForRow0.automationLaneArea.getY());
+
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->getY() >= expectedForRow2.automationLaneArea.getY());
+    REQUIRE (canvas->getBottom() <= expectedForRow2.automationLaneArea.getBottom());
+
+    // Adding a breakpoint via the CANVAS writes to track 3's Pan lane — THAT lane, not track 1's.
+    mouseDownAt (*canvas, { canvas->getWidth() / 4, canvas->getHeight() / 2 });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::TrackPan);
+    REQUIRE (project.automationLanes.front().ownerEntity == project.tracks[2].id);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    REQUIRE (laneRowComponent->getText().contains ("1 breakpoints"));
+
+    // Adding via the BUTTON also lands on track 3's Pan lane — before N4 this button always
+    // wrote to track 1's fader lane regardless of the selected target.
+    juce::Button& addPoint = requireButtonForAction (*shell, UiActionId::TimelineAutomationAddBreakpoint);
+    REQUIRE (addPoint.isEnabled());
+    clickButton (addPoint);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);   // still ONE lane — no stray track-1 lane created
+    REQUIRE (project.automationLanes.front().points.size() == 2u);
+    REQUIRE (laneRowComponent->getText().contains ("2 breakpoints"));
+
+    // Deleting via the BUTTON removes from that SAME lane.
+    juce::Button& deletePoint = requireButtonForAction (*shell, UiActionId::TimelineAutomationDeleteBreakpoint);
+    REQUIRE (deletePoint.isEnabled());
+    clickButton (deletePoint);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    REQUIRE (laneRowComponent->getText().contains ("1 breakpoints"));
+
+    // Switching TRACK (back to the first) updates BOTH the header and the lane's Y position.
+    mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+    REQUIRE (laneRowComponent->getText().contains ("Audio 1"));
+    REQUIRE_FALSE (laneRowComponent->getText().contains ("Audio 3"));
+    REQUIRE (canvas->getY() >= expectedForRow0.automationLaneArea.getY());
+    REQUIRE (canvas->getBottom() <= expectedForRow0.automationLaneArea.getBottom());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",

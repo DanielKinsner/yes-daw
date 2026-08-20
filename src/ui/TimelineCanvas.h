@@ -91,9 +91,12 @@ struct TimelineCanvasState
     double loopStartSeconds = 0.0;
     double loopEndSeconds = 0.0;
 
-    // E26: when the automation lane is open the geometry reserves a full-width band between
-    // the ruler and the clip area, so lane controls never overlap clip content.
+    // N4: when the automation lane is open, it is a SUB-LANE of THIS row (a track index into
+    // `tracks`, same numbering as `Clip::lane`) — carved from the bottom of that row's own rect,
+    // not a fixed strip that floats above every track regardless of which one is being edited.
+    // -1 means no row is targeted (nothing paints).
     bool automationLaneVisible = false;
+    int automationLaneTrackRow = -1;
 };
 
 struct TimelineCanvasPaintStats
@@ -111,7 +114,8 @@ struct TimelineCanvasGeometry
 {
     juce::Rectangle<int> toolbarArea;
     juce::Rectangle<int> rulerArea;
-    // E26: empty unless state.automationLaneVisible — the reserved lane band above the clips.
+    // N4: empty unless a track row is targeted — carved from the BOTTOM of that row's own rect
+    // (see timelineCanvasGeometry), never a fixed strip above every track.
     juce::Rectangle<int> automationLaneArea;
     juce::Rectangle<int> clipArea;
     Viewport viewport;
@@ -646,9 +650,6 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     auto content = area.reduced (UiTheme::Layout::timelineCanvasOuterInset);
     geometry.toolbarArea = content.removeFromTop (UiTheme::Layout::timelineCanvasToolbarHeight);
     geometry.rulerArea = content.removeFromTop (UiTheme::Layout::timelineCanvasRulerHeight);
-    if (state.automationLaneVisible)
-        geometry.automationLaneArea = content.removeFromTop (
-            UiTheme::Layout::timelineCanvasAutomationBandHeight);
     geometry.clipArea = content.reduced (UiTheme::Layout::timelineCanvasClipAreaInsetX,
                                          UiTheme::Layout::timelineCanvasClipAreaInsetY);
 
@@ -661,6 +662,29 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     const int visibleRows = std::max (1, geometry.clipArea.getHeight() / geometry.laneHeight);
     geometry.maxTrackScrollRows = std::max (0, laneCount - visibleRows);
     geometry.trackScrollRows = std::clamp (state.trackScrollRows, 0, geometry.maxTrackScrollRows);
+
+    // N4: the automation lane is a SUB-LANE of its own track row — carved from the BOTTOM of
+    // that row's own rect (the same row-Y math every clip and rail row already shares), not a
+    // separate strip inserted above or below it. Carving from the row's own space (rather than
+    // requesting new space beside it) is what makes this work even with few tracks: the E5 lane
+    // law stretches a lone row to fill the whole viewport, so there is no "room after it" to
+    // insert into — but there is always room to carve FROM it. A row scrolled out of view
+    // honestly paints nothing rather than a misplaced band.
+    if (state.automationLaneVisible && state.automationLaneTrackRow >= 0)
+    {
+        const int row = std::clamp (state.automationLaneTrackRow, 0, laneCount - 1);
+        const int rowTop = geometry.clipArea.getY()
+                          + (row - geometry.trackScrollRows) * geometry.laneHeight;
+        const int rowBottom = rowTop + geometry.laneHeight;
+        if (rowTop >= geometry.clipArea.getY() && rowBottom <= geometry.clipArea.getBottom())
+        {
+            const int bandHeight = std::min (UiTheme::Layout::timelineCanvasAutomationBandHeight,
+                                             geometry.laneHeight);
+            geometry.automationLaneArea = juce::Rectangle<int> (
+                geometry.clipArea.getX(), rowBottom - bandHeight,
+                geometry.clipArea.getWidth(), bandHeight);
+        }
+    }
 
     geometry.viewport = state.viewport;
     geometry.viewport.pixelsPerSecond =

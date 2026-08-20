@@ -4475,8 +4475,15 @@ private:
             automationBreakpointAddButton.setButtonText (descriptor->label);
         automationBreakpointAddButton.setColour (juce::TextButton::buttonColourId,
                                                  yesdaw::ui::UiTheme::Color::buttonSurface());
+        // N4: adds to the SELECTED target's lane (creating it on first use), matching the canvas
+        // click path — never the first track's fader regardless of what is chosen.
         automationBreakpointAddButton.onClick = [this] {
-            (void) appModel.addFirstTrackAutomationBreakpoint();
+            const AutomationTargetOption target = currentAutomationTarget();
+            if (target.ownerEntity.isValid())
+                (void) appModel.addAutomationBreakpointToLane (
+                    target.ownerEntity, target.role, target.paramId,
+                    yesdaw::ui::UiAppModel::kFirstTrackAutomationBreakpointAddTick,
+                    yesdaw::ui::UiAppModel::kFirstTrackAutomationBreakpointAddValue);
             refreshActionState();
             repaint();
         };
@@ -4489,8 +4496,19 @@ private:
             automationBreakpointDeleteButton.setButtonText (descriptor->label);
         automationBreakpointDeleteButton.setColour (juce::TextButton::buttonColourId,
                                                     yesdaw::ui::UiTheme::Color::buttonSurface());
+        // N4: deletes the SELECTED target's last breakpoint, matching the canvas — never the
+        // first track's fader regardless of what is chosen.
         automationBreakpointDeleteButton.onClick = [this] {
-            (void) appModel.deleteLastFirstTrackAutomationBreakpoint();
+            const AutomationTargetOption target = currentAutomationTarget();
+            if (target.ownerEntity.isValid())
+            {
+                if (const yesdaw::engine::AutomationLaneData* const lane = appModel.automationLaneForTarget (
+                        target.ownerEntity, target.role, target.paramId);
+                    lane != nullptr && ! lane->points.empty())
+                {
+                    (void) appModel.removeAutomationBreakpointAtTick (lane->id, lane->points.back().tick);
+                }
+            }
             refreshActionState();
             repaint();
         };
@@ -6362,9 +6380,12 @@ private:
         automationBreakpointAddButton.setBounds (
             header.removeFromRight (L::automationBreakpointAddButtonWidth));
         automationLaneRow.setBounds (header.withTrimmedLeft (L::timelineCanvasClipAreaInsetX));
+        // N4: the band's X already equals clipArea's X (timelineCanvasGeometry carves it from
+        // the target row, which lives inside clipArea) — no extra horizontal inset here, or the
+        // canvas would drift off clipArea's span and breakpoints would stop lining up with clip
+        // time positions.
         automationLaneCanvas.setBounds (
-            band.reduced (L::timelineCanvasClipAreaInsetX, 0)
-                .withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2));
+            band.withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2));
     }
 
     void suspendDesktopAudioCallback()
@@ -7398,40 +7419,11 @@ private:
         automationLaneToggle.setEnabled (state.enabled);
         automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
                                              juce::dontSendNotification);
-        automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
         const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
-        automationLaneRow.setVisible (laneVisible);
-        automationLaneCanvas.setVisible (laneVisible);
-        // E26: the lane band only exists in the geometry law while the lane is open, so a
-        // visibility flip must re-lay the lane controls out of the (new) reserved band.
-        if (laneVisible != automationLaneLaidOutVisible)
-        {
-            automationLaneLaidOutVisible = laneVisible;
-            layoutAutomationLaneControls();
-        }
-        if (laneVisible)
-            automationLaneCanvas.repaint();
 
-        const auto addState = appModel.registry().stateFor (
-            yesdaw::ui::UiActionId::TimelineAutomationAddBreakpoint,
-            appModel.context());
-        automationBreakpointAddButton.setVisible (laneVisible);
-        automationBreakpointAddButton.setEnabled (laneVisible
-                                                  && addState.enabled
-                                                  && appModel.firstTrackFaderAutomationLane() != nullptr);
-
-        const yesdaw::engine::AutomationLaneData* const lane = appModel.firstTrackFaderAutomationLane();
-        const auto deleteState = appModel.registry().stateFor (
-            yesdaw::ui::UiActionId::TimelineAutomationDeleteBreakpoint,
-            appModel.context());
-        automationBreakpointDeleteButton.setVisible (laneVisible);
-        automationBreakpointDeleteButton.setEnabled (laneVisible
-                                                     && deleteState.enabled
-                                                     && lane != nullptr
-                                                     && ! lane->points.empty());
-
-        // E20: rebuild the lane-target list for the automation-target track; keep the selected
-        // index stable when the list still covers it.
+        // E20/N4: rebuild the lane-target list for the automation-target track FIRST — the
+        // header text and the add/delete button enablement below both read currentAutomationTarget(),
+        // so they must see this frame's target, not the previous frame's stale options.
         refreshingAutomationTarget = true;
         automationTargetOptions = buildAutomationTargetOptions();
         if (selectedAutomationTargetIndex < 0
@@ -7447,6 +7439,43 @@ private:
         automationTargetChooser.setVisible (laneVisible);
         automationTargetChooser.setEnabled (laneVisible && ! automationTargetOptions.empty());
         refreshingAutomationTarget = false;
+
+        automationLaneRow.setText (automationLaneRowText(), juce::dontSendNotification);
+        automationLaneRow.setVisible (laneVisible);
+        automationLaneCanvas.setVisible (laneVisible);
+        // N4: the lane's Y position (which track row it sits under) is part of the geometry law
+        // now, not just its visibility — re-lay out on every refresh while visible so a track or
+        // target switch (or a track-row scroll) moves it immediately, not just on the open/close
+        // transition.
+        if (laneVisible)
+            layoutAutomationLaneControls();
+        automationLaneLaidOutVisible = laneVisible;
+        if (laneVisible)
+            automationLaneCanvas.repaint();
+
+        // N4: enablement and the click handlers below all key on the SAME selected target the
+        // canvas already edits — never the first track's fader regardless of what is chosen.
+        const AutomationTargetOption target = currentAutomationTarget();
+        const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+            ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+            : nullptr;
+
+        const auto addState = appModel.registry().stateFor (
+            yesdaw::ui::UiActionId::TimelineAutomationAddBreakpoint,
+            appModel.context());
+        automationBreakpointAddButton.setVisible (laneVisible);
+        automationBreakpointAddButton.setEnabled (laneVisible
+                                                  && addState.enabled
+                                                  && target.ownerEntity.isValid());
+
+        const auto deleteState = appModel.registry().stateFor (
+            yesdaw::ui::UiActionId::TimelineAutomationDeleteBreakpoint,
+            appModel.context());
+        automationBreakpointDeleteButton.setVisible (laneVisible);
+        automationBreakpointDeleteButton.setEnabled (laneVisible
+                                                     && deleteState.enabled
+                                                     && lane != nullptr
+                                                     && ! lane->points.empty());
     }
 
     [[nodiscard]] juce::String automationLaneRowText() const
@@ -7455,22 +7484,31 @@ private:
         if (! appModel.context().projectLoaded || project.tracks.empty())
             return "No Track automation";
 
-        const yesdaw::engine::Track& track = project.tracks.front();
-        const yesdaw::engine::AutomationLaneData* visibleLane = nullptr;
-        for (const yesdaw::engine::AutomationLaneData& lane : project.automationLanes)
+        // N4: name the REAL owner and the REAL target — automationTargetTrackId() is the same
+        // track the target chooser and the canvas already edit, and currentAutomationTarget()
+        // carries that target's own label ("Fader", "Pan", "Send: X", "FX1 ..."), never a
+        // hardcoded "Track fader" regardless of what is actually selected.
+        const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+        const yesdaw::engine::Track* track = nullptr;
+        for (const yesdaw::engine::Track& candidate : project.tracks)
         {
-            if (lane.ownerEntity == track.id
-                && lane.role == yesdaw::engine::AutomationTargetRole::TrackFader
-                && lane.paramId == yesdaw::engine::FaderNode::kGainParameterId)
+            if (candidate.id == trackId)
             {
-                visibleLane = &lane;
+                track = &candidate;
                 break;
             }
         }
+        if (track == nullptr)
+            return "No Track automation";
 
-        const juce::String trackName = track.strip.name.empty() ? "Track 1" : juce::String (track.strip.name);
-        const int breakpointCount = visibleLane == nullptr ? 0 : static_cast<int> (visibleLane->points.size());
-        return trackName + " - Track fader - " + juce::String (breakpointCount) + " breakpoints";
+        const AutomationTargetOption target = currentAutomationTarget();
+        const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+            ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+            : nullptr;
+
+        const juce::String trackName = track->strip.name.empty() ? "Track 1" : juce::String (track->strip.name);
+        const int breakpointCount = lane == nullptr ? 0 : static_cast<int> (lane->points.size());
+        return trackName + " - " + target.label + " - " + juce::String (breakpointCount) + " breakpoints";
     }
 
     void refreshAutosaveRecoveryControls()
@@ -8447,9 +8485,13 @@ private:
         state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
         state.markerCount = static_cast<int> (timelineMarkerViews.size());
 
-        // E26: the open automation lane reserves its band in the shared geometry law, so every
-        // paint, hit-test, and layout consumer agrees the clips start below it.
+        // N4: the automation lane anchors under the SAME track automationTargetTrackId() resolves
+        // (identical clamp), so the band's position can never disagree with the header/canvas
+        // about which track is being edited.
         state.automationLaneVisible = appModel.context().timelineAutomationTrackLaneVisible;
+        state.automationLaneTrackRow = appModel.context().projectLoaded && ! appModel.project().tracks.empty()
+            ? std::clamp (selectedTrackLane, 0, static_cast<int> (appModel.project().tracks.size()) - 1)
+            : -1;
 
         // Ruler range selection (parity item 25): painted from the model's transient range frames.
         if (appModel.context().timelineRangeSelected
@@ -8703,6 +8745,7 @@ private:
         AutomationTargetOption fallback;
         fallback.ownerEntity = automationTargetTrackId();
         fallback.paramId = yesdaw::engine::FaderNode::kGainParameterId;
+        fallback.label = "Fader";
         return fallback;
     }
 
