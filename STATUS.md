@@ -1092,14 +1092,26 @@ cases pass (2268 assertions); full local ctest 355/355; exact-head CI run `32425
 This is evidence, not a gate — no red-before proof, since it strengthens an already-passing
 screenshot fixture rather than adding a new claim.
 
-**Now:** the long-horizon plan's Phase 2 Step 1 (the V-run's docs-only audit-and-carve) — a fresh
-adversarial audit of `main` against `docs/design/arrangement-view-reference.png`, carving
-`docs/goals/<date>-arrangement-view-visual-parity-backlog.md` with items V1–Vn per the plan's
-locked element inventory (theme/typography, transport bar, track headers, ruler, clips, right
-inspector, bottom mixer dock, toolbar row).
+**Phase 2 Step 1 (V-run audit-and-carve) — DONE.** Carved
+`docs/goals/2026-08-20-arrangement-view-visual-parity-backlog.md` with items V1–V8, covering the
+plan's full locked element inventory. **Deviation logged:** the plan's D6/item-7 wording assumed no
+bottom mixer dock exists inside the arrangement view — audited and found a full-width, always-on
+bottom mixer strip ALREADY exists (`MainComponent.cpp:4492,4506`) and ALREADY reuses N3's
+`paintedMixerLaneBounds` strip-layout law at the short height (the law takes only a `stripIndex` and
+recomputes its own area from `mixerPanelBounds()`, which already branches on the active panel — no
+new plumbing needed). V3 is re-scoped accordingly: visible SENDS/RACKS/VIEW/OPTIONS-style tab labels
+in the dock's blank `leftTools` column, plus a real show/hide toggle (neither exists today). Also
+found V4's ruler bar numbers are a genuine FUNCTIONAL bug, not a styling gap — `drawRuler` computes
+`barNumber = seconds + 1` (`TimelineCanvas.h:647`), correct only by coincidence at 60 BPM/4/4. And
+V6's clip name-label/fade-curve/selection-state gaps are the single largest hole in the whole carve
+— none of the three exist in the timeline paint path at all today.
 
-**Next:** Phase 2 Step 2 (execute V1–Vn, CP-B after the first topology+theme wave, CP-C at Vn),
-then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
+**Now:** the long-horizon plan's Phase 2 Step 2 — execute V1, then V2, then V3 (the CP-B wave), per
+`docs/goals/2026-08-20-arrangement-view-visual-parity-backlog.md`, strict order, D7 judgment loop
+before each mechanical gate.
+
+**Next:** V4–V8 (CP-C fires at V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
+HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
