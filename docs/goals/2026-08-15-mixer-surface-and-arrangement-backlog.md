@@ -152,7 +152,30 @@ commit.
    the lane rectangle under track 3's row and the header names track 3 and Pan; adding a breakpoint
    writes to THAT lane; switching target/track updates both. Expected to fail before on the header
    text and the lane's y position.
-5. [ ] **N5 — Automation write from a control move (Touch/Latch).** Automation is draw-only: there
+5. [x] **N5 — Automation write from a control move (Touch/Latch).** DONE — feature `2a0aed3`,
+   exact-head nine-job CI run `32411492541` green (first try), local 352/352. Adds a per-project
+   `AutomationMode` (Read/Touch/Latch, schema v14, locate-points pattern) with a shipped mode
+   chooser next to the automation lane's target chooser.
+   The hard part was RT/architecture, not the mode itself: audited first and found EVERY existing
+   edit-adoption path (`adoptEditedProject`/`WithoutPlaybackRebuild`) unconditionally calls
+   `resetContextForFreshPlayback()`, stopping the transport and zeroing the playhead — a
+   pre-existing, load-bearing characteristic of the WHOLE engine (every edit already does this,
+   not something N5 introduced). Persisting a breakpoint on every drag tick would therefore reset
+   playback after the FIRST write, collapsing every point in a ride to tick 0 — "breakpoints
+   across a moved span" would be impossible. A first attempt confirmed this by building it the
+   naive way and watching the ride collapse; the fix samples (tick, normalized value) into a
+   client-side buffer during the drag, touching `project_`/the undo stack NOT AT ALL until the
+   drag ends, then commits the whole ride as one transaction-grouped edit
+   (`commitAutomationTouchRide`). Normalized-value conversions match the engine's own inverse
+   mappings exactly: `FaderNode::parameterSpec`'s dB range for the fader, `PanNode`'s linear
+   -1..1 for pan, so a recorded point plays back at the same gain/pan the control was actually at.
+   `[automation-write]` (a 3-track shell, track 2 targeted, three real mouse-drag ticks with
+   rendered playback advancing the playhead between them): one lane with breakpoints at
+   increasing ticks and increasing values; the render audibly follows them; one undo removes the
+   whole ride; Read mode writes nothing but still persists the plain fader edit exactly like
+   today. RUNTIME red before, proven by disarming the ride while keeping the mode chooser and
+   commit verb in place — the lane stayed empty.
+   Original spec: Automation is draw-only: there
    is no Read/Touch/Latch/Write mode anywhere in the model (`grep AutomationMode` finds nothing), so
    a fader ride during playback is lost — the single biggest missing automation workflow. Add a
    per-project automation mode with at least Read (today's behaviour, the default) and Touch/Latch:

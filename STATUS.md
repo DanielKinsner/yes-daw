@@ -889,9 +889,58 @@ N4 is certified: exact-head GitHub Actions run `32407151792` is green for full S
 `8e779a15d6e2e67169215b9f9498149bf363e7fc` across all nine jobs, first try. N4 is ticked in the
 backlog.
 
-**Now:** N5 (Automation write from a control move — Touch/Latch) — next item.
+**N5 implementation candidate — automation write from a control move (Touch/Latch):** the real
+engineering problem here was RT/architecture, not the mode toggle. Audited first: EVERY existing
+edit-adoption path (`adoptEditedProject`/`WithoutPlaybackRebuild`) unconditionally calls
+`resetContextForFreshPlayback()` — stopping the transport and zeroing the playhead on every
+single committed edit. That is a pre-existing, load-bearing characteristic of the WHOLE engine
+(not something this item introduced): today, moving the mixer fader during playback already
+stops and rewinds it. A naive "write a breakpoint on every drag tick" implementation was tried
+first and immediately proven broken by a local build: the FIRST write resets the playhead to 0,
+so every later point in the same drag collapses onto tick 0 — "breakpoints across a moved span"
+becomes literally impossible under that design.
 
-**Next:** N6–N7 (track height and colour), N8 (punch in/out).
+The fix: Touch/Latch samples `(tick, normalized value)` into a client-side buffer during the
+drag (the mixer fader/pan `onValueChange` handlers) — the project and undo stack are touched NOT
+AT ALL until the drag ends — then the whole ride commits as one transaction-grouped edit
+(`commitAutomationTouchRide`, a new UiAppModel verb). This is the same trick E21's fader-drag
+undo-coalescing already uses conceptually (buffer the gesture, commit once), just applied to
+avoid the RESET rather than the undo-stack bloat. Normalized breakpoint values match the
+engine's own inverse parameter mappings exactly — `FaderNode::parameterSpec`'s -60..+6 dB range
+(`unmapToNormalized`) for the fader, `PanNode`'s linear -1..1 for pan — so a point recorded here
+plays back at the exact gain/pan the control was actually at, not an approximation.
+
+New persisted state: `AutomationMode` (Read/Touch/Latch) on `Project`, schema v14
+(`automation_mode` table, locate-points pattern — a missing row means the historical Read
+default, so every existing project round-trips byte-identically). A shipped `ComboBox`
+(`timeline.automation.mode`) sits next to the automation lane's target chooser.
+
+`[automation-write]` (a 3-track shell, track 2's fader — deliberately not track 1's — targeted):
+rolling the transport in Touch mode and dragging the fader through three real mouse-drag ticks,
+with actual rendered playback advancing the playhead between each one, leaves ONE lane with
+breakpoints at strictly increasing ticks and increasing values, owned by track 2; nothing is
+written to the project until the drag ends; the render afterward audibly follows the automated
+gain; one undo removes the whole ride, one redo restores it. Read mode (restored afterward)
+writes nothing — a fader move during playback stays a plain, immediate edit exactly like today.
+**RUNTIME red before**, proven by disarming the ride (`beginAutomationTouchRideIfArmed` returning
+early) while keeping the mode chooser and the commit verb in place — the automation lane stayed
+empty after the whole drag sequence.
+
+A pre-existing test (`H12 UI input harness constructs the shipped MainComponent`) pins the
+shell's total child-component count; the new mode chooser is one more shipped child, so its
+count is bumped deliberately (129 → 130) with the new control named in the comment, per house
+style for that gate.
+
+Full local `ctest --test-dir build-ci` green **352/352** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N5 is certified: exact-head GitHub Actions run `32411492541` is green for full SHA
+`2a0aed358bf7201c17da90ca06bfdcce4d74e4e1` across all nine jobs, first try. N5 is ticked in the
+backlog.
+
+**Now:** N6 (Track height — persisted, resizable) — next item.
+
+**Next:** N7 (track colour), N8 (punch in/out).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
