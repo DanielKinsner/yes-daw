@@ -85,7 +85,26 @@ commit.
    selecting each strip in turn makes every readout report THAT strip (name, send count, FX names,
    GR, meter), a bus selection reports the bus, and no readout string contains a node id. Expected to
    fail before at the first non-first-track selection.
-3. [ ] **N3 — The Mixer fills its window and the master is a strip.** At 1920×1080 the panel puts
+3. [x] **N3 — The Mixer fills its window and the master is a strip.** DONE — feature `51882bc`,
+   exact-head nine-job CI run `32402786217` green (first try), local 352/352. Audited first:
+   `paintedMixerMasterBounds()` peeled its slice off the far right of the FULL panel independently
+   of how many track/bus strips the loop had already drawn from the left, so a clamped strip width
+   (84-112px) left ~1250px of dead black between the last strip and master at 1920×1080. ONE law
+   (`paintedMixerLaneBounds`) now computes every strip including master — master is lane index
+   `stripCount`, the slot immediately after the last strip, flush against it by construction. The
+   legible band widened to 84-220px, judged visually against Logic's mixer at all three D7 sizes:
+   1152×720 fills completely, 1536×960 and 1920×1080 cover a clear majority instead of a sliver.
+   Honest subset (D3): master keeps its real fader (already existed, E19) and its LUFS/true-peak
+   readouts; it does NOT gain pan or insert slots, since the engine model carries no
+   `masterFxChain`/master-pan field to back them — inventing those cells would be exactly the fake
+   data this plan forbids. `[mixer-layout]` (86 assertions, 3-track shell, all three D7 sizes) red
+   before at the contiguity assertion (342px gap vs the ≤6px allowed), proven by reverting the
+   master-bounds law while keeping the new geometry harness export
+   (`mainComponentPaintedMixerStripBounds`/`MasterBounds`). Two pre-existing tests had pinned the
+   OLD broken geometry as truth — a fixed master-fader position, a hardcoded right-edge screenshot
+   sample region — and are re-pinned to the new law, which is strictly stronger (a detached island
+   can never satisfy either any more).
+   Original spec: At 1920×1080 the panel puts
    three ~100 px strips at the far left and the master island at the far right with ~1250 px of dead
    black between (`yesdaw-mixer-large.png`), and the strips are ~9:1 tall so the fader thumb is a
    speck on a 900 px rail. Give strips a real width band, lay them out from a single law, and place

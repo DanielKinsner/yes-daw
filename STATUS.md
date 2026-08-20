@@ -809,10 +809,49 @@ N2 is certified: exact-head GitHub Actions run `31910424452` is green for full S
 `035ea93593fd00363898519fbb48d903f89f05d3` across all nine jobs, first try. N2 is ticked in the
 backlog.
 
-**Now:** N3 (the Mixer fills its window; master as a strip) — next item.
+**N3 implementation candidate — the Mixer fills its window; master as a strip:** audited
+`paintedMixerMasterBounds()` before building. It peeled its slice off the far right of the FULL
+panel independently of how many track/bus strips the loop had already drawn from the left, so a
+clamped strip width (84–112px) left ~1250px of dead black between the last strip and master at
+1920×1080 — the exact "detached island" the carve described.
 
-**Next:** N4–N5 (automation lane ownership and Touch/Latch write), N6–N7 (track height and colour),
-N8 (punch in/out).
+One law (`paintedMixerLaneBounds`) now computes every painted strip including master: master is
+lane index `stripCount`, the slot immediately after the last strip, so it is flush against it by
+construction instead of a second, independently-computed rect that can drift. The legible strip
+width band widened from 84–112px to 84–220px.
+
+Judged visually against Logic's mixer at all three D7 sizes before gating (screenshots rendered
+with `YESDAW_UI_SCREENSHOT_DIR` set, per the N1 process note): at 1152×720 the strip band now
+fills the panel completely; at 1536×960 and 1920×1080 it covers a clear majority instead of a
+sliver stuck at one edge with a confusing gap. Honest subset per D3: master keeps its real fader
+(already existed, E19) and its LUFS/true-peak readouts, but does NOT gain pan or insert slots —
+the engine model carries no master FX chain or master-pan field to back them, so those cells stay
+omitted rather than invented.
+
+`[mixer-layout]` (86 assertions, 3-track shell, all three D7 sizes) — every strip and master stay
+inside the legible width band, never overlap, are never clipped by the window, cover at least half
+the usable panel width at every size, and master sits flush (≤6px gap) against the last strip.
+**Red before at the contiguity assertion** (342px gap vs the ≤6px allowed), proven by reverting the
+master-bounds law while keeping the new geometry harness export
+(`mainComponentPaintedMixerStripBounds`/`MasterBounds`).
+
+Two pre-existing tests had pinned the OLD broken geometry as truth and are re-pinned to the new
+law, which is strictly stronger (a detached island can never satisfy either any more): the
+`mixer-geometry` test's fixed master-fader position (was `strips->getRight() - stripWidth`, now
+lane index `stripCount`), and the screenshot suite's `hasMixerMasterSummaryCoverage` helper (was a
+hardcoded 104px band at the window's right edge, now the real painted master rect read through
+`mainComponentPaintedMixerMasterBounds` so it can never drift from where master actually paints).
+
+Full local `ctest --test-dir build-ci` green **352/352** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N3 is certified: exact-head GitHub Actions run `32402786217` is green for full SHA
+`51882bcb01f160796d39d07f464b71e5071a9834` across all nine jobs, first try. N3 is ticked in the
+backlog.
+
+**Now:** N4 (the automation lane belongs to its track, and its header tells the truth) — next item.
+
+**Next:** N5 (Touch/Latch write), N6–N7 (track height and colour), N8 (punch in/out).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
@@ -820,8 +859,10 @@ for a cheaper executor. Order: finish N3–N8 (this run, unchanged) → **V-run*
 matches `docs/design/arrangement-view-reference.png`, single-window topology with right inspector +
 bottom mixer dock) → **dogfood prep** (`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real
 song). All owner hardware/plugin smokes are explicitly deferred (nothing blocks on Dan); his only
-gates are two screenshot verdicts and the dogfood session itself. N3's mixer layout law must stay
-reusable for the V-run's bottom dock (see the plan's N3 note before starting N3).
+gates are two screenshot verdicts and the dogfood session itself. N3's mixer layout law
+(`paintedMixerLaneBounds`, now covering master too) is built to stay reusable for the V-run's
+bottom mixer dock at a shorter strip height (D6) — the law takes its height from the lane rect it
+is given, nothing about it assumes the full-height Mixer panel.
 
 ## 2026-08-14 mix-truth & strip-parity run (COMPLETE — M1–M14)
 
