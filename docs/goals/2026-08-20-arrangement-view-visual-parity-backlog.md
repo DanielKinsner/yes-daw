@@ -67,7 +67,30 @@ commit, per house style.
    small number of token tweaks, not a rewrite — audited near-black-ness and one type scale are
    already real.
 
-2. [ ] **V2 — Transport bar: real bar\|beat primary readout; drop the dead KEY cell.** Audited
+2. [x] **V2 — Transport bar: real bar\|beat primary readout; drop the dead KEY cell.** DONE —
+   feature `911f6bc`, exact-head nine-job CI run `32429479613` green (first try), local 355/355.
+   Audited first and found NO tick/frame-to-bar\|beat conversion existed anywhere in the codebase —
+   the ruler's own "bar numbers" (`TimelineCanvas.h:647`, V4's subject) are the closest precedent
+   and are themselves fake (`seconds + 1`). Added `engine::computeBarBeat` (`src/engine/Time.h`) —
+   a single-tempo/meter frame-position law, honestly scoped to match the existing `headBarFrames()`
+   family's own precedent (`Project.tempoMap.front()`/`meterMap.front()` only; no project in this
+   app has ever supported piecewise tempo/meter changes in any bar-length law) — logged as a
+   deliberate deviation from full piecewise correctness, not a shortfall: extending to piecewise
+   would need accurate tempo-ramp inversion, a materially larger task than this presentation fix
+   calls for. The header's primary readout now calls the SAME shared `headerBarBeat()` method
+   (extracted so paint and the test harness can never disagree) instead of computing a stopwatch
+   clock. The KEY cell (`{"--", "KEY"}`, a permanent dead literal — audited and confirmed NO
+   key-signature model exists anywhere in `engine::Project`) is removed per D3; the transport box
+   shrank from 248px (3 cells) to 164px (exactly 2 cells) so no dead space is left where it used to
+   paint.
+   `[transport-readout]` (150 BPM, 7/8 meter — the SAME fixture the existing count-in test uses):
+   the header reads bar 1 beat 1 at the start; advancing playback by exactly 163,200 frames (2
+   bars + 3 beats at this tempo/meter) reads bar 3 beat 4 — cross-checked via the harness accessor
+   `mainComponentHeaderBarBeat`, which reads the SAME law the paint code calls, not a duplicated
+   formula; the ex-KEY-cell region shows no fillPanel cell colour at all. Red before, proven by
+   forcing `headerBarBeat()` to always return `{1,1}` while leaving persistence/paint/harness
+   wiring in place — `afterMove.bar` stayed at 1 instead of reading 3.
+   Original spec: Audited
    first: the return-to-start/play/stop/record/loop cluster is real and wired
    (`src/ui/MainComponent.cpp:4537-4564`), tempo and time-signature cells read real project data
    (`MainComponent.cpp:8489-8525`), and the master meter + LUFS readout are real

@@ -1130,10 +1130,41 @@ V1 is certified: exact-head GitHub Actions run `32427930017` is green for full S
 `503887258077fff1ac93af83ab64dfdc7da4677c` across all nine jobs, first try. V1 is ticked in the
 V-run backlog.
 
-**Now:** V2 (Transport bar — real bar\|beat primary readout, drop the dead KEY cell) — next item.
+**V2 implementation candidate — transport bar bar\|beat readout, dead KEY cell removed:** audited
+first and found NO tick/frame-to-bar\|beat conversion existed anywhere in the codebase — the ruler's
+own "bar numbers" (V4's subject) are the closest precedent and are themselves fake
+(`seconds + 1`, `TimelineCanvas.h:647`). Added `engine::computeBarBeat` (`src/engine/Time.h`), a
+single-tempo/meter frame-position law honestly scoped to match the existing `headBarFrames()`
+family's own precedent — `Project.tempoMap.front()`/`meterMap.front()` only. **Deviation logged:**
+no project in this app has ever supported piecewise tempo/meter changes in ANY bar-length law;
+extending to piecewise would need accurate tempo-ramp inversion, a materially larger task than this
+presentation fix calls for — deliberately out of scope, not a shortfall. The header's primary
+readout now calls a shared `headerBarBeat()` method (extracted so paint and the test harness read
+the exact same law) instead of computing a stopwatch clock. The KEY cell (a permanent `"--"`
+literal — confirmed no key-signature model exists anywhere in `engine::Project`) is removed per D3;
+the transport box shrank from 248px (3 cells) to exactly 164px (2 cells) so no dead space remains.
 
-**Next:** V3 (the last item of the CP-B wave), then V4–V8 (CP-C fires at V8), then Phase 3 (dogfood
-prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
+`[transport-readout]` (150 BPM, 7/8 meter — the SAME fixture the existing count-in test uses): the
+header reads bar 1 beat 1 at the start; advancing playback by exactly 163,200 frames (2 bars + 3
+beats at this tempo/meter) reads bar 3 beat 4 — cross-checked through the harness accessor
+`mainComponentHeaderBarBeat`, which reads the SAME law the paint code calls, not a re-derived
+formula; the ex-KEY-cell region shows no cell fill. **Red before**, proven by forcing
+`headerBarBeat()` to always return `{1,1}` while leaving persistence/paint/harness wiring in place
+— the readout stayed at bar 1 instead of advancing to bar 3.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V2 is certified: exact-head GitHub Actions run `32429479613` is green for full SHA
+`911f6bce8425760052f51c04e3308b5e23936c96` across all nine jobs, first try. V2 is ticked in the
+V-run backlog.
+
+**Now:** V3 (Bottom mixer dock — visible tab labels + a show/hide toggle; closes the CP-B wave) —
+next item.
+
+**Next:** after V3, send Dan the CP-B screenshot verdict (per the C-fallback clause if he's
+unavailable ≥3 days), then V4–V8 (CP-C fires at V8), then Phase 3 (dogfood prep —
+`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
