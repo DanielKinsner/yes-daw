@@ -991,9 +991,48 @@ N6 is certified: exact-head GitHub Actions run `32417198031` is green for full S
 `5e127c47e988051ae8be25ee7d7769336cf78d3e` across all nine jobs, first try. N6 is ticked in the
 backlog.
 
-**Now:** N7 (Track colour — persisted, used everywhere) — next item.
+**N7 implementation candidate — track colour (persisted, used everywhere):** audited first,
+which corrected the backlog's own claim — the rail and clips were NOT tinting by index (both
+hardcoded a fixed purple); only the mixer nameplate cycled a 5-colour palette by ordinal strip
+position (`stripColourForIndex`), unrelated to track identity at all. Adds a persisted per-track
+`colour` (`kTrackColourUnset` = no override; schema v16, the same v10-ALTER-TABLE pattern N6 used
+for `height_px`) and a `SetTrackColour` undo verb that rides the existing whole-Track-row diff
+family N6 also used — no new diff type, and deliberately no drag-coalescing rule, since a swatch
+click is a discrete action rather than a gesture.
 
-**Next:** N8 (punch in/out).
+The click target IS the rail row's existing left accent bar (`colourSwatchBounds`, mirroring the
+same rect `drawTrackList` already painted purple) — no new component, no crowding an already-busy
+row. One click cycles the track through a fixed 6-entry palette (unset, then the 5 accents already
+in the theme: blue/teal/amber/purple/cyan), deliberately reusing the SAME hues
+`stripColourForIndex` draws from so a customized colour always looks native to the theme instead
+of introducing an arbitrary new one. `colourForTrack(track, fallback)` is the ONE function all
+three required surfaces call: the rail's accent bar/glyph/pan indicator, the mixer nameplate
+header (added `UiMixerStrip::colour`, populated from the owning Track — bus strips keep the
+historical index palette, since `Bus` carries no colour field at all), and both audio and MIDI
+clip fills. An unset track renders bit-identically to before this field existed, on every surface.
+
+`[track-colour]` (a 3-track project; track 1 customized, tracks 0 and 2 left alone): a click on
+track 1's swatch changes ONLY track 1's painted rail swatch (proven by an exact pixel match — the
+swatch fills at full alpha, no blending to account for), clip fill (read through the SAME cached
+style array the canvas actually paints from, via a new `mainComponentTimelineClipColour` harness
+accessor, so it can never drift from what renders), and mixer nameplate (proven by a before/after
+pixel diff, since the header paints at reduced alpha and an exact-colour match would depend on the
+exact backdrop it blends onto). The colour survives save/reopen (schema v16, plus a migration test
+that a legacy v15 bundle gets the no-override default). One undo restores the previous colour as a
+single step. **Red before**, proven by disabling the swatch's hit-test rect
+(`colourSwatchBounds` forced empty) while leaving persistence, undo, and all paint wiring in place
+— the click target vanished (`REQUIRE_FALSE (swatch1.isEmpty())` failed).
+
+Full local `ctest --test-dir build-ci -j 6` green **354/354** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N7 is certified: exact-head GitHub Actions run `32420981853` is green for full SHA
+`632eae06f723c6bff5e725be560cde1ec353cc50` across all nine jobs, first try. N7 is ticked in the
+backlog.
+
+**Now:** N8 (Punch in/out) — next item.
+
+**Next:** CP-A (before/after screenshots), then the V-run (Phase 2 of the long-horizon plan).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written

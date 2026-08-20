@@ -214,7 +214,33 @@ commit.
    geometry and the automation lane. Schema bump. *Gate:* `[track-height]` — on a 3-track project a
    drag on the row boundary changes THAT row's height and nothing else, the clip rectangles and the
    rail row follow it, it survives save/reopen, it clamps at both ends, and one undo restores it.
-7. [ ] **N7 — Track colour (persisted, used everywhere).** Nothing in `Track`/`MixerStripState`
+7. [x] **N7 — Track colour (persisted, used everywhere).** DONE — feature `632eae0`, exact-head
+   nine-job CI run `32420981853` green (first try), local 354/354. Audited first, correcting the
+   backlog's own claim: the rail and clips were NOT tinting by index (both hardcoded a fixed
+   purple); only the mixer nameplate cycled a 5-colour palette by ordinal strip position
+   (`stripColourForIndex`), unrelated to track identity. Adds a persisted per-track `colour`
+   (`kTrackColourUnset` = no override; schema v16, the same v10-ALTER pattern N6 used for
+   `height_px`) and a `SetTrackColour` undo verb riding the existing whole-Track-row diff family
+   (no new diff type needed, and no drag-coalescing rule — a swatch click is a discrete action,
+   not a gesture).
+   The click target IS the rail row's existing left accent bar (`colourSwatchBounds`, mirroring
+   the accent-bar rect `drawTrackList` already painted) — no new component, no row crowding. One
+   click cycles the track through a fixed 6-entry palette (unset + the 5 accents already in the
+   theme: blue/teal/amber/purple/cyan), reusing the SAME hues `stripColourForIndex` draws from so
+   a customized colour always looks native. `colourForTrack(track, fallback)` is the one function
+   all three surfaces call: the rail's accent bar/glyph/pan indicator, the mixer nameplate header
+   (added `UiMixerStrip::colour`, populated from the owning Track — buses keep the historical
+   index palette, since `Bus` carries no colour field), and both audio and MIDI clip fills. An
+   unset track renders bit-identically to before this field existed on every surface.
+   `[track-colour]` (a 3-track project, tracks 0/2 untouched, track 1 customized): a click on
+   track 1's swatch changes track 1's painted rail swatch (exact pixel match — full alpha, no
+   blending), clip fill (read through the same cached style array the canvas paints from, so it
+   cannot drift), and mixer nameplate (before/after pixel diff, since the header paints at reduced
+   alpha) — proving no other track's colours moved; the colour survives save/reopen (schema v16,
+   plus a legacy-bundle migration test); one undo restores the previous colour as one step. Red
+   before at `REQUIRE_FALSE (swatch1.isEmpty())`, proven by disabling the swatch's hit-test rect
+   while leaving persistence/undo/paint wiring in place — the click target vanished.
+   Original spec: Nothing in `Track`/`MixerStripState`
    carries a colour; the rail and mixer tint by index, so a user cannot organise a session visually.
    Add a persisted per-track colour, set from the shipped UI, applied to the rail row, the mixer
    strip nameplate and the clips on that track. Schema bump. *Gate:* `[track-colour]` — setting a
