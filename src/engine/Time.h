@@ -298,6 +298,47 @@ namespace detail {
     return false;
 }
 
+// V2/V4: a 1-based bar and beat-within-bar position.
+struct BarBeat
+{
+    std::int64_t bar = 1;
+    std::int64_t beat = 1;
+};
+
+// V2/V4: bar|beat at a frame position, for a SINGLE tempo/meter (the project's head values) — the
+// same scope the existing headBarFrames() family (UiAppModel.h) already commits to; piecewise
+// tempo/meter changes are not supported by ANY bar-length law in this codebase yet, and extending
+// to piecewise is a materially larger task (accurate tempo-ramp inversion) than this presentation
+// fix calls for. Clamp ranges mirror headQuarterNoteFrames/headMeterBeatFrames/headBarFramesExact
+// exactly, so a bar|beat computed here always agrees with those existing bar-length helpers.
+[[nodiscard]] inline BarBeat computeBarBeat (double bpm,
+                                             std::uint16_t numerator,
+                                             std::uint16_t denominator,
+                                             double sampleRateHz,
+                                             std::int64_t playheadFrame) noexcept
+{
+    const double clampedBpm = std::clamp (bpm, 20.0, 400.0);
+    const double clampedNumerator = std::clamp (static_cast<double> (numerator), 1.0, 32.0);
+    const double clampedDenominator = std::clamp (static_cast<double> (denominator), 1.0, 64.0);
+    const double quarterNoteFrames = sampleRateHz * 60.0 / clampedBpm;
+    const double beatFrames = quarterNoteFrames * 4.0 / clampedDenominator;
+    const double barFrames = beatFrames * clampedNumerator;
+    const double frame = static_cast<double> (std::max<std::int64_t> (0, playheadFrame));
+
+    const std::int64_t barIndex = barFrames > 0.0
+                                      ? static_cast<std::int64_t> (std::floor (frame / barFrames))
+                                      : 0;
+    const double framesIntoBar = frame - static_cast<double> (barIndex) * barFrames;
+    const std::int64_t beatIndex = beatFrames > 0.0
+                                       ? static_cast<std::int64_t> (std::floor (framesIntoBar / beatFrames))
+                                       : 0;
+
+    BarBeat result;
+    result.bar = barIndex + 1;
+    result.beat = std::clamp<std::int64_t> (beatIndex + 1, 1, static_cast<std::int64_t> (clampedNumerator));
+    return result;
+}
+
 // ADR-0010's mandated tempo lookup: validate the map and accumulate each segment's cumulative start frame
 // ONCE on the control side, then resolve any tick to a frame in O(log n) via binary search — never the
 // per-call O(n) scan + revalidation the free `tickToFrame` does. `frameForTick` is bit-identical to

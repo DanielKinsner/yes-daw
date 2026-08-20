@@ -251,7 +251,10 @@ struct UiTheme
         static constexpr int headerTransportClockHeight = 30;
         static constexpr int headerTransportLabelInsetY = 34;
         static constexpr int headerTransportBoxX = 760;
-        static constexpr int headerTransportBoxWidth = 248;
+        // V2: was 248 (3 cells: TEMPO, TIME SIG, KEY) — the KEY cell was a dead literal with no
+        // backing model (D3) and is gone; 164 = 2 cells exactly, so no dead space is left where
+        // the third cell used to be.
+        static constexpr int headerTransportBoxWidth = 164;
         static constexpr int headerTransportCellWidth = 82;
         static constexpr int headerTransportCellInsetX = 4;
         static constexpr int headerTransportValueInsetY = 8;

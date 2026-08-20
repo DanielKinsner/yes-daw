@@ -175,6 +175,10 @@ struct MainComponentSnapshot
 [[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,
                                                              engine::EntityId clipId);
 
+// V2: the ACTUAL bar|beat the header paints — reads the same law the paint code uses, so it can
+// never drift from what is on screen.
+[[nodiscard]] engine::BarBeat mainComponentHeaderBarBeat (const juce::Component& component);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

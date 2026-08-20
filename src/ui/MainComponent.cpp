@@ -4375,6 +4375,10 @@ public:
             .translated (trackListInput.getX(), trackListInput.getY());
     }
 
+    // V2: the ACTUAL bar|beat the header paints — reads the same law drawTransportReadouts uses,
+    // so a test can never duplicate the formula.
+    [[nodiscard]] yesdaw::engine::BarBeat harnessHeaderBarBeat() const { return headerBarBeat(); }
+
     // N7: the ACTUAL colour the timeline canvas will paint for one clip (by id) — reads the same
     // cached timelineClipStyles/timelineClipIds arrays paintTimelineCanvas() paints from,
     // refreshing them first so this can never report a stale value from before the caller's last
@@ -8451,6 +8455,27 @@ private:
                         .removeFromBottom (yesdaw::ui::UiTheme::Space::hairline));
     }
 
+    // V2: bar|beat at the current playhead — a single-tempo/meter law (the project's head
+    // values, matching the existing headBarFrames() family's own scope). Shared by the paint
+    // path below and the harness accessor, so a test can never duplicate this formula.
+    [[nodiscard]] yesdaw::engine::BarBeat headerBarBeat() const
+    {
+        const double sampleRate = appModel.project().sampleRate.isValid()
+                                      ? appModel.project().sampleRate.hz
+                                      : 48000.0;
+        const double bpm = ! appModel.project().tempoMap.empty()
+                               ? appModel.project().tempoMap.front().bpm
+                               : 120.0;
+        const std::uint16_t numerator = ! appModel.project().meterMap.empty()
+                                            ? appModel.project().meterMap.front().numerator
+                                            : 4;
+        const std::uint16_t denominator = ! appModel.project().meterMap.empty()
+                                              ? appModel.project().meterMap.front().denominator
+                                              : 4;
+        return yesdaw::engine::computeBarBeat (
+            bpm, numerator, denominator, sampleRate, appModel.context().playheadFrame);
+    }
+
     void drawTransportReadouts (juce::Graphics& g) const
     {
         auto time = juce::Rectangle<int> (
@@ -8462,18 +8487,11 @@ private:
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::transportClock));
-        const double sampleRate = appModel.project().sampleRate.isValid()
-                                      ? appModel.project().sampleRate.hz
-                                      : 48000.0;
-        const double seconds = static_cast<double> (std::max<std::int64_t> (0, appModel.context().playheadFrame))
-                             / sampleRate;
-        const int totalMilliseconds = static_cast<int> (std::floor (seconds * 1000.0));
-        const int hours = totalMilliseconds / 3'600'000;
-        const int minutes = (totalMilliseconds / 60'000) % 60;
-        const int wholeSeconds = (totalMilliseconds / 1'000) % 60;
-        const int milliseconds = totalMilliseconds % 1'000;
+        // V2: bar|beat, not a stopwatch clock — the SAME single-tempo/meter law V4's ruler
+        // reuses, so the header readout and the ruler's bar numbers can never disagree.
+        const yesdaw::engine::BarBeat barBeat = headerBarBeat();
         const juce::String clock = juce::String::formatted (
-            "%02d:%02d:%02d:%03d", hours, minutes, wholeSeconds, milliseconds);
+            "%03lld|%02lld", static_cast<long long> (barBeat.bar), static_cast<long long> (barBeat.beat));
         g.drawText (clock,
                     time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                   yesdaw::ui::UiTheme::Layout::headerTransportClockInsetY)
@@ -8481,7 +8499,7 @@ private:
                     juce::Justification::centred,
                     false);
         drawSmallLabel (g,
-                        "TIME",
+                        "BAR | BEAT",
                         time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                       yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
                         juce::Justification::centred);
@@ -8493,10 +8511,11 @@ private:
                                      ? juce::String (appModel.project().meterMap.front().numerator)
                                          + "/" + juce::String (appModel.project().meterMap.front().denominator)
                                      : juce::String ("--");
-        const std::array<std::pair<juce::String, const char*>, 3> readouts {{
+        // V2: the KEY cell is gone — D3 (no fake data): no key-signature model exists anywhere in
+        // engine::Project, so a permanent "--" was a dead literal, not an honest empty state.
+        const std::array<std::pair<juce::String, const char*>, 2> readouts {{
             { tempo, "TEMPO" },
-            { meter, "TIME SIG" },
-            { "--", "KEY" }
+            { meter, "TIME SIG" }
         }};
 
         auto box = juce::Rectangle<int> (
@@ -10798,6 +10817,14 @@ juce::Colour mainComponentTimelineClipColour (juce::Component& component, yesdaw
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessTimelineClipColour (clipId);
+
+    return {};
+}
+
+yesdaw::engine::BarBeat mainComponentHeaderBarBeat (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessHeaderBarBeat();
 
     return {};
 }

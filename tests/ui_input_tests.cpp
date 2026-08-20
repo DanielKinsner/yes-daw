@@ -6206,6 +6206,54 @@ TEST_CASE ("N8 alt+shift-drag on the ruler defines a persisted punch region, and
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).punchRegion.enabled);
 }
 
+TEST_CASE ("V2 the header shows real bar|beat at a non-default tempo, and the dead KEY cell is gone",
+           "[ui][input][shell][transport-readout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("transport-readout");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] {
+        yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+        project.tempoMap.front().bpm = 150.0;
+        project.meterMap.front().numerator = 7;
+        project.meterMap.front().denominator = 8;
+        return project;
+    };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    const yesdaw::engine::BarBeat atStart = yesdaw::ui::mainComponentHeaderBarBeat (*shell);
+    REQUIRE (atStart.bar == 1);
+    REQUIRE (atStart.beat == 1);
+
+    // 150 BPM, 7/8, 48 kHz: one beat = 9,600 frames, one bar = 67,200 frames (matches the
+    // existing count-in test's own kExpectedBarFrames fixture at these exact values). Advancing
+    // playback by 2 bars + 3 beats (163,200 frames) lands EXACTLY on the bar-3/beat-4 boundary.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    (void) renderMainComponentPlayback (*shell, 163'200, 128);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    const yesdaw::engine::BarBeat afterMove = yesdaw::ui::mainComponentHeaderBarBeat (*shell);
+    REQUIRE (afterMove.bar == 3);
+    REQUIRE (afterMove.beat == 4);
+
+    // The KEY cell is gone: the region where it used to render (a fillPanel'd cell at
+    // x=[924,1006), y=[16,72) before this item) now shows no cell fill at all — the header's
+    // transport box was shrunk to exactly 2 cells wide, so nothing paints there any more.
+    juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+    {
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+    }
+    REQUIRE (image.getPixelAt (960, 44) != yesdaw::ui::UiTheme::Color::panel());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");
