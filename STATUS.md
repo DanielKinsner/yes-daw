@@ -1078,11 +1078,28 @@ backlog.
 **The N1–N8 mixer-surface & arrangement backlog is COMPLETE.** Every item across all four phases
 is certified: feature commit + exact-head nine-job CI green + docs-only evidence commit, each.
 
-**Now:** the long-horizon plan's Phase 2 (the V-run — arrangement view visual parity against
-`docs/design/arrangement-view-reference.png`) per
-`docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md`.
+**CP-A (non-blocking, per the 2026-08-20 plan) — DONE, commit `1842bd0`.** Posted before/after
+screenshot evidence for the mixer, the automation lane, and a colourised 3-track arrangement,
+rendered from the REAL shipped shell (`YESDAW_UI_SCREENSHOT_DIR` set, D7's process) — no fake
+data. The timeline-sizes screenshot fixture (`tests/ui_screenshot_tests.cpp`) now clicks each of
+its 3 tracks' N7 colour swatches a distinct number of times before capture, so
+`yesdaw-timeline-{laptop,default,large}.png` show three genuinely different rail/clip colours
+(blue/teal/amber) instead of the historical uniform purple; `yesdaw-mixer-*.png` and
+`yesdaw-automation-default.png` were already real (unmodified fixtures). Visually confirmed:
+the rail accent bars are distinct per track, the track-3 MIDI clip picks up its track's amber
+tint, and the automation lane shows 3 real breakpoints on a live curve. All 9 screenshot test
+cases pass (2268 assertions); full local ctest 355/355; exact-head CI run `32425749781` green.
+This is evidence, not a gate — no red-before proof, since it strengthens an already-passing
+screenshot fixture rather than adding a new claim.
 
-**Next:** Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
+**Now:** the long-horizon plan's Phase 2 Step 1 (the V-run's docs-only audit-and-carve) — a fresh
+adversarial audit of `main` against `docs/design/arrangement-view-reference.png`, carving
+`docs/goals/<date>-arrangement-view-visual-parity-backlog.md` with items V1–Vn per the plan's
+locked element inventory (theme/typography, transport bar, track headers, ruler, clips, right
+inspector, bottom mixer dock, toolbar row).
+
+**Next:** Phase 2 Step 2 (execute V1–Vn, CP-B after the first topology+theme wave, CP-C at Vn),
+then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
