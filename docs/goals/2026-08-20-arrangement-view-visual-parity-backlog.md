@@ -34,7 +34,20 @@ commit, per house style.
 
 ---
 
-1. [ ] **V1 — Theme & typography: verify and close legibility gaps at all three sizes.** Audited
+1. [x] **V1 — Theme & typography: verify and close legibility gaps at all three sizes.** DONE —
+   feature `5038872`, exact-head nine-job CI run `32427930017` green (first try), local 355/355.
+   D7 judgment loop rendered the real shipped shell at all three sizes and compared token-by-token
+   against the reference: the near-black palette and single type scale were ALREADY genuinely
+   close (`appBackground()` = `0xff070a0d`, `mixerBack()` = `0xff080c10`, one `UiTheme::Type` scale)
+   — no token needed changing. This turned out to be the "mostly a judgment pass" outcome the item
+   itself predicted, not a rewrite. Locked the finding in mechanically rather than leaving it as an
+   unverified visual impression: a new WCAG-style relative-luminance contrast check
+   (`maxContrastInRegion`, `tests/ui_screenshot_tests.cpp`) samples real painted text (the header
+   time readout, the rail track name) against its own live-rendered panel background at all three
+   D7 sizes, requiring ≥3.0:1 contrast — a real floor under the judgment pass, not a rubber stamp.
+   `[theme-legibility]` (37 assertions) red before, proven by dropping the header time readout's
+   text alpha to 2% — contrast fell to 2.20:1, correctly failing the gate.
+   Original spec: Audited
    first: the token layer already matches the reference's aesthetic — `UiTheme::Color` is
    genuinely near-black (`appBackground()` = `0xff070a0d`, `panel()` = `0xff0e1318`, `mixerBack()` =
    `0xff080c10`, `src/ui/UiTheme.h:16-79`), one consistent type scale exists (`UiTheme::Type`, tiny

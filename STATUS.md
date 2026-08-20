@@ -1106,12 +1106,34 @@ found V4's ruler bar numbers are a genuine FUNCTIONAL bug, not a styling gap —
 V6's clip name-label/fade-curve/selection-state gaps are the single largest hole in the whole carve
 — none of the three exist in the timeline paint path at all today.
 
-**Now:** the long-horizon plan's Phase 2 Step 2 — execute V1, then V2, then V3 (the CP-B wave), per
-`docs/goals/2026-08-20-arrangement-view-visual-parity-backlog.md`, strict order, D7 judgment loop
-before each mechanical gate.
+**V1 implementation candidate — theme & typography legibility:** the D7 judgment loop (real shipped
+shell rendered at all three sizes, compared token-by-token against the reference) found the
+near-black palette and single type scale were ALREADY genuinely close to the reference —
+`appBackground()` = `0xff070a0d`, `mixerBack()` = `0xff080c10`, one `UiTheme::Type` scale — no token
+needed changing. This is the "mostly a judgment pass" outcome the backlog item itself predicted, not
+a rewrite. Rather than leave that as an unverified visual impression, locked it in mechanically: a
+new WCAG-style relative-luminance contrast check (`maxContrastInRegion`,
+`tests/ui_screenshot_tests.cpp`) samples real painted text (the header time readout, the rail track
+name) against its own live-rendered panel background at all three D7 sizes, requiring a ≥3.0:1
+floor — lenient enough for a dark-mode DAW's legitimate secondary/muted text, strict enough to catch
+a genuinely invisible label.
 
-**Next:** V4–V8 (CP-C fires at V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
-HOW-TO-RUN, then Dan edits a real song).
+`[theme-legibility]` (37 assertions): the header time readout and rail track name clear 3.0:1
+contrast at 1152×720, 1536×960, and 1920×1080. **Red before**, proven by dropping the header time
+readout's text alpha to 2% — contrast fell to 2.20:1, correctly failing the gate at exactly that
+assertion.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V1 is certified: exact-head GitHub Actions run `32427930017` is green for full SHA
+`503887258077fff1ac93af83ab64dfdc7da4677c` across all nine jobs, first try. V1 is ticked in the
+V-run backlog.
+
+**Now:** V2 (Transport bar — real bar\|beat primary readout, drop the dead KEY cell) — next item.
+
+**Next:** V3 (the last item of the CP-B wave), then V4–V8 (CP-C fires at V8), then Phase 3 (dogfood
+prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
