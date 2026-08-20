@@ -3457,6 +3457,29 @@ public:
         return { id, {}, true };
     }
 
+    // N7: the persisted, undoable colour for ANY track by id (a swatch picker targets the row it
+    // was opened from, not necessarily the selected strip). No UiActionId — like the row-resize
+    // drag, a swatch click has no natural keyboard shortcut; enablement is decided directly (the
+    // track must exist). colour == engine::kTrackColourUnset clears back to no override.
+    [[nodiscard]] UiActionDispatchResult setTrackColour (engine::EntityId trackId, std::uint32_t colour)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        if (! context_.projectLoaded || findTrack (trackId) == nullptr)
+            return { id, { false, "track not found" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setTrackColour (trackId, colour)).applied())
+            return { id, { false, "invalid track colour" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track colour did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        return { id, {}, true };
+    }
+
     // The selected Track's current main-output destination (invalid = master).
     [[nodiscard]] engine::EntityId selectedTrackOutputBusId() const noexcept
     {

@@ -149,6 +149,9 @@ struct UiMixerStrip
     UiMixerMeterReadout meter;
     std::vector<UiMixerSendReadout> sends;
     std::vector<UiMixerFxSlotReadout> fxSlots;
+    // N7: the owning Track's persisted colour (kTrackColourUnset for buses — Bus carries no
+    // colour field, so a bus strip always falls back to the historical index-based tint).
+    std::uint32_t colour = 0;
 };
 
 struct UiMixerSurfaceSnapshot
@@ -392,6 +395,7 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.soloed = control != nullptr ? control->soloed : trackRow.strip.soloed;
         strip.soloSafe = control != nullptr ? control->soloSafe : trackRow.strip.soloSafe;
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
+        strip.colour = trackRow.colour;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         strip.sends = detail::sendReadoutsForTrack (project, trackRow.id);
         strip.fxSlots = detail::fxSlotReadoutsForStrip (

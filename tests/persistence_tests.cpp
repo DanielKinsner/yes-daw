@@ -1423,6 +1423,54 @@ TEST_CASE ("Schema v15 migration gives legacy Tracks the auto-shared height defa
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// N7: mirrors N6's height_px migration test exactly — colour is the SAME v10-ALTER-TABLE shape,
+// a new column on the existing tracks table. "Before v16" is built by running migrations only up
+// to v15 and inserting a Track row that predates the colour column entirely.
+TEST_CASE ("Schema v16 migration gives legacy Tracks the no-override colour default",
+           "[persistence][migration][track-colour]")
+{
+    const auto path = makeTempBundlePath ("track-colour-v15-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const EntityId trackId = idFromLowByte (10);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV15 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 15);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV15).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe, height_px) VALUES ("
+        + blobLiteral (trackId) + ", 'Audio 1', 1.0, 0.0, 0, 0, 0, 0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 16;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT colour FROM tracks WHERE id = X'0000000000000000000000000000000A';", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.tracks.size() == 1u);
+    REQUIRE (readback.tracks[0].colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1433,18 +1481,20 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // N6: a fresh bundle is v15 now — the v10 simulation also strips the v11-v15 artifacts,
-        // including dropping the height_px COLUMN (v15 is an ALTER TABLE, not a new table like
-        // v11-v14, so re-running its migration on reopen would otherwise fail with a duplicate
-        // column error).
+        // N6/N7: a fresh bundle is v16 now — the v10 simulation also strips the v11-v16 artifacts,
+        // including dropping the height_px and colour COLUMNs (v15/v16 are ALTER TABLEs, not new
+        // tables like v11-v14, so re-running their migrations on reopen would otherwise fail with
+        // a duplicate column error).
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
             "DROP TABLE automation_mode; ALTER TABLE tracks DROP COLUMN height_px; "
+            "ALTER TABLE tracks DROP COLUMN colour; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
             "DELETE FROM schema_migrations WHERE version = 14; "
             "DELETE FROM schema_migrations WHERE version = 15; "
+            "DELETE FROM schema_migrations WHERE version = 16; "
             "PRAGMA user_version = 10;").ok());
     }
 

@@ -165,6 +165,16 @@ struct MainComponentSnapshot
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& component,
                                                                        int row);
 
+// N7: the rail row's painted colour-swatch rect (the left accent bar, shell coordinates) — the
+// SAME law the click-to-cycle gesture hit-tests against.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedColourSwatchBounds (const juce::Component& component,
+                                                                            int row);
+
+// N7: the ACTUAL colour the timeline canvas paints for one clip (by id) — reads the same cached
+// style array the paint code reads from, so it can never drift from what is on screen.
+[[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,
+                                                             engine::EntityId clipId);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

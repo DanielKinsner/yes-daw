@@ -88,7 +88,9 @@ enum class ProjectEditVerb : std::uint8_t
     // N5: the persisted automation write mode (Read/Touch/Latch)
     SetAutomationMode,
     // N6: a Track's persisted row height (0 = auto-shared)
-    SetTrackHeight
+    SetTrackHeight,
+    // N7: a Track's persisted colour (0 = no override)
+    SetTrackColour
 };
 
 struct ProjectEditCommand
@@ -137,6 +139,7 @@ struct ProjectEditCommand
     AutomationCurveType automationCurveType = AutomationCurveType::Linear;
     AutomationMode automationMode = AutomationMode::Read;
     int trackHeightPx = 0;
+    std::uint32_t trackColour = 0;
     // Arrangement verb payloads. trackName is a fixed array so the command stays trivially copyable;
     // names longer than the array are rejected at the factory, never silently truncated.
     EntityId trackId;
@@ -813,6 +816,17 @@ struct ProjectEditCommand
         return command;
     }
 
+    // N7: a Track's persisted colour (0 clears back to no override).
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackColour (EntityId trackId,
+                                                                        std::uint32_t colour) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackColour;
+        command.trackId = trackId;
+        command.trackColour = colour;
+        return command;
+    }
+
     // E19: persisted master strip gain (rides the shared `gain` field).
     [[nodiscard]] static constexpr ProjectEditCommand setMasterGain (float linearGain) noexcept
     {
@@ -1081,7 +1095,8 @@ namespace detail {
            || verb == ProjectEditVerb::SetSendTap
            || verb == ProjectEditVerb::SetTrackOutput
            || verb == ProjectEditVerb::SetTrackMixScalars
-           || verb == ProjectEditVerb::SetTrackHeight;
+           || verb == ProjectEditVerb::SetTrackHeight
+           || verb == ProjectEditVerb::SetTrackColour;
 }
 
 [[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
@@ -1390,6 +1405,9 @@ namespace detail {
 
         case ProjectEditVerb::SetTrackHeight:
             return setTrackHeight (project, command.trackId, command.trackHeightPx);
+
+        case ProjectEditVerb::SetTrackColour:
+            return setTrackColour (project, command.trackId, command.trackColour);
 
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);

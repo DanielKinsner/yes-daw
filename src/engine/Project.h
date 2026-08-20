@@ -348,6 +348,19 @@ inline constexpr int kTrackHeightMaxPx = 400;
     return heightPx == 0 || (heightPx >= kTrackHeightMinPx && heightPx <= kTrackHeightMaxPx);
 }
 
+// N7: persisted per-track colour, applied to the rail row, the mixer strip nameplate, and the
+// clips on that track. Packed 0xAARRGGBB. 0 (the default, fully transparent) is reserved to mean
+// "no override — every surface keeps painting its historical, colour-less appearance", so a
+// Project with no customized track colour never diverges from today's rendering. A SET colour
+// must be fully opaque (alpha byte 0xFF) so it can never collide with the unset sentinel and can
+// never paint semi-transparent by accident.
+inline constexpr std::uint32_t kTrackColourUnset = 0;
+
+[[nodiscard]] constexpr bool trackColourIsValid (std::uint32_t colour) noexcept
+{
+    return colour == kTrackColourUnset || (colour >> 24) == 0xFFu;
+}
+
 struct Track
 {
     EntityId id;
@@ -361,6 +374,9 @@ struct Track
     // the automation lane. 0 (the default) means no override — the row keeps sharing equally in
     // its panel's available space exactly like every Track did before this field existed.
     int heightPx = 0;
+    // N7: persisted row colour, honoured by the rail, the mixer strip nameplate, and this
+    // Track's clips. kTrackColourUnset (the default) means no override.
+    std::uint32_t colour = kTrackColourUnset;
 
     [[nodiscard]] bool isValid() const noexcept
     {
@@ -368,6 +384,9 @@ struct Track
             return false;
 
         if (! trackHeightIsValid (heightPx))
+            return false;
+
+        if (! trackColourIsValid (colour))
             return false;
 
         for (const SendRow& send : sends)
@@ -2795,6 +2814,32 @@ namespace detail {
             continue;
 
         track.heightPx = heightPx;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// N7: persisted row colour — kTrackColourUnset clears back to the historical colour-less default.
+[[nodiscard]] inline ProjectEditStatus setTrackColour (Project& project,
+                                                       EntityId trackId,
+                                                       std::uint32_t colour)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackColourIsValid (colour))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.colour = colour;
         return ProjectEditStatus::Applied;
     }
 

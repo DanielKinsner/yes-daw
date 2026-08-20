@@ -10146,6 +10146,142 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     std::filesystem::remove_all (bundlePath, ec3);
 }
 
+TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists, paints "
+           "everywhere, and undoes as one step",
+           "[ui][input][shell][track-colour]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-colour");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // clip lands on track 0
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+
+    // Select track 1 (not track 0, not the initially-selected track) and import a SECOND clip
+    // onto it, so this track carries both a rail row and a clip to prove colour propagation on.
+    // Row height is the auto-share of the rail's available height across 3 tracks — NOT just
+    // trackListRowMinHeight, which undershoots into row 0 whenever the rail is tall enough to
+    // give each row more than the minimum.
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int headerHeight = L::trackListHeaderHeight;
+    const int rowHeight = juce::jmax (L::trackListRowMinHeight, (rail->getHeight() - headerHeight) / 3);
+    const auto railRowCenter = [&] (int row) {
+        return juce::Point<int> { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 };
+    };
+    mouseDownAt (*rail, railRowCenter (1));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 3u);
+    const auto clipIndexOnTrack = [&project] (std::size_t trackIndex) {
+        for (std::size_t i = 0; i < project.clips.size(); ++i)
+            if (project.clips[i].trackId == project.tracks[trackIndex].id)
+                return i;
+        return project.clips.size();
+    };
+    const std::size_t clip0Index = clipIndexOnTrack (0);
+    const std::size_t clip1Index = clipIndexOnTrack (1);
+    REQUIRE (clip0Index < project.clips.size());
+    REQUIRE (clip1Index < project.clips.size());
+    REQUIRE (clipIndexOnTrack (2) == project.clips.size());
+    const yesdaw::engine::EntityId clip0Id = project.clips[clip0Index].id;
+    const yesdaw::engine::EntityId clip1Id = project.clips[clip1Index].id;
+    REQUIRE (project.tracks[0].colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (project.tracks[1].colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (project.tracks[2].colour == yesdaw::engine::kTrackColourUnset);
+
+    // Importing auto-selects the new clip (clip1), which would paint the "selected" accent
+    // colour regardless of its track's own colour — a false positive/negative risk below. Click
+    // empty canvas space (past the end of every clip, thanks to the 25% trailing margin
+    // timelineCanvasGeometry always reserves) to clear the selection entirely.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    mouseDownAt (timeline, { timeline.getWidth() - 2, timeline.getHeight() - 2 });
+
+    const auto renderShell = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto rectContainsColour = [&renderShell] (juce::Rectangle<int> within, juce::Colour colour) {
+        const juce::Image image = renderShell();
+        for (int y = within.getY(); y < within.getBottom(); ++y)
+            for (int x = within.getX(); x < within.getRight(); ++x)
+                if (image.getPixelAt (x, y) == colour)
+                    return true;
+        return false;
+    };
+
+    // Mixer nameplate BEFORE: visit the Mixer view while track 1 is still unset and capture its
+    // header band as an image, then return to the Timeline view (the rail — and this swatch
+    // click — only exist there). Compared against the AFTER capture below.
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    const juce::Rectangle<int> header1 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 1)
+                                              .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight);
+    REQUIRE_FALSE (header1.isEmpty());
+    const juce::Image beforeHeaderImage = renderShell();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+
+    // One click on track 1's colour swatch advances it to the FIRST palette entry; the other two
+    // tracks' colours are untouched.
+    const juce::Rectangle<int> swatch1 = yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 1);
+    REQUIRE_FALSE (swatch1.isEmpty());
+    mouseDownAt (*rail, swatch1.getCentre() - rail->getPosition());
+
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].colour == yesdaw::engine::kTrackColourUnset);   // untouched
+    REQUIRE (project.tracks[1].colour != yesdaw::engine::kTrackColourUnset);   // customized
+    REQUIRE ((project.tracks[1].colour >> 24) == 0xFFu);                       // opaque
+    REQUIRE (project.tracks[2].colour == yesdaw::engine::kTrackColourUnset);   // untouched
+
+    const juce::Colour expected (project.tracks[1].colour);
+
+    // Rail: the swatch itself paints the exact persisted colour (full-alpha fill — no blending to
+    // account for), and neither OTHER row's swatch does.
+    REQUIRE (rectContainsColour (swatch1, expected));
+    REQUIRE_FALSE (rectContainsColour (yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0), expected));
+    REQUIRE_FALSE (rectContainsColour (yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 2), expected));
+
+    // Clip: track 1's clip now paints the new colour; track 0's clip (still unset) does not —
+    // read through the SAME cached style array the canvas paints from, so it cannot drift.
+    REQUIRE (yesdaw::ui::mainComponentTimelineClipColour (*shell, clip1Id) == expected);
+    REQUIRE (yesdaw::ui::mainComponentTimelineClipColour (*shell, clip0Id) != expected);
+
+    // Mixer nameplate AFTER: strip 1's header band actually changed pixels (the header paints at
+    // reduced alpha, so an exact-colour match would depend on the exact backdrop it blends onto —
+    // a before/after diff sidesteps that, mirroring the pattern this file already uses for other
+    // alpha-blended paint gates).
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    const juce::Image afterHeaderImage = renderShell();
+    bool headerChanged = false;
+    for (int y = header1.getY(); y < header1.getBottom() && ! headerChanged; ++y)
+        for (int x = header1.getX(); x < header1.getRight(); ++x)
+            if (beforeHeaderImage.getPixelAt (x, y) != afterHeaderImage.getPixelAt (x, y))
+            {
+                headerChanged = true;
+                break;
+            }
+    REQUIRE (headerChanged);
+
+    // One undo restores the previous (unset) colour as a single step.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view for the shortcut
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].colour == yesdaw::engine::kTrackColourUnset);
+
+    std::error_code ec3;
+    std::filesystem::remove_all (bundlePath, ec3);
+}
+
 TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",
            "[ui][input][shell][automation-target]")
 {

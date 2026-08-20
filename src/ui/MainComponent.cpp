@@ -244,6 +244,37 @@ juce::Colour stripColourForIndex (std::size_t index)
     return colours[index % colours.size()];
 }
 
+// N7: the fixed swatch palette a rail-row colour click cycles through. Position 0 is "no
+// override" (kTrackColourUnset); positions 1..5 mirror the SAME five accents
+// stripColourForIndex already draws from (kBlue/kTeal/kAmber/kPurple/kCyan), so a customized
+// track colour always looks native to this theme instead of introducing a new arbitrary hue.
+// Written as raw hex (not the juce::Colour constants above) so the array can be constexpr.
+constexpr std::array<std::uint32_t, 6> kTrackColourCycle {
+    yesdaw::engine::kTrackColourUnset,
+    0xff3b8cffu,   // accentBlue
+    0xff1bb5a6u,   // accentTeal
+    0xffd29118u,   // accentAmber
+    0xffa578ffu,   // accentPurple
+    0xff20c8d8u,   // accentCyan
+};
+
+[[nodiscard]] std::uint32_t nextTrackColourInCycle (std::uint32_t current) noexcept
+{
+    const auto it = std::find (kTrackColourCycle.begin(), kTrackColourCycle.end(), current);
+    const std::size_t index = it == kTrackColourCycle.end()
+                                   ? 0
+                                   : static_cast<std::size_t> (it - kTrackColourCycle.begin());
+    return kTrackColourCycle[(index + 1) % kTrackColourCycle.size()];
+}
+
+// N7: what the rail/mixer/clips actually paint for a track — its own persisted colour when set,
+// otherwise the surface's historical fallback (so an untouched Project renders bit-identically
+// to before this field existed).
+[[nodiscard]] juce::Colour colourForTrack (const yesdaw::engine::Track& track, juce::Colour fallbackColour) noexcept
+{
+    return track.colour == yesdaw::engine::kTrackColourUnset ? fallbackColour : juce::Colour (track.colour);
+}
+
 // Translate a JUCE KeyPress into the keymap's chord vocabulary ("Ctrl+Alt+Shift+B", "Space", "Del",
 // "F2", "Ctrl+/"). Modifier order matches the descriptor table: Ctrl, Alt, Shift.
 std::string chordForKeyPress (const juce::KeyPress& key)
@@ -2174,6 +2205,10 @@ public:
     // coalescing, mirroring the mixer fader drag).
     std::function<void (int, int)> onRowResized;
     std::function<void()> onRowResizeEnded;
+    // N7: a click on the row's colour swatch (the left accent bar) — row index only, the caller
+    // decides the next colour (a fixed-palette cycle, mirroring how a single click commits one
+    // undo step for M/S/O).
+    std::function<void (int)> onColourSwatchClicked;
 
     void mouseMove (const juce::MouseEvent& event) override
     {
@@ -2249,6 +2284,11 @@ public:
             case MiniZone::Meter:
                 if (onMeterClicked)
                     onMeterClicked (row);
+                return;
+
+            case MiniZone::Colour:
+                if (onColourSwatchClicked)
+                    onColourSwatchClicked (row);
                 return;
 
             case MiniZone::None:
@@ -2385,8 +2425,20 @@ public:
                                yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
     }
 
+    // N7: the row's colour swatch IS the left accent bar — mirrors drawTrackList's accent-bar
+    // rectangle exactly, so paint and hit-test cannot drift (the same law N6 established for
+    // every other rail control).
+    [[nodiscard]] juce::Rectangle<int> colourSwatchBounds (int row) const
+    {
+        auto bounds = rowBounds (row);
+        bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
+        return bounds.withWidth (yesdaw::ui::UiTheme::Layout::trackListAccentWidth)
+                     .reduced (yesdaw::ui::UiTheme::Layout::trackListAccentHorizontalInset,
+                               yesdaw::ui::UiTheme::Layout::trackListAccentVerticalInset);
+    }
+
 private:
-    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo, Meter };
+    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo, Meter, Colour };
 
     [[nodiscard]] juce::Rectangle<int> buttonCellBounds (int row, int cellIndex) const
     {
@@ -2414,6 +2466,8 @@ private:
             return MiniZone::Solo;
         if (meterZoneBounds (row).contains (position))
             return MiniZone::Meter;
+        if (colourSwatchBounds (row).contains (position))
+            return MiniZone::Colour;
         return MiniZone::None;
     }
 
@@ -3341,6 +3395,17 @@ public:
             refreshActionState();
             repaint();
         };
+        // N7: one click on a row's colour swatch commits ONE undo step, advancing THAT track
+        // (not necessarily the selected one) to the next colour in the fixed cycle.
+        trackListInput.onColourSwatchClicked = [this] (int row) {
+            const auto& tracks = appModel.project().tracks;
+            if (row < 0 || row >= static_cast<int> (tracks.size()))
+                return;
+            const auto& track = tracks[static_cast<std::size_t> (row)];
+            (void) appModel.setTrackColour (track.id, nextTrackColourInCycle (track.colour));
+            refreshActionState();
+            repaint();
+        };
         addAndMakeVisible (trackListInput);
 
         // Header tempo + time-signature editing (usable-DAW P0): the painted readouts become real
@@ -4247,6 +4312,27 @@ public:
     {
         return trackListInput.rowBounds (row)
             .translated (trackListInput.getX(), trackListInput.getY());
+    }
+
+    // N7: the painted colour-swatch rect for a rail row (the left accent bar), in shell
+    // coordinates — the same law the click-to-cycle gesture hit-tests against.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedColourSwatchBounds (int row) const
+    {
+        return trackListInput.colourSwatchBounds (row)
+            .translated (trackListInput.getX(), trackListInput.getY());
+    }
+
+    // N7: the ACTUAL colour the timeline canvas will paint for one clip (by id) — reads the same
+    // cached timelineClipStyles/timelineClipIds arrays paintTimelineCanvas() paints from,
+    // refreshing them first so this can never report a stale value from before the caller's last
+    // edit.
+    [[nodiscard]] juce::Colour harnessTimelineClipColour (yesdaw::engine::EntityId clipId)
+    {
+        rebuildTimelineClipViews();
+        for (std::size_t i = 0; i < timelineClipIds.size(); ++i)
+            if (timelineClipIds[i] == clipId)
+                return timelineClipStyles[i].colour;
+        return {};
     }
 
     // N3: the painted mixer-strip lane rect for a track/bus strip, and the master pane's rect —
@@ -8490,7 +8576,9 @@ private:
             const juce::String trackName = projectTrack.strip.name.empty()
                                                ? fallbackName
                                                : juce::String (projectTrack.strip.name);
-            const juce::Colour trackColour = kPurple;
+            // N7: a customized colour overrides the historical fixed purple everywhere this
+            // variable is used below (accent bar / swatch, glyph tint, pan indicator, level fill).
+            const juce::Colour trackColour = colourForTrack (projectTrack, kPurple);
 
             const auto rowSurface = row.reduced (
                 yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
@@ -8811,7 +8899,7 @@ private:
         projectTimelineTracks.reserve (project.tracks.size());
         for (const yesdaw::engine::Track& track : project.tracks)
             projectTimelineTracks.push_back ({ track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
-                                               kPurple,
+                                               colourForTrack (track, kPurple),
                                                0.0f,
                                                track.heightPx });
 
@@ -8842,7 +8930,7 @@ private:
             timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, clip.name.c_str() });
             timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (clip.id)
                                                 ? yesdaw::ui::UiTheme::Color::accentBlue()
-                                                : kPurple,
+                                                : colourForTrack (*track, kPurple),
                                             yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
@@ -8894,7 +8982,7 @@ private:
             }
             timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (midiClip.id)
                                                 ? yesdaw::ui::UiTheme::Color::accentBlue()
-                                                : yesdaw::ui::UiTheme::Color::accentCyan(),
+                                                : colourForTrack (*track, yesdaw::ui::UiTheme::Color::accentCyan()),
                                             yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
             timelineClipIds.push_back (midiClip.id);
             timelineClipAssetHashes.push_back ({});
@@ -9641,7 +9729,11 @@ private:
             const bool isBus = stripIndex >= surface.tracks.size();
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
-            const juce::Colour stripColour = stripColourForIndex (stripIndex);
+            // N7: a Track strip's own persisted colour overrides the historical index-cycled
+            // palette; a Bus strip (which carries no colour field) always keeps it.
+            const juce::Colour stripColour = state.colour != yesdaw::engine::kTrackColourUnset
+                                                  ? juce::Colour (state.colour)
+                                                  : stripColourForIndex (stripIndex);
             // E23: the selected highlight keys on the E16 strip ordinal, so a selected BUS
             // strip highlights exactly like a selected track.
             const int selectedOrdinal = appModel.selectedMixerStripOrdinal();
@@ -10624,6 +10716,22 @@ juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& c
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedRailRowBounds (row);
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedColourSwatchBounds (const juce::Component& component, int row)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedColourSwatchBounds (row);
+
+    return {};
+}
+
+juce::Colour mainComponentTimelineClipColour (juce::Component& component, yesdaw::engine::EntityId clipId)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTimelineClipColour (clipId);
 
     return {};
 }
