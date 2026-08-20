@@ -35,6 +35,14 @@ struct Viewport
     double widthPixels      = UiThemeLayout::timelineLayoutDefaultWidthPixels;
     double laneHeightPixels = UiThemeLayout::timelineLayoutDefaultLaneHeightPixels;    // each lane's row height (lane 0 at y=0)
     double laneScrollPixels = UiThemeLayout::timelineLayoutZeroFloor;                  // vertical scroll: pixels of lane rows above the window (E5)
+    // N6: optional PER-LANE geometry (persisted Track height). laneTopPixels[lane] is that lane's
+    // cumulative top offset BEFORE laneScrollPixels is subtracted; laneHeightPixelsPerLane[lane]
+    // is its own height. Both null (the default) keeps every lane on the uniform
+    // `lane * laneHeightPixels` law byte-for-byte — every caller that predates per-track height
+    // sees IDENTICAL behavior. Caller-owned, sized to at least (max lane index + 1), same
+    // ownership contract as `out`/`outCapacity` below.
+    const double* laneTopPixels = nullptr;
+    const double* laneHeightPixelsPerLane = nullptr;
 };
 
 // One on-screen rectangle to draw, in pixels, clipped to the viewport's left/right edges.
@@ -76,7 +84,15 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         if (clipEnd <= leftSec || clipStart >= rightSec)
             continue;
 
-        const double laneY = c.lane * vp.laneHeightPixels - vp.laneScrollPixels;
+        // N6: a per-lane geometry array (persisted Track height) overrides the uniform law for
+        // ITS lane only; absent, every lane behaves exactly as before.
+        const double laneTop = vp.laneTopPixels != nullptr
+            ? vp.laneTopPixels[c.lane]
+            : c.lane * vp.laneHeightPixels;
+        const double laneH = vp.laneHeightPixelsPerLane != nullptr
+            ? vp.laneHeightPixelsPerLane[c.lane]
+            : vp.laneHeightPixels;
+        const double laneY = laneTop - vp.laneScrollPixels;
 
         // Unclipped pixel span, then clamp to the viewport edges.
         double xPx = (clipStart - leftSec) * pps;
@@ -94,7 +110,7 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         r.x  = (float) xPx;
         r.y  = (float) laneY;
         r.w  = (float) wPx;
-        r.h  = (float) vp.laneHeightPixels;
+        r.h  = (float) laneH;
     }
     return count;
 }
@@ -141,11 +157,19 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
         if (xPx + wPx > vp.widthPixels) wPx = vp.widthPixels - xPx;
         wPx = std::max (wPx, UiThemeLayout::timelineLayoutZeroFloor);
 
-        const double yPx = static_cast<double> (c.lane) * vp.laneHeightPixels - vp.laneScrollPixels;
+        // N6: mirrors layoutVisible's per-lane override exactly, so a hit-test can never drift
+        // from the painted rect.
+        const double laneTop = vp.laneTopPixels != nullptr
+            ? vp.laneTopPixels[c.lane]
+            : static_cast<double> (c.lane) * vp.laneHeightPixels;
+        const double laneH = vp.laneHeightPixelsPerLane != nullptr
+            ? vp.laneHeightPixelsPerLane[c.lane]
+            : vp.laneHeightPixels;
+        const double yPx = laneTop - vp.laneScrollPixels;
         if (xPixels >= xPx
             && xPixels < xPx + wPx
             && yPixels >= yPx
-            && yPixels < yPx + vp.laneHeightPixels)
+            && yPixels < yPx + laneH)
         {
             return { true, c.id, c.lane, i };
         }

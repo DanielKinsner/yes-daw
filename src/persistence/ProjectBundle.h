@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 14;
+inline constexpr int          kCodeSchemaVersion = 15;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1248,13 +1248,23 @@ CREATE TABLE automation_mode (
 );
 )SQL";
 
+// N6: persisted per-Track row height (v10's ALTER TABLE pattern, not locate-points — this is a
+// per-row column on the existing tracks table, not a per-project scalar). 0 (the default) means
+// no override, so a v13 bundle migrates with every Track keeping today's auto-shared height.
+// The 56/400 band mirrors engine::kTrackHeightMinPx/kTrackHeightMaxPx exactly — SQL CHECK
+// constraints can't reference the C++ constants, so keep the two in sync by hand.
+inline constexpr std::string_view kSchemaV15Sql = R"SQL(
+ALTER TABLE tracks ADD COLUMN height_px INTEGER NOT NULL DEFAULT 0
+  CHECK (height_px = 0 OR (height_px >= 56 AND height_px <= 400));
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 14> kMigrations {
+inline constexpr std::array<SchemaMigration, 15> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1269,6 +1279,7 @@ inline constexpr std::array<SchemaMigration, 14> kMigrations {
     SchemaMigration { 12, kSchemaV12Sql },
     SchemaMigration { 13, kSchemaV13Sql },
     SchemaMigration { 14, kSchemaV14Sql },
+    SchemaMigration { 15, kSchemaV15Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1949,8 +1960,8 @@ public:
 
         detail::Statement trackStmt (
             db_,
-            "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe, height_px) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
         for (const engine::Track& track : project.tracks)
         {
             trackStmt.reset();
@@ -1961,6 +1972,7 @@ public:
             if (auto result = trackStmt.bindInt64 (5, track.strip.muted ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = trackStmt.bindInt64 (6, track.strip.soloed ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = trackStmt.bindInt64 (7, track.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindInt64 (8, track.heightPx); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, trackStmt); ! result.ok()) { rollback(); return result; }
         }
 
@@ -2406,7 +2418,7 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe FROM tracks ORDER BY rowid;");
+                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe, height_px FROM tracks ORDER BY rowid;");
                 ! result.ok())
                 return result;
 
@@ -2432,6 +2444,9 @@ public:
                 track.strip.muted = sqlite3_column_int64 (stmt.get(), 4) != 0;
                 track.strip.soloed = sqlite3_column_int64 (stmt.get(), 5) != 0;
                 track.strip.soloSafe = sqlite3_column_int64 (stmt.get(), 6) != 0;
+                track.heightPx = static_cast<int> (sqlite3_column_int64 (stmt.get(), 7));
+                if (! engine::trackHeightIsValid (track.heightPx))
+                    return detail::semanticInvalid ("tracks.height_px is outside the Track value range");
                 project.tracks.push_back (std::move (track));
             }
         }
@@ -3774,7 +3789,7 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE sample_rate_hz <= 0 "
                 "UNION ALL SELECT 1 FROM assets WHERE frames <= 0 OR sample_rate_hz <= 0 OR channels <= 0 "
-                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) OR (height_px != 0 AND (height_px < 56 OR height_px > 400)) "
                 "UNION ALL SELECT 1 FROM buses WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "
@@ -3807,7 +3822,7 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE typeof(id) != 'blob' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') "
                 "UNION ALL SELECT 1 FROM assets WHERE typeof(id) != 'blob' OR typeof(content_hash) != 'blob' OR typeof(frames) != 'integer' OR typeof(sample_rate_hz) NOT IN ('integer', 'real') OR typeof(channels) != 'integer' "
-                "UNION ALL SELECT 1 FROM tracks WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' "
+                "UNION ALL SELECT 1 FROM tracks WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' OR typeof(height_px) != 'integer' "
                 "UNION ALL SELECT 1 FROM buses WHERE typeof(id) != 'blob' OR typeof(name) != 'text' OR typeof(linear_gain) NOT IN ('integer', 'real') OR typeof(pan) NOT IN ('integer', 'real') OR typeof(muted) != 'integer' OR typeof(soloed) != 'integer' OR typeof(solo_safe) != 'integer' "
                 "UNION ALL SELECT 1 FROM clips WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(timeline_length) != 'integer' OR typeof(src_offset) != 'integer' OR typeof(src_len) != 'integer' OR typeof(gain) NOT IN ('integer', 'real') OR typeof(fade_in) != 'integer' OR typeof(fade_out) != 'integer' OR typeof(time_base) != 'integer' "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE typeof(id) != 'blob' OR typeof(asset_id) != 'blob' OR typeof(track_id) != 'blob' OR typeof(clip_id) != 'blob' OR typeof(timeline_start) != 'integer' OR typeof(frame_count) != 'integer' OR typeof(take_ordinal) != 'integer' OR typeof(input_channel) != 'integer' OR typeof(device_stable_id) != 'integer' OR typeof(monitoring_policy) != 'integer' "

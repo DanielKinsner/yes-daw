@@ -337,6 +337,17 @@ struct SendRow
     friend bool operator== (const SendRow&, const SendRow&) = default;
 };
 
+// N6: the legible band a persisted track height must fall in. 0 is reserved (not in-band) to
+// mean "no override — this row shares equally in its panel's available space", so a Project with
+// no customized track ever diverges from the historical stretch-to-fill layout.
+inline constexpr int kTrackHeightMinPx = 56;
+inline constexpr int kTrackHeightMaxPx = 400;
+
+[[nodiscard]] constexpr bool trackHeightIsValid (int heightPx) noexcept
+{
+    return heightPx == 0 || (heightPx >= kTrackHeightMinPx && heightPx <= kTrackHeightMaxPx);
+}
+
 struct Track
 {
     EntityId id;
@@ -346,10 +357,17 @@ struct Track
     // historical law; a valid id must name a Bus, and the Track's post-pan signal feeds THAT Bus's
     // sum instead — the submix/group workflow sends alone cannot express.
     EntityId outputBusId;
+    // N6: persisted row height, honoured by the rail, the timeline lanes, the clip geometry, and
+    // the automation lane. 0 (the default) means no override — the row keeps sharing equally in
+    // its panel's available space exactly like every Track did before this field existed.
+    int heightPx = 0;
 
     [[nodiscard]] bool isValid() const noexcept
     {
         if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        if (! trackHeightIsValid (heightPx))
             return false;
 
         for (const SendRow& send : sends)
@@ -2751,6 +2769,32 @@ namespace detail {
             continue;
 
         track.outputBusId = busId;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// N6: persisted row height — 0 clears back to the auto-shared default.
+[[nodiscard]] inline ProjectEditStatus setTrackHeight (Project& project,
+                                                       EntityId trackId,
+                                                       int heightPx)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackHeightIsValid (heightPx))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.heightPx = heightPx;
         return ProjectEditStatus::Applied;
     }
 

@@ -160,6 +160,11 @@ struct MainComponentSnapshot
 // carry it — the card drops WHOLE rather than keeping a label over a clipped meter.
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component);
 
+// N6: the rail's painted row rect (shell coordinates) — the SAME law the paint, rowBounds, and
+// rowAt hit-testing all share, so a gate can prove a height drag moved exactly one row.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& component,
+                                                                       int row);
+
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);
 

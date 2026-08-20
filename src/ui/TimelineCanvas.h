@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace yesdaw::persistence {
 struct WaveformPeakCache;
@@ -30,6 +31,10 @@ struct TimelineCanvasTrack
     const char* name;
     juce::Colour colour;
     float meter;
+    // N6: persisted row height (0 = auto-shared — this track's row splits the panel's remaining
+    // space equally with every other auto-shared row, exactly like every track did before this
+    // field existed).
+    int heightPx = 0;
 };
 
 struct TimelineCanvasClipStyle
@@ -43,6 +48,79 @@ struct TimelineMarker
     double seconds;
     const char* label;
 };
+
+// N6: the shared "split available space between custom-height and auto-share rows" law. Used
+// independently by the timeline canvas (built into timelineCanvasGeometry, which has its own
+// clipArea height and legible floor) and the rail (its own available height and floor,
+// trackListRowMinHeight) — same formula, two different panels, so it is a free function rather
+// than living on one geometry struct. With no customized row, autoShare exactly reproduces the
+// historical `availablePixels / rowCount` law and every top/height matches `row * autoShare`.
+struct CumulativeRowGeometry
+{
+    std::vector<double> tops;
+    std::vector<double> heights;
+    int autoShare = 0;
+
+    [[nodiscard]] double top (int row) const noexcept
+    {
+        if (tops.empty())
+            return 0.0;
+        if (row >= static_cast<int> (tops.size()))
+            return tops.back() + heights.back();
+        return tops[static_cast<std::size_t> (std::max (0, row))];
+    }
+
+    [[nodiscard]] double heightFor (int row) const noexcept
+    {
+        if (heights.empty())
+            return 0.0;
+        const std::size_t index = static_cast<std::size_t> (
+            std::clamp (row, 0, static_cast<int> (heights.size()) - 1));
+        return heights[index];
+    }
+
+    [[nodiscard]] int rowAtPixel (double y) const noexcept
+    {
+        if (tops.empty())
+            return 0;
+        if (y < 0.0)
+            return 0;
+        for (std::size_t i = 0; i < tops.size(); ++i)
+            if (y < tops[i] + heights[i])
+                return static_cast<int> (i);
+        return static_cast<int> (tops.size()) - 1;
+    }
+};
+
+[[nodiscard]] inline CumulativeRowGeometry computeCumulativeRowGeometry (
+    int rowCount, int availablePixels, int minRowHeight, const int* customHeightsPx)
+{
+    CumulativeRowGeometry geometry;
+    if (rowCount <= 0)
+        return geometry;
+
+    // N6: autoShare is derived from the TOTAL row count, independent of which/how-many rows are
+    // customized — NOT "whatever's left after custom rows, split among the rest". That
+    // redistribution would make every OTHER auto row's height depend on how many rows are
+    // customized, violating "a drag changes THAT row's height and nothing else": resizing one
+    // row would silently resize every other auto row too. A customized row instead simply grows
+    // or shrinks the panel's total content height (more or less to scroll) — the same way adding
+    // a track does — never its neighbours.
+    geometry.autoShare = std::max (minRowHeight, availablePixels / rowCount);
+
+    geometry.tops.resize (static_cast<std::size_t> (rowCount));
+    geometry.heights.resize (static_cast<std::size_t> (rowCount));
+    double cumulative = 0.0;
+    for (int i = 0; i < rowCount; ++i)
+    {
+        const int custom = customHeightsPx != nullptr ? customHeightsPx[i] : 0;
+        const double h = custom > 0 ? static_cast<double> (custom) : static_cast<double> (geometry.autoShare);
+        geometry.tops[static_cast<std::size_t> (i)] = cumulative;
+        geometry.heights[static_cast<std::size_t> (i)] = h;
+        cumulative += h;
+    }
+    return geometry;
+}
 
 // M7: a MIDI Clip's own notes, so the timeline can draw what the clip CONTAINS. Before M7 a MIDI
 // clip fell through to the hash-seeded placeholder waveform — a fabricated audio wiggle for a clip
@@ -119,10 +197,66 @@ struct TimelineCanvasGeometry
     juce::Rectangle<int> automationLaneArea;
     juce::Rectangle<int> clipArea;
     Viewport viewport;
+    // N6: the AUTO-SHARED row height — every row without a persisted override splits the
+    // remaining space equally, floored at the legible minimum, exactly like the pre-N6 uniform
+    // law. Still meaningful with custom heights present: it is what every non-customized row uses.
     int laneHeight = 0;
     // Vertical track scroll (E5): the clamped whole-row scroll range for the current lane count.
     int maxTrackScrollRows = 0;
     int trackScrollRows = 0;
+    // N6: per-lane cumulative top offset (viewport-local, lane 0 at 0 — laneScrollPixels is NOT
+    // subtracted here, matching Viewport::laneTopPixels' contract) and height, one entry per
+    // lane. Always populated to `laneCount` entries — with no customized track this exactly
+    // reproduces `lane * laneHeight`, so every reader can use these unconditionally.
+    std::vector<double> laneTopPixels;
+    std::vector<double> laneHeightPixelsPerLane;
+
+    // N6: the row Y (viewport-local, BEFORE scroll) for `lane`, clamped to a valid index. `lane
+    // == the lane count` (one past the last row) is a deliberately supported "bottom edge" case —
+    // it returns the total cumulative content height, matching how the old `lane * laneHeight`
+    // formula naturally extrapolated one row past the end for a closing border line. The shared
+    // accessor every consumer (rail, automation, clip drag preview, the grid's closing border)
+    // should use instead of re-deriving `lane * laneHeight`.
+    [[nodiscard]] double laneTop (int lane) const noexcept
+    {
+        if (laneTopPixels.empty())
+            return static_cast<double> (lane) * laneHeight;
+        if (lane >= static_cast<int> (laneTopPixels.size()))
+            return laneTopPixels.back() + laneHeightPixelsPerLane.back();
+        const std::size_t index = static_cast<std::size_t> (std::max (0, lane));
+        return laneTopPixels[index];
+    }
+
+    [[nodiscard]] double laneHeightFor (int lane) const noexcept
+    {
+        if (laneHeightPixelsPerLane.empty())
+            return laneHeight;
+        const std::size_t index = static_cast<std::size_t> (
+            std::clamp (lane, 0, static_cast<int> (laneHeightPixelsPerLane.size()) - 1));
+        return laneHeightPixelsPerLane[index];
+    }
+
+    // N6: the inverse of laneTop/laneHeightFor — which lane a scrolled, viewport-local Y pixel
+    // (i.e. pointerY - clipArea.getY() + laneScrollPixels, the SAME expression every pointer-to-
+    // lane call site already computes) falls in. Every consumer that used to do
+    // `pixelY / laneHeight` should call this instead so a customized row's hit area matches its
+    // painted rect exactly. Clamped to [0, lane count - 1]; never returns an out-of-range lane.
+    [[nodiscard]] int laneAtPixel (double scrolledLocalY) const noexcept
+    {
+        if (laneTopPixels.empty())
+            return laneHeight > 0
+                ? static_cast<int> (std::floor (scrolledLocalY / laneHeight))
+                : 0;
+
+        if (scrolledLocalY < 0.0)
+            return 0;
+
+        for (std::size_t i = 0; i < laneTopPixels.size(); ++i)
+            if (scrolledLocalY < laneTopPixels[i] + laneHeightPixelsPerLane[i])
+                return static_cast<int> (i);
+
+        return static_cast<int> (laneTopPixels.size()) - 1;
+    }
 };
 
 namespace timeline_canvas_detail {
@@ -566,16 +700,21 @@ inline void drawRangeSelection (juce::Graphics& g, juce::Rectangle<int> ruler,
 }
 
 inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const TimelineCanvasState& state,
-                      const Viewport& vp, int laneHeight)
+                      const TimelineCanvasGeometry& geometry)
 {
+    const Viewport& vp = geometry.viewport;
     g.setColour (kCanvasBack);
     g.fillRect (clipArea);
 
+    // N6: row separators and track-colour tint follow the SAME per-lane cumulative geometry as
+    // clips and hit-testing — a resized row's grid line moves with it, not just its clips.
     const int laneCount = std::max (UiTheme::Layout::timelineCanvasGridMinLaneCount, state.trackCount);
-    const int laneScroll = juce::roundToInt (vp.laneScrollPixels);
+    const double laneScroll = geometry.laneTop (geometry.trackScrollRows);
     for (int lane = 0; lane <= laneCount; ++lane)
     {
-        const int y = clipArea.getY() + lane * laneHeight - laneScroll;
+        const int laneHeight = static_cast<int> (std::llround (geometry.laneHeightFor (lane)));
+        const int y = clipArea.getY()
+                    + static_cast<int> (std::llround (geometry.laneTop (lane) - laneScroll));
         if (y + laneHeight < clipArea.getY() || y > clipArea.getBottom())
             continue;
         g.setColour (kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridLaneSeparatorAlpha));
@@ -656,30 +795,46 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     // E5 lane law: few tracks stretch to fill the viewport; once rows would fall below the fixed
     // row height, lanes hold that height and the shared row offset scrolls them.
     const int laneCount = std::max (UiTheme::Layout::timelineCanvasGeometryMinLaneCount, state.trackCount);
-    geometry.laneHeight = std::max (UiTheme::Layout::timelineCanvasLaneRowHeight,
-                                    geometry.clipArea.getHeight() / laneCount);
+
+    // N6: a persisted per-track height (state.tracks[i].heightPx > 0) takes that row's exact
+    // pixel height; every other row keeps the historical uniform share — with no customized
+    // track this reduces to the historical uniform law bit-for-bit. Delegates to the SAME shared
+    // law the rail uses (computeCumulativeRowGeometry) so the two panels can never drift apart.
+    std::vector<int> laneCustomHeights (static_cast<std::size_t> (laneCount), 0);
+    for (int i = 0; i < laneCount; ++i)
+        if (state.tracks != nullptr && i < state.trackCount)
+            laneCustomHeights[static_cast<std::size_t> (i)] = state.tracks[i].heightPx;
+
+    const CumulativeRowGeometry laneLaw = computeCumulativeRowGeometry (
+        laneCount, geometry.clipArea.getHeight (), UiTheme::Layout::timelineCanvasLaneRowHeight,
+        laneCustomHeights.data());
+    geometry.laneHeight = laneLaw.autoShare;
+    geometry.laneTopPixels = laneLaw.tops;
+    geometry.laneHeightPixelsPerLane = laneLaw.heights;
 
     const int visibleRows = std::max (1, geometry.clipArea.getHeight() / geometry.laneHeight);
     geometry.maxTrackScrollRows = std::max (0, laneCount - visibleRows);
     geometry.trackScrollRows = std::clamp (state.trackScrollRows, 0, geometry.maxTrackScrollRows);
 
-    // N4: the automation lane is a SUB-LANE of its own track row — carved from the BOTTOM of
-    // that row's own rect (the same row-Y math every clip and rail row already shares), not a
-    // separate strip inserted above or below it. Carving from the row's own space (rather than
-    // requesting new space beside it) is what makes this work even with few tracks: the E5 lane
-    // law stretches a lone row to fill the whole viewport, so there is no "room after it" to
-    // insert into — but there is always room to carve FROM it. A row scrolled out of view
-    // honestly paints nothing rather than a misplaced band.
+    // N4/N6: the automation lane is a SUB-LANE of its own track row — carved from the BOTTOM of
+    // that row's own rect, using the SAME per-row cumulative geometry every clip and rail row now
+    // shares. Carving from the row's own space (rather than requesting new space beside it) is
+    // what makes this work even with few tracks: the E5 lane law stretches a lone row to fill the
+    // whole viewport, so there is no "room after it" to insert into — but there is always room to
+    // carve FROM it. A row scrolled out of view honestly paints nothing rather than a misplaced
+    // band.
     if (state.automationLaneVisible && state.automationLaneTrackRow >= 0)
     {
         const int row = std::clamp (state.automationLaneTrackRow, 0, laneCount - 1);
+        const double rowHeight = geometry.laneHeightFor (row);
         const int rowTop = geometry.clipArea.getY()
-                          + (row - geometry.trackScrollRows) * geometry.laneHeight;
-        const int rowBottom = rowTop + geometry.laneHeight;
+                          + static_cast<int> (std::llround (
+                                geometry.laneTop (row) - geometry.laneTop (geometry.trackScrollRows)));
+        const int rowBottom = rowTop + static_cast<int> (std::llround (rowHeight));
         if (rowTop >= geometry.clipArea.getY() && rowBottom <= geometry.clipArea.getBottom())
         {
-            const int bandHeight = std::min (UiTheme::Layout::timelineCanvasAutomationBandHeight,
-                                             geometry.laneHeight);
+            const int bandHeight = static_cast<int> (
+                std::min<double> (UiTheme::Layout::timelineCanvasAutomationBandHeight, rowHeight));
             geometry.automationLaneArea = juce::Rectangle<int> (
                 geometry.clipArea.getX(), rowBottom - bandHeight,
                 geometry.clipArea.getWidth(), bandHeight);
@@ -692,8 +847,28 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
                   geometry.viewport.pixelsPerSecond);
     geometry.viewport.widthPixels = static_cast<double> (geometry.clipArea.getWidth());
     geometry.viewport.laneHeightPixels = static_cast<double> (geometry.laneHeight);
-    geometry.viewport.laneScrollPixels = static_cast<double> (geometry.trackScrollRows * geometry.laneHeight);
+    geometry.viewport.laneScrollPixels = geometry.laneTop (geometry.trackScrollRows);
+    // N6: geometry.viewport.laneTopPixels/laneHeightPixelsPerLane are deliberately left null
+    // here — they would be raw pointers into geometry.laneTopPixels/laneHeightPixelsPerLane, and
+    // TimelineCanvasGeometry is an ordinary copyable value (returned by value here, often copied
+    // again by callers); a pointer baked in at this point would dangle or alias the wrong vector
+    // the moment it is copied. A caller that needs TimelineLayout.h's clip virtualization to
+    // honour per-track height sets them itself, immediately before the layoutVisible/
+    // hitTestVisibleClip call, from THIS SAME geometry object (see MainComponent.cpp's
+    // viewportForClipLayout()) — never store the pointer past that one call.
     return geometry;
+}
+
+// N6: builds the Viewport TimelineLayout.h's layoutVisible/hitTestVisibleClip actually need,
+// wiring the per-lane arrays from `geometry` (which must outlive the call). Every consumer of
+// clip virtualization should go through this instead of touching geometry.viewport directly, so
+// the "never store this pointer" rule above has exactly one place to be honoured.
+[[nodiscard]] inline Viewport viewportForClipLayout (const TimelineCanvasGeometry& geometry) noexcept
+{
+    Viewport vp = geometry.viewport;
+    vp.laneTopPixels = geometry.laneTopPixels.data();
+    vp.laneHeightPixelsPerLane = geometry.laneHeightPixelsPerLane.data();
+    return vp;
 }
 
 // Marker labels (E7): one geometry law shared by the ruler painter and the gesture hit-test so
@@ -767,7 +942,7 @@ inline TimelineHitTestResult hitTestTimelineCanvas (juce::Rectangle<int> area,
     return hitTestVisibleClip (
         state.clips,
         state.clipCount,
-        geometry.viewport,
+        viewportForClipLayout (geometry),
         static_cast<double> (position.x - geometry.clipArea.getX()),
         static_cast<double> (position.y - geometry.clipArea.getY()));
 }
@@ -789,11 +964,14 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     const auto clipArea = geometry.clipArea;
     const auto ruler = geometry.rulerArea;
     const auto vp = geometry.viewport;
-    const int laneHeight = geometry.laneHeight;
+    // N6: layoutVisible needs the per-lane arrays (viewportForClipLayout wires them from
+    // `geometry`, which outlives this whole function) — every OTHER paint helper below still
+    // takes the plain `vp` since none of them lay out individual clips by lane index.
+    const Viewport clipVp = viewportForClipLayout (geometry);
 
     drawToolbar (g, geometry.toolbarArea);
     drawRuler (g, ruler, clipArea, state, vp);
-    drawGrid (g, clipArea, state, vp, laneHeight);
+    drawGrid (g, clipArea, state, geometry);
     drawRangeSelection (g, ruler, clipArea, state, vp);
 
     // Transport loop brace (E6): accent band across the upper ruler with brighter end handles.
@@ -809,7 +987,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
 
     std::array<ElementRect, kVisibleClipCapacity> visible {};
     if (state.clips != nullptr && state.clipCount > 0)
-        stats.visibleClips = layoutVisible (state.clips, state.clipCount, vp, visible.data(),
+        stats.visibleClips = layoutVisible (state.clips, state.clipCount, clipVp, visible.data(),
                                             static_cast<int> (visible.size()));
     stats.hitVisibleClipCapacity = stats.visibleClips == static_cast<int> (visible.size());
 

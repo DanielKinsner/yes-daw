@@ -86,7 +86,9 @@ enum class ProjectEditVerb : std::uint8_t
     // M3: a Track's main output target (invalid bus id = master)
     SetTrackOutput,
     // N5: the persisted automation write mode (Read/Touch/Latch)
-    SetAutomationMode
+    SetAutomationMode,
+    // N6: a Track's persisted row height (0 = auto-shared)
+    SetTrackHeight
 };
 
 struct ProjectEditCommand
@@ -134,6 +136,7 @@ struct ProjectEditCommand
     double automationValue = 0.0;
     AutomationCurveType automationCurveType = AutomationCurveType::Linear;
     AutomationMode automationMode = AutomationMode::Read;
+    int trackHeightPx = 0;
     // Arrangement verb payloads. trackName is a fixed array so the command stays trivially copyable;
     // names longer than the array are rejected at the factory, never silently truncated.
     EntityId trackId;
@@ -799,6 +802,17 @@ struct ProjectEditCommand
         return command;
     }
 
+    // N6: a Track's persisted row height (0 clears back to auto-shared).
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackHeight (EntityId trackId,
+                                                                       int heightPx) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackHeight;
+        command.trackId = trackId;
+        command.trackHeightPx = heightPx;
+        return command;
+    }
+
     // E19: persisted master strip gain (rides the shared `gain` field).
     [[nodiscard]] static constexpr ProjectEditCommand setMasterGain (float linearGain) noexcept
     {
@@ -1066,7 +1080,8 @@ namespace detail {
            || verb == ProjectEditVerb::SetSendLevel
            || verb == ProjectEditVerb::SetSendTap
            || verb == ProjectEditVerb::SetTrackOutput
-           || verb == ProjectEditVerb::SetTrackMixScalars;
+           || verb == ProjectEditVerb::SetTrackMixScalars
+           || verb == ProjectEditVerb::SetTrackHeight;
 }
 
 [[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
@@ -1372,6 +1387,9 @@ namespace detail {
 
         case ProjectEditVerb::SetTrackOutput:
             return setTrackOutput (project, command.trackId, command.busId);
+
+        case ProjectEditVerb::SetTrackHeight:
+            return setTrackHeight (project, command.trackId, command.trackHeightPx);
 
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);
@@ -1960,7 +1978,9 @@ namespace detail {
            // E21: continuous strip-scalar gestures (fader/pan drags) coalesce inside a group.
            || verb == ProjectEditVerb::SetTrackMixScalars
            || verb == ProjectEditVerb::SetBusMixScalars
-           || verb == ProjectEditVerb::SetMasterGain;
+           || verb == ProjectEditVerb::SetMasterGain
+           // N6: a row-boundary height drag coalesces the same way a fader drag does.
+           || verb == ProjectEditVerb::SetTrackHeight;
 }
 
 [[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
@@ -1989,6 +2009,14 @@ namespace detail {
                && older.command.trackMuted == newer.command.trackMuted
                && older.command.trackSoloed == newer.command.trackSoloed
                && older.command.trackSoloSafe == newer.command.trackSoloSafe
+               && older.trackDiff.after == newer.trackDiff.before;
+    }
+
+    // N6: a height-drag gesture coalesces while it stays on the SAME track and the diff chain
+    // stays continuous — the same "one gesture, one undo step" shape as a fader drag.
+    if (older.command.verb == ProjectEditVerb::SetTrackHeight)
+    {
+        return older.command.trackId == newer.command.trackId
                && older.trackDiff.after == newer.trackDiff.before;
     }
 

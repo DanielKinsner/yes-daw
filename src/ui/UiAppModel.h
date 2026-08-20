@@ -3434,6 +3434,29 @@ public:
         return { id, state, true };
     }
 
+    // N6: the persisted, undoable, coalescable row height for ANY track by id (a rail drag
+    // targets the row under the pointer, not necessarily the selected strip). No UiActionId —
+    // like the automation mode chooser, a row-boundary drag has no natural keyboard shortcut;
+    // enablement is decided directly (the track must exist).
+    [[nodiscard]] UiActionDispatchResult setTrackHeight (engine::EntityId trackId, int heightPx)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        if (! context_.projectLoaded || findTrack (trackId) == nullptr)
+            return { id, { false, "track not found" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setTrackHeight (trackId, heightPx)).applied())
+            return { id, { false, "invalid track height" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track height did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        return { id, {}, true };
+    }
+
     // The selected Track's current main-output destination (invalid = master).
     [[nodiscard]] engine::EntityId selectedTrackOutputBusId() const noexcept
     {

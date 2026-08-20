@@ -10035,6 +10035,117 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     std::filesystem::remove_all (bundlePath, ec2);
 }
 
+// N6 — track height (persisted, resizable). Rail rows were a fixed ~200px and Track carried no
+// height field at all. A drag on the rail's row boundary now changes THAT row's height and
+// nothing else, the rail row and the clip geometry both follow it (one shared law,
+// CumulativeRowGeometry/TimelineCanvasGeometry), it survives save/reopen, it clamps at both
+// ends, and one undo restores it.
+TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, clamps, and undoes as one step",
+           "[ui][input][shell][track-height]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-height");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+
+    const juce::Rectangle<int> row0Before = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0);
+    const juce::Rectangle<int> row1Before = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 1);
+    const juce::Rectangle<int> row2Before = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 2);
+    REQUIRE_FALSE (row0Before.isEmpty());
+    REQUIRE_FALSE (row1Before.isEmpty());
+    REQUIRE_FALSE (row2Before.isEmpty());
+
+    // Drag the SECOND track's (row 1, not row 0) bottom boundary down — that row grows, row 2
+    // (below it) is pushed down by exactly the growth, row 0 (above it) is untouched.
+    const juce::Point<int> boundaryInShell (row1Before.getCentreX(), row1Before.getBottom());
+    const juce::Point<int> boundary = rail->getLocalPoint (shell.get(), boundaryInShell);
+    constexpr int kDeltaPixels = 80;
+    dragFromTo (*rail, boundary, boundary.translated (0, kDeltaPixels));
+
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[0].heightPx == 0);   // untouched
+    REQUIRE (project.tracks[1].heightPx > 0);     // customized
+    REQUIRE (project.tracks[2].heightPx == 0);   // untouched — a resize does not spread
+
+    const juce::Rectangle<int> row0After = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0);
+    const juce::Rectangle<int> row1After = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 1);
+    const juce::Rectangle<int> row2After = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 2);
+    REQUIRE (row0After == row0Before);                          // row 0's OWN rect: unaffected
+    REQUIRE (row1After.getHeight() > row1Before.getHeight());   // the dragged row grew
+    REQUIRE (row1After.getY() == row0After.getBottom());        // still flush under row 0
+    REQUIRE (row2After.getY() == row1After.getBottom());        // pushed down by row 1's growth
+    REQUIRE (row2After.getHeight() == row2Before.getHeight());  // row 2's OWN height: unaffected
+
+    // The SAME persisted height drives the timeline's clip geometry too — cross-checked through
+    // the shared law (timelineCanvasGeometry), not a duplicated formula, so it can never drift.
+    {
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = 3;
+        std::array<yesdaw::ui::TimelineCanvasTrack, 3> tracks {
+            yesdaw::ui::TimelineCanvasTrack { "Audio 1", juce::Colours::purple, 0.0f, project.tracks[0].heightPx },
+            yesdaw::ui::TimelineCanvasTrack { "Audio 2", juce::Colours::purple, 0.0f, project.tracks[1].heightPx },
+            yesdaw::ui::TimelineCanvasTrack { "Audio 3", juce::Colours::purple, 0.0f, project.tracks[2].heightPx },
+        };
+        state.tracks = tracks.data();
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
+        REQUIRE (geometry.laneHeightFor (1) == static_cast<double> (project.tracks[1].heightPx));
+        REQUIRE (geometry.laneTop (2) - geometry.laneTop (1) == static_cast<double> (project.tracks[1].heightPx));
+    }
+
+    // Survives save/reopen: a genuinely FRESH shell loading the SAME bundle sees the same height.
+    {
+        MainComponentFileChoices reopenChoices;
+        reopenChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto reopened = makeShell (std::move (reopenChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        REQUIRE (readProjectSnapshot (bundlePath).tracks[1].heightPx == project.tracks[1].heightPx);
+    }
+
+    // A max-height row (400px) plus two auto-shared rows can scroll its own boundary out of the
+    // rail's visible area at the default test window size — grow the window so every boundary
+    // this test grabs next stays genuinely on-screen (a resize gesture can only grab what it can
+    // see, by design; this is the test giving itself room, not a production workaround).
+    shell->setSize (1536, 2000);
+
+    // Clamps at the top end: a huge drag pins to the max, never grows past it. The boundary
+    // moved since the first drag (row 1 grew), so it is recomputed from the LIVE painted rect —
+    // exactly what a real second drag gesture would grab.
+    const juce::Rectangle<int> row1BeforeMaxDrag = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 1);
+    const juce::Point<int> boundaryForMaxDrag = rail->getLocalPoint (
+        shell.get(), juce::Point<int> (row1BeforeMaxDrag.getCentreX(), row1BeforeMaxDrag.getBottom()));
+    dragFromTo (*rail, boundaryForMaxDrag, boundaryForMaxDrag.translated (0, 100'000));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].heightPx == yesdaw::engine::kTrackHeightMaxPx);
+
+    // Clamps at the bottom end: a huge drag the other way pins to the min, never shrinks below it.
+    const juce::Rectangle<int> row1BeforeMinDrag = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 1);
+    const juce::Point<int> boundaryForMinDrag = rail->getLocalPoint (
+        shell.get(), juce::Point<int> (row1BeforeMinDrag.getCentreX(), row1BeforeMinDrag.getBottom()));
+    dragFromTo (*rail, boundaryForMinDrag, boundaryForMinDrag.translated (0, -100'000));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].heightPx == yesdaw::engine::kTrackHeightMinPx);
+
+    // One undo restores the PREVIOUS drag's height as one step (E21 coalescing closes the whole
+    // gesture on mouse-up, matching the fader-drag pattern).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].heightPx == yesdaw::engine::kTrackHeightMaxPx);
+
+    std::error_code ec3;
+    std::filesystem::remove_all (bundlePath, ec3);
+}
+
 TEST_CASE ("the automation target chooser drives pan and FX-param lanes the render follows",
            "[ui][input][shell][automation-target]")
 {

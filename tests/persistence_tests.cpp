@@ -1375,6 +1375,54 @@ TEST_CASE ("Schema v10 migration gives legacy Clips the default display name", "
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// N6: mirrors the v10 clip-name test's ADD COLUMN pattern — height_px is a new column on the
+// EXISTING tracks table (not a new locate-points-style table), so "before v15" is built by
+// running migrations only up to v14 and inserting a Track row that predates the column entirely.
+TEST_CASE ("Schema v15 migration gives legacy Tracks the auto-shared height default",
+           "[persistence][migration][track-height]")
+{
+    const auto path = makeTempBundlePath ("track-height-v14-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const EntityId trackId = idFromLowByte (10);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV14 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 14);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV14).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) VALUES ("
+        + blobLiteral (trackId) + ", 'Audio 1', 1.0, 0.0, 0, 0, 0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 15;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT height_px FROM tracks WHERE id = X'0000000000000000000000000000000A';", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.tracks.size() == 1u);
+    REQUIRE (readback.tracks[0].heightPx == 0);
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1385,14 +1433,18 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // N5: a fresh bundle is v14 now — the v10 simulation also strips the v12/v13/v14 artifacts.
+        // N6: a fresh bundle is v15 now — the v10 simulation also strips the v11-v15 artifacts,
+        // including dropping the height_px COLUMN (v15 is an ALTER TABLE, not a new table like
+        // v11-v14, so re-running its migration on reopen would otherwise fail with a duplicate
+        // column error).
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
-            "DROP TABLE automation_mode; "
+            "DROP TABLE automation_mode; ALTER TABLE tracks DROP COLUMN height_px; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
             "DELETE FROM schema_migrations WHERE version = 14; "
+            "DELETE FROM schema_migrations WHERE version = 15; "
             "PRAGMA user_version = 10;").ok());
     }
 

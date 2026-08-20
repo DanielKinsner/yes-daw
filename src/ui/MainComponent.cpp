@@ -398,9 +398,7 @@ public:
 
         const juce::Point<int> position { x, y };
         const int lane = std::clamp (
-            (position.y - geometry.clipArea.getY()
-             + juce::roundToInt (geometry.viewport.laneScrollPixels))
-                / geometry.laneHeight,
+            geometry.laneAtPixel (position.y - geometry.clipArea.getY() + geometry.viewport.laneScrollPixels),
             0, state.trackCount - 1);
         const double seconds = timelineSecondsAt (state, getLocalBounds(), position).value_or (0.0);
         onFilesDropped (files, lane, seconds);
@@ -602,9 +600,8 @@ public:
                     if (state.trackCount > 0 && toolGeometry.laneHeight > 0)
                     {
                         const int lane = std::clamp (
-                            (event.getPosition().y - toolGeometry.clipArea.getY()
-                             + juce::roundToInt (toolGeometry.viewport.laneScrollPixels))
-                                / toolGeometry.laneHeight,
+                            toolGeometry.laneAtPixel (event.getPosition().y - toolGeometry.clipArea.getY()
+                                                      + toolGeometry.viewport.laneScrollPixels),
                             0, state.trackCount - 1);
                         if (const std::optional<double> seconds =
                                 timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
@@ -984,9 +981,8 @@ public:
         if (state.trackCount > 0 && geometry.laneHeight > 0
             && std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
         {
-            const int lane = (event.getPosition().y - geometry.clipArea.getY()
-                              + juce::roundToInt (geometry.viewport.laneScrollPixels))
-                           / geometry.laneHeight;
+            const int lane = geometry.laneAtPixel (event.getPosition().y - geometry.clipArea.getY()
+                                                   + geometry.viewport.laneScrollPixels);
             targetLane = std::clamp (lane, 0, state.trackCount - 1);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, drag.layoutClipId))
                 if (clip->lane == targetLane)
@@ -1163,7 +1159,7 @@ private:
         std::array<yesdaw::ui::ElementRect,
                    yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> visible {};
         const int visibleCount = yesdaw::ui::layoutVisible (
-            state.clips, state.clipCount, geometry.viewport,
+            state.clips, state.clipCount, yesdaw::ui::viewportForClipLayout (geometry),
             visible.data(), static_cast<int> (visible.size()));
 
         int count = 0;
@@ -2156,6 +2152,9 @@ class TrackListInputComponent final : public juce::Component,
 {
 public:
     std::function<int()> rowCountProvider;
+    // N6: persisted per-track heights, one entry per row (0 = auto-shared). Empty or unset means
+    // every row auto-shares, exactly like every row did before this field existed.
+    std::function<std::vector<int>()> rowHeightsProvider;
     std::function<void (int)> onRowClicked;
     std::function<void (int)> onRowDoubleClicked;
     // Mini controls (usable-DAW P2): the painted PAN knob, VOL slider, and M/S cells become live.
@@ -2170,11 +2169,39 @@ public:
     std::function<void()> onMiniDragEnded;
     // Click on the row's meter clears its held peak and latched clip light (B32).
     std::function<void (int)> onMeterClicked;
+    // N6: a row-boundary drag — row index, the LIVE candidate height in pixels (already clamped
+    // to the legible band). Fired on every drag tick; onRowResizeEnded closes the gesture (E21
+    // coalescing, mirroring the mixer fader drag).
+    std::function<void (int, int)> onRowResized;
+    std::function<void()> onRowResizeEnded;
+
+    void mouseMove (const juce::MouseEvent& event) override
+    {
+        setMouseCursor (rowResizeHandleAt (event.getPosition()) >= 0
+                             ? juce::MouseCursor::UpDownResizeCursor
+                             : juce::MouseCursor::NormalCursor);
+    }
 
     void mouseDown (const juce::MouseEvent& event) override
     {
         dragRow = -1;
         dragZone = MiniZone::None;
+        resizeDragRow = -1;
+
+        // N6: a row-boundary grab wins over whatever content sits under it — a real, discoverable
+        // resize gesture, not a hidden hotspot.
+        if (const int handleRow = rowResizeHandleAt (event.getPosition()); handleRow >= 0)
+        {
+            const int rows = rowCountProvider ? rowCountProvider() : 0;
+            auto area = getLocalBounds();
+            area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+            resizeDragRow = handleRow;
+            resizeDragStartY = event.getPosition().y;
+            resizeDragStartHeightPx = static_cast<int> (
+                std::llround (rowGeometry (rows, area.getHeight()).heightFor (handleRow)));
+            return;
+        }
+
         const int row = rowAt (event.getPosition());
         if (row < 0)
             return;
@@ -2234,6 +2261,16 @@ public:
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (resizeDragRow >= 0)
+        {
+            const int candidate = std::clamp (
+                resizeDragStartHeightPx + (event.getPosition().y - resizeDragStartY),
+                yesdaw::engine::kTrackHeightMinPx, yesdaw::engine::kTrackHeightMaxPx);
+            if (onRowResized)
+                onRowResized (resizeDragRow, candidate);
+            return;
+        }
+
         if (dragRow < 0)
             return;
 
@@ -2254,6 +2291,14 @@ public:
 
     void mouseUp (const juce::MouseEvent&) override
     {
+        if (resizeDragRow >= 0)
+        {
+            resizeDragRow = -1;
+            if (onRowResizeEnded)
+                onRowResizeEnded();
+            return;
+        }
+
         dragRow = -1;
         dragZone = MiniZone::None;
         fineDragActive = false;
@@ -2279,6 +2324,16 @@ public:
             onRowDoubleClicked (row);
     }
 
+    // N6: the shared cumulative row law — every row without a persisted height auto-shares
+    // whatever space is left, exactly like the historical uniform law when nothing is customized.
+    [[nodiscard]] yesdaw::ui::CumulativeRowGeometry rowGeometry (int rows, int availablePixels) const
+    {
+        const std::vector<int> heights = rowHeightsProvider ? rowHeightsProvider() : std::vector<int> {};
+        return yesdaw::ui::computeCumulativeRowGeometry (
+            rows, availablePixels, yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+            static_cast<int> (heights.size()) >= rows ? heights.data() : nullptr);
+    }
+
     [[nodiscard]] juce::Rectangle<int> rowBounds (int row) const
     {
         const int rows = rowCountProvider ? rowCountProvider() : 0;
@@ -2287,10 +2342,12 @@ public:
 
         auto area = getLocalBounds();
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
-        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          area.getHeight() / rows);
+        const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
         const int scrollRows = effectiveScrollRows();
-        return { area.getX(), area.getY() + (row - scrollRows) * rowHeight, area.getWidth(), rowHeight };
+        const int rowHeight = static_cast<int> (std::llround (geometry.heightFor (row)));
+        const int rowTop = area.getY()
+                         + static_cast<int> (std::llround (geometry.top (row) - geometry.top (scrollRows)));
+        return { area.getX(), rowTop, area.getWidth(), rowHeight };
     }
 
     // Shared row-geometry law: these mirror drawTrackList's control rectangles exactly, so
@@ -2439,6 +2496,43 @@ private:
     float fineDragValue = 0.0f;
     int fineDragLastX = 0;
 
+    // N6: row-boundary height-resize gesture state — kept separate from dragRow/dragZone (the
+    // mini-control drags above) since a boundary drag can start even when the pointer isn't over
+    // any zone at all.
+    int resizeDragRow = -1;
+    int resizeDragStartY = 0;
+    int resizeDragStartHeightPx = 0;
+
+    // N6: which row's BOTTOM edge `position` is within the grab tolerance of, or -1. Checked
+    // before ordinary row/zone hit-testing so the boundary always wins over whatever content sits
+    // under it.
+    [[nodiscard]] int rowResizeHandleAt (juce::Point<int> position) const
+    {
+        const int rows = rowCountProvider ? rowCountProvider() : 0;
+        if (rows <= 0)
+            return -1;
+
+        auto area = getLocalBounds();
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        if (position.x < area.getX() || position.x >= area.getRight())
+            return -1;
+
+        const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
+        const int scrollRows = effectiveScrollRows();
+        constexpr int kGrabTolerancePixels = 4;
+        for (int row = scrollRows; row < rows; ++row)
+        {
+            const int rowBottom = area.getY()
+                                 + static_cast<int> (std::llround (
+                                       geometry.top (row + 1) - geometry.top (scrollRows)));
+            if (rowBottom > area.getBottom())
+                break;
+            if (std::abs (position.y - rowBottom) <= kGrabTolerancePixels)
+                return row;
+        }
+        return -1;
+    }
+
     [[nodiscard]] int rowAt (juce::Point<int> position) const
     {
         const int rows = rowCountProvider ? rowCountProvider() : 0;
@@ -2450,9 +2544,10 @@ private:
         if (! area.contains (position))
             return -1;
 
-        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          area.getHeight() / rows);
-        const int row = (position.y - area.getY()) / rowHeight + effectiveScrollRows();
+        const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
+        const int scrollRows = effectiveScrollRows();
+        const int row = geometry.rowAtPixel (
+            static_cast<double> (position.y - area.getY()) + geometry.top (scrollRows));
         return row >= 0 && row < rows ? row : -1;
     }
 
@@ -2470,9 +2565,11 @@ public:
 
         auto area = getLocalBounds();
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
-        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          area.getHeight() / rows);
-        const int visibleRows = std::max (1, area.getHeight() / rowHeight);
+        // N6: visibleRows stays an AUTO-SHARE-height approximation (matching the timeline's own
+        // scroll-count heuristic) even with custom heights present — an honest, minor imprecision
+        // rather than a full non-uniform scroll-extent solve, which the gate does not require.
+        const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
+        const int visibleRows = std::max (1, area.getHeight() / std::max (1, geometry.autoShare));
         return std::max (0, rows - visibleRows);
     }
 
@@ -3161,6 +3258,16 @@ public:
         trackListInput.rowCountProvider = [this] {
             return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
         };
+        trackListInput.rowHeightsProvider = [this] {
+            std::vector<int> heights;
+            if (appModel.context().projectLoaded)
+            {
+                heights.reserve (appModel.project().tracks.size());
+                for (const yesdaw::engine::Track& track : appModel.project().tracks)
+                    heights.push_back (track.heightPx);
+            }
+            return heights;
+        };
         trackListInput.rowScrollProvider = [this] { return timelineTrackScrollRows; };
         trackListInput.onVerticalScrollRows = [this] (int rowDelta) { scrollTrackRowsBy (rowDelta); };
         trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
@@ -3207,6 +3314,18 @@ public:
             appModel.endStripGesture();
             hideDragDbReadout();
         };
+        // N6: the row-boundary height drag — E21 coalescing (beginStripGesture on every tick,
+        // closed once on release) so the whole drag is one undo step, matching the fader pattern.
+        trackListInput.onRowResized = [this] (int row, int heightPx) {
+            const auto& tracks = appModel.project().tracks;
+            if (row < 0 || row >= static_cast<int> (tracks.size()))
+                return;
+            appModel.beginStripGesture();
+            (void) appModel.setTrackHeight (tracks[static_cast<std::size_t> (row)].id, heightPx);
+            refreshActionState();
+            repaint();
+        };
+        trackListInput.onRowResizeEnded = [this] { appModel.endStripGesture(); };
         trackListInput.onMeterClicked = [this] (int row) { clearTrackMeterHold (row); };
         trackListInput.onMuteToggled = [this] (int row) {
             selectTrackLane (row);
@@ -4119,6 +4238,15 @@ public:
     {
         const auto rail = harnessPaintedFaderRailBounds (stripIndex);
         return rail.isEmpty() ? 0 : mixerFaderThumbYForGain (rail, linearGain);
+    }
+
+    // N6: the rail's painted row rect (shell coordinates), the SAME law rowBounds/rowAt/paint
+    // share — so a gate can prove a height drag moved exactly one row and left every other row's
+    // position/height alone.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedRailRowBounds (int row) const
+    {
+        return trackListInput.rowBounds (row)
+            .translated (trackListInput.getX(), trackListInput.getY());
     }
 
     // N3: the painted mixer-strip lane rect for a track/bus strip, and the master pane's rect —
@@ -5609,10 +5737,12 @@ private:
         const int left = geometry.clipArea.getX()
                        + juce::roundToInt ((clip.startSeconds - geometry.viewport.scrollSeconds)
                                            * geometry.viewport.pixelsPerSecond);
-        const int top = geometry.clipArea.getY() + clip.lane * geometry.laneHeight
-                      - juce::roundToInt (geometry.viewport.laneScrollPixels);
+        const int top = geometry.clipArea.getY()
+                      + static_cast<int> (std::llround (
+                            geometry.laneTop (clip.lane) - geometry.viewport.laneScrollPixels));
         const int width = juce::roundToInt (clip.lengthSeconds * geometry.viewport.pixelsPerSecond);
-        juce::Rectangle<int> bounds { left, top, width, geometry.laneHeight };
+        juce::Rectangle<int> bounds {
+            left, top, width, static_cast<int> (std::llround (geometry.laneHeightFor (clip.lane))) };
         bounds = bounds.getIntersection (geometry.clipArea)
                        .reduced (yesdaw::ui::UiTheme::Space::sm)
                        .withHeight (yesdaw::ui::UiTheme::Layout::trackListRenameEditorHeight)
@@ -8342,13 +8472,16 @@ private:
             return;
         }
 
-        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          area.getHeight() / static_cast<int> (appModel.project().tracks.size()));
+        // N6: row heights come from the SAME cumulative law rowBounds/rowAt use — a resized row
+        // paints at exactly the height/position hit-testing agrees on.
+        const int rowCount = static_cast<int> (appModel.project().tracks.size());
+        const yesdaw::ui::CumulativeRowGeometry rowLaw = trackListInput.rowGeometry (rowCount, area.getHeight());
         // Vertical track scroll (E5): the rail paints from its effective (clamped) shared row
         // offset; scrolled-out rows above the window are skipped so paint matches rowBounds/rowAt.
         for (std::size_t i = static_cast<std::size_t> (trackListInput.effectiveScrollRows());
              i < appModel.project().tracks.size(); ++i)
         {
+            const int rowHeight = static_cast<int> (std::llround (rowLaw.heightFor (static_cast<int> (i))));
             auto row = area.removeFromTop (rowHeight);
             if (row.getHeight() < rowHeight)
                 break;
@@ -8679,7 +8812,8 @@ private:
         for (const yesdaw::engine::Track& track : project.tracks)
             projectTimelineTracks.push_back ({ track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
                                                kPurple,
-                                               0.0f });
+                                               0.0f,
+                                               track.heightPx });
 
         double endSeconds = 0.0;
         const double sampleRate = project.sampleRate.hz;
@@ -10482,6 +10616,14 @@ juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component&
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->headerMasterCardBounds();
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& component, int row)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedRailRowBounds (row);
 
     return {};
 }
