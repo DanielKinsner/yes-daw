@@ -188,7 +188,26 @@ commit.
 
 ## Phase 3 — arrangement ergonomics
 
-6. [ ] **N6 — Track height (persisted, resizable).** Rail rows are a fixed ~200 px
+6. [x] **N6 — Track height (persisted, resizable).** DONE — feature `5e127c4`, exact-head
+   nine-job CI run `32417198031` green (first try), local 353/353. Adds a persisted per-track
+   `heightPx` (0 = auto-shared; schema v15, the v10-ALTER pattern) and a shared
+   `computeCumulativeRowGeometry` law consumed by BOTH the track-list rail and the timeline
+   canvas's per-lane clip geometry, so a resized row's rail height and its clips can never drift
+   apart. `TimelineLayout.h`'s clip virtualization took optional per-lane top/height arrays,
+   falling back to the old fixed-height math when null.
+   **Deviation from the literal spec, logged:** the first auto-share formula divided
+   `(availablePixels - customTotalPx)` by the count of NON-customized rows, so customizing one
+   row's height silently changed every OTHER auto-shared row's height too — caught by the gate's
+   own "changes THAT row's height and nothing else" assertion. Fixed by dividing the total
+   available pixels by the TOTAL row count regardless of customization, so a customized row grows
+   the panel's total content height instead of redistributing space taken from its neighbors — a
+   real design decision, not just a bugfix.
+   `[track-height]` (a 3-track project): a drag on track 2's row boundary changes track 2's height
+   and no other track's; its clip rectangles and rail row move together; it survives save/reopen
+   (including a legacy v10-bundle migration to the auto-shared default); it clamps at 56px/400px;
+   one undo restores it as a single step. Red before at `project.tracks[1].heightPx > 0`, proven by
+   disabling the row-boundary hit test while leaving persistence/undo/geometry in place.
+   Original spec: Rail rows are a fixed ~200 px
    (`yesdaw-timeline-large.png` fits four tracks in a 1080p window) and `Track` carries no height
    field (`src/engine/Project.h:340`). Add a persisted per-track height with a drag gesture on the
    row boundary, clamped to a legible band, honoured by the rail, the timeline lanes, the clip

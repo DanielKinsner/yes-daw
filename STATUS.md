@@ -938,9 +938,62 @@ N5 is certified: exact-head GitHub Actions run `32411492541` is green for full S
 `2a0aed358bf7201c17da90ca06bfdcce4d74e4e1` across all nine jobs, first try. N5 is ticked in the
 backlog.
 
-**Now:** N6 (Track height — persisted, resizable) — next item.
+**N6 implementation candidate — track height (persisted, resizable):** rail rows were a fixed
+~200px and `Track` carried no height field. Audited first, then built three pieces that share one
+law:
 
-**Next:** N7 (track colour), N8 (punch in/out).
+- **Persistence:** `Track::heightPx` (0 = auto-shared), schema v15 (`ALTER TABLE tracks ADD COLUMN
+  height_px ... CHECK(...)`, the v10-ALTER pattern used for per-row scalars), a
+  `SetTrackHeight`/`ProjectTrackRowsDiff` undo verb coalesced by the existing E21 strip-gesture
+  convention (`beginStripGesture()`/`endStripGesture()`) so one drag is one undo step.
+- **Shared cumulative-row-geometry law** (`computeCumulativeRowGeometry` in `TimelineCanvas.h`):
+  given a row count, available pixels, a minimum row height, and a per-row custom-height array,
+  it returns each row's top and height. Both the track-list rail (`TrackListInputComponent`) and
+  the timeline canvas's per-lane clip geometry now consume the SAME law, so a resized row's clip
+  rectangles and its rail row can never drift apart. `TimelineLayout.h`'s clip virtualization
+  (`layoutVisible`/`hitTestVisibleClip`) took optional per-lane top/height arrays, falling back to
+  the old fixed-height math when null — fully backward compatible.
+- **The drag gesture:** a grab zone on each row's bottom boundary (4px tolerance), clamped to
+  `kTrackHeightMinPx`/`MaxPx` (56–400), committed via `UiAppModel::setTrackHeight`.
+
+**Deviation from the literal spec, logged:** the auto-share formula. The first version computed
+the auto-shared height as `(availablePixels - customTotalPx) / autoCount` — customizing ONE row's
+height therefore changed the divisor AND the dividend, silently resizing every OTHER auto-shared
+row too. Caught by the gate's own assertion that an untouched row's height must be unchanged after
+a neighbor's resize. Fixed by using the TOTAL row count as a fixed divisor
+(`std::max(minRowHeight, availablePixels / rowCount)`), independent of which rows are customized —
+so a customized row grows/shrinks the panel's total content height instead of redistributing space
+taken from its neighbors. This is a real design decision, not just a bugfix: it means resizing one
+track never visually disturbs another, at the cost of the panel needing to scroll once total
+content height exceeds the viewport.
+
+A second, smaller bug: the geometry helper originally stored per-lane pointers (`laneTopPixels`/
+`laneHeightPixelsPerLane`) directly inside the `TimelineCanvasGeometry` struct it returned,
+pointing into that SAME struct's own vectors — a dangling-pointer hazard the moment the struct is
+copied. Fixed by adding a separate `viewportForClipLayout()` function callers invoke immediately
+before use, against a geometry object guaranteed to outlive the call, instead of ever storing the
+pointers inside the returned value.
+
+`[track-height]` (a 3-track project, all three heights distinct going in): dragging track 2's
+bottom boundary changes track 2's row height and no other track's; its clip rectangles and its
+rail row move together; the height survives save/reopen (schema v15 round-trip, and a legacy v10
+bundle migrates to the auto-shared default); dragging past either clamp holds at 56px/400px; one
+undo restores the pre-drag height as a single step. **Red before**, proven by disabling
+`rowResizeHandleAt` (forcing it to always report "no boundary under the cursor") while leaving
+persistence, undo and the geometry law in place — the gesture became inert and the height stayed
+at its default, failing at `project.tracks[1].heightPx > 0` and separately at the save/reopen
+clamp assertion.
+
+Full local `ctest --test-dir build-ci -j 6` green **353/353** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N6 is certified: exact-head GitHub Actions run `32417198031` is green for full SHA
+`5e127c47e988051ae8be25ee7d7769336cf78d3e` across all nine jobs, first try. N6 is ticked in the
+backlog.
+
+**Now:** N7 (Track colour — persisted, used everywhere) — next item.
+
+**Next:** N8 (punch in/out).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
