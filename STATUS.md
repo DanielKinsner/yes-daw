@@ -814,6 +814,15 @@ backlog.
 **Next:** N4–N5 (automation lane ownership and Touch/Latch write), N6–N7 (track height and colour),
 N8 (punch in/out).
 
+**Long-horizon plan adopted (2026-08-20):**
+`docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
+for a cheaper executor. Order: finish N3–N8 (this run, unchanged) → **V-run** (arrangement view
+matches `docs/design/arrangement-view-reference.png`, single-window topology with right inspector +
+bottom mixer dock) → **dogfood prep** (`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real
+song). All owner hardware/plugin smokes are explicitly deferred (nothing blocks on Dan); his only
+gates are two screenshot verdicts and the dogfood session itself. N3's mixer layout law must stay
+reusable for the V-run's bottom dock (see the plan's N3 note before starting N3).
+
 ## 2026-08-14 mix-truth & strip-parity run (COMPLETE — M1–M14)
 
 Canonical list: `docs/goals/2026-08-14-mix-truth-and-strip-parity-backlog.md` — 14 items M1–M14 in
