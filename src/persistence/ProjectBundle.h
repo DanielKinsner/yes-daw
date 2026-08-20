@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 16;
+inline constexpr int          kCodeSchemaVersion = 17;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1269,13 +1269,25 @@ ALTER TABLE tracks ADD COLUMN colour INTEGER NOT NULL DEFAULT 0
   CHECK (colour = 0 OR (colour >> 24) = 255);
 )SQL";
 
+// N8: persisted punch region (locate-points/automation_mode pattern — a v16 bundle migrates by
+// gaining the empty table; a missing row means disabled, the historical no-punch default, so a
+// default project round-trips byte-identically). Frames, not ticks — the same raw-sample-frame
+// domain RecordingWindow already uses.
+inline constexpr std::string_view kSchemaV17Sql = R"SQL(
+CREATE TABLE punch_region (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  start_frame INTEGER NOT NULL CHECK (start_frame >= 0),
+  end_frame INTEGER NOT NULL CHECK (end_frame > start_frame)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 16> kMigrations {
+inline constexpr std::array<SchemaMigration, 17> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1292,6 +1304,7 @@ inline constexpr std::array<SchemaMigration, 16> kMigrations {
     SchemaMigration { 14, kSchemaV14Sql },
     SchemaMigration { 15, kSchemaV15Sql },
     SchemaMigration { 16, kSchemaV16Sql },
+    SchemaMigration { 17, kSchemaV17Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1897,7 +1910,7 @@ public:
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
-                "DELETE FROM master_strip; DELETE FROM automation_mode; "
+                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2351,6 +2364,16 @@ public:
             detail::Statement modeStmt (db_, "INSERT INTO automation_mode(slot, mode) VALUES (1, ?);");
             if (auto result = modeStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.automationMode)); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, modeStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // N8: the punch-region row is written only when punch is enabled, so a default project
+        // round-trips byte-identically with a legacy one.
+        if (project.punchRegion.enabled)
+        {
+            detail::Statement punchStmt (db_, "INSERT INTO punch_region(slot, start_frame, end_frame) VALUES (1, ?, ?);");
+            if (auto result = punchStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.punchRegion.startFrame)); ! result.ok()) { rollback(); return result; }
+            if (auto result = punchStmt.bindInt64 (2, static_cast<sqlite3_int64> (project.punchRegion.endFrame)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, punchStmt); ! result.ok()) { rollback(); return result; }
         }
 
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
@@ -3094,6 +3117,32 @@ public:
                 if (mode < 0 || mode > 2)
                     return detail::semanticInvalid ("automation_mode mode is outside the known enum range");
                 project.automationMode = static_cast<engine::AutomationMode> (mode);
+            }
+            else if (step != SQLITE_DONE)
+            {
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+            }
+        }
+
+        // N8: the punch-region row is optional — absent means disabled, the historical no-punch
+        // default.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT start_frame, end_frame FROM punch_region WHERE slot = 1;");
+                ! result.ok())
+                return result;
+
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+            {
+                const engine::PunchRegion region {
+                    true,
+                    static_cast<engine::Tick> (sqlite3_column_int64 (stmt.get(), 0)),
+                    static_cast<engine::Tick> (sqlite3_column_int64 (stmt.get(), 1))
+                };
+                if (! region.isValid())
+                    return detail::semanticInvalid ("punch_region is outside the Project value range");
+                project.punchRegion = region;
             }
             else if (step != SQLITE_DONE)
             {

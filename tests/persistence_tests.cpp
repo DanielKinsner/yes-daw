@@ -1471,6 +1471,47 @@ TEST_CASE ("Schema v16 migration gives legacy Tracks the no-override colour defa
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// N8: punch_region is a NEW TABLE (locate-points/automation_mode pattern), not an ALTER TABLE —
+// "before v17" is built by running migrations only up to v16, so the table doesn't exist yet.
+TEST_CASE ("Schema v17 migration gives legacy Projects the disabled no-punch default",
+           "[persistence][migration][punch-record]")
+{
+    const auto path = makeTempBundlePath ("punch-region-v16-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV16 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 16);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV16).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 17;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM punch_region;", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE_FALSE (readback.punchRegion.enabled);
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1481,20 +1522,21 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // N6/N7: a fresh bundle is v16 now — the v10 simulation also strips the v11-v16 artifacts,
-        // including dropping the height_px and colour COLUMNs (v15/v16 are ALTER TABLEs, not new
-        // tables like v11-v14, so re-running their migrations on reopen would otherwise fail with
-        // a duplicate column error).
+        // N6/N7/N8: a fresh bundle is v17 now — the v10 simulation also strips the v11-v17
+        // artifacts, including dropping the height_px and colour COLUMNs (v15/v16 are ALTER
+        // TABLEs, not new tables like v11-v14/v17, so re-running their migrations on reopen would
+        // otherwise fail with a duplicate column error).
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
             "DROP TABLE automation_mode; ALTER TABLE tracks DROP COLUMN height_px; "
-            "ALTER TABLE tracks DROP COLUMN colour; "
+            "ALTER TABLE tracks DROP COLUMN colour; DROP TABLE punch_region; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
             "DELETE FROM schema_migrations WHERE version = 14; "
             "DELETE FROM schema_migrations WHERE version = 15; "
             "DELETE FROM schema_migrations WHERE version = 16; "
+            "DELETE FROM schema_migrations WHERE version = 17; "
             "PRAGMA user_version = 10;").ok());
     }
 

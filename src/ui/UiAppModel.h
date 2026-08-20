@@ -586,6 +586,17 @@ public:
                 return false;
             sharedConfig.window.punchStartFrame = *countInEnd;
         }
+        // N8: a persisted punch region additionally bounds the capture window. Punch-in never
+        // lets recording start before count-in finishes (the LATER of the two wins); punch-out
+        // closes the window exactly like a punch-out button would. Disabled leaves
+        // punchEndFrame at RecordingWindow's own default (effectively unbounded), reproducing
+        // today's count-in-only behaviour bit-identically.
+        if (project_.punchRegion.enabled)
+        {
+            sharedConfig.window.punchStartFrame = std::max (sharedConfig.window.punchStartFrame,
+                                                             project_.punchRegion.startFrame);
+            sharedConfig.window.punchEndFrame = project_.punchRegion.endFrame;
+        }
         // E32: with the transport loop ON, the capture window loops too — each cycle becomes
         // its own take (H5 primitive), capped so a forgotten session can't grow unbounded.
         if (context_.loopEnabled && playback_ != nullptr)
@@ -5428,6 +5439,36 @@ public:
         ++context_.commandDispatchCount;
         return { id, {}, true };
     }
+
+    // N8: the persisted, undoable punch region. `enabled = false` clears back to no-punch — the
+    // capture window is then gated only by count-in, exactly like before this field existed. No
+    // UiActionId — like the automation mode chooser, a ruler drag has no natural keyboard
+    // shortcut.
+    [[nodiscard]] UiActionDispatchResult setPunchRegion (bool enabled, engine::Tick startFrame, engine::Tick endFrame)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        if (! context_.projectLoaded)
+            return { id, { false, "no project loaded" }, false };
+
+        const engine::PunchRegion region { enabled, startFrame, endFrame };
+        if (! region.isValid())
+            return { id, { false, "invalid punch region" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setPunchRegion (enabled, startFrame, endFrame)).applied())
+            return { id, { false, "punch region unchanged" }, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "punch region did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        return { id, {}, true };
+    }
+
+    // N8: the persisted punch region, for the UI to paint/hit-test on the ruler.
+    [[nodiscard]] engine::PunchRegion punchRegion() const noexcept { return project_.punchRegion; }
 
     // N5: one sampled point of a live Touch/Latch control ride — (tick, normalized value).
     struct AutomationTouchSample

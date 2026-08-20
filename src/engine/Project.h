@@ -658,6 +658,27 @@ enum class AutomationMode : std::uint8_t
            || mode == AutomationMode::Latch;
 }
 
+// N8: a persisted punch region for recording. Disabled (the default) reproduces today's
+// behaviour bit-identically: no punch bounds gate the capture window beyond count-in. Frames are
+// raw sample frames at the project's sample rate (the same domain RecordingWindow already uses),
+// NOT musical ticks — Tick is reused here as the codebase's existing plain int64 alias, exactly
+// how a SampleLocked Clip's timelineStart already reuses it for raw frame positions.
+struct PunchRegion
+{
+    bool enabled = false;
+    Tick startFrame = 0;
+    Tick endFrame = 0;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! enabled)
+            return true;
+        return startFrame >= 0 && endFrame > startFrame;
+    }
+
+    friend bool operator== (const PunchRegion&, const PunchRegion&) = default;
+};
+
 [[nodiscard]] constexpr bool automationStripParameterIdIsValid (AutomationTargetRole role, std::uint32_t paramId) noexcept
 {
     switch (role)
@@ -819,6 +840,9 @@ struct Project
     // N5: persisted automation write mode (schema v14, locate-points pattern: a missing row
     // means the historical Read-only default).
     AutomationMode automationMode = AutomationMode::Read;
+    // N8: persisted punch region (schema v17, locate-points pattern: a missing row means
+    // disabled, the historical no-punch default).
+    PunchRegion punchRegion;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {
@@ -2461,6 +2485,19 @@ namespace detail {
         return ProjectEditStatus::InvalidProject;
 
     project.automationMode = mode;
+    return ProjectEditStatus::Applied;
+}
+
+// N8: the persisted punch region — one scalar-ish struct, like the automation mode.
+[[nodiscard]] inline ProjectEditStatus setPunchRegion (Project& project, PunchRegion region)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! region.isValid())
+        return ProjectEditStatus::InvalidProject;
+
+    project.punchRegion = region;
     return ProjectEditStatus::Applied;
 }
 

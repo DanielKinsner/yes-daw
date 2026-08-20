@@ -90,7 +90,9 @@ enum class ProjectEditVerb : std::uint8_t
     // N6: a Track's persisted row height (0 = auto-shared)
     SetTrackHeight,
     // N7: a Track's persisted colour (0 = no override)
-    SetTrackColour
+    SetTrackColour,
+    // N8: the persisted punch region (disabled = no punch bounds beyond count-in)
+    SetPunchRegion
 };
 
 struct ProjectEditCommand
@@ -140,6 +142,10 @@ struct ProjectEditCommand
     AutomationMode automationMode = AutomationMode::Read;
     int trackHeightPx = 0;
     std::uint32_t trackColour = 0;
+    // N8: punch region payload — startFrame/endFrame are raw sample frames, not musical ticks.
+    bool punchEnabled = false;
+    Tick punchStartFrame = 0;
+    Tick punchEndFrame = 0;
     // Arrangement verb payloads. trackName is a fixed array so the command stays trivially copyable;
     // names longer than the array are rejected at the factory, never silently truncated.
     EntityId trackId;
@@ -845,6 +851,19 @@ struct ProjectEditCommand
         return command;
     }
 
+    // N8: the persisted punch region (disabled clears back to no-punch).
+    [[nodiscard]] static constexpr ProjectEditCommand setPunchRegion (bool enabled,
+                                                                       Tick startFrame,
+                                                                       Tick endFrame) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetPunchRegion;
+        command.punchEnabled = enabled;
+        command.punchStartFrame = startFrame;
+        command.punchEndFrame = endFrame;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand addMarker (EntityId markerId,
                                                                  Tick tick,
                                                                  std::string_view name) noexcept
@@ -999,6 +1018,13 @@ struct ProjectAutomationModeDiff
     AutomationMode after = AutomationMode::Read;
 };
 
+// N8: the punch region is one scalar-ish struct; the diff stores both values whole.
+struct ProjectPunchRegionDiff
+{
+    PunchRegion before;
+    PunchRegion after;
+};
+
 struct ProjectEditTransaction
 {
     ProjectEditCommand command;
@@ -1014,6 +1040,7 @@ struct ProjectEditTransaction
     ProjectMarkerRowsDiff markerDiff;
     ProjectMasterGainDiff masterDiff;
     ProjectAutomationModeDiff automationModeDiff;
+    ProjectPunchRegionDiff punchRegionDiff;
 };
 
 struct ProjectEditApplyResult
@@ -1136,6 +1163,11 @@ namespace detail {
 [[nodiscard]] constexpr bool isAutomationModeEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::SetAutomationMode;
+}
+
+[[nodiscard]] constexpr bool isPunchRegionEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::SetPunchRegion;
 }
 
 // E33: the take-removal verb owns the combined takes+clips+comp diff family.
@@ -1414,6 +1446,10 @@ namespace detail {
 
         case ProjectEditVerb::SetAutomationMode:
             return setAutomationMode (project, command.automationMode);
+
+        case ProjectEditVerb::SetPunchRegion:
+            return setPunchRegion (project,
+                                   PunchRegion { command.punchEnabled, command.punchStartFrame, command.punchEndFrame });
 
         case ProjectEditVerb::RenameClip:
             if (command.clipName[0] == '\0')
@@ -1694,6 +1730,29 @@ namespace detail {
         return false;
 
     project.automationMode = replacement;
+    return true;
+}
+
+// N8: punch region diff — bit-exact struct swap with the same expected-state guard.
+[[nodiscard]] inline bool buildProjectPunchRegionDiff (const Project& before,
+                                                       const Project& after,
+                                                       ProjectPunchRegionDiff& out)
+{
+    if (before.punchRegion == after.punchRegion)
+        return false;
+
+    out = {};
+    out.before = before.punchRegion;
+    out.after = after.punchRegion;
+    return true;
+}
+
+[[nodiscard]] inline bool applyPunchRegionDiff (Project& project, PunchRegion expected, PunchRegion replacement)
+{
+    if (! (project.punchRegion == expected) || ! replacement.isValid())
+        return false;
+
+    project.punchRegion = replacement;
     return true;
 }
 
@@ -2131,6 +2190,13 @@ namespace detail {
                     : applyAutomationModeDiff (project, diff.after, diff.before);
     }
 
+    if (isPunchRegionEditVerb (transaction.command.verb))
+    {
+        const ProjectPunchRegionDiff& diff = transaction.punchRegionDiff;
+        return redo ? applyPunchRegionDiff (project, diff.before, diff.after)
+                    : applyPunchRegionDiff (project, diff.after, diff.before);
+    }
+
     return redo ? applyClipRowsDiff (project, transaction.diff, transaction.diff.before, transaction.diff.after)
                 : applyClipRowsDiff (project, transaction.diff, transaction.diff.after, transaction.diff.before);
 }
@@ -2172,6 +2238,8 @@ namespace detail {
         diffBuilt = detail::buildProjectMasterGainDiff (before, project, transaction.masterDiff);
     else if (detail::isAutomationModeEditVerb (command.verb))
         diffBuilt = detail::buildProjectAutomationModeDiff (before, project, transaction.automationModeDiff);
+    else if (detail::isPunchRegionEditVerb (command.verb))
+        diffBuilt = detail::buildProjectPunchRegionDiff (before, project, transaction.punchRegionDiff);
     else
         diffBuilt = detail::buildProjectClipRowsDiff (before, project, command, transaction.diff);
 

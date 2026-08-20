@@ -1152,6 +1152,101 @@ TEST_CASE ("captured MIDI commits to a real MidiClip mapped through the recordin
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("N8 a persisted punch region gates both audio and MIDI capture at exact frame edges",
+           "[ui][app][recording][punch-record]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("punch-record");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.adoptRealRecordingDevice ({ 0x3D1D0002u, 48'000.0, 1, 128, 64, 0 }));
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+
+    // A 200-frame punch window: [200, 400).
+    REQUIRE (app.setPunchRegion (true, 200, 400).dispatched);
+    REQUIRE (app.project().punchRegion.enabled);
+    REQUIRE (app.project().punchRegion.startFrame == 200);
+    REQUIRE (app.project().punchRegion.endFrame == 400);
+
+    // Zero input latency keeps device frames == compensated frames == timeline frames, so the
+    // committed take's bounds can be asserted frame-exact against the punch window directly.
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+
+    std::array<float, 128> input {};
+    input.fill (0.25f);
+    const float* inputs[1] = { input.data() };
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    // 5 blocks of 128 = 640 device frames (0..639), spanning well before and after [200, 400).
+    for (int block = 0; block < 5; ++block)
+    {
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+
+    // Capture always succeeds for a validly-shaped event (session active, positive length,
+    // in-range velocity) — the window rejection happens later, at COMMIT, via the same
+    // latency-compensated mapping that already drops pre-roll notes (mirrors the existing
+    // "captured MIDI commits to a real MidiClip" test's own before/inside/after shape). One note
+    // before the window (device frame 100 &lt; 200), one inside (device frame 250), one after
+    // (device frame 450 &gt;= 400) — only the inside one should land after commit.
+    REQUIRE (app.captureMidiEventDuringRecording ({ 100, 60, 0.8f, 20 }));
+    REQUIRE (app.captureMidiEventDuringRecording ({ 250, 72, 0.9f, 20 }));
+    REQUIRE (app.captureMidiEventDuringRecording ({ 450, 65, 0.7f, 20 }));
+
+    const std::size_t midiClipsBefore = app.project().midiClips.size();
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+
+    // Audio: exactly the punch span, frame-exact at both edges.
+    REQUIRE (app.lastRecordedAudioTake().timelineStart == 200);
+    REQUIRE (app.lastRecordedAudioTake().frames == 200u);   // [200, 400)
+
+    // MIDI: exactly the one in-window note landed.
+    REQUIRE (app.project().midiClips.size() == midiClipsBefore + 1u);
+    const yesdaw::engine::MidiClip& placed = app.project().midiClips.back();
+    REQUIRE (placed.notes.size() == 1u);
+    REQUIRE (placed.notes.front().key == 72);
+
+    // Survives save/reopen.
+    Project persisted;
+    {
+        ProjectBundleDb verify;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, verify).ok());
+        REQUIRE (verify.readProjectSnapshot (persisted).ok());
+    }
+    REQUIRE (persisted.punchRegion.enabled);
+    REQUIRE (persisted.punchRegion.startFrame == 200);
+    REQUIRE (persisted.punchRegion.endFrame == 400);
+
+    // Disabling punch restores today's behaviour bit-identically: a fresh capture with punch off
+    // starts recording immediately at frame 0, with no rejection at all.
+    REQUIRE (app.setPunchRegion (false, 0, 0).dispatched);
+    REQUIRE_FALSE (app.project().punchRegion.enabled);
+
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    for (int block = 0; block < 2; ++block)
+    {
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+    REQUIRE (app.captureMidiEventDuringRecording ({ 10, 50, 0.6f, 20 }));   // no longer pre-window
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+    REQUIRE (app.lastRecordedAudioTake().timelineStart == 0);   // starts immediately, like today
+
+    std::error_code ec2;
+    std::filesystem::remove_all (bundlePath, ec2);
+}
+
 TEST_CASE ("M13 latency-compensated monitoring runs the armed pick through the armed track's strip",
            "[ui][app][recording][monitor-compensated]")
 {

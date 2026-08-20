@@ -452,6 +452,10 @@ public:
     std::function<void (int, bool, double)> onClipFadeAdjusted;
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double, bool)> onLoopRegionDragged;   // startSeconds, endSeconds, snapInvert
+    // N8: Alt+Shift-drag on the ruler — startSeconds, endSeconds, snapInvert. A degenerate span
+    // (end <= start, a click rather than a real drag) means "clear the punch region", not "set a
+    // zero-length one".
+    std::function<void (double, double, bool)> onPunchRegionDragged;
     std::function<void (double, double, bool)> onRulerRangeSelected;  // startSeconds, endSeconds, snapInvert (plain drag)
     std::function<void()> onRulerRangeCleared;                   // plain ruler click collapses the range
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
@@ -670,6 +674,18 @@ public:
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (geometry.rulerArea.contains (event.getPosition()))
         {
+            // N8: Alt+Shift-drag defines the punch region — checked before plain Alt (marker
+            // removal) so the more specific combo wins. Ctrl is already reserved, across every
+            // ruler drag gesture below, as a release-time "invert snap" modifier — it is NOT
+            // available as a gesture selector at mouse-down, so punch cannot use it alone.
+            if (event.mods.isAltDown() && event.mods.isShiftDown())
+            {
+                punchDragActive = true;
+                punchDragStartSeconds =
+                    timelineSecondsAt (state, getLocalBounds(), event.getPosition()).value_or (0.0);
+                return;
+            }
+
             // Alt+click removes the nearest marker; Shift-drag defines a loop region; a plain click
             // locates while a plain drag selects a painted time range (parity item 25).
             if (event.mods.isAltDown())
@@ -907,6 +923,24 @@ public:
                     const double second = std::max (loopDragStartSeconds, *endSeconds);
                     if (second > first)
                         onLoopRegionDragged (first, second, event.mods.isCtrlDown());
+                }
+            }
+            return;
+        }
+
+        if (punchDragActive)
+        {
+            punchDragActive = false;
+            if (stateProvider && onPunchRegionDragged)
+            {
+                const yesdaw::ui::TimelineCanvasState state = stateProvider();
+                if (const std::optional<double> endSeconds =
+                        timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                {
+                    const double first = std::min (punchDragStartSeconds, *endSeconds);
+                    const double second = std::max (punchDragStartSeconds, *endSeconds);
+                    // second <= first means "clear"
+                    onPunchRegionDragged (first, second, event.mods.isCtrlDown());
                 }
             }
             return;
@@ -1303,6 +1337,8 @@ private:
     bool playheadLocateActive = false;
     bool loopDragActive = false;
     double loopDragStartSeconds = 0.0;
+    bool punchDragActive = false;
+    double punchDragStartSeconds = 0.0;
     bool rulerRangeDragActive = false;
     double rulerRangeDragStartSeconds = 0.0;
     juce::Point<int> rulerRangeDownPosition;
@@ -3204,6 +3240,23 @@ public:
                     repaint();
                 }
             }
+        };
+        // N8: Alt+Shift-drag on the ruler sets the punch region; a degenerate (non-positive)
+        // span — dragging back onto the start point, effectively a click — clears it instead, so
+        // the SAME gesture that creates a punch region can remove one.
+        timelineInput.onPunchRegionDragged = [this] (double startSeconds, double endSeconds, bool snapInvert) {
+            const std::optional<yesdaw::engine::Tick> startFrame = timelineTickFromSeconds (startSeconds);
+            const std::optional<yesdaw::engine::Tick> endFrame = timelineTickFromSeconds (endSeconds);
+            if (! startFrame || ! endFrame)
+                return;
+            const yesdaw::engine::Tick snappedStart = snappedTimelineTick (*startFrame, snapInvert);
+            const yesdaw::engine::Tick snappedEnd = snappedTimelineTick (*endFrame, snapInvert);
+            if (snappedEnd > snappedStart)
+                (void) appModel.setPunchRegion (true, snappedStart, snappedEnd);
+            else
+                (void) appModel.setPunchRegion (false, 0, 0);
+            refreshActionState();
+            repaint();
         };
         timelineInput.onTimelineLocated = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
@@ -8875,6 +8928,19 @@ private:
                 state.loopActive = true;
                 state.loopStartSeconds = static_cast<double> (loopStart) / appModel.project().sampleRate.hz;
                 state.loopEndSeconds = static_cast<double> (loopEnd) / appModel.project().sampleRate.hz;
+            }
+        }
+
+        // N8: the persisted punch region — painted from the real Project field, so an unset
+        // region paints nothing (bit-identical to before this field existed).
+        if (appModel.context().projectLoaded && appModel.project().sampleRate.isValid())
+        {
+            const yesdaw::engine::PunchRegion punch = appModel.punchRegion();
+            if (punch.enabled && punch.endFrame > punch.startFrame)
+            {
+                state.punchActive = true;
+                state.punchStartSeconds = static_cast<double> (punch.startFrame) / appModel.project().sampleRate.hz;
+                state.punchEndSeconds = static_cast<double> (punch.endFrame) / appModel.project().sampleRate.hz;
             }
         }
         return state;

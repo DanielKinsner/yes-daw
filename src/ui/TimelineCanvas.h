@@ -160,6 +160,13 @@ struct TimelineCanvasState
     double rangeStartSeconds = 0.0;
     double rangeEndSeconds = 0.0;
 
+    // N8: persisted punch region — painted as a band across ruler and lanes when active, the
+    // same shape as the range selection above (no brace handles; redefine by dragging a new
+    // region, an honest subset of the loop brace's full resize/move gesture set).
+    bool punchActive = false;
+    double punchStartSeconds = 0.0;
+    double punchEndSeconds = 0.0;
+
     // Vertical track scroll (E5): whole lane rows above the viewport. Geometry clamps this and
     // publishes the pixel offset every paint/hit/gesture consumer shares.
     int trackScrollRows = 0;
@@ -699,6 +706,52 @@ inline void drawRangeSelection (juce::Graphics& g, juce::Rectangle<int> ruler,
     g.drawRect (band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
 }
 
+// N8: the punch region's painted band rect (ruler-to-clip-bottom, same shape as the range
+// selection band) — the SAME law both drawPunchRegion and any hit-testing/harness code use, so
+// paint and test can never drift.
+struct TimelinePunchBandRect
+{
+    bool valid = false;
+    juce::Rectangle<int> band;
+};
+
+[[nodiscard]] inline TimelinePunchBandRect timelinePunchBandRect (juce::Rectangle<int> ruler,
+                                                                   juce::Rectangle<int> clipArea,
+                                                                   const TimelineCanvasState& state,
+                                                                   const Viewport& vp)
+{
+    TimelinePunchBandRect out;
+    if (! state.punchActive || state.punchEndSeconds <= state.punchStartSeconds)
+        return out;
+
+    const int startX = clipArea.getX()
+                     + juce::roundToInt ((state.punchStartSeconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+    const int endX = clipArea.getX()
+                   + juce::roundToInt ((state.punchEndSeconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+    const int left = std::max (clipArea.getX(), std::min (startX, endX));
+    const int right = std::min (clipArea.getRight(), std::max (startX, endX));
+    if (right <= left)
+        return out;
+
+    out.valid = true;
+    out.band = { left, ruler.getY(), right - left, clipArea.getBottom() - ruler.getY() };
+    return out;
+}
+
+inline void drawPunchRegion (juce::Graphics& g, juce::Rectangle<int> ruler,
+                             juce::Rectangle<int> clipArea,
+                             const TimelineCanvasState& state, const Viewport& vp)
+{
+    const TimelinePunchBandRect punch = timelinePunchBandRect (ruler, clipArea, state, vp);
+    if (! punch.valid)
+        return;
+
+    g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+    g.fillRect (punch.band);
+    g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::focusRingAlpha));
+    g.drawRect (punch.band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+}
+
 inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const TimelineCanvasState& state,
                       const TimelineCanvasGeometry& geometry)
 {
@@ -973,6 +1026,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, geometry);
     drawRangeSelection (g, ruler, clipArea, state, vp);
+    drawPunchRegion (g, ruler, clipArea, state, vp);
 
     // Transport loop brace (E6): accent band across the upper ruler with brighter end handles.
     if (const TimelineLoopBraceRects loopRects = timelineLoopBraceRects (area, state); loopRects.valid)

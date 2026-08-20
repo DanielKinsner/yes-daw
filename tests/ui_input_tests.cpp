@@ -6164,6 +6164,48 @@ TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][sh
     REQUIRE_FALSE (snapshot.context.loopEnabled);
 }
 
+TEST_CASE ("N8 alt+shift-drag on the ruler defines a persisted punch region, and a click clears it",
+           "[ui][input][shell][punch-record]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("punch-ruler");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).punchRegion.enabled);
+
+    // Alt+Shift-drag across the ruler strip: a punch region between two distinct positions — the
+    // SAME shape as the loop's plain Shift-drag, keyed to a different modifier combo since plain
+    // Ctrl is already reserved (across every ruler drag gesture) as a release-time snap-invert
+    // flag, and plain Alt/Shift are already the marker-delete/loop gestures.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const int rulerY = rulerGeometry.rulerArea.getCentreY();
+    const juce::Point<int> from { timeline.getWidth() / 4, rulerY };
+    const juce::Point<int> to { (timeline.getWidth() * 3) / 4, rulerY };
+    const juce::ModifierKeys punchModifiers (juce::ModifierKeys::leftButtonModifier
+                                              | juce::ModifierKeys::altModifier
+                                              | juce::ModifierKeys::shiftModifier);
+    dragFromTo (timeline, from, to, punchModifiers);
+
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.punchRegion.enabled);
+    REQUIRE (project.punchRegion.endFrame > project.punchRegion.startFrame);
+    REQUIRE (project.punchRegion.startFrame >= 0);
+
+    // The SAME gesture at the SAME spot (no real drag) clears the region — one drag can both
+    // create and remove a punch region, matching the deviation logged for this item.
+    dragFromTo (timeline, from, from, punchModifiers);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).punchRegion.enabled);
+}
+
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");
