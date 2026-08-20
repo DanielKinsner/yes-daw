@@ -117,7 +117,31 @@ commit.
 
 ## Phase 2 — automation you can trust
 
-4. [ ] **N4 — The automation lane belongs to its track, and its header tells the truth.** The lane
+4. [x] **N4 — The automation lane belongs to its track, and its header tells the truth.** DONE —
+   feature `8e779a1`, exact-head nine-job CI run `32407151792` green (first try), local 352/352.
+   Audited first: `automationLaneRowText()` always read `project.tracks.front()` and hardcoded the
+   string "Track fader"; a DEEPER bug the original carve missed — the header's Add/Delete BUTTONS
+   (unlike the canvas click path, which already read `currentAutomationTarget()`) were hardcoded to
+   `addFirstTrackAutomationBreakpoint()`/`deleteLastFirstTrackAutomationBreakpoint()`, always
+   writing to track 1's fader lane regardless of the selected target.
+   **Deviation from the literal spec, logged:** "anchor the lane under its own track row" is built
+   as a SUB-LANE carved from the BOTTOM of the target row's own rect
+   (`TimelineCanvasGeometry::automationLaneArea`), not a new row inserted after it. Reason: the
+   existing E5 law stretches a lone track's row to fill the entire viewport when there are few
+   tracks (confirmed by a failing local build first — the original "insert a new row after the
+   target" design left ZERO room whenever the target row already filled 100% of the clip area, the
+   common case for every small test fixture in this repo). Carving from the row's own space works
+   in every case (1 track or 20) without touching the golden-tested, allocation-free clip
+   virtualization law in `TimelineLayout.h`, which a row-cascading insert would have required.
+   `clipArea` also no longer shrinks by a fixed amount to reserve room — it uses its full height
+   always, removing the visual "jump" the old toggle caused.
+   `[automation-lane-owner]` (a 3-track shell, track 3 targeted with Pan): the painted lane rect
+   sits under track 3's row (not track 1's, not a fixed top band), the header names track 3 and
+   Pan, a breakpoint added via the CANVAS and via the header's ADD BUTTON both land on that same
+   lane (never a stray track-1 lane), the DELETE button removes from it too, and switching track
+   updates both the header text and the lane's position. Two pre-existing tests pinned the OLD
+   geometry/text as truth and are re-pinned to the new law, which is strictly stronger.
+   Original spec: The lane
    is one global strip floating above ALL clips, not a sub-lane of any track row
    (`yesdaw-automation-default.png`), and its header text is hardwired to `project.tracks.front()`
    and the string "Track fader" (`src/ui/MainComponent.cpp:7345`–`:7360`) while the canvas edits the

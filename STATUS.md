@@ -849,9 +849,49 @@ N3 is certified: exact-head GitHub Actions run `32402786217` is green for full S
 `51882bcb01f160796d39d07f464b71e5071a9834` across all nine jobs, first try. N3 is ticked in the
 backlog.
 
-**Now:** N4 (the automation lane belongs to its track, and its header tells the truth) — next item.
+**N4 implementation candidate — the automation lane belongs to its track, and its header tells
+the truth:** audited first. `automationLaneRowText()` always read `project.tracks.front()` and
+hardcoded the string "Track fader". A deeper bug the original carve missed: the header's Add/Delete
+BUTTONS (unlike the canvas click path, which already read `currentAutomationTarget()`) were
+hardcoded to `addFirstTrackAutomationBreakpoint()`/`deleteLastFirstTrackAutomationBreakpoint()` —
+always writing to track 1's fader lane no matter what was selected in the target chooser.
 
-**Next:** N5 (Touch/Latch write), N6–N7 (track height and colour), N8 (punch in/out).
+**Deviation from the literal spec, logged:** "anchor the lane under its own track row" is built as
+a SUB-LANE carved from the BOTTOM of the target row's own rect
+(`TimelineCanvasGeometry::automationLaneArea`), not a new row inserted after it. First attempt
+tried inserting a new row; a local build immediately proved it broken (`laneRow.getWidth() > 0`
+failed — the automation band computed empty) because the existing E5 law stretches a lone track's
+row to fill the entire viewport whenever there are few tracks, which is every fixture in this
+repo — there was zero room "after" a row that already consumed 100% of the clip area. Carving the
+band from the row's OWN space instead works whether there is 1 track or 20, and — the load-bearing
+reason this was the right call rather than a shortcut — it never touches the golden-tested,
+allocation-free clip virtualization law in `TimelineLayout.h` that a row-cascading insert would
+have required threading through 7+ call sites. `clipArea` also no longer shrinks by a fixed amount
+to reserve room up front, which removes the visual "jump" the old open/close toggle used to cause.
+
+Judged visually (screenshot rendered with `YESDAW_UI_SCREENSHOT_DIR` set): a 1-track project's
+automation curve now reads as a genuine sub-strip under that track's clip content, correctly
+labelled "Audio 1 - Fader - N breakpoints", not a disconnected band floating at the top of the
+window.
+
+`[automation-lane-owner]` (a 3-track shell, track 3 targeted with Pan): the painted lane rect sits
+under track 3's row — not track 1's, not a fixed top band; the header names track 3 and Pan; a
+breakpoint added via the CANVAS and via the header's ADD button both land on that same lane (never
+a stray track-1 lane); the DELETE button removes from it too; switching track updates both the
+header text and the lane's position. Two pre-existing tests pinned the OLD geometry/text as truth
+and are re-pinned to the new law, which is strictly stronger (a fixed-position band or a
+track-1-only button can never satisfy either again).
+
+Full local `ctest --test-dir build-ci` green **352/352** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+N4 is certified: exact-head GitHub Actions run `32407151792` is green for full SHA
+`8e779a15d6e2e67169215b9f9498149bf363e7fc` across all nine jobs, first try. N4 is ticked in the
+backlog.
+
+**Now:** N5 (Automation write from a control move — Touch/Latch) — next item.
+
+**Next:** N6–N7 (track height and colour), N8 (punch in/out).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
