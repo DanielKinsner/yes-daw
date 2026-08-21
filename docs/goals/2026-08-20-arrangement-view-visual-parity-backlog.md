@@ -109,7 +109,28 @@ commit, per house style.
    assertion that the cell's rect is empty or the region contains no "KEY" label), and the header's
    remaining cells (tempo, meter, loop) are unaffected. Expected to fail before on both counts.
 
-3. [ ] **V3 — Bottom mixer dock: visible tab labels + a show/hide toggle.** **Deviation from the
+3. [x] **V3 — Bottom mixer dock: visible tab labels + a show/hide toggle.** DONE — feature
+   `66e187d`, exact-head nine-job CI run `32431990639` green (second try — the `YesDawThemeAuditCheck`
+   gate correctly caught 3 raw geometry literals I'd left inline; moved to `UiTheme::Layout`
+   tokens and re-ran green), local 355/355. **Second deviation from the literal spec, logged:**
+   the reference's SENDS/RACKS/VIEW/OPTIONS are literal Logic-style VIEW-SWITCHING tabs — this
+   app's `leftTools` column has no alternate views to switch between (it's ONE unified control
+   set), so painting fake multi-tab widgets that switch nothing would itself be dishonest
+   interactivity (D3). Shipped the honest equivalent: a real "MIXER" heading painted in the
+   band `mixerUtilityTop` already reserved (no layout risk to the dense, fragile
+   `layoutMixerControls()` row-visibility cascade below it). The show/hide toggle is a genuine new
+   `UiActionId` (`TimelineToggleMixerDock`) — collapsing it reclaims vertical space for the
+   timeline/rail/inspector via ONE shared `dockedMixerHeight()` law now threaded through every
+   layout function (`mixerPanelBounds`/`timelineBounds`/`leftRailPanelBounds`/`inspectorBounds`),
+   so paint and every interactive control's bounds can never drift apart; the full-view Mixer
+   panel is unaffected (it never reserved dock space to begin with).
+   `[mixer-dock]`: the `leftTools` header band paints real text where it used to be blank fill;
+   clicking the shipped toggle collapses the dock (its own reserved rect drops to zero height) and
+   the timeline's own rect grows to reclaim that space; the same toggle restores it exactly; the
+   full Mixer view stays full-height regardless of the dock's toggle state. Red before, proven by
+   forcing `dockedMixerHeight()` to always return the fixed height regardless of the toggle — the
+   dock stayed at 244px instead of collapsing to ≤0.
+   Original spec: **Deviation from the
    plan's own premise, logged:** the plan's D6/inventory-item-7 wording assumes no dock exists
    inside the arrangement view today ("the V-run adds/aligns the bottom mixer dock"). Audited first
    and found this is **wrong** — a full-width bottom mixer strip is ALREADY always-on inside the

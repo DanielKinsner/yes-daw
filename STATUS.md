@@ -1159,11 +1159,45 @@ V2 is certified: exact-head GitHub Actions run `32429479613` is green for full S
 `911f6bce8425760052f51c04e3308b5e23936c96` across all nine jobs, first try. V2 is ticked in the
 V-run backlog.
 
-**Now:** V3 (Bottom mixer dock — visible tab labels + a show/hide toggle; closes the CP-B wave) —
-next item.
+**V3 implementation candidate — bottom mixer dock labels + show/hide toggle:** **deviation
+logged:** the reference's SENDS/RACKS/VIEW/OPTIONS are literal Logic-style VIEW-SWITCHING tabs —
+this app's `leftTools` column has no alternate views to switch between (it is ONE unified control
+set), so painting fake multi-tab widgets that switch nothing would itself be dishonest
+interactivity (D3). Shipped the honest equivalent instead: a real "MIXER" heading painted in the
+band `mixerUtilityTop` already reserved (zero layout risk to the dense, fragile
+`layoutMixerControls()` row-visibility cascade beneath it). The show/hide toggle is a genuine new
+`UiActionId` (`TimelineToggleMixerDock`) — collapsing it reclaims vertical space for the
+timeline/rail/inspector via ONE shared `dockedMixerHeight()` law now threaded through every
+layout function (`mixerPanelBounds`/`timelineBounds`/`leftRailPanelBounds`/`inspectorBounds`), so
+paint and every interactive control's bounds can never drift apart; the full-view Mixer panel is
+unaffected (it never reserved dock space to begin with).
 
-**Next:** after V3, send Dan the CP-B screenshot verdict (per the C-fallback clause if he's
-unavailable ≥3 days), then V4–V8 (CP-C fires at V8), then Phase 3 (dogfood prep —
+`[mixer-dock]`: the `leftTools` header band paints real text where it used to be blank fill;
+clicking the shipped toggle collapses the dock (its own reserved rect drops to zero height) and
+the timeline's rect grows to reclaim that space; the same toggle restores it exactly; the full
+Mixer view stays full-height regardless of the dock's toggle state. **Red before**, proven by
+forcing `dockedMixerHeight()` to always return the fixed height regardless of the toggle — the
+dock stayed at 244px instead of collapsing to ≤0.
+
+Second CI round: `YesDawThemeAuditCheck` correctly caught 3 raw geometry literals
+(`kToggleWidth`/`kToggleHeight`/`kToggleBottomGap`) left inline in `MainComponent.cpp` — moved to
+`UiTheme::Layout` tokens (`mixerDockToggleWidth/Height/BottomGap`) and re-ran green.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V3 is certified: exact-head GitHub Actions run `32431990639` is green for full SHA
+`66e187de7dd7276637d27c3f5405a6dee46c7ed7` across all nine jobs. V3 is ticked in the V-run backlog.
+
+**The CP-B wave (V1, V2, V3) is COMPLETE.** Per the plan's stop-triggers, CP-B is a genuine
+stop-and-ask point — the ONLY reason besides CP-C, an un-parkable product decision, or 3 red CI
+rounds. Rendering the CP-B screenshots now (three D7 sizes, `YESDAW_UI_SCREENSHOT_DIR` set) and
+stopping here for Dan's verdict per D7/D8, rather than continuing into V4.
+
+**Now:** stopped at CP-B — awaiting Dan's screenshot verdict ("closer" or "not right because X"),
+per the plan's C-fallback clause if he's unavailable ≥3 days.
+
+**Next:** V4–V8 (CP-C fires at V8) once CP-B clears, then Phase 3 (dogfood prep —
 `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
