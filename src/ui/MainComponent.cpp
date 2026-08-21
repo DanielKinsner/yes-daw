@@ -3595,6 +3595,7 @@ public:
         addAndMakeVisible (timelineRepeatPasteChooser);
 
         configureAutomationLaneControls();
+        configureMixerDockToggle();
 
         // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
         // timeline viewport math as the arrangement; targets the selected track's fader lane.
@@ -4410,6 +4411,19 @@ public:
         return paintedMixerMasterBounds();
     }
 
+    // V3: the dock's OWN reserved rect — height collapses to (near) zero when the toggle hides
+    // it, the same law every layout function (timelineBounds/leftRailPanelBounds/inspectorBounds
+    // /this) shares via dockedMixerHeight().
+    [[nodiscard]] juce::Rectangle<int> harnessMixerPanelBounds() const
+    {
+        return mixerPanelBounds();
+    }
+
+    [[nodiscard]] juce::Rectangle<int> harnessTimelineBounds() const
+    {
+        return timelineBounds();
+    }
+
     [[nodiscard]] std::vector<float> harnessRenderPlaybackFrames (std::uint64_t frames, int blockSize)
     {
         return appModel.renderPlaybackFrames (frames, blockSize);
@@ -4493,7 +4507,7 @@ public:
             return;
         }
 
-        work.removeFromBottom (kMixerHeight);
+        work.removeFromBottom (dockedMixerHeight());
         auto left = work.removeFromLeft (kLeftRailWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                   yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -4507,7 +4521,11 @@ public:
         if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
             drawPianoRoll (g, timeline);
         drawInspector (g, inspector);
-        drawMixer (g, mixerPanelBounds());
+        // V3: a collapsed dock paints NOTHING (the "drop whole" law this codebase already uses
+        // elsewhere for sections that don't fit) rather than relying on a zero/negative-height
+        // rect to degrade gracefully.
+        if (appModel.context().mixerDockVisible)
+            drawMixer (g, mixerPanelBounds());
     }
 
     void resized() override
@@ -4645,6 +4663,17 @@ public:
                 yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserWidth,
                 snapBounds.getHeight());
         }
+        {
+            // V3: anchored just above the dock's CURRENT top edge (using dockedMixerHeight(),
+            // not the fixed kMixerHeight) — it stays reachable whether the dock is expanded or
+            // collapsed, and tracks the dock's own state instead of a second, independent law.
+            using L = yesdaw::ui::UiTheme::Layout;
+            mixerDockToggle.setBounds (
+                getWidth() - L::mixerDockToggleWidth - L::mixerPanelHorizontalInset,
+                getHeight() - dockedMixerHeight() - L::mixerDockToggleHeight - L::mixerDockToggleBottomGap,
+                L::mixerDockToggleWidth,
+                L::mixerDockToggleHeight);
+        }
         layoutAutomationLaneControls();
         layoutInspectorControls();
         layoutMixerControls();
@@ -4690,6 +4719,29 @@ private:
         };
         button.setVisible (false);
         addAndMakeVisible (button);
+    }
+
+    // V3: a real toggle for the always-on bottom mixer dock — collapsing it reclaims vertical
+    // space for the timeline/rail/inspector; the full-view Mixer panel is unaffected.
+    void configureMixerDockToggle()
+    {
+        constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineToggleMixerDock;
+        configureActionComponent (mixerDockToggle, action, "Mixer dock");
+        if (const auto* descriptor = appModel.registry().descriptor (action))
+            mixerDockToggle.setButtonText (descriptor->label);
+        else
+            mixerDockToggle.setButtonText ("Mixer Dock");
+        mixerDockToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        mixerDockToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
+        mixerDockToggle.setColour (juce::TextButton::textColourOffId, kText);
+        mixerDockToggle.setColour (juce::TextButton::textColourOnId, kText);
+        mixerDockToggle.onClick = [this] {
+            (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineToggleMixerDock);
+            refreshActionState();
+            resized();
+            repaint();
+        };
+        addAndMakeVisible (mixerDockToggle);
     }
 
     void configureAutomationLaneControls()
@@ -5778,7 +5830,7 @@ private:
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
-        work.removeFromBottom (kMixerHeight);
+        work.removeFromBottom (dockedMixerHeight());
         work.removeFromLeft (kLeftRailWidth);
         work.removeFromRight (kInspectorWidth);
         return work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
@@ -5789,7 +5841,7 @@ private:
     [[nodiscard]] juce::Rectangle<int> leftRailPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
-        work.removeFromBottom (kMixerHeight);
+        work.removeFromBottom (dockedMixerHeight());
         return work.removeFromLeft (kLeftRailWidth)
                    .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -6182,12 +6234,21 @@ private:
             (void) appModel.openProjectBundle (path);
     }
 
+    // V3: the always-on bottom dock's height — 0 collapses it entirely, reclaiming the space for
+    // the timeline/rail/inspector, when the user has toggled it off (the full-view Mixer panel
+    // is unaffected: it never reserves this space in the first place). ONE law shared by every
+    // layout function below, so paint and every interactive component's bounds can never drift.
+    [[nodiscard]] int dockedMixerHeight() const
+    {
+        return appModel.context().mixerDockVisible ? kMixerHeight : 0;
+    }
+
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
         auto mixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer
                          ? work
-                         : work.removeFromBottom (kMixerHeight);
+                         : work.removeFromBottom (dockedMixerHeight());
         return mixer.reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
                               yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
     }
@@ -6372,7 +6433,7 @@ private:
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
-        work.removeFromBottom (kMixerHeight);
+        work.removeFromBottom (dockedMixerHeight());
         return work.removeFromRight (kInspectorWidth)
             .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                       yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -7726,6 +7787,9 @@ private:
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
+        mixerDockToggle.setToggleState (appModel.context().mixerDockVisible, juce::dontSendNotification);
+        // No effect in the full-view Mixer panel (it never reserves dock space to begin with).
+        mixerDockToggle.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer);
     }
 
     void refreshAutomationLaneControls()
@@ -9802,6 +9866,19 @@ private:
                              .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsInsetX,
                                        yesdaw::ui::UiTheme::Layout::mixerToolsInsetY);
         fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
+        // V3: a real, honest heading for the column instead of blank fill. The reference's
+        // SENDS/RACKS/VIEW/OPTIONS are literal view-switching tabs (Logic-style alternate control
+        // sets); this column has no alternate views to switch between — it is ONE unified control
+        // set — so painting fake tabs that switch nothing would be dishonest interactivity (D3).
+        // "MIXER" honestly names what the column holds, in the SAME band `mixerUtilityTop`
+        // already reserves above the first control row (no layout math changed, no risk to the
+        // dense existing row-visibility cascade below).
+        drawSmallLabel (g,
+                        "MIXER",
+                        leftTools.withHeight (yesdaw::ui::UiTheme::Layout::mixerUtilityTop)
+                            .reduced (yesdaw::ui::UiTheme::Layout::mixerUtilityInsetX,
+                                      yesdaw::ui::UiTheme::Space::none),
+                        juce::Justification::centredLeft);
 
         const int stripWidth = std::clamp (
             area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
@@ -10501,6 +10578,7 @@ private:
     bool refreshingAutomationTarget = false;
     juce::ComboBox automationTargetChooser;
     juce::TextButton automationLaneToggle;
+    juce::TextButton mixerDockToggle;
     juce::Label automationLaneRow;
     // N5: the client-side Touch/Latch ride buffer — see beginAutomationTouchRideIfArmed().
     juce::ComboBox automationModeChooser;
@@ -10785,6 +10863,22 @@ juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Componen
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedMixerMasterBounds();
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentMixerPanelBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessMixerPanelBounds();
+
+    return {};
+}
+
+juce::Rectangle<int> mainComponentTimelineBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessTimelineBounds();
 
     return {};
 }

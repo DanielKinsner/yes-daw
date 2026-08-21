@@ -470,6 +470,10 @@ struct UiTheme
         static constexpr int mixerUtilityHeight = 24;
         static constexpr int mixerUtilityGap = 3;
         static constexpr int mixerUtilityInsetX = 10;
+        // V3: the mixer dock show/hide toggle, anchored just above the dock's current top edge.
+        static constexpr int mixerDockToggleWidth = 120;
+        static constexpr int mixerDockToggleHeight = 24;
+        static constexpr int mixerDockToggleBottomGap = 4;
         static constexpr int mixerPaintedStripMinWidth = 84;
         // N3: widened from 112 so a small track count still fills a real share of the panel
         // instead of clamping to a sliver strip band with dead space beyond it. Judged against

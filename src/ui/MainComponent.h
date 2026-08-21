@@ -156,6 +156,11 @@ struct MainComponentSnapshot
                                                                           int stripIndex);
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Component& component);
 
+// V3: the dock's own reserved rect — collapses (near) zero height when the show/hide toggle
+// hides it. The SAME law every layout function (timeline/rail/inspector/this) shares.
+[[nodiscard]] juce::Rectangle<int> mainComponentMixerPanelBounds (const juce::Component& component);
+[[nodiscard]] juce::Rectangle<int> mainComponentTimelineBounds (const juce::Component& component);
+
 // M9: the header's master card rect (shell coordinates). Empty when the window is too narrow to
 // carry it — the card drops WHOLE rather than keeping a label over a clipped meter.
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component);

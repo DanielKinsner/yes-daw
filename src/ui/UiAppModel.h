@@ -5915,6 +5915,7 @@ public:
             case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::TimelineAutomationToggleTrackLane:
+            case UiActionId::TimelineToggleMixerDock:
             {
                 return registry_.dispatch (id, context_);
             }

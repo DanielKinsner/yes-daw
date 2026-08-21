@@ -168,6 +168,8 @@ enum class UiActionId : std::uint8_t
     PianoRollNoteQuantizeSelection,
     // M3: a Track's main output destination (master or a Bus)
     MixerTrackSetOutput,
+    // V3: show/hide the always-on bottom mixer dock inside the Timeline/Piano Roll views
+    TimelineToggleMixerDock,
     Count
 };
 
@@ -267,6 +269,10 @@ struct UiActionContext
     bool recordCountInActive = false;
     bool playheadFollowEnabled = true;
     bool returnToStartOnStopEnabled = false;
+    // V3: the always-on bottom mixer dock (inside Timeline/Piano Roll) can be collapsed to
+    // reclaim vertical space. True (visible) matches today's historical always-on behaviour, so
+    // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
+    bool mixerDockVisible = true;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
@@ -664,7 +670,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollNoteQuantizeSelection, "piano_roll.note.quantize_selection", "Quantize Notes", "Q", "Quantize selected notes to the snap grid",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "Ctrl+Alt+G", "Route the selected Track's main output to master or a bus",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "Ctrl+Alt+Shift+M", "Show or hide the bottom mixer dock",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -1226,6 +1234,10 @@ public:
                 context.timelineAutomationTrackLaneVisible = ! context.timelineAutomationTrackLaneVisible;
                 context.timelineAutomationTrackIndex = context.timelineAutomationTrackLaneVisible ? 0 : -1;
                 ++context.timelineAutomationShowHideCount;
+                break;
+
+            case UiActionId::TimelineToggleMixerDock:
+                context.mixerDockVisible = ! context.mixerDockVisible;
                 break;
 
             case UiActionId::TimelineAutomationAddBreakpoint:

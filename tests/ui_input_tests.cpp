@@ -1025,8 +1025,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
     // and recorded-channel pick + the E33 take chooser and delete button + the M3 track output
-    // chooser + the N5 automation mode chooser — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 130u));
+    // chooser + the N5 automation mode chooser + the V3 mixer dock toggle — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 131u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -6252,6 +6252,82 @@ TEST_CASE ("V2 the header shows real bar|beat at a non-default tempo, and the de
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("V3 the mixer dock shows a labelled column and a real show/hide toggle",
+           "[ui][input][shell][mixer-dock]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-dock");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerDockVisible);
+
+    using L = yesdaw::ui::UiTheme::Layout;
+
+    // The leftTools column is no longer blank fill — real text paints in the header band
+    // (mixerUtilityTop) reserved above the control rows, using the SAME rect drawMixer computes.
+    const auto renderShell = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const juce::Rectangle<int> dockBefore = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
+    REQUIRE_FALSE (dockBefore.isEmpty());
+    juce::Rectangle<int> dockBeforeMutable = dockBefore;
+    const juce::Rectangle<int> leftTools =
+        dockBeforeMutable.removeFromLeft (L::mixerToolsWidth).reduced (L::mixerToolsInsetX, L::mixerToolsInsetY);
+    const juce::Rectangle<int> headerBand = leftTools.withHeight (L::mixerUtilityTop);
+    {
+        const juce::Image before = renderShell();
+        const juce::Colour corner = before.getPixelAt (headerBand.getX(), headerBand.getY());
+        bool sawText = false;
+        for (int y = headerBand.getY(); y < headerBand.getBottom() && ! sawText; ++y)
+            for (int x = headerBand.getX(); x < headerBand.getRight(); ++x)
+                if (before.getPixelAt (x, y) != corner)
+                {
+                    sawText = true;
+                    break;
+                }
+        REQUIRE (sawText);
+    }
+
+    const juce::Rectangle<int> timelineBefore = yesdaw::ui::mainComponentTimelineBounds (*shell);
+
+    // The toggle is a real UiActionId, dispatched through the shipped button.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineToggleMixerDock));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.mixerDockVisible);
+
+    const juce::Rectangle<int> dockAfter = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
+    REQUIRE (dockAfter.getHeight() <= 0);
+    const juce::Rectangle<int> timelineAfter = yesdaw::ui::mainComponentTimelineBounds (*shell);
+    REQUIRE (timelineAfter.getHeight() > timelineBefore.getHeight());   // reclaimed vertical space
+
+    // The SAME toggle restores it.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineToggleMixerDock));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixerDockVisible);
+    REQUIRE (yesdaw::ui::mainComponentMixerPanelBounds (*shell).getHeight() == dockBefore.getHeight());
+
+    // The full-view Mixer panel is unaffected: collapsing the dock, then switching to the full
+    // Mixer view, still shows the whole panel (not a collapsed sliver).
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineToggleMixerDock));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    const juce::Rectangle<int> fullMixer = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
+    REQUIRE (fullMixer.getHeight() > dockBefore.getHeight());
+
+    std::error_code ec2;
+    std::filesystem::remove_all (bundlePath, ec2);
 }
 
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
