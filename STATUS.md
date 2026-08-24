@@ -1227,11 +1227,43 @@ V4 is certified: exact-head GitHub Actions run `32750560415` is green for full S
 `d510bab989bc39caa84a6d260931218963eeefce` across all nine jobs, first try. V4 is ticked in the
 V-run backlog.
 
-**Now:** V4 done and certified. Stopped at the checkpoint per the house protocol.
+**V5 implementation candidate — rail stereo L/R meters + vertical mini VOL fader:** audited
+first: the carve's two findings held — `TimelineCanvasTrack`-era metering read ONE aggregate
+float while `MeterNode` (stereo, tapping POST-pan per `MixerGraphProjection`) already published
+per-channel peaks; and the mini VOL was a horizontal bar where the mixer fader is vertical.
+Shipped: a per-channel peak path (`PlaybackEngine::trackMeterPeakChannel` → `UiAppModel` → a
+per-track L/R `MeterHoldState` pair on the same B32 hold/clip-latch law; the meter-zone click
+clears aggregate + both channels), with the rail painting two independent columns; and
+`volumeSliderBounds` rewritten as a VERTICAL column (top = loud) so click, drag, fine-drag
+(y-axis for VOL, x stays for pan), paint, and Alt+reset all follow the one shared rect — the
+mixer fader's orientation law, on the rail. The retired horizontal-level tokens were removed;
+six existing VOL gates were re-pinned to the vertical axis (same claims — click-centre ≈ 0.5,
+one-drag-one-undo, ten-times-finer Shift drag, live dB readout — never weakened). D7 judgment
+pass: the three-size screenshots show each rail row with a track-coloured vertical fader
+(thumb at top at unity) beside twin L/R meter columns, the reference's per-track strip language.
 
-**Next:** V5 (track headers: stereo per-track meter, vertical mini-fader) → V6–V8 (CP-C fires at
-V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real
-song).
+`[track-rail-meters]` (40 assertions): hard-panning the track left through the shipped rail
+knob makes the painted L/R values diverge — left real, right silent — sampled through
+`mainComponentRailMeterChannelPeaks` (the SAME hold-state values paint reads) inside the short
+fixture clip's play window (MeterNode publishes per-Block peaks — a debugging find: sampling
+after the ~0.085 s clip ended read an honest 0); the fader rect from the shipped shared law is
+taller than wide, and y-clicks at top/bottom/centre persist ~1.0 / ~0.0 / ~0.5 gain with
+Alt+reset back to exact unity. **Red before on both counts, proven separately**: the retired
+horizontal law failed exactly the orientation assertion; the retired mono law failed exactly
+the channel-divergence assertion.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V5 is certified: exact-head GitHub Actions run `32766547386` is green for full SHA
+`097bdff01716417a57ce53e3d8fa7009d3288992` across all nine jobs, first try. V5 is ticked in the
+V-run backlog.
+
+**Now:** V5 done and certified. Stopped at the checkpoint per the house protocol.
+
+**Next:** V6 (clips: name label, fade curves, real selection state — the largest hole in the
+carve) → V7–V8 (CP-C fires at V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
+HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written

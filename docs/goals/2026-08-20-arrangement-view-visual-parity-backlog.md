@@ -192,7 +192,22 @@ commit, per house style.
    x-coordinates the SAME bar numbers paint at. Expected to fail before at any tempo other than 60
    BPM / 4/4.
 
-5. [ ] **V5 — Track headers: stereo per-track meter, vertical mini-fader.** Audited first: track
+5. [x] **V5 — Track headers: stereo per-track meter, vertical mini-fader.** DONE — feature
+   `097bdff`, exact-head nine-job CI run `32766547386` green (first try), local 355/355.
+   The MeterNode already published per-channel peaks and taps POST-pan — the UI was discarding
+   them. New per-channel path (`PlaybackEngine::trackMeterPeakChannel` → `UiAppModel` → a
+   per-track L/R `MeterHoldState` pair on the same B32 hold/clip-latch law; one click clears
+   all); the rail paints two independent columns split by `trackListMeterChannelGap`. The mini
+   VOL became a VERTICAL column (top = loud) sharing the mixer fader's orientation — ONE
+   `volumeSliderBounds` law drives click, drag, fine-drag (now y-axis for VOL, x for pan),
+   paint, and Alt+reset; retired horizontal tokens removed; six existing VOL gates re-pinned to
+   the vertical axis (same claims, never weakened). `[track-rail-meters]` (40 assertions):
+   hard-pan left through the shipped knob → painted L/R diverge (left real, right silent,
+   sampled inside the short fixture clip's own play window since MeterNode publishes per-Block);
+   the fader rect is taller than wide and y-drags edit persisted gain top-to-bottom. **Red
+   before on both counts**, proven separately: the horizontal law failed exactly the
+   orientation assertion, the mono law failed exactly the channel-divergence assertion.
+   Original spec: Audited first: track
    number, N7 colour chip, name, real M/S/record-arm buttons, the pan knob, and N6 drag-resize are
    ALL real and live-wired (`MainComponent.cpp:8595-8831`, hit-tested via `rowBounds`/`panKnobBounds`/
    `muteCellBounds`/`soloCellBounds`/`meterZoneBounds`). Two concrete gaps against the reference's
