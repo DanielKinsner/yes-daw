@@ -1190,15 +1190,48 @@ V3 is certified: exact-head GitHub Actions run `32431990639` is green for full S
 `66e187de7dd7276637d27c3f5405a6dee46c7ed7` across all nine jobs. V3 is ticked in the V-run backlog.
 
 **The CP-B wave (V1, V2, V3) is COMPLETE.** Per the plan's stop-triggers, CP-B is a genuine
-stop-and-ask point — the ONLY reason besides CP-C, an un-parkable product decision, or 3 red CI
-rounds. Rendering the CP-B screenshots now (three D7 sizes, `YESDAW_UI_SCREENSHOT_DIR` set) and
-stopping here for Dan's verdict per D7/D8, rather than continuing into V4.
+stop-and-ask point. The Aug-20 session's screenshots were rendered on that machine but never
+committed, so the 2026-08-24 session re-rendered them fresh from head `a4fe229` (binary verified
+to contain V2's readout + V3's toggle before showing anything) and put the three sizes beside the
+reference. **CP-B CLEARED: Dan's verdict was A — "closer, continue" (2026-08-24).** The gaps he
+was told to expect (no real ruler bars, no clip names/waveform fades/selection, dead dock meters)
+are exactly V4–V8's remaining scope.
 
-**Now:** stopped at CP-B — awaiting Dan's screenshot verdict ("closer" or "not right because X"),
-per the plan's C-fallback clause if he's unavailable ≥3 days.
+**V4 implementation candidate — ruler bar numbers from the real tempo map:** audited first: the
+carve's finding held — `drawRuler` computed `barNumber = seconds + 1` with no bar math anywhere
+in the function. Shipped the shared law the backlog demanded: `engine::computeBarGrid` extracted
+from V2's `computeBarBeat` with the EXACT same float-operation order (V2's `[transport-readout]`
+gate stays green untouched, proving the refactor is behavior-identical), consumed by a new pure
+`computeRulerBarLabels` — labels sit at real bar starts and thin themselves to power-of-two bar
+steps (1, 2, 4, 8…) until neighbours clear a new `timelineCanvasRulerMinBarLabelSpacingPx` floor,
+reproducing the reference's sparse 1/9/17 numbering when zoomed out. `MainComponent` feeds the
+canvas state's `barSeconds` from the SAME `headTempoMeter()` read the transport readout uses
+(extracted so the two laws share one tempo/meter source), passing `sampleRateHz = 1.0` so the
+grid law yields seconds. The retired fake seconds-step theme tokens were removed, not left dead.
+D7 judgment pass: fresh three-size screenshots show labels "1"/"2" exactly 2 s apart at the
+fixture's 120 BPM 4/4 — real bars, reference-like density.
 
-**Next:** V4–V8 (CP-C fires at V8) once CP-B clears, then Phase 3 (dogfood prep —
-`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
+`[ruler-bars]` (73 assertions): every painted label lands on its tempo-map bar start at 150 BPM
+7/8, cross-checked through the shipped pixel→seconds inverse mapping (`mainComponentRulerSecondsAtX`)
+with a one-painted-pixel tolerance — the label positions themselves come from
+`mainComponentRulerBarLabels`, which runs the SAME `makeTimelineState → timelineCanvasGeometry →
+computeRulerBarLabels` chain the paint path runs, never a re-derived formula; bars ascend; and
+the SAME bar number paints at a DIFFERENT x at 100 BPM. **Red before**, proven by temporarily
+restoring the retired seconds law with all wiring intact — a label claiming bar 3 sat 1.61 s off
+bar 3's real tempo-map start, failing exactly the bar-position cross-check assertion.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V4 is certified: exact-head GitHub Actions run `32750560415` is green for full SHA
+`d510bab989bc39caa84a6d260931218963eeefce` across all nine jobs, first try. V4 is ticked in the
+V-run backlog.
+
+**Now:** V4 done and certified. Stopped at the checkpoint per the house protocol.
+
+**Next:** V5 (track headers: stereo per-track meter, vertical mini-fader) → V6–V8 (CP-C fires at
+V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real
+song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written

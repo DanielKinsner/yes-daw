@@ -160,7 +160,22 @@ commit, per house style.
    Mixer panel (`ViewMixer`) is unaffected by the toggle. Expected to fail before on the toggle
    action not existing and the tab column being blank.
 
-4. [ ] **V4 — Ruler: bar numbers driven by the real tempo map, not elapsed seconds.** Audited first
+4. [x] **V4 — Ruler: bar numbers driven by the real tempo map, not elapsed seconds.** DONE —
+   feature `d510bab`, exact-head nine-job CI run `32750560415` green (first try), local 355/355.
+   CP-B was cleared by Dan's verdict A ("closer — continue", 2026-08-24) before this item began.
+   Shared law shipped as specified: `engine::computeBarGrid` extracted from V2's `computeBarBeat`
+   with the exact same float-operation order (V2's gate stays green untouched), consumed by a new
+   pure `computeRulerBarLabels` (labels at real bar starts, thinned to power-of-two bar steps
+   until they clear a `timelineCanvasRulerMinBarLabelSpacingPx` spacing floor — the same sparse
+   numbering the reference shows). `MainComponent` feeds the canvas state's `barSeconds` from the
+   SAME `headTempoMeter()` read the transport readout uses. The retired fake seconds-step tokens
+   were removed, not left dead. `[ruler-bars]` (73 assertions): every painted label lands on its
+   tempo-map bar start at 150 BPM 7/8 (cross-checked through the shipped pixel→seconds mapping,
+   tolerance one painted pixel), bars ascend, and the SAME bar number paints at a DIFFERENT x at
+   100 BPM. **Red before**, proven by temporarily restoring the retired seconds law with all
+   wiring intact — a label claiming bar 3 sat 1.61 s off bar 3's real start, failing exactly the
+   bar-position cross-check.
+   Original spec: Audited first
    and found a genuine functional bug, not merely a styling gap: `drawRuler`
    (`src/ui/TimelineCanvas.h:625-683`) computes `barNumber = std::max(1, roundToInt(seconds) + 1)`
    (`TimelineCanvas.h:647`) — raw elapsed SECONDS relabeled as bar numbers, with no bar/beat math
