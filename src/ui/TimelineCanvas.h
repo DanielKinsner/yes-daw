@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -155,6 +156,12 @@ struct TimelineCanvasState
     double totalSeconds = UiTheme::Layout::timelineCanvasDefaultTotalSeconds;
     double playheadSeconds = UiTheme::Layout::timelineCanvasDefaultPlayheadSeconds;
 
+    // V4: seconds per bar at the project's HEAD tempo/meter (engine::computeBarGrid at
+    // sampleRateHz = 1.0) — the ruler's bar-number labels are positioned by this real bar
+    // length, never by elapsed seconds. Defaults to the same 120 BPM 4/4 fallback the
+    // transport readout uses when no project is loaded.
+    double barSeconds = UiTheme::Layout::timelineCanvasDefaultBarSeconds;
+
     // Ruler range selection (parity item 25): painted as a band across ruler and lanes when active.
     bool rangeSelectionActive = false;
     double rangeStartSeconds = 0.0;
@@ -265,6 +272,53 @@ struct TimelineCanvasGeometry
         return static_cast<int> (laneTopPixels.size()) - 1;
     }
 };
+
+// V4: the ruler's bar-label law, extracted pure so the paint path and the test harness read the
+// SAME positions (V2's headerBarBeat precedent — a gate must never re-derive this formula).
+// Labels sit at real bar starts ((bar - 1) * state.barSeconds), thinned to power-of-two bar
+// steps until neighbours clear the minimum pixel spacing — never at raw elapsed-seconds steps.
+struct RulerBarLabel
+{
+    std::int64_t bar = 1;
+    int x = 0;
+};
+
+[[nodiscard]] inline std::vector<RulerBarLabel> computeRulerBarLabels (
+    juce::Rectangle<int> clipArea, const TimelineCanvasState& state, const Viewport& vp)
+{
+    std::vector<RulerBarLabel> labels;
+    if (! (state.barSeconds > 0.0) || ! (vp.pixelsPerSecond > 0.0) || clipArea.getWidth() <= 0)
+        return labels;
+
+    const double barPixels = state.barSeconds * vp.pixelsPerSecond;
+    std::int64_t barStep = 1;
+    while (static_cast<double> (barStep) * barPixels
+               < UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx
+           && barStep < std::numeric_limits<std::int64_t>::max() / 2)
+        barStep *= 2;
+
+    const std::int64_t firstBarIndex =
+        std::max<std::int64_t> (0,
+                                static_cast<std::int64_t> (
+                                    std::floor (vp.scrollSeconds
+                                                / (state.barSeconds * static_cast<double> (barStep))))
+                                    * barStep);
+
+    for (std::int64_t barIndex = firstBarIndex;; barIndex += barStep)
+    {
+        const double barStartSeconds = static_cast<double> (barIndex) * state.barSeconds;
+        const int x = clipArea.getX()
+                    + juce::roundToInt ((barStartSeconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+        if (x > clipArea.getRight() + UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
+            break;
+        if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
+            continue;
+
+        labels.push_back ({ barIndex + 1, x });
+    }
+
+    return labels;
+}
 
 namespace timeline_canvas_detail {
 
@@ -631,23 +685,12 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     g.fillRect (ruler.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
                       .withY (ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
 
-    const double rightSeconds = vp.scrollSeconds + static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
-    const double labelStep = vp.pixelsPerSecond < UiTheme::Layout::timelineCanvasRulerDensePixelsPerSecond
-                                 ? UiTheme::Layout::timelineCanvasRulerWideLabelStepSeconds
-                                 : UiTheme::Layout::timelineCanvasRulerNarrowLabelStepSeconds;
-    const double firstLabel = std::floor (vp.scrollSeconds / labelStep) * labelStep;
-
-    for (double seconds = firstLabel; seconds <= rightSeconds + labelStep; seconds += labelStep)
+    for (const RulerBarLabel& label : computeRulerBarLabels (clipArea, state, vp))
     {
-        const int x = clipArea.getX() + juce::roundToInt ((seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
-        if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerLabelCullPadding
-            || x > clipArea.getRight() + UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
-            continue;
-
-        const int barNumber = std::max (1, juce::roundToInt (seconds) + 1);
+        const int x = label.x;
         g.setColour (kMutedText);
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (juce::String (barNumber),
+        g.drawText (juce::String (label.bar),
                     x - UiTheme::Layout::timelineCanvasRulerLabelLeftInset,
                     ruler.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
                     UiTheme::Layout::timelineCanvasRulerLabelWidth,

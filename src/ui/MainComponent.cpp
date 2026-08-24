@@ -4380,6 +4380,28 @@ public:
     // so a test can never duplicate the formula.
     [[nodiscard]] yesdaw::engine::BarBeat harnessHeaderBarBeat() const { return headerBarBeat(); }
 
+    // V4: the ruler's painted bar labels — the SAME state build, geometry, and label law the
+    // paint path runs (makeTimelineState → timelineCanvasGeometry → computeRulerBarLabels), so a
+    // gate can never re-derive the formula.
+    [[nodiscard]] std::vector<yesdaw::ui::RulerBarLabel> harnessRulerBarLabels()
+    {
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+        return yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport);
+    }
+
+    // V4: the inverse pixel→seconds mapping of the SAME viewport the ruler paints with, so a
+    // gate can cross-check a label's x against the tempo map without duplicating the paint math.
+    [[nodiscard]] double harnessRulerSecondsAtX (int x)
+    {
+        const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+        return static_cast<double> (x - geometry.clipArea.getX()) / geometry.viewport.pixelsPerSecond
+             + geometry.viewport.scrollSeconds;
+    }
+
     // N7: the ACTUAL colour the timeline canvas will paint for one clip (by id) — reads the same
     // cached timelineClipStyles/timelineClipIds arrays paintTimelineCanvas() paints from,
     // refreshing them first so this can never report a stale value from before the caller's last
@@ -8519,6 +8541,29 @@ private:
                         .removeFromBottom (yesdaw::ui::UiTheme::Space::hairline));
     }
 
+    // V2/V4: the project's HEAD tempo/meter with the shared no-map fallbacks (120 BPM, 4/4) —
+    // the ONE read both the transport readout and the ruler's bar-label law consume, so the
+    // header and the painted ruler can never disagree about what a bar is.
+    struct HeadTempoMeter
+    {
+        double bpm = 120.0;
+        std::uint16_t numerator = 4;
+        std::uint16_t denominator = 4;
+    };
+
+    [[nodiscard]] HeadTempoMeter headTempoMeter() const
+    {
+        HeadTempoMeter head;
+        if (! appModel.project().tempoMap.empty())
+            head.bpm = appModel.project().tempoMap.front().bpm;
+        if (! appModel.project().meterMap.empty())
+        {
+            head.numerator = appModel.project().meterMap.front().numerator;
+            head.denominator = appModel.project().meterMap.front().denominator;
+        }
+        return head;
+    }
+
     // V2: bar|beat at the current playhead — a single-tempo/meter law (the project's head
     // values, matching the existing headBarFrames() family's own scope). Shared by the paint
     // path below and the harness accessor, so a test can never duplicate this formula.
@@ -8527,17 +8572,9 @@ private:
         const double sampleRate = appModel.project().sampleRate.isValid()
                                       ? appModel.project().sampleRate.hz
                                       : 48000.0;
-        const double bpm = ! appModel.project().tempoMap.empty()
-                               ? appModel.project().tempoMap.front().bpm
-                               : 120.0;
-        const std::uint16_t numerator = ! appModel.project().meterMap.empty()
-                                            ? appModel.project().meterMap.front().numerator
-                                            : 4;
-        const std::uint16_t denominator = ! appModel.project().meterMap.empty()
-                                              ? appModel.project().meterMap.front().denominator
-                                              : 4;
+        const HeadTempoMeter head = headTempoMeter();
         return yesdaw::engine::computeBarBeat (
-            bpm, numerator, denominator, sampleRate, appModel.context().playheadFrame);
+            head.bpm, head.numerator, head.denominator, sampleRate, appModel.context().playheadFrame);
     }
 
     void drawTransportReadouts (juce::Graphics& g) const
@@ -8951,6 +8988,16 @@ private:
                                         ? static_cast<double> (appModel.context().playheadFrame)
                                             / appModel.project().sampleRate.hz
                                         : yesdaw::ui::UiTheme::Layout::timelineInitialPlayheadSeconds;
+        }
+
+        // V4: the ruler's bar length comes from the SAME head tempo/meter read the transport
+        // readout uses, through the SAME engine grid law (sampleRateHz = 1.0 makes computeBarGrid
+        // yield seconds) — the ruler's bar numbers and the header's bar|beat share one law.
+        {
+            const HeadTempoMeter head = headTempoMeter();
+            state.barSeconds =
+                yesdaw::engine::computeBarGrid (head.bpm, head.numerator, head.denominator, 1.0)
+                    .barFrames;
         }
 
         timelineMarkerLabels.clear();
@@ -10921,6 +10968,22 @@ yesdaw::engine::BarBeat mainComponentHeaderBarBeat (const juce::Component& compo
         return mainComponent->harnessHeaderBarBeat();
 
     return {};
+}
+
+std::vector<yesdaw::ui::RulerBarLabel> mainComponentRulerBarLabels (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessRulerBarLabels();
+
+    return {};
+}
+
+double mainComponentRulerSecondsAtX (juce::Component& component, int x)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessRulerSecondsAtX (x);
+
+    return 0.0;
 }
 
 bool serviceMainComponentUiTimer (juce::Component& component)

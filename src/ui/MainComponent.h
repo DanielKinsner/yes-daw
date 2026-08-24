@@ -6,6 +6,7 @@
 #pragma once
 
 #include "engine/Project.h"
+#include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -183,6 +184,14 @@ struct MainComponentSnapshot
 // V2: the ACTUAL bar|beat the header paints — reads the same law the paint code uses, so it can
 // never drift from what is on screen.
 [[nodiscard]] engine::BarBeat mainComponentHeaderBarBeat (const juce::Component& component);
+
+// V4: the ruler's painted bar-number labels (bar, x in timeline-component coordinates) — read
+// through the SAME state build + geometry + label law the paint path uses (computeRulerBarLabels),
+// so a gate can never re-derive the formula; plus the inverse pixel→seconds mapping of that SAME
+// viewport, so a gate can cross-check a label's x against the tempo map without duplicating the
+// paint math.
+[[nodiscard]] std::vector<RulerBarLabel> mainComponentRulerBarLabels (juce::Component& component);
+[[nodiscard]] double mainComponentRulerSecondsAtX (juce::Component& component, int x);
 
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);

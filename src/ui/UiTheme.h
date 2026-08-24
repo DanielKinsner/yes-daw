@@ -864,9 +864,10 @@ struct UiTheme
         static constexpr int timelineCanvasClipRichPaintHeight = 48;
         static constexpr int timelineCanvasClipCompactHighlightHeight = 1;
         static constexpr int timelineCanvasRulerSeparatorHeight = 1;
-        static constexpr double timelineCanvasRulerDensePixelsPerSecond = 24.0;
-        static constexpr double timelineCanvasRulerWideLabelStepSeconds = 8.0;
-        static constexpr double timelineCanvasRulerNarrowLabelStepSeconds = 4.0;
+        // V4: bar labels thin themselves to power-of-two bar steps (1, 2, 4, 8, ...) until
+        // neighbouring labels are at least this far apart — replaces the retired fake
+        // seconds-step label tokens (the ruler now labels real tempo-map bars, never seconds).
+        static constexpr double timelineCanvasRulerMinBarLabelSpacingPx = 56.0;
         static constexpr int timelineCanvasRulerLabelCullPadding = 40;
         static constexpr int timelineCanvasRulerLabelLeftInset = 18;
         static constexpr int timelineCanvasRulerLabelTopInset = 7;
@@ -898,6 +899,9 @@ struct UiTheme
         static constexpr int timelineCanvasVisibleClipCapacity = 4096;
         static constexpr double timelineCanvasDefaultTotalSeconds = 96.0;
         static constexpr double timelineCanvasDefaultPlayheadSeconds = 32.0;
+        // V4: the no-project ruler's bar length — the SAME 120 BPM 4/4 fallback the transport
+        // readout's headerBarBeat() commits to when no tempo/meter map is loaded.
+        static constexpr double timelineCanvasDefaultBarSeconds = 2.0;
         static constexpr double timelineLayoutDefaultPixelsPerSecond =
             UiThemeLayout::timelineLayoutDefaultPixelsPerSecond;
         static constexpr double timelineLayoutDefaultWidthPixels =

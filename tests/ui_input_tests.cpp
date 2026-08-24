@@ -6330,6 +6330,86 @@ TEST_CASE ("V3 the mixer dock shows a labelled column and a real show/hide toggl
     std::filesystem::remove_all (bundlePath, ec2);
 }
 
+TEST_CASE ("V4 the ruler labels real tempo-map bars, not elapsed seconds",
+           "[ui][input][shell][ruler-bars]")
+{
+    // Two shells at two tempos: every label's position must land on a real tempo-map bar start,
+    // and the SAME bar number must paint at a DIFFERENT x when the tempo changes — the exact
+    // claim the old law (barNumber = seconds + 1, correct only by coincidence at one tempo)
+    // cannot satisfy.
+    const auto shellAtTempo = [] (const char* name, double bpm, std::uint16_t numerator,
+                                  std::uint16_t denominator, std::filesystem::path& bundlePathOut)
+    {
+        bundlePathOut = makeTempBundlePath (name);
+        const std::filesystem::path bundlePath = bundlePathOut;
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.makeNewProject = [bpm, numerator, denominator] {
+            yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+            project.tempoMap.front().bpm = bpm;
+            project.meterMap.front().numerator = numerator;
+            project.meterMap.front().denominator = denominator;
+            return project;
+        };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        return shell;
+    };
+
+    // The expectation is first-principles arithmetic on the fixture's own tempo values — never a
+    // call into the law under test. 150 BPM 7/8: quarter 0.4 s, beat 0.2 s, bar 1.4 s.
+    const auto requireLabelsOnBarStarts = [] (juce::Component& shell, double barSeconds)
+    {
+        const std::vector<yesdaw::ui::RulerBarLabel> labels =
+            yesdaw::ui::mainComponentRulerBarLabels (shell);
+        REQUIRE (labels.size() >= 3);
+        REQUIRE (labels.front().bar == 1);
+
+        // One painted pixel's worth of seconds, read through the SAME viewport the paint uses.
+        const double secondsPerPixel = yesdaw::ui::mainComponentRulerSecondsAtX (shell, 1)
+                                     - yesdaw::ui::mainComponentRulerSecondsAtX (shell, 0);
+        REQUIRE (secondsPerPixel > 0.0);
+
+        for (const yesdaw::ui::RulerBarLabel& label : labels)
+        {
+            const double impliedSeconds = yesdaw::ui::mainComponentRulerSecondsAtX (shell, label.x);
+            const double expectedSeconds = static_cast<double> (label.bar - 1) * barSeconds;
+            REQUIRE (std::abs (impliedSeconds - expectedSeconds) <= secondsPerPixel);
+        }
+
+        for (std::size_t i = 1; i < labels.size(); ++i)
+            REQUIRE (labels[i].bar > labels[i - 1].bar);
+
+        return labels;
+    };
+
+    std::filesystem::path bundleA;
+    auto shellA = shellAtTempo ("ruler-bars-150", 150.0, 7, 8, bundleA);
+    const std::vector<yesdaw::ui::RulerBarLabel> labelsA =
+        requireLabelsOnBarStarts (*shellA, (60.0 / 150.0) * (4.0 / 8.0) * 7.0);
+
+    std::filesystem::path bundleB;
+    auto shellB = shellAtTempo ("ruler-bars-100", 100.0, 7, 8, bundleB);
+    const std::vector<yesdaw::ui::RulerBarLabel> labelsB =
+        requireLabelsOnBarStarts (*shellB, (60.0 / 100.0) * (4.0 / 8.0) * 7.0);
+
+    // The SAME bar number (past bar 1, whose start is 0 s at any tempo) paints at a different x
+    // under the other tempo, because the bar itself is a different length.
+    bool comparedSharedBar = false;
+    for (const yesdaw::ui::RulerBarLabel& a : labelsA)
+        for (const yesdaw::ui::RulerBarLabel& b : labelsB)
+            if (a.bar == b.bar && a.bar > 1)
+            {
+                REQUIRE (a.x != b.x);
+                comparedSharedBar = true;
+            }
+    REQUIRE (comparedSharedBar);
+
+    std::error_code ecRuler;
+    std::filesystem::remove_all (bundleA, ecRuler);
+    std::filesystem::remove_all (bundleB, ecRuler);
+}
+
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");

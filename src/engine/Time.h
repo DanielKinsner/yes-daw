@@ -305,6 +305,30 @@ struct BarBeat
     std::int64_t beat = 1;
 };
 
+// V4: the bar/beat lengths at a SINGLE tempo/meter, in frames at the given sample rate. This is
+// the ONE shared sub-law under computeBarBeat (the V2 transport readout) and the ruler's bar-label
+// positions (V4) — both derive their grid from this exact float-operation order, so the header
+// readout and the painted ruler can never disagree. Passing sampleRateHz = 1.0 yields the lengths
+// in SECONDS (frames at 1 Hz are seconds), which is how the seconds-based ruler consumes it.
+struct BarGrid
+{
+    double barFrames = 0.0;
+    double beatFrames = 0.0;
+};
+
+[[nodiscard]] inline BarGrid computeBarGrid (double bpm,
+                                             std::uint16_t numerator,
+                                             std::uint16_t denominator,
+                                             double sampleRateHz) noexcept
+{
+    const double clampedBpm = std::clamp (bpm, 20.0, 400.0);
+    const double clampedNumerator = std::clamp (static_cast<double> (numerator), 1.0, 32.0);
+    const double clampedDenominator = std::clamp (static_cast<double> (denominator), 1.0, 64.0);
+    const double quarterNoteFrames = sampleRateHz * 60.0 / clampedBpm;
+    const double beatFrames = quarterNoteFrames * 4.0 / clampedDenominator;
+    return { beatFrames * clampedNumerator, beatFrames };
+}
+
 // V2/V4: bar|beat at a frame position, for a SINGLE tempo/meter (the project's head values) — the
 // same scope the existing headBarFrames() family (UiAppModel.h) already commits to; piecewise
 // tempo/meter changes are not supported by ANY bar-length law in this codebase yet, and extending
@@ -317,12 +341,10 @@ struct BarBeat
                                              double sampleRateHz,
                                              std::int64_t playheadFrame) noexcept
 {
-    const double clampedBpm = std::clamp (bpm, 20.0, 400.0);
     const double clampedNumerator = std::clamp (static_cast<double> (numerator), 1.0, 32.0);
-    const double clampedDenominator = std::clamp (static_cast<double> (denominator), 1.0, 64.0);
-    const double quarterNoteFrames = sampleRateHz * 60.0 / clampedBpm;
-    const double beatFrames = quarterNoteFrames * 4.0 / clampedDenominator;
-    const double barFrames = beatFrames * clampedNumerator;
+    const BarGrid grid = computeBarGrid (bpm, numerator, denominator, sampleRateHz);
+    const double beatFrames = grid.beatFrames;
+    const double barFrames = grid.barFrames;
     const double frame = static_cast<double> (std::max<std::int64_t> (0, playheadFrame));
 
     const std::int64_t barIndex = barFrames > 0.0
