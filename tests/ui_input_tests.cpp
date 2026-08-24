@@ -6490,6 +6490,123 @@ TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("V6 a clip paints its name, its fade curves, and an unmistakable selection ring",
+           "[ui][input][shell][clip-identity]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-identity");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    // Fit the short fixture clip to the window so its body is wide enough to carry a name band
+    // and distinct fade regions.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    REQUIRE (imported.clips.front().fadeIn == 0);
+    REQUIRE (imported.clips.front().fadeOut == 0);
+
+    const auto renderShell = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    // The clip-lane region of the timeline in SHELL coordinates (toolbar and ruler excluded, so
+    // their own text can never satisfy the name assertion).
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const juce::Rectangle<int> lanes = geometry.clipArea.translated (timeline.getX(), timeline.getY());
+    const auto regionsDiffer = [&lanes] (const juce::Image& a, const juce::Image& b,
+                                         juce::Rectangle<int> region)
+    {
+        const juce::Rectangle<int> r = region.getIntersection (lanes);
+        for (int y = r.getY(); y < r.getBottom(); ++y)
+            for (int x = r.getX(); x < r.getRight(); ++x)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                    return true;
+        return false;
+    };
+
+    // Give the track the FIRST palette colour (accent blue) through the shipped N7 swatch, so
+    // the selection claim below is colour-proof: the retired swap-to-accent-blue law was
+    // pixel-invisible on exactly this track colour.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const juce::Rectangle<int> swatch = yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0);
+    REQUIRE_FALSE (swatch.isEmpty());
+    mouseDownAt (*rail, swatch.getCentre() - rail->getPosition());
+    REQUIRE (juce::Colour (readProjectSnapshot (bundlePath).tracks.front().colour)
+             == yesdaw::ui::UiTheme::Color::accentBlue());
+
+    // Deselect (import auto-selects) so the baseline is the plain painted clip.
+    mouseDownAt (timeline, { timeline.getWidth() - 2, timeline.getHeight() - 2 });
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    const juce::Image plain = renderShell();
+
+    // (a) The clip's NAME paints on its body: exact text-colour pixels inside the lane region
+    // (the only kText painted there — toolbar/ruler text is excluded by the region).
+    {
+        bool sawName = false;
+        for (int y = lanes.getY(); y < lanes.getBottom() && ! sawName; ++y)
+            for (int x = lanes.getX(); x < lanes.getRight(); ++x)
+                if (plain.getPixelAt (x, y) == yesdaw::ui::UiTheme::Color::text())
+                {
+                    sawName = true;
+                    break;
+                }
+        REQUIRE (sawName);
+    }
+
+    // (b) SELECTION visibly changes the clip's own pixels — on an accent-blue track, where the
+    // retired colour-swap law was pixel-invisible — and deselecting restores the plain
+    // appearance exactly.
+    const juce::Point<int> clipCentre = timelineClipCenterPoint (timeline, imported, 0u);
+    mouseDownAt (timeline, clipCentre);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    const juce::Image selected = renderShell();
+    REQUIRE (regionsDiffer (plain, selected, lanes));
+
+    mouseDownAt (timeline, { timeline.getWidth() - 2, timeline.getHeight() - 2 });
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    const juce::Image restored = renderShell();
+    REQUIRE_FALSE (regionsDiffer (plain, restored, lanes));
+
+    // (c) A persisted fade-in paints a visible wedge at the clip's START and leaves the clip's
+    // untouched middle body pixel-identical — the wedge sits where the persisted value says.
+    mouseDownAt (timeline, clipCentre);
+    juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
+    const double lengthSeconds =
+        static_cast<double> (imported.clips.front().timelineLength) / imported.sampleRate.hz;
+    setSliderValueThroughComponent (fadeIn, lengthSeconds * 0.4);
+    const yesdaw::engine::Project faded = readProjectSnapshot (bundlePath);
+    REQUIRE (faded.clips.front().fadeIn > 0);
+    REQUIRE (faded.clips.front().fadeOut == 0);
+
+    mouseDownAt (timeline, { timeline.getWidth() - 2, timeline.getHeight() - 2 });
+    const juce::Image withFade = renderShell();
+    // The clip occupies the left ~4/5 of the lane region (zoom-fit pads the project end by 25%);
+    // the 40% fade-in wedge lives inside the left third, and [55%, 70%] of the lane width is
+    // still inside the clip but past the wedge.
+    const int laneW = lanes.getWidth();
+    const juce::Rectangle<int> wedgeRegion = lanes.withWidth (laneW / 3);
+    const juce::Rectangle<int> steadyRegion =
+        lanes.withX (lanes.getX() + (laneW * 55) / 100).withWidth ((laneW * 15) / 100);
+    REQUIRE (regionsDiffer (plain, withFade, wedgeRegion));
+    REQUIRE_FALSE (regionsDiffer (plain, withFade, steadyRegion));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");

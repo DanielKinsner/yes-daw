@@ -9203,10 +9203,15 @@ private:
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
             timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, clip.name.c_str() });
-            timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (clip.id)
-                                                ? yesdaw::ui::UiTheme::Color::accentBlue()
-                                                : colourForTrack (*track, kPurple),
-                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
+            // V6: selection is a painted RING, not a colour swap — the clip keeps its N7 track
+            // colour while selected (the old accent-blue swap was invisible on a blue track,
+            // the exact false-positive risk the N7 gate had to work around).
+            timelineClipStyles.push_back ({ colourForTrack (*track, kPurple),
+                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha,
+                                            appModel.isTimelineClipSelected (clip.id),
+                                            static_cast<long long> (clip.timelineLength),
+                                            static_cast<long long> (clip.fadeIn),
+                                            static_cast<long long> (clip.fadeOut) });
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
@@ -9255,10 +9260,14 @@ private:
                                                std::max (0.0, (noteEndFrame - noteStartFrame) / sampleRate),
                                                static_cast<int> (note.key) });
             }
-            timelineClipStyles.push_back ({ appModel.isTimelineClipSelected (midiClip.id)
-                                                ? yesdaw::ui::UiTheme::Color::accentBlue()
-                                                : colourForTrack (*track, yesdaw::ui::UiTheme::Color::accentCyan()),
-                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha });
+            // V6: same ring law as audio clips; MIDI clips have no fade model, so the fade tick
+            // fields stay honestly zero (nothing paints).
+            timelineClipStyles.push_back ({ colourForTrack (*track, yesdaw::ui::UiTheme::Color::accentCyan()),
+                                            yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha,
+                                            appModel.isTimelineClipSelected (midiClip.id),
+                                            static_cast<long long> (midiClip.timelineLength),
+                                            0,
+                                            0 });
             timelineClipIds.push_back (midiClip.id);
             timelineClipAssetHashes.push_back ({});
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);

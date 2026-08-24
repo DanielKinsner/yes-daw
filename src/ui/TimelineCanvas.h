@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "engine/ClipEnvelope.h"
 #include "ui/TimelineLayout.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
@@ -42,6 +43,13 @@ struct TimelineCanvasClipStyle
 {
     juce::Colour colour;
     float amplitude;
+    // V6: real per-clip identity in the paint path — selection is a distinct ring (never a
+    // colour swap that vanishes on a same-coloured track), and the fades carry the clip's own
+    // tick-domain values so paint can sample the engine's ONE envelope law.
+    bool selected = false;
+    long long lengthTicks = 0;
+    long long fadeInTicks = 0;
+    long long fadeOutTicks = 0;
 };
 
 struct TimelineMarker
@@ -318,6 +326,51 @@ struct RulerBarLabel
     }
 
     return labels;
+}
+
+// V6: the painted fade curve samples the engine's ONE clip envelope law
+// (evaluateClipFadeEnvelopeGain — equal power today) at evenly spaced clip-local ticks, never a
+// re-derived formula, so the clip body, the inspector's fade display (V7), and the audible render
+// can never disagree about a fade's shape. Returns the polyline of one fade region mapped into
+// `area` (y = top at gain 1, bottom at gain 0); empty when the region is degenerate.
+[[nodiscard]] inline std::vector<juce::Point<float>> clipFadeCurvePoints (
+    juce::Rectangle<float> area,
+    long long lengthTicks,
+    long long fadeInTicks,
+    long long fadeOutTicks,
+    bool fadeOutRegion)
+{
+    std::vector<juce::Point<float>> points;
+    const long long fadeTicks = fadeOutRegion ? fadeOutTicks : fadeInTicks;
+    if (lengthTicks <= 0 || fadeTicks <= 0 || area.isEmpty())
+        return points;
+
+    const double fadeFraction =
+        std::min (1.0, static_cast<double> (fadeTicks) / static_cast<double> (lengthTicks));
+    const float regionWidth = area.getWidth() * static_cast<float> (fadeFraction);
+    if (regionWidth <= static_cast<float> (UiTheme::Layout::timelineViewportMinPixelWidth))
+        return points;
+
+    const float x0 = fadeOutRegion ? area.getRight() - regionWidth : area.getX();
+    const int samples = UiTheme::Layout::timelineCanvasFadeCurveSamples;
+    points.reserve (static_cast<std::size_t> (samples) + 1u);
+    for (int s = 0; s <= samples; ++s)
+    {
+        const double t = static_cast<double> (s) / static_cast<double> (samples);
+        const double clipFraction = fadeOutRegion ? 1.0 - fadeFraction + t * fadeFraction
+                                                  : t * fadeFraction;
+        const long long localTick = std::clamp<long long> (
+            static_cast<long long> (std::llround (
+                clipFraction * static_cast<double> (lengthTicks - 1))),
+            0,
+            lengthTicks - 1);
+        const float gain = engine::evaluateClipFadeEnvelopeGain (
+            localTick, lengthTicks, fadeInTicks, fadeOutTicks);
+        points.push_back ({ x0 + static_cast<float> (t) * regionWidth,
+                            area.getY() + (1.0f - gain) * area.getHeight() });
+    }
+
+    return points;
 }
 
 namespace timeline_canvas_detail {
@@ -619,6 +672,40 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
         return;
 
     drawClipPendingBody (g, area, style.colour);
+}
+
+// V6: fade shading + curve over the clip body — the region between the gain curve and the clip
+// top darkens (the standard DAW fade wedge) and the curve itself strokes in the clip's own
+// colour. Both regions come from the shared clipFadeCurvePoints law (the engine envelope).
+inline void drawClipFadeOverlays (juce::Graphics& g, juce::Rectangle<int> area,
+                                  const TimelineCanvasClipStyle& style)
+{
+    const auto inner = area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset);
+    for (const bool fadeOutRegion : { false, true })
+    {
+        const std::vector<juce::Point<float>> points = clipFadeCurvePoints (
+            inner, style.lengthTicks, style.fadeInTicks, style.fadeOutTicks, fadeOutRegion);
+        if (points.size() < 2u)
+            continue;
+
+        juce::Path shade;
+        shade.startNewSubPath (points.front().x, inner.getY());
+        for (const juce::Point<float>& point : points)
+            shade.lineTo (point);
+        shade.lineTo (points.back().x, inner.getY());
+        shade.closeSubPath();
+        g.setColour (UiTheme::Color::appBackground().withAlpha (
+            UiTheme::Tone::timelineCanvasFadeShadeAlpha));
+        g.fillPath (shade);
+
+        juce::Path curve;
+        curve.startNewSubPath (points.front());
+        for (std::size_t i = 1; i < points.size(); ++i)
+            curve.lineTo (points[i]);
+        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
+        g.strokePath (curve,
+                      juce::PathStrokeType (UiTheme::Layout::timelineCanvasFadeCurveStrokeWidth));
+    }
 }
 
 inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
@@ -1129,6 +1216,10 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
             drawClip (g, clipRect, style, state, pendingClip);
         }
 
+        // V6: the fade wedges shade OVER the body/waveform (the standard DAW look), then the
+        // name, then the selection ring on top of everything so it is unmistakable.
+        drawClipFadeOverlays (g, clipRect, style);
+
         const Clip* const clip = clipForId (state, rect.id);
         if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0')
         {
@@ -1138,6 +1229,15 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                         clipRect.reduced (UiTheme::Space::sm),
                         juce::Justification::topLeft,
                         true);
+        }
+
+        if (style.selected)
+        {
+            g.setColour (UiTheme::Color::text());
+            g.drawRoundedRectangle (
+                clipRect.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
+                UiTheme::Radius::md,
+                UiTheme::Layout::timelineCanvasSelectionStrokeWidth);
         }
     }
 

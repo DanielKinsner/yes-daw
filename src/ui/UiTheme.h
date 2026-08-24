@@ -137,6 +137,8 @@ struct UiTheme
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
         static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
         static constexpr float mainComponentProjectClipAlpha = 0.82f;
+        // V6: the fade region shades the clip body above the gain curve at this alpha.
+        static constexpr float timelineCanvasFadeShadeAlpha = 0.45f;
     };
 
     struct Space
@@ -683,6 +685,13 @@ struct UiTheme
         static constexpr int trackListMeterVerticalInset = 10;
         // V5: the rail meter splits into independent L/R columns separated by this gap.
         static constexpr int trackListMeterChannelGap = 2;
+
+        // V6: painted clip identity — fade-curve sampling density (the curve samples the engine's
+        // own envelope law at this many points per fade region), its stroke, and the selection
+        // ring that makes a selected clip unmistakable on ANY track colour.
+        static constexpr int timelineCanvasFadeCurveSamples = 24;
+        static constexpr float timelineCanvasFadeCurveStrokeWidth = 1.5f;
+        static constexpr float timelineCanvasSelectionStrokeWidth = 2.0f;
 
         static constexpr int meterFillInset = 2;
         static constexpr int meterSegmentSize = 3;
