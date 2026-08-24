@@ -6809,6 +6809,134 @@ TEST_CASE ("V8 the toolbar shows a live zoom control wired to the one shared zoo
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fade, save, reopen",
+           "[ui][input][shell][dogfood-readiness]")
+{
+    // S3.3: the EXACT path Dan will walk in his first session, as one mechanical gate — every
+    // step through the shipped controls, every claim against the persisted bundle.
+    const std::filesystem::path bundlePath = makeTempBundlePath ("dogfood-readiness");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+
+    // Split the first stem: zoom in, locate the playhead inside the clip through the ruler,
+    // then the split key.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    // Anchor the zoom at the clip's own start so the (short) clip stays on screen while the
+    // view magnifies — the same law the existing split-at-playhead gate uses.
+    const juce::Point<int> zoomAnchor =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, 0);
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (
+        timeline, zoomAnchor, zoomAnchor, false, 1,
+        juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 10; ++i)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    const juce::Point<int> rulerPoint = projectRulerPointAtTick (
+        timeline, snapshot, project, project.clips.front().timelineLength / 2);
+    REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
+    mouseDownAt (timeline, rulerPoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    // Back to the fit view: the clip-position helpers below (and Dan's own next steps) work in
+    // the whole-project frame.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::ctrlModifier, 0)));
+
+    // Two more stems on two more tracks, imported through the shipped verbs after selecting
+    // each new track on the rail.
+    for (int row = 1; row <= 2; ++row)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+        juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        const juce::Rectangle<int> rowRect = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, row);
+        REQUIRE_FALSE (rowRect.isEmpty());
+        mouseDownAt (*rail, rowRect.getCentre() - rail->getPosition());
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 4u);
+    REQUIRE (project.tracks.size() == 3u);
+    for (const yesdaw::engine::Track& track : project.tracks)
+    {
+        const bool trackHasStem = std::any_of (
+            project.clips.begin(), project.clips.end(),
+            [&track] (const auto& clip) { return clip.trackId == track.id; });
+        REQUIRE (trackHasStem);
+    }
+
+    // Move the last-imported stem later on its own lane through a real drag.
+    const std::size_t movedIndex = project.clips.size() - 1u;
+    const yesdaw::engine::EntityId movedId = project.clips[movedIndex].id;
+    const yesdaw::engine::Tick startBefore = project.clips[movedIndex].timelineStart;
+    const juce::Point<int> clipCentre =
+        timelineClipCenterPointOnItsLane (timeline, project, movedIndex);
+    mouseDownAt (timeline, clipCentre);   // a plain click selects exactly this clip first
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    // The 0.085 s fixture stem is only ~9 px wide at the fit view — inside the edge-trim hit
+    // zones. Zoom in anchored AT the clip centre (that x keeps mapping to the same time), so
+    // the drag below grabs a wide clip BODY; Ctrl makes the release raw (snap-inverted), so any
+    // pixel delta persists deterministically.
+    {
+        juce::MouseWheelDetails zoomWheel {};
+        zoomWheel.deltaY = 0.4f;
+        const juce::MouseEvent anchoredWheel = makeMouseEvent (
+            timeline, clipCentre, clipCentre, false, 1,
+            juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+        for (int i = 0; i < 10; ++i)
+            timeline.mouseWheelMove (anchoredWheel, zoomWheel);
+    }
+    dragFromTo (timeline, clipCentre, clipCentre.translated (60, 0),
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    project = readProjectSnapshot (bundlePath);
+    const auto moved = std::find_if (project.clips.begin(), project.clips.end(),
+                                     [movedId] (const auto& clip) { return clip.id == movedId; });
+    REQUIRE (moved != project.clips.end());
+    REQUIRE (moved->timelineStart > startBefore);
+
+    // Fade the moved stem through the real inspector slider (the drag selected it).
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
+    const double movedLengthSeconds =
+        static_cast<double> (moved->timelineLength) / project.sampleRate.hz;
+    setSliderValueThroughComponent (fadeIn, movedLengthSeconds * 0.25);
+    project = readProjectSnapshot (bundlePath);
+    const auto faded = std::find_if (project.clips.begin(), project.clips.end(),
+                                     [movedId] (const auto& clip) { return clip.id == movedId; });
+    REQUIRE (faded->fadeIn > 0);
+
+    // Save, close, reopen in a FRESH shell: everything survives and the app shows it.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));
+    const yesdaw::engine::Project beforeClose = readProjectSnapshot (bundlePath);
+    shell.reset();
+
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    const yesdaw::engine::Project afterReopen = readProjectSnapshot (bundlePath);
+    REQUIRE (afterReopen.clips == beforeClose.clips);
+    REQUIRE (afterReopen.tracks == beforeClose.tracks);
+    snapshot = snapshotMainComponent (*reopened);
+    REQUIRE (snapshot.visibleTimelineClipCount == 4);
+    REQUIRE (snapshot.visibleTimelineTrackCount == 3);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-scroll");
