@@ -3620,6 +3620,7 @@ public:
 
         configureAutomationLaneControls();
         configureMixerDockToggle();
+        configureInspectorTabs();
 
         // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
         // timeline viewport math as the arrangement; targets the selected track's fader lane.
@@ -4434,6 +4435,12 @@ public:
             .translated (trackListInput.getX(), trackListInput.getY());
     }
 
+    // V7: the fade chart's inner rect in SHELL coordinates — the SAME law the paint uses.
+    [[nodiscard]] juce::Rectangle<int> harnessInspectorFadeChartBounds() const
+    {
+        return inspectorFadeChartBounds();
+    }
+
     // V4: the inverse pixel→seconds mapping of the SAME viewport the ruler paints with, so a
     // gate can cross-check a label's x against the tempo map without duplicating the paint math.
     [[nodiscard]] double harnessRulerSecondsAtX (int x)
@@ -4807,6 +4814,37 @@ private:
             repaint();
         };
         addAndMakeVisible (mixerDockToggle);
+    }
+
+    // V7: the inspector's CLIP/TRACK tabs become real buttons — each dispatches a genuine
+    // UiActionId, the model owns the active-tab state, and layout/paint follow it.
+    void configureInspectorTabs()
+    {
+        const auto configureTab = [this] (juce::TextButton& button,
+                                          yesdaw::ui::UiActionId action,
+                                          const char* fallbackText)
+        {
+            configureActionComponent (button, action, fallbackText);
+            if (const auto* descriptor = appModel.registry().descriptor (action))
+                button.setButtonText (descriptor->label);
+            else
+                button.setButtonText (fallbackText);
+            button.setColour (juce::TextButton::buttonColourId,
+                              yesdaw::ui::UiTheme::Color::buttonSurface());
+            button.setColour (juce::TextButton::buttonOnColourId,
+                              yesdaw::ui::UiTheme::Color::inspectorTab());
+            button.setColour (juce::TextButton::textColourOffId, kMutedText);
+            button.setColour (juce::TextButton::textColourOnId, kText);
+            button.onClick = [this, action] {
+                (void) appModel.dispatch (action);
+                refreshActionState();
+                resized();
+                repaint();
+            };
+            addAndMakeVisible (button);
+        };
+        configureTab (inspectorClipTab, yesdaw::ui::UiActionId::InspectorShowClipTab, "Clip");
+        configureTab (inspectorTrackTab, yesdaw::ui::UiActionId::InspectorShowTrackTab, "Track");
     }
 
     void configureAutomationLaneControls()
@@ -6528,9 +6566,30 @@ private:
     void layoutInspectorControls()
     {
         auto area = inspectorBounds();
-        area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
+        // V7: the tab strip is owned by the two REAL tab buttons — one shared cell law for
+        // layout and (absence of) paint, so the clickable tabs can never drift from the strip.
+        auto tabStrip = area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
+        inspectorClipTab.setBounds (
+            tabStrip.removeFromLeft (tabStrip.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount));
+        inspectorTrackTab.setBounds (tabStrip);
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+
+        // V7: the TRACK tab shows track-scoped painted content only — every clip-scoped overlay
+        // control drops WHOLE (the same empty-bounds law the section-fit drop already uses).
+        if (appModel.context().inspectorTrackTabActive)
+        {
+            inspectorStart.setBounds ({});
+            inspectorEnd.setBounds ({});
+            inspectorLength.setBounds ({});
+            inspectorGain.setBounds ({});
+            inspectorFadeIn.setBounds ({});
+            inspectorFadeOut.setBounds ({});
+            inspectorFadeCurve.setBounds ({});
+            inspectorTakeChooser.setBounds ({});
+            inspectorTakeDelete.setBounds ({});
+            return;
+        }
         // E24/E27: ONE law for paint and controls — an inspector section that no longer fits
         // the column is dropped WHOLE (card, labels, and controls), never split across the
         // panel edge or bled over the bottom mixer panel.
@@ -7862,7 +7921,8 @@ private:
         if (selectedTrackLane >= static_cast<int> (appModel.project().tracks.size()))
             selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
         const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer
-                                   && appModel.context().timelineClipSelected;
+                                   && appModel.context().timelineClipSelected
+                                   && ! appModel.context().inspectorTrackTabActive;
         inspectorStart.setVisible (inspectorVisible);
         inspectorEnd.setVisible (inspectorVisible);
         inspectorLength.setVisible (inspectorVisible);
@@ -7876,6 +7936,14 @@ private:
         mixerDockToggle.setToggleState (appModel.context().mixerDockVisible, juce::dontSendNotification);
         // No effect in the full-view Mixer panel (it never reserves dock space to begin with).
         mixerDockToggle.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer);
+        // V7: the tab buttons live wherever the inspector panel does; the active tab lights.
+        const bool inspectorPanelVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        inspectorClipTab.setVisible (inspectorPanelVisible);
+        inspectorTrackTab.setVisible (inspectorPanelVisible);
+        inspectorClipTab.setToggleState (! appModel.context().inspectorTrackTabActive,
+                                         juce::dontSendNotification);
+        inspectorTrackTab.setToggleState (appModel.context().inspectorTrackTabActive,
+                                          juce::dontSendNotification);
     }
 
     void refreshAutomationLaneControls()
@@ -9797,27 +9865,114 @@ private:
         }
     }
 
+    // V7: the TRACK tab's painted content — the honest track-scoped subset that already exists
+    // in the model: name + N7 colour, fader/pan/mute/solo strip state, and the REAL track FX
+    // chain (a clip-level FX model does not exist, so the old always-"None" CLIP FX stub is
+    // gone; the reference's FX list maps to this real one).
+    // V7: the fade-chart card and its inner chart rect — ONE law shared by paint and the
+    // harness accessor, so a gate can cross-check the painted curve against the shared
+    // clipFadeCurvePoints law without re-deriving the geometry.
+    [[nodiscard]] juce::Rectangle<int> inspectorFadeChartCardBounds() const
+    {
+        auto area = inspectorBounds();
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
+        area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
+                     yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+        return area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop)
+                   .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFxSectionHeight);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> inspectorFadeChartBounds() const
+    {
+        auto card = inspectorFadeChartCardBounds();
+        card.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight);
+        return card.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
+                             yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY);
+    }
+
+    void drawTrackInspector (juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (! appModel.context().projectLoaded || tracks.empty())
+        {
+            drawSmallLabel (g, "No track", area, juce::Justification::centred);
+            return;
+        }
+
+        const int lane = std::clamp (selectedTrackLane, 0, static_cast<int> (tracks.size()) - 1);
+        const yesdaw::engine::Track& track = tracks[static_cast<std::size_t> (lane)];
+
+        g.setColour (colourForTrack (track, kPurple));
+        g.fillRoundedRectangle (static_cast<float> (area.getX()),
+                                static_cast<float> (area.getY()
+                                                    + yesdaw::ui::UiTheme::Layout::inspectorTitleAccentTopInset),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
+                                yesdaw::ui::UiTheme::Radius::sm);
+        g.setColour (kText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (
+            yesdaw::ui::UiTheme::Type::title,
+            juce::Font::bold));
+        g.drawText (track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
+                    area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
+                    juce::Justification::centredLeft,
+                    false);
+
+        auto rows = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop);
+        std::vector<juce::String> rowText;
+        rowText.push_back ("Fader   " + dbReadoutText (track.strip.linearGain));
+        const int panPercent = juce::roundToInt (std::abs (track.strip.pan) * 100.0f);
+        rowText.push_back ("Pan     "
+                           + (panPercent == 0 ? juce::String ("C")
+                                              : (track.strip.pan < 0.0f ? juce::String ("L")
+                                                                        : juce::String ("R"))
+                                                    + juce::String (panPercent)));
+        rowText.push_back (juce::String ("Mute ") + (track.strip.muted ? "on" : "off")
+                           + "   Solo " + (track.strip.soloed ? "on" : "off"));
+        if (track.strip.fxChain.empty())
+            rowText.push_back ("Track FX: none");
+        else
+            for (std::size_t slot = 0; slot < track.strip.fxChain.size(); ++slot)
+                rowText.push_back ("FX " + juce::String (static_cast<int> (slot) + 1) + "  "
+                                   + fxKindName (track.strip.fxChain[slot].kind));
+
+        for (const juce::String& text : rowText)
+        {
+            auto row = rows.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
+                           .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
+            if (! area.contains (row))
+                break;
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            g.setColour (kText);
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
+            g.drawText (text,
+                        row.reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetX,
+                                     yesdaw::ui::UiTheme::Layout::inspectorFadeTextInsetY),
+                        juce::Justification::centredLeft,
+                        false);
+        }
+    }
+
     void drawInspector (juce::Graphics& g, juce::Rectangle<int> area) const
     {
         fillPanel (g, area);
-        auto tabs = area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
-        g.setColour (yesdaw::ui::UiTheme::Color::inspectorTab());
-        g.fillRect (tabs.removeFromLeft (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount));
-        drawSmallLabel (g,
-                        "CLIP",
-                        area.withY (tabs.getY())
-                            .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTabHeight)
-                            .withWidth (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount),
-                        juce::Justification::centred);
-        drawSmallLabel (g,
-                        "TRACK",
-                        area.withY (tabs.getY())
-                            .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTabHeight)
-                            .withTrimmedLeft (area.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorTabCount),
-                        juce::Justification::centred);
+        // V7: the tab strip itself is two REAL buttons (inspectorClipTab/inspectorTrackTab)
+        // placed by layoutInspectorControls over this reserved band — nothing decorative to
+        // paint here any more.
+        area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
 
         area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                      yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+
+        if (appModel.context().inspectorTrackTabActive)
+        {
+            drawTrackInspector (g, area);
+            return;
+        }
+
         const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
         if (selectedClip == nullptr)
         {
@@ -9954,13 +10109,38 @@ private:
             }
         }
 
-        auto fx = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFxSectionTop)
-                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFxSectionHeight);
-        if (drawInspectorSectionCard (fx))
+        // V7: the old CLIP FX card was a hardcoded "None" stub over a model that does not exist
+        // (engine::Clip has no FX chain) — removed per D3, like V2's dead KEY cell; the REAL
+        // track FX chain lists on the TRACK tab. Its card now shows the clip's FADE CURVE,
+        // sampling the SAME clipFadeCurvePoints law the timeline clip body paints with (V6), so
+        // the two displays can never disagree about a fade's shape.
+        auto fadeChart = inspectorFadeChartCardBounds();
+        if (drawInspectorSectionCard (fadeChart))
         {
-            drawSmallLabel (g, "CLIP FX", fx.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
-            drawSmallLabel (g, "None", fx.reduced (yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetX,
-                                                    yesdaw::ui::UiTheme::Layout::inspectorFxTextInsetY));
+            drawSmallLabel (g, "FADE CURVE",
+                            fadeChart.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+            const auto chart = inspectorFadeChartBounds();
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRoundedRectangle (chart.toFloat(), yesdaw::ui::UiTheme::Radius::md);
+            for (const bool fadeOutRegion : { false, true })
+            {
+                const std::vector<juce::Point<float>> points = yesdaw::ui::clipFadeCurvePoints (
+                    chart.toFloat().reduced (yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+                    static_cast<long long> (selectedClip->timelineLength),
+                    static_cast<long long> (selectedClip->fadeIn),
+                    static_cast<long long> (selectedClip->fadeOut),
+                    fadeOutRegion);
+                if (points.size() < 2u)
+                    continue;
+                juce::Path curve;
+                curve.startNewSubPath (points.front());
+                for (std::size_t i = 1; i < points.size(); ++i)
+                    curve.lineTo (points[i]);
+                g.setColour (kPurple);
+                g.strokePath (curve,
+                              juce::PathStrokeType (
+                                  yesdaw::ui::UiTheme::Layout::timelineCanvasFadeCurveStrokeWidth));
+            }
         }
 
         // E33: the TAKES section replaced the old placeholder that ALWAYS said "No automation"
@@ -10715,6 +10895,9 @@ private:
     juce::ComboBox automationTargetChooser;
     juce::TextButton automationLaneToggle;
     juce::TextButton mixerDockToggle;
+    // V7: the inspector's REAL tab buttons (the painted CLIP/TRACK cells used to be decorative).
+    juce::TextButton inspectorClipTab;
+    juce::TextButton inspectorTrackTab;
     juce::Label automationLaneRow;
     // N5: the client-side Touch/Latch ride buffer — see beginAutomationTouchRideIfArmed().
     juce::ComboBox automationModeChooser;
@@ -11073,6 +11256,14 @@ double mainComponentRulerSecondsAtX (juce::Component& component, int x)
         return mainComponent->harnessRulerSecondsAtX (x);
 
     return 0.0;
+}
+
+juce::Rectangle<int> mainComponentInspectorFadeChartBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessInspectorFadeChartBounds();
+
+    return {};
 }
 
 std::pair<float, float> mainComponentRailMeterChannelPeaks (const juce::Component& component, int row)

@@ -170,6 +170,9 @@ enum class UiActionId : std::uint8_t
     MixerTrackSetOutput,
     // V3: show/hide the always-on bottom mixer dock inside the Timeline/Piano Roll views
     TimelineToggleMixerDock,
+    // V7: the right inspector's real CLIP/TRACK tabs (the painted tabs used to be decorative)
+    InspectorShowClipTab,
+    InspectorShowTrackTab,
     Count
 };
 
@@ -273,6 +276,8 @@ struct UiActionContext
     // reclaim vertical space. True (visible) matches today's historical always-on behaviour, so
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
     bool mixerDockVisible = true;
+    // V7: which inspector tab is active — false = CLIP (the historical content), true = TRACK.
+    bool inspectorTrackTabActive = false;
     bool timelineAutomationTrackLaneVisible = false;
     int timelineAutomationTrackIndex = -1;
     int timelineAutomationShowHideCount = 0;
@@ -672,6 +677,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "Ctrl+Alt+G", "Route the selected Track's main output to master or a bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "Ctrl+Alt+Shift+M", "Show or hide the bottom mixer dock",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::InspectorShowClipTab, "inspector.tab.clip", "Clip", "Ctrl+Alt+I", "Show the clip inspector tab",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::InspectorShowTrackTab, "inspector.tab.track", "Track", "Ctrl+Alt+Shift+I", "Show the track inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
 }};
 
@@ -1238,6 +1247,14 @@ public:
 
             case UiActionId::TimelineToggleMixerDock:
                 context.mixerDockVisible = ! context.mixerDockVisible;
+                break;
+
+            case UiActionId::InspectorShowClipTab:
+                context.inspectorTrackTabActive = false;
+                break;
+
+            case UiActionId::InspectorShowTrackTab:
+                context.inspectorTrackTabActive = true;
                 break;
 
             case UiActionId::TimelineAutomationAddBreakpoint:

@@ -2,6 +2,7 @@
 
 #include "ui/MainComponent.h"
 #include "ui/TimelineCanvas.h"
+#include "ui/UiAccessibility.h"
 #include "ui/UiTheme.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -1025,8 +1026,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // editor + the E18 per-row send tap toggles and destination choosers (4 rows x 2) + the
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
     // and recorded-channel pick + the E33 take chooser and delete button + the M3 track output
-    // chooser + the N5 automation mode chooser + the V3 mixer dock toggle — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 131u));
+    // chooser + the N5 automation mode chooser + the V3 mixer dock toggle + the V7 inspector
+    // CLIP/TRACK tab buttons — bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 133u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -6602,6 +6604,137 @@ TEST_CASE ("V6 a clip paints its name, its fade curves, and an unmistakable sele
         lanes.withX (lanes.getX() + (laneW * 55) / 100).withWidth ((laneW * 15) / 100);
     REQUIRE (regionsDiffer (plain, withFade, wedgeRegion));
     REQUIRE_FALSE (regionsDiffer (plain, withFade, steadyRegion));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, and the fade chart shares V6's law",
+           "[ui][input][shell][clip-track-inspector]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-track-inspector");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // The track-scoped surface has a real accessibility inventory entry backed by the tab action.
+    const auto* trackRegion = yesdaw::ui::accessibilityRegionForStableId ("track.inspector");
+    REQUIRE (trackRegion != nullptr);
+    REQUIRE (trackRegion->backingAction == UiActionId::InspectorShowTrackTab);
+
+    const auto renderShell = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    // The inspector column region: right of the timeline, below the header (the header's own
+    // right-side chrome carries live-meter paint that is not part of this claim).
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Rectangle<int> inspectorRegion =
+        shell->getLocalBounds().withLeft (timeline.getRight() + 1)
+            .withTop (timeline.getY())
+            .withTrimmedBottom (shell->getHeight() - timeline.getBottom());
+    const auto regionsDiffer = [&inspectorRegion] (const juce::Image& a, const juce::Image& b)
+    {
+        for (int y = inspectorRegion.getY(); y < inspectorRegion.getBottom(); ++y)
+            for (int x = inspectorRegion.getX(); x < inspectorRegion.getRight(); ++x)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                    return true;
+        return false;
+    };
+
+    // CLIP tab is the default; its overlay controls are live.
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.inspectorTrackTabActive);
+    juce::Slider& startSlider = requireSliderWithComponentId (*shell, kInspectorStartComponentId);
+    REQUIRE_FALSE (startSlider.getBounds().isEmpty());
+    const juce::Image clipTabImage = renderShell();
+
+    // The gain control is a REAL edit, not a readout: a drag persists a new clip gain.
+    juce::Slider& gainSlider = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
+    const float gainBefore = readProjectSnapshot (bundlePath).clips.front().gain;
+    dragHorizontalSliderToNormalizedValue (gainSlider, 0.8);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().gain != gainBefore);
+
+    // Clicking TRACK shows genuinely different, track-scoped content and drops every clip
+    // overlay control whole.
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.inspectorTrackTabActive);
+    REQUIRE (startSlider.getBounds().isEmpty());
+    const juce::Image trackTabImage = renderShell();
+    REQUIRE (regionsDiffer (clipTabImage, trackTabImage));
+
+    // The TRACK tab's FX list reflects the REAL chain: adding an FX through the existing verb
+    // changes what paints; removing it restores the exact previous pixels. The insert verb
+    // targets the SELECTED mixer strip, so select track 0 through the rail first.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    mouseDownAt (*rail, { rail->getWidth() / 2,
+                          L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    const juce::Image trackTabSelected = renderShell();
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                              juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.size() == 1u);
+    const juce::Image trackTabWithFx = renderShell();
+    REQUIRE (regionsDiffer (trackTabSelected, trackTabWithFx));
+    auto* fxRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.remove"));
+    REQUIRE (fxRemove != nullptr);
+    clickButton (*fxRemove);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.empty());
+    REQUIRE_FALSE (regionsDiffer (trackTabSelected, renderShell()));
+
+    // Back to CLIP: the overlay controls return.
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.inspectorTrackTabActive);
+    REQUIRE_FALSE (startSlider.getBounds().isEmpty());
+
+    // The FADE CURVE chart paints the SAME curve law the timeline clip body uses (V6's
+    // clipFadeCurvePoints): set a persisted fade-in, then at sampled xs the topmost
+    // non-background pixel in the chart column sits on the shared law's y within tolerance.
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
+    const double lengthSeconds =
+        static_cast<double> (imported.clips.front().timelineLength) / imported.sampleRate.hz;
+    setSliderValueThroughComponent (fadeIn, lengthSeconds * 0.5);
+    const yesdaw::engine::Project faded = readProjectSnapshot (bundlePath);
+    REQUIRE (faded.clips.front().fadeIn > 0);
+
+    const juce::Rectangle<int> chart = yesdaw::ui::mainComponentInspectorFadeChartBounds (*shell);
+    REQUIRE_FALSE (chart.isEmpty());
+    const std::vector<juce::Point<float>> expected = yesdaw::ui::clipFadeCurvePoints (
+        chart.toFloat().reduced (yesdaw::ui::UiTheme::Layout::panelOutlineInset),
+        static_cast<long long> (faded.clips.front().timelineLength),
+        static_cast<long long> (faded.clips.front().fadeIn),
+        static_cast<long long> (faded.clips.front().fadeOut),
+        false);
+    REQUIRE (expected.size() >= 3u);
+    const juce::Image chartImage = renderShell();
+    const juce::Colour chartBack = yesdaw::ui::UiTheme::Color::controlInset();
+    for (const std::size_t sample : { expected.size() / 4u, expected.size() / 2u, (expected.size() * 3u) / 4u })
+    {
+        const int x = juce::roundToInt (expected[sample].x);
+        int topmost = -1;
+        for (int y = chart.getY(); y < chart.getBottom(); ++y)
+            if (chartImage.getPixelAt (x, y) != chartBack)
+            {
+                topmost = y;
+                break;
+            }
+        REQUIRE (topmost >= 0);
+        REQUIRE (std::abs (topmost - juce::roundToInt (expected[sample].y)) <= 3);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

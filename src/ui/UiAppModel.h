@@ -5922,6 +5922,8 @@ public:
             case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::TimelineAutomationToggleTrackLane:
             case UiActionId::TimelineToggleMixerDock:
+            case UiActionId::InspectorShowClipTab:
+            case UiActionId::InspectorShowTrackTab:
             {
                 return registry_.dispatch (id, context_);
             }

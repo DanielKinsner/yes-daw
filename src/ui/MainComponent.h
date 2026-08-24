@@ -198,6 +198,11 @@ struct MainComponentSnapshot
 // and the rail VOL fader's shell-coordinate rect (the SAME law paint and hit-test share).
 [[nodiscard]] std::pair<float, float> mainComponentRailMeterChannelPeaks (
     const juce::Component& component, int row);
+
+// V7: the inspector fade chart's inner rect (shell coordinates) — the SAME law the paint uses,
+// so a gate can cross-check the painted curve against the shared clipFadeCurvePoints law.
+[[nodiscard]] juce::Rectangle<int> mainComponentInspectorFadeChartBounds (
+    const juce::Component& component);
 [[nodiscard]] juce::Rectangle<int> mainComponentRailVolumeSliderBounds (
     const juce::Component& component, int row);
 

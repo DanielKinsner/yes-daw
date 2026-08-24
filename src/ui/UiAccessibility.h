@@ -32,13 +32,14 @@ struct UiAccessibilityRegionDescriptor
 
 inline constexpr auto kUiAccessibleActionIds = makeUiAccessibleActionIds();
 
-inline constexpr std::array<UiAccessibilityRegionDescriptor, 9> kUiAccessibilityRegions {{
+inline constexpr std::array<UiAccessibilityRegionDescriptor, 10> kUiAccessibilityRegions {{
     { "app.window", "YES DAW main window", AccessibilityRole::Panel, "Application window", UiActionId::Count },
     { "app.menu_bar", "Application menus", AccessibilityRole::Panel, "Alt", UiActionId::Count },
     { "transport.panel", "Transport controls", AccessibilityRole::Panel, "Space / K / Home / L", UiActionId::TransportPlay },
     { "timeline.track_list", "Track list", AccessibilityRole::Panel, "Tab to track actions", UiActionId::ViewTimeline },
     { "timeline.canvas", "Timeline arrangement", AccessibilityRole::Panel, "1", UiActionId::ViewTimeline },
     { "clip.inspector", "Clip inspector", AccessibilityRole::Panel, "Tab to clip actions", UiActionId::TimelineClipSetGain },
+    { "track.inspector", "Track inspector", AccessibilityRole::Panel, "Tab to inspector tabs", UiActionId::InspectorShowTrackTab },
     { "mixer.panel", "Mixer strips and meters", AccessibilityRole::Panel, "2", UiActionId::ViewMixer },
     { "mixer.master_meter", "Master loudness meter", AccessibilityRole::Panel, "Ctrl+Alt+L", UiActionId::MixerReadLoudness },
     { "piano_roll.panel", "Piano roll notes and expression lanes", AccessibilityRole::Panel, "3", UiActionId::ViewPianoRoll }
