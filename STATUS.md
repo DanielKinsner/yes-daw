@@ -1290,12 +1290,48 @@ V6 is certified: exact-head GitHub Actions run `32776482872` is green for full S
 `436a101fad486fe64a98fdd989dca859609de16d` across all nine jobs, first try. V6 is ticked in the
 V-run backlog.
 
-**Now:** V6 done and certified. Stopped at the checkpoint per the house protocol.
+**V7 implementation candidate — inspector: real tabs, honest FX, shared fade chart:** audited
+first: the CLIP/TRACK tabs were decorative (no state, no click handler — carve claim held); the
+gain control was ALREADY a real draggable slider (stale carve claim, logged — the H12 gate
+drags it; the reference's rotary is a cosmetic difference, not a capability gap); the CLIP FX
+card was a hardcoded "None" over a model that does not exist (`engine::Clip` has no FX chain).
+Shipped: the tabs are two REAL buttons (`InspectorShowClipTab`/`InspectorShowTrackTab`, model-
+owned active-tab state, routed through the model dispatch pass-through group — a wiring gap the
+gate itself caught on its first red); the TRACK tab paints the honest track-scoped subset
+(name + N7 colour, fader dB/pan/M/S, the REAL track FX chain via `fxKindName`) while every
+clip overlay control drops whole (the same empty-bounds law the section-fit drop uses); a new
+`"track.inspector"` a11y region (the generic a11y gate validates it automatically). The CLIP FX
+stub is REMOVED per D3 (V2's KEY-cell precedent); its card now charts the clip's FADE CURVE by
+sampling the SAME `clipFadeCurvePoints` law V6's clip body paints with — one law, two displays.
+The automation mini-preview is omitted per the spec's own allowance (the N4 timeline lane owns
+automation editing); Takes stays. D7 judgment pass: the inspector reads like the reference's
+tabbed panel — lit Clip tab, sectioned cards, fade-curve chart in place of the stub.
 
-**Next:** V7 (right inspector: real TRACK tab, draggable gain knob, wired Clip FX list, fade
-curve display reusing V6's `clipFadeCurvePoints`, optional read-only automation preview) → V8
-(toolbar zoom control; CP-C fires), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
-HOW-TO-RUN, then Dan edits a real song).
+`[clip-track-inspector]` (84 assertions): the a11y entry exists and is backed by the tab
+action; clicking TRACK flips the model state, visibly changes the inspector region's pixels,
+and empties every clip-control's bounds — clicking Clip restores them; adding a Compressor
+through the existing mixer verb (rail-selected strip) changes the TRACK tab's painted FX list
+and removing it restores the exact previous pixels; a real gain-slider drag persists a changed
+clip gain; with a persisted 50% fade-in, the chart's topmost painted pixel at three sampled xs
+sits on the shared law's y within 3 px (the chart rect comes from a shared-bounds harness
+accessor, never re-derived). **Red before, proven separately**: a no-op tab dispatch failed
+exactly the tab-state assertion; skipping the curve stroke failed exactly the shape check. One
+flake found and fixed during the full-suite run: the gate's pixel region initially included the
+header's live-meter chrome (wall-clock-dependent paint) — the region now starts below the
+header; and the deliberate H12 child-count pin was bumped 131→133 for the two new tab buttons.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V7 is certified: exact-head GitHub Actions run `32780315601` is green for full SHA
+`e9801a4db3fa5a99f448c7043a98908838a49b5a` across all nine jobs, first try. V7 is ticked in the
+V-run backlog.
+
+**Now:** V7 done and certified. Stopped at the checkpoint per the house protocol.
+
+**Next:** V8 (toolbar: a visible zoom control — the last V-item; **CP-C fires when it lands**:
+full-view three-size screenshots for Dan's verdict), then Phase 3 (dogfood prep —
+`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written

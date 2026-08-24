@@ -262,8 +262,26 @@ commit, per house style.
    found in the clip's painted rect, no curve pixels distinct from a flat fill, and before/after
    selection pixels identical.
 
-7. [ ] **V7 — Right inspector: a real TRACK tab, a gain knob, wired fade curves and Clip FX, and an
-   automation section.** Audited first and found this is shallower than it looks: the CLIP/TRACK
+7. [x] **V7 — Right inspector: a real TRACK tab, a gain knob, wired fade curves and Clip FX, and an
+   automation section.** DONE — feature `e9801a4`, exact-head nine-job CI run `32780315601` green
+   (first try), local 355/355. The CLIP/TRACK tabs are now two REAL buttons
+   (`InspectorShowClipTab`/`InspectorShowTrackTab` UiActionIds; the model owns the active-tab
+   state; a real `"track.inspector"` a11y region backs it). The TRACK tab shows the honest
+   track-scoped subset that exists (name + N7 colour, fader/pan/mute/solo, the REAL track FX
+   chain) while every clip overlay control drops whole. **Deviations logged:** (1) the gain
+   control was ALREADY a real draggable slider (stale carve claim — the reference's rotary is
+   cosmetic; the gate pins drag→persist); (2) the CLIP FX card was a stub over a model that does
+   not exist (`engine::Clip` has no FX chain) — REMOVED per D3 (V2's KEY-cell precedent), with
+   the real track FX chain listed on the TRACK tab instead; (3) the automation mini-preview is
+   omitted per the spec's own allowance — the N4 timeline lane owns automation editing. The
+   freed card charts the clip's FADE CURVE by sampling the SAME `clipFadeCurvePoints` law V6's
+   clip body paints with. `[clip-track-inspector]` (84 assertions): a11y entry; tab switch shows
+   distinct pixels and drops clip controls, switching back restores them; FX add/remove through
+   the existing mixer verbs changes the TRACK tab's painted list and restores exact pixels; a
+   gain drag persists a new value; the painted chart curve sits on the shared law's y at three
+   sampled xs within 3 px. **Red before, proven separately**: a no-op tab dispatch failed
+   exactly the tab-state assertion; skipping the curve stroke failed exactly the shape check.
+   Original spec: Audited first and found this is shallower than it looks: the CLIP/TRACK
    tabs are **decorative only** — grepped for any `inspectorActiveTab` state or tab-click handler:
    zero hits; the panel shows clip data regardless of which tab is "selected," and
    `UiAccessibility.h` only inventories `"clip.inspector"`, no `"track.inspector"` entry at all.
