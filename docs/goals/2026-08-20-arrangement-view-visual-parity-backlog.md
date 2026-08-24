@@ -222,7 +222,23 @@ commit, per house style.
    controls feel like the same instrument. Expected to fail before on both counts (today's meter law
    has no stereo split; today's `volumeSliderBounds` law is horizontal).
 
-6. [ ] **V6 — Clips: name label, fade curves, and real selection state.** Audited first and found
+6. [x] **V6 — Clips: name label, fade curves, and real selection state.** DONE — feature
+   `436a101`, exact-head nine-job CI run `32776482872` green (first try), local 355/355.
+   **Two deviations from the carve, logged:** (1) the clip NAME is ALREADY painted on the body —
+   that landed after this carve's audit (`TimelineCanvas.h` paint loop draws `clip->name` in
+   kText/topLeft), so the gate pins it as coverage rather than new code; (2) a selection law DID
+   exist by ship time — a colour swap to accent blue — but it was pixel-invisible on an
+   accent-blue track (the exact false-positive risk the N7 gate's own comment works around), so
+   V6 REPLACED it: a selected clip keeps its N7 track colour and paints an unmistakable ring.
+   Fades shipped as specified: the wedge samples the engine's ONE envelope law
+   (`evaluateClipFadeEnvelopeGain`) via the shared `clipFadeCurvePoints` helper V7 will reuse —
+   never a re-derived formula. `[clip-identity]` (44 assertions): name text paints in the lane
+   region; on an accent-blue track, selecting visibly changes the clip's pixels and deselecting
+   restores them EXACTLY; a persisted 40% fade-in paints a wedge at the clip start while the
+   mid-body stays pixel-identical. **Red before, proven separately**: under the retired law the
+   selection assert failed (blue-on-blue changed zero pixels) and the fade assert failed (a
+   persisted fade painted nothing).
+   Original spec: Audited first and found
    the LARGEST hard gap in the whole carve: waveform rendering, MIDI note-preview, and N7 colour
    tinting are all real (`TimelineCanvas.h:340-568`), but (a) **no clip name is ever painted on the
    clip body** — the name exists on the `Clip` struct and reaches the inspector

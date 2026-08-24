@@ -1259,10 +1259,42 @@ V5 is certified: exact-head GitHub Actions run `32766547386` is green for full S
 `097bdff01716417a57ce53e3d8fa7009d3288992` across all nine jobs, first try. V5 is ticked in the
 V-run backlog.
 
-**Now:** V5 done and certified. Stopped at the checkpoint per the house protocol.
+**V6 implementation candidate — clip fades + selection ring (name was already real):** audited
+first and logged TWO carve deviations: (1) the clip NAME is already painted on the clip body —
+that landed after the carve's audit, so the gate pins it as coverage, not new code; (2) a
+selection law existed by ship time (swap the clip colour to accent blue) but was pixel-invisible
+on an accent-blue track — the exact false-positive risk the N7 gate's own comment works around.
+Shipped: fades paint as the standard DAW wedge — a shaded region over a curve that SAMPLES the
+engine's ONE envelope law (`engine::evaluateClipFadeEnvelopeGain`, equal power) at clip-local
+ticks through the new shared `clipFadeCurvePoints` helper (public, so V7's inspector fade
+display reuses the identical shape); and selection is now a RING — the clip keeps its N7 track
+colour while selected (colour identity survives selection, like the reference) with an
+unmistakable text-colour ring on top, honest on ANY track colour. MIDI clips share the ring law
+with honestly-zero fade fields (no fade model exists for them). D7 judgment pass: the fixture's
+selected teal clip shows the ring while staying teal.
 
-**Next:** V6 (clips: name label, fade curves, real selection state — the largest hole in the
-carve) → V7–V8 (CP-C fires at V8), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
+`[clip-identity]` (44 assertions): the clip name paints in the lane region (exact text-colour
+pixels, toolbar/ruler text excluded by the region); on an accent-blue track (set through the
+shipped N7 swatch so the claim is colour-proof), selecting via a real click visibly changes the
+clip's pixels and deselecting restores them EXACTLY (pixel-for-pixel); a persisted 40% fade-in
+(set through the real inspector slider) paints a wedge at the clip's start while the mid-body
+region stays pixel-identical — the wedge sits where the persisted value says. **Red before,
+proven separately**: under the retired law the selection assert failed (selecting a blue clip
+on a blue track changed ZERO pixels) and the fade assert failed (a persisted fade painted
+nothing).
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V6 is certified: exact-head GitHub Actions run `32776482872` is green for full SHA
+`436a101fad486fe64a98fdd989dca859609de16d` across all nine jobs, first try. V6 is ticked in the
+V-run backlog.
+
+**Now:** V6 done and certified. Stopped at the checkpoint per the house protocol.
+
+**Next:** V7 (right inspector: real TRACK tab, draggable gain knob, wired Clip FX list, fade
+curve display reusing V6's `clipFadeCurvePoints`, optional read-only automation preview) → V8
+(toolbar zoom control; CP-C fires), then Phase 3 (dogfood prep — `tools/run-yesdaw.ps1` +
 HOW-TO-RUN, then Dan edits a real song).
 
 **Long-horizon plan adopted (2026-08-20):**
