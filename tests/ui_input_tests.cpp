@@ -3823,10 +3823,9 @@ TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip t
 
     // VOL: clicking the middle of the mini slider sets the track gain to ~0.5, persisted.
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
     mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.linearGain > 0.4f);
@@ -4022,12 +4021,13 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
     row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
+    // V5 re-pin: the mini VOL is vertical now — the gain-lowering drag runs toward the BOTTOM
+    // of the column (the same "one drag, one undo step" claim, on the new axis).
     dragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
-                { level.getX() + 2, level.getCentreY() });
+                { level.getCentreX(), level.getBottom() - 2 });
     const float railGain = readProjectSnapshot (bundlePath).tracks.front().strip.linearGain;
     REQUIRE (railGain != 1.0f);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -6408,6 +6408,86 @@ TEST_CASE ("V4 the ruler labels real tempo-map bars, not elapsed seconds",
     std::error_code ecRuler;
     std::filesystem::remove_all (bundleA, ecRuler);
     std::filesystem::remove_all (bundleB, ecRuler);
+}
+
+TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical fader",
+           "[ui][input][shell][track-rail-meters]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-rail-meters");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+
+    // The mini VOL fader is VERTICAL — the same orientation law as the mixer strip fader. The
+    // rect comes from the shipped shared bounds law (paint and hit-test read the same function),
+    // never re-derived here.
+    const juce::Rectangle<int> faderShell = yesdaw::ui::mainComponentRailVolumeSliderBounds (*shell, 0);
+    REQUIRE_FALSE (faderShell.isEmpty());
+    REQUIRE (faderShell.getHeight() > faderShell.getWidth());
+
+    // y controls gain: the top of the column is loud, the bottom silent, and the edit persists.
+    const juce::Rectangle<int> fader =
+        faderShell.translated (-rail->getX(), -rail->getY());
+    mouseDownAt (*rail, { fader.getCentreX(), fader.getY() + 1 });
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain > 0.9f);
+    mouseDownAt (*rail, { fader.getCentreX(), fader.getBottom() - 1 });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain < 0.1f);
+    mouseDownAt (*rail, fader.getCentre());
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain > 0.4f);
+    REQUIRE (project.tracks.front().strip.linearGain < 0.6f);
+
+    // Back to unity so the meter half of this gate hears the clip at full level.
+    const juce::ModifierKeys altClick (
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier);
+    mouseDownAt (*rail, fader.getCentre(), altClick);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.linearGain == 1.0f);
+
+    // Hard-pan the track LEFT through the shipped rail knob. The track MeterNode taps POST-pan,
+    // so the two rail columns must diverge: a real left peak, a silent right.
+    juce::Rectangle<int> row = rail->getLocalBounds();
+    row.removeFromTop (L::trackListHeaderHeight);
+    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row.removeFromBottom (L::trackListSeparatorHeight);
+    const juce::Rectangle<int> panKnob =
+        row.withRight (row.getRight() - L::trackListPanRightInset)
+            .removeFromRight (L::trackListPanDiameter)
+            .withY (row.getY() + L::trackListPanTopInset)
+            .withHeight (L::trackListPanDiameter);
+    mouseDownAt (*rail, { panKnob.getX() + 1, panKnob.getCentreY() });
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.front().strip.pan < -0.8f);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    // The MeterNode publishes per-Block peaks, so the tick must land while the playhead is still
+    // INSIDE the short fixture clip (~0.085 s) — render well under its length before sampling.
+    const std::vector<float> audible = renderMainComponentPlayback (*shell, 2048, 128);
+    REQUIRE (peakAbs (std::span<const float> (audible.data(), audible.size())) > 0.02f);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+
+    const auto [leftPeak, rightPeak] = yesdaw::ui::mainComponentRailMeterChannelPeaks (*shell, 0);
+    REQUIRE (leftPeak > 0.02f);
+    REQUIRE (rightPeak < leftPeak * 0.25f);
+    REQUIRE (leftPeak != rightPeak);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][input][shell][zoom]")
@@ -11737,10 +11817,9 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     mouseDownAt (*rail, { rail->getWidth() / 2, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
 
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
     mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
     const juce::Rectangle<int> pan =
         row.withRight (row.getRight() - L::trackListPanRightInset)
@@ -12238,10 +12317,9 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
     mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.linearGain < 0.6f);
@@ -12338,20 +12416,21 @@ TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten ti
     row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
     mouseDownAt (*rail, { level.getCentreX(), level.getCentreY() });
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     const double railVolAnchor = static_cast<double> (project.tracks.front().strip.linearGain);
     REQUIRE (railVolAnchor < 0.6);
 
+    // V5 re-pin: the mini VOL is vertical — the fine axis is y, upward = louder, proportional to
+    // the column's HEIGHT (the same ten-times-finer law, on the control's own coarse axis).
     dragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
-                { level.getCentreX() + 10, level.getCentreY() }, shiftDrag);
+                { level.getCentreX(), level.getCentreY() - 10 }, shiftDrag);
     project = readProjectSnapshot (bundlePath);
     const double railVolExpected =
-        railVolAnchor + (10.0 / level.getWidth()) * 1.0 * fine;
+        railVolAnchor + (10.0 / level.getHeight()) * 1.0 * fine;
     REQUIRE (project.tracks.front().strip.linearGain
              == Catch::Approx (railVolExpected).epsilon (1e-6));
 
@@ -12500,12 +12579,13 @@ TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf a
     row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
-        row.withRight (row.getRight() - L::trackListLevelRightInset)
-            .removeFromRight (L::trackListLevelWidth)
-            .withBottom (row.getBottom() - L::trackListLevelBottomInset)
-            .withHeight (L::trackListLevelHeight);
+        row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
+            .removeFromRight (L::trackListLevelColumnWidth)
+            .reduced (0, L::trackListLevelColumnVerticalInset);
+    // V5 re-pin: the readout claim is axis-neutral; the gesture just runs on the fader's new
+    // vertical axis.
     beginDragFromTo (*rail, { level.getCentreX(), level.getCentreY() },
-                     { level.getCentreX() + 4, level.getCentreY() });
+                     { level.getCentreX(), level.getCentreY() - 4 });
     REQUIRE (readout->isVisible());
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     const float railGain = project.tracks.front().strip.linearGain;
@@ -12513,7 +12593,7 @@ TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf a
     REQUIRE (readout->getText()
              == juce::String (20.0 * std::log10 (static_cast<double> (railGain)), 1) + " dB");
     releaseDragAt (*rail, { level.getCentreX(), level.getCentreY() },
-                   { level.getCentreX() + 4, level.getCentreY() });
+                   { level.getCentreX(), level.getCentreY() - 4 });
     REQUIRE_FALSE (readout->isVisible());
 
     std::error_code ec;

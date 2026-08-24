@@ -2438,14 +2438,17 @@ public:
                      .withHeight (yesdaw::ui::UiTheme::Layout::trackListPanDiameter);
     }
 
+    // V5: a VERTICAL rect — y controls gain (top = loud), the same orientation law as the mixer
+    // strip fader, so the two controls feel like one instrument.
     [[nodiscard]] juce::Rectangle<int> volumeSliderBounds (int row) const
     {
         auto bounds = rowBounds (row);
         bounds.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight);
-        return bounds.withRight (bounds.getRight() - yesdaw::ui::UiTheme::Layout::trackListLevelRightInset)
-                     .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListLevelWidth)
-                     .withBottom (bounds.getBottom() - yesdaw::ui::UiTheme::Layout::trackListLevelBottomInset)
-                     .withHeight (yesdaw::ui::UiTheme::Layout::trackListLevelHeight);
+        return bounds.withRight (bounds.getRight()
+                                 - yesdaw::ui::UiTheme::Layout::trackListLevelColumnRightInset)
+                     .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListLevelColumnWidth)
+                     .reduced (yesdaw::ui::UiTheme::Space::none,
+                               yesdaw::ui::UiTheme::Layout::trackListLevelColumnVerticalInset);
     }
 
     [[nodiscard]] juce::Rectangle<int> muteCellBounds (int row) const { return buttonCellBounds (row, 0); }
@@ -2492,8 +2495,10 @@ private:
     {
         if (panKnobBounds (row).contains (position))
             return MiniZone::Pan;
-        if (volumeSliderBounds (row).expanded (yesdaw::ui::UiTheme::Space::none,
-                                               yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset)
+        // V5: the fader is vertical, so the hit slop widens it sideways (the vertical extent is
+        // already the full column).
+        if (volumeSliderBounds (row).expanded (yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX,
+                                               yesdaw::ui::UiTheme::Space::none)
                 .contains (position))
             return MiniZone::Volume;
         if (muteCellBounds (row).contains (position))
@@ -2527,11 +2532,14 @@ private:
             return;
 
         const auto slider = volumeSliderBounds (row);
-        if (slider.getWidth() <= 0)
+        if (slider.getHeight() <= 0)
             return;
 
-        const float normalized = static_cast<float> (position.x - slider.getX())
-                               / static_cast<float> (slider.getWidth());
+        // V5: vertical law — the top of the column is unity, the bottom is silence, exactly the
+        // mixer fader's orientation.
+        const float normalized = 1.0f
+                               - static_cast<float> (position.y - slider.getY())
+                                     / static_cast<float> (slider.getHeight());
         onVolumeEdited (row, juce::jlimit (0.0f, 1.0f, normalized));
     }
 
@@ -2551,6 +2559,7 @@ private:
         fineDragActive = true;
         fineDragValue = (*provider) (dragRow);
         fineDragLastX = event.getPosition().x;
+        fineDragLastY = event.getPosition().y;
         return true;
     }
 
@@ -2558,13 +2567,27 @@ private:
     {
         const auto bounds = dragZone == MiniZone::Pan ? panKnobBounds (dragRow)
                                                       : volumeSliderBounds (dragRow);
-        if (bounds.getWidth() <= 0)
-            return;
-
-        const int x = event.getPosition().x;
-        const double proportionDelta = static_cast<double> (x - fineDragLastX)
-                                     / static_cast<double> (bounds.getWidth());
-        fineDragLastX = x;
+        // V5: the fine axis follows each control's own coarse axis — pan stays horizontal, the
+        // now-vertical VOL fader moves on y (upward = louder, matching applyVolume's law).
+        double proportionDelta = 0.0;
+        if (dragZone == MiniZone::Pan)
+        {
+            if (bounds.getWidth() <= 0)
+                return;
+            const int x = event.getPosition().x;
+            proportionDelta = static_cast<double> (x - fineDragLastX)
+                            / static_cast<double> (bounds.getWidth());
+            fineDragLastX = x;
+        }
+        else
+        {
+            if (bounds.getHeight() <= 0)
+                return;
+            const int y = event.getPosition().y;
+            proportionDelta = static_cast<double> (fineDragLastY - y)
+                            / static_cast<double> (bounds.getHeight());
+            fineDragLastY = y;
+        }
 
         const bool isPan = dragZone == MiniZone::Pan;
         const double span = isPan ? 2.0 : 1.0;   // pan covers [-1, 1]; VOL covers [0, 1]
@@ -2585,6 +2608,7 @@ private:
     bool fineDragActive = false;
     float fineDragValue = 0.0f;
     int fineDragLastX = 0;
+    int fineDragLastY = 0;   // V5: the vertical VOL fader's fine axis
 
     // N6: row-boundary height-resize gesture state — kept separate from dragRow/dragZone (the
     // mini-control drags above) since a boundary drag can start even when the pointer isn't over
@@ -4391,6 +4415,25 @@ public:
         return yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport);
     }
 
+    // V5: the rail's live L/R meter peaks for one row — the SAME hold-state values the paint
+    // passes to drawMeterWithHold, so a gate can prove the two channels really diverge.
+    [[nodiscard]] std::pair<float, float> harnessRailMeterChannelPeaks (int row) const
+    {
+        if (row < 0 || row >= static_cast<int> (trackMeterHoldLR.size()))
+            return { 0.0f, 0.0f };
+
+        const auto& lr = trackMeterHoldLR[static_cast<std::size_t> (row)];
+        return { lr[0].livePeak, lr[1].livePeak };
+    }
+
+    // V5: the rail VOL fader's rect in SHELL coordinates — the SAME law paint and the click/drag
+    // hit-test share, so a gate can prove the control is genuinely vertical.
+    [[nodiscard]] juce::Rectangle<int> harnessRailVolumeSliderBounds (int row) const
+    {
+        return trackListInput.volumeSliderBounds (row)
+            .translated (trackListInput.getX(), trackListInput.getY());
+    }
+
     // V4: the inverse pixel→seconds mapping of the SAME viewport the ruler paints with, so a
     // gate can cross-check a label's x against the tempo map without duplicating the paint math.
     [[nodiscard]] double harnessRulerSecondsAtX (int x)
@@ -6158,15 +6201,28 @@ private:
         const bool playing = appModel.context().isPlaying;
         const auto& tracks = appModel.project().tracks;
         trackMeterHold.resize (tracks.size());
+        trackMeterHoldLR.resize (tracks.size());
         for (std::size_t i = 0; i < tracks.size(); ++i)
         {
             float peak = playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f;
+            // V5: the rail meters L and R independently from the MeterNode's per-channel peaks;
+            // the aggregate hold stays for the mixer strip's single-column meter.
+            float peakL = playing ? appModel.trackMeterPeakChannel (tracks[i].id, 0) : 0.0f;
+            float peakR = playing ? appModel.trackMeterPeakChannel (tracks[i].id, 1) : 0.0f;
             // E30: the ARMED track's rail meter also shows the live input peak, so signal is
             // visible before recording — playing or stopped. M11: each armed track shows its
-            // OWN picked input, so a whole armed kit meters honestly.
+            // OWN picked input, so a whole armed kit meters honestly. V5: the picked input is a
+            // single pre-track signal, so it honestly lights both channels.
             if (appModel.isRecordingTrackIndexArmed (i))
-                peak = std::max (peak, appModel.inputMeterPeakForTrackIndex (i));
+            {
+                const float inputPeak = appModel.inputMeterPeakForTrackIndex (i);
+                peak = std::max (peak, inputPeak);
+                peakL = std::max (peakL, inputPeak);
+                peakR = std::max (peakR, inputPeak);
+            }
             advanceMeterHold (trackMeterHold[i], peak);
+            advanceMeterHold (trackMeterHoldLR[i][0], peakL);
+            advanceMeterHold (trackMeterHoldLR[i][1], peakR);
         }
 
         // E22: bus meters live on exactly the same B32 law.
@@ -6186,6 +6242,14 @@ private:
         state.clipLatched = false;
         state.heldPeak = state.livePeak;
         state.holdTicksRemaining = 0;
+        // V5: one click on the meter zone clears the L/R columns with the aggregate.
+        if (trackIndex < static_cast<int> (trackMeterHoldLR.size()))
+            for (MeterHoldState& channel : trackMeterHoldLR[static_cast<std::size_t> (trackIndex)])
+            {
+                channel.clipLatched = false;
+                channel.heldPeak = channel.livePeak;
+                channel.holdTicksRemaining = 0;
+            }
         repaint();
     }
 
@@ -8872,22 +8936,26 @@ private:
                         juce::Justification::centred,
                         false);
 
+            // V5: the mini VOL is a VERTICAL fader (top = loud), the same rect law
+            // volumeSliderBounds hit-tests and the same orientation the mixer strip fader uses.
             auto level = row.withRight (
-                                row.getRight() - yesdaw::ui::UiTheme::Layout::trackListLevelRightInset)
-                             .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListLevelWidth)
-                             .withBottom (row.getBottom()
-                                         - yesdaw::ui::UiTheme::Layout::trackListLevelBottomInset)
-                             .withHeight (yesdaw::ui::UiTheme::Layout::trackListLevelHeight);
+                                row.getRight()
+                                - yesdaw::ui::UiTheme::Layout::trackListLevelColumnRightInset)
+                             .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListLevelColumnWidth)
+                             .reduced (yesdaw::ui::UiTheme::Space::none,
+                                       yesdaw::ui::UiTheme::Layout::trackListLevelColumnVerticalInset);
             g.setColour (yesdaw::ui::UiTheme::Color::meterTrack().withAlpha (
                 yesdaw::ui::UiTheme::Tone::trackSliderRailAlpha));
             g.fillRoundedRectangle (level.toFloat(), yesdaw::ui::UiTheme::Radius::pill);
-            const int liveWidth = juce::roundToInt (
-                static_cast<float> (level.getWidth()) * projectTrack.strip.linearGain);
+            const int liveHeight = juce::roundToInt (
+                static_cast<float> (level.getHeight()) * projectTrack.strip.linearGain);
             g.setColour (trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackSliderFillAlpha));
-            g.fillRoundedRectangle (level.withWidth (liveWidth).toFloat(), yesdaw::ui::UiTheme::Radius::pill);
-            auto levelThumb = level.withWidth (yesdaw::ui::UiTheme::Layout::trackListLevelThumbWidth)
-                                  .withX (level.getX() + liveWidth
-                                          - yesdaw::ui::UiTheme::Layout::trackListLevelThumbWidth / 2);
+            g.fillRoundedRectangle (
+                level.withTop (level.getBottom() - liveHeight).toFloat(),
+                yesdaw::ui::UiTheme::Radius::pill);
+            auto levelThumb = level.withHeight (yesdaw::ui::UiTheme::Layout::trackListLevelThumbHeight)
+                                  .withY (level.getBottom() - liveHeight
+                                          - yesdaw::ui::UiTheme::Layout::trackListLevelThumbHeight / 2);
             g.setColour (yesdaw::ui::UiTheme::Color::faderThumbTop());
             g.fillRoundedRectangle (levelThumb.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
 
@@ -8938,15 +9006,26 @@ private:
                 g.drawText (label, cell, juce::Justification::centred, false);
             }
 
-            // Live meter (usable-DAW P2 + B32): the rail meter renders the live MeterNode peak with
-            // the shared per-track hold/clip-latch state; a click on it clears the latch.
+            // Live meter (usable-DAW P2 + B32 + V5): the rail meter renders INDEPENDENT L/R
+            // columns from the MeterNode's per-channel peaks (the node taps post-pan, so a
+            // hard-panned track honestly meters one-sided); each column runs the shared
+            // hold/clip-latch law and a click on the zone clears both.
             auto meter = row.withRight (row.getRight() - yesdaw::ui::UiTheme::Layout::trackListMeterRightInset)
                              .removeFromRight (yesdaw::ui::UiTheme::Layout::trackListMeterWidth)
                              .reduced (yesdaw::ui::UiTheme::Layout::trackListMeterHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::trackListMeterVerticalInset);
-            const MeterHoldState railHold = i < trackMeterHold.size() ? trackMeterHold[i]
-                                                                      : MeterHoldState {};
-            drawMeterWithHold (g, meter, railHold.livePeak, railHold.heldPeak, railHold.clipLatched);
+            const std::array<MeterHoldState, 2> railHoldLR =
+                i < trackMeterHoldLR.size() ? trackMeterHoldLR[i]
+                                            : std::array<MeterHoldState, 2> {};
+            const int channelWidth =
+                (meter.getWidth() - yesdaw::ui::UiTheme::Layout::trackListMeterChannelGap) / 2;
+            const auto meterLeft = meter.withWidth (channelWidth);
+            const auto meterRight = meter.withTrimmedLeft (
+                meter.getWidth() - channelWidth);
+            drawMeterWithHold (g, meterLeft, railHoldLR[0].livePeak, railHoldLR[0].heldPeak,
+                               railHoldLR[0].clipLatched);
+            drawMeterWithHold (g, meterRight, railHoldLR[1].livePeak, railHoldLR[1].heldPeak,
+                               railHoldLR[1].clipLatched);
         }
     }
 
@@ -10599,6 +10678,7 @@ private:
     FineDragSlider mixerPan;
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
+    std::vector<std::array<MeterHoldState, 2>> trackMeterHoldLR;   // V5: rail L/R columns
     std::vector<MeterHoldState> busMeterHold;     // by Bus index; same tick law (E22)
     juce::String lastPushedWindowTitle;           // dirty-title push dedupe (B38)
     juce::TextButton mixerMetersReadout;
@@ -10984,6 +11064,22 @@ double mainComponentRulerSecondsAtX (juce::Component& component, int x)
         return mainComponent->harnessRulerSecondsAtX (x);
 
     return 0.0;
+}
+
+std::pair<float, float> mainComponentRailMeterChannelPeaks (const juce::Component& component, int row)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessRailMeterChannelPeaks (row);
+
+    return { 0.0f, 0.0f };
+}
+
+juce::Rectangle<int> mainComponentRailVolumeSliderBounds (const juce::Component& component, int row)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessRailVolumeSliderBounds (row);
+
+    return {};
 }
 
 bool serviceMainComponentUiTimer (juce::Component& component)

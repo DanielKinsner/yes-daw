@@ -2678,6 +2678,12 @@ public:
         return playback_ != nullptr ? playback_->trackMeterPeak (trackId) : 0.0f;
     }
 
+    // V5: the per-channel twin for the rail's stereo L/R meter (channel 0 = left, 1 = right).
+    [[nodiscard]] float trackMeterPeakChannel (engine::EntityId trackId, int channel) const noexcept
+    {
+        return playback_ != nullptr ? playback_->trackMeterPeakChannel (trackId, channel) : 0.0f;
+    }
+
     // E22: the latest per-bus meter peak (0 for unrouted buses, which project no meter node).
     [[nodiscard]] float busMeterPeak (engine::EntityId busId) const noexcept
     {

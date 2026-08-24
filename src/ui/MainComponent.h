@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace yesdaw::ui {
@@ -192,6 +193,13 @@ struct MainComponentSnapshot
 // paint math.
 [[nodiscard]] std::vector<RulerBarLabel> mainComponentRulerBarLabels (juce::Component& component);
 [[nodiscard]] double mainComponentRulerSecondsAtX (juce::Component& component, int x);
+
+// V5: the rail's live L/R meter peaks for one row (the SAME hold-state values the paint reads),
+// and the rail VOL fader's shell-coordinate rect (the SAME law paint and hit-test share).
+[[nodiscard]] std::pair<float, float> mainComponentRailMeterChannelPeaks (
+    const juce::Component& component, int row);
+[[nodiscard]] juce::Rectangle<int> mainComponentRailVolumeSliderBounds (
+    const juce::Component& component, int row);
 
 [[nodiscard]] juce::Component* findMainComponentChildForAction (juce::Component& component, UiActionId action);
 [[nodiscard]] const juce::Component* findMainComponentChildForAction (const juce::Component& component, UiActionId action);

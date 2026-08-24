@@ -669,15 +669,20 @@ struct UiTheme
         static constexpr int trackListPanTopInset = 8;
         static constexpr int trackListPanDiameter = 24;
         static constexpr int trackListPanIndicatorInset = 4;
-        static constexpr int trackListLevelRightInset = 40;
-        static constexpr int trackListLevelBottomInset = 10;
-        static constexpr int trackListLevelWidth = 58;
-        static constexpr int trackListLevelHeight = 5;
-        static constexpr int trackListLevelThumbWidth = 7;
+        // V5: the rail's mini VOL is a VERTICAL fader (y-axis controls gain, top = loud) sharing
+        // the mixer strip fader's orientation law — the retired horizontal-bar tokens are gone.
+        // The column sits between the pan knob (right inset 44) and the meter (right inset 12).
+        static constexpr int trackListLevelColumnRightInset = 30;
+        static constexpr int trackListLevelColumnWidth = 10;
+        static constexpr int trackListLevelColumnVerticalInset = 10;
+        static constexpr int trackListLevelThumbHeight = 7;
+        static constexpr int trackListLevelHitSlopX = 6;
         static constexpr int trackListMeterRightInset = 12;
         static constexpr int trackListMeterWidth = 14;
         static constexpr int trackListMeterHorizontalInset = 0;
         static constexpr int trackListMeterVerticalInset = 10;
+        // V5: the rail meter splits into independent L/R columns separated by this gap.
+        static constexpr int trackListMeterChannelGap = 2;
 
         static constexpr int meterFillInset = 2;
         static constexpr int meterSegmentSize = 3;

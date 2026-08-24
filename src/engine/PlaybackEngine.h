@@ -124,6 +124,18 @@ public:
         return 0.0f;
     }
 
+    // V5: the per-channel twin — the rail's stereo L/R meter reads channel 0/1 through the same
+    // single acquire-load contract (0 for unknown Tracks, out-of-range channels, or a
+    // transport-only engine).
+    [[nodiscard]] float trackMeterPeakChannel (EntityId trackId, int channel) const noexcept
+    {
+        for (const auto& [id, meter] : trackMeters_)
+            if (id == trackId)
+                return meter->peak (channel);
+
+        return 0.0f;
+    }
+
     // E22: the per-bus twin — 0 for unknown or unrouted buses.
     [[nodiscard]] float busMeterPeak (EntityId busId) const noexcept
     {
