@@ -1027,8 +1027,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // E19 master fader + the E20 automation target chooser + the E29 input device chooser
     // and recorded-channel pick + the E33 take chooser and delete button + the M3 track output
     // chooser + the N5 automation mode chooser + the V3 mixer dock toggle + the V7 inspector
-    // CLIP/TRACK tab buttons — bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 133u));
+    // CLIP/TRACK tab buttons + the V8 zoom cluster (two steppers and the readout label) —
+    // bumped deliberately.
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 136u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -6735,6 +6736,74 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
         REQUIRE (topmost >= 0);
         REQUIRE (std::abs (topmost - juce::roundToInt (expected[sample].y)) <= 3);
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("V8 the toolbar shows a live zoom control wired to the one shared zoom law",
+           "[ui][input][shell][toolbar-zoom]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("toolbar-zoom");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // The cluster paints inside the timeline's toolbar band: real buttons for the EXISTING zoom
+    // actions plus a readout label.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Button& zoomIn = requireButtonForAction (*shell, UiActionId::TimelineZoomIn);
+    juce::Button& zoomOut = requireButtonForAction (*shell, UiActionId::TimelineZoomOut);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    const juce::Rectangle<int> toolbar =
+        geometry.toolbarArea.translated (timeline.getX(), timeline.getY());
+    REQUIRE (toolbar.contains (zoomIn.getBounds()));
+    REQUIRE (toolbar.contains (zoomOut.getBounds()));
+
+    auto* readout = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "timeline.zoom.readout"));
+    REQUIRE (readout != nullptr);
+    REQUIRE (readout->isVisible());
+    REQUIRE (toolbar.contains (readout->getBounds()));
+    REQUIRE (readout->getText() == "1.0x");
+
+    // Ctrl+wheel zoom moves the readout — it reads the SAME shared factor, not a second zoom
+    // concept.
+    const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    juce::MouseEvent ctrlWheel = makeMouseEvent (timeline, centre, centre, false, 1,
+                                                 juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    timeline.mouseWheelMove (ctrlWheel, wheelUp);
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor > 1.0);
+    REQUIRE (readout->getText() == juce::String (snapshot.timelineZoomFactor, 1) + "x");
+
+    // The shipped buttons drive the same playhead-anchored action path the keymap uses.
+    const double beforeButton = snapshot.timelineZoomFactor;
+    clickButton (zoomIn);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor > beforeButton);
+    REQUIRE (readout->getText() == juce::String (snapshot.timelineZoomFactor, 1) + "x");
+
+    const double beforeZoomOut = snapshot.timelineZoomFactor;
+    clickButton (zoomOut);
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor < beforeZoomOut);
+    REQUIRE (readout->getText() == juce::String (snapshot.timelineZoomFactor, 1) + "x");
+
+    // Ctrl+0 (the fit verb assigns the factor directly, not through the anchor law) also lands
+    // on the readout.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::ctrlModifier, 0)));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.timelineZoomFactor == 1.0);
+    REQUIRE (readout->getText() == "1.0x");
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

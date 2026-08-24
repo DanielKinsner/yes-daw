@@ -3621,6 +3621,7 @@ public:
         configureAutomationLaneControls();
         configureMixerDockToggle();
         configureInspectorTabs();
+        configureTimelineZoomControls();
 
         // Automation lane canvas (usable-DAW P1): breakpoints drawn and edited against the SAME
         // timeline viewport math as the arrangement; targets the selected track's fader lane.
@@ -4845,6 +4846,41 @@ private:
         };
         configureTab (inspectorClipTab, yesdaw::ui::UiActionId::InspectorShowClipTab, "Clip");
         configureTab (inspectorTrackTab, yesdaw::ui::UiActionId::InspectorShowTrackTab, "Track");
+    }
+
+    // V8: a visible toolbar zoom control. The buttons dispatch the EXISTING zoom actions through
+    // handleAction (the same playhead-anchored law the menu/keyboard path runs), and the readout
+    // shows the one shared timelineZoomFactor every zoom gesture mutates — never a second zoom
+    // concept.
+    void configureTimelineZoomControls()
+    {
+        const auto configureStep = [this] (juce::TextButton& button,
+                                           yesdaw::ui::UiActionId action,
+                                           const char* stepText)
+        {
+            configureActionComponent (button, action, stepText);
+            button.setButtonText (stepText);
+            button.setColour (juce::TextButton::buttonColourId,
+                              yesdaw::ui::UiTheme::Color::buttonSurface());
+            button.setColour (juce::TextButton::textColourOffId, kText);
+            button.setColour (juce::TextButton::textColourOnId, kText);
+            button.onClick = [this, action] {
+                handleAction (action);
+                refreshActionState();
+                repaint();
+            };
+            addAndMakeVisible (button);
+        };
+        configureStep (timelineZoomOutButton, yesdaw::ui::UiActionId::TimelineZoomOut, "-");
+        configureStep (timelineZoomInButton, yesdaw::ui::UiActionId::TimelineZoomIn, "+");
+
+        timelineZoomReadout.setComponentID ("timeline.zoom.readout");
+        timelineZoomReadout.setName ("Timeline zoom factor");
+        timelineZoomReadout.setTooltip ("Current timeline zoom factor (1.0x fits the project)");
+        timelineZoomReadout.setJustificationType (juce::Justification::centred);
+        timelineZoomReadout.setColour (juce::Label::textColourId, kMutedText);
+        timelineZoomReadout.setInterceptsMouseClicks (false, false);
+        addAndMakeVisible (timelineZoomReadout);
     }
 
     void configureAutomationLaneControls()
@@ -6885,6 +6921,10 @@ private:
         using L = yesdaw::ui::UiTheme::Layout;
         const auto timeline = timelineBounds();
         automationLaneToggle.setBounds (L::automationLaneToggleBounds (timeline));
+        // V8: the zoom cluster shares the automation toggle's toolbar row.
+        timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
+        timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
+        timelineZoomInButton.setBounds (L::timelineZoomInButtonBounds (timeline));
 
         // E26: the lane lives in the geometry law's reserved band — a header row (lane label
         // left, breakpoint controls right) above a FULL-WIDTH canvas, so the curve is never
@@ -7007,6 +7047,15 @@ private:
         repaint();
     }
 
+    // V8: the ONE place the toolbar readout learns the current factor — called from every path
+    // that mutates timelineZoomFactor, so the visible number can never go stale against the
+    // gestures (wheel, zoom tool, actions, and the fit verbs all funnel here or call it).
+    void refreshTimelineZoomReadout()
+    {
+        timelineZoomReadout.setText (juce::String (timelineZoomFactor, 1) + "x",
+                                     juce::dontSendNotification);
+    }
+
     void zoomTimelineAtAnchor (double anchorSeconds, double factor)
     {
         const double previousZoom = timelineZoomFactor;
@@ -7020,6 +7069,7 @@ private:
         }
         if (timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMin)
             timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+        refreshTimelineZoomReadout();
     }
 
     [[nodiscard]] double timelinePixelsPerSecondFor (double totalSeconds) const noexcept
@@ -7511,6 +7561,7 @@ private:
                 {
                     timelineZoomFactor = yesdaw::ui::UiTheme::Layout::timelineZoomMin;
                     timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
+                    refreshTimelineZoomReadout();
                 }
                 return;
 
@@ -7531,6 +7582,7 @@ private:
                             yesdaw::ui::UiTheme::Layout::timelineZoomMin,
                             yesdaw::ui::UiTheme::Layout::timelineZoomMax);
                         timelineScrollSeconds = static_cast<double> (loopStart) / sampleRateHz;
+                        refreshTimelineZoomReadout();
                     }
                 }
                 return;
@@ -7953,6 +8005,12 @@ private:
         const bool timelineVisible = appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline;
         automationLaneToggle.setVisible (timelineVisible);
         automationLaneToggle.setEnabled (state.enabled);
+        // V8: the zoom cluster lives and dies with the same toolbar row; the readout re-reads
+        // the ONE shared zoom factor every gesture mutates.
+        timelineZoomOutButton.setVisible (timelineVisible);
+        timelineZoomInButton.setVisible (timelineVisible);
+        timelineZoomReadout.setVisible (timelineVisible);
+        refreshTimelineZoomReadout();
         automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
                                              juce::dontSendNotification);
         const bool laneVisible = timelineVisible && appModel.context().timelineAutomationTrackLaneVisible;
@@ -10898,6 +10956,11 @@ private:
     // V7: the inspector's REAL tab buttons (the painted CLIP/TRACK cells used to be decorative).
     juce::TextButton inspectorClipTab;
     juce::TextButton inspectorTrackTab;
+    // V8: the toolbar zoom cluster — stepper buttons bound to the EXISTING zoom actions around
+    // a live readout of the one shared timelineZoomFactor.
+    juce::TextButton timelineZoomOutButton;
+    juce::TextButton timelineZoomInButton;
+    juce::Label timelineZoomReadout;
     juce::Label automationLaneRow;
     // N5: the client-side Touch/Latch ride buffer — see beginAutomationTouchRideIfArmed().
     juce::ComboBox automationModeChooser;

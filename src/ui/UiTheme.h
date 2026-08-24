@@ -736,6 +736,32 @@ struct UiTheme
                            .withWidth (automationLaneToggleWidth)
                            .withHeight (automationLaneToggleHeight);
         }
+
+        // V8: the toolbar zoom cluster — [-] readout [+] to the right of the automation toggle,
+        // sharing its row (the same toolbar band the tools/SNAP/repeat cluster already fills).
+        static constexpr int timelineZoomOutButtonLeftInset = 548;
+        static constexpr int timelineZoomButtonWidth = 28;
+        static constexpr int timelineZoomReadoutWidth = 48;
+        static constexpr int timelineZoomClusterGap = 4;
+        static juce::Rectangle<int> timelineZoomOutButtonBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timeline.withTrimmedLeft (timelineZoomOutButtonLeftInset)
+                           .withTrimmedTop (automationLaneToggleTopInset)
+                           .withWidth (timelineZoomButtonWidth)
+                           .withHeight (automationLaneToggleHeight);
+        }
+        static juce::Rectangle<int> timelineZoomReadoutBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timelineZoomOutButtonBounds (timeline)
+                .translated (timelineZoomButtonWidth + timelineZoomClusterGap, 0)
+                .withWidth (timelineZoomReadoutWidth);
+        }
+        static juce::Rectangle<int> timelineZoomInButtonBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timelineZoomReadoutBounds (timeline)
+                .translated (timelineZoomReadoutWidth + timelineZoomClusterGap, 0)
+                .withWidth (timelineZoomButtonWidth);
+        }
         static juce::Rectangle<int> automationLaneRowBounds (juce::Rectangle<int> timeline) noexcept
         {
             return timeline.withTrimmedLeft (automationLaneRowLeftInset)
