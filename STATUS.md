@@ -1355,15 +1355,40 @@ V8 is certified: exact-head GitHub Actions run `32784514360` is green for full S
 `0bac5877bfa8d34efcdcb9db8552c7653b3a16b2` across all nine jobs, first try. V8 is ticked in the
 V-run backlog.
 
-**THE V-RUN (V1–V8) IS COMPLETE.** Per the plan's stop-triggers, **CP-C fires now**: the
-three-size screenshots are rendered beside the reference and handed to Dan.
+**THE V-RUN (V1–V8) IS COMPLETE.** **CP-C CLEARED: Dan's verdict was A — "closer, V-run
+accepted, move to Phase 3" (2026-08-24).**
 
-**Now:** stopped at CP-C — awaiting Dan's screenshot verdict ("closer" or "not right because
-X"), per the plan's C-fallback clause if he's unavailable ≥3 days.
+**Phase 3 — dogfood prep, DONE (2026-08-24). READY FOR DAN.**
 
-**Next:** once CP-C clears — Phase 3 (dogfood prep: `tools/run-yesdaw.ps1` + HOW-TO-RUN, then
-Dan edits a real song; if Dan is unavailable for the dogfood session, carve the next backlog
-from a fresh adversarial audit instead, per the pre-authorized "possibility of C").
+- **S3.1** `tools/run-yesdaw.ps1` (feature `def7d43`): one command that finds and imports the
+  MSVC environment itself (vswhere + known 2022 layouts — Dan never has to know the vcvars
+  trap), reconfigures + builds the `ci` Release preset, prints `git describe` + the binary's
+  build timestamp, launches the GUI non-blocking, exits 0 only if the process started.
+  **Verified per the plan**: two consecutive runs (cold configure + warm) on this machine both
+  built, printed version `358c75f`, and left YesDaw running (pids 10968/33688, then closed).
+- **S3.2** `docs/HOW-TO-RUN.md` + `docs/dogfood/2026-08-24-dan-session-1.md` (feature
+  `5564060`): plain-English launch guide with the freshness ritual ("run it again and tell me
+  the version it printed") and the friction-notes template his session fills in.
+- **S3.3** `[dogfood-readiness]` gate (feature `5564060`, 98 assertions): walks Dan's exact
+  first-session path through the shipped controls — new project → import a stem → locate +
+  split at the playhead → two more tracks/stems via the rail → drag-move → inspector fade →
+  Save → close → REOPEN in a fresh shell — every claim against the persisted bundle and the
+  reopened shell's own view (4 clips / 3 tracks / clips+tracks byte-equal across the reopen).
+  Exact-head nine-job CI run `32789178770` green for full SHA
+  `5564060be8fa247ed8b8b1ee26130cd158b46407`, first try; local 355/355.
+- **HONEST FINDING from the readiness walk (parked for the post-dogfood carve, not absorbed):**
+  at the fit view a very short clip (the 0.085 s fixture paints ~9 px wide) is narrower than
+  twice the 8 px `timelineClipEdgeHitWidth`, so its whole body reads as edge-trim zones and a
+  move-drag is impossible until you zoom in. Real stems are minutes long so Dan may never hit
+  it, but candidate fix: cap edge zones to a fraction of the painted clip width.
+
+**Now:** READY FOR DAN — his dogfood session (edit a real song) is the next gate. Everything
+is pushed; the run script is the entrypoint; friction notes go in
+`docs/dogfood/2026-08-24-dan-session-1.md`.
+
+**Next:** after Dan's session, his friction notes are the carve source for the next backlog —
+a NEW planning moment (not covered by the 2026-08-20 plan). If he's unavailable, the
+pre-authorized fallback is a fresh adversarial audit carve instead.
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
