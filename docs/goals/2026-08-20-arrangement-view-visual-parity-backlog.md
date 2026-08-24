@@ -309,7 +309,21 @@ commit, per house style.
    is added on the timeline. Expected to fail before on the TRACK tab (no distinct content), the
    gain readout (not draggable), and the FX list (always "None" regardless of chain state).
 
-8. [ ] **V8 — Toolbar row: a visible zoom control.** Audited first: the tool palette
+8. [x] **V8 — Toolbar row: a visible zoom control.** DONE — feature `0bac587`, exact-head
+   nine-job CI run `32784514360` green (first try), local 355/355. The honest minimal widget: a
+   `[-] readout [+]` cluster on the automation toggle's toolbar row — the steppers dispatch the
+   EXISTING `TimelineZoomIn`/`TimelineZoomOut` actions through `handleAction` (the same
+   playhead-anchored law the keymap runs; no second zoom concept), and the readout shows the one
+   shared `timelineZoomFactor` via a single `refreshTimelineZoomReadout()` law called from every
+   mutation path (anchor zooms, both fit verbs, panel refresh). The B40 tooltip gate caught the
+   readout shipping without a tooltip on the first full-suite round — fixed. `[toolbar-zoom]`
+   (42 assertions): the cluster sits inside the real toolbar band; the readout starts at 1.0x,
+   follows a Ctrl+wheel zoom, follows both stepper clicks (persisted factor rises/falls), and
+   lands back on 1.0x after Ctrl+0. **Red before, proven separately**: a frozen readout failed
+   the follows-the-wheel assert; an unlaid-out cluster failed the button-exists gate.
+   **THE V-RUN (V1–V8) IS COMPLETE. CP-C fires now**: three-size screenshots beside the
+   reference, awaiting Dan's verdict.
+   Original spec: Audited first: the tool palette
    (Pointer/Pencil/Scissors/Hand/Zoom, `UiActions.h:199-206`) and the SNAP chooser are ALREADY a
    single unified row (`drawToolbar`, `TimelineCanvas.h:570-623`, both painted in the same function
    and the same `toolbar` rect) — contrary to a worst-case "scattered across locations" assumption,

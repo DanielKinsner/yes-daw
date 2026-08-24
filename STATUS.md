@@ -1327,11 +1327,43 @@ V7 is certified: exact-head GitHub Actions run `32780315601` is green for full S
 `e9801a4db3fa5a99f448c7043a98908838a49b5a` across all nine jobs, first try. V7 is ticked in the
 V-run backlog.
 
-**Now:** V7 done and certified. Stopped at the checkpoint per the house protocol.
+**V8 implementation candidate — toolbar zoom control:** audited first: the carve held — no zoom
+widget existed anywhere in the toolbar (only Ctrl+wheel, keys, and the Zoom tool; the toolbar's
+"2x" chooser is the repeat-paste count, not zoom). Shipped the honest minimal widget: a
+`[-] readout [+]` cluster on the automation toggle's row — steppers dispatch the EXISTING
+`TimelineZoomIn`/`TimelineZoomOut` actions through `handleAction` (the same playhead-anchored
+law the keymap runs; no second zoom concept), and the readout shows the one shared
+`timelineZoomFactor` via a single `refreshTimelineZoomReadout()` law called from every mutation
+path (anchor zooms, both fit verbs, panel refresh — a law-gap the design pass itself caught:
+wheel zooms bypass `refreshActionState`, so a naive refresh-only readout would have gone
+stale). The B40 tooltip gate correctly caught the readout shipping without a tooltip on the
+first full-suite round — fixed, not bypassed. D7 judgment pass: the toolbar reads
+`[-] 1.0x [+]` beside Automation at all three sizes.
 
-**Next:** V8 (toolbar: a visible zoom control — the last V-item; **CP-C fires when it lands**:
-full-view three-size screenshots for Dan's verdict), then Phase 3 (dogfood prep —
-`tools/run-yesdaw.ps1` + HOW-TO-RUN, then Dan edits a real song).
+`[toolbar-zoom]` (42 assertions): real buttons for the existing zoom actions and the readout
+label all sit inside the real toolbar band; the readout starts at 1.0x, follows a Ctrl+wheel
+zoom (string-exact against the shared factor), follows both stepper clicks (the persisted
+factor rises then falls), and lands back on exactly "1.0x" after Ctrl+0's direct-assignment
+path. **Red before, proven separately**: a frozen readout failed exactly the follows-the-wheel
+assertion; an unlaid-out cluster failed exactly the button-exists gate. H12's deliberate
+child-count pin re-bumped 133→136 for the three new children.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+V8 is certified: exact-head GitHub Actions run `32784514360` is green for full SHA
+`0bac5877bfa8d34efcdcb9db8552c7653b3a16b2` across all nine jobs, first try. V8 is ticked in the
+V-run backlog.
+
+**THE V-RUN (V1–V8) IS COMPLETE.** Per the plan's stop-triggers, **CP-C fires now**: the
+three-size screenshots are rendered beside the reference and handed to Dan.
+
+**Now:** stopped at CP-C — awaiting Dan's screenshot verdict ("closer" or "not right because
+X"), per the plan's C-fallback clause if he's unavailable ≥3 days.
+
+**Next:** once CP-C clears — Phase 3 (dogfood prep: `tools/run-yesdaw.ps1` + HOW-TO-RUN, then
+Dan edits a real song; if Dan is unavailable for the dogfood session, carve the next backlog
+from a fresh adversarial audit instead, per the pre-authorized "possibility of C").
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
