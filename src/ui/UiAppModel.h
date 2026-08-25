@@ -945,8 +945,10 @@ public:
         selectedTimelineClipIds_ = committedClipIds;
         selectedTimelineClipId_ = primaryClipId;
         context_.timelineClipSelected = true;
-        context_.canUndo = false;
-        context_.canRedo = false;
+        // R8: a committed recording clears the undo history FOR REAL (the old flag-only
+        // lines were dead — recomputed from the stack) so a later undo can never silently
+        // revert a pre-record edit; it refuses honestly instead.
+        undo_ = engine::ProjectUndoStack {};
         syncProjectEditContext();
         resetContextForFreshPlayback();
 
@@ -1660,8 +1662,8 @@ public:
         context_.timelineClipSelected = true;
         if (placedMidiTake.midiClipId.isValid())
             selectedMidiClipId_ = placedMidiTake.midiClipId;
-        context_.canUndo = false;
-        context_.canRedo = false;
+        // R8: the deterministic-take twin of the real commit's law — the clear is real.
+        undo_ = engine::ProjectUndoStack {};
         syncProjectEditContext();
         resetContextForFreshPlayback();
 
@@ -1860,6 +1862,7 @@ private:
         }
 
         engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
         if (nextProject.findAsset (imported.id) == nullptr)
             nextProject.assets.push_back (imported);
 
@@ -1894,9 +1897,13 @@ private:
         clip.fadeIn = 0;
         clip.fadeOut = 0;
         clip.timeBase = engine::TimeBase::SampleLocked;
-        nextProject.clips.push_back (clip);
 
-        if (! nextProject.hasValidAssetClipIndirection())
+        // R8: the CLIP is the undoable act. The asset row (and any auto-created default
+        // track) stays outside the transaction, like the asset file in the bundle — inert
+        // without the clip — so undo removes the IMPORT and never an older edit.
+        const engine::ProjectEditApplyResult applied =
+            nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip));
+        if (! applied.applied() || ! nextProject.hasValidAssetClipIndirection())
         {
             reportStatus ("Import failed: " + sourcePath.filename().string()
                               + " produced an invalid project",
@@ -1905,50 +1912,24 @@ private:
             return result;
         }
 
-        result.bundleResult = bundleDb_.writeProjectSnapshot (nextProject);
-        if (! result.bundleResult.ok())
+        decoded.assetId = imported.id;
+        std::vector<UiDecodedAsset> previousDecoded = decodedAssets_;
+        upsertDecodedAsset (decodedAssets_, std::move (decoded));
+
+        // R8: the swap rides the one shared adoption law — snapshot write, engine rebuild,
+        // undo publication, and R2's transport preservation, exactly like every other edit.
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
         {
-            reportStatus ("Import failed: the project could not be saved", true);
+            decodedAssets_ = std::move (previousDecoded);
+            reportStatus ("Import failed: the project could not be saved or rebuilt", true);
             result.status = UiAppImportStatus::ProjectWriteFailed;
             return result;
         }
 
-        decoded.assetId = imported.id;
-        std::vector<UiDecodedAsset> nextDecoded = decodedAssets_;
-        upsertDecodedAsset (nextDecoded, std::move (decoded));
-
-        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
-        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            nextProject,
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
-            playbackBuildOptions());
-
-        result.playbackStatus = built.status;
-        result.projectError = built.projectError;
-        result.mixerError = built.mixerError;
-        if (! built.ok())
-        {
-            reportStatus ("Import failed: playback could not be rebuilt", true);
-            result.status = UiAppImportStatus::PlaybackBuildFailed;
-            return result;
-        }
-
-        (void) built.engine->stop();
-        drainTransport (*built.engine);
-
-        project_ = std::move (nextProject);
-        decodedAssets_ = std::move (nextDecoded);
-        decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        replacePlayback (std::move (built.engine));
-        ++editSerial_;   // an import is an edit since the last explicit Save (B37)
         context_.projectLoaded = true;
         selectedTimelineClipIds_.assign (1, clip.id);
         selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
-        context_.canUndo = false;
-        context_.canRedo = false;
-        syncProjectEditContext();
-        resetContextForFreshPlayback();
 
         pendingAudioPlacement_ = {
             imported.id,

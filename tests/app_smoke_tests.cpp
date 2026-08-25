@@ -531,6 +531,56 @@ TEST_CASE ("real capture count-in rejects pre-roll input and starts the Take at 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("a committed recording clears the undo history for real",
+           "[ui][app][recording][record-undo-clear]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("record-undo-clear");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+
+    // A prior undoable edit that a stale post-record undo would silently eat.
+    REQUIRE (app.addAudioTrack().dispatched);
+    const std::size_t tracksAfterEdit = app.project().tracks.size();
+    REQUIRE (app.context().canUndo);
+
+    // Record and commit a real take through the test-device capture session.
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.startRealRecordingCapture (1, 48000.0, 0, 0));
+    std::array<float, 128> input {};
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    const float* inputs[1] = { input.data() };
+    for (int block = 0; block < 2; ++block)
+    {
+        for (int i = 0; i < 128; ++i)
+            input[static_cast<std::size_t> (i)] = 0.25f;
+        REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs.data(), 2, 128));
+        app.drainRealRecordingCapture();
+    }
+    REQUIRE (app.stopRealRecordingCaptureAndCommit().ok());
+
+    // R8: the commit's undo clear is REAL — no stale history survives, so undo can never
+    // silently revert the pre-record edit. It refuses honestly instead.
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE_FALSE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().tracks.size() == tracksAfterEdit);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("adopting a device at another sample rate warns that playback speed will be wrong",
            "[ui][app][recording][sample-rate]")
 {
@@ -1582,10 +1632,11 @@ TEST_CASE ("M11 an arm SET records one take per armed track", "[ui][app][recordi
             REQUIRE (app.isTimelineClipSelected (take.clipId));
     }
 
-    // A multi-track commit follows the SAME undo law as a single-track one and as an import:
-    // the commit is not an undo step (it is bundle-owned persistence, not a project edit), so
-    // the stack is clear. Takes are removed with the shipped delete verb, which IS undoable —
-    // and removing one leaves the other armed tracks' takes untouched.
+    // A multi-track commit follows the SAME undo law as a single-track one: the commit is
+    // not an undo step (it is bundle-owned persistence, not a project edit) and R8 clears
+    // the stack for real. (Imports ARE undo steps since R8.) Takes are removed with the
+    // shipped delete verb, which IS undoable — and removing one leaves the other armed
+    // tracks' takes untouched.
     REQUIRE_FALSE (app.context().canUndo);
     REQUIRE_FALSE (app.context().canRedo);
     {

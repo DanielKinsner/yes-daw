@@ -3129,8 +3129,9 @@ public:
             scrollTrackRowsBy (rowDelta);
         };
         // M10: OS file drops land on the track under the pointer at the snapped tick under the
-        // pointer. Several files go onto consecutive lanes in ONE undo group; anything the WAV
-        // reader refuses is reported on the status line (R6) and changes nothing.
+        // pointer. Several files go onto consecutive lanes, each import its own undo step
+        // (R8); anything the WAV reader refuses is reported on the status line (R6) and
+        // changes nothing.
         timelineInput.filesAreImportable = [this] (const juce::StringArray& files) {
             if (! appModel.context().projectLoaded || files.isEmpty())
                 return false;

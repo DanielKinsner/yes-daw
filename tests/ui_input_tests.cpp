@@ -2688,7 +2688,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.playbackReady);
     REQUIRE (snapshot.context.timelineClipSelected);
-    REQUIRE_FALSE (snapshot.context.canUndo);
+    // R8 re-pin: the import itself is now the first undoable step of the session.
+    REQUIRE (snapshot.context.canUndo);
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.importCount == 1);
     REQUIRE (snapshot.context.commandDispatchCount == 2);
@@ -2752,7 +2753,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.undoCount == 1);
-    REQUIRE_FALSE (snapshot.context.canUndo);
+    // R8 re-pin: after undoing the move, the IMPORT still sits beneath it on the stack.
+    REQUIRE (snapshot.context.canUndo);
     REQUIRE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 4);
 
@@ -5117,10 +5119,8 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
         REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.02);
     }
 
-    // HONEST LAW, pinned rather than papered over: an import is NOT an undo step in this app —
-    // `addAudioAssetClipFromSource` clears the undo stack because the asset copy into the bundle is
-    // a filesystem act. A drop is an import, so it obeys the same law; removing a dropped clip is
-    // the Delete key's job, and THAT undoes.
+    // R8 re-pin: an import IS an undo step now (the [import-undo] gate owns that law); this
+    // section keeps the original M10 claim that Delete on a dropped clip undoes exactly.
     REQUIRE (snapshotMainComponent (*shell).context.importCount == 1);
     {
         juce::Component& canvas = requireTimelineComponent (*shell);
@@ -7780,6 +7780,86 @@ TEST_CASE ("refused imports are named on the status line while good files still 
 
     std::error_code ec;
     std::filesystem::remove (fakeMp3Path, ec);
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("undo after an import removes the import, never the edit before it",
+           "[ui][input][shell][import-undo]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("import-undo");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path secondWavPath = bundlePath;
+    secondWavPath += "-second.wav";
+    {
+        // A second, distinct 48 kHz WAV so the later import creates its own asset row.
+        const std::vector<float> samples (480, 0.3f);
+        REQUIRE (yesdaw::io::writeFloat32WavFile (
+                     secondWavPath, yesdaw::engine::SampleRate { 48'000.0 }, 1u, 480u,
+                     std::span<const float> (samples.data(), samples.size()))
+                     .ok());
+    }
+
+    std::filesystem::path currentImportPath = fixturePath;
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [&currentImportPath] { return currentImportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    const yesdaw::engine::EntityId clipAId = project.clips.front().id;
+    const yesdaw::engine::Tick importedStart = project.clips.front().timelineStart;
+
+    // The EDIT between the two imports: move clip A right (Ctrl keeps the release raw).
+    const juce::Point<int> centre = timelineClipCenterPointOnItsLane (timeline, project, 0u);
+    dragFromTo (timeline, centre, { centre.x + 40, centre.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    project = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Tick movedStart = project.clips.front().timelineStart;
+    REQUIRE (movedStart > importedStart);
+
+    // Import B — its own asset, its own clip, and NOW its own undo step.
+    currentImportPath = secondWavPath;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    REQUIRE (project.assets.size() == 2u);
+    REQUIRE (snapshotMainComponent (*shell).context.canUndo);
+
+    // THE LAW: the first undo removes the IMPORT — clip B gone, clip A's move untouched.
+    // (Before R8 this undo silently reverted the move while clip B stayed.)
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().id == clipAId);
+    REQUIRE (project.clips.front().timelineStart == movedStart);
+    // The asset ROW stays, like the asset file in the bundle — honest inert state.
+    REQUIRE (project.assets.size() == 2u);
+
+    // The second undo reverts the move.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.front().timelineStart == importedStart);
+
+    // Redo walks forward in the same order: the move, then the import.
+    const juce::ModifierKeys redoChord (
+        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', redoChord, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips.front().timelineStart == movedStart);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', redoChord, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+
+    std::error_code ec;
+    std::filesystem::remove (secondWavPath, ec);
     std::filesystem::remove_all (bundlePath, ec);
 }
 

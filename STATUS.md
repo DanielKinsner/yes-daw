@@ -330,7 +330,37 @@ comments claim; each dropped file is its own undo step (the "ONE undo group" com
 gets corrected). Genuine TDD reds — no neuters needed: `[import-undo]` (import → edit →
 import → Ctrl+Z removes the IMPORT, the edit stays) and an app_smoke record-commit clear
 test both fail against current behavior.
-**Next:** R8 implementation + gates.
+**R8 implementation candidate — import is undoable; record commits clear for real:** the
+import verb's clip now rides `nextUndo.apply (ProjectEditCommand::addClip)` and the whole
+tail routes through `adoptEditedProject` — one shared adoption law (snapshot write, engine
+rebuild, undo publication) which also gives imports R2's transport preservation; the asset
+ROW and any auto-created default track stay OUTSIDE the transaction (inert without the clip,
+mirroring the asset file staying in the bundle — pinned in the gate). Both record-commit
+paths replace their dead `context_.canUndo = false` lines with a REAL
+`undo_ = ProjectUndoStack {}` clear, so a post-record undo refuses honestly instead of
+silently reverting a pre-record edit. The M10 "clears the undo stack" comment (never true,
+never pinned) and the drop path's "ONE undo group" claim were corrected — each dropped file
+is its own undo step.
+
+Gates, both with GENUINE reds (no neuters — the old behavior itself failed them):
+`[import-undo]` (59 assertions) — import → move the clip → import a second distinct 48 k WAV
+→ the first Ctrl+Z removes the IMPORT (clip gone, the move untouched, the asset row honestly
+stays), the second reverts the move, redo walks forward in order. Red before at exactly
+`clips.size(): 2 == 1` — the old undo reverted the move while the import stayed. app_smoke
+`[record-undo-clear]` (19 assertions) — an undoable edit, then a real test-device capture
+commit: `canUndo` false for real, `EditUndo` refused, the pre-record edit intact. Red before
+at exactly the stale `canUndo` assertion.
+
+One legacy gate re-pinned during the full-suite rounds (never weakened): the H12 end-to-end
+session gate pinned `canUndo == false` at two spots that only held because the stack
+bottomed out — right after its import (now TRUE: the import is the session's first undoable
+step) and right after undoing the first move (now TRUE: the import still sits beneath it).
+A file-wide sweep found no other `REQUIRE_FALSE(canUndo)` pins in the shell gates; the
+app_smoke multi-track-commit pin now holds FOR REAL via the R8 clear (its comment's "same
+law as an import" claim was corrected — imports are undo steps now).
+
+**Now:** R8 full local suite running; commit + nine-job CI next.
+**Next:** R9 — two instances can no longer clobber one project.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
