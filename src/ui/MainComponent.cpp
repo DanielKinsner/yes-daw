@@ -3168,18 +3168,17 @@ public:
                                                  static_cast<int> (appModel.project().tracks.size()) - 1);
                 const yesdaw::engine::EntityId trackId =
                     appModel.project().tracks[static_cast<std::size_t> (targetLane)].id;
+                // R7: a verb failure (rate mismatch, bundle copy, …) reports its own precise
+                // reason inside the model — only decoder refusals are the shell's to name.
                 if (appModel.importAudioFileAt (path, std::move (*decoded), trackId, start).ok())
                 {
                     anyImported = true;
                     ++laneOffset;
                 }
-                else
-                {
-                    refusedNames += (refusedNames.empty() ? "" : ", ") + path.filename().string();
-                }
             }
 
-            // R6: every refused file is named immediately — the good files still landed.
+            // R6: every file the WAV reader refused is named immediately — the good files
+            // still landed.
             if (! refusedNames.empty())
                 appModel.reportStatus ("Import refused (WAV only, stereo max): " + refusedNames, true);
 
@@ -7502,17 +7501,14 @@ private:
                         {
                             // Import lands on the SELECTED Track when the rail has a selection.
                             const auto& tracks = appModel.project().tracks;
-                            const bool imported =
-                                (selectedTrackLane >= 0
-                                 && selectedTrackLane < static_cast<int> (tracks.size()))
-                                    ? appModel.importAudioFileToTrack (
-                                          path, std::move (*decoded),
-                                          tracks[static_cast<std::size_t> (selectedTrackLane)].id)
-                                          .ok()
-                                    : appModel.importAudioFile (path, std::move (*decoded)).ok();
-                            if (! imported)
-                                appModel.reportStatus (
-                                    "Import failed: " + path.filename().string(), true);
+                            // R7: verb failures report their precise reason inside the model.
+                            if (selectedTrackLane >= 0
+                                && selectedTrackLane < static_cast<int> (tracks.size()))
+                                (void) appModel.importAudioFileToTrack (
+                                    path, std::move (*decoded),
+                                    tracks[static_cast<std::size_t> (selectedTrackLane)].id);
+                            else
+                                (void) appModel.importAudioFile (path, std::move (*decoded));
                         }
                         else
                         {

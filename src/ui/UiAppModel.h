@@ -71,7 +71,10 @@ enum class UiAppImportStatus : std::uint8_t
     InvalidDecodedAudio,
     AssetImportFailed,
     ProjectWriteFailed,
-    PlaybackBuildFailed
+    PlaybackBuildFailed,
+    // R7: the decoded audio is valid but at another sample rate — no resampler exists (and
+    // never a silent hack), so importing it would play pitched/fast. Refused with the fact.
+    SampleRateMismatch
 };
 
 struct UiAppImportResult
@@ -507,6 +510,15 @@ public:
         recordingDevice_.inputLatencyFrames = profile.inputLatencyFrames;
         recordingDevice_.outputLatencyFrames = profile.outputLatencyFrames;
         syncRecordingContext();
+        // R7: the engine pulls frames 1:1, so a device at another rate plays every project at
+        // the wrong speed — a fact the user must see, not a silent detune.
+        if (context_.projectLoaded && profile.sampleRateHz != project_.sampleRate.hz)
+            reportStatus ("Audio device runs at "
+                              + std::to_string (static_cast<long long> (profile.sampleRateHz))
+                              + " Hz but this project is "
+                              + std::to_string (static_cast<long long> (project_.sampleRate.hz))
+                              + " Hz - playback speed will be wrong",
+                          true);
         return true;
     }
 
@@ -1796,15 +1808,34 @@ private:
     {
         UiAppImportResult result;
 
+        // R7: every import refusal/failure reports its reason here in the model, so the
+        // Ctrl+I, drop, and track-targeted paths all paint the same precise fact (the shell
+        // reports only decoder refusals the model never sees).
         if (! bundleDb_.isOpen())
         {
+            reportStatus ("Import failed: no project is open", true);
             result.status = UiAppImportStatus::NoBundleOpen;
             return result;
         }
 
         if (! decodedAudioIsValid (decoded))
         {
+            reportStatus ("Import refused: " + sourcePath.filename().string()
+                              + " is not usable audio",
+                          true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+
+        if (decoded.sampleRate.hz != project_.sampleRate.hz)
+        {
+            reportStatus ("Import refused: " + sourcePath.filename().string() + " is "
+                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz))
+                              + " Hz but this project is "
+                              + std::to_string (static_cast<long long> (project_.sampleRate.hz))
+                              + " Hz (no resampling yet)",
+                          true);
+            result.status = UiAppImportStatus::SampleRateMismatch;
             return result;
         }
 
@@ -1821,6 +1852,9 @@ private:
         result.bundleResult = bundleDb_.importAssetBytes (request, imported);
         if (! result.bundleResult.ok())
         {
+            reportStatus ("Import failed: could not copy " + sourcePath.filename().string()
+                              + " into the project bundle",
+                          true);
             result.status = UiAppImportStatus::AssetImportFailed;
             return result;
         }
@@ -1864,6 +1898,9 @@ private:
 
         if (! nextProject.hasValidAssetClipIndirection())
         {
+            reportStatus ("Import failed: " + sourcePath.filename().string()
+                              + " produced an invalid project",
+                          true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
             return result;
         }
@@ -1871,6 +1908,7 @@ private:
         result.bundleResult = bundleDb_.writeProjectSnapshot (nextProject);
         if (! result.bundleResult.ok())
         {
+            reportStatus ("Import failed: the project could not be saved", true);
             result.status = UiAppImportStatus::ProjectWriteFailed;
             return result;
         }
@@ -1890,6 +1928,7 @@ private:
         result.mixerError = built.mixerError;
         if (! built.ok())
         {
+            reportStatus ("Import failed: playback could not be rebuilt", true);
             result.status = UiAppImportStatus::PlaybackBuildFailed;
             return result;
         }

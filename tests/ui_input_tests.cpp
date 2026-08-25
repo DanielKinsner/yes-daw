@@ -7783,6 +7783,77 @@ TEST_CASE ("refused imports are named on the status line while good files still 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("a wrong-sample-rate import is refused with the rate fact, never played fast",
+           "[ui][input][shell][sample-rate]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("sample-rate");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path wrongRatePath = bundlePath;
+    wrongRatePath += "-44k.wav";
+    {
+        // A perfectly valid WAV — at 44.1 kHz. Without the R7 guard it would import and play
+        // ~9 % fast in a 48 kHz project.
+        const std::vector<float> samples (441, 0.25f);
+        REQUIRE (yesdaw::io::writeFloat32WavFile (
+                     wrongRatePath, yesdaw::engine::SampleRate { 44'100.0 }, 1u, 441u,
+                     std::span<const float> (samples.data(), samples.size()))
+                     .ok());
+    }
+
+    std::filesystem::path currentImportPath = wrongRatePath;
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [&currentImportPath] { return currentImportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // Ctrl+I path: refused with both rates named; the project is untouched.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("44100") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find ("48000") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (wrongRatePath.filename().string()) != std::string::npos);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+        REQUIRE (readProjectSnapshot (bundlePath).assets.empty());
+    }
+
+    // Decay to quiet so the drop section proves its own report.
+    for (int i = 0; i < 400 && ! snapshotMainComponent (*shell).statusLineText.empty(); ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    // Drop path: a mixed drop imports the 48 kHz fixture and refuses the 44.1 kHz file with
+    // the model's precise rate message (not the generic WAV-reader text).
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    const juce::StringArray mixedDrop {
+        juce::String (fixturePath.string()),
+        juce::String (wrongRatePath.string())
+    };
+    dropTarget->filesDropped (mixedDrop, dropX, firstLaneY);
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("44100") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (wrongRatePath.filename().string()) != std::string::npos);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+        REQUIRE (readProjectSnapshot (bundlePath).assets.size() == 1u);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove (wrongRatePath, ec);
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("opening a project with a missing audio file reports the file and refuses to half-open",
            "[ui][input][shell][missing-asset-open]")
 {

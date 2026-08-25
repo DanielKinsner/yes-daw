@@ -288,7 +288,34 @@ import-verb failure reporting moves fully model-side so the drop path's generic 
 cannot stomp the precise one (the shell keeps reporting only decoder refusals it alone
 sees); `adoptRealRecordingDevice` warns when the device rate ≠ the project rate (gateable in
 app_smoke, where 44.1 k profile adoption tests already exist).
-**Next:** R7 implementation + `[sample-rate]` gates (ui_input + app_smoke).
+**R7 implementation candidate — sample-rate honesty:** audited before changing: no rate
+comparison existed anywhere between decoded audio and the project (fixed 48 kHz, no
+resampler by design), and a device at another rate silently plays everything at the wrong
+speed. Shipped: a new `UiAppImportStatus::SampleRateMismatch` (enum append; no exhaustive
+switches outside the header) refused IN the model with the painted rate fact ("Import
+refused: x.wav is 44100 Hz but this project is 48000 Hz (no resampling yet)"); as part of
+this, ALL import-verb failure exits now report their precise reason model-side (so Ctrl+I,
+drop, and track-targeted paths paint identically) and the shell's R6 verb-failure reports
+were removed — the shell names only decoder refusals the model never sees, and the drop
+path's generic message can no longer stomp the model's precise one.
+`adoptRealRecordingDevice` warns when a project is loaded and the adopted device's rate ≠
+the project rate ("playback speed will be wrong") — the same seam the shell's real
+`audioDeviceAboutToStart` wiring calls.
+
+Gates: ui_input `[sample-rate]` (189 assertions) — a generated, perfectly valid 44.1 kHz WAV
+through the real chooser is refused naming BOTH rates and the file, project untouched
+(clips+assets empty); after decay, a mixed drop imports the 48 k fixture and refuses the
+44.1 k file with the model's precise message. app_smoke `[sample-rate]` (16 assertions) — a
+48 k device adopts quietly; a 44.1 k device adopts (provenance stays honest) but warns with
+both rates. **Red before, proven separately per law**: with the rate guard commented out the
+ui_input gate failed at the refusal assertion — the 44.1 k file genuinely imported; with the
+adoption warning commented out the app_smoke gate failed exactly the warning assertion. One
+tooling note: an `if (false && …)` neuter does not compile here (warnings-as-errors flags
+the constant conditional) and the stale binary ran green — caught by reading the build
+output; the comment-out neuter is the honest method on this codebase.
+
+**Now:** R7 full local suite running; commit + nine-job CI next.
+**Next:** R8 — import is undoable.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

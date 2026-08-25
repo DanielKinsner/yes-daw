@@ -531,6 +531,40 @@ TEST_CASE ("real capture count-in rejects pre-roll input and starts the Take at 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("adopting a device at another sample rate warns that playback speed will be wrong",
+           "[ui][app][recording][sample-rate]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("device-rate-warning");
+    const Project project = makeSmokeProject();
+
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.statusLineText().empty());
+
+    // A matching-rate device adopts quietly.
+    REQUIRE (app.adoptRealRecordingDevice ({ 0xFEED0001u, 48'000.0, 2, 256, 12, 34 }));
+    REQUIRE (app.statusLineText().empty());
+
+    // A mismatched device adopts (recording provenance stays honest) but WARNS: the engine
+    // pulls frames 1:1, so everything would play at the wrong speed.
+    REQUIRE (app.adoptRealRecordingDevice ({ 0xFEED0002u, 44'100.0, 2, 256, 12, 34 }));
+    REQUIRE (app.statusLineIsError());
+    REQUIRE (app.statusLineText().find ("44100") != std::string::npos);
+    REQUIRE (app.statusLineText().find ("48000") != std::string::npos);
+    REQUIRE (app.statusLineText().find ("playback speed will be wrong") != std::string::npos);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("adopting the real device unlocks arm and records honest provenance",
            "[ui][app][recording][real-device]")
 {
