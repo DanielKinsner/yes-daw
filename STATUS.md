@@ -121,8 +121,22 @@ mute. Gate-authoring found two honest snags first: a snapped loop drag on the sh
 bar fixture collapses to a no-op by the E4 law (the gate uses Ctrl raw endpoints), and Shift+M
 honestly no-ops without a selected rail row (the gate selects row 0 first).
 
-**Now:** R2 full local suite running; commit + nine-job CI next.
-**Next:** R3 — the loop region is project state.
+R2 is certified: full local ctest green 355/355 (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32871156908` is green for full SHA
+`e7efec6f52d0e685bff2fc971e8d1411d03d25da` across all nine jobs (TSan and RTSan included —
+the change touches the engine-swap/command-queue boundary), first try. R2 is ticked in the
+reality-run backlog.
+
+**Now:** R3 — the loop region is project state. Audit done: schema is at v17; loop persists
+by the locate-points pattern (copy project, set fields, write snapshot, adopt — no undo
+entry, no engine rebuild; `storeLocatePoint` is the template). A v18 `loop_region` one-row
+table + migration gate; wire every loop transport change (`setPlaybackLoopRegion`,
+`TransportToggleLoop`, `RangeToLoop`, ruler loop-brace callbacks) through one shared
+persist helper; the open path restores the region onto the fresh engine. Two gates get
+re-pinned STRONGER: the "loop brace is honestly transient" byte-identical pin becomes a
+persistence pin, and the R2 gate's reopen negative control keeps stopped+playhead-0 but
+gains the restored loop.
+**Next:** R3 implementation + migration gate + `[loop-persists]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

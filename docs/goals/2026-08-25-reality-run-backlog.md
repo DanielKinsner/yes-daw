@@ -62,7 +62,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   MOVE, never resize). The `[dogfood-readiness]` zoom-in workaround at
   `ui_input_tests.cpp:6887-6899` stays valid. Out of scope: changing the 8 px width for wide
   clips.
-- [ ] **R2 — the transport survives edits.** The single biggest workflow trap, found
+- [x] **R2 — the transport survives edits.** *(certified: feature `e7efec6`, nine-job CI run
+  `32871156908` green first try, local 355/355)* The single biggest workflow trap, found
   independently by two audits. Every mutation — fader tick, mute, clip move, undo/redo —
   funnels through `adoptEditedProject` (`UiAppModel.h:7150-7195`) →
   `resetContextForFreshPlayback()`: `isPlaying=false, loopEnabled=false, playheadFrame=0`.
