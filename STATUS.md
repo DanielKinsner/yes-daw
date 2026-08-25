@@ -136,7 +136,36 @@ persist helper; the open path restores the region onto the fresh engine. Two gat
 re-pinned STRONGER: the "loop brace is honestly transient" byte-identical pin becomes a
 persistence pin, and the R2 gate's reopen negative control keeps stopped+playhead-0 but
 gains the restored loop.
-**Next:** R3 implementation + migration gate + `[loop-persists]` gate.
+**R3 implementation candidate — the loop region is project state:** audited first: the loop
+lived only in the `PlaybackEngine` (no field in `Project` or the bundle schema), and ALL
+mutation paths funnel through exactly three model verbs (`setPlaybackLoopRegion` — every
+ruler/brace gesture calls it — `TransportToggleLoop`, and `TimelineRangeToLoop`); schema was
+at v17, whose punch_region is the exact one-row frame-range template. Shipped: a `LoopRegion`
+engine struct (the punch twin), a v18 `loop_region` table (missing row = disabled, written
+only when enabled so default projects round-trip byte-identically with legacy ones),
+snapshot writer/reader with `semanticInvalid` refusal of degenerate stored rows,
+`kCodeSchemaVersion` 17→18, and two model helpers on the locate-points law (persisted, NOT
+undoable, no engine rebuild): `persistLoopRegionFromPlayback()` after every successful loop
+transport change, and `applyPersistedLoopRegionToPlayback()` arming the fresh engine on open
+(transport stays stopped at zero — the open reset — with the loop exactly as saved).
+
+Gates: `[loop-persists]` (set loop → reopen restores it exactly on a stopped transport →
+real toggle clears it → second reopen honors the cleared state → toggle re-arms and persists
+the whole-project loop). **Red before, proven separately**: with the schema in place but the
+model wiring stashed, the gate failed exactly the reopen `loopEnabled` assertion. The v18
+migration gate clones the v17 punch pattern (legacy bundle built by running migrations only
+to v17 → reopen migrates, records the v18 row, empty table, disabled readback); the v10
+downgrade simulation now also strips the v18 artifacts. Legacy re-pins (never weakened): the
+E4 snap-gestures gate asserts the stored region tracks the live loop and re-baselines its
+range-transience byte-pin AFTER the loop commits; the loop-brace gate's "honestly transient"
+byte-pin became a stored-region-matches-live pin, with Escape-cancel and plain-locate now
+byte-pinned against the post-commit baseline (strictly stronger); the range-to-loop export
+gate re-baselines after Shift+L and asserts the stored conversion; the R2 gate's reopen
+negative control now proves the loop RESTORES while the transport still opens stopped at
+zero.
+
+**Now:** R3 full local suite running; commit + nine-job CI next.
+**Next:** R4 — a shared status surface; the shell stops discarding results.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 17;
+inline constexpr int          kCodeSchemaVersion = 18;
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1281,13 +1281,22 @@ CREATE TABLE punch_region (
 );
 )SQL";
 
+// R3: the transport loop region — the punch region's twin (one row, missing row = disabled).
+inline constexpr std::string_view kSchemaV18Sql = R"SQL(
+CREATE TABLE loop_region (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  start_frame INTEGER NOT NULL CHECK (start_frame >= 0),
+  end_frame INTEGER NOT NULL CHECK (end_frame > start_frame)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 17> kMigrations {
+inline constexpr std::array<SchemaMigration, 18> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1305,6 +1314,7 @@ inline constexpr std::array<SchemaMigration, 17> kMigrations {
     SchemaMigration { 15, kSchemaV15Sql },
     SchemaMigration { 16, kSchemaV16Sql },
     SchemaMigration { 17, kSchemaV17Sql },
+    SchemaMigration { 18, kSchemaV18Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1910,7 +1920,7 @@ public:
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
-                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; "
+                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2374,6 +2384,15 @@ public:
             if (auto result = punchStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.punchRegion.startFrame)); ! result.ok()) { rollback(); return result; }
             if (auto result = punchStmt.bindInt64 (2, static_cast<sqlite3_int64> (project.punchRegion.endFrame)); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, punchStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // R3: the loop-region row follows the punch law — written only when enabled.
+        if (project.loopRegion.enabled)
+        {
+            detail::Statement loopStmt (db_, "INSERT INTO loop_region(slot, start_frame, end_frame) VALUES (1, ?, ?);");
+            if (auto result = loopStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.loopRegion.startFrame)); ! result.ok()) { rollback(); return result; }
+            if (auto result = loopStmt.bindInt64 (2, static_cast<sqlite3_int64> (project.loopRegion.endFrame)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, loopStmt); ! result.ok()) { rollback(); return result; }
         }
 
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
@@ -3143,6 +3162,31 @@ public:
                 if (! region.isValid())
                     return detail::semanticInvalid ("punch_region is outside the Project value range");
                 project.punchRegion = region;
+            }
+            else if (step != SQLITE_DONE)
+            {
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+            }
+        }
+
+        // R3: the loop-region row — missing row means disabled, the historical default.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT start_frame, end_frame FROM loop_region WHERE slot = 1;");
+                ! result.ok())
+                return result;
+
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+            {
+                const engine::LoopRegion region {
+                    true,
+                    static_cast<engine::Tick> (sqlite3_column_int64 (stmt.get(), 0)),
+                    static_cast<engine::Tick> (sqlite3_column_int64 (stmt.get(), 1))
+                };
+                if (! region.isValid())
+                    return detail::semanticInvalid ("loop_region is outside the Project value range");
+                project.loopRegion = region;
             }
             else if (step != SQLITE_DONE)
             {

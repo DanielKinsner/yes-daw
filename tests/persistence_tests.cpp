@@ -1512,6 +1512,47 @@ TEST_CASE ("Schema v17 migration gives legacy Projects the disabled no-punch def
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// R3: loop_region is a NEW TABLE (the punch_region twin) — "before v18" is built by running
+// migrations only up to v17, so the table doesn't exist yet.
+TEST_CASE ("Schema v18 migration gives legacy Projects the disabled no-loop default",
+           "[persistence][migration][loop-region]")
+{
+    const auto path = makeTempBundlePath ("loop-region-v17-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV17 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 17);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV17).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 18;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM loop_region;", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE_FALSE (readback.loopRegion.enabled);
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1522,14 +1563,14 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // N6/N7/N8: a fresh bundle is v17 now — the v10 simulation also strips the v11-v17
+        // N6/N7/N8/R3: a fresh bundle is v18 now — the v10 simulation also strips the v11-v18
         // artifacts, including dropping the height_px and colour COLUMNs (v15/v16 are ALTER
-        // TABLEs, not new tables like v11-v14/v17, so re-running their migrations on reopen would
-        // otherwise fail with a duplicate column error).
+        // TABLEs, not new tables like v11-v14/v17/v18, so re-running their migrations on reopen
+        // would otherwise fail with a duplicate column error).
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
             "DROP TABLE automation_mode; ALTER TABLE tracks DROP COLUMN height_px; "
-            "ALTER TABLE tracks DROP COLUMN colour; DROP TABLE punch_region; "
+            "ALTER TABLE tracks DROP COLUMN colour; DROP TABLE punch_region; DROP TABLE loop_region; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
@@ -1537,6 +1578,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 15; "
             "DELETE FROM schema_migrations WHERE version = 16; "
             "DELETE FROM schema_migrations WHERE version = 17; "
+            "DELETE FROM schema_migrations WHERE version = 18; "
             "PRAGMA user_version = 10;").ok());
     }
 

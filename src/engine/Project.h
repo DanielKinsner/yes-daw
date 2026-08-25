@@ -679,6 +679,25 @@ struct PunchRegion
     friend bool operator== (const PunchRegion&, const PunchRegion&) = default;
 };
 
+// R3: the persisted transport loop region — the punch region's twin (raw sample frames, same
+// Tick-as-int64 reuse). Disabled (the default, a missing row) reproduces the historical
+// behaviour: the loop lived only in the PlaybackEngine and died on save/reopen.
+struct LoopRegion
+{
+    bool enabled = false;
+    Tick startFrame = 0;
+    Tick endFrame = 0;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! enabled)
+            return true;
+        return startFrame >= 0 && endFrame > startFrame;
+    }
+
+    friend bool operator== (const LoopRegion&, const LoopRegion&) = default;
+};
+
 [[nodiscard]] constexpr bool automationStripParameterIdIsValid (AutomationTargetRole role, std::uint32_t paramId) noexcept
 {
     switch (role)
@@ -843,6 +862,9 @@ struct Project
     // N8: persisted punch region (schema v17, locate-points pattern: a missing row means
     // disabled, the historical no-punch default).
     PunchRegion punchRegion;
+    // R3: persisted transport loop region (schema v18, locate-points pattern: a missing row
+    // means disabled — not undoable, exactly like locate points).
+    LoopRegion loopRegion;
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {

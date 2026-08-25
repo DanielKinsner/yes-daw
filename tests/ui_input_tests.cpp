@@ -7546,7 +7546,8 @@ TEST_CASE ("editing while playing keeps the transport rolling with the loop and 
         REQUIRE (afterUndo.playbackLoopEndFrame == loopEnd);
     }
 
-    // Negative control: OPENING a project still resets the transport honestly.
+    // Negative control: OPENING a project still resets the TRANSPORT honestly — stopped at
+    // zero — while the loop region (Project state since R3) comes back exactly as saved.
     MainComponentFileChoices openChoices;
     openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
     auto reopened = makeShell (std::move (openChoices));
@@ -7555,7 +7556,80 @@ TEST_CASE ("editing while playing keeps the transport rolling with the loop and 
         const MainComponentSnapshot fresh = snapshotMainComponent (*reopened);
         REQUIRE_FALSE (fresh.context.isPlaying);
         REQUIRE (fresh.context.playheadFrame == 0);
-        REQUIRE_FALSE (fresh.context.loopEnabled);
+        REQUIRE (fresh.context.loopEnabled);
+        REQUIRE (fresh.playbackLoopStartFrame == loopStart);
+        REQUIRE (fresh.playbackLoopEndFrame == loopEnd);
+    }
+}
+
+TEST_CASE ("the loop region survives close and reopen, and clearing it persists too",
+           "[ui][input][shell][loop-persists]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("loop-persists");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    std::int64_t loopStart = 0;
+    std::int64_t loopEnd = 0;
+
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+        const juce::Point<int> rulerZero =
+            projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), imported, 0);
+        // Ctrl inverts the snap (E4): raw endpoints on the shorter-than-a-bar fixture.
+        dragFromTo (timeline, { rulerZero.x + 10, rulerZero.y }, { rulerZero.x + 90, rulerZero.y },
+                    juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                        | juce::ModifierKeys::shiftModifier
+                                        | juce::ModifierKeys::ctrlModifier));
+        const MainComponentSnapshot withLoop = snapshotMainComponent (*shell);
+        REQUIRE (withLoop.context.loopEnabled);
+        loopStart = withLoop.playbackLoopStartFrame;
+        loopEnd = withLoop.playbackLoopEndFrame;
+        REQUIRE (loopEnd > loopStart);
+    }
+
+    // REOPEN in a fresh shell: the loop comes back exactly, armed on a stopped transport.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto shell = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+        const MainComponentSnapshot fresh = snapshotMainComponent (*shell);
+        REQUIRE (fresh.context.loopEnabled);
+        REQUIRE (fresh.playbackLoopStartFrame == loopStart);
+        REQUIRE (fresh.playbackLoopEndFrame == loopEnd);
+        REQUIRE_FALSE (fresh.context.isPlaying);
+        REQUIRE (fresh.context.playheadFrame == 0);
+
+        // Clearing the loop through the real toggle persists the cleared state (missing row).
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportToggleLoop));
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.loopEnabled);
+        REQUIRE_FALSE (readProjectSnapshot (bundlePath).loopRegion.enabled);
+    }
+
+    // A second reopen honors the cleared loop; re-enabling through the toggle persists the
+    // whole-project loop the toggle law creates.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto shell = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.loopEnabled);
+
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportToggleLoop));
+        const MainComponentSnapshot toggled = snapshotMainComponent (*shell);
+        REQUIRE (toggled.context.loopEnabled);
+        const yesdaw::engine::LoopRegion stored = readProjectSnapshot (bundlePath).loopRegion;
+        REQUIRE (stored.enabled);
+        REQUIRE (stored.startFrame == toggled.playbackLoopStartFrame);
+        REQUIRE (stored.endFrame == toggled.playbackLoopEndFrame);
     }
 }
 
@@ -8797,7 +8871,6 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
     const yesdaw::engine::Clip baseClip = original.clips.front();
-    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     const MainComponentSnapshot base = snapshotMainComponent (*shell);
     REQUIRE (base.context.snapEnabled);
@@ -8867,7 +8940,16 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.playbackLoopStartFrame == rawTickAtX (rawFromX));
     REQUIRE (snapshot.playbackLoopEndFrame == rawTickAtX (rawToX));
-    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    // R3 re-pin: loop drags persist now — the stored region tracks the live loop exactly,
+    // and nothing else in the project changed.
+    {
+        const yesdaw::engine::Project afterLoop = readProjectSnapshot (bundlePath);
+        REQUIRE (afterLoop.loopRegion.enabled);
+        REQUIRE (afterLoop.loopRegion.startFrame == snapshot.playbackLoopStartFrame);
+        REQUIRE (afterLoop.loopRegion.endFrame == snapshot.playbackLoopEndFrame);
+        REQUIRE (afterLoop.clips == original.clips);
+    }
+    const std::vector<std::uint8_t> persistedAfterLoop = readBytes (bundlePath / "project.db");
 
     // RANGE drag on the ruler: endpoints snap while the mouse-down locate stays raw.
     dragFromTo (timeline, { loopFromX, rulerY }, { loopToX, rulerY });
@@ -8880,7 +8962,8 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.timelineRangeStartFrame == rawTickAtX (rawFromX));
     REQUIRE (snapshot.timelineRangeEndFrame == rawTickAtX (rawToX));
-    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    // The RANGE stays honestly transient (compared against the post-loop baseline).
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedAfterLoop);
 
     // TRIM RIGHT: snap-on lands the snapped end outside the legal window -> honest refusal;
     // Ctrl inverts and the raw target trims exactly.
@@ -9081,7 +9164,6 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
-    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
     const double sampleRateHz = project.sampleRate.hz;
 
     const MainComponentSnapshot base = snapshotMainComponent (*shell);
@@ -9184,10 +9266,12 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
     }
     REQUIRE (snapshot.playbackLoopStartFrame == 0);
 
-    // Escape cancels an in-flight brace drag without committing.
+    // Escape cancels an in-flight brace drag without committing — R3: the loop persists now,
+    // so "without committing" is pinned as byte-identical against the post-commit baseline.
     rects = braceRects();
     REQUIRE (rects.valid);
     const long long endBeforeCancel = snapshot.playbackLoopEndFrame;
+    const std::vector<std::uint8_t> persistedAfterCommits = readBytes (bundlePath / "project.db");
     beginDragFromTo (timeline, rects.endHandle.getCentre(),
                      { xAtTick (grid / 2), rects.endHandle.getCentreY() });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
@@ -9195,6 +9279,7 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
                    { xAtTick (grid / 2), rects.endHandle.getCentreY() });
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.playbackLoopEndFrame == endBeforeCancel);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedAfterCommits);
 
     // A plain ruler press below the brace band still locates and leaves the loop alone.
     const juce::Point<int> locatePoint { xAtTick (grid / 2), rulerY };
@@ -9205,9 +9290,16 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
     REQUIRE (snapshot.context.playheadFrame > 0);
     REQUIRE (snapshot.playbackLoopEndFrame == endBeforeCancel);
     REQUIRE (snapshot.playbackLoopStartFrame == 0);
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedAfterCommits);
 
-    // The loop brace is honestly transient transport state.
-    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    // R3 re-pin: the loop brace is Project state now — the stored region matches the live
+    // transport exactly after every committed brace edit.
+    {
+        const yesdaw::engine::LoopRegion stored = readProjectSnapshot (bundlePath).loopRegion;
+        REQUIRE (stored.enabled);
+        REQUIRE (stored.startFrame == snapshot.playbackLoopStartFrame);
+        REQUIRE (stored.endFrame == snapshot.playbackLoopEndFrame);
+    }
 }
 
 TEST_CASE ("markers drag-move on the ruler and rename inline, all undoable",
@@ -12381,7 +12473,6 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
-    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
     REQUIRE (project.clips.size() == 1u);
 
     // Shift+L with no range selection is an honest disabled no-op.
@@ -12466,7 +12557,10 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     REQUIRE (peakAbs (std::span<const float> (sliced.interleavedSamples.data(),
                                               sliced.interleavedSamples.size())) > 0.01);
 
-    // A plain ruler click collapses the range; the loop region it created stays.
+    // A plain ruler click collapses the range; the loop region it created stays. R3: the
+    // Shift+L conversion persisted the loop, so range transience is pinned against the
+    // post-conversion baseline instead of the original bytes.
+    const std::vector<std::uint8_t> persistedAfterConvert = readBytes (bundlePath / "project.db");
     mouseDownAt (timeline, quarterPoint);
     releaseDragAt (timeline, quarterPoint, quarterPoint);
     snapshot = snapshotMainComponent (*shell);
@@ -12477,8 +12571,15 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     REQUIRE (snapshot.playbackLoopStartFrame == rangeStart);
     REQUIRE (snapshot.playbackLoopEndFrame == rangeEnd);
 
-    // The range selection is honestly transient: project.db never changed.
-    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    // The range selection is honestly transient: project.db unchanged since the conversion —
+    // and the converted loop is stored exactly as the live transport reports it.
+    REQUIRE (readBytes (bundlePath / "project.db") == persistedAfterConvert);
+    {
+        const yesdaw::engine::LoopRegion stored = readProjectSnapshot (bundlePath).loopRegion;
+        REQUIRE (stored.enabled);
+        REQUIRE (stored.startFrame == rangeStart);
+        REQUIRE (stored.endFrame == rangeEnd);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

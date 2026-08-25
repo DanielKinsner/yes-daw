@@ -3622,6 +3622,8 @@ public:
         drainTransport (*playback_);
         refreshTransportSnapshot();
         context_.loopEnabled = true;
+        if (! persistLoopRegionFromPlayback())
+            return { id, { false, "loop region did not persist" }, false };
         ++context_.commandDispatchCount;
         return { id, state, true };
     }
@@ -5708,6 +5710,7 @@ public:
         enqueueWaveformBuildsForDecodedAssets();
 
         resetContextForFreshPlayback();
+        applyPersistedLoopRegionToPlayback();
         detectAutosaveRecoveryPrompt();
 
         result.status = UiAppLoadStatus::Ok;
@@ -5849,7 +5852,8 @@ public:
                 return convertTimelineRangeToLoop (id, state);
 
             case UiActionId::TransportToggleLoop:
-                return dispatchTransport (id, [this] {
+            {
+                const UiActionDispatchResult toggled = dispatchTransport (id, [this] {
                     if (playback_ == nullptr)
                         return false;
 
@@ -5862,6 +5866,10 @@ public:
 
                     return playback_->setLoop (0, static_cast<std::int64_t> (playback_->frames()));
                 });
+                if (toggled.dispatched && ! persistLoopRegionFromPlayback())
+                    return { id, { false, "loop region did not persist" }, false };
+                return toggled;
+            }
 
             case UiActionId::DeviceRefreshAudio:
                 return refreshAudioDevices();
@@ -7606,6 +7614,50 @@ private:
         return { id, { true, "" }, true };
     }
 
+    // R3: the loop region is Project state (schema v18, the locate-points law — persisted,
+    // not undoable, no engine rebuild: the live engine already carries the loop). Called after
+    // every successful loop transport change; a no-op when the stored region already matches.
+    [[nodiscard]] bool persistLoopRegionFromPlayback()
+    {
+        engine::LoopRegion next;
+        if (playback_ != nullptr && playback_->loopEnabled())
+        {
+            next.enabled = true;
+            next.startFrame = static_cast<engine::Tick> (playback_->loopStartFrame());
+            next.endFrame = static_cast<engine::Tick> (playback_->loopEndFrame());
+        }
+
+        if (next == project_.loopRegion)
+            return true;
+
+        engine::Project nextProject = project_;
+        nextProject.loopRegion = next;
+        if (bundleDb_.isOpen())
+        {
+            const persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return false;
+        }
+
+        project_ = std::move (nextProject);
+        return true;
+    }
+
+    // R3: on open, the persisted loop region arms the fresh engine — the transport stays
+    // stopped at zero (the open reset), with the loop exactly as saved. The reader already
+    // refused a degenerate stored region, so a setLoop refusal here only drops it honestly.
+    void applyPersistedLoopRegionToPlayback() noexcept
+    {
+        if (playback_ == nullptr || ! project_.loopRegion.enabled)
+            return;
+
+        if (! playback_->setLoop (project_.loopRegion.startFrame, project_.loopRegion.endFrame))
+            return;
+
+        drainTransport (*playback_);
+        syncContextFromPlayback();
+    }
+
     [[nodiscard]] bool stopPlaybackAtConfiguredPosition()
     {
         if (playback_ == nullptr || ! playback_->stop())
@@ -7672,6 +7724,8 @@ private:
         drainTransport (*playback_);
         syncContextFromPlayback();
         context_.loopEnabled = true;
+        if (! persistLoopRegionFromPlayback())
+            return { id, { false, "loop region did not persist" }, false };
         ++context_.commandDispatchCount;
         return { id, state, true };
     }
