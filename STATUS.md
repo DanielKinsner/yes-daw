@@ -8,6 +8,51 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-08-25 reality run (carved — ready for the loop)
+
+**Dan's call (2026-08-25):** he has no time to dogfood-test — the pre-authorized fallback
+(fresh adversarial audit carve) was exercised instead, and he ordered the parked edge-zone
+finding to the top of the new backlog. His dogfood session stays open as a future gate; his
+friction notes, whenever they arrive, get inserted at the top of the remaining backlog.
+
+**Carve evidence (2026-08-25):** four parallel adversarial code-path audits of current `main`
+(head `71827dc`) — arrangement/editing, mixer/FX/automation, the shipped recording path, and
+hardening/honesty — every finding verified in code with file:line (quoted in the backlog doc),
+not recycled from the 2026-08-12 carve. Headline: **all seven old mixer findings and the old
+recording-path findings are genuinely fixed and gated** (EQ pages, bus rename/sends, master
+fader, mixer undo, live bus meters; real device adoption, input choosers, audible monitoring,
+input meters, loop/punch/count-in, take chooser, MIDI note capture). The model layer is
+honest; the dishonesty has migrated to the shell boundary and two scope decisions:
+
+- **Every edit resets the transport** (`adoptEditedProject` → `resetContextForFreshPlayback`:
+  stop, playhead 0, loop gone) — "loop a chorus and tweak while it plays" is impossible; the
+  loop region isn't even project state, so it dies on save/reopen. Found independently by two
+  audits; the single biggest workflow trap.
+- **Solo breaks the moment routing exists** — solo a bus-routed vocal and the vocal goes
+  silent (the bus mutes); no solo-safe UI exists anywhere.
+- **The shell `(void)`-discards every failure result** — failed save/export/device-open look
+  identical to success; a missing asset makes a project open silently empty; a dropped
+  MP3/44.1 kHz stem imports wrong or vanishes wordlessly (`droppedFileRefusals` is
+  written-never-read dead state); import bypasses the undo stack (Ctrl+Z after import eats
+  the previous edit).
+- **Recording integrity holes:** the shipped Test Device / Refresh buttons stamp fake
+  provenance (`deviceStableId=1`, `latencyCalibrated=true`) onto real takes, and any keypress
+  during recording silently drops samples (the take is seamlessly time-shifted).
+
+**Backlog:** `docs/goals/2026-08-25-reality-run-backlog.md` — **R1–R34 in five phases**:
+first-session traps (R1–R9, starting with Dan's ordered R1 edge-zone fix), mixing a real song
+(R10–R17), editing depth (R18–R23), recording honesty (R24–R29), scale & polish (R30–R34).
+Parked (not items): the owner-machine loopback-cable hardware PASS, third-party plugin
+insertion in strips, FX presets, VCA groups, sample-rate conversion, streaming.
+
+**Brief:** `docs/goals/2026-08-25-reality-run-brief.md` — chains the proven 2026-08-11 loop
+protocol + 2026-08-12 visual-judgment mandate unchanged.
+
+**Now:** the carve is committed; the execution loop works the backlog strictly top-to-bottom
+starting at R1.
+**Next:** R1 — narrow clips must stay movable (clone the piano roll's E12 min-grab-width
+guard into the timeline's `dragModeForPointer`).
+
 ## 2026-08-12 editing-first parity run (in progress)
 
 Operating brief: `docs/goals/2026-08-12-editing-first-run-brief.md` (process rules chain to the
@@ -1382,13 +1427,9 @@ accepted, move to Phase 3" (2026-08-24).**
   move-drag is impossible until you zoom in. Real stems are minutes long so Dan may never hit
   it, but candidate fix: cap edge zones to a fraction of the painted clip width.
 
-**Now:** READY FOR DAN — his dogfood session (edit a real song) is the next gate. Everything
-is pushed; the run script is the entrypoint; friction notes go in
-`docs/dogfood/2026-08-24-dan-session-1.md`.
-
-**Next:** after Dan's session, his friction notes are the carve source for the next backlog —
-a NEW planning moment (not covered by the 2026-08-20 plan). If he's unavailable, the
-pre-authorized fallback is a fresh adversarial audit carve instead.
+**Now (superseded 2026-08-25):** Dan had no time to test; the pre-authorized fallback fired —
+see the "2026-08-25 reality run" section at the top of this file. His dogfood session
+(`docs/dogfood/2026-08-24-dan-session-1.md`) stays open as a future gate.
 
 **Long-horizon plan adopted (2026-08-20):**
 `docs/plans/2026-08-20-visual-parity-and-dogfood-execution-plan.md` — decision-complete, written
