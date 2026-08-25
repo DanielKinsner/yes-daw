@@ -83,8 +83,21 @@ collateral of the H12 red under `-j 6`, not a defect.
 Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
 `last-project.txt` present to isolate).
 
-**Now:** R1 committed; watching the exact-head nine-job CI run.
-**Next:** R2 — the transport survives edits.
+R1 is certified: exact-head GitHub Actions run `32869090850` is green for full SHA
+`69c4ade8980ed71854aba8205cf7cf89329f97a4` across all nine jobs, first try. R1 is ticked in
+the reality-run backlog.
+
+**Now:** R2 — the transport survives edits. Audit done: every mutation funnels through
+`adoptEditedProject` → `resetContextForFreshPlayback()`; the fix captures the old engine's
+transport (isPlaying/playhead/loop/rate) before the swap and restores it onto the rebuilt
+engine through the existing post→`drainTransport`→`syncContextFromPlayback` pattern
+(`locatePlaybackFrame` is the canonical flow). `locate`/`setLoop` refuse only degenerate
+inputs, so the restore preserves the exact old position honestly. Scope: `adoptEditedProject`
++ `adoptEditedProjectWithoutPlaybackRebuild` only — project open/reopen, record-commit, and
+import keep the reset (import inherits the law when R8 routes it through the stack). A triage
+of the ~15 `playheadFrame == 0` test pins (post-edit vs post-open) is in flight; post-edit
+ones get re-pinned stronger, never weakened.
+**Next:** R2 implementation + `[transport-survives-edits]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

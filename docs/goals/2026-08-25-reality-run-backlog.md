@@ -49,7 +49,8 @@ migration gate, following the locate-points pattern.
 
 Near-certain hits the moment a real song replaces the fixture-shaped happy path.
 
-- [ ] **R1 — narrow clips must stay movable (edge-zone cap).** Dan-ordered top item; the
+- [x] **R1 — narrow clips must stay movable (edge-zone cap).** *(certified: feature `69c4ade`,
+  nine-job CI run `32869090850` green first try, local 355/355)* Dan-ordered top item; the
   parked HONEST FINDING from the dogfood-readiness walk. `dragModeForPointer`
   (`src/ui/MainComponent.cpp:1277-1323`) applies ±8 px trim zones
   (`timelineClipEdgeHitWidth = 8`, `UiTheme.h:710`) unconditionally, so a clip painted under
