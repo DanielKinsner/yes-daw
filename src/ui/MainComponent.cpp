@@ -369,34 +369,63 @@ std::optional<yesdaw::ui::UiDecodedAsset> decodeProjectWav (const std::filesyste
     return decoded;
 }
 
-std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> decodeStoredProjectAssets (
-    const std::filesystem::path& bundlePath)
+// R5: the three ways a stored project can fail to open are distinct facts the user needs —
+// never collapsed into one silent nullopt. `failureReason` is set exactly when `assets` is
+// empty-optional, and names the first bad audio file where one is the cause.
+struct StoredProjectAssetsResult
 {
+    std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> assets;
+    std::string failureReason;
+};
+
+StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesystem::path& bundlePath)
+{
+    StoredProjectAssetsResult out;
+
     yesdaw::persistence::ProjectBundleDb db;
-    if (! yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db).ok())
-        return std::nullopt;
+    const yesdaw::persistence::BundleResult opened =
+        yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db);
+    if (! opened.ok())
+    {
+        // The bundle layer's own message is the most precise fact available — e.g.
+        // "committed asset bytes are missing: <path>" from the open-time integrity check.
+        out.failureReason = opened.message.empty() ? "the project file could not be opened"
+                                                   : opened.message;
+        return out;
+    }
 
     yesdaw::engine::Project project;
-    if (! db.readProjectSnapshot (project).ok())
-        return std::nullopt;
+    const yesdaw::persistence::BundleResult read = db.readProjectSnapshot (project);
+    if (! read.ok())
+    {
+        out.failureReason = read.message.empty() ? "the project data is invalid or corrupt"
+                                                 : read.message;
+        return out;
+    }
 
     std::vector<yesdaw::ui::UiDecodedAsset> decodedAssets;
     decodedAssets.reserve (project.assets.size());
     for (const yesdaw::engine::Asset& asset : project.assets)
     {
-        auto decoded = decodeProjectWav (
-            yesdaw::persistence::storedAssetPathForHash (bundlePath, asset.contentHash));
+        const std::filesystem::path assetPath =
+            yesdaw::persistence::storedAssetPathForHash (bundlePath, asset.contentHash);
+        auto decoded = decodeProjectWav (assetPath);
         if (! decoded
             || decoded->frames != asset.frames
             || decoded->sampleRate != asset.sampleRate
             || decoded->channels != asset.channels)
-            return std::nullopt;
+        {
+            out.failureReason =
+                "missing or corrupt audio file: " + assetPath.filename().string();
+            return out;
+        }
 
         decoded->assetId = asset.id;
         decodedAssets.push_back (std::move (*decoded));
     }
 
-    return decodedAssets;
+    out.assets = std::move (decodedAssets);
+    return out;
 }
 
 } // namespace
@@ -3976,13 +4005,20 @@ public:
             const std::filesystem::path lastProject = appModel.readLastProjectRecord();
             if (! lastProject.empty())
             {
-                if (auto decodedAssets = decodeStoredProjectAssets (lastProject); decodedAssets && ! decodedAssets->empty())
+                const StoredProjectAssetsResult stored = decodeStoredProjectAssets (lastProject);
+                if (stored.assets && ! stored.assets->empty())
                     (void) appModel.loadProjectBundle (
                         lastProject,
                         std::span<const yesdaw::ui::UiDecodedAsset> (
-                            decodedAssets->data(), decodedAssets->size()));
-                else if (decodedAssets)
+                            stored.assets->data(), stored.assets->size()));
+                else if (stored.assets)
                     (void) appModel.openProjectBundle (lastProject);
+                else
+                    // R5: the last project failing to reopen is a fact, not a shrug.
+                    appModel.reportStatus (
+                        "Open failed: " + stored.failureReason
+                            + " (" + lastProject.filename().string() + ")",
+                        true);
             }
 
             // Request stereo input so the shipped Record button can capture real audio (P0-1); fall
@@ -6430,13 +6466,21 @@ private:
     // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
     void openProjectBundleAtPath (const std::filesystem::path& path)
     {
-        if (auto decodedAssets = decodeStoredProjectAssets (path); decodedAssets && ! decodedAssets->empty())
+        const StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
+        if (stored.assets && ! stored.assets->empty())
             (void) appModel.loadProjectBundle (
                 path,
                 std::span<const yesdaw::ui::UiDecodedAsset> (
-                    decodedAssets->data(), decodedAssets->size()));
-        else if (decodedAssets)
+                    stored.assets->data(), stored.assets->size()));
+        else if (stored.assets)
             (void) appModel.openProjectBundle (path);
+        else
+            // R5: a project that cannot open says WHY (naming the bad audio file when one is
+            // the cause) and refuses to half-open — the shell state stays untouched.
+            appModel.reportStatus (
+                "Open failed: " + stored.failureReason
+                    + " (" + path.filename().string() + ")",
+                true);
     }
 
     // V3: the always-on bottom dock's height — 0 collapses it entirely, reclaiming the space for

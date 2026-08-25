@@ -7717,6 +7717,68 @@ TEST_CASE ("the status line reports failures, stays quiet on success, and decays
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("opening a project with a missing audio file reports the file and refuses to half-open",
+           "[ui][input][shell][missing-asset-open]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("missing-asset-open");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+
+    const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+    REQUIRE (seeded.assets.size() == 1u);
+    const std::filesystem::path assetPath = yesdaw::persistence::storedAssetPathForHash (
+        bundlePath, seeded.assets.front().contentHash);
+    REQUIRE (std::filesystem::exists (assetPath));
+
+    // Break the bundle exactly the way a moved/renamed file does: the audio file vanishes.
+    const std::vector<std::uint8_t> assetBytes = readBytes (assetPath);
+    std::filesystem::remove (assetPath);
+
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto shell = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        // The open refuses whole — no half-loaded project…
+        REQUIRE_FALSE (snapshot.context.projectLoaded);
+        REQUIRE (snapshot.visibleTimelineClipCount == 0);
+        // …and SAYS SO, naming the missing file.
+        CAPTURE (snapshot.statusLineText, assetPath.filename().string());
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("Open failed") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (assetPath.filename().string()) != std::string::npos);
+    }
+
+    // Restore the audio bytes: the same open succeeds quietly with the full project.
+    {
+        std::ofstream restored (assetPath, std::ios::binary);
+        restored.write (reinterpret_cast<const char*> (assetBytes.data()),
+                        static_cast<std::streamsize> (assetBytes.size()));
+    }
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto shell = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.context.projectLoaded);
+        REQUIRE (snapshot.visibleTimelineClipCount == 1);
+        REQUIRE (snapshot.statusLineText.empty());
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip", "[ui][input][shell][clipboard]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("clip-clipboard");

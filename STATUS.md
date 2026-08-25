@@ -220,7 +220,33 @@ shape: a decode-result struct carrying a failure reason that names the first bad
 both call sites report "Open failed: …" through R4's status line while still refusing to
 half-open. Gate: import → close → delete the stored asset file → reopen paints the reason
 naming the file, loads nothing; restore the bytes → reopens clean and quiet.
-**Next:** R5 implementation + `[missing-asset-open]` gate.
+**R5 implementation candidate — a missing or corrupt asset on open is reported, never
+silent:** audited before changing: `decodeStoredProjectAssets` collapsed every failure into
+one silent `nullopt` and both callers (File>Open/Open-Recent via `openProjectBundleAtPath`,
+and the startup auto-open of the last project) skipped both branches wordlessly — the app
+sat empty with no explanation. Shipped: the decoder returns a
+`StoredProjectAssetsResult { assets, failureReason }`; the reason PREFERS the bundle layer's
+own message (implementation discovery: `openExistingBundle` already runs an open-time
+integrity check, `verifyAssetFile`, that refuses a bundle with a missing/mismatched audio
+file and names it precisely — "committed asset bytes are missing: <path>" — so the per-asset
+decode branch is defense-in-depth for a frames/rate/channels row mismatch, and the missing-
+file fact flows from the layer that actually knows it). Both call sites now report
+"Open failed: <reason> (<bundle name>)" through R4's status line while still refusing to
+half-open — shell state untouched.
+
+`[missing-asset-open]` (43 assertions): import → close → delete the stored `.asset` file →
+reopen in a fresh shell REFUSES whole (no project loaded, zero clips) AND paints the error
+naming the missing file's hash filename; restoring the exact bytes makes the same open
+succeed quietly with the full project. **Red before, proven separately**: with the
+open-failure report neutered the gate failed exactly the painted-status assertion (29 prior
+assertions green — the refuse-to-half-open law holds in both worlds; the reporting is the
+new law). Gate-authoring found one honest surprise first: deleting the asset fails the
+BUNDLE OPEN (the open-time integrity check), not the per-asset decode — the first gate draft
+asserted the wrong branch's message and was corrected to assert the precise bundle-layer
+fact.
+
+**Now:** R5 full local suite running; commit + nine-job CI next.
+**Next:** R6 — import refusals are painted; `droppedFileRefusals` stops being dead state.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
