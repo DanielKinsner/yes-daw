@@ -207,9 +207,20 @@ per path**: with the create-site report neutered the gate failed exactly the cre
 assertion; restored, with the export write-failure report neutered it failed exactly the
 export painted assertion (187 prior assertions green); both restored.
 
-**Now:** R4 full local suite running; commit + nine-job CI next.
-**Next:** R5 — a missing or corrupt asset on open is reported, never silent (paints through
-R4's surface).
+R4 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32876060409` is green for full SHA
+`73a5d1f9168411a7719c644c9ddeec048f95dfac` across all nine jobs, first try. R4 is ticked in
+the reality-run backlog.
+
+**Now:** R5 — a missing or corrupt asset on open is reported, never silent. Audit done:
+`decodeStoredProjectAssets` collapses three distinct failures (bundle unopenable, snapshot
+invalid, per-asset missing/mismatched) into one silent `nullopt`, and both callers
+(`openProjectBundleAtPath` and the startup auto-open) skip both branches wordlessly. Fix
+shape: a decode-result struct carrying a failure reason that names the first bad asset file;
+both call sites report "Open failed: …" through R4's status line while still refusing to
+half-open. Gate: import → close → delete the stored asset file → reopen paints the reason
+naming the file, loads nothing; restore the bytes → reopens clean and quiet.
+**Next:** R5 implementation + `[missing-asset-open]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -81,7 +81,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   dies on save/reopen (and, pre-R2, on every edit). Persist loop enabled + range in Project
   with an additive schema bump + migration gate (locate-points pattern); reopen restores it.
   Out of scope: multiple loop/cycle memories.
-- [ ] **R4 — a shared status surface; the shell stops discarding results.** The model layer
+- [x] **R4 — a shared status surface; the shell stops discarding results.** *(certified:
+  feature `73a5d1f`, nine-job CI run `32876060409` green first try, local 356/356)* The model layer
   returns typed statuses and refusal strings; the shell `(void)`-discards every one: save
   (`MainComponent.cpp:7423`, dispatch path `UiAppModel.h:5743-5745`), create (:7372), export
   (:7393), autosave tick (:4051), `audioDeviceError` (:4133-4136), failed startup device
