@@ -380,8 +380,25 @@ gate: the two wiring lines ride JUCE's own tested contract, which is not reachab
 headlessly — the wiring is audited, the policy is pinned. This closes PHASE 1 of the
 reality-run backlog (all nine first-session traps).
 
-**Now:** R9 full local suite running; commit + nine-job CI next.
-**Next:** R10 — solo must not silence the soloed signal's own path (Phase 2 opens).
+R9 is certified: full local ctest green **356/356**. Exact-head GitHub Actions run
+`32884379498` is green for full SHA `5f9b21d` across all nine jobs, first try. R9 is ticked.
+
+**PHASE 1 OF THE REALITY RUN IS COMPLETE (R1–R9, all certified, 2026-08-25):** narrow clips
+move, the transport survives edits, the loop is project state, failures paint their reasons,
+broken projects name their missing file, refused imports are named, wrong-rate audio is
+refused with the fact, imports are undoable (and record commits clear for real), and only
+one instance can hold a project. Nine items, nine first-try nine-job CI greens, every law
+red-before-proven.
+
+**Now:** R10 — solo must not silence the soloed signal's own path (Phase 2 opens). Audit
+done: `soloSafe` is already first-class in the scalar-strip undo commands and the mute-mask
+law is correct — the gaps are the AddBus verb leaving `soloSafe` false and no action/control
+ever flipping it. Plan: new buses default solo-safe in the AddBus verb (Logic law); a
+`MixerTargetToggleSoloSafe` action rides `editSelectedScalarStrip`; Ctrl+click on the strip
+solo button is the gesture; solo-safe paints distinctly; the gate proves the headline — solo
+a bus-routed track and it STAYS audible, solo a sent track and the return stays audible,
+toggling solo-safe off restores the mask, undo covers the toggle.
+**Next:** R10 implementation + `[solo-safe]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

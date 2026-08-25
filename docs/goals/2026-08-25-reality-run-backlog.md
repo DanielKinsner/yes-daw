@@ -134,7 +134,9 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   via R4) — never silently eat an older edit. Gate: import, Ctrl+Z → the import reverts and
   the prior edit stays; redo restores. Out of scope: undoing the asset file write itself
   (bundle GC is a future carve).
-- [ ] **R9 — two instances can no longer clobber one project.** No
+- [x] **R9 — two instances can no longer clobber one project.** *(certified: feature
+  `5f9b21d`, nine-job CI run `32884379498` green first try, local 356/356 — PHASE 1
+  COMPLETE)* No
   `moreThanOneInstanceAllowed` override in `src/Main.cpp`, no `InterProcessLock` anywhere;
   WAL + busy-timeout (`ProjectBundle.h:1487,1499`) lets concurrent writers both "succeed",
   every edit writes a full snapshot, and both instances auto-open the same last project —
