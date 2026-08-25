@@ -359,8 +359,18 @@ A file-wide sweep found no other `REQUIRE_FALSE(canUndo)` pins in the shell gate
 app_smoke multi-track-commit pin now holds FOR REAL via the R8 clear (its comment's "same
 law as an import" claim was corrected — imports are undo steps now).
 
-**Now:** R8 full local suite running; commit + nine-job CI next.
-**Next:** R9 — two instances can no longer clobber one project.
+R8 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32883228997` is green for full SHA `951c018` across
+all nine jobs, first try. R8 is ticked in the reality-run backlog.
+
+**Now:** R9 — two instances can no longer clobber one project. Audit done: `Main.cpp` is a
+68-line shell with no `moreThanOneInstanceAllowed` override. Plan: override it false (JUCE's
+named-mutex single-instance machinery, keyed by the app name, hands the second launch to the
+first instance, which fronts its window via `anotherInstanceStarted`); the policy value lives
+in a testable `shellAllowsMultipleInstances()` seam the gate pins. Honestly scoped: the gate
+pins the POLICY constant and the two Main.cpp wiring lines are auditable — the OS-level mutex
+plumbing is JUCE's own tested contract, not reachable headlessly.
+**Next:** R9 implementation + policy gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

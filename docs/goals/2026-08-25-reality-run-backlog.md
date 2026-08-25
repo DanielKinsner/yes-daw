@@ -123,7 +123,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   ≠ 48 kHz. Gate: import a 44.1 k fixture → refused with message, project untouched;
   harness device at 44.1 k → warning painted. Out of scope: actual sample-rate conversion
   (its own future slice; never a silent hack — `UiAppModel.h:1338`'s law stands).
-- [ ] **R8 — import is undoable.** `addAudioAssetClipFromSource` (`UiAppModel.h:1804-1886`)
+- [x] **R8 — import is undoable.** *(certified: feature `951c018`, nine-job CI run
+  `32883228997` green first try, local 356/356)* `addAudioAssetClipFromSource` (`UiAppModel.h:1804-1886`)
   and the record commit (:1614-1629) bypass `undo_.apply` (the dead `context_.canUndo=false`
   lines are recomputed away by `syncProjectEditContext`, :7094) — Ctrl+Z after an import
   leaves the clip and reverts the user's PREVIOUS edit instead. These are the only two
