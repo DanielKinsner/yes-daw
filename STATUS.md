@@ -314,8 +314,23 @@ tooling note: an `if (false && …)` neuter does not compile here (warnings-as-e
 the constant conditional) and the stale binary ran green — caught by reading the build
 output; the comment-out neuter is the honest method on this codebase.
 
-**Now:** R7 full local suite running; commit + nine-job CI next.
-**Next:** R8 — import is undoable.
+R7 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32881100596` is green for full SHA
+`8c2e751` across all nine jobs, first try. R7 is ticked in the reality-run backlog.
+
+**Now:** R8 — import is undoable. Audit done: the import verb bypasses the undo stack (its
+`context_.canUndo = false` lines are dead — `syncProjectEditContext` recomputes from the
+stack, so Ctrl+Z after an import reverts the user's PREVIOUS edit); the two record-commit
+paths have the same dead lines, and the M10 comment's "clears the undo stack" claim was
+never true and never pinned. Plan: the import's clip rides `nextUndo.apply(addClip)` and the
+tail routes through `adoptEditedProject` (undoable + inherits R2's transport preservation;
+the asset ROW stays outside the transaction — inert without clips, mirroring the asset file
+staying in the bundle); the record commits clear the stack FOR REAL (`undo_ = {}`) as their
+comments claim; each dropped file is its own undo step (the "ONE undo group" comment claim
+gets corrected). Genuine TDD reds — no neuters needed: `[import-undo]` (import → edit →
+import → Ctrl+Z removes the IMPORT, the edit stays) and an app_smoke record-commit clear
+test both fail against current behavior.
+**Next:** R8 implementation + gates.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -112,7 +112,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   through R4's surface ("WAV only, stereo max: <name>"), clear per drop. Gate: drop a
   non-WAV via the harness, assert the message; drop a valid WAV, assert none. Out of scope:
   decoding new formats.
-- [ ] **R7 — sample-rate honesty: refuse what would play at the wrong speed.** Projects are
+- [x] **R7 — sample-rate honesty: refuse what would play at the wrong speed.** *(certified:
+  feature `8c2e751`, nine-job CI run `32881100596` green first try, local 356/356)* Projects are
   fixed 48 kHz (`UiAppModel.h:1144`) and there is deliberately no resampler (:1338), but
   `addAudioAssetClipFromSource` (:1766+) never compares `decoded.sampleRate` to the project
   rate — a 44.1 kHz stem imports silently and plays ~9 % fast; likewise the device side
