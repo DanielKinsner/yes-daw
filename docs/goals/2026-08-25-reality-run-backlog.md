@@ -75,7 +75,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   move, assert transport still playing, playhead ≥ pre-edit position, loop region intact.
   Re-pin the gates that document the reset (e.g. `ui_input_tests.cpp:10786`'s in-comment
   admission) to the new law. Out of scope: parameter changes without engine rebuild (R12).
-- [ ] **R3 — the loop region is project state.** The loop lives only in the replaced
+- [x] **R3 — the loop region is project state.** *(certified: feature `b2ddb1a`, nine-job CI
+  run `32873671818` green first try, local 356/356)* The loop lives only in the replaced
   `PlaybackEngine` — no loop field in `src/engine/Project.h` or `ProjectBundle.h` — so it
   dies on save/reopen (and, pre-R2, on every edit). Persist loop enabled + range in Project
   with an additive schema bump + migration gate (locate-points pattern); reopen restores it.

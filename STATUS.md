@@ -164,8 +164,19 @@ gate re-baselines after Shift+L and asserts the stored conversion; the R2 gate's
 negative control now proves the loop RESTORES while the transport still opens stopped at
 zero.
 
-**Now:** R3 full local suite running; commit + nine-job CI next.
-**Next:** R4 — a shared status surface; the shell stops discarding results.
+R3 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32873671818` is green for full SHA
+`b2ddb1a6eddfb429e6d0bfc826969047bfa3f24a` across all nine jobs, first try. R3 is ticked in
+the reality-run backlog.
+
+**Now:** R4 — the shared status surface. Audit done: the model's own save dispatch drops its
+refusal string, so reporting lives IN the model verbs (any caller benefits), with two shell
+wire-ins for shell-only knowledge; `audioDeviceError` fires on the device thread so it sets
+an atomic flag the UI timer promotes to a status message on the message thread; failure
+injection for the gate is clean (export/create into nonexistent directories via the existing
+choosers); a status Label satisfies the B40 tooltip walk via `setTooltip`; the H12
+child-count pin bumps 136→137.
+**Next:** R4 implementation + `[status-line]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
