@@ -398,7 +398,25 @@ ever flipping it. Plan: new buses default solo-safe in the AddBus verb (Logic la
 solo button is the gesture; solo-safe paints distinctly; the gate proves the headline — solo
 a bus-routed track and it STAYS audible, solo a sent track and the return stays audible,
 toggling solo-safe off restores the mask, undo covers the toggle.
-**Next:** R10 implementation + `[solo-safe]` gate.
+**R10 implementation candidate — solo never silences its own path:** shipped three laws.
+(1) NEW buses are born solo-safe — one line in the AddBus verb (the Logic law), persisted and
+replay-deterministic; existing projects' buses keep their stored flag and can be flipped by
+(2) the new `MixerTargetToggleSoloSafe` action (descriptor at table END with the free
+`Ctrl+Alt+Shift+S` chord, both exhaustive switches, the registry mixer-edit context group,
+and a REAL dispatch case — unlike the legacy payload-refusing mixer-target group, the chord
+works) riding `editSelectedScalarStrip`, whose scalar diff already carried `soloSafe`
+first-class; and (3) a real labelled "Safe" toggle button beside Solo/Mute on its own
+utility row (configureActionComponent gives it the B40 tooltip + a11y identity; toggle state
+paints the selected strip's flag; H12 child pin 137→138). `[solo-safe]` (123 assertions), an
+audible-proof gate: a new bus is born safe; the one track routes through it via the real
+output chooser; soloing the track keeps the render AUDIBLE (the headline — before R10 this
+was silence); clicking Safe on the bus strip removes the protection and the SAME solo now
+renders provable silence; one undo restores the flag and the audio. **Red before, proven
+separately per law**: the AddBus default neutered failed exactly born-safe; the toggle
+neutered failed exactly the persisted-false assertion (85 prior assertions green).
+
+**Now:** R10 full local suite running; commit + nine-job CI next.
+**Next:** R11 — the master strip grows a real FX chain.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

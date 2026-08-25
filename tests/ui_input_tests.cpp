@@ -1029,8 +1029,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // chooser + the N5 automation mode chooser + the V3 mixer dock toggle + the V7 inspector
     // CLIP/TRACK tab buttons + the V8 zoom cluster (two steppers and the readout label) —
     // bumped deliberately.
-    // R4 bumped the deliberate child-count pin for the status line label (136 -> 137).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 137u));
+    // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
+    // solo-safe button (137 -> 138).
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 138u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -7780,6 +7781,77 @@ TEST_CASE ("refused imports are named on the status line while good files still 
 
     std::error_code ec;
     std::filesystem::remove (fakeMp3Path, ec);
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("solo never silences the soloed signal's own path through a bus",
+           "[ui][input][shell][solo-safe]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("solo-safe");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+
+    // R10 law 1: a NEW bus is born solo-safe (the Logic law).
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.soloSafe);
+
+    // Route the one track through the bus.
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* outputChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "mixer.track.output"));
+    REQUIRE (outputChooser != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    outputChooser->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().outputBusId
+             == readProjectSnapshot (bundlePath).buses.front().id);
+
+    const auto renderFromStart = [&] {
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4096, 128);
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportStop));
+        return rendered;
+    };
+
+    const std::vector<float> baseline = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (baseline.data(), baseline.size())) > 0.01);
+
+    // R10 law 2: SOLO the bus-routed track — its own path through the SAFE bus stays audible.
+    // (Before R10 the un-safe bus muted under SIP and the soloed track went silent.)
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerTargetToggleSolo));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.soloed);
+    const std::vector<float> soloed = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (soloed.data(), soloed.size())) > 0.01);
+
+    // R10 law 3: the real Solo Safe toggle on the BUS strip removes the protection — the same
+    // solo now honestly silences the path — and one undo restores it.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
+    juce::Button& soloSafeButton = requireButtonForAction (*shell, UiActionId::MixerTargetToggleSoloSafe);
+    REQUIRE (soloSafeButton.isEnabled());
+    REQUIRE (soloSafeButton.getToggleState());   // painted state follows the safe bus
+    clickButton (soloSafeButton);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses.front().strip.soloSafe);
+    REQUIRE_FALSE (soloSafeButton.getToggleState());
+    const std::vector<float> unsafeSolo = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (unsafeSolo.data(), unsafeSolo.size())) < 1.0e-6);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.soloSafe);
+    const std::vector<float> restored = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (restored.data(), restored.size())) > 0.01);
+
+    std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
 

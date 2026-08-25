@@ -2965,6 +2965,20 @@ public:
         });
     }
 
+    // R10: solo-safe on the selected strip — the SIP mask never mutes a safe strip, so a
+    // solo elsewhere leaves it audible (returns and submix buses live here).
+    [[nodiscard]] UiActionDispatchResult toggleSelectedMixerSoloSafe()
+    {
+        const UiActionId id = UiActionId::MixerTargetToggleSoloSafe;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        return editSelectedScalarStrip (id, state, [] (engine::MixerStripState& strip) {
+            strip.soloSafe = ! strip.soloSafe;
+        });
+    }
+
     // Selected-track strip toggles (B28): the same persisted strip edit as the mixer controls, but
     // panel-preserving and targeted by Track id — the shell passes the selected rail row so the
     // Timeline stays in front and the mixer never opens.
@@ -6182,6 +6196,9 @@ public:
 
                 return { id, { false, "timeline edit payload required" }, false };
             }
+
+            case UiActionId::MixerTargetToggleSoloSafe:
+                return toggleSelectedMixerSoloSafe();
 
             case UiActionId::MixerTargetSetFader:
             case UiActionId::MixerTargetSetPan:

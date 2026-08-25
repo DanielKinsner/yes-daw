@@ -6050,6 +6050,27 @@ private:
             repaint();
         };
         addAndMakeVisible (mixerSolo);
+
+        // R10: solo-safe on the selected strip — a real labelled toggle, so the flag that
+        // decides whether a solo elsewhere silences this strip is visible and clickable.
+        configureActionComponent (mixerSoloSafe, yesdaw::ui::UiActionId::MixerTargetToggleSoloSafe,
+                                  "Mixer solo safe");
+        mixerSoloSafe.setButtonText ("Safe");
+        mixerSoloSafe.setColour (juce::TextButton::buttonColourId,
+                                 yesdaw::ui::UiTheme::Color::buttonSurface());
+        mixerSoloSafe.setColour (juce::TextButton::buttonOnColourId,
+                                 yesdaw::ui::UiTheme::Color::accentPurpleDeep());
+        mixerSoloSafe.setColour (juce::TextButton::textColourOffId, kText);
+        mixerSoloSafe.setColour (juce::TextButton::textColourOnId, kText);
+        mixerSoloSafe.onClick = [this] {
+            if (refreshingMixerControls || ! mixerSoloSafe.isEnabled())
+                return;
+
+            (void) appModel.toggleSelectedMixerSoloSafe();
+            refreshActionState();
+            repaint();
+        };
+        addAndMakeVisible (mixerSoloSafe);
     }
 
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
@@ -6855,6 +6876,10 @@ private:
                 mixerMute.setBounds ({});
             }
         }
+
+        // R10: solo-safe rides its own utility row below Solo/Mute.
+        (void) placeUtilityRow (mixerSoloSafe, yesdaw::ui::UiTheme::Layout::mixerUtilityHeight);
+        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
 
         (void) placeUtilityRow (mixerFxAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
@@ -8538,6 +8563,8 @@ private:
                                                            appModel.context()).enabled);
         mixerMute.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleMute,
                                                             appModel.context()).enabled);
+        mixerSoloSafe.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSoloSafe,
+                                                                appModel.context()).enabled);
         mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
                                                             appModel.context()).enabled);
         mixerMetersReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadMeters,
@@ -8584,6 +8611,7 @@ private:
             mixerPan.setValue (strip.pan, juce::dontSendNotification);
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
+            mixerSoloSafe.setToggleState (selected && strip.soloSafe, juce::dontSendNotification);
             mixerMetersReadout.setButtonText (mixerMetersReadoutText());
             mixerSendsReadout.setButtonText (mixerSendsReadoutText());
             mixerSendLevelEdit.setButtonText ("Send");
@@ -8607,6 +8635,7 @@ private:
                                juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
+            mixerSoloSafe.setToggleState (false, juce::dontSendNotification);
             mixerMetersReadout.setButtonText ("Meters");
             mixerSendsReadout.setButtonText ("Sends");
             mixerSendLevelEdit.setButtonText ("Set send");
@@ -11057,6 +11086,7 @@ private:
     // ToggleButton ignores the TextButton colour ids this code configures and paints a check box.
     juce::TextButton mixerMute;
     juce::TextButton mixerSolo;
+    juce::TextButton mixerSoloSafe;   // R10
     juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;

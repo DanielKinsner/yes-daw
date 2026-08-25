@@ -173,6 +173,9 @@ enum class UiActionId : std::uint8_t
     // V7: the right inspector's real CLIP/TRACK tabs (the painted tabs used to be decorative)
     InspectorShowClipTab,
     InspectorShowTrackTab,
+    // R10: solo-safe on the selected strip — a solo elsewhere never mutes a safe strip
+    // (buses default safe so a soloed bus-routed track stays audible through its bus).
+    MixerTargetToggleSoloSafe,
     Count
 };
 
@@ -681,7 +684,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::InspectorShowClipTab, "inspector.tab.clip", "Clip", "Ctrl+Alt+I", "Show the clip inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::InspectorShowTrackTab, "inspector.tab.track", "Track", "Ctrl+Alt+Shift+I", "Show the track inspector tab",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::MixerTargetToggleSoloSafe, "mixer.target.toggle_solo_safe", "Solo Safe", "Ctrl+Alt+Shift+S", "Toggle solo-safe on the selected mixer strip",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -1079,6 +1084,7 @@ public:
             case UiActionId::MixerTargetSetPan:
             case UiActionId::MixerTargetToggleMute:
             case UiActionId::MixerTargetToggleSolo:
+            case UiActionId::MixerTargetToggleSoloSafe:
             case UiActionId::MixerSetFirstSendLevel:
             case UiActionId::MixerToggleFirstFxSlotEnabled:
                 context.activePanel = UiPanel::Mixer;

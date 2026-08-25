@@ -1407,6 +1407,9 @@ namespace detail {
             Bus bus;
             bus.id = command.busId;
             bus.strip.name = std::string { command.trackName };
+            // R10: buses default SOLO-SAFE (the Logic law) — soloing a track routed to a bus,
+            // or a track with a send, must not silence its own path through that bus.
+            bus.strip.soloSafe = true;
             return addBus (project, bus);
         }
 
