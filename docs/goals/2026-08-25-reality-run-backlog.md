@@ -92,7 +92,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   service-timer decay. Gate: inject a failing save/export via the harness, assert the
   painted message; assert success paths stay quiet. Out of scope: a notification center /
   log window.
-- [ ] **R5 — a missing or corrupt asset on open is reported, never silent.**
+- [x] **R5 — a missing or corrupt asset on open is reported, never silent.** *(certified:
+  feature `ad4015d`, nine-job CI run `32877783205` green first try, local 356/356)*
   `openProjectBundleAtPath` (`MainComponent.cpp:6386-6395`) and the startup auto-open
   (:3968-3978) skip BOTH branches when `decodeStoredProjectAssets` returns `nullopt`
   (any missing/mismatched asset, :372-400) — the app sits empty with no explanation, on the

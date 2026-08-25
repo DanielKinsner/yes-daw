@@ -245,8 +245,19 @@ BUNDLE OPEN (the open-time integrity check), not the per-asset decode — the fi
 asserted the wrong branch's message and was corrected to assert the precise bundle-layer
 fact.
 
-**Now:** R5 full local suite running; commit + nine-job CI next.
-**Next:** R6 — import refusals are painted; `droppedFileRefusals` stops being dead state.
+R5 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32877783205` is green for full SHA
+`ad4015df18b4d6bbea242a7a8aff498bfb696c05` across all nine jobs, first try. R5 is ticked in
+the reality-run backlog.
+
+**Now:** R6 — import refusals are painted; `droppedFileRefusals` stops being dead state.
+Audit done: the drop path collects refusals into a write-only member vector (3 repo
+references, all writes) under a comment claiming they are "reported"; the Ctrl+I path
+discards decode refusals and the import result entirely. Fix: report refusals immediately
+through R4's status line ("Import refused (WAV only, stereo max): <names>"), delete the dead
+member, wire both paths; a mixed drop still imports the good files while naming the refused
+ones. Gate drives the real chooser and the M10 `FileDragAndDropTarget` drop pattern.
+**Next:** R6 implementation + `[import-refusal]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
