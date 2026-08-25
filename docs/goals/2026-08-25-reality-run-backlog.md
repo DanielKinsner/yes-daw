@@ -148,7 +148,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
 
 ## Phase 2 — mixing a real song (R10–R17)
 
-- [ ] **R10 — solo must not silence the soloed signal's own path.** Solo a vocal routed to a
+- [x] **R10 — solo must not silence the soloed signal's own path.** *(certified: feature
+  `6e75d9e`, nine-job CI run `32886357182` green first try, local 356/356)* Solo a vocal routed to a
   submix bus (M3 `outputBusId`) → the bus mutes → the vocal is SILENT; solo anything with a
   reverb send → the return dies. The SIP mask (`OfflineRenderer.h:441-465`,
   `MixerMutePolicy.h:52`) is correct, but buses are created `soloSafe=false`

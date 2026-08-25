@@ -415,8 +415,22 @@ renders provable silence; one undo restores the flag and the audio. **Red before
 separately per law**: the AddBus default neutered failed exactly born-safe; the toggle
 neutered failed exactly the persisted-false assertion (85 prior assertions green).
 
-**Now:** R10 full local suite running; commit + nine-job CI next.
-**Next:** R11 — the master strip grows a real FX chain.
+R10 is certified: full local ctest green **356/356**. Exact-head GitHub Actions run
+`32886357182` is green for full SHA `6e75d9e` across all nine jobs, first try. R10 is ticked.
+
+**Now:** R11 — the master strip grows a real FX chain. Audit done: master today is gain-only
+(`masterLinearGain` riding a FaderNode between `masterSum` and `MasterNode`); FX chains live
+STRUCTURALLY inside each strip (the DB `owner_entity` is only the read-time mapping key), and
+the fx_inserts validation unions reject only zero-blob owners — so a `Project::masterFxChain`
+under a reserved sentinel owner id needs NO schema bump. Plan: sentinel `kMasterFxOwnerId`;
+a master branch in the FX verb owner-resolution; `MixerTargetKind::Master` selection (the
+master lane already paints and hit-tests via `paintedMixerLaneBounds`) so the existing FX
+chooser / param pages / bypass / reorder / undo law reuses unchanged; graph wiring
+`masterSum → master FX nodes → masterFader` (pre-fader, matching the track/bus insert
+order); scalar strip edits refuse Master honestly (master has no pan/mute — the fader keeps
+its own E19 verb). Gate: audible render-parity proof — a Compressor/Limiter on master
+provably changes the offline render, param edit via the real panel, bypass, undo, reopen.
+**Next:** R11 implementation + `[master-fx]` gate.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
