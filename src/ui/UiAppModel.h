@@ -1242,6 +1242,26 @@ public:
         return recents;
     }
 
+    // R4: one shared status line — failure results stop being silently discarded. Failures
+    // report here (success stays quiet); the shell paints it and its UI timer decays it.
+    static constexpr int kStatusLineDecayTicks = 150;   // ~5 s at the shell's 33 ms tick
+    void reportStatus (std::string message, bool isError)
+    {
+        statusLineText_ = std::move (message);
+        statusLineIsError_ = isError;
+        statusLineTicksRemaining_ = kStatusLineDecayTicks;
+    }
+    void serviceStatusLineDecay() noexcept
+    {
+        if (statusLineTicksRemaining_ > 0 && --statusLineTicksRemaining_ == 0)
+        {
+            statusLineText_.clear();
+            statusLineIsError_ = false;
+        }
+    }
+    [[nodiscard]] const std::string& statusLineText() const noexcept { return statusLineText_; }
+    [[nodiscard]] bool statusLineIsError() const noexcept { return statusLineIsError_; }
+
     [[nodiscard]] persistence::BundleResult saveProjectBundle()
     {
         if (! bundleDb_.isOpen())
@@ -1364,6 +1384,7 @@ public:
         if (! rendered.ok())
         {
             context_.audioExportInProgress = false;
+            reportStatus ("Export failed: the project render failed", true);
             return { id, { false, "audio export render failed" }, false };
         }
 
@@ -1381,6 +1402,7 @@ public:
             if (loopStart < 0 || loopEnd <= loopStart)
             {
                 context_.audioExportInProgress = false;
+                reportStatus ("Export failed: loop range export needs a loop region or ruler range", true);
                 return { id, { false, "loop range export requires a loop region or ruler range selection" }, false };
             }
 
@@ -1391,6 +1413,7 @@ public:
             if (end <= start)
             {
                 context_.audioExportInProgress = false;
+                reportStatus ("Export failed: the loop range is outside the rendered project", true);
                 return { id, { false, "loop range is outside the rendered project" }, false };
             }
 
@@ -1410,6 +1433,7 @@ public:
         if (! written.ok())
         {
             context_.audioExportInProgress = false;
+            reportStatus ("Export failed: could not write " + destinationPath.filename().string(), true);
             return { id, { false, "audio export write failed" }, false };
         }
 
@@ -5746,6 +5770,8 @@ public:
             case UiActionId::ProjectSave:
             {
                 const persistence::BundleResult saved = saveProjectBundle();
+                if (! saved.ok())
+                    reportStatus ("Save failed: " + saved.message, true);
                 return { id, state, saved.ok() };
             }
 
@@ -8000,6 +8026,10 @@ private:
 
     UiActionRegistry registry_;
     UiActionContext context_;
+    // R4: the shared status line (see reportStatus above).
+    std::string statusLineText_;
+    bool statusLineIsError_ = false;
+    int statusLineTicksRemaining_ = 0;
     persistence::ProjectBundleDb bundleDb_;
     std::filesystem::path bundlePath_;
     engine::Project project_;

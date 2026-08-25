@@ -62,6 +62,9 @@ struct MainComponentSnapshot
     bool playbackReady = false;
     long long playbackLoopStartFrame = 0;
     long long playbackLoopEndFrame = 0;
+    // R4: the shared status line as the model reports it (empty = quiet).
+    std::string statusLineText;
+    bool statusLineIsError = false;
     long long timelineRangeStartFrame = -1;
     long long timelineRangeEndFrame = -1;
     double timelineZoomFactor = 1.0;

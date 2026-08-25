@@ -176,7 +176,40 @@ an atomic flag the UI timer promotes to a status message on the message thread; 
 injection for the gate is clean (export/create into nonexistent directories via the existing
 choosers); a status Label satisfies the B40 tooltip walk via `setTooltip`; the H12
 child-count pin bumps 136→137.
-**Next:** R4 implementation + `[status-line]` gate.
+**R4 implementation candidate — the shared status surface:** audited first: the model
+returns typed failures everywhere but the shell `(void)`-discards them (save, create,
+save-as, export, autosave tick, `audioDeviceError`, the soundless startup fallback). Shipped:
+`UiAppModel::reportStatus(message, isError)` + `serviceStatusLineDecay()` (150 ticks ≈ 5 s at
+the shell's 33 ms timer) + accessors; failure reporting placed where the reason strings live —
+inside the model for ProjectSave (`BundleResult.message`) and all four `exportAudioFile`
+failure exits, at the shell call sites for create (`created.message`), Save-As
+(`disabledReason`), the autosave tick, and the startup device-open failure ("No audio device
+could be opened: …"); `audioDeviceError` fires on the DEVICE thread so it only flips an
+atomic flag that the UI timer promotes to a message on the message thread. The shell paints
+one `shell.statusline` Label on the toolbar zoom row (new `statusLineBounds` law + gap/inset
+tokens in UiTheme; `dangerRed` for errors, muted for info; tooltip per B40; H12 child-count
+pin bumped 136→137), refreshed every timer tick; the snapshot exposes
+`statusLineText`/`statusLineIsError`. Success paths stay QUIET by design. Import refusals and
+the missing-asset open report are NOT wired yet — they are R6 and R5, painting through this
+surface. The line lives on the timeline toolbar row (V8's placement precedent), so it is
+visible on the default panel; promoting it to an always-visible slot is future polish, noted
+honestly.
+
+`[status-line]` (343 assertions): failure injection through the real choosers — a regular
+FILE as the parent path, so neither a bundle nor a wav can be created under it on any
+platform (the first attempt used a nonexistent directory and honestly failed: the model
+creates missing parent directories itself). The gate proves: a failed New Project paints
+"New project failed: …" as an error; the message survives one serviced timer tick and decays
+to empty through the serviced timer; a REAL create/import/export sequence stays quiet; a
+failed export write paints "Export failed: …" and the painted Label's text equals the model
+text after one service; and the error decays back to quiet. **Red before, proven separately
+per path**: with the create-site report neutered the gate failed exactly the create painted
+assertion; restored, with the export write-failure report neutered it failed exactly the
+export painted assertion (187 prior assertions green); both restored.
+
+**Now:** R4 full local suite running; commit + nine-job CI next.
+**Next:** R5 — a missing or corrupt asset on open is reported, never silent (paints through
+R4's surface).
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -3999,6 +3999,12 @@ public:
                 desktopAudioOpen.store (true, std::memory_order_release);
                 refreshAudioDeviceChooser();   // now the current device can be marked selected
             }
+            else
+            {
+                // R4: a soundless app must say why instead of sitting silent.
+                appModel.reportStatus (
+                    "No audio device could be opened: " + error.toStdString(), true);
+            }
         }
 
         // E34: open every MIDI input so played notes reach a live capture session (native
@@ -4043,6 +4049,12 @@ public:
         appModel.serviceRecordingCountIn();
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
+        // R4: promote a device-thread error flag to a status message, then decay and paint the
+        // shared status line from real model state.
+        if (deviceErrorPending.exchange (false, std::memory_order_acq_rel))
+            appModel.reportStatus ("Audio device error - output stopped", true);
+        appModel.serviceStatusLineDecay();
+        refreshStatusLine();
         updateTrackMeterHoldStates();
         pushWindowTitle();
         refreshActionState();
@@ -4056,8 +4068,19 @@ public:
         if (autosaveElapsedMs >= appModel.autosaveSchedule().intervalMs)
         {
             autosaveElapsedMs = 0;
-            (void) appModel.writeAutosaveTick();
+            const yesdaw::persistence::AutosaveResult ticked = appModel.writeAutosaveTick();
+            if (! ticked.ok())
+                appModel.reportStatus ("Autosave failed", true);
         }
+    }
+
+    void refreshStatusLine()
+    {
+        statusLine.setText (appModel.statusLineText(), juce::dontSendNotification);
+        statusLine.setColour (juce::Label::textColourId,
+                              appModel.statusLineIsError()
+                                  ? yesdaw::ui::UiTheme::Color::dangerRed()
+                                  : kMutedText);
     }
 
     // E34: real MIDI inputs — note on/off pairs collected on the message thread and stamped
@@ -4141,6 +4164,8 @@ public:
     void audioDeviceError (const juce::String&) override
     {
         desktopAudioOpen.store (false, std::memory_order_release);
+        // R4: device thread — flag only; the UI timer reports it on the message thread.
+        deviceErrorPending.store (true, std::memory_order_release);
     }
 
     [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
@@ -4229,6 +4254,8 @@ public:
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
     [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
+    [[nodiscard]] std::string harnessStatusLineText() const { return appModel.statusLineText(); }
+    [[nodiscard]] bool harnessStatusLineIsError() const noexcept { return appModel.statusLineIsError(); }
     [[nodiscard]] long long harnessTimelineRangeStartFrame() const noexcept { return appModel.timelineRangeStartFrame(); }
     [[nodiscard]] long long harnessTimelineRangeEndFrame() const noexcept { return appModel.timelineRangeEndFrame(); }
     [[nodiscard]] double harnessTimelineZoomFactor() const noexcept { return timelineZoomFactor; }
@@ -4889,6 +4916,16 @@ private:
         timelineZoomReadout.setColour (juce::Label::textColourId, kMutedText);
         timelineZoomReadout.setInterceptsMouseClicks (false, false);
         addAndMakeVisible (timelineZoomReadout);
+
+        // R4: the shared status line — failures from save/export/create/autosave/device paint
+        // here from real model state; success stays quiet and the UI timer decays the text.
+        statusLine.setComponentID ("shell.statusline");
+        statusLine.setName ("Status line");
+        statusLine.setTooltip ("Status messages: failures from save, export, project create, autosave, and the audio device");
+        statusLine.setJustificationType (juce::Justification::centredLeft);
+        statusLine.setColour (juce::Label::textColourId, kMutedText);
+        statusLine.setInterceptsMouseClicks (false, false);
+        addAndMakeVisible (statusLine);
     }
 
     void configureAutomationLaneControls()
@@ -6932,6 +6969,7 @@ private:
         // V8: the zoom cluster shares the automation toggle's toolbar row.
         timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
         timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
+        statusLine.setBounds (L::statusLineBounds (timeline));
         timelineZoomInButton.setBounds (L::timelineZoomInButtonBounds (timeline));
 
         // E26: the lane lives in the geometry law's reserved band — a header row (lane label
@@ -7376,10 +7414,13 @@ private:
                     const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
                     if (! path.empty())
                     {
-                        if (fileChoices.makeNewProject)
-                            (void) appModel.createProjectBundle (path, fileChoices.makeNewProject());
-                        else
-                            (void) appModel.createProjectBundle (path);
+                        // R4: a failed create paints its reason instead of vanishing.
+                        const yesdaw::persistence::BundleResult created =
+                            fileChoices.makeNewProject
+                                ? appModel.createProjectBundle (path, fileChoices.makeNewProject())
+                                : appModel.createProjectBundle (path);
+                        if (! created.ok())
+                            appModel.reportStatus ("New project failed: " + created.message, true);
                     }
                 }
                 return;
@@ -7428,7 +7469,17 @@ private:
                 {
                     const std::filesystem::path path = fileChoices.chooseSaveAsProjectBundle();
                     if (! path.empty())
-                        (void) appModel.saveProjectBundleAs (path);
+                    {
+                        // R4: a failed Save As paints its refusal reason instead of vanishing.
+                        const yesdaw::ui::UiActionDispatchResult savedAs =
+                            appModel.saveProjectBundleAs (path);
+                        if (! savedAs.dispatched)
+                            appModel.reportStatus (
+                                savedAs.state.disabledReason[0] != '\0'
+                                    ? std::string ("Save As failed: ") + savedAs.state.disabledReason
+                                    : std::string ("Save As failed"),
+                                true);
+                    }
                 }
                 return;
 
@@ -8018,6 +8069,7 @@ private:
         timelineZoomOutButton.setVisible (timelineVisible);
         timelineZoomInButton.setVisible (timelineVisible);
         timelineZoomReadout.setVisible (timelineVisible);
+        statusLine.setVisible (timelineVisible);
         refreshTimelineZoomReadout();
         automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
                                              juce::dontSendNotification);
@@ -10969,6 +11021,10 @@ private:
     juce::TextButton timelineZoomOutButton;
     juce::TextButton timelineZoomInButton;
     juce::Label timelineZoomReadout;
+    juce::Label statusLine;
+    // R4: audioDeviceError fires on the device thread — it may only flip this flag; the UI
+    // timer promotes it to a status message on the message thread.
+    std::atomic<bool> deviceErrorPending { false };
     juce::Label automationLaneRow;
     // N5: the client-side Touch/Latch ride buffer — see beginAutomationTouchRideIfArmed().
     juce::ComboBox automationModeChooser;
@@ -11149,6 +11205,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
         snapshot.playbackLoopStartFrame = mainComponent->harnessPlaybackLoopStartFrame();
         snapshot.playbackLoopEndFrame = mainComponent->harnessPlaybackLoopEndFrame();
+        snapshot.statusLineText = mainComponent->harnessStatusLineText();
+        snapshot.statusLineIsError = mainComponent->harnessStatusLineIsError();
         snapshot.timelineRangeStartFrame = mainComponent->harnessTimelineRangeStartFrame();
         snapshot.timelineRangeEndFrame = mainComponent->harnessTimelineRangeEndFrame();
         snapshot.timelineZoomFactor = mainComponent->harnessTimelineZoomFactor();

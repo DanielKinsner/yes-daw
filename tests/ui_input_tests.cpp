@@ -1029,7 +1029,8 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // chooser + the N5 automation mode chooser + the V3 mixer dock toggle + the V7 inspector
     // CLIP/TRACK tab buttons + the V8 zoom cluster (two steppers and the readout label) —
     // bumped deliberately.
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 136u));
+    // R4 bumped the deliberate child-count pin for the status line label (136 -> 137).
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 137u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -7631,6 +7632,89 @@ TEST_CASE ("the loop region survives close and reopen, and clearing it persists 
         REQUIRE (stored.startFrame == toggled.playbackLoopStartFrame);
         REQUIRE (stored.endFrame == toggled.playbackLoopEndFrame);
     }
+}
+
+TEST_CASE ("the status line reports failures, stays quiet on success, and decays",
+           "[ui][input][shell][status-line]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("status-line");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path goodExportPath = bundlePath;
+    goodExportPath += "-out.wav";
+    // A regular FILE as the parent: nothing can create a directory (or a wav) under it, on
+    // any platform — a deterministic failure injection through the real choosers.
+    std::filesystem::path blockerFilePath = bundlePath;
+    blockerFilePath += "-blocker";
+    {
+        std::ofstream blocker (blockerFilePath, std::ios::binary);
+        blocker << "x";
+    }
+    const std::filesystem::path badExportPath = blockerFilePath / "out.wav";
+    const std::filesystem::path badBundlePath = blockerFilePath / "nested.yesdaw";
+
+    std::filesystem::path currentNewProjectPath = badBundlePath;
+    std::filesystem::path currentExportPath = goodExportPath;
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [&currentNewProjectPath] { return currentNewProjectPath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = [&currentExportPath] { return currentExportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    // A failed project create paints its reason instead of vanishing.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.statusLineText.empty());
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("New project failed") != std::string::npos);
+    }
+
+    // The message decays through the serviced UI timer, never instantly.
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).statusLineText.empty());
+    for (int i = 0; i < 400 && ! snapshotMainComponent (*shell).statusLineText.empty(); ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+    REQUIRE_FALSE (snapshotMainComponent (*shell).statusLineIsError);
+
+    // Success stays quiet: a real create, import, and export paint nothing.
+    currentNewProjectPath = bundlePath;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    REQUIRE (std::filesystem::exists (goodExportPath));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    // A failed export write paints its reason, and the painted label carries the model text.
+    currentExportPath = badExportPath;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.statusLineText.empty());
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("Export failed") != std::string::npos);
+
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+        juce::Component* label = findChildWithComponentId (*shell, "shell.statusline");
+        REQUIRE (label != nullptr);
+        auto* statusLabel = dynamic_cast<juce::Label*> (label);
+        REQUIRE (statusLabel != nullptr);
+        REQUIRE (statusLabel->getText().toStdString() == snapshot.statusLineText);
+    }
+
+    // And it decays back to quiet.
+    for (int i = 0; i < 400 && ! snapshotMainComponent (*shell).statusLineText.empty(); ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    std::error_code ec;
+    std::filesystem::remove (goodExportPath, ec);
+    std::filesystem::remove (blockerFilePath, ec);
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip", "[ui][input][shell][clipboard]")

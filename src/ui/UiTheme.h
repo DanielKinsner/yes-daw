@@ -765,6 +765,16 @@ struct UiTheme
                 .translated (timelineZoomReadoutWidth + timelineZoomClusterGap, 0)
                 .withWidth (timelineZoomButtonWidth);
         }
+        // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
+        static constexpr int statusLineLeftGap = 12;
+        static constexpr int statusLineRightInset = 8;
+        static juce::Rectangle<int> statusLineBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            const juce::Rectangle<int> zoomIn = timelineZoomInButtonBounds (timeline);
+            const int left = zoomIn.getRight() + statusLineLeftGap;
+            return zoomIn.withX (left).withWidth (
+                juce::jmax (0, timeline.getRight() - statusLineRightInset - left));
+        }
         static juce::Rectangle<int> automationLaneRowBounds (juce::Rectangle<int> timeline) noexcept
         {
             return timeline.withTrimmedLeft (automationLaneRowLeftInset)
