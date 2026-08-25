@@ -2826,8 +2826,36 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.commandDispatchCount == 8);
 
     // E4: the trim edge snaps through the snap chooser; Ctrl inverts so this exact -6px trim
-    // keeps its raw semantics.
+    // keeps its raw semantics. R1: at the fit view the split's right sliver paints narrower
+    // than `timelineClipEdgeMinGrabWidth`, so its whole body is now a Move grab — zoom in
+    // anchored AT the right edge (that x keeps mapping to the same time) until the sliver is
+    // wide enough for its edge zones to bite, exactly like a user would.
     const juce::Point<int> trimStart = timelineClipRightEdgeDragPoint (timeline, splitRedone, 1u);
+    {
+        const double fitPixelsPerSecond = timelinePixelsPerSecond (timeline, splitRedone);
+        const double sliverLengthSeconds =
+            static_cast<double> (splitRedone.clips[1].timelineLength)
+            / static_cast<double> (splitRedone.sampleRate.hz);
+        juce::MouseWheelDetails zoomWheel {};
+        zoomWheel.deltaY = 0.4f;
+        const juce::MouseEvent anchoredWheel = makeMouseEvent (
+            timeline, trimStart, trimStart, false, 1,
+            juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+        const double neededWidth =
+            static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeMinGrabWidth) + 1.0;
+        for (int i = 0; i < 60; ++i)
+        {
+            const double paintedWidth = fitPixelsPerSecond
+                                      * snapshotMainComponent (*shell).timelineZoomFactor
+                                      * sliverLengthSeconds;
+            if (paintedWidth >= neededWidth)
+                break;
+            timeline.mouseWheelMove (anchoredWheel, zoomWheel);
+        }
+        REQUIRE (fitPixelsPerSecond * snapshotMainComponent (*shell).timelineZoomFactor
+                     * sliverLengthSeconds
+                 >= neededWidth);
+    }
     dragFromTo (timeline, trimStart, trimStart.translated (-6, 0),
                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
                                     | juce::ModifierKeys::ctrlModifier));
@@ -2854,6 +2882,23 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.canUndo);
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 9);
+
+    // R1: zoom back out to the clamped whole-project fit so the later gesture points (which
+    // the helpers derive from the fit view) keep mapping to the painted clips. Over-scrolling
+    // the wheel is safe — the zoom clamps at the fit and resets the scroll.
+    {
+        juce::MouseWheelDetails zoomOutWheel {};
+        zoomOutWheel.deltaY = -0.4f;
+        const juce::MouseEvent anchoredWheel = makeMouseEvent (
+            timeline, trimStart, trimStart, false, 1,
+            juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+        for (int i = 0; i < 70; ++i)
+            timeline.mouseWheelMove (anchoredWheel, zoomOutWheel);
+        REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor
+                 == yesdaw::ui::UiTheme::Layout::timelineZoomMin);
+        REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds
+                 == yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds);
+    }
 
     clickButton (undo);
 
@@ -7303,6 +7348,102 @@ TEST_CASE ("dragging the clip's left edge trims its head without moving the audi
     const yesdaw::engine::Clip restored = readProjectSnapshot (bundlePath).clips.front();
     REQUIRE (restored.timelineStart == before.timelineStart);
     REQUIRE (restored.srcOffset == before.srcOffset);
+}
+
+TEST_CASE ("a clip too narrow for the edge zones still moves and copy-drags under the pointer",
+           "[ui][input][shell][narrow-clip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("narrow-clip");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+        auto importer = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*importer, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*importer, UiActionId::ProjectImportAudio));
+    }
+
+    // Seed a far-out sibling of the imported stem so the fit view spreads over ~25 s and the
+    // 0.085 s fixture paints narrower than the two edge zones combined — the dogfood-readiness
+    // HONEST FINDING's exact shape (R1).
+    yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+    REQUIRE (seeded.clips.size() == 1u);
+    yesdaw::engine::Clip farClip = seeded.clips.front();
+    farClip.id = idFromLowByte (0x71);
+    farClip.timelineStart = static_cast<yesdaw::engine::Tick> (20.0 * seeded.sampleRate.hz);
+    seeded.clips.push_back (farClip);
+    writeProjectSnapshot (bundlePath, seeded);
+
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    const yesdaw::engine::Clip before = project.clips.front();
+    const yesdaw::engine::EntityId farId = project.clips.back().id;
+    const auto clipById = [&project] (yesdaw::engine::EntityId id) {
+        const auto it = std::find_if (project.clips.begin(), project.clips.end(),
+                                      [id] (const auto& clip) { return clip.id == id; });
+        REQUIRE (it != project.clips.end());
+        return *it;
+    };
+
+    // Precondition (keeps this gate honest if the tokens move): at the fit view the painted
+    // body really is narrower than both the combined edge zones and the min-grab width.
+    const double paintedWidth = timelinePixelsPerSecond (timeline, project)
+                              * (static_cast<double> (before.timelineLength) / project.sampleRate.hz);
+    REQUIRE (paintedWidth < 2.0 * yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth);
+    REQUIRE (paintedWidth < static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeMinGrabWidth));
+
+    // A Ctrl-drag (raw release) on the narrow clip's painted centre MOVES it whole — nothing
+    // trims, nothing slips, no fade appears.
+    const juce::Point<int> centre = timelineClipCenterPointOnItsLane (timeline, project, 0u);
+    dragFromTo (timeline, centre, { centre.x + 60, centre.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+    const yesdaw::engine::Clip moved = clipById (before.id);
+    REQUIRE (moved.timelineStart > before.timelineStart);
+    REQUIRE (moved.timelineLength == before.timelineLength);
+    REQUIRE (moved.srcOffset == before.srcOffset);
+    REQUIRE (moved.srcLen == before.srcLen);
+    REQUIRE (moved.fadeIn == before.fadeIn);
+    REQUIRE (moved.fadeOut == before.fadeOut);
+    REQUIRE (clipById (farId).timelineStart == farClip.timelineStart);
+
+    // One undo restores the seeded arrangement byte-identically.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips == seeded.clips);
+
+    // Alt on the narrow body is the wide-body COPY gesture, never a fade grab: the original
+    // stays byte-identical (fades included) and a fresh-id copy lands by the drag delta.
+    dragFromTo (timeline, centre, { centre.x + 60, centre.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier
+                                    | juce::ModifierKeys::altModifier));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 3u);
+    REQUIRE (clipById (before.id) == before);
+    const auto copyIt = std::find_if (project.clips.begin(), project.clips.end(),
+                                      [&] (const auto& clip) {
+                                          return clip.id != before.id && clip.id != farId;
+                                      });
+    REQUIRE (copyIt != project.clips.end());
+    REQUIRE (copyIt->timelineStart > before.timelineStart);
+    REQUIRE (copyIt->timelineLength == before.timelineLength);
+    REQUIRE (copyIt->fadeIn == before.fadeIn);
+    REQUIRE (copyIt->fadeOut == before.fadeOut);
+
+    // One undo removes the copy and restores the seeded arrangement.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == seeded.clips);
 }
 
 TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip", "[ui][input][shell][clipboard]")

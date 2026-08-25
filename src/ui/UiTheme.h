@@ -708,6 +708,9 @@ struct UiTheme
         static constexpr double timelineCoordinatePixelsPerSecondFloor = 1.0;
         static constexpr int timelineSnapGridTicks = 512;
         static constexpr int timelineClipEdgeHitWidth = 8;
+        // R1: edge zones only bite on a clip painted at least this wide — the piano roll's
+        // E12 min-grab law applied to the timeline, so a narrow clip keeps a movable body.
+        static constexpr int timelineClipEdgeMinGrabWidth = 24;
         static constexpr float timelineClipGainPerDragPixel = 0.01f;
         static constexpr float timelineClipMaxGestureGain = 4.0f;
         static constexpr double timelineClipDefaultFadeSeconds = UiThemeLayout::timelineClipDefaultFadeSeconds;

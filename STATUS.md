@@ -48,10 +48,43 @@ insertion in strips, FX presets, VCA groups, sample-rate conversion, streaming.
 **Brief:** `docs/goals/2026-08-25-reality-run-brief.md` — chains the proven 2026-08-11 loop
 protocol + 2026-08-12 visual-judgment mandate unchanged.
 
-**Now:** the carve is committed; the execution loop works the backlog strictly top-to-bottom
-starting at R1.
-**Next:** R1 — narrow clips must stay movable (clone the piano roll's E12 min-grab-width
-guard into the timeline's `dragModeForPointer`).
+**R1 implementation candidate — narrow clips keep a grabbable move body:** audited before
+changing: the timeline's `dragModeForPointer` applied the ±8 px trim zones (and Alt fade
+zones) unconditionally, so a clip painted under ~2× `timelineClipEdgeHitWidth` had no Move
+body at all — the parked dogfood-readiness HONEST FINDING. The piano roll already solved the
+identical law in E12 (`pianoRollNoteEdgeMinGrabWidth` guard, with its own narrow-note gate).
+The fix clones that law: a new `timelineClipEdgeMinGrabWidth = 24` theme token twin, and the
+four positional edge checks (fade-in/out, trim-right/left) now only bite when the painted
+body `clipRightX - clipLeftX` is at least that wide. Modifier gestures are unchanged at any
+width — Shift gain, Ctrl snap-invert, and Alt on a narrow body falls through to the wide-body
+copy-drag law (`dragState.copy = Alt && Move/SnapMove`), which is the consistent gesture, not
+a new one. The `[narrow-clip]` gate (75 assertions) seeds a far-out sibling of the imported
+fixture stem so the fit view paints it ~4 px wide, asserts the precondition honestly (painted
+width < both tokens), then proves: a Ctrl-drag on the painted centre MOVES the clip
+(length/srcOffset/srcLen/fades all unchanged — nothing trimmed, nothing slipped, no fade), the
+far sibling is untouched, one undo restores the seeded arrangement byte-identically; then
+Ctrl+Alt+drag on the same narrow body COPIES (fresh-id clip by the drag delta, original
+byte-identical including fades) and one undo removes the copy. **Red before, proven
+separately**: against the unmodified law the gate failed exactly the move assertion (the
+narrow-body drag was a refused TrimRight — source window exhausted — so `timelineStart`
+never changed).
+
+One legacy gate was re-pinned to the new semantics (never weakened): the H12 end-to-end
+session gate trimmed the right edge of a split sliver that paints ~6 px at the fit view —
+under R1 that grab is a Move by design. The gate now zooms in anchored AT the right-edge
+point (that x keeps mapping to the same time — the dogfood-readiness precedent) until the
+sliver's painted width clears `timelineClipEdgeMinGrabWidth` (asserted, not assumed), trims
+exactly as before, then wheel-zooms back out and asserts the clamped whole-project fit
+(zoom == min, scroll reset) so the session's later fit-view gesture points stay honest. All
+trim assertions are unchanged. The first full-suite round also failed `YesDawTimelineGpuCheck`
+alongside — it passed standalone (16/16) immediately after and on the full re-run:
+collateral of the H12 red under `-j 6`, not a defect.
+
+Full local `ctest --test-dir build-ci -j 6` green **355/355** (owner-file ritual: no
+`last-project.txt` present to isolate).
+
+**Now:** R1 committed; watching the exact-head nine-job CI run.
+**Next:** R2 — the transport survives edits.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

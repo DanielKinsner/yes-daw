@@ -1294,24 +1294,32 @@ private:
                                 + ((clip->startSeconds + clip->lengthSeconds) - geometry.viewport.scrollSeconds)
                                       * pixelsPerSecond;
 
-        if (modifiers.isAltDown())
+        // R1: the edge zones only bite on a clip painted wide enough to keep a grabbable
+        // middle (the piano roll's E12 law) — otherwise a short clip at a wide zoom is all
+        // edge and could never be moved. Modifier gestures (Shift gain, Ctrl snap-invert,
+        // Alt body copy-drag) stay available at any width.
+        if (clipRightX - clipLeftX
+            >= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeMinGrabWidth))
         {
-            if (std::fabs (static_cast<double> (position.x) - clipLeftX)
-                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-                return TimelineDragMode::FadeIn;
+            if (modifiers.isAltDown())
+            {
+                if (std::fabs (static_cast<double> (position.x) - clipLeftX)
+                    <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+                    return TimelineDragMode::FadeIn;
+
+                if (std::fabs (static_cast<double> (position.x) - clipRightX)
+                    <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+                    return TimelineDragMode::FadeOut;
+            }
 
             if (std::fabs (static_cast<double> (position.x) - clipRightX)
                 <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-                return TimelineDragMode::FadeOut;
+                return TimelineDragMode::TrimRight;
+
+            if (std::fabs (static_cast<double> (position.x) - clipLeftX)
+                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+                return TimelineDragMode::TrimLeft;
         }
-
-        if (std::fabs (static_cast<double> (position.x) - clipRightX)
-            <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-            return TimelineDragMode::TrimRight;
-
-        if (std::fabs (static_cast<double> (position.x) - clipLeftX)
-            <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-            return TimelineDragMode::TrimLeft;
 
         if (modifiers.isShiftDown())
             return TimelineDragMode::Gain;
