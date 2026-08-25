@@ -274,8 +274,21 @@ the drop section was satisfied by the lingering Ctrl+I message — an honest gat
 by decaying the status to empty between sections — after which the drop neuter failed exactly
 the drop-path assertion (177 prior assertions green); both restored.
 
-**Now:** R6 full local suite running; commit + nine-job CI next.
-**Next:** R7 — sample-rate honesty: refuse what would play at the wrong speed.
+R6 is certified: full local ctest green **356/356** (no owner `last-project.txt` present to
+isolate). Exact-head GitHub Actions run `32879354167` is green for full SHA
+`048cbd25d7daddae0ad346d221b3476f8bec12b0` across all nine jobs, first try. R6 is ticked in
+the reality-run backlog.
+
+**Now:** R7 — sample-rate honesty. Audit done: `addAudioAssetClipFromSource` never compares
+`decoded.sampleRate` to the project rate (44.1 kHz stems import silently and play ~9 % fast;
+no resampler exists by design), and the device side pulls frames 1:1 at whatever rate the
+device opened. Plan: a new `SampleRateMismatch` import status (enum append is switch-safe —
+no exhaustive switches outside the header) refused IN the model with a painted rate fact;
+import-verb failure reporting moves fully model-side so the drop path's generic message
+cannot stomp the precise one (the shell keeps reporting only decoder refusals it alone
+sees); `adoptRealRecordingDevice` warns when the device rate ≠ the project rate (gateable in
+app_smoke, where 44.1 k profile adoption tests already exist).
+**Next:** R7 implementation + `[sample-rate]` gates (ui_input + app_smoke).
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -102,7 +102,9 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   refuses to half-open. Gate: open a bundle with a deleted asset file, assert the painted
   report and the unchanged shell state. Out of scope: a relink/ignore chooser (future carve;
   do not fake one).
-- [ ] **R6 — import refusals are painted; `droppedFileRefusals` stops being dead state.**
+- [x] **R6 — import refusals are painted; `droppedFileRefusals` stops being dead state.**
+  *(certified: feature `048cbd2`, nine-job CI run `32879354167` green first try, local
+  356/356)*
   Ctrl+I discards decode refusals (`MainComponent.cpp:7397-7416`); the drag-drop path
   collects failures into `droppedFileRefusals` (:3094-3141, :10842) under a comment claiming
   they are "reported" — the list is appended and never read, painted, tested, or cleared (3
