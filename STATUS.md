@@ -257,7 +257,25 @@ discards decode refusals and the import result entirely. Fix: report refusals im
 through R4's status line ("Import refused (WAV only, stereo max): <names>"), delete the dead
 member, wire both paths; a mixed drop still imports the good files while naming the refused
 ones. Gate drives the real chooser and the M10 `FileDragAndDropTarget` drop pattern.
-**Next:** R6 implementation + `[import-refusal]` gate.
+**R6 implementation candidate — import refusals are painted:** audited before changing: the
+drop path collected refusals into a write-only member vector (`droppedFileRefusals` — 3 repo
+references, all writes) under a comment claiming they are "reported", and the Ctrl+I path
+discarded both the decode refusal and the import result. Shipped: the drop lambda names every
+refused file immediately through R4's status line ("Import refused (WAV only, stereo max):
+a.mp3, b.flac") while the good files in the same drop still land on their lanes; the dead
+member is DELETED (not repurposed) and the lying comment corrected; the Ctrl+I path reports
+both the WAV-reader refusal (naming the file) and a failed import result. `[import-refusal]`
+(35 assertions): a fake .mp3 through the real chooser paints the refusal and changes nothing;
+after decaying the message, a MIXED drop (real fixture WAV + the fake mp3) through the M10
+`FileDragAndDropTarget` path imports the WAV (clip count 1) and names ONLY the mp3 — the
+message must not contain the WAV's name. **Red before, proven separately per path**: the
+Ctrl+I neuter failed exactly its painted assertion; the drop neuter initially PASSED because
+the drop section was satisfied by the lingering Ctrl+I message — an honest gate defect, fixed
+by decaying the status to empty between sections — after which the drop neuter failed exactly
+the drop-path assertion (177 prior assertions green); both restored.
+
+**Now:** R6 full local suite running; commit + nine-job CI next.
+**Next:** R7 — sample-rate honesty: refuse what would play at the wrong speed.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

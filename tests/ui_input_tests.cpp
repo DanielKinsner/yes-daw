@@ -7717,6 +7717,72 @@ TEST_CASE ("the status line reports failures, stays quiet on success, and decays
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("refused imports are named on the status line while good files still land",
+           "[ui][input][shell][import-refusal]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("import-refusal");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path fakeMp3Path = bundlePath;
+    fakeMp3Path += "-not-audio.mp3";
+    {
+        std::ofstream fake (fakeMp3Path, std::ios::binary);
+        fake << "this is not audio";
+    }
+
+    std::filesystem::path currentImportPath = fakeMp3Path;
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [&currentImportPath] { return currentImportPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    // Ctrl+I path: the WAV reader's refusal is named, and nothing changes.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("Import refused") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (fakeMp3Path.filename().string()) != std::string::npos);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    }
+
+    // Decay the Ctrl+I message to empty first, so the drop section below can only be
+    // satisfied by the DROP path's own report — never by a lingering earlier message.
+    for (int i = 0; i < 400 && ! snapshotMainComponent (*shell).statusLineText.empty(); ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
+
+    // Drop path: a mixed drop imports the good WAV and names ONLY the refused file.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    const juce::StringArray mixedDrop {
+        juce::String (fixturePath.string()),
+        juce::String (fakeMp3Path.string())
+    };
+    REQUIRE (dropTarget->isInterestedInFileDrag (mixedDrop));
+    dropTarget->filesDropped (mixedDrop, dropX, firstLaneY);
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.statusLineIsError);
+        REQUIRE (snapshot.statusLineText.find ("Import refused") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (fakeMp3Path.filename().string()) != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (fixturePath.filename().string()) == std::string::npos);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove (fakeMp3Path, ec);
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("opening a project with a missing audio file reports the file and refuses to half-open",
            "[ui][input][shell][missing-asset-open]")
 {

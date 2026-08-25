@@ -3130,7 +3130,7 @@ public:
         };
         // M10: OS file drops land on the track under the pointer at the snapped tick under the
         // pointer. Several files go onto consecutive lanes in ONE undo group; anything the WAV
-        // reader refuses is reported and changes nothing.
+        // reader refuses is reported on the status line (R6) and changes nothing.
         timelineInput.filesAreImportable = [this] (const juce::StringArray& files) {
             if (! appModel.context().projectLoaded || files.isEmpty())
                 return false;
@@ -3153,13 +3153,14 @@ public:
             const yesdaw::engine::Tick start = snappedTimelineTick (*tick, false);
             int laneOffset = 0;
             bool anyImported = false;
+            std::string refusedNames;
             for (const juce::String& file : files)
             {
                 const std::filesystem::path path (file.toStdString());
                 auto decoded = decodeProjectWav (path);
                 if (! decoded)
                 {
-                    droppedFileRefusals.push_back (path.filename().string());
+                    refusedNames += (refusedNames.empty() ? "" : ", ") + path.filename().string();
                     continue;
                 }
 
@@ -3174,9 +3175,13 @@ public:
                 }
                 else
                 {
-                    droppedFileRefusals.push_back (path.filename().string());
+                    refusedNames += (refusedNames.empty() ? "" : ", ") + path.filename().string();
                 }
             }
+
+            // R6: every refused file is named immediately — the good files still landed.
+            if (! refusedNames.empty())
+                appModel.reportStatus ("Import refused (WAV only, stereo max): " + refusedNames, true);
 
             if (anyImported)
                 selectedTrackLane = lane;
@@ -7497,12 +7502,25 @@ private:
                         {
                             // Import lands on the SELECTED Track when the rail has a selection.
                             const auto& tracks = appModel.project().tracks;
-                            if (selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size()))
-                                (void) appModel.importAudioFileToTrack (
-                                    path, std::move (*decoded),
-                                    tracks[static_cast<std::size_t> (selectedTrackLane)].id);
-                            else
-                                (void) appModel.importAudioFile (path, std::move (*decoded));
+                            const bool imported =
+                                (selectedTrackLane >= 0
+                                 && selectedTrackLane < static_cast<int> (tracks.size()))
+                                    ? appModel.importAudioFileToTrack (
+                                          path, std::move (*decoded),
+                                          tracks[static_cast<std::size_t> (selectedTrackLane)].id)
+                                          .ok()
+                                    : appModel.importAudioFile (path, std::move (*decoded)).ok();
+                            if (! imported)
+                                appModel.reportStatus (
+                                    "Import failed: " + path.filename().string(), true);
+                        }
+                        else
+                        {
+                            // R6: a file the WAV reader refuses is named, never swallowed.
+                            appModel.reportStatus (
+                                "Import refused (WAV only, stereo max): "
+                                    + path.filename().string(),
+                                true);
                         }
                     }
                 }
@@ -10943,7 +10961,6 @@ private:
     std::atomic<float> liveMasterPeakRight { 0.0f };
     std::vector<TrackRow> projectTimelineTracks;
     std::vector<yesdaw::ui::Clip> timelineClips;
-    std::vector<std::string> droppedFileRefusals;   // M10: files a drop could not import, in order
     std::vector<yesdaw::ui::TimelineClipNote> timelineClipNotes;   // M7: MIDI clip note previews
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
