@@ -87,17 +87,42 @@ R1 is certified: exact-head GitHub Actions run `32869090850` is green for full S
 `69c4ade8980ed71854aba8205cf7cf89329f97a4` across all nine jobs, first try. R1 is ticked in
 the reality-run backlog.
 
-**Now:** R2 — the transport survives edits. Audit done: every mutation funnels through
-`adoptEditedProject` → `resetContextForFreshPlayback()`; the fix captures the old engine's
-transport (isPlaying/playhead/loop/rate) before the swap and restores it onto the rebuilt
-engine through the existing post→`drainTransport`→`syncContextFromPlayback` pattern
-(`locatePlaybackFrame` is the canonical flow). `locate`/`setLoop` refuse only degenerate
-inputs, so the restore preserves the exact old position honestly. Scope: `adoptEditedProject`
-+ `adoptEditedProjectWithoutPlaybackRebuild` only — project open/reopen, record-commit, and
-import keep the reset (import inherits the law when R8 routes it through the stack). A triage
-of the ~15 `playheadFrame == 0` test pins (post-edit vs post-open) is in flight; post-edit
-ones get re-pinned stronger, never weakened.
-**Next:** R2 implementation + `[transport-survives-edits]` gate.
+**R2 implementation candidate — the transport survives edits:** audited before changing:
+every mutation verb funnels through `adoptEditedProject` (or, for zero-clip projects,
+`adoptEditedProjectWithoutPlaybackRebuild` — which also replaces the engine) and both ended in
+`resetContextForFreshPlayback()`: stop, playhead 0, loop gone, rate 1. The fix is a
+`TransportAdoptionSnapshot` captured from the OLD engine before the swap (isPlaying, playhead,
+loop enabled+bounds, playback rate, plus the context's playbackStartFrame/lastLocateFrame) and
+restored onto the NEW engine after it through the transport's own command queue — the exact
+post→`drainTransport`→`syncContextFromPlayback` flow `locatePlaybackFrame` already uses. Each
+restore rides the transport's legality rules (a loop the new engine refuses is dropped
+honestly, never clamped). The reset itself still runs first, so recording count-in state
+stays session-scoped, and the OPEN/reopen, record-commit, and import paths keep the full
+reset deliberately (import inherits the new law when R8 routes it through the undo stack).
+
+A full triage of every test pinning the old behavior preceded the change: all ~30
+transport-state assertions near edits were classified — every `playheadFrame == 0` site turned
+out to be an open/locate/stop law (kept), two tests mechanically DEPENDED on the reset and
+were re-pinned with explicit `TransportLocateStart` dispatches (the shell mixer-edit render
+comparison and the app-smoke metronome-survives-edit window scan — both now state the R2
+rationale in-comment), and the N5 ride-buffering comments (source + gates) were restated:
+the buffering is about one-undo-step rides and per-tick rebuild glitches, not the transport
+reset that no longer exists.
+
+`[transport-survives]` (74 assertions): a real session — new project, import, rail row
+selected, raw Ctrl+Shift ruler loop drag, ruler locate to a nonzero playhead, real Play
+button — then three real edits while rolling: Shift+M track mute (persisted), a raw Ctrl clip
+move (persisted), and Ctrl+Z undo (the move reverts). After EACH, the snapshot proves
+isPlaying still true, the playhead exactly unmoved (headless: no blocks processed), and the
+loop enabled with byte-identical bounds. Negative control: reopening the bundle in a fresh
+shell still resets honestly (stopped, playhead 0, no loop). **Red before, proven separately**:
+against the unmodified code the gate failed exactly the first `isPlaying` assertion after the
+mute. Gate-authoring found two honest snags first: a snapped loop drag on the shorter-than-a-
+bar fixture collapses to a no-op by the E4 law (the gate uses Ctrl raw endpoints), and Shift+M
+honestly no-ops without a selected rail row (the gate selects row 0 first).
+
+**Now:** R2 full local suite running; commit + nine-job CI next.
+**Next:** R3 — the loop region is project state.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

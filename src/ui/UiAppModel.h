@@ -5488,11 +5488,11 @@ public:
     // against the LIVE project_, which would try to create a second lane on a second call within
     // the same working copy; this resolves the lane ONCE against the working copy (nextProject)
     // instead, then loops every sample into the SAME transaction group before adopting once. The
-    // caller (a mixer fader/pan drag) never calls adoptEditedProject mid-drag — every edit
-    // adoption resets the transport to stopped (resetContextForFreshPlayback), so writing on
-    // every drag tick would collapse "breakpoints across a span" to one point at tick 0. Sampling
-    // client-side and committing once, here, at the end of the ride is what makes multiple
-    // distinct tick positions possible at all.
+    // caller (a mixer fader/pan drag) never calls adoptEditedProject mid-drag: one ride must be
+    // one undo step, not one per drag tick, and a per-tick engine rebuild would glitch the very
+    // playback the ride is riding (R2 keeps the transport rolling across an adoption, but each
+    // rebuild still swaps the engine). Sampling client-side and committing once, here, at the
+    // end of the ride keeps the ride atomic and the playback continuous.
     [[nodiscard]] UiActionDispatchResult commitAutomationTouchRide (
         engine::EntityId ownerEntity,
         engine::AutomationTargetRole role,
@@ -7179,6 +7179,8 @@ private:
                 return false;
         }
 
+        const TransportAdoptionSnapshot liveTransport = captureTransportForAdoption();
+
         (void) nextEngine->stop();
         drainTransport (*nextEngine);
 
@@ -7189,6 +7191,7 @@ private:
         ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
+        restoreTransportAfterAdoption (liveTransport);
         // M13: a strip edit changes the monitor path's DSP too.
         rebuildMonitorChain();
         return true;
@@ -7216,6 +7219,8 @@ private:
                 return false;
         }
 
+        const TransportAdoptionSnapshot liveTransport = captureTransportForAdoption();
+
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
         std::unique_ptr<engine::PlaybackEngine> transport =
@@ -7229,6 +7234,7 @@ private:
         ++editSerial_;
         syncProjectEditContext();
         resetContextForFreshPlayback();
+        restoreTransportAfterAdoption (liveTransport);
         // M13: a strip edit changes the monitor path's DSP too.
         rebuildMonitorChain();
         return true;
@@ -7830,6 +7836,63 @@ private:
         recordCountInEndFrame_ = 0;
         deterministicRecordCountInPending_ = false;
         context_.shuttlePlaybackRate = 1;
+    }
+
+    // R2: an edit must not stop the music. The live transport is captured before an edit
+    // adoption replaces the PlaybackEngine and restored onto the new engine through its own
+    // command queue — the same post→drain→sync flow every transport verb uses. Project
+    // open/reopen, the record commit, and import keep the fresh reset.
+    struct TransportAdoptionSnapshot
+    {
+        bool valid = false;
+        bool playing = false;
+        bool loop = false;
+        std::int64_t playheadFrame = 0;
+        std::int64_t loopStartFrame = 0;
+        std::int64_t loopEndFrame = 0;
+        int playbackRate = 1;
+        std::int64_t playbackStartFrame = 0;
+        std::int64_t lastLocateFrame = 0;
+    };
+
+    [[nodiscard]] TransportAdoptionSnapshot captureTransportForAdoption() const noexcept
+    {
+        TransportAdoptionSnapshot snapshot;
+        if (playback_ == nullptr)
+            return snapshot;
+
+        snapshot.valid = true;
+        snapshot.playing = playback_->isPlaying();
+        snapshot.loop = playback_->loopEnabled();
+        snapshot.playheadFrame = playback_->playheadFrame();
+        snapshot.loopStartFrame = playback_->loopStartFrame();
+        snapshot.loopEndFrame = playback_->loopEndFrame();
+        snapshot.playbackRate = playback_->playbackRate();
+        snapshot.playbackStartFrame = context_.playbackStartFrame;
+        snapshot.lastLocateFrame = context_.lastLocateFrame;
+        return snapshot;
+    }
+
+    void restoreTransportAfterAdoption (const TransportAdoptionSnapshot& snapshot) noexcept
+    {
+        if (! snapshot.valid || playback_ == nullptr)
+            return;
+
+        // Each restore rides the transport's own legality rules: a loop or position the new
+        // engine refuses is dropped honestly, never clamped here.
+        if (snapshot.loop)
+            (void) playback_->setLoop (snapshot.loopStartFrame, snapshot.loopEndFrame);
+        if (snapshot.playheadFrame > 0)
+            (void) playback_->locate (snapshot.playheadFrame);
+        if (snapshot.playbackRate != 1)
+            (void) playback_->setPlaybackRate (snapshot.playbackRate);
+        if (snapshot.playing)
+            (void) playback_->play();
+
+        drainTransport (*playback_);
+        syncContextFromPlayback();
+        context_.playbackStartFrame = snapshot.playbackStartFrame;
+        context_.lastLocateFrame = snapshot.lastLocateFrame;
     }
 
     [[nodiscard]] engine::OfflineRenderOptions playbackBuildOptions() const

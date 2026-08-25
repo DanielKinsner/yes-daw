@@ -1728,9 +1728,11 @@ TEST_CASE ("metronome clicks land on the beat grid, survive edits, and never rea
     REQUIRE (peakAround (24'000, 240) > 0.1f);    // beat 2 click present
     REQUIRE (peakAround (12'000, 240) < 1.0e-6f); // mid-beat silence (clip long gone)
 
-    // The click survives an edit that rebuilds the playback engine.
+    // The click survives an edit that rebuilds the playback engine. R2: the edit no longer
+    // returns the playhead to zero, so locate there explicitly for the windowed peak scan.
     REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
     REQUIRE (app.addAudioTrack().dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
     REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
     const std::vector<float> renderedAfterEdit = app.renderPlaybackFrames (30'000, 128);
     float editPeak = 0.0f;

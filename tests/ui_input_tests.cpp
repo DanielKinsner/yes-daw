@@ -3239,6 +3239,9 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (mixed.tracks.front().strip.soloed);
     REQUIRE (mixed.tracks.front().strip.name == "Audio 1");
 
+    // R2: edits no longer reset the transport, so the playhead still sits at the end of the
+    // first render — locate back to zero explicitly before the comparison render.
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
     clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
     const std::vector<float> afterMixRender = renderMainComponentPlayback (*shell, mixerRenderFrames, 128);
     REQUIRE (afterMixRender.size() == static_cast<std::size_t> (mixerRenderFrames * 2u));
@@ -7446,6 +7449,116 @@ TEST_CASE ("a clip too narrow for the edge zones still moves and copy-drags unde
     REQUIRE (readProjectSnapshot (bundlePath).clips == seeded.clips);
 }
 
+TEST_CASE ("editing while playing keeps the transport rolling with the loop and playhead intact",
+           "[ui][input][shell][transport-survives]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("transport-survives");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+
+    // Select rail row 0 so Shift+M has a selected track to mute (the track-keys law).
+    {
+        juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        using L = yesdaw::ui::UiTheme::Layout;
+        mouseDownAt (*rail, { rail->getWidth() / 2,
+                              L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    }
+
+    // A real Shift-drag on the ruler sets the loop region; Ctrl inverts the snap (E4) so the
+    // endpoints stay raw — the whole fixture project is shorter than one bar, and a snapped
+    // drag would collapse to an honest no-op.
+    const juce::Point<int> rulerZero =
+        projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), imported, 0);
+    dragFromTo (timeline, { rulerZero.x + 10, rulerZero.y }, { rulerZero.x + 90, rulerZero.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::shiftModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    const MainComponentSnapshot withLoop = snapshotMainComponent (*shell);
+    REQUIRE (withLoop.context.loopEnabled);
+    const std::int64_t loopStart = withLoop.playbackLoopStartFrame;
+    const std::int64_t loopEnd = withLoop.playbackLoopEndFrame;
+    REQUIRE (loopEnd > loopStart);
+
+    // A plain ruler click locates a nonzero playhead (drained synchronously in the harness).
+    mouseDownAt (timeline, { rulerZero.x + 40, rulerZero.y });
+    const std::int64_t playhead = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (playhead > 0);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    {
+        const MainComponentSnapshot playing = snapshotMainComponent (*shell);
+        REQUIRE (playing.context.isPlaying);
+        REQUIRE (playing.context.playheadFrame == playhead);
+    }
+
+    // EDIT 1 — Shift+M mutes the selected track: a persisted, undoable project edit that
+    // rebuilds the playback engine. R2: the transport must keep rolling through it, playhead
+    // and loop intact.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    {
+        const MainComponentSnapshot afterMute = snapshotMainComponent (*shell);
+        REQUIRE (afterMute.context.isPlaying);
+        REQUIRE (afterMute.context.playheadFrame == playhead);
+        REQUIRE (afterMute.context.loopEnabled);
+        REQUIRE (afterMute.playbackLoopStartFrame == loopStart);
+        REQUIRE (afterMute.playbackLoopEndFrame == loopEnd);
+    }
+
+    // EDIT 2 — a raw Ctrl clip move persists while the music keeps playing.
+    const juce::Point<int> clipCentre = timelineClipCenterPointOnItsLane (timeline, imported, 0u);
+    dragFromTo (timeline, clipCentre, { clipCentre.x + 40, clipCentre.y },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                    | juce::ModifierKeys::ctrlModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineStart
+             > imported.clips.front().timelineStart);
+    {
+        const MainComponentSnapshot afterMove = snapshotMainComponent (*shell);
+        REQUIRE (afterMove.context.isPlaying);
+        REQUIRE (afterMove.context.playheadFrame == playhead);
+        REQUIRE (afterMove.context.loopEnabled);
+        REQUIRE (afterMove.playbackLoopStartFrame == loopStart);
+        REQUIRE (afterMove.playbackLoopEndFrame == loopEnd);
+    }
+
+    // EDIT 3 — undo is an edit adoption too: the move reverts, the transport still rolls.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineStart
+             == imported.clips.front().timelineStart);
+    {
+        const MainComponentSnapshot afterUndo = snapshotMainComponent (*shell);
+        REQUIRE (afterUndo.context.isPlaying);
+        REQUIRE (afterUndo.context.playheadFrame == playhead);
+        REQUIRE (afterUndo.context.loopEnabled);
+        REQUIRE (afterUndo.playbackLoopStartFrame == loopStart);
+        REQUIRE (afterUndo.playbackLoopEndFrame == loopEnd);
+    }
+
+    // Negative control: OPENING a project still resets the transport honestly.
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    {
+        const MainComponentSnapshot fresh = snapshotMainComponent (*reopened);
+        REQUIRE_FALSE (fresh.context.isPlaying);
+        REQUIRE (fresh.context.playheadFrame == 0);
+        REQUIRE_FALSE (fresh.context.loopEnabled);
+    }
+}
+
 TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip", "[ui][input][shell][clipboard]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("clip-clipboard");
@@ -10876,8 +10989,8 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
 
     // Nothing is written to the project until the ride ends — the whole point of buffering
-    // client-side (see recordAutomationTouchSample's comment: committing per-tick would reset
-    // the transport on every write, collapsing every point to tick 0).
+    // client-side (see commitAutomationTouchRide's comment: one ride is ONE undo step, and a
+    // per-tick engine rebuild would glitch the playback the ride is riding).
     REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
 
     juce::MouseEvent up = makeMouseEvent (*fader, top, bottom, true, 1);
@@ -10924,8 +11037,9 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Read);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
-    // Setting the mode is itself a project edit, which (like every edit in this engine) resets
-    // playback — so the transport rolls AFTER the mode switch, not before it.
+    // Setting the mode is itself a project edit. R2 keeps the transport rolling across edits
+    // now, but this gate still starts playback AFTER the mode switch — the ride law it pins is
+    // about what a rolling ride writes, not about edit/transport interplay.
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
