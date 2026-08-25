@@ -20,6 +20,20 @@ public:
     const juce::String getApplicationName() override    { return "YesDaw"; }
     const juce::String getApplicationVersion() override { return YESDAW_VERSION_STRING; }
 
+    // R9: one instance only (policy pinned by the [single-instance] gate). A second launch —
+    // e.g. running tools/run-yesdaw.ps1 twice — hands its command line to THIS instance and
+    // exits, instead of silently fighting over the same project bundle last-writer-wins.
+    bool moreThanOneInstanceAllowed() override
+    {
+        return yesdaw::ui::shellAllowsMultipleInstances();
+    }
+
+    void anotherInstanceStarted (const juce::String&) override
+    {
+        if (mainWindow != nullptr)
+            mainWindow->toFront (true);
+    }
+
     void initialise (const juce::String&) override
     {
         const juce::String title = "YES DAW " + getApplicationVersion();

@@ -370,7 +370,18 @@ first instance, which fronts its window via `anotherInstanceStarted`); the polic
 in a testable `shellAllowsMultipleInstances()` seam the gate pins. Honestly scoped: the gate
 pins the POLICY constant and the two Main.cpp wiring lines are auditable — the OS-level mutex
 plumbing is JUCE's own tested contract, not reachable headlessly.
-**Next:** R9 implementation + policy gate.
+**R9 implementation candidate — one instance only:** `Main.cpp` overrides
+`moreThanOneInstanceAllowed` to consult the new `shellAllowsMultipleInstances()` policy seam
+(false), and `anotherInstanceStarted` fronts the existing window — a second
+`tools/run-yesdaw.ps1` launch hands off and exits instead of silently fighting over the same
+bundle last-writer-wins. JUCE's single-instance machinery (a named mutex keyed by the app
+name) does the OS work. `[single-instance]` pins the policy; the honest scope note is IN the
+gate: the two wiring lines ride JUCE's own tested contract, which is not reachable
+headlessly — the wiring is audited, the policy is pinned. This closes PHASE 1 of the
+reality-run backlog (all nine first-session traps).
+
+**Now:** R9 full local suite running; commit + nine-job CI next.
+**Next:** R10 — solo must not silence the soloed signal's own path (Phase 2 opens).
 
 ## 2026-08-12 editing-first parity run (in progress)
 

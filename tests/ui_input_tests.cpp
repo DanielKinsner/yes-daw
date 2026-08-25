@@ -7783,6 +7783,16 @@ TEST_CASE ("refused imports are named on the status line while good files still 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// R9: the mechanical half of single-instance. The gate pins the POLICY the shell consults;
+// the two Main.cpp wiring lines (moreThanOneInstanceAllowed returning this policy,
+// anotherInstanceStarted fronting the window) ride JUCE's own named-mutex machinery, which
+// is not reachable headlessly — the wiring is audited, the policy is pinned.
+TEST_CASE ("the shell's single-instance policy is locked",
+           "[ui][input][shell][single-instance]")
+{
+    REQUIRE_FALSE (yesdaw::ui::shellAllowsMultipleInstances());
+}
+
 TEST_CASE ("undo after an import removes the import, never the edit before it",
            "[ui][input][shell][import-undo]")
 {

@@ -115,6 +115,12 @@ struct MainComponentSnapshot
 // Ask the shell whether the app may close (B37): true when the session is clean or the user chose
 // Save or Close through the confirm seam; false when the user cancelled.
 [[nodiscard]] bool mainComponentConfirmsClose (juce::Component& component);
+
+// R9: one instance only. Every edit writes a full project snapshot and both instances
+// auto-open the same last project, so two instances editing one bundle is last-writer-wins
+// data loss (WAL + busy-timeout lets both "succeed"). Main.cpp consults this policy for
+// JUCE's single-instance machinery; the [single-instance] gate pins the value.
+[[nodiscard]] constexpr bool shellAllowsMultipleInstances() noexcept { return false; }
 [[nodiscard]] bool processMainComponentDeviceAudioBlock (juce::Component& component,
                                                          float* const* outputChannels,
                                                          int numOutputChannels,
