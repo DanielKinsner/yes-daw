@@ -105,6 +105,13 @@ struct MixerBusProjection
     std::vector<std::unique_ptr<Node>> insertNodes;
     NodeId faderNodeId = 0;
     float  linearGain  = 1.0f;
+    // R13: buses route and send like tracks — parallel send taps into OTHER projected buses,
+    // and a MAIN output that lands on another bus's sum instead of master. The projection is
+    // DAG-validated upstream (edit verbs + bundle open); the graph build wires buses in
+    // topological order and refuses a cycle honestly if one ever reaches it.
+    std::vector<MixerSendProjection> sends;
+    static constexpr std::size_t kOutputToMaster = static_cast<std::size_t> (-1);
+    std::size_t outputBusIndex = kOutputToMaster;
 };
 
 struct MixerProjectionInputs
@@ -512,7 +519,55 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         }
     }
 
-    for (std::size_t i = 0; i < projection.buses.size(); ++i)
+    // R13: buses feed buses now, and each bus's Sum CONSUMES its input list when it is built —
+    // so wire projected buses in TOPOLOGICAL order (every source before its destination). The
+    // routing is DAG-validated upstream (edit verbs + bundle-open); if a cycle ever reaches
+    // here anyway, Kahn's queue starves and the build refuses honestly instead of consuming a
+    // half-wired input list.
+    std::vector<std::size_t> busOrder;
+    {
+        const std::size_t busCount = projection.buses.size();
+        std::vector<std::size_t> indegree (busCount, 0);
+        for (const MixerBusProjection& bus : projection.buses)
+        {
+            for (const MixerSendProjection& send : bus.sends)
+                if (send.busIndex < busCount)
+                    ++indegree[send.busIndex];
+            if (bus.outputBusIndex != MixerBusProjection::kOutputToMaster && bus.outputBusIndex < busCount)
+                ++indegree[bus.outputBusIndex];
+        }
+
+        std::vector<std::size_t> ready;
+        for (std::size_t i = 0; i < busCount; ++i)
+            if (indegree[i] == 0)
+                ready.push_back (i);
+
+        busOrder.reserve (busCount);
+        while (! ready.empty())
+        {
+            const std::size_t i = ready.back();
+            ready.pop_back();
+            busOrder.push_back (i);
+
+            const MixerBusProjection& bus = projection.buses[i];
+            for (const MixerSendProjection& send : bus.sends)
+                if (send.busIndex < busCount && --indegree[send.busIndex] == 0)
+                    ready.push_back (send.busIndex);
+            if (bus.outputBusIndex != MixerBusProjection::kOutputToMaster
+                && bus.outputBusIndex < busCount
+                && --indegree[bus.outputBusIndex] == 0)
+                ready.push_back (bus.outputBusIndex);
+        }
+
+        if (busOrder.size() != busCount)
+        {
+            if (error != nullptr)
+                error->code = MixerProjectionError::Code::GraphBuildFailed;   // a routing cycle
+            return nullptr;
+        }
+    }
+
+    for (const std::size_t i : busOrder)
     {
         MixerBusProjection& bus = projection.buses[i];
 
@@ -612,15 +667,74 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         MeterNode* const busMeterPtr = busMeter.get();
         busMeterPtr->setInput (busPanPtr);
 
+        // R13: this bus's own parallel sends — the track send law verbatim: pre-fader taps the
+        // post-insert chain head, post-fader taps the bus fader, each send is its own FaderNode
+        // feeding the destination bus's (not-yet-consumed, thanks to topo order) input list.
+        std::vector<std::unique_ptr<FaderNode>> busSendFaders;
+        busSendFaders.reserve (bus.sends.size());
+        for (std::size_t sendIndex = 0; sendIndex < bus.sends.size(); ++sendIndex)
+        {
+            const MixerSendProjection& send = bus.sends[sendIndex];
+            if (send.busIndex >= projection.buses.size() || send.busIndex == i)
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::InvalidSendDestination;
+                    error->busIndex = i;
+                    error->sendIndex = sendIndex;
+                }
+                return nullptr;
+            }
+
+            if (! mixerGainIsValid (send.linearGain))
+            {
+                if (error != nullptr)
+                {
+                    error->code = MixerProjectionError::Code::InvalidSendGain;
+                    error->busIndex = i;
+                    error->sendIndex = sendIndex;
+                }
+                return nullptr;
+            }
+
+            Node* const tap = send.tap == MixerSendTap::PreFader ? busChainHead : static_cast<Node*> (busFaderPtr);
+            const int sendChannels = tap->properties().channels > 0 ? tap->properties().channels : 1;
+            auto sendFader = std::make_unique<FaderNode> (send.faderNodeId, sendChannels);
+            sendFader->setInput (tap);
+            sendFader->setTargetGain (send.linearGain);
+            pushUniqueMixerInput (busInputs[send.busIndex], sendFader.get());
+            busSendFaders.push_back (std::move (sendFader));
+        }
+
         for (std::unique_ptr<PanNode>& widen : monoTapWideners)
             inputs.nodes.push_back (std::move (widen));
         inputs.nodes.push_back (std::move (busSum));
         for (std::unique_ptr<Node>& insertNode : bus.insertNodes)
             inputs.nodes.push_back (std::move (insertNode));
         inputs.nodes.push_back (std::move (busFader));
+        for (std::unique_ptr<FaderNode>& sendFader : busSendFaders)
+            inputs.nodes.push_back (std::move (sendFader));
         inputs.nodes.push_back (std::move (busPan));
         inputs.nodes.push_back (std::move (busMeter));
-        masterBusInputs.push_back (busMeterPtr);
+
+        // R13: the bus's MAIN output — master (the historical path) or another bus's sum.
+        if (bus.outputBusIndex == MixerBusProjection::kOutputToMaster)
+        {
+            masterBusInputs.push_back (busMeterPtr);
+        }
+        else if (bus.outputBusIndex < projection.buses.size() && bus.outputBusIndex != i)
+        {
+            pushUniqueMixerInput (busInputs[bus.outputBusIndex], busMeterPtr);
+        }
+        else
+        {
+            if (error != nullptr)
+            {
+                error->code = MixerProjectionError::Code::InvalidSendDestination;
+                error->busIndex = i;
+            }
+            return nullptr;
+        }
     }
 
     auto masterSum = std::make_unique<SumNode> (projection.masterSumNodeId, 2);

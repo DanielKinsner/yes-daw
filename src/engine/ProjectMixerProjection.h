@@ -274,6 +274,27 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
     return false;
 }
 
+// R13: a Bus that ANOTHER bus's send or main output lands on must project too — same law as a
+// track destination. The REFERRING bus need not project: an input-less, FX-less sender only
+// sends silence, so its unprojected sends are honestly absent from the graph.
+[[nodiscard]] inline bool busIsBusRouteDestination (const Project& project, EntityId busId) noexcept
+{
+    for (const Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+            continue;
+
+        for (const SendRow& send : bus.sends)
+            if (send.busId == busId)
+                return true;
+
+        if (bus.outputBusId == busId)
+            return true;
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline std::size_t projectedBusIndexForRoute (
     const Project& project,
     const std::vector<std::size_t>& projectedBusIndices,
@@ -379,7 +400,8 @@ template <typename SourceFactory>
         const Bus& bus = project.buses[busIndex];
         if (! bus.strip.fxChain.empty()
             || detail::busHasSendRoute (config, bus.id)
-            || detail::busHasTrackOutput (project, bus.id))
+            || detail::busHasTrackOutput (project, bus.id)
+            || detail::busIsBusRouteDestination (project, bus.id))   // R13
             projectedBusIndices[busIndex] = projectedBusCount++;
     }
 
@@ -647,6 +669,62 @@ template <typename SourceFactory>
         for (const FxInsert& insert : bus.strip.fxChain)
             automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
                                            projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
+
+        // R13: this bus's OWN sends and main output, resolved to projected destination indices
+        // (destinations always project via busIsBusRouteDestination). The send-fader id law and
+        // the SendLevel automation-target registration are the track path's, owner-generic —
+        // which is also what lets R12's live send-level lane address bus sends unchanged.
+        std::uint32_t busSendOrdinal = 0;
+        for (const SendRow& send : bus.sends)
+        {
+            if (! mixerGainIsValid (send.linearGain))
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidBusGain, busIndex, 0, ProjectMixerNodeRole::Fader };
+                return false;
+            }
+
+            const std::size_t destBusIndex =
+                detail::projectedBusIndexForRoute (project, projectedBusIndices, send.busId);
+            if (destBusIndex == kMissingProjectedBus)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, busIndex, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            const NodeId busSendFaderId = projectMixerSendLevelNodeIdForTrack (bus.id, busSendOrdinal);
+            if (! detail::registerProjectMixerNodeId (usedIds, busSendFaderId, busIndex, ProjectMixerNodeRole::Fader, error))
+                return false;
+
+            projectedBus.sends.push_back (MixerSendProjection {
+                destBusIndex,
+                send.tap == SendTap::PreFader ? MixerSendTap::PreFader : MixerSendTap::PostFader,
+                busSendFaderId,
+                send.linearGain });
+            automationTargets.push_back ({ bus.id,
+                                           AutomationTargetRole::SendLevel,
+                                           busSendFaderId,
+                                           busSendOrdinal,
+                                           true,
+                                           FaderNode::kGainParameterId,
+                                           true });
+            ++busSendOrdinal;
+        }
+
+        if (bus.outputBusId.isValid())
+        {
+            const std::size_t destBusIndex =
+                detail::projectedBusIndexForRoute (project, projectedBusIndices, bus.outputBusId);
+            if (destBusIndex == kMissingProjectedBus)
+            {
+                if (error != nullptr)
+                    *error = { ProjectMixerProjectionError::Code::InvalidProject, busIndex, 0, ProjectMixerNodeRole::Source };
+                return false;
+            }
+
+            projectedBus.outputBusIndex = destBusIndex;
+        }
 
         projection.buses.push_back (std::move (projectedBus));
     }

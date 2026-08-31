@@ -403,10 +403,23 @@ struct Bus
 {
     EntityId id;
     MixerStripState strip;
+    // R13: buses route and send like tracks. Ordered send rows (ordinal = index, the ADR-0039
+    // SendLevel paramId law) and a MAIN output: invalid (the default) = straight to master, a
+    // valid id must name another Bus. Unlike tracks, bus→bus edges can form a cycle — the
+    // routing verbs refuse one honestly (RoutingCycle), the DAG law, never clamp.
+    std::vector<SendRow> sends;
+    EntityId outputBusId;
 
     [[nodiscard]] bool isValid() const noexcept
     {
-        return id.isValid() && strip.isValid();
+        if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        for (const SendRow& send : sends)
+            if (! send.isValid())
+                return false;
+
+        return true;
     }
 
     friend bool operator== (const Bus&, const Bus&) = default;
@@ -821,7 +834,8 @@ enum class ProjectEditStatus : std::uint8_t
     DuplicateSendRoute,
     InvalidSendLevel,
     InvalidClipName,
-    InvalidTrackMixState
+    InvalidTrackMixState,
+    RoutingCycle   // R13: a bus send/output that would loop signal back into its own path
 };
 
 struct Project
@@ -1696,6 +1710,11 @@ namespace detail {
 
     for (const Track& track : project.tracks)
         for (const SendRow& send : track.sends)
+            if (send.id == id)
+                return true;
+
+    for (const Bus& bus : project.buses)   // R13
+        for (const SendRow& send : bus.sends)
             if (send.id == id)
                 return true;
 
@@ -2737,6 +2756,21 @@ namespace detail {
         if (track.outputBusId == busId)
             return ProjectEditStatus::BusInUse;
 
+    // R13: another Bus's send or main output referencing this Bus keeps it in use too. The bus
+    // being removed OWNING sends/an output does not block removal — its own rows die with it.
+    for (const Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+            continue;
+
+        for (const SendRow& send : bus.sends)
+            if (send.busId == busId)
+                return ProjectEditStatus::BusInUse;
+
+        if (bus.outputBusId == busId)
+            return ProjectEditStatus::BusInUse;
+    }
+
     for (const AutomationLaneData& lane : project.automationLanes)
         if (lane.ownerEntity == busId)
             return ProjectEditStatus::BusInUse;
@@ -2745,14 +2779,59 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// R13: would adding the routing edge ownerBus -> destBus create a cycle? Signal flows along
+// every bus->bus edge (sends AND main outputs); a path from destBus back to ownerBus — or a
+// self-edge — would loop the signal into its own path, which the routing DAG law refuses
+// honestly. Control-side DFS over at most |buses| nodes; shared by the edit verbs and the
+// bundle-open semantic validation so a hand-edited cycle can never reach the graph build.
+[[nodiscard]] inline bool busRoutingWouldCycle (const Project& project,
+                                                EntityId ownerBusId,
+                                                EntityId destBusId) noexcept
+{
+    if (! ownerBusId.isValid() || ! destBusId.isValid())
+        return false;
+
+    if (ownerBusId == destBusId)
+        return true;
+
+    std::vector<const Bus*> pending;
+    std::vector<const Bus*> visited;
+    if (const Bus* const dest = project.findBus (destBusId))
+        pending.push_back (dest);
+
+    while (! pending.empty())
+    {
+        const Bus* const bus = pending.back();
+        pending.pop_back();
+        if (bus == nullptr || std::find (visited.begin(), visited.end(), bus) != visited.end())
+            continue;
+        visited.push_back (bus);
+
+        if (bus->id == ownerBusId)
+            return true;
+
+        for (const SendRow& send : bus->sends)
+            if (const Bus* const next = project.findBus (send.busId))
+                pending.push_back (next);
+        if (bus->outputBusId.isValid())
+            if (const Bus* const next = project.findBus (bus->outputBusId))
+                pending.push_back (next);
+    }
+
+    return false;
+}
+
+// R13: the five routing verbs take an OWNER — a Track (the historical shape) or a Bus. The
+// command plumbing and UI actions stay single-lawed; only the lookup widens. Bus owners add
+// the DAG refusals (self-send, RoutingCycle) tracks can never trigger.
 [[nodiscard]] inline ProjectEditStatus addSend (Project& project,
-                                                EntityId trackId,
+                                                EntityId ownerId,
                                                 const SendRow& send)
 {
     if (! project.hasValidAssetClipIndirection())
         return ProjectEditStatus::InvalidProject;
 
-    if (! trackId.isValid())
+    if (! ownerId.isValid())
         return ProjectEditStatus::InvalidTrackId;
 
     if (! send.id.isValid() || ! send.isValid())
@@ -2766,7 +2845,7 @@ namespace detail {
 
     for (Track& track : project.tracks)
     {
-        if (track.id != trackId)
+        if (track.id != ownerId)
             continue;
 
         for (const SendRow& existing : track.sends)
@@ -2777,89 +2856,114 @@ namespace detail {
         return ProjectEditStatus::Applied;
     }
 
-    return ProjectEditStatus::TrackNotFound;
-}
-
-[[nodiscard]] inline ProjectEditStatus removeSend (Project& project,
-                                                   EntityId trackId,
-                                                   EntityId sendId)
-{
-    if (! project.hasValidAssetClipIndirection())
-        return ProjectEditStatus::InvalidProject;
-
-    if (! trackId.isValid())
-        return ProjectEditStatus::InvalidTrackId;
-
-    if (! sendId.isValid())
-        return ProjectEditStatus::InvalidSendId;
-
-    for (Track& track : project.tracks)
+    for (Bus& bus : project.buses)
     {
-        if (track.id != trackId)
+        if (bus.id != ownerId)
             continue;
 
-        for (std::size_t i = 0; i < track.sends.size(); ++i)
-        {
-            if (track.sends[i].id == sendId)
-            {
-                track.sends.erase (track.sends.begin() + static_cast<std::ptrdiff_t> (i));
-                return ProjectEditStatus::Applied;
-            }
-        }
+        for (const SendRow& existing : bus.sends)
+            if (existing.busId == send.busId)
+                return ProjectEditStatus::DuplicateSendRoute;
 
-        return ProjectEditStatus::SendNotFound;
+        if (busRoutingWouldCycle (project, bus.id, send.busId))
+            return ProjectEditStatus::RoutingCycle;
+
+        bus.sends.push_back (send);
+        return ProjectEditStatus::Applied;
     }
 
     return ProjectEditStatus::TrackNotFound;
 }
 
+[[nodiscard]] inline ProjectEditStatus removeSend (Project& project,
+                                                   EntityId ownerId,
+                                                   EntityId sendId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    const auto eraseSend = [sendId] (std::vector<SendRow>& sends) -> bool
+    {
+        for (std::size_t i = 0; i < sends.size(); ++i)
+        {
+            if (sends[i].id == sendId)
+            {
+                sends.erase (sends.begin() + static_cast<std::ptrdiff_t> (i));
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return eraseSend (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13
+        if (bus.id == ownerId)
+            return eraseSend (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
 // E18: change a send's tap point (pre/post fader) — the tap column has been persisted since
-// schema v9; this is its first mutating verb.
+// schema v9; this is its first mutating verb. R13: the owner may be a Track or a Bus.
 [[nodiscard]] inline ProjectEditStatus setSendTap (Project& project,
-                                                   EntityId trackId,
+                                                   EntityId ownerId,
                                                    EntityId sendId,
                                                    SendTap tap)
 {
     if (! project.hasValidAssetClipIndirection())
         return ProjectEditStatus::InvalidProject;
 
-    if (! trackId.isValid())
+    if (! ownerId.isValid())
         return ProjectEditStatus::InvalidTrackId;
 
     if (! sendId.isValid())
         return ProjectEditStatus::InvalidSendId;
 
-    for (Track& track : project.tracks)
+    const auto retap = [sendId, tap] (std::vector<SendRow>& sends) -> bool
     {
-        if (track.id != trackId)
-            continue;
-
-        for (SendRow& send : track.sends)
+        for (SendRow& send : sends)
         {
             if (send.id == sendId)
             {
                 send.tap = tap;
-                return ProjectEditStatus::Applied;
+                return true;
             }
         }
+        return false;
+    };
 
-        return ProjectEditStatus::SendNotFound;
-    }
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return retap (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13
+        if (bus.id == ownerId)
+            return retap (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
 
     return ProjectEditStatus::TrackNotFound;
 }
 
-// M3: route a Track's MAIN output. An invalid busId means master (the historical default); a valid
-// one must name an existing Bus. Buses feed the master directly and nothing feeds a Track, so this
-// routing cannot make a cycle — the only refusals are unknown Track and unknown Bus.
+// M3: route an owner's MAIN output. An invalid busId means master (the historical default); a
+// valid one must name an existing Bus. A Track owner cannot make a cycle (nothing feeds a
+// Track); R13 lets a Bus own its output too, where a bus→bus edge that loops back is refused
+// as RoutingCycle — the DAG law, refused honestly, never clamped.
 [[nodiscard]] inline ProjectEditStatus setTrackOutput (Project& project,
-                                                       EntityId trackId,
+                                                       EntityId ownerId,
                                                        EntityId busId)
 {
     if (! project.hasValidAssetClipIndirection())
         return ProjectEditStatus::InvalidProject;
 
-    if (! trackId.isValid())
+    if (! ownerId.isValid())
         return ProjectEditStatus::InvalidTrackId;
 
     if (busId.isValid() && project.findBus (busId) == nullptr)
@@ -2867,10 +2971,22 @@ namespace detail {
 
     for (Track& track : project.tracks)
     {
-        if (track.id != trackId)
+        if (track.id != ownerId)
             continue;
 
         track.outputBusId = busId;
+        return ProjectEditStatus::Applied;
+    }
+
+    for (Bus& bus : project.buses)   // R13
+    {
+        if (bus.id != ownerId)
+            continue;
+
+        if (busId.isValid() && busRoutingWouldCycle (project, bus.id, busId))
+            return ProjectEditStatus::RoutingCycle;
+
+        bus.outputBusId = busId;
         return ProjectEditStatus::Applied;
     }
 
@@ -2946,22 +3062,26 @@ namespace detail {
     if (! mixerGainIsValid (linearGain))
         return ProjectEditStatus::InvalidSendLevel;
 
-    for (Track& track : project.tracks)
+    const auto relevel = [sendId, linearGain] (std::vector<SendRow>& sends) -> bool
     {
-        if (track.id != trackId)
-            continue;
-
-        for (SendRow& send : track.sends)
+        for (SendRow& send : sends)
         {
             if (send.id == sendId)
             {
                 send.linearGain = linearGain;
-                return ProjectEditStatus::Applied;
+                return true;
             }
         }
+        return false;
+    };
 
-        return ProjectEditStatus::SendNotFound;
-    }
+    for (Track& track : project.tracks)
+        if (track.id == trackId)
+            return relevel (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13: the owner may be a Bus
+        if (bus.id == trackId)
+            return relevel (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
 
     return ProjectEditStatus::TrackNotFound;
 }

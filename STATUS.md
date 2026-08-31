@@ -540,9 +540,88 @@ green run; owner `last-project.txt` not present on this machine — nothing to i
 R12 is certified: exact-head GitHub Actions run `33448549139` is green for full SHA `62a8b15`
 across all nine jobs, first try. R12 is ticked.
 
-**Now:** checkpoint handed back to Dan (R12 done and certified).
-**Next:** R13 — buses can route and send like tracks (audit `Project.h` Bus struct, SendRow UI
-law, cycle refusal + the R4 painted reason, additive schema bump per the locate-points pattern).
+**R13 audit (2026-08-31, head `444faca`):** `struct Bus` is bare (id + strip); Track carries the
+whole pattern to mirror — `sends` (ordered SendRow vector, ordinal == index per ADR-0039/0044)
+and `outputBusId` (invalid = master). The five routing verbs (addSend/removeSend/setSendLevel/
+setSendTap/setTrackOutput) are track-keyed; UNDO is the trap: inverses are whole-vector diffs
+chosen per verb FAMILY (isTrackEditVerb → tracks diff), so a bus-owned send would mutate
+`project.buses` while undo snapshots `tracks` — silently unrestorable. Design: generalize the
+five verbs to an OWNER id (Track first, then Bus) and move them into a new routing family that
+diffs BOTH vectors; command shape unchanged, `command.trackId` carries the owner. Cycle law is
+edit-time: a DFS over bus sends+outputs from the proposed destination refuses reaching the owner
+(new status RoutingCycle) — plus refuse send-to-self; `removeBus`'s BusInUse grows bus-send/
+bus-output references. Persistence: schema is v18; v19 adds `bus_sends` (sends-table mirror with
+bus owner) + `bus_outputs` (track_outputs mirror), both empty-table migrations, with read-side
+semantic validation refusing self/cycle in stored routing. Projection: a bus projects today iff
+it has FX, is a send destination, or carries a track output — extend to bus-send/bus-output
+destinations (an input-less sender staying unprojected is honest: it only sends silence).
+`MixerBusProjection` gains sends + outputBusIndex; the send-fader id law
+`projectMixerSendLevelNodeIdForTrack` is owner-generic (FNV over entity bytes) and reuses as-is,
+so R12's live send-level lane works for buses unchanged. THE graph-wiring trap:
+MixerGraphProjection builds buses in index order and MOVES `busInputs[i]` into each Sum as it
+goes — a later bus feeding an earlier one would push into a consumed vector. Fix: wire projected
+buses in TOPOLOGICAL order (Kahn over send/output edges; a cycle is a GraphBuildFailed refusal,
+unreachable behind the verb+validation gates). Bus send taps mirror tracks: pre-fader taps the
+post-insert chain head, post-fader taps the bus fader; the bus's downstream feed stays its
+Meter (2ch, so a fed bus goes stereo via the existing ADR-0042 width law). PDC is GraphBuilder's
+existing longest-path walk — bus→bus is just more DAG edges. Shell: every send control funnels
+through `selectedTrackIdForSends` — generalize to owner (Track or Bus; Master refuses) and the
+whole panel (add-chooser, level sliders, tap/remove, painted rows via
+`sendReadoutsForTrack`→owner) follows; the M3 output chooser retargets for bus strips (exclude
+self); a verb refusal paints through R4 `reportStatus` — refuse honestly, never clamp. Gate
+plan (`[bus-routing]`): track→busA→busB chain with a LATENCY-carrying transparent insert on busA
+renders equal to the direct path (the PDC proof); attempted busB→busA cycle and send-to-self
+refused with a painted reason and an unchanged project; bus send/output persist + reopen +
+undo; v18→v19 migration gains the empty tables. Out of scope honestly: sidechain taps from
+buses (per spec), bus SendLevel automation UI (R14/R15 territory — targets register for parity,
+lanes stay unreachable).
+
+**R13 implementation candidate — buses can route and send like tracks:** as audited. Engine:
+`Bus` grows `sends` + `outputBusId` (invalid = master); the five routing verbs
+(addSend/removeSend/setSendLevel/setSendTap/setTrackOutput) take an OWNER — Track first, then
+Bus — with the DAG refusals only a bus can trigger: new `RoutingCycle` status from the shared
+`busRoutingWouldCycle` DFS (sends + outputs, self-edge included), and `removeBus` counts bus
+send/output references as BusInUse. Undo: the five verbs moved out of the track family into a
+new ROUTING family whose inverse builds tracks-diff OR buses-diff (exactly one changes per
+command; the apply picks whichever was built) — none of them coalesce, so the merge branches
+stay untouched. Persistence: v19 (`bus_sends` + `bus_outputs`, the v9/v13 shapes with a Bus
+owner, empty-table migration; read-side validation refuses dangling references AND cycles via
+the same one DFS; the v10-simulation test drops the new tables like every other post-v10
+artifact). Projection: a bus also projects when a BUS send/output lands on it (an input-less
+sender staying unprojected is honest — it only sends silence); `MixerBusProjection` carries
+sends + outputBusIndex; bus SendLevel automation targets register through the owner-generic id
+law, which is also why R12's live send-level lane drives bus sends with ZERO new code. Graph
+wiring: projected buses build in TOPOLOGICAL order (Kahn over send/output edges — the old
+index-order pass MOVED each input list into its Sum, so a later-index source silently vanished
+from an earlier-index destination; a cycle reaching the build refuses as GraphBuildFailed);
+bus sends mirror the track law verbatim (pre-fader taps the post-insert chain head, post-fader
+taps the bus fader, one FaderNode per send) and the bus output feeds master or the destination
+sum. Shell: `selectedSendOwnerId` (Track or Bus; Master refuses) generalizes the WHOLE send
+panel — add-chooser, per-row level/tap/remove/destination, painted rows via the owner-generic
+readout — and the M3 output chooser retargets for bus strips; both choosers exclude the
+selected bus itself (a self-route is never offered), and a RoutingCycle refusal paints "would
+loop the signal back into itself" through the R4 status line. Gates: `[bus-routing]` ×4 —
+mixer-projection PDC gate (two impulse paths converge through a bus→bus chain to ONE aligned
+sample, with the SOURCE bus deliberately at the higher index so index-order wiring fails it;
+plus a cyclic projection refuses to build), verb gate (bus send/level/tap/output, all three
+cycle refusals mutate nothing, BusInUse, 4-step undo to a bit-identical buses vector + redo),
+v18→v19 migration gate (legacy bus gains the empty tables and the straight-to-master default),
+and the shell gate (87 assertions: bus send via the real chooser excluding self, painted send
+row on the bus strip, track→Bus1→Bus2 render audibly DOUBLES over baseline and returns when
+the real send slider zeroes it, Bus2→Bus1 cycle refused with an unchanged project AND a
+painted "loop" reason, one undo reverts the level, reopen round-trips send/level/output). Red
+proven per law by targeted neuters: cycle predicate off → verb gate failed exactly at
+RoutingCycle and the shell gate exactly at the painted refusal; index-order wiring → PDC gate
+failed exactly at the destination sum's missing input; routing family's bus-diff arm off → the
+first bus send refused to record at all. E16's "buses cannot originate sends" gate re-pinned
+to the new law (one bus selected → the only destination is itself → chooser honestly
+disabled). Out of scope honestly: sidechain taps from buses (per spec); bus SendLevel
+automation lanes stay UI-unreachable until R14/R15 (targets register for parity). Full local
+ctest green **360/360** first try (owner `last-project.txt` not present on this machine —
+nothing to isolate/restore).
+
+**Now:** R13 implementation done locally; CI certification pending.
+**Next:** R14 — bus automation is reachable from the UI.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

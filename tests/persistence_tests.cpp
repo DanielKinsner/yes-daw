@@ -1553,6 +1553,56 @@ TEST_CASE ("Schema v18 migration gives legacy Projects the disabled no-loop defa
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// R13: a v18 bundle migrates by gaining the EMPTY bus_sends/bus_outputs tables — a legacy Bus
+// keeps the historical "no sends, straight to master" default, byte-identically.
+TEST_CASE ("Schema v19 migration gives legacy buses the no-sends straight-to-master default",
+           "[persistence][migration][bus-routing]")
+{
+    const auto path = makeTempBundlePath ("bus-routing-v18-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const EntityId busId = idFromLowByte (2);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV18 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 18);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV18).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO buses(id, name, linear_gain, pan, muted, soloed, solo_safe) VALUES ("
+            + blobLiteral (busId) + ", 'Bus 1', 1.0, 0.0, 0, 0, 1);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM schema_migrations WHERE version = 19;", value).ok());
+    REQUIRE (value == 1);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM bus_sends;", value).ok());
+    REQUIRE (value == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM bus_outputs;", value).ok());
+    REQUIRE (value == 0);
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.buses.size() == 1u);
+    REQUIRE (readback.buses.front().sends.empty());
+    REQUIRE_FALSE (readback.buses.front().outputBusId.isValid());
+    REQUIRE (readback.hasValidAssetClipIndirection());
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1563,14 +1613,15 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
         ProjectBundleDb db = openFreshBundle (path);
         REQUIRE (db.writeProjectSnapshot (project).ok());
         writeProjectAssetFiles (path, project);
-        // N6/N7/N8/R3: a fresh bundle is v18 now — the v10 simulation also strips the v11-v18
-        // artifacts, including dropping the height_px and colour COLUMNs (v15/v16 are ALTER
-        // TABLEs, not new tables like v11-v14/v17/v18, so re-running their migrations on reopen
-        // would otherwise fail with a duplicate column error).
+        // N6/N7/N8/R3/R13: a fresh bundle is v19 now — the v10 simulation also strips the
+        // v11-v19 artifacts, including dropping the height_px and colour COLUMNs (v15/v16 are
+        // ALTER TABLEs, not new tables like v11-v14/v17-v19, so re-running their migrations on
+        // reopen would otherwise fail with a duplicate column error).
         REQUIRE (db.executeSql (
             "DROP TABLE locate_points; DROP TABLE master_strip; DROP TABLE track_outputs; "
             "DROP TABLE automation_mode; ALTER TABLE tracks DROP COLUMN height_px; "
             "ALTER TABLE tracks DROP COLUMN colour; DROP TABLE punch_region; DROP TABLE loop_region; "
+            "DROP TABLE bus_sends; DROP TABLE bus_outputs; "
             "DELETE FROM schema_migrations WHERE version = 11; "
             "DELETE FROM schema_migrations WHERE version = 12; "
             "DELETE FROM schema_migrations WHERE version = 13; "
@@ -1579,6 +1630,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 16; "
             "DELETE FROM schema_migrations WHERE version = 17; "
             "DELETE FROM schema_migrations WHERE version = 18; "
+            "DELETE FROM schema_migrations WHERE version = 19; "
             "PRAGMA user_version = 10;").ok());
     }
 

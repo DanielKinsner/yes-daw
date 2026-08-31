@@ -228,22 +228,27 @@ inline std::string fallbackBusName (std::size_t index)
     return "Bus " + std::to_string (index + 1u);
 }
 
-// M5: the strip's REAL send rows (ADR-0044 persists them on the Track), with any automation lane
+// M5: the strip's REAL send rows (ADR-0044 persists them on the owner), with any automation lane
 // for that ordinal merged in. The old law walked the lanes instead, so a send you added but never
-// automated did not exist as far as the mixer surface was concerned.
+// automated did not exist as far as the mixer surface was concerned. R13: the owner may be a
+// Track or a Bus — the id law and the ordinal law are owner-generic.
 inline std::vector<UiMixerSendReadout> sendReadoutsForTrack (const engine::Project& project,
                                                              engine::EntityId trackId)
 {
     std::vector<UiMixerSendReadout> sends;
 
-    const engine::Track* const track = project.findTrack (trackId);
-    if (track == nullptr)
+    const std::vector<engine::SendRow>* ownerSends = nullptr;
+    if (const engine::Track* const track = project.findTrack (trackId))
+        ownerSends = &track->sends;
+    else if (const engine::Bus* const bus = project.findBus (trackId))
+        ownerSends = &bus->sends;
+    if (ownerSends == nullptr)
         return sends;
 
-    sends.reserve (track->sends.size());
-    for (std::size_t ordinal = 0; ordinal < track->sends.size(); ++ordinal)
+    sends.reserve (ownerSends->size());
+    for (std::size_t ordinal = 0; ordinal < ownerSends->size(); ++ordinal)
     {
-        const engine::SendRow& send = track->sends[ordinal];
+        const engine::SendRow& send = (*ownerSends)[ordinal];
 
         UiMixerSendReadout readout;
         readout.sendOrdinal = static_cast<std::uint32_t> (ordinal);
@@ -433,7 +438,11 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         if (bus != nullptr)
+        {
             strip.fxSlots = detail::fxSlotReadoutsForStrip (bus->strip);
+            // R13: bus strips paint their own send rows through the same owner-generic law.
+            strip.sends = detail::sendReadoutsForTrack (project, bus->id);
+        }
         snapshot.buses.push_back (std::move (strip));
     }
 

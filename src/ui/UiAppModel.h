@@ -3330,25 +3330,58 @@ public:
         return { id, state, true };
     }
 
-    [[nodiscard]] bool selectedTrackIdForSends (engine::EntityId& out) const noexcept
+    // R13: sends live on a Track OR a Bus strip (buses route and send like tracks); Master has
+    // none. The selected strip is the send owner.
+    [[nodiscard]] bool selectedSendOwnerId (engine::EntityId& out) const noexcept
     {
-        if (! context_.mixerTargetSelected
-            || selectedMixerTarget_.kind != MixerTargetKind::Track
-            || selectedMixerTarget_.index >= project_.tracks.size())
+        if (! context_.mixerTargetSelected)
             return false;
 
-        out = project_.tracks[selectedMixerTarget_.index].id;
-        return true;
+        if (selectedMixerTarget_.kind == MixerTargetKind::Track
+            && selectedMixerTarget_.index < project_.tracks.size())
+        {
+            out = project_.tracks[selectedMixerTarget_.index].id;
+            return true;
+        }
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Bus
+            && selectedMixerTarget_.index < project_.buses.size())
+        {
+            out = project_.buses[selectedMixerTarget_.index].id;
+            return true;
+        }
+
+        return false;
+    }
+
+    // R13: the selected send owner for the shell's enablement/self-exclusion laws (invalid when
+    // the selection is missing or Master).
+    [[nodiscard]] engine::EntityId selectedSendOwnerEntityId() const noexcept
+    {
+        engine::EntityId ownerId;
+        return selectedSendOwnerId (ownerId) ? ownerId : engine::EntityId {};
+    }
+
+    [[nodiscard]] const std::vector<engine::SendRow>* findOwnerSends (engine::EntityId ownerId) const noexcept
+    {
+        if (const engine::Track* const track = findTrack (ownerId))
+            return &track->sends;
+
+        for (const engine::Bus& bus : project_.buses)
+            if (bus.id == ownerId)
+                return &bus.sends;
+
+        return nullptr;
     }
 
     [[nodiscard]] std::vector<engine::SendRow> selectedTrackSends() const
     {
-        engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        engine::EntityId ownerId;
+        if (! selectedSendOwnerId (ownerId))
             return {};
 
-        const engine::Track* const track = findTrack (trackId);
-        return track != nullptr ? track->sends : std::vector<engine::SendRow> {};
+        const std::vector<engine::SendRow>* const sends = findOwnerSends (ownerId);
+        return sends != nullptr ? *sends : std::vector<engine::SendRow> {};
     }
 
     [[nodiscard]] UiActionDispatchResult addSendOnSelectedTrack (std::size_t busIndex)
@@ -3359,7 +3392,7 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
         if (busIndex >= project_.buses.size())
@@ -3368,11 +3401,20 @@ public:
         engine::Project nextProject = project_;
         const engine::EntityId sendId = allocateSessionEntityId (0xE2u, nextProject);
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::addSend (
-                                  trackId, sendId, project_.buses[busIndex].id,
-                                  engine::SendTap::PostFader, 1.0f)).applied())
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::addSend (
+                trackId, sendId, project_.buses[busIndex].id,
+                engine::SendTap::PostFader, 1.0f));
+        if (! applied.applied())
+        {
+            // R13: the routing DAG law refuses a loop honestly, with the reason painted (R4).
+            if (applied.editStatus == engine::ProjectEditStatus::RoutingCycle)
+                reportStatus ("Send refused: routing to " + project_.buses[busIndex].strip.name
+                                  + " would loop the signal back into itself",
+                              true);
             return { id, state, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "send edit did not persist" }, false };
@@ -3391,14 +3433,14 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
-        const engine::Track* const track = findTrack (trackId);
-        if (track == nullptr || sendIndex >= track->sends.size())
+        const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (trackId);
+        if (ownerSends == nullptr || sendIndex >= ownerSends->size())
             return { id, { false, "no send at index" }, false };
 
-        const engine::SendRow& send = track->sends[sendIndex];
+        const engine::SendRow& send = (*ownerSends)[sendIndex];
         const engine::SendTap nextTap = send.tap == engine::SendTap::PostFader
             ? engine::SendTap::PreFader
             : engine::SendTap::PostFader;
@@ -3428,14 +3470,14 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
-        const engine::Track* const track = findTrack (trackId);
-        if (track == nullptr || sendIndex >= track->sends.size() || busIndex >= project_.buses.size())
+        const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (trackId);
+        if (ownerSends == nullptr || sendIndex >= ownerSends->size() || busIndex >= project_.buses.size())
             return { id, { false, "no send or bus at index" }, false };
 
-        const engine::SendRow send = track->sends[sendIndex];
+        const engine::SendRow send = (*ownerSends)[sendIndex];
         if (send.busId == project_.buses[busIndex].id)
             return { id, { false, "send already routes there" }, false };
 
@@ -3446,11 +3488,21 @@ public:
         if (! nextUndo.apply (nextProject,
                               engine::ProjectEditCommand::removeSend (trackId, send.id)).applied())
             return { id, state, false };
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::addSend (
-                                  trackId, send.id, project_.buses[busIndex].id,
-                                  send.tap, send.linearGain)).applied())
+        const engine::ProjectEditApplyResult rerouted = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::addSend (
+                trackId, send.id, project_.buses[busIndex].id,
+                send.tap, send.linearGain));
+        if (! rerouted.applied())
+        {
+            // R13: a re-route that would loop is refused with a painted reason (R4); the whole
+            // grouped edit is discarded, so the original send stays exactly as it was.
+            if (rerouted.editStatus == engine::ProjectEditStatus::RoutingCycle)
+                reportStatus ("Send refused: routing to " + project_.buses[busIndex].strip.name
+                                  + " would loop the signal back into itself",
+                              true);
             return { id, state, false };
+        }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
@@ -3470,11 +3522,11 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
-        const engine::Track* const track = findTrack (trackId);
-        if (track == nullptr || sendIndex >= track->sends.size())
+        const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (trackId);
+        if (ownerSends == nullptr || sendIndex >= ownerSends->size())
             return { id, { false, "no send at index" }, false };
 
         engine::Project nextProject = project_;
@@ -3523,7 +3575,7 @@ public:
 
         if (! nextUndo.apply (nextProject,
                               engine::ProjectEditCommand::removeSend (
-                                  trackId, track->sends[sendIndex].id)).applied())
+                                  trackId, (*ownerSends)[sendIndex].id)).applied())
             return { id, state, false };
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -3547,14 +3599,26 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::setTrackOutput (trackId, busId)).applied())
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject, engine::ProjectEditCommand::setTrackOutput (trackId, busId));
+        if (! applied.applied())
+        {
+            // R13: a bus output that would loop is refused with a painted reason (R4).
+            if (applied.editStatus == engine::ProjectEditStatus::RoutingCycle)
+            {
+                const engine::Bus* const destBus = project_.findBus (busId);
+                reportStatus ("Output refused: routing to "
+                                  + (destBus != nullptr ? destBus->strip.name : std::string { "that bus" })
+                                  + " would loop the signal back into itself",
+                              true);
+            }
             return { id, { false, "track output refused" }, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "track output did not persist" }, false };
@@ -3610,15 +3674,22 @@ public:
         return { id, {}, true };
     }
 
-    // The selected Track's current main-output destination (invalid = master).
+    // The selected strip's current main-output destination (invalid = master). R13: the owner
+    // may be a Track or a Bus.
     [[nodiscard]] engine::EntityId selectedTrackOutputBusId() const noexcept
     {
-        engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        engine::EntityId ownerId;
+        if (! selectedSendOwnerId (ownerId))
             return {};
 
-        const engine::Track* const track = findTrack (trackId);
-        return track != nullptr ? track->outputBusId : engine::EntityId {};
+        if (const engine::Track* const track = findTrack (ownerId))
+            return track->outputBusId;
+
+        for (const engine::Bus& bus : project_.buses)
+            if (bus.id == ownerId)
+                return bus.outputBusId;
+
+        return {};
     }
 
     [[nodiscard]] UiActionDispatchResult setSendLevelOnSelectedTrack (std::size_t sendIndex, float linearGain)
@@ -3629,24 +3700,25 @@ public:
             return { id, state, false };
 
         engine::EntityId trackId;
-        if (! selectedTrackIdForSends (trackId))
+        if (! selectedSendOwnerId (trackId))
             return { id, { false, "no track strip selected" }, false };
 
-        const engine::Track* const track = findTrack (trackId);
-        if (track == nullptr || sendIndex >= track->sends.size())
+        const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (trackId);
+        if (ownerSends == nullptr || sendIndex >= ownerSends->size())
             return { id, { false, "no send at index" }, false };
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
         if (! nextUndo.apply (nextProject,
                               engine::ProjectEditCommand::setSendLevel (
-                                  trackId, track->sends[sendIndex].id, linearGain)).applied())
+                                  trackId, (*ownerSends)[sendIndex].id, linearGain)).applied())
             return { id, state, false };
 
         // R12: a send level is a live gain on the send's own compiled FaderNode. The production
-        // send ordinal IS the index in track.sends (the options sendRoutes test seam is empty in
-        // the shell); SendLevel automation lanes address the same ordinal, so an automated send
-        // falls back to the rebuild path exactly like an automated fader.
+        // send ordinal IS the index in the owner's sends (the options sendRoutes test seam is
+        // empty in the shell), and the id law is owner-generic — R13 bus sends ride this exact
+        // path. SendLevel automation lanes address the same ordinal, so an automated send falls
+        // back to the rebuild path exactly like an automated fader.
         if (canTakeScalarEditLive()
             && ! automationLaneExistsFor (trackId, engine::AutomationTargetRole::SendLevel,
                                           static_cast<std::uint32_t> (sendIndex)))

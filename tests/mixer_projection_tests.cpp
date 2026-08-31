@@ -1204,6 +1204,104 @@ TEST_CASE ("Mixer projection lets GraphBuilder align Return convergence with PDC
     REQUIRE (nonZeroRight == 1);
 }
 
+// R13 — buses route and send like tracks: a bus→bus chain is a real PDC-aligned DAG edge, the
+// wiring is topological (the SOURCE bus deliberately carries the HIGHER index here, so the old
+// index-order wiring would consume the destination's input list before the source existed), and
+// a cyclic projection refuses to build.
+TEST_CASE ("Bus-to-bus routing PDC-aligns through the chain and wires in topological order",
+           "[mixer][projection][bus-routing][pdc]")
+{
+    constexpr int kLatency = 5;
+    constexpr int kFrames = 24;
+
+    MixerProjectionInputs inputs = baseProjection (11);
+    inputs.maxBlockSize = kFrames;
+
+    // Index 0 = DESTINATION bus B; index 1 = SOURCE bus A whose MAIN output feeds B. Kahn must
+    // build A (index 1) before B (index 0).
+    inputs.buses.push_back (MixerBusProjection { 62020, 62021, 62022, 0.0f, {} });
+    MixerBusProjection busA;
+    busA.sumNodeId = 63020;
+    busA.panNodeId = 63021;
+    busA.meterNodeId = 63022;
+    busA.outputBusIndex = 0;
+    inputs.buses.push_back (std::move (busA));
+
+    // Two silent-direct impulse tracks (gain 0 mutes the strip path): one sends straight to B,
+    // the other sends to A and reaches B only through A's bus output — the bus→bus chain.
+    MixerTrackProjection direct = makeImpulseTrack (170, 0, 270, 370, 470, 0.0f, -1.0f);
+    direct.sends.push_back (MixerSendProjection { 0, MixerSendTap::PreFader });
+
+    MixerTrackProjection latent = makeImpulseTrack (171, kLatency, 271, 371, 471, 0.0f, -1.0f);
+    latent.sends.push_back (MixerSendProjection { 1, MixerSendTap::PreFader });
+
+    inputs.tracks.push_back (std::move (direct));
+    inputs.tracks.push_back (std::move (latent));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) >= 1u);
+
+    const CompiledNode* const destBus = compiledNodeById (*graph, 62020);
+    REQUIRE (destBus != nullptr);
+    REQUIRE (destBus->kind == CompiledNodeKind::Sum);
+    REQUIRE (destBus->numInputs == 2u);          // the direct send AND bus A's output
+    REQUIRE (destBus->pathLatency == kLatency);  // PDC met the slower chain here
+
+    const CompiledNode* const sourceBus = compiledNodeById (*graph, 63020);
+    REQUIRE (sourceBus != nullptr);
+    REQUIRE (sourceBus->numInputs == 1u);
+
+    // One aligned impulse: both paths converge at exactly sample kLatency on BOTH channels —
+    // a mis-compensated chain would smear two onsets, an index-order wiring would have dropped
+    // bus A's contribution entirely.
+    const StereoCapture out = render (*graph, kFrames);
+    int nonZeroLeft = 0;
+    int nonZeroRight = 0;
+    for (int i = 0; i < kFrames; ++i)
+    {
+        if (std::fabs (out.left[static_cast<std::size_t> (i)]) > 1.0e-5f)
+            ++nonZeroLeft;
+        if (std::fabs (out.right[static_cast<std::size_t> (i)]) > 1.0e-5f)
+            ++nonZeroRight;
+    }
+    REQUIRE (nonZeroLeft == 1);
+    REQUIRE (nonZeroRight == 1);
+    REQUIRE (out.left[static_cast<std::size_t> (kLatency)] > kCenterGain);   // BOTH paths landed
+    REQUIRE (out.right[static_cast<std::size_t> (kLatency)]
+             == Approx (out.left[static_cast<std::size_t> (kLatency)]).margin (1.0e-5f));
+}
+
+TEST_CASE ("A cyclic bus projection refuses to build", "[mixer][projection][bus-routing][cycle]")
+{
+    MixerProjectionInputs inputs = baseProjection (12);
+
+    MixerBusProjection busA;
+    busA.sumNodeId = 64020;
+    busA.panNodeId = 64021;
+    busA.meterNodeId = 64022;
+    busA.outputBusIndex = 1;
+    inputs.buses.push_back (std::move (busA));
+
+    MixerBusProjection busB;
+    busB.sumNodeId = 65020;
+    busB.panNodeId = 65021;
+    busB.meterNodeId = 65022;
+    busB.outputBusIndex = 0;   // B feeds A feeds B — the cycle the verbs refuse upstream
+    inputs.buses.push_back (std::move (busB));
+
+    inputs.tracks.push_back (makeTrack (172, 1.0f, 272, 372, 472, 1.0f, 0.0f));
+
+    MixerProjectionError error;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (inputs), &error);
+    REQUIRE (graph == nullptr);
+    REQUIRE (error.code == MixerProjectionError::Code::GraphBuildFailed);
+}
+
 TEST_CASE ("Mixer projection exposes fader and pan nodes to existing scalar routing", "[mixer][projection][scalar]")
 {
     constexpr NodeId kFaderId = 220;

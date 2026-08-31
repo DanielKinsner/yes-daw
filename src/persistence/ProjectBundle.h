@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 18;
+inline constexpr int          kCodeSchemaVersion = 19;   // R13: bus_sends + bus_outputs
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1290,13 +1290,44 @@ CREATE TABLE loop_region (
 );
 )SQL";
 
+// R13: buses route and send like tracks — bus-owned send rows and bus main outputs, the exact
+// v9 sends / v13 track_outputs shapes with a Bus owner (a v18 bundle migrates by gaining the
+// empty tables; a Bus with no rows keeps the historical "straight to master, no sends" default,
+// so default projects round-trip byte-identically). dest_bus_id is the DESTINATION bus; cycle
+// refusal is a semantic law (engine::busRoutingWouldCycle) enforced by the edit verbs and the
+// bundle-open validation — SQL cannot express reachability.
+inline constexpr std::string_view kSchemaV19Sql = R"SQL(
+CREATE TABLE bus_sends (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  bus_id BLOB NOT NULL CHECK (length(bus_id) = 16),
+  dest_bus_id BLOB NOT NULL CHECK (length(dest_bus_id) = 16),
+  position INTEGER NOT NULL CHECK (position >= 0),
+  tap INTEGER NOT NULL CHECK (tap IN (0, 1)),
+  linear_gain REAL NOT NULL CHECK (linear_gain >= 0 AND linear_gain <= 1000.0),
+  UNIQUE(bus_id, position),
+  UNIQUE(bus_id, dest_bus_id),
+  CHECK (bus_id <> dest_bus_id),
+  FOREIGN KEY (bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  FOREIGN KEY (dest_bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+CREATE INDEX bus_sends_bus_id_idx ON bus_sends(bus_id);
+
+CREATE TABLE bus_outputs (
+  bus_id BLOB PRIMARY KEY,
+  dest_bus_id BLOB NOT NULL,
+  CHECK (bus_id <> dest_bus_id),
+  FOREIGN KEY (bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  FOREIGN KEY (dest_bus_id) REFERENCES buses(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 18> kMigrations {
+inline constexpr std::array<SchemaMigration, 19> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1315,6 +1346,7 @@ inline constexpr std::array<SchemaMigration, 18> kMigrations {
     SchemaMigration { 16, kSchemaV16Sql },
     SchemaMigration { 17, kSchemaV17Sql },
     SchemaMigration { 18, kSchemaV18Sql },
+    SchemaMigration { 19, kSchemaV19Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -1918,7 +1950,8 @@ public:
                 "DELETE FROM automation_breakpoints; DELETE FROM automation_lanes; "
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
-                "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM buses; DELETE FROM tracks; "
+                "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM bus_sends; DELETE FROM bus_outputs; "
+                "DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
                 "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; "
                 "DELETE FROM assets; DELETE FROM project;");
@@ -2064,6 +2097,44 @@ public:
                 if (auto result = outputStmt.bindBlob (1, track.id.bytes); ! result.ok()) { rollback(); return result; }
                 if (auto result = outputStmt.bindBlob (2, track.outputBusId.bytes); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, outputStmt); ! result.ok()) { rollback(); return result; }
+            }
+        }
+
+        // R13: bus-owned send rows and bus main outputs — the sends/track_outputs write shapes
+        // with a Bus owner. Only routed rows land, keeping default projects byte-identical.
+        {
+            detail::Statement busSendStmt (
+                db_,
+                "INSERT INTO bus_sends(id, bus_id, dest_bus_id, position, tap, linear_gain) "
+                "VALUES (?, ?, ?, ?, ?, ?);");
+            for (const engine::Bus& bus : project.buses)
+            {
+                for (std::size_t position = 0; position < bus.sends.size(); ++position)
+                {
+                    const engine::SendRow& send = bus.sends[position];
+                    busSendStmt.reset();
+                    if (auto result = busSendStmt.bindBlob (1, send.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = busSendStmt.bindBlob (2, bus.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = busSendStmt.bindBlob (3, send.busId.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = busSendStmt.bindInt64 (4, static_cast<sqlite3_int64> (position)); ! result.ok()) { rollback(); return result; }
+                    if (auto result = busSendStmt.bindInt64 (5, static_cast<sqlite3_int64> (send.tap)); ! result.ok()) { rollback(); return result; }
+                    if (auto result = busSendStmt.bindDouble (6, send.linearGain); ! result.ok()) { rollback(); return result; }
+                    if (auto result = detail::expectDone (db_, busSendStmt); ! result.ok()) { rollback(); return result; }
+                }
+            }
+
+            detail::Statement busOutputStmt (
+                db_,
+                "INSERT INTO bus_outputs(bus_id, dest_bus_id) VALUES (?, ?);");
+            for (const engine::Bus& bus : project.buses)
+            {
+                if (! bus.outputBusId.isValid())
+                    continue;
+
+                busOutputStmt.reset();
+                if (auto result = busOutputStmt.bindBlob (1, bus.id.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = busOutputStmt.bindBlob (2, bus.outputBusId.bytes); ! result.ok()) { rollback(); return result; }
+                if (auto result = detail::expectDone (db_, busOutputStmt); ! result.ok()) { rollback(); return result; }
             }
         }
 
@@ -2635,6 +2706,98 @@ public:
                     return detail::semanticInvalid ("track_outputs.bus_id does not reference a Bus row");
 
                 owner->outputBusId = busId;
+            }
+        }
+
+        // R13: bus-owned send rows — the sends read shape with a Bus owner. Each edge is
+        // validated for referential integrity AND acyclicity as it lands (the DAG law); a
+        // hand-edited cycle is refused before any caller receives a Project.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (
+                    db_,
+                    "SELECT id, bus_id, dest_bus_id, tap, linear_gain FROM bus_sends ORDER BY bus_id, position, rowid;");
+                ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::SendRow send;
+                engine::EntityId busId;
+                if (auto result = detail::columnBlob (stmt.get(), 0, send.id.bytes, "bus_sends.id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, busId.bytes, "bus_sends.bus_id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 2, send.busId.bytes, "bus_sends.dest_bus_id"); ! result.ok())
+                    return result;
+
+                const sqlite3_int64 tap = sqlite3_column_int64 (stmt.get(), 3);
+                if (tap < static_cast<sqlite3_int64> (engine::SendTap::PreFader)
+                    || tap > static_cast<sqlite3_int64> (engine::SendTap::PostFader))
+                    return detail::semanticInvalid ("bus_sends.tap is outside the Project value range");
+                send.tap = static_cast<engine::SendTap> (tap);
+                send.linearGain = static_cast<float> (sqlite3_column_double (stmt.get(), 4));
+
+                engine::Bus* owner = nullptr;
+                for (engine::Bus& bus : project.buses)
+                    if (bus.id == busId)
+                    {
+                        owner = &bus;
+                        break;
+                    }
+                if (owner == nullptr)
+                    return detail::semanticInvalid ("bus_sends.bus_id does not reference a Bus row");
+                if (project.findBus (send.busId) == nullptr)
+                    return detail::semanticInvalid ("bus_sends.dest_bus_id does not reference a Bus row");
+                if (engine::busRoutingWouldCycle (project, owner->id, send.busId))
+                    return detail::semanticInvalid ("bus_sends routing contains a cycle");
+
+                owner->sends.push_back (send);
+            }
+        }
+
+        // R13: bus main-output routing. No row means master, the historical default.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT bus_id, dest_bus_id FROM bus_outputs;"); ! result.ok())
+                return result;
+
+            while (true)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                engine::EntityId busId;
+                engine::EntityId destBusId;
+                if (auto result = detail::columnBlob (stmt.get(), 0, busId.bytes, "bus_outputs.bus_id"); ! result.ok())
+                    return result;
+                if (auto result = detail::columnBlob (stmt.get(), 1, destBusId.bytes, "bus_outputs.dest_bus_id"); ! result.ok())
+                    return result;
+
+                engine::Bus* owner = nullptr;
+                for (engine::Bus& bus : project.buses)
+                    if (bus.id == busId)
+                    {
+                        owner = &bus;
+                        break;
+                    }
+                if (owner == nullptr)
+                    return detail::semanticInvalid ("bus_outputs.bus_id does not reference a Bus row");
+                if (project.findBus (destBusId) == nullptr)
+                    return detail::semanticInvalid ("bus_outputs.dest_bus_id does not reference a Bus row");
+                if (engine::busRoutingWouldCycle (project, owner->id, destBusId))
+                    return detail::semanticInvalid ("bus_outputs routing contains a cycle");
+
+                owner->outputBusId = destBusId;
             }
         }
 

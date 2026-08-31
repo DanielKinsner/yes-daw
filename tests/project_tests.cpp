@@ -2521,6 +2521,69 @@ TEST_CASE ("Send routing verbs edit, undo, and redo buses and sends bit-identica
     requireProjectValueUnchanged (project, edited);
 }
 
+// R13 — buses route and send like tracks: the five routing verbs take a Bus owner, the DAG law
+// refuses loops honestly (RoutingCycle, never clamped), referenced buses stay irremovable, and
+// the routing undo family restores the BUSES vector bit-identically (the trap this family
+// exists for — send verbs used to diff only tracks).
+TEST_CASE ("Bus routing verbs send, output, refuse cycles, and undo bit-identically",
+           "[project][bus-routing][undo]")
+{
+    Project project = makeTwoClipEditableProject();
+    const EntityId busAId = idFromLowByte (80);
+    const EntityId busBId = idFromLowByte (81);
+    const EntityId busCId = idFromLowByte (82);
+    const EntityId sendABId = idFromLowByte (83);
+
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busAId, "Bus A")).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busBId, "Bus B")).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busCId, "Bus C")).applied());
+    const Project original = project;
+
+    // A bus SEND (A→B) through the same command the track path uses; level and tap follow.
+    REQUIRE (undo.apply (project, ProjectEditCommand::addSend (
+                             busAId, sendABId, busBId,
+                             yesdaw::engine::SendTap::PostFader, 0.5f)).applied());
+    REQUIRE (project.buses[0].sends.size() == 1u);
+    REQUIRE (project.buses[0].sends.front().busId == busBId);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setSendLevel (busAId, sendABId, 0.25f)).applied());
+    REQUIRE (project.buses[0].sends.front().linearGain == 0.25f);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setSendTap (
+                             busAId, sendABId, yesdaw::engine::SendTap::PreFader)).applied());
+    REQUIRE (project.buses[0].sends.front().tap == yesdaw::engine::SendTap::PreFader);
+
+    // A bus MAIN OUTPUT (B→C) through the same verb tracks use.
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackOutput (busBId, busCId)).applied());
+    REQUIRE (project.buses[1].outputBusId == busCId);
+
+    // The DAG law: with A→B→C live, any edge back into A — and any self-edge — is a cycle.
+    REQUIRE (yesdaw::engine::addSend (project, busCId,
+                                      yesdaw::engine::SendRow { idFromLowByte (84), busAId })
+             == ProjectEditStatus::RoutingCycle);
+    REQUIRE (yesdaw::engine::setTrackOutput (project, busCId, busAId)
+             == ProjectEditStatus::RoutingCycle);
+    REQUIRE (yesdaw::engine::addSend (project, busAId,
+                                      yesdaw::engine::SendRow { idFromLowByte (84), busAId })
+             == ProjectEditStatus::RoutingCycle);
+    REQUIRE (project.buses[2].sends.empty());                     // refusals mutated nothing
+    REQUIRE_FALSE (project.buses[2].outputBusId.isValid());
+
+    // Referenced buses are in use: B carries A's send, C carries B's output.
+    REQUIRE (yesdaw::engine::removeBus (project, busBId) == ProjectEditStatus::BusInUse);
+    REQUIRE (yesdaw::engine::removeBus (project, busCId) == ProjectEditStatus::BusInUse);
+
+    // The routing undo family restores the buses vector bit-identically (four routing edits,
+    // none coalescable → four undo steps back to the three-bus baseline), and redo replays it.
+    const Project edited = project;
+    for (int step = 0; step < 4; ++step)
+        REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+
+    while (undo.canRedo())
+        REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, edited);
+}
+
 TEST_CASE ("Randomized FX edit sequences fully undo to a bit-identical Project and redo back", "[project][fx][undo][property]")
 {
     Project project = makeEditableProject();

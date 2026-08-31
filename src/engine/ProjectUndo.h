@@ -1111,19 +1111,26 @@ namespace detail {
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
 {
-    // ADR-0044: send rows live on the Track, so send edits ride the whole-vector track diff.
     return verb == ProjectEditVerb::AddTrack
            || verb == ProjectEditVerb::RenameTrack
            || verb == ProjectEditVerb::ReorderTrack
            || verb == ProjectEditVerb::RemoveTrack
-           || verb == ProjectEditVerb::AddSend
-           || verb == ProjectEditVerb::RemoveSend
-           || verb == ProjectEditVerb::SetSendLevel
-           || verb == ProjectEditVerb::SetSendTap
-           || verb == ProjectEditVerb::SetTrackOutput
            || verb == ProjectEditVerb::SetTrackMixScalars
            || verb == ProjectEditVerb::SetTrackHeight
            || verb == ProjectEditVerb::SetTrackColour;
+}
+
+// R13: the routing verbs take a Track OR a Bus owner, so their inverse may live in either
+// whole-vector diff (ADR-0044 put send rows on the owner). Exactly one of the two vectors
+// changes per routing command; the build tries tracks first, and the apply picks whichever
+// diff was actually built (an unbuilt diff is empty==empty and is never applied).
+[[nodiscard]] constexpr bool isRoutingEditVerb (ProjectEditVerb verb) noexcept
+{
+    return verb == ProjectEditVerb::AddSend
+           || verb == ProjectEditVerb::RemoveSend
+           || verb == ProjectEditVerb::SetSendLevel
+           || verb == ProjectEditVerb::SetSendTap
+           || verb == ProjectEditVerb::SetTrackOutput;
 }
 
 [[nodiscard]] constexpr bool isBusEditVerb (ProjectEditVerb verb) noexcept
@@ -2153,6 +2160,17 @@ namespace detail {
                     : applyAutomationLaneRowsDiff (project, transaction.automationDiff, transaction.automationDiff.after, transaction.automationDiff.before);
     }
 
+    if (isRoutingEditVerb (transaction.command.verb))
+    {
+        // R13: whichever owner vector the routing edit touched carries the inverse.
+        if (! (transaction.trackDiff.before == transaction.trackDiff.after))
+            return redo ? applyTrackRowsDiff (project, transaction.trackDiff.before, transaction.trackDiff.after)
+                        : applyTrackRowsDiff (project, transaction.trackDiff.after, transaction.trackDiff.before);
+
+        return redo ? applyBusRowsDiff (project, transaction.busDiff.before, transaction.busDiff.after)
+                    : applyBusRowsDiff (project, transaction.busDiff.after, transaction.busDiff.before);
+    }
+
     if (isTrackEditVerb (transaction.command.verb))
     {
         return redo ? applyTrackRowsDiff (project, transaction.trackDiff.before, transaction.trackDiff.after)
@@ -2229,6 +2247,9 @@ namespace detail {
         diffBuilt = detail::buildProjectFxChainRowsDiff (before, project, command, transaction.fxDiff);
     else if (detail::isAutomationEditVerb (command.verb))
         diffBuilt = detail::buildProjectAutomationLaneRowsDiff (before, project, command, transaction.automationDiff);
+    else if (detail::isRoutingEditVerb (command.verb))
+        diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff)
+                 || detail::buildProjectBusRowsDiff (before, project, transaction.busDiff);
     else if (detail::isTrackEditVerb (command.verb))
         diffBuilt = detail::buildProjectTrackRowsDiff (before, project, transaction.trackDiff);
     else if (detail::isBusEditVerb (command.verb))

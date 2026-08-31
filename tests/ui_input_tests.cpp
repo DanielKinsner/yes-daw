@@ -4655,7 +4655,8 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     REQUIRE (strips != nullptr);
     mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
 
-    // Honest scope: buses cannot originate sends — the send chooser refuses a bus target.
+    // R13 re-pin: buses CAN originate sends now, but never to themselves — with this one bus
+    // selected the only destination is itself, so the chooser stays honestly disabled.
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
     REQUIRE (sendChooser != nullptr);
     REQUIRE_FALSE (sendChooser->isEnabled());
@@ -8106,6 +8107,121 @@ TEST_CASE ("riding a fader while playing never rebuilds the engine",
     fader->setValue (0.8, juce::sendNotificationSync);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 0.8f);
     REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount > automatedBase);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// R13 — buses route and send like tracks, through the SAME real controls. A bus strip's send
+// chooser and rows drive real bus→bus routing that audibly reaches the master; the routing DAG
+// law refuses a created cycle with a painted reason (R4) and an unchanged project; the routing
+// persists, reopens, and undoes like any strip edit.
+TEST_CASE ("buses route and send like tracks through real mixer controls",
+           "[ui][input][shell][mixer][bus-routing]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("bus-routing");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> baseline = renderFromStart();
+    const double baselinePeak = peakAbs (std::span<const float> (baseline.data(), baseline.size()));
+    REQUIRE (baselinePeak > 0.01);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 2u);
+
+    // Select BUS 1 (painted strip 1, after the single track). Its send chooser excludes ITSELF
+    // — the one offered destination is Bus 2.
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    REQUIRE (sendChooser->isEnabled());
+    REQUIRE (sendChooser->getNumItems() == 1);
+    sendChooser->setSelectedId (2, juce::sendNotificationSync);   // item ids stay busIndex-keyed
+    {
+        const yesdaw::engine::Project routed = readProjectSnapshot (bundlePath);
+        REQUIRE (routed.buses[0].sends.size() == 1u);
+        REQUIRE (routed.buses[0].sends.front().busId == routed.buses[1].id);
+        REQUIRE (routed.buses[0].sends.front().linearGain == 1.0f);
+        REQUIRE (routed.buses[1].sends.empty());
+    }
+
+    // The BUS strip paints its own send row through the same painted-row law tracks use.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 1, 0).isEmpty());
+
+    // Route the TRACK's main output into Bus 1: the signal now reaches master twice — through
+    // Bus 1's own output AND through the Bus 1 → Bus 2 send — and PDC keeps the copies aligned,
+    // so the render audibly DOUBLES instead of combing.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* outputChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "mixer.track.output"));
+    REQUIRE (outputChooser != nullptr);
+    outputChooser->setSelectedId (2, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project routed = readProjectSnapshot (bundlePath);
+        REQUIRE (routed.tracks.front().outputBusId == routed.buses[0].id);
+    }
+    const std::vector<float> doubled = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (doubled.data(), doubled.size())) > baselinePeak * 1.5);
+
+    // Zeroing the BUS send through the real per-row slider takes the second copy away.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
+    auto* sendLevel = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (sendLevel != nullptr);
+    REQUIRE (sendLevel->isVisible());
+    sendLevel->setValue (0.0, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).buses[0].sends.front().linearGain == 0.0f);
+    const std::vector<float> single = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (single.data(), single.size())) < baselinePeak * 1.3);
+    REQUIRE (peakAbs (std::span<const float> (single.data(), single.size())) > baselinePeak * 0.7);
+
+    // THE DAG LAW: Bus 2 → Bus 1 would loop (Bus 1 already sends into Bus 2). The refusal is
+    // honest — project unchanged — and PAINTED with a reason through the R4 status line.
+    mouseDownAt (*strips, paintedStripCentre (*strips, 2, 2));
+    outputChooser->setSelectedId (2, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project refused = readProjectSnapshot (bundlePath);
+        REQUIRE_FALSE (refused.buses[1].outputBusId.isValid());
+        const MainComponentSnapshot painted = snapshotMainComponent (*shell);
+        REQUIRE (painted.statusLineIsError);
+        REQUIRE (painted.statusLineText.find ("loop") != std::string::npos);
+    }
+
+    // One undo reverts the LAST routing edit (the send level), exactly the strip-edit law.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses[0].sends.front().linearGain == 1.0f);
+
+    // The routing survives close-and-reopen: bus send, its level, and the track output.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto reopened = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.buses[0].sends.size() == 1u);
+        REQUIRE (restored.buses[0].sends.front().busId == restored.buses[1].id);
+        REQUIRE (restored.buses[0].sends.front().linearGain == 1.0f);
+        REQUIRE (restored.tracks.front().outputBusId == restored.buses[0].id);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

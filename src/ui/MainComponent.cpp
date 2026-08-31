@@ -8006,24 +8006,37 @@ private:
                        >= static_cast<int> (appModel.project().tracks.size())
                 && appModel.selectedMixerStripOrdinal() >= 0);
 
+            // R13: sends and outputs originate on TRACK and BUS strips (Master owns neither).
+            // A bus strip's choosers exclude the bus itself — a self-route is a cycle the verb
+            // would refuse anyway; the UI simply does not offer it. Item ids stay busIndex-keyed
+            // so the dispatch mapping is untouched by the exclusion.
+            const yesdaw::engine::EntityId sendOwnerId = appModel.selectedSendOwnerEntityId();
             mixerSendAddChooser.clear (juce::dontSendNotification);
+            std::size_t sendTargetCount = 0;
             for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+            {
+                if (project.buses[busIndex].id == sendOwnerId)
+                    continue;
                 mixerSendAddChooser.addItem (juce::String (project.buses[busIndex].strip.name),
                                              static_cast<int> (busIndex) + 1);
-            // E16 honest scope: sends originate on TRACKS only — a selected bus disables the
-            // chooser (the model verb refuses non-track targets regardless).
+                ++sendTargetCount;
+            }
             const bool sendAddEnabled =
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendAdd, appModel.context()).enabled
-                && ! project.buses.empty()
-                && appModel.selectedMixerTrackStripIndex() >= 0;
+                && sendTargetCount > 0
+                && sendOwnerId.isValid();
             mixerSendAddChooser.setEnabled (sendAddEnabled);
 
-            // M3: Master first, then every bus; the selection mirrors the Track's persisted route.
+            // M3: Master first, then every bus; the selection mirrors the strip's persisted route.
             mixerTrackOutputChooser.clear (juce::dontSendNotification);
             mixerTrackOutputChooser.addItem ("Out: Master", 1);
             for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+            {
+                if (project.buses[busIndex].id == sendOwnerId)
+                    continue;
                 mixerTrackOutputChooser.addItem ("Out: " + juce::String (project.buses[busIndex].strip.name),
                                                  static_cast<int> (busIndex) + 2);
+            }
 
             const yesdaw::engine::EntityId routedBusId = appModel.selectedTrackOutputBusId();
             int routedItemId = 1;
@@ -8034,7 +8047,7 @@ private:
             mixerTrackOutputChooser.setEnabled (
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTrackSetOutput,
                                               appModel.context()).enabled
-                && appModel.selectedMixerTrackStripIndex() >= 0);
+                && sendOwnerId.isValid());
 
             const std::vector<yesdaw::engine::SendRow> sends = appModel.selectedTrackSends();
             const bool sendEditEnabled =
@@ -8073,6 +8086,8 @@ private:
                 int currentBusId = 0;
                 for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
                 {
+                    if (project.buses[busIndex].id == sendOwnerId)   // R13: never offer a self-route
+                        continue;
                     mixerSendDestinations[row].addItem (juce::String (project.buses[busIndex].strip.name),
                                                         static_cast<int> (busIndex) + 1);
                     if (project.buses[busIndex].id == sends[row].busId)
