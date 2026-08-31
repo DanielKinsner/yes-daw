@@ -31,6 +31,23 @@ public:
         return runtime_.publish (std::move (graph));
     }
 
+    // CONTROL THREAD (R12): live scalar ops onto the running graph, through Runtime's one
+    // ordered command queue. false = the bounded queue is full (control side backpressures).
+    [[nodiscard]] bool postSetGain (NodeId node, float linearGain) noexcept
+    {
+        return runtime_.postSetGain (node, linearGain);
+    }
+
+    [[nodiscard]] bool postSetPan (NodeId node, float pan) noexcept
+    {
+        return runtime_.postSetPan (node, pan);
+    }
+
+    [[nodiscard]] bool postSetFxParam (NodeId node, ParameterId paramId, double normalizedValue) noexcept
+    {
+        return runtime_.postSetFxParam (node, paramId, normalizedValue);
+    }
+
     // AUDIO THREAD / device callback: no allocation, locking, logging, or I/O.
     void processDeviceBlock (float* const* outputChannels,
                              int numOutputChannels,

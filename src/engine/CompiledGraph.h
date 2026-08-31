@@ -24,10 +24,15 @@
 #include "dsp/ScopedNoDenormals.h"
 #include "engine/Automation.h"
 #include "engine/Node.h"
+#include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/DelayNode.h"
+#include "engine/nodes/EqNode.h"
 #include "engine/nodes/FaderNode.h"
+#include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/PanNode.h"
+#include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 #include "rt/RtHot.h"
@@ -548,6 +553,41 @@ public:
 
         static_cast<PanNode*> (node->node)->setPan (pan);
         return true;
+    }
+
+    // R12: the live FX-param twin of applySetGain/applySetPan. The five built-in FX nodes'
+    // setNormalizedParameter writes plain (non-atomic) ramp state, so it may ONLY run here on the
+    // audio thread via the ordered command drain — never from the control side. Kind-keyed
+    // static_cast (the applySetGain pattern): dynamic_cast is off-limits under YESDAW_RT_HOT. An
+    // automated (compiled-lane) parameter is refused — automation owns it during playback.
+    [[nodiscard]] bool applySetFxParam (NodeId id, ParameterId parameterId, double normalizedValue) const noexcept YESDAW_RT_HOT
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->node == nullptr)
+            return false;
+        if (hasCompiledAutomationTarget (id, parameterId))
+            return false;
+
+        switch (node->kind)
+        {
+            case CompiledNodeKind::Eq:
+                static_cast<EqNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            case CompiledNodeKind::Compressor:
+                static_cast<CompressorNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            case CompiledNodeKind::FxDelay:
+                static_cast<FxDelayNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            case CompiledNodeKind::Reverb:
+                static_cast<ReverbNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            case CompiledNodeKind::Limiter:
+                static_cast<LimiterNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            default:
+                return false;
+        }
     }
 
     void snapshotDelayCache() const

@@ -60,6 +60,10 @@ struct MainComponentSnapshot
     std::uint64_t deviceAudioCallbackBlockCount = 0;
     std::uint64_t deviceAudioNonSilentBlockCount = 0;
     bool playbackReady = false;
+    // R12: engine-rebuild counter and live-scalar-applied counter — the mechanical proof that a
+    // scalar strip edit rode the live command lane instead of rebuilding the PlaybackEngine.
+    std::uint64_t playbackReplaceCount = 0;
+    std::uint64_t playbackLiveScalarsApplied = 0;
     long long playbackLoopStartFrame = 0;
     long long playbackLoopEndFrame = 0;
     // R4: the shared status line as the model reports it (empty = quiet).

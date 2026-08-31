@@ -123,6 +123,13 @@ struct MixerProjectionInputs
     std::vector<MixerTrackProjection> tracks;
     std::vector<MixerBusProjection> buses;
     std::vector<CompiledAutomationLane> automationLanes;
+
+    // E19/R12: the master fader sits ONE node id below the master sum — one law shared by the
+    // graph build below and the live scalar lane's control-side addressing (UiAppModel).
+    [[nodiscard]] static constexpr NodeId masterFaderNodeIdFor (NodeId masterSumNodeId) noexcept
+    {
+        return masterSumNodeId - 1u;
+    }
 };
 
 inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
@@ -645,7 +652,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 
     // E19: the persisted master gain rides a FaderNode between the final sum and the master
     // stage — one node id below the master sum, mirroring the sum/master id convention.
-    auto masterFader = std::make_unique<FaderNode> (projection.masterSumNodeId - 1u, 2);
+    auto masterFader = std::make_unique<FaderNode> (
+        MixerProjectionInputs::masterFaderNodeIdFor (projection.masterSumNodeId), 2);
     FaderNode* const masterFaderPtr = masterFader.get();
     masterFaderPtr->setInput (masterChainHead);
     masterFaderPtr->setTargetGain (projection.masterLinearGain);

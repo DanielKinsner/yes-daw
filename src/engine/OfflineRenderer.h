@@ -191,6 +191,42 @@ struct ResolvedClipWindow
 
 } // namespace detail
 
+// ADR-0014 mute/solo policy over the whole Project, published into a compiled graph's ATOMIC
+// mute mask: explicit Mute wins, active solo mutes every non-soloed non-solo-safe strip, and the
+// mask applies identically to playback and offline render (export == playback). A Track's
+// contribution node is its per-Track source Sum — which since M1 carries the Track's MIDI as
+// well as its audio, so MIDI rides the Track's mute/solo through the same node; a Bus
+// contributes through its Sum. An unprojected strip (no mute-capable node) is skipped honestly.
+// CONTROL THREAD; safe on a LIVE graph too — setMuted only touches the atomic mute words the
+// audio thread reads (ADR-0014 designed exactly this), which is how the R12 live path republishes
+// mute/solo/solo-safe without an engine rebuild. ONE law for build-time and live.
+inline void applyProjectStripMuteMask (CompiledGraph& graph, const Project& project) noexcept
+{
+    bool anyActiveSolo = false;
+    for (const Track& track : project.tracks)
+        if (track.strip.soloed && ! track.strip.muted)
+            anyActiveSolo = true;
+    for (const Bus& bus : project.buses)
+        if (bus.strip.soloed && ! bus.strip.muted)
+            anyActiveSolo = true;
+
+    const auto applyStripMute = [&graph, anyActiveSolo] (const MixerStripState& strip, NodeId contributionNodeId)
+    {
+        if (! graph.isMuteCapable (contributionNodeId))
+            return;
+
+        const MixerMuteTarget target { contributionNodeId, strip.muted, strip.soloed, strip.soloSafe };
+        (void) graph.setMuted (contributionNodeId,
+                               mixerTargetIsEffectivelyMuted (target, anyActiveSolo));
+    };
+
+    for (const Track& track : project.tracks)
+        applyStripMute (track.strip, projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Source));
+
+    for (const Bus& bus : project.buses)
+        applyStripMute (bus.strip, projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source));
+}
+
 // Build the compiled Project graph (mixer projection over decoded Asset sources). Pure control-side.
 [[nodiscard]] inline ProjectGraphResult buildProjectGraph (const Project& project,
                                                            std::span<const DecodedAssetAudio> decodedAssets,
@@ -433,36 +469,9 @@ struct ResolvedClipWindow
         return result;
     }
 
-    // ADR-0014 mute/solo policy, finally WIRED to the Project's strip state: explicit Mute wins,
-    // active solo mutes every non-soloed non-solo-safe strip, and the mask applies identically to
-    // playback and offline render (export == playback). A Track's contribution node is its
-    // per-Track source Sum — which since M1 carries the Track's MIDI as well as its audio, so MIDI
-    // rides the Track's mute/solo through the same node; a Bus contributes through its Sum.
-    {
-        bool anyActiveSolo = false;
-        for (const Track& track : project.tracks)
-            if (track.strip.soloed && ! track.strip.muted)
-                anyActiveSolo = true;
-        for (const Bus& bus : project.buses)
-            if (bus.strip.soloed && ! bus.strip.muted)
-                anyActiveSolo = true;
-
-        const auto applyStripMute = [&graph, anyActiveSolo] (const MixerStripState& strip, NodeId contributionNodeId)
-        {
-            if (! graph->isMuteCapable (contributionNodeId))
-                return;
-
-            const MixerMuteTarget target { contributionNodeId, strip.muted, strip.soloed, strip.soloSafe };
-            (void) graph->setMuted (contributionNodeId,
-                                    mixerTargetIsEffectivelyMuted (target, anyActiveSolo));
-        };
-
-        for (const Track& track : project.tracks)
-            applyStripMute (track.strip, projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Source));
-
-        for (const Bus& bus : project.buses)
-            applyStripMute (bus.strip, projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Source));
-    }
+    // ADR-0014 mute/solo policy, finally WIRED to the Project's strip state — the shared
+    // applyProjectStripMuteMask law below, so build-time and the R12 live path can never drift.
+    applyProjectStripMuteMask (*graph, project);
 
     result.graph = std::move (graph);
     result.channels = static_cast<std::uint16_t> (masterChannels);

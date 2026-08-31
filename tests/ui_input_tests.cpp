@@ -7505,9 +7505,9 @@ TEST_CASE ("editing while playing keeps the transport rolling with the loop and 
         REQUIRE (playing.context.playheadFrame == playhead);
     }
 
-    // EDIT 1 — Shift+M mutes the selected track: a persisted, undoable project edit that
-    // rebuilds the playback engine. R2: the transport must keep rolling through it, playhead
-    // and loop intact.
+    // EDIT 1 — Shift+M mutes the selected track: a persisted, undoable project edit (since R12
+    // it rides the LIVE scalar lane — no engine rebuild at all). R2: the transport must keep
+    // rolling through it, playhead and loop intact.
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
     {
@@ -7947,6 +7947,165 @@ TEST_CASE ("solo never silences the soloed signal's own path through a bus",
     REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.soloSafe);
     const std::vector<float> restored = renderFromStart();
     REQUIRE (peakAbs (std::span<const float> (restored.data(), restored.size())) > 0.01);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// R12 — scalar strip edits ride the LIVE control→audio command lane; only structural edits
+// rebuild the engine. Before R12 every fader tick tore down the whole PlaybackEngine
+// (adoptEditedProject → PlaybackEngine::create → replacePlayback): a full graph compile and an
+// audible seam per drag pixel. The mechanical proof is the pair of counters the snapshot
+// carries: playbackReplaceCount must NOT move on a scalar edit, playbackLiveScalarsApplied must.
+TEST_CASE ("riding a fader while playing never rebuilds the engine",
+           "[ui][input][shell][live-scalars]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("live-scalars");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    // Structural setup BEFORE the live sequence: a bus, a send to it, and a compressor insert
+    // with its param page open (a factory compressor is transparent, so the mix stays linear).
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* insertChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (insertChooser != nullptr);
+    insertChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                                  juce::sendNotificationSync);
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+    {
+        const yesdaw::engine::Project shaped = readProjectSnapshot (bundlePath);
+        REQUIRE (shaped.tracks.front().sends.size() == 1u);
+        REQUIRE (shaped.tracks.front().strip.fxChain.size() == 1u);
+    }
+
+    // Play from the top and render a first chunk — this exact engine must survive every scalar.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> chunkA = renderMainComponentPlayback (*shell, 4'096, 128);
+    REQUIRE (peakAbs (std::span<const float> (chunkA.data(), chunkA.size())) > 0.01);
+    const MainComponentSnapshot before = snapshotMainComponent (*shell);
+    REQUIRE (before.context.isPlaying);
+
+    // THE HEADLINE: ride the fader. Persisted and undoable exactly as today — and the engine
+    // is NOT rebuilt, the transport keeps rolling from where it was.
+    auto* fader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.target.set_fader"));
+    REQUIRE (fader != nullptr);
+    fader->setValue (1.5, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 1.5f);
+    {
+        const MainComponentSnapshot after = snapshotMainComponent (*shell);
+        REQUIRE (after.playbackReplaceCount == before.playbackReplaceCount);
+        REQUIRE (after.context.isPlaying);
+        REQUIRE (after.context.playheadFrame >= before.context.playheadFrame);
+    }
+
+    // The next rendered blocks DRAIN the live lane: the audio thread applies the scalar on the
+    // running graph — no swap, frame-contiguous output from the same engine.
+    (void) renderMainComponentPlayback (*shell, 4'096, 128);
+    {
+        const MainComponentSnapshot applied = snapshotMainComponent (*shell);
+        REQUIRE (applied.playbackReplaceCount == before.playbackReplaceCount);
+        REQUIRE (applied.playbackLiveScalarsApplied > before.playbackLiveScalarsApplied);
+    }
+
+    // The boost is AUDIBLE from the same engine: relocating (a transport command, not an edit)
+    // and re-rendering the top is provably louder than the unity baseline.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    const std::vector<float> boosted = renderMainComponentPlayback (*shell, 4'096, 128);
+    REQUIRE (peakAbs (std::span<const float> (boosted.data(), boosted.size()))
+             > peakAbs (std::span<const float> (chunkA.data(), chunkA.size())) * 1.2f);
+
+    // MUTE is live too: silence through the SAME engine, audible again on unmute.
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerTargetToggleMute));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    const std::vector<float> mutedChunk = renderMainComponentPlayback (*shell, 4'096, 128);
+    REQUIRE (peakAbs (std::span<const float> (mutedChunk.data(), mutedChunk.size())) < 1.0e-6f);
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerTargetToggleMute));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    const std::vector<float> unmuted = renderMainComponentPlayback (*shell, 4'096, 128);
+    REQUIRE (peakAbs (std::span<const float> (unmuted.data(), unmuted.size())) > 0.01);
+    REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount == before.playbackReplaceCount);
+
+    // A painted SEND-ROW drag and a real FX param slider ride the same live lane.
+    const std::uint64_t scalarsBeforeSendFx = snapshotMainComponent (*shell).playbackLiveScalarsApplied;
+    const juce::Rectangle<int> sendRow = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 0, 0);
+    REQUIRE_FALSE (sendRow.isEmpty());
+    const juce::Point<int> rowStart { sendRow.getX() + sendRow.getWidth() / 8, sendRow.getCentreY() };
+    const juce::Point<int> rowQuarter { sendRow.getX() + sendRow.getWidth() / 4, sendRow.getCentreY() };
+    dragFromTo (*strips,
+                strips->getLocalPoint (shell.get(), rowStart),
+                strips->getLocalPoint (shell.get(), rowQuarter));
+    const float draggedSend = readProjectSnapshot (bundlePath).tracks.front().sends.front().linearGain;
+    REQUIRE (draggedSend > 0.0f);
+    REQUIRE (draggedSend < 1.0f);
+    (void) renderMainComponentPlayback (*shell, 1'024, 128);
+    {
+        const MainComponentSnapshot sendLive = snapshotMainComponent (*shell);
+        REQUIRE (sendLive.playbackReplaceCount == before.playbackReplaceCount);
+        REQUIRE (sendLive.playbackLiveScalarsApplied > scalarsBeforeSendFx);
+    }
+
+    const std::uint64_t scalarsBeforeFx = snapshotMainComponent (*shell).playbackLiveScalarsApplied;
+    auto* param0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (param0 != nullptr);
+    param0->setValue (0.25, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
+        const auto& params = edited.tracks.front().strip.fxChain.front().normalizedParams;
+        REQUIRE (params.size() == 1u);
+        REQUIRE (params.front().second == Catch::Approx (0.25));
+    }
+    (void) renderMainComponentPlayback (*shell, 1'024, 128);
+    {
+        const MainComponentSnapshot fxLive = snapshotMainComponent (*shell);
+        REQUIRE (fxLive.playbackReplaceCount == before.playbackReplaceCount);
+        REQUIRE (fxLive.playbackLiveScalarsApplied > scalarsBeforeFx);
+    }
+
+    // Undo is untouched by the live lane: Ctrl+Z reverts the LAST scalar edit (the FX param).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.front().normalizedParams.empty());
+
+    // NEGATIVE CONTROL 1: a STRUCTURAL edit (adding an insert) still rebuilds the engine.
+    const std::uint64_t liveCount = snapshotMainComponent (*shell).playbackReplaceCount;
+    insertChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1,
+                                  juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.size() == 2u);
+    REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount > liveCount);
+
+    // NEGATIVE CONTROL 2: an AUTOMATED fader falls back to the rebuild path — the compiled
+    // lane owns the param during playback (the audio thread refuses a live set on it), so the
+    // edit adopts exactly the way it does today.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // timeline view owns the automation lane
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    juce::Component* automationCanvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (automationCanvas != nullptr);
+    mouseDownAt (*automationCanvas, { automationCanvas->getWidth() / 2, automationCanvas->getHeight() / 2 });
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).automationLanes.empty());
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    const std::uint64_t automatedBase = snapshotMainComponent (*shell).playbackReplaceCount;
+    fader->setValue (0.8, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 0.8f);
+    REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount > automatedBase);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

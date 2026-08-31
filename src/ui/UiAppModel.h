@@ -277,6 +277,14 @@ public:
     [[nodiscard]] engine::EntityId selectedMidiNoteId() const noexcept { return selectedMidiNoteId_; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] bool playbackReady() const noexcept { return playback_ != nullptr; }
+    // R12: how many times the PlaybackEngine has been REPLACED (a rebuild), and how many live
+    // scalar commands the running engine's audio thread has applied. Together they are the
+    // mechanical no-rebuild proof: a live scalar edit advances the second and never the first.
+    [[nodiscard]] std::uint64_t playbackReplaceCount() const noexcept { return playbackReplaceCount_; }
+    [[nodiscard]] std::uint64_t playbackLiveScalarsApplied() const noexcept
+    {
+        return playback_ != nullptr ? playback_->liveScalarsApplied() : 0;
+    }
     void setPlaybackReplacementCallbacks (std::function<void()> willReplace,
                                           std::function<void()> didReplace)
     {
@@ -2836,7 +2844,19 @@ public:
                               engine::ProjectEditCommand::setMasterGain (linearGain)).applied())
             return { id, { false, "master gain unchanged" }, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: the master fader is a live gain too (no master automation role exists, so no
+        // automation fallback is needed). Its NodeId comes from the one shared id law.
+        if (canTakeScalarEditLive())
+        {
+            LiveScalarDelta delta;
+            delta.gain = LiveScalarDelta::GainPost {
+                engine::MixerProjectionInputs::masterFaderNodeIdFor (
+                    playbackBuildOptions().masterSumNodeId),
+                linearGain };
+            if (! adoptScalarEditLive (std::move (nextProject), std::move (nextUndo), delta))
+                return { id, { false, "master edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "master edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
@@ -3623,7 +3643,23 @@ public:
                                   trackId, track->sends[sendIndex].id, linearGain)).applied())
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: a send level is a live gain on the send's own compiled FaderNode. The production
+        // send ordinal IS the index in track.sends (the options sendRoutes test seam is empty in
+        // the shell); SendLevel automation lanes address the same ordinal, so an automated send
+        // falls back to the rebuild path exactly like an automated fader.
+        if (canTakeScalarEditLive()
+            && ! automationLaneExistsFor (trackId, engine::AutomationTargetRole::SendLevel,
+                                          static_cast<std::uint32_t> (sendIndex)))
+        {
+            LiveScalarDelta delta;
+            delta.gain = LiveScalarDelta::GainPost {
+                engine::projectMixerSendLevelNodeIdForTrack (
+                    trackId, static_cast<std::uint32_t> (sendIndex)),
+                linearGain };
+            if (! adoptScalarEditLive (std::move (nextProject), std::move (nextUndo), delta))
+                return { id, { false, "send edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "send edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
@@ -3652,14 +3688,31 @@ public:
         if (! engine::fxKindAcceptsParameterId (strip->fxChain[slotIndex].kind, paramId))
             return { id, { false, "FX kind does not accept parameter" }, false };
 
+        const engine::FxInsert& insert = strip->fxChain[slotIndex];
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
         const engine::ProjectEditCommand command = engine::ProjectEditCommand::setFxInsertParam (
-            ownerId, strip->fxChain[slotIndex].id, paramId, normalizedValue);
+            ownerId, insert.id, paramId, normalizedValue);
         if (! nextUndo.apply (nextProject, command).applied())
             return { id, state, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: an FX param rides the live lane to the insert's own compiled node. A DISABLED
+        // insert persists the value but posts nothing — its live node keeps the transparent
+        // factory defaults, one law with applyFxInsertParams (bypass toggling stays a rebuild).
+        // A param with an automation lane falls back to the rebuild path (automation owns it).
+        if (canTakeScalarEditLive()
+            && ! automationLaneExistsFor (insert.id, engine::AutomationTargetRole::FxInsertParam, paramId))
+        {
+            LiveScalarDelta delta;
+            if (insert.enabled)
+                delta.fxParam = LiveScalarDelta::FxPost {
+                    engine::projectMixerNodeIdForEntity (insert.id, engine::ProjectMixerNodeRole::Fx),
+                    paramId,
+                    normalizedValue };
+            if (! adoptScalarEditLive (std::move (nextProject), std::move (nextUndo), delta))
+                return { id, { false, "FX edit did not persist" }, false };
+        }
+        else if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "FX edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
@@ -7056,13 +7109,17 @@ private:
             return { id, { false, "the master strip has no scalar strip controls" }, false };
 
         engine::ProjectEditCommand command;
-        if (selectedMixerTarget_.kind == MixerTargetKind::Bus)
+        engine::EntityId ownerId;
+        engine::MixerStripState edited;
+        const bool ownerIsBus = selectedMixerTarget_.kind == MixerTargetKind::Bus;
+        if (ownerIsBus)
         {
             if (selectedMixerTarget_.index >= project_.buses.size())
                 return { id, { false, "selected mixer target missing" }, false };
 
             const engine::Bus& bus = project_.buses[selectedMixerTarget_.index];
-            engine::MixerStripState edited = bus.strip;
+            ownerId = bus.id;
+            edited = bus.strip;
             fn (edited);
             command = engine::ProjectEditCommand::setBusMixScalars (
                 bus.id, edited.linearGain, edited.pan,
@@ -7074,7 +7131,8 @@ private:
                 return { id, { false, "selected mixer target missing" }, false };
 
             const engine::Track& track = project_.tracks[selectedMixerTarget_.index];
-            engine::MixerStripState edited = track.strip;
+            ownerId = track.id;
+            edited = track.strip;
             fn (edited);
             command = engine::ProjectEditCommand::setTrackMixScalars (
                 track.id, edited.linearGain, edited.pan,
@@ -7086,7 +7144,9 @@ private:
         if (! nextUndo.apply (nextProject, command).applied())
             return { id, { false, "invalid mixer strip" }, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: scalar strip values ride the live lane; automation-owned strips fall back.
+        if (! adoptStripScalarEdit (ownerId, ownerIsBus, edited,
+                                    std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "mixer edit did not persist" }, false };
 
         context_.mixerTargetSelected = true;
@@ -7127,7 +7187,9 @@ private:
                                   edited.muted, edited.soloed, edited.soloSafe)).applied())
             return { id, { false, "invalid strip edit" }, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: rail strip edits ride the same live scalar lane as the mixer's.
+        if (! adoptStripScalarEdit (trackId, false, edited,
+                                    std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "strip edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
@@ -7164,7 +7226,9 @@ private:
                                   edited.muted, edited.soloed, edited.soloSafe)).applied())
             return { id, { false, "invalid strip edit" }, false };
 
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        // R12: bus rail edits ride the same live scalar lane as the mixer's.
+        if (! adoptStripScalarEdit (busId, true, edited,
+                                    std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "strip edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
@@ -7355,6 +7419,162 @@ private:
         // M13: a strip edit changes the monitor path's DSP too.
         rebuildMonitorChain();
         return true;
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // R12: the live scalar lane — a scalar strip edit (gain/pan/mute/solo/solo-safe, send
+    // level, FX param) adopts onto the RUNNING engine through the ADR-0006 command queue and
+    // the ADR-0014 atomic mute mask instead of rebuilding the world. Structural edits keep the
+    // full adoptEditedProject rebuild.
+
+    // What a scalar-only edit delivers to the running graph. Values are read from the EDITED
+    // state, so live == persisted == what the next rebuild would bake.
+    struct LiveScalarDelta
+    {
+        struct GainPost { engine::NodeId node = 0; float linearGain = 1.0f; };
+        struct PanPost  { engine::NodeId node = 0; float pan = 0.0f; };
+        struct FxPost   { engine::NodeId node = 0; engine::ParameterId paramId = 0; double normalized = 0.0; };
+        std::optional<GainPost> gain;
+        std::optional<PanPost>  pan;
+        std::optional<FxPost>   fxParam;
+        bool refreshMuteMask = false;
+    };
+
+    [[nodiscard]] bool canTakeScalarEditLive() const noexcept
+    {
+        // Live only while the transport ROLLS — that is where a rebuild is audible (R2's seam)
+        // and where the 5 ms declick ramp is the honest apply. While STOPPED the callback never
+        // runs the graph, so a posted command would sit queued and then ramp at the next play,
+        // breaking the bit-exact edit→render law the master-fader/strip gates pin; the rebuild
+        // path keeps a stopped edit snapped and inaudible, exactly as before R12.
+        return playback_ != nullptr && playback_->hasLiveGraph() && playback_->isPlaying();
+    }
+
+    // A project automation lane bound to the edited target means the COMPILED graph owns that
+    // parameter during playback (the audio thread refuses a live set on it, hasCompiledAutomation-
+    // Target) — fall back to the rebuild path so behavior stays exactly today's.
+    [[nodiscard]] bool automationLaneExistsFor (engine::EntityId owner,
+                                               engine::AutomationTargetRole role) const noexcept
+    {
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+            if (lane.ownerEntity == owner && lane.role == role)
+                return true;
+        return false;
+    }
+
+    [[nodiscard]] bool automationLaneExistsFor (engine::EntityId owner,
+                                               engine::AutomationTargetRole role,
+                                               std::uint32_t paramId) const noexcept
+    {
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+            if (lane.ownerEntity == owner && lane.role == role && lane.paramId == paramId)
+                return true;
+        return false;
+    }
+
+    // Adopt a SCALAR-ONLY edit onto the running engine. Persistence, undo, edit serial and
+    // context sync are exactly the adoptEditedProject law; the engine is NOT replaced — the
+    // values ride the live lane, so transport, meters and audio stay frame-contiguous.
+    [[nodiscard]] bool adoptScalarEditLive (engine::Project nextProject,
+                                            engine::ProjectUndoStack nextUndo,
+                                            const LiveScalarDelta& delta)
+    {
+        if (bundleDb_.isOpen())
+        {
+            persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return false;
+        }
+
+        project_ = std::move (nextProject);
+        undo_ = std::move (nextUndo);
+        ++editSerial_;
+        syncProjectEditContext();
+
+        bool delivered = true;
+        if (delta.gain)
+            delivered = playback_->postLiveSetGain (delta.gain->node, delta.gain->linearGain) && delivered;
+        if (delta.pan)
+            delivered = playback_->postLiveSetPan (delta.pan->node, delta.pan->pan) && delivered;
+        if (delta.fxParam)
+            delivered = playback_->postLiveSetFxParam (delta.fxParam->node,
+                                                       delta.fxParam->paramId,
+                                                       delta.fxParam->normalized) && delivered;
+        if (delta.refreshMuteMask)
+            delivered = playback_->applyLiveStripMuteMask (project_) && delivered;
+
+        // A full (bounded) command queue is the one honest failure here: the project state is
+        // already adopted, so converge the audio by a real rebuild rather than dropping a value.
+        if (! delivered)
+            rebuildPlaybackForCurrentProject();
+
+        // M13: a strip edit changes the monitor path's DSP too (signature-gated: a no-op when
+        // the monitored strip did not change).
+        rebuildMonitorChain();
+        return true;
+    }
+
+    // The engine half of adoptEditedProject over the ALREADY-adopted project_ — the live lane's
+    // convergence fallback when a post could not be delivered.
+    void rebuildPlaybackForCurrentProject()
+    {
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
+            project_,
+            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+            playbackBuildOptions());
+
+        std::unique_ptr<engine::PlaybackEngine> nextEngine;
+        if (built.ok())
+            nextEngine = std::move (built.engine);
+        else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
+            nextEngine = engine::PlaybackEngine::createTransportOnly (project_.sampleRate,
+                                                                      playbackMaxBlockSize_);
+        if (nextEngine == nullptr)
+            return;   // keep the current engine; the persisted project is already the truth
+
+        const TransportAdoptionSnapshot liveTransport = captureTransportForAdoption();
+        (void) nextEngine->stop();
+        drainTransport (*nextEngine);
+        replacePlayback (std::move (nextEngine));
+        resetContextForFreshPlayback();
+        restoreTransportAfterAdoption (liveTransport);
+    }
+
+    // One seam for every strip-scalar dispatcher (gain/pan/mute/solo/solo-safe on a Track or
+    // Bus): live when the running engine has a graph and neither the strip's fader nor its pan
+    // is automation-owned; the full rebuild path otherwise.
+    [[nodiscard]] bool adoptStripScalarEdit (engine::EntityId ownerId,
+                                             bool ownerIsBus,
+                                             const engine::MixerStripState& edited,
+                                             engine::Project nextProject,
+                                             engine::ProjectUndoStack nextUndo)
+    {
+        const engine::AutomationTargetRole faderRole = ownerIsBus
+            ? engine::AutomationTargetRole::BusFader
+            : engine::AutomationTargetRole::TrackFader;
+        const engine::AutomationTargetRole panRole = ownerIsBus
+            ? engine::AutomationTargetRole::BusPan
+            : engine::AutomationTargetRole::TrackPan;
+
+        if (canTakeScalarEditLive()
+            && ! automationLaneExistsFor (ownerId, faderRole)
+            && ! automationLaneExistsFor (ownerId, panRole))
+        {
+            LiveScalarDelta delta;
+            delta.gain = LiveScalarDelta::GainPost {
+                ownerIsBus ? engine::projectMixerNodeIdForEntity (ownerId, engine::ProjectMixerNodeRole::Fader)
+                           : engine::projectMixerNodeIdForTrack (ownerId, engine::ProjectMixerNodeRole::Fader),
+                edited.linearGain };
+            delta.pan = LiveScalarDelta::PanPost {
+                ownerIsBus ? engine::projectMixerNodeIdForEntity (ownerId, engine::ProjectMixerNodeRole::Pan)
+                           : engine::projectMixerNodeIdForTrack (ownerId, engine::ProjectMixerNodeRole::Pan),
+                edited.pan };
+            delta.refreshMuteMask = true;   // mute/solo/solo-safe are one global mask decision
+            return adoptScalarEditLive (std::move (nextProject), std::move (nextUndo), delta);
+        }
+
+        return adoptEditedProject (std::move (nextProject), std::move (nextUndo));
     }
 
     [[nodiscard]] UiActionDispatchResult dispatchUndo (UiActionId id, UiActionState state)
@@ -8067,6 +8287,7 @@ private:
 
     void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement)
     {
+        ++playbackReplaceCount_;   // R12: every engine swap counts — the live lane must not take this path
         if (playbackReplacementWillBegin_)
             playbackReplacementWillBegin_();
 
@@ -8127,6 +8348,7 @@ private:
     // every edit synchronously — this tracks the user's saved-state intent only.
     std::uint64_t editSerial_ = 0;
     std::uint64_t lastSavedEditSerial_ = 0;
+    std::uint64_t playbackReplaceCount_ = 0;   // R12: engine rebuild counter (see replacePlayback)
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     // M11: the ARM SET, in arm order. The FIRST entry is the primary — the one the single-arm

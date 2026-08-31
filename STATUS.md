@@ -455,10 +455,88 @@ YesDawTimelineGpuCheck flake under `-j 6` passed alone and on the clean rerun; o
 R11 is certified: exact-head GitHub Actions run `33442913800` is green for full SHA
 `bd205e1` across all nine jobs, first try. R11 is ticked.
 
-**Now:** checkpoint handed back to Dan (R11 done and certified).
-**Next:** R12 — live scalar edits without an engine rebuild (the deep architectural fix
-behind R2's seam; audit `PlaybackEngine.h` live-param surface, RuntimeAudioDriver /
-RtLaneRing command lane, before building).
+**R12 audit (2026-08-31, head `7dffa88`):** the live machinery mostly EXISTS and is simply
+unwired. `Runtime` already has the ADR-0006 ordered control→audio command lane with working
+scalar ops — `postSetGain`/`postSetPan` → audio-thread `CompiledGraph::applySetGain/applySetPan`
+(kind-checked, 5 ms FaderNode ramp, refuses a target with a compiled automation lane) plus a
+`scalarsApplied` diagnostic counter — but `RuntimeAudioDriver` never forwards the post methods
+and `PlaybackEngine` exposes no live-param surface at all, so every strip edit funnels through
+`adoptEditedProject` → full `PlaybackEngine::create` rebuild + `replacePlayback`. Mute/solo/
+solo-safe need NO command lane: `CompiledGraph::setMuted` is an atomic mute-word mask that
+ADR-0014 explicitly designed for control-thread publication on the live graph; it is only ever
+used at build time today (OfflineRenderer applies the per-strip effective mask, skipping
+non-mute-capable contribution nodes). FX params are the opposite: the five built-in FX nodes'
+`setNormalizedParameter` writes plain non-atomic RampedParam fields (a build-time seam), so live
+FX edits MUST apply on the audio thread — a new `SetFxParam` command (Command.h grows a paramId
++ double payload) dispatched through the same one ordered queue. Send levels are just gain: each
+send compiles its own FaderNode at `projectMixerSendLevelNodeIdForTrack(trackId, ordinal)` where
+the production ordinal equals the index in `track.sends` (the options sendRoutes test seam is
+empty in the shell). Master fader is `masterSumNodeId - 1` (MixerGraphProjection:648). Key
+simplifier: within one PlaybackEngine's life exactly ONE graph is ever published (structural
+edits build a whole new engine), so control-side pointers harvested at create() — the meter
+pattern — stay valid for the engine's life and scalar-vs-swap ordering is moot. Node ids are
+pure functions of entity ids, so the control side addresses live nodes without harvesting.
+Automation fallback: `applySetGain` refuses automated targets on the audio thread, invisible to
+the control side — so the shell pre-checks `project_.automationLanes` for a lane matching the
+edited (owner, role, paramId per the projection's own matching law) and falls back to the full
+rebuild path when one exists, exactly today's behavior. Disabled FX inserts keep their
+transparent defaults on the live node (mirroring `applyFxInsertParams`'s enabled check) — the
+param persists but does not post; bypass toggling itself stays a rebuild. Backlog map error
+recorded honestly: `RtLaneRing` is the hosted-plugin lane and is NOT involved — alpha FX are the
+five built-in nodes (`FxKind`), and the live lane is Runtime's command FIFO. Plan: (1) shared
+FX-param dispatch helper (one law for build-time + live), (2) `applySetFxParam` +
+`Runtime::postSetFxParam` + driver forwarders, (3) PlaybackEngine live surface — postSetGain/
+Pan/FxParam, live mute-mask reapplication sharing the OfflineRenderer mask law, harvested
+mutable graph handle, (4) UiAppModel live fast path for the five scalar dispatch families
+(strip scalars selected + panel-preserving track/bus, master fader, send level, FX param) with
+the automation/transport-only fallbacks, a rebuild counter in `replacePlayback`, snapshot
+exposure, (5) `[live-scalars]` gate built RED first: ride a fader while playing → engine
+identity/rebuild-count unchanged, `scalarsApplied` advanced, audio frame-contiguous, audible
+gain change, persisted + undoable exactly as today; negative controls — a structural edit still
+rebuilds, an automated fader falls back to rebuild.
+
+**R12 implementation candidate — live scalar edits without an engine rebuild:** as audited.
+Engine: `Command` grows `SetFxParam` (paramId + a DOUBLE normalized payload, bit-exact with the
+persisted value); `CompiledGraph::applySetFxParam` is the kind-keyed static_cast twin of
+applySetGain (dynamic_cast is off-limits under `YESDAW_RT_HOT`, and CompiledNodeKind already
+carries the five FX subtypes), refusing automated params; `Runtime::postSetFxParam` +
+`RuntimeAudioDriver` forwarders for all three posts; the ADR-0014 build-time mute block is
+extracted into the shared `applyProjectStripMuteMask` (OfflineRenderer.h — ONE law for build and
+live); `MixerProjectionInputs::masterFaderNodeIdFor` makes the E19 "sum − 1" id a single law;
+`PlaybackEngine` grows the live surface — `postLiveSetGain/Pan/FxParam`, `applyLiveStripMuteMask`,
+`hasLiveGraph`, `liveScalarsApplied` — over a mutable graph handle harvested at create() (valid
+for the engine's life: one engine, one graph). Shell: `adoptScalarEditLive` persists + adopts
+exactly like adoptEditedProject but delivers values through the live lane — no replacePlayback,
+no transport capture/restore, no fresh-playback context reset; a failed post (bounded queue full)
+converges via `rebuildPlaybackForCurrentProject`; `adoptStripScalarEdit` is the one seam for the
+strip-scalar dispatchers. Wired live: mixer strip scalars (gain/pan/mute/solo/solo-safe, track +
+bus), the panel-preserving rail twins, the master fader, send levels
+(ordinal == index in track.sends; the options sendRoutes seam is empty in the shell), and FX
+params (a DISABLED insert persists but posts nothing — one law with applyFxInsertParams; bypass
+toggling stays a rebuild). Automation fallback: a project lane matching the edited target (owner,
+role, paramId per the projection's matching law) falls back to the full rebuild — the compiled
+lane owns the param during playback, exactly today's audible behavior. `replacePlayback` now
+counts rebuilds and the snapshot exposes `playbackReplaceCount` + `playbackLiveScalarsApplied` —
+the mechanical no-rebuild proof. `[live-scalars]` gate (105 assertions), all through shipped
+controls while PLAYING: ride the real fader → persisted 1.5, engine replace-count UNCHANGED,
+transport still rolling, live counter advanced, audibly louder from the same engine; mute →
+provable silence, unmute → audible, same engine; painted send-row drag and the real FX param
+slider each advance the live counter at their own checkpoint; undo reverts the last scalar;
+negative controls — adding an insert (structural) DOES rebuild, and penciling a fader automation
+lane makes the next fader ride take the rebuild fallback. Red proven per law: the pre-feature
+run failed exactly at the replace-count headline (6 == 5); neutering the mask failed exactly the
+muted-silence assertion; neutering the FX post (dead node id) failed exactly the FX counter
+checkpoint. The R2 gate's stale "rebuilds the playback engine" comment re-pinned to the new law.
+Debug note (a real semantics find): the first full-suite run broke four existing audible-parity
+gates (master-fader, midi-strip, bus-fader, Alt+click-reset) — all edit while STOPPED, and a
+stopped engine's callback never runs the graph, so the posted command sat queued and then RAMPED
+(the 5 ms declick) at the next play, breaking their bit-exact edit→render-from-start law. Honest
+boundary shipped: `canTakeScalarEditLive` requires `isPlaying()` — the live lane serves the
+ROLLING transport (R12's spec and R2's audible seam); a stopped scalar edit keeps the rebuild
+path, snapped and inaudible exactly as before. Full local ctest green **356/356** (the
+YesDawTimelineGpuCheck -j 6 flake fired once on the broken intermediate run and passed on the
+green run; owner `last-project.txt` not present on this machine — nothing to isolate/restore).
+**Next:** R13 — buses can route and send like tracks.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

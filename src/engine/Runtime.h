@@ -145,6 +145,13 @@ public:
         return cmdFifo_.push (Command { CommandType::SetPan, nullptr, node, pan });
     }
 
+    // R12: the FX-param scalar rides the same one ordered queue (ADR-0006) and is applied on the
+    // audio thread — the built-in FX nodes' param seam is not control-thread-safe.
+    [[nodiscard]] bool postSetFxParam (NodeId node, ParameterId paramId, double normalizedValue) noexcept
+    {
+        return cmdFifo_.push (Command { CommandType::SetFxParam, nullptr, node, 0.0f, paramId, normalizedValue });
+    }
+
     // ---- AUDIO THREAD --------------------------------------------------------------------------------
     void processBlock (float* out, int numFrames) noexcept YESDAW_RT_HOT
     {
@@ -311,6 +318,11 @@ private:
 
             case CommandType::SetPan:
                 if (current_ != nullptr && current_->applySetPan (c.node, c.value))
+                    scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
+                break;
+
+            case CommandType::SetFxParam:
+                if (current_ != nullptr && current_->applySetFxParam (c.node, c.paramId, c.normalized))
                     scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
                 break;
         }

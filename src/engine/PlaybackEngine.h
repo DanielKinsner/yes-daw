@@ -86,6 +86,14 @@ public:
                 engine->busMeters_.push_back ({ bus.id, meter });
         }
 
+        // R12: keep a control-side handle to the ONE graph this engine will ever run. Within a
+        // PlaybackEngine's life exactly one graph is published (structural edits build a whole
+        // new engine), so — like the meter taps above — this pointer stays valid for the
+        // engine's whole life. It powers the live scalar lane: the atomic mute-mask
+        // republication runs through it directly; gain/pan/FX-param posts ride the driver's
+        // ordered command queue and are applied by the audio thread.
+        engine->liveGraph_ = built.graph.get();
+
         if (! engine->driver_.publish (std::move (built.graph)))
         {
             // Only a null graph or a full command queue can fail here; a fresh queue cannot be full.
@@ -277,6 +285,39 @@ public:
     [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }   // full timeline incl tail
     [[nodiscard]] int           maxBlockSize() const noexcept { return maxBlockSize_; }
     [[nodiscard]] std::uint64_t processedGen() const noexcept { return driver_.processedGen(); }
+    // R12: how many live scalar commands the audio thread has applied to the running graph.
+    [[nodiscard]] std::uint64_t liveScalarsApplied() const noexcept { return driver_.scalarsApplied(); }
+
+    // R12 — the live scalar lane (CONTROL THREAD). A transport-only engine has no graph and
+    // refuses honestly; the caller falls back to the rebuild path.
+    [[nodiscard]] bool hasLiveGraph() const noexcept { return liveGraph_ != nullptr; }
+
+    [[nodiscard]] bool postLiveSetGain (NodeId node, float linearGain) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetGain (node, linearGain);
+    }
+
+    [[nodiscard]] bool postLiveSetPan (NodeId node, float pan) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetPan (node, pan);
+    }
+
+    [[nodiscard]] bool postLiveSetFxParam (NodeId node, ParameterId paramId, double normalizedValue) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetFxParam (node, paramId, normalizedValue);
+    }
+
+    // Republish the whole ADR-0014 mute/solo/solo-safe mask from the Project's strip state onto
+    // the RUNNING graph — the same one law the build path applies (applyProjectStripMuteMask),
+    // through the graph's atomic mute words, so no command lane and no rebuild is needed.
+    [[nodiscard]] bool applyLiveStripMuteMask (const Project& project) noexcept
+    {
+        if (liveGraph_ == nullptr)
+            return false;
+
+        applyProjectStripMuteMask (*liveGraph_, project);
+        return true;
+    }
     [[nodiscard]] bool          isPlaying() const noexcept
     {
         return publishedPlaying_.load (std::memory_order_acquire);
@@ -574,6 +615,7 @@ private:
     }
 
     RuntimeAudioDriver driver_;
+    CompiledGraph* liveGraph_ = nullptr;   // R12: the one graph this engine runs (harvested at create())
     std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
     std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;

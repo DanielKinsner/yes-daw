@@ -19,14 +19,17 @@
 
 namespace yesdaw::engine {
 
-enum class CommandType : std::uint32_t { SwapGraph = 0, SetGain = 1, SetPan = 2 };
+enum class CommandType : std::uint32_t { SwapGraph = 0, SetGain = 1, SetPan = 2, SetFxParam = 3 };
 
 struct Command
 {
     CommandType          type  = CommandType::SwapGraph;
     const CompiledGraph* graph = nullptr;   // SwapGraph: the next graph (ownership transfers to the engine)
-    NodeId               node  = 0;         // SetGain/SetPan: target node
+    NodeId               node  = 0;         // SetGain/SetPan/SetFxParam: target node
     float                value = 0.0f;      // SetGain: linear gain / SetPan: -1..+1
+    ParameterId          paramId = 0;       // SetFxParam: the FX node's parameter id
+    double               normalized = 0.0;  // SetFxParam: normalized 0..1 (double — bit-exact with the
+                                            // persisted Project value, so live == the next rebuild)
 };
 
 static_assert (std::is_trivially_copyable_v<Command>,

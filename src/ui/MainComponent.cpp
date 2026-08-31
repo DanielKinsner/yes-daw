@@ -4293,6 +4293,8 @@ public:
             && static_cast<bool> (fileChoices.chooseExportAudioFile);
     }
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
+    [[nodiscard]] std::uint64_t harnessPlaybackReplaceCount() const noexcept { return appModel.playbackReplaceCount(); }
+    [[nodiscard]] std::uint64_t harnessPlaybackLiveScalarsApplied() const noexcept { return appModel.playbackLiveScalarsApplied(); }
     [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
     [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
     [[nodiscard]] std::string harnessStatusLineText() const { return appModel.statusLineText(); }
@@ -11301,6 +11303,8 @@ MainComponentSnapshot snapshotMainComponent (const juce::Component& component)
         snapshot.deviceAudioCallbackBlockCount = mainComponent->harnessDeviceAudioCallbackBlockCount();
         snapshot.deviceAudioNonSilentBlockCount = mainComponent->harnessDeviceAudioNonSilentBlockCount();
         snapshot.playbackReady = mainComponent->harnessPlaybackReady();
+        snapshot.playbackReplaceCount = mainComponent->harnessPlaybackReplaceCount();
+        snapshot.playbackLiveScalarsApplied = mainComponent->harnessPlaybackLiveScalarsApplied();
         snapshot.playbackLoopStartFrame = mainComponent->harnessPlaybackLoopStartFrame();
         snapshot.playbackLoopEndFrame = mainComponent->harnessPlaybackLoopEndFrame();
         snapshot.statusLineText = mainComponent->harnessStatusLineText();
