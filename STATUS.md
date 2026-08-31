@@ -452,6 +452,14 @@ was correct, the probe was transparent. Full local ctest green **356/356** (one
 YesDawTimelineGpuCheck flake under `-j 6` passed alone and on the clean rerun; owner
 `last-project.txt` was not present on this machine — nothing to isolate/restore).
 
+R11 is certified: exact-head GitHub Actions run `33442913800` is green for full SHA
+`bd205e1` across all nine jobs, first try. R11 is ticked.
+
+**Now:** checkpoint handed back to Dan (R11 done and certified).
+**Next:** R12 — live scalar edits without an engine rebuild (the deep architectural fix
+behind R2's seam; audit `PlaybackEngine.h` live-param surface, RuntimeAudioDriver /
+RtLaneRing command lane, before building).
+
 ## 2026-08-12 editing-first parity run (in progress)
 
 Operating brief: `docs/goals/2026-08-12-editing-first-run-brief.md` (process rules chain to the

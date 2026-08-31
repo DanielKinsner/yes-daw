@@ -159,7 +159,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   bus-routed track → still audible through its bus; solo a sent track → return still
   audible; engine gate `mixer_mute_policy_tests.cpp:241` stays green. Out of scope: solo
   modes (AFL/PFL).
-- [ ] **R11 — the master strip grows a real FX chain.** `Project.h:837-839` locks master to
+- [x] **R11 — the master strip grows a real FX chain.** *(done: `bd205e1`, CI run
+  `33442913800` green, all nine jobs, first try)* `Project.h:837-839` locks master to
   gain-only — no way to put the existing Limiter on the mix bus, and no workaround since
   buses only feed master. Give master a `MixerStripState` (or the FX-relevant subset) and
   reuse the existing strip FX law end-to-end (chooser, param pages, bypass, reorder, undo,
