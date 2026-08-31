@@ -2120,6 +2120,15 @@ public:
                     return result;
                 }
             }
+
+            // R11: the master chain rides the same rows under the reserved sentinel owner.
+            if (auto result = writeFxChain (engine::kMasterStripOwnerId,
+                                            project.masterStrip.fxChain);
+                ! result.ok())
+            {
+                rollback();
+                return result;
+            }
         }
 
         {
@@ -2705,6 +2714,12 @@ public:
                 if (auto result = loadFxChain (bus.id, bus.strip.fxChain); ! result.ok())
                     return result;
             }
+
+            // R11: the master chain reads back from the reserved sentinel owner's rows.
+            if (auto result = loadFxChain (engine::kMasterStripOwnerId,
+                                           project.masterStrip.fxChain);
+                ! result.ok())
+                return result;
         }
 
         {
@@ -3340,15 +3355,17 @@ public:
         bool fxOwnerProblem = false;
         if (auto result = detail::hasAnyRow (
                 db_,
+                // R11: the reserved all-ones owner is the MASTER strip's chain.
                 "SELECT 1 FROM fx_inserts f "
                 "LEFT JOIN tracks t ON t.id = f.owner_entity "
                 "LEFT JOIN buses b ON b.id = f.owner_entity "
-                "WHERE t.id IS NULL AND b.id IS NULL LIMIT 1;",
+                "WHERE t.id IS NULL AND b.id IS NULL "
+                "AND f.owner_entity != x'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' LIMIT 1;",
                 fxOwnerProblem);
             ! result.ok())
             return result;
         if (fxOwnerProblem)
-            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert owner does not resolve to a Track or Bus" };
+            return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "FX insert owner does not resolve to a Track, Bus, or the master strip" };
 
         bool fxDuplicatePositionProblem = false;
         if (auto result = detail::hasAnyRow (

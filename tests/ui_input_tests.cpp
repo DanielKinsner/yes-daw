@@ -7784,6 +7784,103 @@ TEST_CASE ("refused imports are named on the status line while good files still 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("the master strip hosts a real FX chain that provably changes the mix",
+           "[ui][input][shell][master-fx]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("master-fx");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+
+    const auto renderFromStart = [&] {
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4096, 128);
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportStop));
+        return rendered;
+    };
+
+    const std::vector<float> baseline = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (baseline.data(), baseline.size())) > 0.01);
+
+    // R11: the lane after the tracks and buses is the MASTER strip — one click retargets the
+    // shared controls to it (one track, zero buses here, so master is ordinal 1).
+    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 1));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+
+    // The real chooser adds a Compressor to the MASTER chain — no track or bus chain moves.
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                              juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project withFx = readProjectSnapshot (bundlePath);
+        REQUIRE (withFx.masterStrip.fxChain.size() == 1u);
+        REQUIRE (withFx.masterStrip.fxChain.front().kind == yesdaw::engine::FxKind::Compressor);
+        REQUIRE (withFx.tracks.front().strip.fxChain.empty());
+        REQUIRE (withFx.buses.empty());
+    }
+
+    // A factory compressor is transparent (0 dB threshold, 1:1 ratio) — drive the SHARED
+    // param page at the master strip and raise MAKEUP gain, which audibly scales any
+    // nonzero signal regardless of the detector.
+    auto* edit0 = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+    auto* makeupParam = dynamic_cast<juce::Slider*> (
+        findChildWithComponentId (*shell, "mixer.fx.param.5"));
+    REQUIRE (makeupParam != nullptr);
+    REQUIRE (makeupParam->isVisible());
+    makeupParam->setValue (0.5, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project withParam = readProjectSnapshot (bundlePath);
+        REQUIRE (withParam.masterStrip.fxChain.front().normalizedParams.size() == 1u);
+        REQUIRE (withParam.masterStrip.fxChain.front().normalizedParams.front().second
+                 == Catch::Approx (0.5));
+    }
+
+    // The mix provably changes — the master insert is in the audible graph, not a lying row.
+    const std::vector<float> compressed = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (compressed.data(), compressed.size())) > 0.001);
+    REQUIRE (compressed != baseline);
+
+    // Undo twice — the param edit, then the insert — and the exact baseline mix returns.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).masterStrip.fxChain.front().normalizedParams.empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).masterStrip.fxChain.empty());
+    REQUIRE (renderFromStart() == baseline);
+
+    // Redo the insert, then REOPEN: the master chain round-trips through the bundle.
+    REQUIRE (shell->keyPressed (juce::KeyPress (
+        'z', juce::ModifierKeys (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier), 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).masterStrip.fxChain.size() == 1u);
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto reopened = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.masterStrip.fxChain.size() == 1u);
+        REQUIRE (restored.masterStrip.fxChain.front().kind == yesdaw::engine::FxKind::Compressor);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("solo never silences the soloed signal's own path through a bus",
            "[ui][input][shell][solo-safe]")
 {

@@ -432,6 +432,26 @@ its own E19 verb). Gate: audible render-parity proof — a Compressor/Limiter on
 provably changes the offline render, param edit via the real panel, bypass, undo, reopen.
 **Next:** R11 implementation + `[master-fx]` gate.
 
+**R11 implementation candidate — the master strip hosts a real FX chain:** as audited. The
+master owns a full `MixerStripState` but ONLY its fxChain is honored (gain stays E19's
+`masterLinearGain`; scalar strip edits on Master refuse honestly with a painted reason).
+Reserved sentinel `kMasterStripOwnerId` (all-ones — the ULID allocator can never mint it,
+its high bytes carry a real timestamp) routes `findMixerStrip`, insert-id resolution, and
+persistence rows through the EXISTING strip FX law unchanged: chooser, param pages, bypass,
+reorder, undo, bundle round-trip. Graph wiring is `masterSum → master inserts → masterFader`
+(pre-fader, the track/bus insert order); the fx_inserts semantic validation now names the
+sentinel as the master strip's owner. No schema bump per the audit (no DDL — rows ride the
+existing table). Mixer surface: one lane past the buses selects Master; the shared FX panel
+retargets to it. `[master-fx]` gate (107 assertions): add a Compressor on master through the
+real chooser → rows land on masterStrip only; raise MAKEUP via the real param page (a
+factory compressor is transparent — 0 dB threshold, 1:1 ratio — so makeup is the honest
+audibility probe) → offline render provably differs; two undos restore the bit-exact
+baseline render; redo + reopen round-trips the chain. Debug note: the gate first failed as
+handed off because it asserted a DEFAULT compressor changes the mix — it cannot; the wiring
+was correct, the probe was transparent. Full local ctest green **356/356** (one
+YesDawTimelineGpuCheck flake under `-j 6` passed alone and on the clean rerun; owner
+`last-project.txt` was not present on this machine — nothing to isolate/restore).
+
 ## 2026-08-12 editing-first parity run (in progress)
 
 Operating brief: `docs/goals/2026-08-12-editing-first-run-brief.md` (process rules chain to the

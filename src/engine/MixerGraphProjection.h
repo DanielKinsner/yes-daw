@@ -116,6 +116,9 @@ struct MixerProjectionInputs
     int     maxBlockSize    = 512;
     // E19: persisted master strip gain, applied between the final sum and the master stage.
     float   masterLinearGain = 1.0f;
+    // R11: the master strip's FX chain, wired between the master sum and the master fader
+    // (pre-fader, matching the track/bus insert order).
+    std::vector<std::unique_ptr<Node>> masterInsertNodes;
     const CompiledGraph* previousForCarryOver = nullptr;
     std::vector<MixerTrackProjection> tracks;
     std::vector<MixerBusProjection> buses;
@@ -617,17 +620,42 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     SumNode* const masterSumPtr = masterSum.get();
     masterSum->setInputNodes (std::move (masterBusInputs));
 
+    // R11: the master FX chain sits between the final sum and the master fader — the same
+    // pre-fader insert order every track and bus strip uses.
+    Node* masterChainHead = masterSumPtr;
+    for (std::unique_ptr<Node>& insertNode : projection.masterInsertNodes)
+    {
+        if (insertNode == nullptr || ! setMixerInsertInput (*insertNode, masterChainHead))
+        {
+            if (error != nullptr)
+                error->code = MixerProjectionError::Code::GraphBuildFailed;
+            return nullptr;
+        }
+
+        const NodeProperties insertProps = insertNode->properties();
+        if (! insertProps.producesAudio || insertProps.channels != 2)
+        {
+            if (error != nullptr)
+                error->code = MixerProjectionError::Code::GraphBuildFailed;
+            return nullptr;
+        }
+
+        masterChainHead = insertNode.get();
+    }
+
     // E19: the persisted master gain rides a FaderNode between the final sum and the master
     // stage — one node id below the master sum, mirroring the sum/master id convention.
     auto masterFader = std::make_unique<FaderNode> (projection.masterSumNodeId - 1u, 2);
     FaderNode* const masterFaderPtr = masterFader.get();
-    masterFaderPtr->setInput (masterSumPtr);
+    masterFaderPtr->setInput (masterChainHead);
     masterFaderPtr->setTargetGain (projection.masterLinearGain);
 
     auto master = std::make_unique<MasterNode> (projection.masterNodeId, 2);
     master->setInputNodes ({ masterFaderPtr });
 
     inputs.nodes.push_back (std::move (masterSum));
+    for (std::unique_ptr<Node>& insertNode : projection.masterInsertNodes)
+        inputs.nodes.push_back (std::move (insertNode));
     inputs.nodes.push_back (std::move (masterFader));
     inputs.nodes.push_back (std::move (master));
 

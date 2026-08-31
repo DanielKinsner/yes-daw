@@ -372,6 +372,7 @@ template <typename SourceFactory>
         fxInsertCount += track.strip.fxChain.size();
     for (const Bus& bus : project.buses)
         fxInsertCount += bus.strip.fxChain.size();
+    fxInsertCount += project.masterStrip.fxChain.size();   // R11
     std::size_t projectedBusCount = 0;
     for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
     {
@@ -649,6 +650,18 @@ template <typename SourceFactory>
 
         projection.buses.push_back (std::move (projectedBus));
     }
+
+    // R11: the master FX chain projects like any strip chain; the graph build wires it
+    // between the master sum and the master fader.
+    if (! detail::appendProjectFxChainNodes (project.masterStrip.fxChain,
+                                             usedIds,
+                                             projection.masterInsertNodes,
+                                             project.buses.size(),
+                                             error))
+        return false;
+    for (const FxInsert& insert : project.masterStrip.fxChain)
+        automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
+                                       projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
 
     if (! project.automationLanes.empty())
     {

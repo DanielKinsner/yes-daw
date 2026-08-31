@@ -856,6 +856,11 @@ struct Project
     // E19: persisted master strip gain (schema v12, locate-points pattern: a missing row means
     // the historical unity default). Honest scope: gain only — no master FX chain, no master pan.
     float masterLinearGain = 1.0f;
+    // R11: the master strip — ONLY its fxChain is honored by the engine (gain stays
+    // masterLinearGain per E19; master has no pan/mute/solo and no verb can edit those
+    // fields here). Reached through findMixerStrip via kMasterStripOwnerId, so the whole
+    // strip FX law (add/remove/reorder/params/bypass, undo, persistence) works unchanged.
+    MixerStripState masterStrip;
     // N5: persisted automation write mode (schema v14, locate-points pattern: a missing row
     // means the historical Read-only default).
     AutomationMode automationMode = AutomationMode::Read;
@@ -904,6 +909,10 @@ struct Project
             for (const FxInsert& insert : bus.strip.fxChain)
                 if (insert.id == insertId)
                     return &insert;
+
+        for (const FxInsert& insert : masterStrip.fxChain)   // R11
+            if (insert.id == insertId)
+                return &insert;
 
         return nullptr;
     }
@@ -1469,6 +1478,11 @@ struct Project
     }
 };
 
+// R11: the master strip's FX-ownership identity — a reserved all-ones sentinel the ULID
+// allocator can never produce (its high bytes carry a real timestamp).
+inline constexpr EntityId kMasterStripOwnerId =
+    EntityId::fromBigEndianParts (0xFFFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull);
+
 namespace detail {
 
 [[nodiscard]] inline bool addTickChecked (Tick a, Tick b, Tick& out) noexcept
@@ -1511,6 +1525,9 @@ namespace detail {
         if (bus.id == ownerId)
             return &bus.strip;
 
+    if (ownerId == kMasterStripOwnerId)   // R11
+        return &project.masterStrip;
+
     return nullptr;
 }
 
@@ -1523,6 +1540,9 @@ namespace detail {
     for (const Bus& bus : project.buses)
         if (bus.id == ownerId)
             return &bus.strip;
+
+    if (ownerId == kMasterStripOwnerId)   // R11
+        return &project.masterStrip;
 
     return nullptr;
 }
@@ -1669,6 +1689,10 @@ namespace detail {
         for (const FxInsert& insert : bus.strip.fxChain)
             if (insert.id == id)
                 return true;
+
+    for (const FxInsert& insert : project.masterStrip.fxChain)   // R11
+        if (insert.id == id)
+            return true;
 
     for (const Track& track : project.tracks)
         for (const SendRow& send : track.sends)

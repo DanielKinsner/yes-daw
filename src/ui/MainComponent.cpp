@@ -5279,7 +5279,8 @@ private:
             const auto surface = currentMixerSurface();
             const int trackCount = static_cast<int> (surface.tracks.size());
             const int busCount = static_cast<int> (surface.buses.size());
-            if (stripIndex < 0 || stripIndex >= trackCount + busCount)
+            // R11: the lane after the buses is the MASTER strip, selectable for its FX chain.
+            if (stripIndex < 0 || stripIndex > trackCount + busCount)
                 return;
 
             // E16: strips past the tracks are the buses, selectable in their own right.
@@ -5288,9 +5289,13 @@ private:
                 (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
                 selectedTrackLane = stripIndex;   // rail selection follows the mixer strip
             }
-            else
+            else if (stripIndex < trackCount + busCount)
             {
                 (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
+            }
+            else
+            {
+                (void) appModel.selectMixerMaster();
             }
             layoutMixerControls();
             refreshActionState();
@@ -5458,7 +5463,8 @@ private:
         // E25: clicks hit-test the PAINTED lanes — the same geometry the eye sees.
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
             const auto surface = currentMixerSurface();
-            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            // R11: one lane past the buses — the master strip's lane — hit-tests too.
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size() + 1u;
             for (std::size_t i = 0; i < stripTotal; ++i)
                 if (paintedMixerLaneBounds (i).contains (positionInShell))
                     return static_cast<int> (i);
@@ -8606,7 +8612,11 @@ private:
             if (stripView == nullptr)
                 stripView = &project.tracks.front().strip;
             const auto& strip = *stripView;
-            mixerTrackSelect.setButtonText (strip.name.empty() ? "Track 1" : juce::String (strip.name));
+            // R11: the master strip has no stored name — label it directly.
+            mixerTrackSelect.setButtonText (appModel.selectedMixerTargetIsMaster()
+                                                ? juce::String ("Master")
+                                                : (strip.name.empty() ? "Track 1"
+                                                                      : juce::String (strip.name)));
             mixerFader.setValue (strip.linearGain, juce::dontSendNotification);
             mixerPan.setValue (strip.pan, juce::dontSendNotification);
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);

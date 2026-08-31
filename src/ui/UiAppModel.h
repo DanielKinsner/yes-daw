@@ -2777,7 +2777,30 @@ public:
         return true;
     }
 
-    // E16: the selected strip (track OR bus) for UI display; nullptr without a selection.
+    // R11: the master strip is selectable exactly like tracks and buses — for its FX chain.
+    [[nodiscard]] bool selectMixerMaster (bool showMixerPanel = true) noexcept
+    {
+        if (! context_.projectLoaded)
+        {
+            clearMixerTargetSelection();
+            return false;
+        }
+
+        selectedMixerTarget_ = { MixerTargetKind::Master, 0 };
+        context_.mixerTargetSelected = true;
+        if (showMixerPanel)
+            context_.activePanel = UiPanel::Mixer;
+        return true;
+    }
+
+    [[nodiscard]] bool selectedMixerTargetIsMaster() const noexcept
+    {
+        return context_.mixerTargetSelected
+            && selectedMixerTarget_.kind == MixerTargetKind::Master;
+    }
+
+    // E16: the selected strip (track OR bus — R11: or master) for UI display; nullptr
+    // without a selection.
     [[nodiscard]] const engine::MixerStripState* selectedMixerStripView() const noexcept
     {
         if (! context_.mixerTargetSelected)
@@ -2787,6 +2810,9 @@ public:
             return selectedMixerTarget_.index < project_.tracks.size()
                 ? &project_.tracks[selectedMixerTarget_.index].strip
                 : nullptr;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Master)
+            return &project_.masterStrip;
 
         return selectedMixerTarget_.index < project_.buses.size()
             ? &project_.buses[selectedMixerTarget_.index].strip
@@ -2899,6 +2925,9 @@ public:
             return selectedMixerTarget_.index < project_.tracks.size()
                 ? static_cast<int> (selectedMixerTarget_.index)
                 : -1;
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Master)   // R11: the lane after the buses
+            return static_cast<int> (project_.tracks.size() + project_.buses.size());
 
         return selectedMixerTarget_.index < project_.buses.size()
             ? static_cast<int> (project_.tracks.size() + selectedMixerTarget_.index)
@@ -3079,6 +3108,12 @@ public:
             if (selectedMixerTarget_.index >= project_.tracks.size())
                 return false;
             out = project_.tracks[selectedMixerTarget_.index].id;
+            return true;
+        }
+
+        if (selectedMixerTarget_.kind == MixerTargetKind::Master)   // R11
+        {
+            out = engine::kMasterStripOwnerId;
             return true;
         }
 
@@ -6239,7 +6274,10 @@ private:
     enum class MixerTargetKind : std::uint8_t
     {
         Track,
-        Bus
+        Bus,
+        // R11: the master strip — an FX-only target (no scalar strip controls; the master
+        // fader keeps its own E19 verb).
+        Master
     };
 
     struct MixerTargetSelection
@@ -6984,6 +7022,9 @@ private:
         if (! context_.mixerTargetSelected)
             return nullptr;
 
+        if (selectedMixerTarget_.kind == MixerTargetKind::Master)   // R11
+            return &project.masterStrip;
+
         if (selectedMixerTarget_.kind == MixerTargetKind::Track)
         {
             if (selectedMixerTarget_.index >= project.tracks.size())
@@ -7008,6 +7049,11 @@ private:
     {
         if (! context_.mixerTargetSelected)
             return { id, { false, "selected mixer target missing" }, false };
+
+        // R11: master is an FX-only target — it has no pan/mute/solo, and its gain is the
+        // dedicated E19 master-fader verb. Scalar edits refuse honestly.
+        if (selectedMixerTarget_.kind == MixerTargetKind::Master)
+            return { id, { false, "the master strip has no scalar strip controls" }, false };
 
         engine::ProjectEditCommand command;
         if (selectedMixerTarget_.kind == MixerTargetKind::Bus)
