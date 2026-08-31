@@ -167,7 +167,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   persistence, render parity). Additive schema bump + migration gate. Gate: add Limiter on
   master → offline render provably limited vs without; undo restores; reopen keeps it. Out
   of scope: master pan; monitoring-only analyzers.
-- [ ] **R12 — live scalar edits without an engine rebuild.** The deep fix behind R2's seam:
+- [x] **R12 — live scalar edits without an engine rebuild.** *(certified: feature `62a8b15`,
+  nine-job CI run `33448549139` green first try, local 356/356)* The deep fix behind R2's seam:
   `PlaybackEngine` has no live parameter API (`PlaybackEngine.h:219-243`), so every fader
   tick rebuilds the world. Route scalar strip params (gain/pan/mute/send level/FX param)
   through a control→audio command lane applied to the RUNNING graph (the

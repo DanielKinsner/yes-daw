@@ -536,7 +536,13 @@ ROLLING transport (R12's spec and R2's audible seam); a stopped scalar edit keep
 path, snapped and inaudible exactly as before. Full local ctest green **356/356** (the
 YesDawTimelineGpuCheck -j 6 flake fired once on the broken intermediate run and passed on the
 green run; owner `last-project.txt` not present on this machine — nothing to isolate/restore).
-**Next:** R13 — buses can route and send like tracks.
+
+R12 is certified: exact-head GitHub Actions run `33448549139` is green for full SHA `62a8b15`
+across all nine jobs, first try. R12 is ticked.
+
+**Now:** checkpoint handed back to Dan (R12 done and certified).
+**Next:** R13 — buses can route and send like tracks (audit `Project.h` Bus struct, SendRow UI
+law, cycle refusal + the R4 painted reason, additive schema bump per the locate-points pattern).
 
 ## 2026-08-12 editing-first parity run (in progress)
 
