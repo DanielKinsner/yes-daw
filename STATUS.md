@@ -702,10 +702,39 @@ R15 is certified: exact-head GitHub Actions run `33456703618` is green for full 
 across all nine jobs, first try. R15 is ticked (Write parked honestly, recorded in the enum
 comment, this log, and the backlog tick).
 
-**Now:** checkpoint handed back to Dan (R15 done and certified).
-**Next:** R16 — automation curve shapes reach the UI (engine evaluates Linear/Hold/Bezier/Log
-per the backlog; every UI write hardcodes Linear — audit `Automation.h` curve law + the canvas
-write sites first).
+**R16 audit + implementation — automation curve shapes reach the UI:** audit first, head
+`22ed568`. The curve VALUE law (`automationCurveProgress`) already implements all four shapes
+and the `SetAutomationBreakpointCurve` verb existed engine-side — but THREE fences quarantined
+Bezier/Log: storage (`automationCurveIsStorageSafe` + the v8 SQL CHECK allowed only
+Linear/Hold), the GraphBuilder lane validation (same pair), and — the real find — the compiled
+CONTROL WALK skipped every non-Linear segment, so a Bezier/Log lane would have emitted no
+intra-segment events at all and rendered as a HOLD. All three widened: storage-safe accepts the
+four known shapes, **schema v21** recreates automation_breakpoints with CHECK 0..3
+(rows carried, FK/PK verbatim), GraphBuilder validates 0..3, and the control walk now skips
+ONLY Hold (Linear/Bezier/Log ramp on the 64-frame grid through each segment's own curve law).
+UI: the canvas paints each segment with its REAL shape (Hold as a step; Linear/Bezier/Log
+sampled from `automationCurveProgress`, so the picture cannot drift from the render), and
+**Alt+clicking a breakpoint handle cycles its curve** Linear→Hold→Bezier→Log through the new
+`cycleAutomationBreakpointCurveAtTick` dispatcher (undoable; Alt over empty canvas is inert so
+the gesture can never mis-add a point). Debug notes (two real finds): (1) the stock WAV fixture
+is 4096 frames — far too short to hear a curve SHAPE — so the gate writes its own 10-second
+constant-amplitude wav; (2) the first green-looking failure ("second Alt+click does nothing")
+was root-caused mechanically by walking the refusal out through the R4 status line: the graph
+BUILD was refusing Bezier (fence #2 above) after the verb accepted it — adopt failed silently.
+Also: timeline ticks ARE raw sample frames (`timelineTickFromSeconds` = seconds × sampleRate),
+not musical PPQ — the gate's first window math assumed PPQ and was wrong. Gates: v20→v21
+migration gate (both stored breakpoints survive the recreate; the widened CHECK accepts Bezier
+and reads it back); `[automation-curves]` shell gate (76 assertions): two penciled points,
+Alt+click cycles Linear→Hold persisted, a plain click on a handle never adds a point, HOLD
+provably STEPS (the pre-B window stays at the held high value, > 1.2× the linear ramp's),
+Bezier renders differently from BOTH Hold and Linear (the discriminator that catches the
+control-walk law: with the old skip, Bezier == Hold bit-for-bit — the neuter proved exactly
+that red), Log persists and survives close-and-reopen, and one undo steps a cycle back with
+redo replaying it. Four legacy quarantine gates re-pinned to the new boundary (out-of-enum
+curve 9 refuses everywhere Bezier used to). Full local ctest green **362/362**.
+
+**Now:** R16 implementation done locally; CI certification pending.
+**Next:** R17 — the 5th send is not stranded.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

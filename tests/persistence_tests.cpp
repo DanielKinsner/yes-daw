@@ -621,11 +621,12 @@ TEST_CASE ("Project value types persist only when schema v1 semantics hold", "[p
     invalidFxParam.tracks[0].strip.fxChain.front().normalizedParams.front().second = 1.25;
     REQUIRE (db.writeProjectSnapshot (invalidFxParam).status == BundleStatus::SemanticInvalid);
 
+    // R16 re-pin: Bezier writes cleanly now — only an out-of-enum curve refuses.
     Project invalidAutomation = project;
     invalidAutomation.automationLanes = {
         makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 1),
     };
-    invalidAutomation.automationLanes.front().points.front().curveType = AutomationCurveType::Bezier;
+    invalidAutomation.automationLanes.front().points.front().curveType = static_cast<AutomationCurveType> (9);
     REQUIRE (db.writeProjectSnapshot (invalidAutomation).status == BundleStatus::SemanticInvalid);
 }
 
@@ -1648,6 +1649,65 @@ TEST_CASE ("Schema v20 migration widens automation_mode for Off and keeps the st
     REQUIRE (offMode.automationMode == yesdaw::engine::AutomationMode::Off);
 }
 
+// R16: v21 recreates automation_breakpoints with the four-curve CHECK, carrying stored rows
+// across — and the widened table accepts Bezier/Log where v8's Linear/Hold CHECK refused them.
+TEST_CASE ("Schema v21 migration widens breakpoint curves and keeps stored rows",
+           "[persistence][migration][automation-curves]")
+{
+    const auto path = makeTempBundlePath ("automation-curves-v20-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+    const EntityId trackId = idFromLowByte (2);
+    const EntityId laneId = idFromLowByte (3);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV20 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 20);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV20).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe) VALUES ("
+            + blobLiteral (trackId) + ", 'Audio 1', 1.0, 0.0, 0, 0, 0);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO automation_lanes(id, owner_entity, target_role, param_id) VALUES ("
+            + blobLiteral (laneId) + ", " + blobLiteral (trackId) + ", 0, 1);");
+    requireRawExec (
+        rawDb,
+        "INSERT INTO automation_breakpoints(lane_id, tick, value, curve_type) VALUES ("
+            + blobLiteral (laneId) + ", 0, 1.0, 0), (" + blobLiteral (laneId) + ", 480, 0.25, 1);");
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", value).ok());
+    REQUIRE (value == 2);   // both stored breakpoints survived the table recreation
+
+    // The widened CHECK accepts Bezier where v8's refused it, and it reads back as Bezier.
+    REQUIRE (reopened.executeSql ("UPDATE automation_breakpoints SET curve_type = 2 WHERE tick = 0;").ok());
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationLanes.size() == 1u);
+    REQUIRE (readback.automationLanes.front().points.size() == 2u);
+    REQUIRE (readback.automationLanes.front().points.front().curveType
+             == yesdaw::engine::AutomationCurveType::Bezier);
+    REQUIRE (readback.automationLanes.front().points.back().curveType
+             == yesdaw::engine::AutomationCurveType::Hold);
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1677,6 +1737,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 18; "
             "DELETE FROM schema_migrations WHERE version = 19; "
             "DELETE FROM schema_migrations WHERE version = 20; "
+            "DELETE FROM schema_migrations WHERE version = 21; "
             "PRAGMA user_version = 10;").ok());
     }
 
@@ -2016,9 +2077,10 @@ TEST_CASE ("Opening an existing bundle rejects invalid stored automation lanes",
         "PRAGMA ignore_check_constraints = OFF;");
 
     requireRejectedAfter (
+        // R16 re-pin: curve 2 (Bezier) is legal storage now — the quarantine boundary is 4+.
         "automation-quarantined-curve-open",
         "PRAGMA ignore_check_constraints = ON; "
-        "UPDATE automation_breakpoints SET curve_type = 2 WHERE lane_id = " + blobLiteral (laneId) + " AND tick = 0; "
+        "UPDATE automation_breakpoints SET curve_type = 9 WHERE lane_id = " + blobLiteral (laneId) + " AND tick = 0; "
         "PRAGMA ignore_check_constraints = OFF;");
 
     requireRejectedAfter (

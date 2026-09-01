@@ -2746,12 +2746,23 @@ class AutomationLaneCanvasComponent final : public juce::Component,
                                             public juce::SettableTooltipClient
 {
 public:
-    std::function<std::vector<std::pair<double, double>>()> pointsProvider;   // (seconds, normalized value)
+    // R16: each point carries its own curve shape so the painted line shows the REAL law the
+    // engine evaluates (a segment's shape belongs to its LEFT point, the evaluator's rule).
+    struct CanvasPoint
+    {
+        double seconds = 0.0;
+        double value = 0.0;
+        yesdaw::engine::AutomationCurveType curve = yesdaw::engine::AutomationCurveType::Linear;
+    };
+
+    std::function<std::vector<CanvasPoint>()> pointsProvider;
     std::function<double (int)> secondsForLocalX;
     std::function<int (double)> localXForSeconds;
     std::function<void (double, double)> onAddPoint;
     std::function<void (double, double, double)> onMovePoint;   // oldSeconds, newSeconds, newValue
     std::function<void (double)> onDeletePoint;
+    // R16: Alt+click a handle cycles its curve Linear→Hold→Bezier→Log.
+    std::function<void (double)> onCycleCurvePoint;
 
     void paint (juce::Graphics& g) override
     {
@@ -2759,31 +2770,43 @@ public:
         if (! pointsProvider || ! localXForSeconds)
             return;
 
-        const std::vector<std::pair<double, double>> points = pointsProvider();
+        const std::vector<CanvasPoint> points = pointsProvider();
         g.setColour (yesdaw::ui::UiTheme::Color::accentPurple());
         juce::Path line;
-        bool started = false;
-        for (const auto& [seconds, value] : points)
+        for (std::size_t i = 0; i + 1u < points.size(); ++i)
         {
-            const juce::Point<float> at { static_cast<float> (localXForSeconds (seconds)),
-                                          yForValue (value) };
-            if (! started)
+            const juce::Point<float> from { static_cast<float> (localXForSeconds (points[i].seconds)),
+                                            yForValue (points[i].value) };
+            const juce::Point<float> to { static_cast<float> (localXForSeconds (points[i + 1u].seconds)),
+                                          yForValue (points[i + 1u].value) };
+            line.startNewSubPath (from);
+            if (points[i].curve == yesdaw::engine::AutomationCurveType::Hold)
             {
-                line.startNewSubPath (at);
-                started = true;
+                // A hold paints as the step it is: flat to the next tick, then vertical.
+                line.lineTo (to.x, from.y);
+                line.lineTo (to);
             }
             else
             {
-                line.lineTo (at);
+                // Linear/Bezier/Log sample the engine's own curve law so the picture can never
+                // drift from what actually renders.
+                constexpr int kSteps = 16;
+                for (int step = 1; step <= kSteps; ++step)
+                {
+                    const double t = static_cast<double> (step) / kSteps;
+                    const double u = yesdaw::engine::automationCurveProgress (points[i].curve, t);
+                    line.lineTo (from.x + (to.x - from.x) * static_cast<float> (t),
+                                 from.y + (to.y - from.y) * static_cast<float> (u));
+                }
             }
         }
         g.strokePath (line, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::automationCanvasLineWidth));
 
-        for (const auto& [seconds, value] : points)
+        for (const CanvasPoint& point : points)
         {
             const float radius = static_cast<float> (yesdaw::ui::UiTheme::Layout::automationCanvasHandleRadius);
-            g.fillEllipse (static_cast<float> (localXForSeconds (seconds)) - radius,
-                           yForValue (value) - radius,
+            g.fillEllipse (static_cast<float> (localXForSeconds (point.seconds)) - radius,
+                           yForValue (point.value) - radius,
                            radius + radius,
                            radius + radius);
         }
@@ -2794,9 +2817,20 @@ public:
         dragOldSeconds.reset();
         if (const std::optional<double> hit = handleSecondsAt (event.getPosition()))
         {
+            // R16: Alt+click cycles the hit point's curve shape instead of starting a drag.
+            if (event.mods.isAltDown())
+            {
+                if (onCycleCurvePoint)
+                    onCycleCurvePoint (*hit);
+                return;
+            }
+
             dragOldSeconds = hit;
             return;
         }
+
+        if (event.mods.isAltDown())
+            return;   // Alt is the curve gesture — never an accidental add
 
         if (onAddPoint && secondsForLocalX)
             onAddPoint (secondsForLocalX (event.getPosition().x), valueForY (event.getPosition().y));
@@ -2843,12 +2877,12 @@ private:
             return std::nullopt;
 
         const int hitRadius = yesdaw::ui::UiTheme::Layout::automationCanvasHandleHitRadius;
-        for (const auto& [seconds, value] : pointsProvider())
+        for (const CanvasPoint& point : pointsProvider())
         {
-            const juce::Point<int> at { localXForSeconds (seconds),
-                                        static_cast<int> (yForValue (value)) };
+            const juce::Point<int> at { localXForSeconds (point.seconds),
+                                        static_cast<int> (yForValue (point.value)) };
             if (position.getDistanceFrom (at) <= hitRadius)
-                return seconds;
+                return point.seconds;
         }
 
         return std::nullopt;
@@ -3673,7 +3707,7 @@ public:
         automationLaneCanvas.setTitle ("Automation Lane");
         // E20: the canvas reads and edits the CHOSEN target's lane (fader/pan/send/FX param).
         automationLaneCanvas.pointsProvider = [this] {
-            std::vector<std::pair<double, double>> points;
+            std::vector<AutomationLaneCanvasComponent::CanvasPoint> points;
             const AutomationTargetOption target = currentAutomationTarget();
             if (! target.ownerEntity.isValid() || ! appModel.project().sampleRate.isValid())
                 return points;
@@ -3684,9 +3718,26 @@ public:
                 const double sampleRateHz = appModel.project().sampleRate.hz;
                 points.reserve (lane->points.size());
                 for (const yesdaw::engine::AutomationBreakpoint& point : lane->points)
-                    points.emplace_back (static_cast<double> (point.tick) / sampleRateHz, point.value);
+                    points.push_back ({ static_cast<double> (point.tick) / sampleRateHz,
+                                        point.value,
+                                        point.curveType });
             }
             return points;
+        };
+        // R16: Alt+click a breakpoint handle cycles its curve shape through the undoable
+        // SetAutomationBreakpointCurve verb — Linear → Hold → Bezier → Log → Linear.
+        automationLaneCanvas.onCycleCurvePoint = [this] (double seconds) {
+            const AutomationTargetOption target = currentAutomationTarget();
+            const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+                ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+                : nullptr;
+            if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+                lane != nullptr && tick)
+            {
+                (void) appModel.cycleAutomationBreakpointCurveAtTick (lane->id, *tick);
+                refreshActionState();
+                repaint();
+            }
         };
         automationLaneCanvas.secondsForLocalX = [this] (int localX) {
             return automationCanvasSecondsForLocalX (localX);

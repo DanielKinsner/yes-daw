@@ -5786,6 +5786,49 @@ public:
         return { id, {}, true };
     }
 
+    // R16: cycle a breakpoint's curve shape Linear→Hold→Bezier→Log→Linear through the undoable
+    // SetAutomationBreakpointCurve verb (all four shapes persist since schema v21). Addressed
+    // by lane id + exact tick — the canvas's Alt+click gesture resolves both.
+    [[nodiscard]] UiActionDispatchResult cycleAutomationBreakpointCurveAtTick (engine::EntityId laneId,
+                                                                               engine::Tick tick)
+    {
+        const UiActionId id = UiActionId::TimelineAutomationAddBreakpoint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        const engine::AutomationLaneData* lane = nullptr;
+        for (const engine::AutomationLaneData& candidate : project_.automationLanes)
+            if (candidate.id == laneId)
+                lane = &candidate;
+        if (lane == nullptr)
+            return { id, { false, "automation lane missing" }, false };
+
+        const engine::AutomationBreakpoint* point = nullptr;
+        for (const engine::AutomationBreakpoint& candidate : lane->points)
+            if (candidate.tick == tick)
+                point = &candidate;
+        if (point == nullptr)
+            return { id, { false, "no breakpoint at tick" }, false };
+
+        const auto next = static_cast<engine::AutomationCurveType> (
+            (static_cast<std::uint8_t> (point->curveType) + 1u) % 4u);
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject,
+                              engine::ProjectEditCommand::setAutomationBreakpointCurve (
+                                  laneId, tick, next)).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "curve edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult addFirstTrackAutomationBreakpoint (
         engine::Tick tick = kFirstTrackAutomationBreakpointAddTick,
         double value = kFirstTrackAutomationBreakpointAddValue,

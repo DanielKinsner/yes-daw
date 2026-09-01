@@ -323,10 +323,14 @@ private:
             {
                 const std::int64_t frame = lane.frames[i];
                 const double value = lane.values[i];
+                // R16: all four evaluated curve shapes compile (Bezier/Log became storable in
+                // schema v21; the control walk ramps them via automationCurveProgress).
                 if (frame < 0 || (havePrevious && frame <= previousFrame)
                     || ! std::isfinite (value) || value < 0.0 || value > 1.0
                     || (lane.curveTypes[i] != AutomationCurveType::Linear
-                        && lane.curveTypes[i] != AutomationCurveType::Hold))
+                        && lane.curveTypes[i] != AutomationCurveType::Hold
+                        && lane.curveTypes[i] != AutomationCurveType::Bezier
+                        && lane.curveTypes[i] != AutomationCurveType::Log))
                     return failBool (error, GraphBuildError::InvalidAutomationLane { lane.targetNode });
 
                 previousFrame = frame;

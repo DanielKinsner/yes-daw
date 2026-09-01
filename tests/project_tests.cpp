@@ -697,10 +697,15 @@ TEST_CASE ("Project validates H15 automation lane model targets and storage-safe
     REQUIRE_FALSE (nonFiniteValue.automationLanes.front().isValid());
     REQUIRE_FALSE (nonFiniteValue.hasValidAssetClipIndirection());
 
+    // R16 re-pin: Bezier/Log are storable curves now — only an OUT-OF-ENUM curve quarantines.
     Project quarantinedCurve = project;
-    quarantinedCurve.automationLanes.front().points[0].curveType = AutomationCurveType::Bezier;
+    quarantinedCurve.automationLanes.front().points[0].curveType = static_cast<AutomationCurveType> (9);
     REQUIRE_FALSE (quarantinedCurve.automationLanes.front().isValid());
     REQUIRE_FALSE (quarantinedCurve.hasValidAssetClipIndirection());
+
+    Project bezierCurve = project;
+    bezierCurve.automationLanes.front().points[0].curveType = AutomationCurveType::Bezier;
+    REQUIRE (bezierCurve.automationLanes.front().isValid());
 
     Project unknownRole = project;
     unknownRole.automationLanes.front().role = static_cast<AutomationTargetRole> (99);
@@ -1380,9 +1385,10 @@ TEST_CASE ("Project undo stack records command diffs for automation lane and bre
                  project,
                  ProjectEditCommand::setAutomationBreakpointValue (laneId, 7'680, std::numeric_limits<double>::quiet_NaN()))
              .editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
+    // R16 re-pin: Bezier is a legal storable curve now — the refusal boundary is out-of-enum.
     REQUIRE (undo.apply (
                  project,
-                 ProjectEditCommand::setAutomationBreakpointCurve (laneId, 7'680, AutomationCurveType::Bezier))
+                 ProjectEditCommand::setAutomationBreakpointCurve (laneId, 7'680, static_cast<AutomationCurveType> (9)))
              .editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
     REQUIRE (undo.apply (project, ProjectEditCommand::removeAutomationLane (idFromLowByte (99))).editStatus
              == ProjectEditStatus::AutomationLaneNotFound);

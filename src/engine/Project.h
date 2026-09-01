@@ -746,7 +746,11 @@ struct LoopRegion
 
 [[nodiscard]] constexpr bool automationCurveIsStorageSafe (AutomationCurveType curve) noexcept
 {
-    return curve == AutomationCurveType::Linear || curve == AutomationCurveType::Hold;
+    // R16: all four evaluated shapes persist (schema v21 widened the CHECK from Linear/Hold).
+    return curve == AutomationCurveType::Linear
+           || curve == AutomationCurveType::Hold
+           || curve == AutomationCurveType::Bezier
+           || curve == AutomationCurveType::Log;
 }
 
 struct AutomationBreakpoint

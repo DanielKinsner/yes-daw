@@ -848,7 +848,12 @@ private:
     {
         while (cursor.controlSegmentIndex + 1u < lane.frames.size())
         {
-            if (lane.curveTypes[cursor.controlSegmentIndex] != AutomationCurveType::Linear)
+            // R16: only HOLD segments carry no intra-segment ramp — Linear, Bezier, and Log all
+            // walk the 64-frame control grid (interpolateCompiledAutomationValue applies each
+            // segment's own curve law). The old skip predated Bezier/Log being storable, when
+            // "non-Linear" could only mean Hold; keeping it would have shipped curves that
+            // never actually curved during continuous playback.
+            if (lane.curveTypes[cursor.controlSegmentIndex] == AutomationCurveType::Hold)
             {
                 ++cursor.controlSegmentIndex;
                 continue;

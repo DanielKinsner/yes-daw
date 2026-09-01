@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 20;   // R15: automation_mode gains Off
+inline constexpr int          kCodeSchemaVersion = 21;   // R16: breakpoints persist all four curves
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1333,13 +1333,31 @@ DROP TABLE automation_mode;
 ALTER TABLE automation_mode_v20 RENAME TO automation_mode;
 )SQL";
 
+// R16: automation breakpoints persist all four evaluated curve shapes — the v8 CHECK allowed
+// only Linear/Hold. SQLite cannot alter a CHECK, so v21 recreates the table in place, carrying
+// every stored breakpoint across; the FK and the (lane_id, tick) PK are reproduced verbatim.
+inline constexpr std::string_view kSchemaV21Sql = R"SQL(
+CREATE TABLE automation_breakpoints_v21 (
+  lane_id BLOB NOT NULL CHECK (length(lane_id) = 16),
+  tick INTEGER NOT NULL CHECK (tick >= 0),
+  value REAL NOT NULL CHECK(value>=0 AND value<=1),
+  curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1,2,3)),
+  PRIMARY KEY(lane_id, tick),
+  FOREIGN KEY(lane_id) REFERENCES automation_lanes(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+INSERT INTO automation_breakpoints_v21 (lane_id, tick, value, curve_type)
+  SELECT lane_id, tick, value, curve_type FROM automation_breakpoints;
+DROP TABLE automation_breakpoints;
+ALTER TABLE automation_breakpoints_v21 RENAME TO automation_breakpoints;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 20> kMigrations {
+inline constexpr std::array<SchemaMigration, 21> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1360,6 +1378,7 @@ inline constexpr std::array<SchemaMigration, 20> kMigrations {
     SchemaMigration { 18, kSchemaV18Sql },
     SchemaMigration { 19, kSchemaV19Sql },
     SchemaMigration { 20, kSchemaV20Sql },
+    SchemaMigration { 21, kSchemaV21Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2953,8 +2972,8 @@ public:
                     point.value = sqlite3_column_double (pointStmt.get(), 1);
 
                     const sqlite3_int64 curve = sqlite3_column_int64 (pointStmt.get(), 2);
-                    if (curve != static_cast<sqlite3_int64> (engine::AutomationCurveType::Linear)
-                        && curve != static_cast<sqlite3_int64> (engine::AutomationCurveType::Hold))
+                    if (curve < static_cast<sqlite3_int64> (engine::AutomationCurveType::Linear)
+                        || curve > static_cast<sqlite3_int64> (engine::AutomationCurveType::Log))   // R16
                         return detail::semanticInvalid ("automation_breakpoints.curve_type is outside the Project value range");
                     point.curveType = static_cast<engine::AutomationCurveType> (curve);
                     lane.points.push_back (point);
@@ -4099,7 +4118,7 @@ private:
                 "UNION ALL SELECT 1 FROM fx_inserts WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR position < 0 OR kind NOT IN (0, 1, 2, 3, 4) OR enabled NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM fx_insert_params WHERE insert_id = zeroblob(16) OR param_id < 0 OR value < 0 OR value > 1 "
                 "UNION ALL SELECT 1 FROM automation_lanes WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR target_role NOT IN (0, 1, 2, 3, 4, 5) OR param_id < 0 "
-                "UNION ALL SELECT 1 FROM automation_breakpoints WHERE lane_id = zeroblob(16) OR tick < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM automation_breakpoints WHERE lane_id = zeroblob(16) OR tick < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1, 2, 3) "
                 "UNION ALL SELECT 1 FROM midi_clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM midi_notes WHERE start_tick < 0 OR length_ticks < 0 OR key < 0 OR key > 127 OR normalized_velocity < 0 OR normalized_velocity > 1 OR port_index < -1 OR channel < -1 OR channel > 15 "
                 "UNION ALL SELECT 1 FROM tempo_changes WHERE bpm <= 0 OR curve_to_next NOT IN (0, 1) "

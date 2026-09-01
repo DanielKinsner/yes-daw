@@ -8529,6 +8529,133 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// R16 — automation curve shapes reach the UI. The engine always evaluated Linear/Hold/Bezier/
+// Log but every UI write hardcoded Linear and only Linear/Hold could persist. Alt+clicking a
+// breakpoint handle now cycles its curve through the undoable SetAutomationBreakpointCurve
+// verb, all four shapes persist (schema v21), and Bezier/Log segments genuinely RAMP during
+// playback (the compiled control walk used to skip every non-Linear segment, which would have
+// rendered them as holds).
+TEST_CASE ("R16 a breakpoint's curve cycles from the canvas and audibly shapes the render",
+           "[ui][input][shell][automation-curves]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-curves");
+
+    // The stock fixture is 4096 frames (0.085 s) — far too short to hear a curve SHAPE. This
+    // gate writes its own 10-second constant-amplitude wav so the whole A→B segment carries
+    // real audio.
+    std::filesystem::path longWavPath = bundlePath;
+    longWavPath += "-long.wav";
+    {
+        const std::vector<float> samples (480'000, 0.5f);
+        REQUIRE (yesdaw::io::writeFloat32WavFile (
+                     longWavPath, yesdaw::engine::SampleRate { 48'000.0 }, 1u, 480'000u,
+                     std::span<const float> (samples.data(), samples.size()))
+                     .ok());
+    }
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [longWavPath] { return longWavPath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Lane open, snap Off, default target (the track fader). Two penciled points: HIGH early,
+    // LOW later — the segment between them is what the curve shapes.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    const juce::Point<int> pointA { canvas->getWidth() / 16, 2 };                        // early, high
+    const juce::Point<int> pointB { canvas->getWidth() / 3, (canvas->getHeight() * 9) / 10 };   // later, low
+    mouseDownAt (*canvas, pointA);
+    mouseDownAt (*canvas, pointB);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.size() == 2u);
+    REQUIRE (project.automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Linear);
+    const yesdaw::engine::Tick tickB = project.automationLanes.front().points[1].tick;
+
+    // Timeline ticks ARE raw sample frames (timelineTickFromSeconds = seconds * sampleRate,
+    // the SampleLocked reuse) — so B's tick is directly the frame the window keys on.
+    const auto frameB = static_cast<std::uint64_t> (tickB);
+    REQUIRE (frameB > 8'192u);          // the shaped segment is long enough to window
+    REQUIRE (frameB < 440'000u);        // ...and B still sits inside the 10 s of real audio
+
+    const auto renderFromStart = [&shell, frameB] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, frameB + 4'096u, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> linearRender = renderFromStart();
+
+    // Alt+click the FIRST handle: Linear -> HOLD, persisted.
+    mouseDownAt (*canvas, pointA, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                                      | juce::ModifierKeys::altModifier));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.front().points.size() == 2u);   // Alt never adds a point
+    REQUIRE (project.automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Hold);
+    // Negative control: a PLAIN click on a handle starts a drag — it never adds a point.
+    mouseDownAt (*canvas, pointA);
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points.size() == 2u);
+
+    // HOLD provably steps instead of ramping: just before the second point the held fader is
+    // still at the HIGH first value, where the linear ramp has already fallen to the low one.
+    const std::vector<float> holdRender = renderFromStart();
+    const auto tailWindowPeak = [frameB] (const std::vector<float>& interleaved) {
+        const std::size_t end = std::min (interleaved.size(), static_cast<std::size_t> (frameB) * 2u);
+        const std::size_t begin = end > 8'192u ? end - 8'192u : 0u;   // the last 4096 stereo frames before B
+        return peakAbs (std::span<const float> (interleaved.data() + begin, end - begin));
+    };
+    REQUIRE (tailWindowPeak (holdRender) > tailWindowPeak (linearRender) * 1.2);
+
+    // Two more Alt+clicks: Hold -> BEZIER -> LOG. Both persist (schema v21), and each shape
+    // renders DIFFERENTLY — before R16 the compiled walk skipped non-Linear segments, which
+    // would have made Bezier render exactly like Hold.
+    mouseDownAt (*canvas, pointA, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                                      | juce::ModifierKeys::altModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Bezier);
+    const std::vector<float> bezierRender = renderFromStart();
+    REQUIRE (bezierRender != holdRender);
+    REQUIRE (bezierRender != linearRender);
+
+    mouseDownAt (*canvas, pointA, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
+                                                      | juce::ModifierKeys::altModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Log);
+
+    // One undo steps back one cycle (Log -> Bezier); redo replays it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Bezier);
+    clickButton (requireButtonForAction (*shell, UiActionId::EditRedo));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points[0].curveType
+             == yesdaw::engine::AutomationCurveType::Log);
+
+    // The Log curve survives close-and-reopen — the v21 storage round-trip.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto reopened = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.automationLanes.front().points[0].curveType
+                 == yesdaw::engine::AutomationCurveType::Log);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // R9: the mechanical half of single-instance. The gate pins the POLICY the shell consults;
 // the two Main.cpp wiring lines (moreThanOneInstanceAllowed returning this policy,
 // anotherInstanceStarted fronting the window) ride JUCE's own named-mutex machinery, which
