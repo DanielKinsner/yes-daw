@@ -207,7 +207,10 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   `SetBreakpointCurve` verb (undoable, persisted). Gate: set Hold on a breakpoint from the
   UI → rendered value provably steps instead of ramping; persistence round-trips. Out of
   scope: freehand curve drawing.
-- [ ] **R17 — the 5th send is not stranded.** `mixerSendVisibleRowCount = 4`
+- [x] **R17 — the 5th send is not stranded.** *(certified: feature `ce174c6`, nine-job CI run
+  `33460434180` green first try, local 362/362; DECISION taken per this item's own
+  recommendation: refuse at capacity with a painted reason — Dan can overturn)*
+  `mixerSendVisibleRowCount = 4`
   (`UiTheme.h:634`) but `addSendOnSelectedTrack` (`UiAppModel.h:3241-3270`) never caps — a
   5th send exists in the project with no row to edit or remove it. Either refuse the add
   with a painted reason (R4) or scroll/page the rows; pick one, honestly. Gate: the chosen

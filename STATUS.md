@@ -750,8 +750,12 @@ land, the 5th add refuses with the project unchanged AND the painted reason show
 row frees capacity and the same add then lands on the freed row. Red proven: neutering the cap
 (999) failed exactly the refusal assert. Full local ctest green **362/362** first try.
 
-**Now:** R17 implementation done locally; CI certification pending.
-**Next:** Phase 3 — R18, clip drags paint an in-flight preview.
+R17 is certified: exact-head GitHub Actions run `33460434180` is green for full SHA `ce174c6`
+across all nine jobs, first try. R17 is ticked — **PHASE 2 (R10–R17) IS COMPLETE**.
+
+**Now:** checkpoint handed back to Dan (R13–R17 done and certified this session; Phase 2 closed).
+**Next:** Phase 3 — R18, clip drags paint an in-flight preview (ghost from dragState + pointer,
+the E6 loop-brace preview pattern; transient only, project.db byte-identical until release).
 
 ## 2026-08-12 editing-first parity run (in progress)
 
