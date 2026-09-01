@@ -663,10 +663,43 @@ green **360/360** first try.
 R14 is certified: exact-head GitHub Actions run `33455068137` is green for full SHA `8992b33`
 across all nine jobs, first try. R14 is ticked.
 
-**Now:** checkpoint handed back to Dan (R14 done and certified).
-**Next:** R15 — automation Write/Off modes; rides beyond fader+pan (audit `AutomationMode`
-Read/Touch/Latch chooser, `beginAutomationTouchRideIfArmed`'s two call sites, and what an
-honest Off and Write mean end-to-end before building).
+**R15 audit + implementation — Off mode; rides beyond fader+pan:** audit first, head `da2742e`.
+The N5 ride machinery is a clean client-side buffer: `beginAutomationTouchRideIfArmed` (armed =
+playing + mode != Read + selected TRACK) → per-tick `recordAutomationTouchSample` → one grouped
+`commitAutomationTouchRide` at drag end, already owner/role/param-generic at the commit seam;
+only the ARMING and the two fader/pan call sites were narrow. Implementation: (1) **Off = 3** —
+lanes stay stored and editable, but the projection compiles ZERO lanes when mode is Off, so
+playback and offline render ignore them identically (export == playback) and the R12 live-lane
+pre-check treats lanes as absent (live posts hit un-automated nodes again, exactly matching the
+compiled graph). Arming is now explicitly Touch/Latch-only (Read plays back, Off never writes).
+Chooser gains "Off" (item 4 — the id−1==mode law holds untouched); persistence needs **v20**
+(SQLite cannot alter a CHECK, so the migration recreates the one-row automation_mode table with
+mode ≤ 3, carrying the stored value across; read-side range widened). (2) **Rides beyond
+fader+pan**: the send-level slider and the FX-param sliders gain the same
+onDragStart/record/onDragEnd hooks — a send ride writes the FaderNode dB-law INVERSE of the
+dragged gain (send lanes drive the send's own FaderNode, so playback lands at the gain actually
+ridden), an FX ride writes the raw normalized value (already the lane's and the node's shared
+language), and the FX ride's owner is the INSERT's id (the FxInsertParam lane law). The arming
+also generalized to the selected TRACK-or-BUS strip (a bus strip's fader/pan ride maps to the
+BusFader/BusPan roles — R13/R14 made those lanes legal, so bus rides came along free; Master
+refuses). **Write is PARKED, not faked**: the backlog gates it on being honest end-to-end, and
+classic Write is an erase-as-you-go law — a full slice of its own; the enum comment and this
+entry record the decision. Gates: v19→v20 migration gate (stored Touch survives the table
+recreation; the widened CHECK accepts Off where v14's refused it); `[automation-modes]` shell
+gate (151 assertions): a Touch send ride through the real slider buffers client-side (nothing
+persisted mid-ride) and commits ONE SendLevel lane with increasing ticks and rising values; an
+FX-param ride commits a FxInsertParam lane owned by the insert; one undo removes a whole ride
+and redo restores it; Read renders differ from the lane-free baseline while **Off renders
+bit-identical to it**; and a drag during Off playback writes nothing — it lands as the plain
+persisted edit. Red proven per law by neuters: un-gating the projection failed exactly
+`offRender == baseline`; un-arming the send ride failed exactly the SendLevel-lane assert.
+Debug note: a slider's mouse-DOWN value change fires before the ride arms (JUCE order), so a
+ride needs two DRAG positions with rendered playback between — the FX ride's first draft
+captured one point; the gate now mirrors the N5 three-position law. Full local ctest green
+**361/361** first try.
+
+**Now:** R15 implementation done locally; CI certification pending.
+**Next:** R16 — automation curve shapes reach the UI.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

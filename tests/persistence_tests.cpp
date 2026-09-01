@@ -1603,6 +1603,51 @@ TEST_CASE ("Schema v19 migration gives legacy buses the no-sends straight-to-mas
     REQUIRE (readback.hasValidAssetClipIndirection());
 }
 
+// R15: v20 recreates automation_mode with the Off-capable CHECK, carrying a stored mode across
+// unchanged — and the widened table accepts Off (3) where the v14 CHECK refused it.
+TEST_CASE ("Schema v20 migration widens automation_mode for Off and keeps the stored mode",
+           "[persistence][migration][automation-mode]")
+{
+    const auto path = makeTempBundlePath ("automation-mode-v19-migration");
+
+    std::error_code ec;
+    std::filesystem::create_directories (path / "audio", ec);
+    REQUIRE (! ec);
+
+    const EntityId projectId = idFromLowByte (1);
+
+    sqlite3* rawDb = nullptr;
+    const std::string dbPath = utf8Path (path / "project.db");
+    REQUIRE (sqlite3_open_v2 (dbPath.c_str(), &rawDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (rawDb, "PRAGMA journal_mode=WAL;");
+    const auto migrationsToV19 = std::span<const SchemaMigration> (yesdaw::persistence::detail::kMigrations.data(), 19);
+    REQUIRE (ProjectBundleDb::runMigrationsForTest (rawDb, 0, migrationsToV19).ok());
+    requireRawExec (
+        rawDb,
+        "INSERT INTO project(singleton_id, id, sample_rate_hz) VALUES (1, " + blobLiteral (projectId) + ", 48000.0);");
+    requireRawExec (rawDb, "INSERT INTO automation_mode(slot, mode) VALUES (1, 1);");   // Touch, pre-migration
+    REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT mode FROM automation_mode WHERE slot = 1;", value).ok());
+    REQUIRE (value == 1);   // the stored Touch survived the table recreation
+
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationMode == yesdaw::engine::AutomationMode::Touch);
+
+    // The widened CHECK accepts Off where v14's refused it.
+    REQUIRE (reopened.executeSql ("UPDATE automation_mode SET mode = 3 WHERE slot = 1;").ok());
+    Project offMode;
+    REQUIRE (reopened.readProjectSnapshot (offMode).ok());
+    REQUIRE (offMode.automationMode == yesdaw::engine::AutomationMode::Off);
+}
+
 TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
            "[persistence][migration][locate-points]")
 {
@@ -1631,6 +1676,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 17; "
             "DELETE FROM schema_migrations WHERE version = 18; "
             "DELETE FROM schema_migrations WHERE version = 19; "
+            "DELETE FROM schema_migrations WHERE version = 20; "
             "PRAGMA user_version = 10;").ok());
     }
 

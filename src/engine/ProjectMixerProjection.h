@@ -741,7 +741,10 @@ template <typename SourceFactory>
         automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
                                        projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
 
-    if (! project.automationLanes.empty())
+    // R15: Off means the graph carries NO compiled lanes — playback and offline render ignore
+    // every stored lane identically (export == playback), and live scalar posts hit
+    // un-automated nodes again.
+    if (! project.automationLanes.empty() && project.automationMode != AutomationMode::Off)
     {
         CompiledTempoMap tempoMap;
         if (! CompiledTempoMap::build (TempoMapView { project.tempoMap.data(), project.tempoMap.size() },

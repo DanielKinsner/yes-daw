@@ -663,14 +663,20 @@ enum class AutomationMode : std::uint8_t
 {
     Read = 0,
     Touch = 1,
-    Latch = 2
+    Latch = 2,
+    // R15: Off — lanes stay stored and editable, but playback/render IGNORE them (the
+    // projection compiles no lanes) and no ride ever arms. Classic Write (continuous
+    // overwrite-while-playing) is deliberately NOT added: the backlog gates it on being honest
+    // end-to-end, and an erase-as-you-go law is a bigger slice — parked, not faked.
+    Off = 3
 };
 
 [[nodiscard]] constexpr bool automationModeIsKnown (AutomationMode mode) noexcept
 {
     return mode == AutomationMode::Read
            || mode == AutomationMode::Touch
-           || mode == AutomationMode::Latch;
+           || mode == AutomationMode::Latch
+           || mode == AutomationMode::Off;
 }
 
 // N8: a persisted punch region for recording. Disabled (the default) reproduces today's

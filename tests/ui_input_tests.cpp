@@ -8343,6 +8343,192 @@ TEST_CASE ("a penciled bus-fader lane audibly drives the render",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// R15 — automation Off mode, and rides beyond fader+pan. Touch/Latch now arm SEND-LEVEL and
+// FX-PARAM drags through the same buffered-ride law the fader uses; the new Off mode keeps
+// every lane stored and editable but playback ignores them completely and no ride ever writes.
+// (Classic Write — continuous overwrite-while-playing — is parked, not faked: the backlog gates
+// it on being honest end-to-end.)
+TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and writes nothing",
+           "[ui][input][shell][automation-modes]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("automation-modes");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    // Structure first: a bus, a send to it, and a compressor with its param page open.
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+    sendChooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* insertChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (insertChooser != nullptr);
+    insertChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
+                                  juce::sendNotificationSync);
+    auto* edit0 = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit0 != nullptr);
+    clickButton (*edit0);
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 24'000, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> baseline = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (baseline.data(), baseline.size())) > 0.01);
+
+    // Set Touch through the shipped chooser (Timeline view owns it) — and the chooser now
+    // carries the fourth, honest mode.
+    const auto setMode = [&shell] (int itemId) {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+        clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+        auto* modeChooser = dynamic_cast<juce::ComboBox*> (
+            findChildWithComponentId (*shell, "timeline.automation.mode"));
+        REQUIRE (modeChooser != nullptr);
+        REQUIRE (modeChooser->getItemText (3) == "Off");
+        modeChooser->setSelectedId (itemId, juce::sendNotificationSync);
+        clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+        clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+        mouseDownAt (*findChildWithComponentId (*shell, "shell.mixer.strips.input"),
+                     paintedStripCentre (*findChildWithComponentId (*shell, "shell.mixer.strips.input"), 0, 2));
+    };
+    setMode (2);   // Touch
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Touch);
+
+    // RIDE 1 — the SEND LEVEL, with real rendered playback between drag positions (N5's law).
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    auto* sendLevel = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.send.0"));
+    REQUIRE (sendLevel != nullptr);
+    REQUIRE (sendLevel->isVisible());
+    {
+        const juce::Point<int> left { 4, sendLevel->getHeight() / 2 };
+        const juce::Point<int> middle { sendLevel->getWidth() / 2, sendLevel->getHeight() / 2 };
+        const juce::Point<int> right { sendLevel->getWidth() - 4, sendLevel->getHeight() / 2 };
+        juce::MouseEvent down = makeMouseEvent (*sendLevel, left, left, false, 1);
+        sendLevel->mouseDown (down);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+        juce::MouseEvent dragMiddle = makeMouseEvent (*sendLevel, middle, left, true, 1);
+        sendLevel->mouseDrag (dragMiddle);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+        juce::MouseEvent dragRight = makeMouseEvent (*sendLevel, right, left, true, 1);
+        sendLevel->mouseDrag (dragRight);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+
+        // Buffered client-side until the ride ends — nothing persisted mid-ride.
+        REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+        juce::MouseEvent up = makeMouseEvent (*sendLevel, right, left, true, 1);
+        sendLevel->mouseUp (up);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    {
+        const yesdaw::engine::Project ridden = readProjectSnapshot (bundlePath);
+        REQUIRE (ridden.automationLanes.size() == 1u);
+        const yesdaw::engine::AutomationLaneData& lane = ridden.automationLanes.front();
+        REQUIRE (lane.role == yesdaw::engine::AutomationTargetRole::SendLevel);
+        REQUIRE (lane.ownerEntity == ridden.tracks.front().id);
+        REQUIRE (lane.paramId == 0u);
+        REQUIRE (lane.points.size() >= 2u);
+        for (std::size_t i = 1; i < lane.points.size(); ++i)
+            REQUIRE (lane.points[i].tick > lane.points[i - 1].tick);
+        REQUIRE (lane.points.back().value > lane.points.front().value);
+    }
+
+    // RIDE 2 — the FX PARAM (compressor threshold), same law, owned by the INSERT's id.
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    auto* param0 = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.0"));
+    REQUIRE (param0 != nullptr);
+    REQUIRE (param0->isVisible());
+    {
+        const juce::Point<int> left { 4, param0->getHeight() / 2 };
+        const juce::Point<int> middle { param0->getWidth() / 2, param0->getHeight() / 2 };
+        const juce::Point<int> right { param0->getWidth() - 4, param0->getHeight() / 2 };
+        juce::MouseEvent down = makeMouseEvent (*param0, left, left, false, 1);
+        param0->mouseDown (down);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+        juce::MouseEvent dragMiddle = makeMouseEvent (*param0, middle, left, true, 1);
+        param0->mouseDrag (dragMiddle);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+        juce::MouseEvent dragRight = makeMouseEvent (*param0, right, left, true, 1);
+        param0->mouseDrag (dragRight);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        juce::MouseEvent up = makeMouseEvent (*param0, right, left, true, 1);
+        param0->mouseUp (up);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    {
+        const yesdaw::engine::Project ridden = readProjectSnapshot (bundlePath);
+        REQUIRE (ridden.automationLanes.size() == 2u);
+        const yesdaw::engine::AutomationLaneData& lane = ridden.automationLanes.back();
+        REQUIRE (lane.role == yesdaw::engine::AutomationTargetRole::FxInsertParam);
+        REQUIRE (lane.ownerEntity == ridden.tracks.front().strip.fxChain.front().id);
+        REQUIRE (lane.points.size() >= 2u);
+    }
+
+    // One undo removes the WHOLE FX ride; redo restores it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 1u);
+    clickButton (requireButtonForAction (*shell, UiActionId::EditRedo));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 2u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // READ plays the lanes back — the render differs from the lane-free baseline (the ridden
+    // send starts low where the baseline send sits at unity).
+    setMode (1);   // Read
+    const std::vector<float> readRender = renderFromStart();
+    REQUIRE (readRender != baseline);
+
+    // OFF ignores every lane — bit-identical with the lane-free baseline — and a drag during
+    // playback writes NOTHING (it is a plain, persisted edit exactly like Read... which is the
+    // one thing Read and Off share; what Off alone adds is the muted playback).
+    setMode (4);   // Off
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Off);
+    const std::vector<float> offRender = renderFromStart();
+    REQUIRE (offRender == baseline);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    {
+        const juce::Point<int> left { 4, sendLevel->getHeight() / 2 };
+        const juce::Point<int> middle { sendLevel->getWidth() / 2, sendLevel->getHeight() / 2 };
+        juce::MouseEvent down = makeMouseEvent (*sendLevel, middle, middle, false, 1);
+        sendLevel->mouseDown (down);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        (void) renderMainComponentPlayback (*shell, 2'400, 128);
+        juce::MouseEvent dragLeft = makeMouseEvent (*sendLevel, left, middle, true, 1);
+        sendLevel->mouseDrag (dragLeft);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+        juce::MouseEvent up = makeMouseEvent (*sendLevel, left, middle, true, 1);
+        sendLevel->mouseUp (up);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    {
+        const yesdaw::engine::Project after = readProjectSnapshot (bundlePath);
+        REQUIRE (after.automationLanes.size() == 2u);                       // nothing written
+        REQUIRE (after.tracks.front().sends.front().linearGain < 0.25f);   // the plain edit landed
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // R9: the mechanical half of single-instance. The gate pins the POLICY the shell consults;
 // the two Main.cpp wiring lines (moreThanOneInstanceAllowed returning this policy,
 // anotherInstanceStarted fronting the window) ride JUCE's own named-mutex machinery, which

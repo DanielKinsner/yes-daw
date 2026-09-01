@@ -7528,6 +7528,11 @@ private:
     [[nodiscard]] bool automationLaneExistsFor (engine::EntityId owner,
                                                engine::AutomationTargetRole role) const noexcept
     {
+        // R15: Off compiles NO lanes, so no compiled target can refuse a live set — the stored
+        // lanes are invisible to the running graph and to this pre-check alike.
+        if (project_.automationMode == engine::AutomationMode::Off)
+            return false;
+
         for (const engine::AutomationLaneData& lane : project_.automationLanes)
             if (lane.ownerEntity == owner && lane.role == role)
                 return true;
@@ -7538,6 +7543,9 @@ private:
                                                engine::AutomationTargetRole role,
                                                std::uint32_t paramId) const noexcept
     {
+        if (project_.automationMode == engine::AutomationMode::Off)   // R15: see above
+            return false;
+
         for (const engine::AutomationLaneData& lane : project_.automationLanes)
             if (lane.ownerEntity == owner && lane.role == role && lane.paramId == paramId)
                 return true;

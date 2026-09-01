@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 19;   // R13: bus_sends + bus_outputs
+inline constexpr int          kCodeSchemaVersion = 20;   // R15: automation_mode gains Off
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1321,13 +1321,25 @@ CREATE TABLE bus_outputs (
 );
 )SQL";
 
+// R15: the automation-mode CHECK gains Off (mode 3). SQLite cannot alter a CHECK, so the v20
+// migration recreates the one-row table in place, carrying any stored mode across unchanged.
+inline constexpr std::string_view kSchemaV20Sql = R"SQL(
+CREATE TABLE automation_mode_v20 (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  mode INTEGER NOT NULL CHECK (mode >= 0 AND mode <= 3)
+);
+INSERT INTO automation_mode_v20 (slot, mode) SELECT slot, mode FROM automation_mode;
+DROP TABLE automation_mode;
+ALTER TABLE automation_mode_v20 RENAME TO automation_mode;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 19> kMigrations {
+inline constexpr std::array<SchemaMigration, 20> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1347,6 +1359,7 @@ inline constexpr std::array<SchemaMigration, 19> kMigrations {
     SchemaMigration { 17, kSchemaV17Sql },
     SchemaMigration { 18, kSchemaV18Sql },
     SchemaMigration { 19, kSchemaV19Sql },
+    SchemaMigration { 20, kSchemaV20Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -3311,7 +3324,7 @@ public:
             if (step == SQLITE_ROW)
             {
                 const sqlite3_int64 mode = sqlite3_column_int64 (stmt.get(), 0);
-                if (mode < 0 || mode > 2)
+                if (mode < 0 || mode > 3)   // R15: Off = 3
                     return detail::semanticInvalid ("automation_mode mode is outside the known enum range");
                 project.automationMode = static_cast<engine::AutomationMode> (mode);
             }

@@ -5008,14 +5008,17 @@ private:
         };
         addChildComponent (automationTargetChooser);
 
-        // N5: the automation write mode — Read (default, playback only) or Touch/Latch (a fader
-        // or pan drag during playback writes breakpoints instead of a plain edit).
+        // N5/R15: the automation write mode — Read (default, playback only), Touch/Latch (a
+        // control drag during playback writes breakpoints instead of a plain edit), or Off
+        // (lanes stay stored and editable but playback IGNORES them and nothing ever writes).
         automationModeChooser.setComponentID ("timeline.automation.mode");
         automationModeChooser.setTooltip ("Automation write mode: Read plays back; Touch/Latch "
-                                          "record a fader/pan ride while the transport rolls");
+                                          "record a control ride while the transport rolls; "
+                                          "Off ignores every lane and writes nothing");
         automationModeChooser.addItem ("Read", 1);
         automationModeChooser.addItem ("Touch", 2);
         automationModeChooser.addItem ("Latch", 3);
+        automationModeChooser.addItem ("Off", 4);   // id - 1 == AutomationMode::Off
         automationModeChooser.onChange = [this] {
             if (refreshingAutomationTarget)
                 return;
@@ -5701,12 +5704,24 @@ private:
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
             slider.setRange (0.0, 1.0, 0.0);
             slider.setDoubleClickReturnValue (true, 1.0);   // Alt+click resets the send to unity
+            // R15: a send-level drag rides Touch/Latch exactly like the fader — the lane value
+            // is the FaderNode dB-law inverse of the dragged gain, so playback lands at the
+            // gain that was actually ridden (send lanes drive the send's own FaderNode).
+            slider.onDragStart = [this, row] {
+                beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::SendLevel,
+                                                 static_cast<std::uint32_t> (row));
+            };
+            slider.onDragEnd = [this] { endAutomationTouchRideIfActive(); };
             slider.onValueChange = [this, row] {
                 if (refreshingSendControls)
                     return;
 
-                (void) appModel.setSendLevelOnSelectedTrack (
-                    row, static_cast<float> (mixerSendLevelSliders[row].getValue()));
+                if (automationTouchRideActive)
+                    recordAutomationTouchSample (
+                        automationNormalizedForFaderGain (mixerSendLevelSliders[row].getValue()));
+                else
+                    (void) appModel.setSendLevelOnSelectedTrack (
+                        row, static_cast<float> (mixerSendLevelSliders[row].getValue()));
                 refreshActionState();
                 repaint();
             };
@@ -5781,14 +5796,30 @@ private:
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                     yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
             slider.setRange (0.0, 1.0, 0.0);
+            // R15: an FX-param drag rides Touch/Latch too. The ride owner is the INSERT's own
+            // id (the FxInsertParam lane law); the slider value is already the normalized 0..1
+            // the lane and the node both speak.
+            slider.onDragStart = [this, index] {
+                const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+                if (selectedFxParamSlot >= 0
+                    && static_cast<std::size_t> (selectedFxParamSlot) < chain.size())
+                    beginAutomationTouchRideIfArmed (
+                        yesdaw::engine::AutomationTargetRole::FxInsertParam,
+                        mixerFxParamSliderIds[index],
+                        chain[static_cast<std::size_t> (selectedFxParamSlot)].id);
+            };
+            slider.onDragEnd = [this] { endAutomationTouchRideIfActive(); };
             slider.onValueChange = [this, index] {
                 if (refreshingFxParamControls || selectedFxParamSlot < 0)
                     return;
 
-                (void) appModel.setFxInsertParamOnSelectedStrip (
-                    static_cast<std::size_t> (selectedFxParamSlot),
-                    mixerFxParamSliderIds[index],
-                    mixerFxParamSliders[index].getValue());
+                if (automationTouchRideActive)
+                    recordAutomationTouchSample (mixerFxParamSliders[index].getValue());
+                else
+                    (void) appModel.setFxInsertParamOnSelectedStrip (
+                        static_cast<std::size_t> (selectedFxParamSlot),
+                        mixerFxParamSliderIds[index],
+                        mixerFxParamSliders[index].getValue());
                 refreshActionState();
                 repaint();
             };
@@ -8303,26 +8334,44 @@ private:
 
     // N5: arm a Touch/Latch ride if the mode is armed AND the transport was already rolling when
     // the drag started — moving a control while stopped, even in Touch/Latch mode, is just a
-    // normal edit (matches real-DAW semantics: Touch/Latch only writes DURING playback). Scoped
-    // to the mixer's selected TRACK strip only — buses carry no automation lanes in this model.
-    void beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole role, std::uint32_t paramId)
+    // normal edit (matches real-DAW semantics: Touch/Latch only writes DURING playback).
+    // R15: the ride owner is the selected TRACK or BUS strip (a bus strip's fader/pan ride
+    // writes the Bus roles), or an explicit owner (an FX insert's id for param rides); ONLY
+    // Touch/Latch arm — Read plays back, Off ignores lanes entirely and writes nothing.
+    void beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole role,
+                                          std::uint32_t paramId,
+                                          yesdaw::engine::EntityId ownerOverride = {})
     {
         automationTouchRideActive = false;
         automationTouchRideSamples.clear();
 
         if (! appModel.context().projectLoaded || ! appModel.context().isPlaying)
             return;
-        if (appModel.project().automationMode == yesdaw::engine::AutomationMode::Read)
+        const yesdaw::engine::AutomationMode mode = appModel.project().automationMode;
+        if (mode != yesdaw::engine::AutomationMode::Touch
+            && mode != yesdaw::engine::AutomationMode::Latch)
             return;
 
-        const yesdaw::engine::EntityId trackId = appModel.selectedMixerTargetTrackId();
-        if (! trackId.isValid())
-            return;
+        yesdaw::engine::EntityId ownerId = ownerOverride;
+        if (! ownerId.isValid())
+        {
+            ownerId = appModel.selectedSendOwnerEntityId();
+            if (! ownerId.isValid())
+                return;
+
+            if (appModel.project().findBus (ownerId) != nullptr)
+            {
+                if (role == yesdaw::engine::AutomationTargetRole::TrackFader)
+                    role = yesdaw::engine::AutomationTargetRole::BusFader;
+                else if (role == yesdaw::engine::AutomationTargetRole::TrackPan)
+                    role = yesdaw::engine::AutomationTargetRole::BusPan;
+            }
+        }
 
         automationTouchRideActive = true;
         automationTouchRideRole = role;
         automationTouchRideParamId = paramId;
-        automationTouchRideTrackId = trackId;
+        automationTouchRideTrackId = ownerId;
     }
 
     // N5: sample the live playhead tick and the control's current value into the ride buffer.
