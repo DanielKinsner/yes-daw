@@ -620,8 +620,20 @@ automation lanes stay UI-unreachable until R14/R15 (targets register for parity)
 ctest green **360/360** first try (owner `last-project.txt` not present on this machine —
 nothing to isolate/restore).
 
-**Now:** R13 implementation done locally; CI certification pending.
-**Next:** R14 — bus automation is reachable from the UI.
+R13 CI round 1 (`5c33c4c`) went red on the Linux/macOS legs only: GCC/AppleClang's
+-Wmissing-field-initializers exempts ONLY NSDMI'd members, and the new Bus/MixerBusProjection
+routing fields lacked default initializers, so two pre-existing aggregate inits
+(host_isolation_tests:296, ui_action_tests:813) tripped while MSVC stayed silent. Root-cause
+repair `f189f5a` gives the members explicit `{}` defaults (no test edits needed). Full local
+suite re-run green 360/360 (the YesDawTimelineGpuCheck -j 6 flake fired once and passed alone).
+
+R13 is certified: exact-head GitHub Actions run `33453384742` is green for full SHA `f189f5a`
+across all nine jobs (round 2, after the one build-portability repair). R13 is ticked.
+
+**Now:** checkpoint handed back to Dan (R13 done and certified).
+**Next:** R14 — bus automation is reachable from the UI (audit `buildAutomationTargetOptions`
+`MainComponent.cpp` track-id requirement vs the live BusFader/BusPan engine targets, and the
+R13 bus SendLevel targets that now register too).
 
 ## 2026-08-12 editing-first parity run (in progress)
 

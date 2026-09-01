@@ -177,7 +177,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   (assert via engine identity/counter), audio continues frame-contiguous, final value
   persisted + undoable exactly as today. Out of scope: structural edits (add/remove
   FX/track/clip may still rebuild).
-- [ ] **R13 — buses can route and send like tracks.** `struct Bus` (`Project.h:402-413`) has
+- [x] **R13 — buses can route and send like tracks.** *(certified: feature `5c33c4c` + build
+  repair `f189f5a`, nine-job CI run `33453384742` green, local 360/360)* `struct Bus` (`Project.h:402-413`) has
   no `sends` and no `outputBusId`: no submix→reverb send, no bus→bus routing. Add both with
   the existing SendRow UI law and cycle-refusal (the routing DAG law — refuse honestly,
   never clamp). Additive schema bump + migration gate. Gate: bus→bus chain renders through
