@@ -406,9 +406,11 @@ struct Bus
     // R13: buses route and send like tracks. Ordered send rows (ordinal = index, the ADR-0039
     // SendLevel paramId law) and a MAIN output: invalid (the default) = straight to master, a
     // valid id must name another Bus. Unlike tracks, bus→bus edges can form a cycle — the
-    // routing verbs refuse one honestly (RoutingCycle), the DAG law, never clamp.
-    std::vector<SendRow> sends;
-    EntityId outputBusId;
+    // routing verbs refuse one honestly (RoutingCycle), the DAG law, never clamp. Both members
+    // carry explicit default initializers so existing aggregate inits stay warning-clean under
+    // GCC/AppleClang -Wmissing-field-initializers (which exempts only NSDMI'd members).
+    std::vector<SendRow> sends {};
+    EntityId outputBusId {};
 
     [[nodiscard]] bool isValid() const noexcept
     {

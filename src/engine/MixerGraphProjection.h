@@ -108,8 +108,9 @@ struct MixerBusProjection
     // R13: buses route and send like tracks — parallel send taps into OTHER projected buses,
     // and a MAIN output that lands on another bus's sum instead of master. The projection is
     // DAG-validated upstream (edit verbs + bundle open); the graph build wires buses in
-    // topological order and refuses a cycle honestly if one ever reaches it.
-    std::vector<MixerSendProjection> sends;
+    // topological order and refuses a cycle honestly if one ever reaches it. The explicit `{}`
+    // keeps existing aggregate inits clean under -Wmissing-field-initializers (NSDMI exempt).
+    std::vector<MixerSendProjection> sends {};
     static constexpr std::size_t kOutputToMaster = static_cast<std::size_t> (-1);
     std::size_t outputBusIndex = kOutputToMaster;
 };
