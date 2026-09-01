@@ -733,8 +733,13 @@ that red), Log persists and survives close-and-reopen, and one undo steps a cycl
 redo replaying it. Four legacy quarantine gates re-pinned to the new boundary (out-of-enum
 curve 9 refuses everywhere Bezier used to). Full local ctest green **362/362**.
 
-**Now:** R16 implementation done locally; CI certification pending.
-**Next:** R17 — the 5th send is not stranded.
+R16 is certified: exact-head GitHub Actions run `33459185267` is green for full SHA `b1e7595`
+across all nine jobs, first try. R16 is ticked.
+
+**Now:** checkpoint handed back to Dan (R16 done and certified).
+**Next:** R17 — the 5th send is not stranded (the brief PRE-DECIDES the recommendation: refuse
+the add with a painted reason — smaller and honest; audit `mixerSendVisibleRowCount` and
+`addSendOnSelectedTrack` first).
 
 ## 2026-08-12 editing-first parity run (in progress)
 

@@ -200,7 +200,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   end-to-end), and arm rides on send-level and FX-param drags through the same law. Gate:
   ride a send level in Touch → breakpoints written; Off mode writes nothing and plays
   nothing back. Out of scope: trim automation.
-- [ ] **R16 — automation curve shapes reach the UI.** The engine evaluates
+- [x] **R16 — automation curve shapes reach the UI.** *(certified: feature `b1e7595`,
+  nine-job CI run `33459185267` green first try, local 362/362)* The engine evaluates
   Linear/Hold/Bezier/Log (`Automation.h:21-27, 92-118`) but every UI write hardcodes Linear
   (`UiAppModel.h:5348, 5550`); no curve chooser exists. Add a per-breakpoint curve picker +
   `SetBreakpointCurve` verb (undoable, persisted). Gate: set Hold on a breakpoint from the
