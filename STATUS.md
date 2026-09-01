@@ -630,10 +630,38 @@ suite re-run green 360/360 (the YesDawTimelineGpuCheck -j 6 flake fired once and
 R13 is certified: exact-head GitHub Actions run `33453384742` is green for full SHA `f189f5a`
 across all nine jobs (round 2, after the one build-portability repair). R13 is ticked.
 
-**Now:** checkpoint handed back to Dan (R13 done and certified).
-**Next:** R14 — bus automation is reachable from the UI (audit `buildAutomationTargetOptions`
-`MainComponent.cpp` track-id requirement vs the live BusFader/BusPan engine targets, and the
-R13 bus SendLevel targets that now register too).
+**R14 audit + implementation — bus automation is reachable from the UI:** audit first, head
+`e4b1b5b`. The engine was already whole: BusFader/BusPan lanes validate, compile
+(ProjectMixerProjection registers the targets), and evaluate; R13 registered bus SendLevel
+targets too; the canvas machinery (onAddPoint → `addAutomationBreakpointToLane(owner, role,
+paramId)`, move/delete, paint) is completely target-generic. Exactly TWO gaps: (1)
+`buildAutomationTargetOptions` derived everything from the timeline's selected TRACK lane, so
+no bus target could ever be chosen — the dead code the backlog named; (2)
+`automationTargetsReferenceProjectRows` required a TRACK owner for SendLevel lanes, so R13's
+bus-send targets could never gain a lane. Decision (documented, decide-don't-ask): the chooser
+enumerates EVERY bus's fader/pan/sends after the selected track's own targets, labelled by bus
+name ("Bus 1 Fader") — a superset of the spec's "selected bus" that keeps the list independent
+of invisible mixer-selection state; the lane-row header drops the track prefix for a bus-owned
+target (the old "Audio 1 - …" would lie). SendLevel lane validation now accepts a Track OR Bus
+owner. Bonus already wired by R12/R13: a BusFader/BusPan lane makes the bus strip's live scalar
+edit fall back to the rebuild path via the existing automation pre-check — zero new code.
+Gates: project gate grew the R14 asserts (a bus SendLevel lane APPLIES; a BusFader lane on a
+nonexistent bus refuses InvalidAutomationTarget); `[bus-automation]` shell gate (75 assertions):
+route track→bus, pick "Bus 1 Fader" in the real target chooser, pencil a LOW value on the real
+canvas → the lane persists (role BusFader, owner = the bus), the render's SETTLED region
+(past the fader's 5 ms de-click ramp — a real find: the primed lane value ramps in, so the
+whole-render peak barely moved and the first gate draft failed; the proof now reads past frame
+1024) drops below half of baseline, the lane row reads "Bus 1 Fader" with no track prefix,
+reopen keeps the lane, and one undo removes it with the render audibly restored. Red proven per
+law by neuters: SendLevel validation back to track-only failed exactly the lane-applies assert;
+skipping the bus-options loop failed exactly the chooser-has-"Bus 1 Fader" assert. Out of scope
+honestly: bus FX-insert params in the chooser (spec scoped fader/pan/sends; the engine accepts
+such lanes via FxInsertParam+insert-id already), Write/Off modes and ride-arming (R15), master
+automation (parked per spec — needs a master target role that does not exist). Full local ctest
+green **360/360** first try.
+
+**Now:** R14 implementation done locally; CI certification pending.
+**Next:** R15 — automation Write/Off modes; rides beyond fader+pan.
 
 ## 2026-08-12 editing-first parity run (in progress)
 

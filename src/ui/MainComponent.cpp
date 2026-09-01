@@ -8275,6 +8275,9 @@ private:
 
         const juce::String trackName = track->strip.name.empty() ? "Track 1" : juce::String (track->strip.name);
         const int breakpointCount = lane == nullptr ? 0 : static_cast<int> (lane->points.size());
+        // R14: a bus-owned target's label already names the bus — the track prefix would lie.
+        if (target.busOwned)
+            return target.label + " - " + juce::String (breakpointCount) + " breakpoints";
         return trackName + " - " + target.label + " - " + juce::String (breakpointCount) + " breakpoints";
     }
 
@@ -9609,13 +9612,16 @@ private:
         return tracks[static_cast<std::size_t> (lane)].id;
     }
 
-    // E20: the automation lane target — what the canvas edits.
+    // E20: the automation lane target — what the canvas edits. R14: a target may be owned by a
+    // BUS (fader/pan/send) — its label carries the bus name, and the lane-row header drops the
+    // track prefix for it.
     struct AutomationTargetOption
     {
         yesdaw::engine::AutomationTargetRole role = yesdaw::engine::AutomationTargetRole::TrackFader;
         std::uint32_t paramId = 0;
         yesdaw::engine::EntityId ownerEntity {};
         juce::String label;
+        bool busOwned = false;
     };
 
     // E20: enumerate the selected track's automation targets in a stable order — fader, pan,
@@ -9666,6 +9672,34 @@ private:
                                      paramId, insert.id,
                                      "FX" + juce::String (static_cast<int> (slot) + 1)
                                          + " " + spec.name });
+            }
+        }
+
+        // R14: bus automation is reachable — every bus's fader, pan, and (R13) send levels
+        // enumerate after the track's own targets, labelled by bus name. The engine targets
+        // (BusFader/BusPan since M-era, bus SendLevel since R13) were dead code from the shell
+        // until this list carried them; the same canvas pencils their lanes unchanged.
+        for (std::size_t busIndex = 0; busIndex < appModel.project().buses.size(); ++busIndex)
+        {
+            const yesdaw::engine::Bus& bus = appModel.project().buses[busIndex];
+            const juce::String busName = bus.strip.name.empty()
+                ? "Bus " + juce::String (static_cast<int> (busIndex) + 1)
+                : juce::String (bus.strip.name);
+            options.push_back ({ yesdaw::engine::AutomationTargetRole::BusFader,
+                                 yesdaw::engine::FaderNode::kGainParameterId, bus.id,
+                                 busName + " Fader", true });
+            options.push_back ({ yesdaw::engine::AutomationTargetRole::BusPan,
+                                 yesdaw::engine::PanNode::kPanParameterId, bus.id,
+                                 busName + " Pan", true });
+            for (std::size_t sendIndex = 0; sendIndex < bus.sends.size(); ++sendIndex)
+            {
+                juce::String destName ("Bus?");
+                for (const auto& dest : appModel.project().buses)
+                    if (dest.id == bus.sends[sendIndex].busId)
+                        destName = juce::String (dest.strip.name);
+                options.push_back ({ yesdaw::engine::AutomationTargetRole::SendLevel,
+                                     static_cast<std::uint32_t> (sendIndex), bus.id,
+                                     busName + " Send: " + destName, true });
             }
         }
         return options;

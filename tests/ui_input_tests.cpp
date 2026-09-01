@@ -8227,6 +8227,122 @@ TEST_CASE ("buses route and send like tracks through real mixer controls",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// R14 — bus automation is reachable from the UI. The engine's BusFader/BusPan targets (and
+// R13's bus SendLevel targets) were dead code from the shell: buildAutomationTargetOptions only
+// ever enumerated the selected track. Now every bus's fader/pan/sends list in the target
+// chooser, the same canvas pencils their lanes, and a penciled bus-fader value audibly drives
+// the render.
+TEST_CASE ("a penciled bus-fader lane audibly drives the render",
+           "[ui][input][shell][bus-automation]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("bus-automation");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    // Route the track through a bus so the bus fader is IN the audible path.
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* outputChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "mixer.track.output"));
+    REQUIRE (outputChooser != nullptr);
+    outputChooser->setSelectedId (2, juce::sendNotificationSync);
+
+    const auto renderFromStart = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        return rendered;
+    };
+    const std::vector<float> baseline = renderFromStart();
+    const double baselinePeak = peakAbs (std::span<const float> (baseline.data(), baseline.size()));
+    REQUIRE (baselinePeak > 0.01);
+
+    // Timeline view, lane open, snap Off (raw pixel law), and the BUS FADER as the target.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* targetChooser = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (targetChooser != nullptr);
+    int busFaderItemId = 0;
+    for (int item = 0; item < targetChooser->getNumItems(); ++item)
+        if (targetChooser->getItemText (item) == "Bus 1 Fader")
+            busFaderItemId = targetChooser->getItemId (item);
+    REQUIRE (busFaderItemId > 0);
+    targetChooser->setSelectedId (busFaderItemId, juce::sendNotificationSync);
+
+    // Pencil a LOW value near the timeline start: before the first breakpoint the lane holds
+    // its first value, so the WHOLE render rides the low bus fader.
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->isVisible());
+    mouseDownAt (*canvas, { canvas->getWidth() / 8, (canvas->getHeight() * 9) / 10 });
+    {
+        const yesdaw::engine::Project penciled = readProjectSnapshot (bundlePath);
+        REQUIRE (penciled.automationLanes.size() == 1u);
+        REQUIRE (penciled.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::BusFader);
+        REQUIRE (penciled.automationLanes.front().ownerEntity == penciled.buses.front().id);
+        REQUIRE (penciled.automationLanes.front().points.size() == 1u);
+        REQUIRE (penciled.automationLanes.front().points.front().value < 0.25);
+    }
+
+    // The render audibly follows the penciled bus fader. The fader takes the primed lane value
+    // through its 5 ms de-click ramp, so the proof reads the SETTLED region (past the first
+    // 1024 frames), where the low value fully rules.
+    const auto settledPeak = [] (const std::vector<float>& interleaved) {
+        const std::size_t skip = std::min<std::size_t> (interleaved.size(), 2048);   // 1024 stereo frames
+        return peakAbs (std::span<const float> (interleaved.data() + skip, interleaved.size() - skip));
+    };
+    REQUIRE (settledPeak (baseline) > 0.01);
+    const std::vector<float> automated = renderFromStart();
+    REQUIRE (settledPeak (automated) < settledPeak (baseline) * 0.5);
+
+    // The lane row names the BUS target, never a lying track prefix.
+    {
+        auto* laneRow = dynamic_cast<juce::Label*> (
+            findChildWithComponentId (*shell, kAutomationLaneRowComponentId));
+        REQUIRE (laneRow != nullptr);
+        REQUIRE (laneRow->getText().contains ("Bus 1 Fader"));
+        REQUIRE_FALSE (laneRow->getText().startsWith ("Audio 1"));
+    }
+
+    // The lane persists through close-and-reopen.
+    {
+        MainComponentFileChoices openChoices;
+        openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto reopened = makeShell (std::move (openChoices));
+        clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+        const yesdaw::engine::Project restored = readProjectSnapshot (bundlePath);
+        REQUIRE (restored.automationLanes.size() == 1u);
+        REQUIRE (restored.automationLanes.front().role == yesdaw::engine::AutomationTargetRole::BusFader);
+    }
+
+    // One undo removes the penciled point (and its fresh lane, grouped) — audible again.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+    const std::vector<float> restoredRender = renderFromStart();
+    REQUIRE (peakAbs (std::span<const float> (restoredRender.data(), restoredRender.size()))
+             > baselinePeak * 0.7);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // R9: the mechanical half of single-instance. The gate pins the POLICY the shell consults;
 // the two Main.cpp wiring lines (moreThanOneInstanceAllowed returning this policy,
 // anotherInstanceStarted fronting the window) ride JUCE's own named-mutex machinery, which

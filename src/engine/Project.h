@@ -1440,8 +1440,16 @@ struct Project
             {
                 case AutomationTargetRole::TrackFader:
                 case AutomationTargetRole::TrackPan:
-                case AutomationTargetRole::SendLevel:
                     if (findTrack (lane.ownerEntity) == nullptr)
+                        return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
+                    break;
+
+                // R13/R14: send rows live on a Track OR a Bus, so a SendLevel lane may own
+                // either — the projection registers both through the same owner-generic law.
+                case AutomationTargetRole::SendLevel:
+                    if (findTrack (lane.ownerEntity) == nullptr && findBus (lane.ownerEntity) == nullptr)
                         return false;
                     if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
                         return false;

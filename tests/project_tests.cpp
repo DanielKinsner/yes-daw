@@ -2582,6 +2582,23 @@ TEST_CASE ("Bus routing verbs send, output, refuse cycles, and undo bit-identica
     while (undo.canRedo())
         REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
     requireProjectValueUnchanged (project, edited);
+
+    // R14: a SendLevel automation lane may be owned by a BUS (the R13 bus send's ride), and
+    // the bus-role lanes validate against real Bus rows.
+    yesdaw::engine::AutomationLaneData busSendLane;
+    busSendLane.id = idFromLowByte (85);
+    busSendLane.ownerEntity = busAId;
+    busSendLane.role = yesdaw::engine::AutomationTargetRole::SendLevel;
+    busSendLane.paramId = 0;
+    REQUIRE (yesdaw::engine::addAutomationLane (project, busSendLane) == ProjectEditStatus::Applied);
+
+    yesdaw::engine::AutomationLaneData busFaderLane;
+    busFaderLane.id = idFromLowByte (86);
+    busFaderLane.ownerEntity = idFromLowByte (99);   // no such bus — refused
+    busFaderLane.role = yesdaw::engine::AutomationTargetRole::BusFader;
+    busFaderLane.paramId = yesdaw::engine::FaderNode::kGainParameterId;
+    REQUIRE (yesdaw::engine::addAutomationLane (project, busFaderLane)
+             == ProjectEditStatus::InvalidAutomationTarget);
 }
 
 TEST_CASE ("Randomized FX edit sequences fully undo to a bit-identical Project and redo back", "[project][fx][undo][property]")
