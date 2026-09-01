@@ -191,7 +191,9 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   the shell. Let the target chooser enumerate the selected bus's fader/pan (and R13 sends
   once landed). Gate: pencil a bus-fader ramp from the UI → rendered output follows it. Out
   of scope: master automation (needs R11's strip first; park honestly if not).
-- [ ] **R15 — automation Write/Off modes; rides beyond fader+pan.** `AutomationMode` is
+- [x] **R15 — automation Write/Off modes; rides beyond fader+pan.** *(certified: feature
+  `88cb79d`, nine-job CI run `33456703618` green first try, local 361/361; Off + send/FX/bus
+  rides shipped, classic Write parked honestly per this item's own gate)* `AutomationMode` is
   Read/Touch/Latch only (`Project.h:647-652`, chooser `MainComponent.cpp:4928-4930`), and
   `beginAutomationTouchRideIfArmed` is called from exactly two places (fader :5786, pan
   :5824) — send levels and FX params can never be ridden. Add Off (+ Write only if honest

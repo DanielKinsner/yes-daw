@@ -698,8 +698,14 @@ ride needs two DRAG positions with rendered playback between — the FX ride's f
 captured one point; the gate now mirrors the N5 three-position law. Full local ctest green
 **361/361** first try.
 
-**Now:** R15 implementation done locally; CI certification pending.
-**Next:** R16 — automation curve shapes reach the UI.
+R15 is certified: exact-head GitHub Actions run `33456703618` is green for full SHA `88cb79d`
+across all nine jobs, first try. R15 is ticked (Write parked honestly, recorded in the enum
+comment, this log, and the backlog tick).
+
+**Now:** checkpoint handed back to Dan (R15 done and certified).
+**Next:** R16 — automation curve shapes reach the UI (engine evaluates Linear/Hold/Bezier/Log
+per the backlog; every UI write hardcodes Linear — audit `Automation.h` curve law + the canvas
+write sites first).
 
 ## 2026-08-12 editing-first parity run (in progress)
 
