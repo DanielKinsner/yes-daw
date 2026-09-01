@@ -3398,6 +3398,19 @@ public:
         if (busIndex >= project_.buses.size())
             return { id, { false, "no bus at index" }, false };
 
+        // R17: the strip paints exactly mixerSendVisibleRowCount send rows — a 5th send would
+        // exist with no row to edit or remove it. The add REFUSES at the painted capacity with
+        // an R4 reason (the run brief's recommended law: refuse honestly, don't scroll).
+        if (const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (trackId);
+            ownerSends != nullptr && ownerSends->size() >= UiThemeLayout::mixerSendVisibleRowCount)
+        {
+            reportStatus ("Send refused: this strip already has "
+                              + std::to_string (UiThemeLayout::mixerSendVisibleRowCount)
+                              + " sends (the mixer's row capacity)",
+                          true);
+            return { id, { false, "send rows full" }, false };
+        }
+
         engine::Project nextProject = project_;
         const engine::EntityId sendId = allocateSessionEntityId (0xE2u, nextProject);
         engine::ProjectUndoStack nextUndo = undo_;

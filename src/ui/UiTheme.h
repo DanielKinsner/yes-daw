@@ -631,7 +631,9 @@ struct UiTheme
         // E15: high enough to reach every ParamSpec of every FxKind (EQ band 5 tops out at 83).
         static constexpr std::uint32_t mixerFxParamProbeLimit = 96;
         static constexpr int mixerSendRowHeight = 18;
-        static constexpr std::size_t mixerSendVisibleRowCount = 4;
+        // R17: aliases the JUCE-free UiThemeLayout token — the model's add-refusal cap and
+        // this painted row count are ONE law.
+        static constexpr std::size_t mixerSendVisibleRowCount = UiThemeLayout::mixerSendVisibleRowCount;
         static constexpr float trackListPanArcRadians = 2.35619449f;   // +/-135 degrees full throw
         static constexpr int trackListAddButtonWidth = 72;
         static constexpr int trackListAddButtonHeight = 24;

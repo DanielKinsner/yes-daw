@@ -8656,6 +8656,68 @@ TEST_CASE ("R16 a breakpoint's curve cycles from the canvas and audibly shapes t
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// R17 — the 5th send is not stranded. The mixer paints exactly four send rows, but the add
+// never capped: a 5th send existed in the project with no row to edit or remove it. The chosen
+// law (the run brief's recommendation): the add REFUSES at the painted capacity with an R4
+// painted reason — refuse honestly, don't scroll.
+TEST_CASE ("R17 the send add refuses at the painted row capacity with a painted reason",
+           "[ui][input][shell][mixer][send-cap]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("send-cap");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    shell->setSize (1536, 960);
+
+    for (int i = 0; i < 5; ++i)
+        clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 5u);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
+    auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
+    REQUIRE (sendChooser != nullptr);
+
+    // Fill the four painted rows.
+    for (int busItem = 1; busItem <= 4; ++busItem)
+        sendChooser->setSelectedId (busItem, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.size() == 4u);
+
+    // The 5th add refuses: project unchanged, and the reason is PAINTED (R4).
+    sendChooser->setSelectedId (5, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project refused = readProjectSnapshot (bundlePath);
+        REQUIRE (refused.tracks.front().sends.size() == 4u);
+        const MainComponentSnapshot painted = snapshotMainComponent (*shell);
+        REQUIRE (painted.statusLineIsError);
+        REQUIRE (painted.statusLineText.find ("sends") != std::string::npos);
+    }
+
+    // Removing a row frees capacity — the same add now lands.
+    auto* removeFirst = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "mixer.send.0.remove"));
+    REQUIRE (removeFirst != nullptr);
+    clickButton (*removeFirst);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.size() == 3u);
+    sendChooser->setSelectedId (5, juce::sendNotificationSync);
+    {
+        const yesdaw::engine::Project routed = readProjectSnapshot (bundlePath);
+        REQUIRE (routed.tracks.front().sends.size() == 4u);
+        REQUIRE (routed.tracks.front().sends.back().busId == routed.buses[4].id);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // R9: the mechanical half of single-instance. The gate pins the POLICY the shell consults;
 // the two Main.cpp wiring lines (moreThanOneInstanceAllowed returning this policy,
 // anotherInstanceStarted fronting the window) ride JUCE's own named-mutex machinery, which

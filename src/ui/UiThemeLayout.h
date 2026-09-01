@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 namespace yesdaw::ui {
 
 struct UiThemeLayout
@@ -18,6 +20,10 @@ struct UiThemeLayout
     static constexpr int pianoRollKeyMax = 127;
     static constexpr double pianoRollZoomMin = 1.0;
     static constexpr double pianoRollZoomMax = 64.0;
+    // R17: the ONE send-capacity law. The mixer paints exactly this many send rows, and the
+    // model REFUSES an add past it (a 5th send used to exist with no row to edit or remove
+    // it). UiTheme::Layout aliases this token so paint and refusal can never drift.
+    static constexpr std::size_t mixerSendVisibleRowCount = 4;
 };
 
 } // namespace yesdaw::ui

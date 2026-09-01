@@ -736,10 +736,22 @@ curve 9 refuses everywhere Bezier used to). Full local ctest green **362/362**.
 R16 is certified: exact-head GitHub Actions run `33459185267` is green for full SHA `b1e7595`
 across all nine jobs, first try. R16 is ticked.
 
-**Now:** checkpoint handed back to Dan (R16 done and certified).
-**Next:** R17 — the 5th send is not stranded (the brief PRE-DECIDES the recommendation: refuse
-the add with a painted reason — smaller and honest; audit `mixerSendVisibleRowCount` and
-`addSendOnSelectedTrack` first).
+**R17 — the 5th send is not stranded (DECISION + implementation):** the brief lists this as a
+Dan-decision with its own recommendation attached ("recommend refuse — smaller and honest");
+per the standing decide-and-document authorization the recommendation is TAKEN: **the add
+REFUSES at the painted capacity** with an R4 painted reason — no scrolling rows. Dan can
+overturn this later; the alternative (scroll/page the rows) stays in the backlog text.
+Implementation is small and one-lawed: the capacity token moved to the JUCE-free
+`UiThemeLayout::mixerSendVisibleRowCount` (UiTheme::Layout now aliases it), so the painted row
+count and the model's refusal can never drift; `addSendOnSelectedTrack` refuses at capacity for
+ANY owner (R13 bus strips share the cap — same rows UI) painting "this strip already has 4
+sends (the mixer's row capacity)". `[send-cap]` gate (64 assertions): five buses, four sends
+land, the 5th add refuses with the project unchanged AND the painted reason showing, removing a
+row frees capacity and the same add then lands on the freed row. Red proven: neutering the cap
+(999) failed exactly the refusal assert. Full local ctest green **362/362** first try.
+
+**Now:** R17 implementation done locally; CI certification pending.
+**Next:** Phase 3 — R18, clip drags paint an in-flight preview.
 
 ## 2026-08-12 editing-first parity run (in progress)
 
