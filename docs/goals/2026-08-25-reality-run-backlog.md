@@ -184,7 +184,8 @@ Near-certain hits the moment a real song replaces the fixture-shaped happy path.
   never clamp). Additive schema bump + migration gate. Gate: bus→bus chain renders through
   PDC correctly; a created cycle is refused with a painted reason (R4); persistence
   round-trips. Out of scope: sidechain taps from buses.
-- [ ] **R14 — bus automation is reachable from the UI.** Engine targets BusFader/BusPan
+- [x] **R14 — bus automation is reachable from the UI.** *(certified: feature `8992b33`,
+  nine-job CI run `33455068137` green first try, local 360/360)* Engine targets BusFader/BusPan
   exist (`ProjectMixerProjection.h:644-645`) but `buildAutomationTargetOptions`
   (`MainComponent.cpp:9448-9497`) requires a track id — the bus targets are dead code from
   the shell. Let the target chooser enumerate the selected bus's fader/pan (and R13 sends

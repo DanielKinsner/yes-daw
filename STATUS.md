@@ -660,8 +660,13 @@ such lanes via FxInsertParam+insert-id already), Write/Off modes and ride-arming
 automation (parked per spec — needs a master target role that does not exist). Full local ctest
 green **360/360** first try.
 
-**Now:** R14 implementation done locally; CI certification pending.
-**Next:** R15 — automation Write/Off modes; rides beyond fader+pan.
+R14 is certified: exact-head GitHub Actions run `33455068137` is green for full SHA `8992b33`
+across all nine jobs, first try. R14 is ticked.
+
+**Now:** checkpoint handed back to Dan (R14 done and certified).
+**Next:** R15 — automation Write/Off modes; rides beyond fader+pan (audit `AutomationMode`
+Read/Touch/Latch chooser, `beginAutomationTouchRideIfArmed`'s two call sites, and what an
+honest Off and Write mean end-to-end before building).
 
 ## 2026-08-12 editing-first parity run (in progress)
 
