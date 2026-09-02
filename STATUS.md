@@ -41,10 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.7 (the dead-affordance sweep — the G1 exit; `[dead-affordance-sweep]`) built, gated
-locally, committed; awaiting its exact-head run. G1.6 (`15ce6e7`) ticks when its exact-head run
-is green. Next: G2.1 (one window, docked panels, splitters; `[dock-layout]`). The drive stays
-paused (D14).
+**Now:** G2.1 checkpoint 1 (three draggable splitters with the §3.4 ranges; sizes persist per
+project as `view-state.txt`; `[dock-layout]`) built, gated locally, committed; awaiting its
+exact-head run. G1.6 and G1.7 are certified by G1.7's exact-head run `33615096877` (green on
+all ten jobs; G1.6's own run was red on macOS only — the V7 inspector compare, D49). Next: G2.1 checkpoint 2 — the mixer and piano
+roll as Editor-dock tabs (X / P / A in the header), killing the modal view switch. The drive
+stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -82,8 +84,46 @@ Edit mode / Snap mode choosers (their model is G2), the X / P / A regrouping (G1
 in ms / samples / frames (G2.15). The two defects its rubric shot exposed (D45 menu bar width,
 D46 the caption clipped since G0.7) are fixed in `bd1117a`, whose run is watched.
 G1.5 ✅ — the keymap editor (`1baa2ed`); certified by exact-head run `33612568972` (green on all
-ten jobs, first try). G1.6 (`15ce6e7`) and G1.7 tick on their own exact-head runs.
+ten jobs, first try).
+G1.6 ✅ — status hints + live tooltips (`15ce6e7`); its own run `33614073659` was red on macOS
+only (D49); certified by G1.7's exact-head run `33615096877`.
+G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run `33615096877`
+(green on all ten jobs, first try). **G1 headless work complete**; SS-2 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.1 — One window, docked panels, splitters — checkpoint 1 (2026-09-02)
+
+**Build.** `src/ui/Splitters.h`: `SplitterComponent` (vertical / horizontal; resize cursor;
+hover hairline; reports the pointer in the parent's coordinates, owns no size). The shell holds
+`ViewState { railWidth, inspectorWidth, dockHeight }` (defaults = the §3.4 tokens), clamps to
+the new tokens `leftRailMinWidth 180 / leftRailMaxWidth 400 / inspectorMinWidth 240 /
+inspectorMaxWidth 420 / editorDockMinHeight 160 / arrangeMinHeight 200 / splitterThickness 6`,
+lays out on every drag and writes `view-state.txt` beside the bundle on release; a bundle change
+(open / new / restore) loads that record or the defaults through one poll in
+`refreshActionState`. `dockedMixerHeight()` is the dragged height, capped so the arrangement
+keeps ≥ 200 px. The old `kLeftRailWidth / kInspectorWidth / kMixerHeight` constants are gone.
+Probe: `view.railWidth / inspectorWidth / dockHeight`.
+
+**Gates.** `[dock-layout]` (input check): defaults; rail +60 → 320 and the lanes move; clamps
+180 / 400; inspector 340 / 240 / 420; dock 320 / 160 / never below the arrangement minimum;
+the record exists; a fresh shell opening the same bundle restores the three sizes; 1280×720
+keeps every panel, X collapses the dock (probe 0, splitter hidden, lanes taller) and restores it.
+Child-count pin +3.
+
+**Deviations.** **D48** — per-project view state is a sidecar record, not a project-schema bump
+(goldens are a loop hard-stop; the record is text beside the bundle, harmless to the loader).
+**D49** — G1.6's own run `33614073659` was red on macOS only: the V7 inspector compare differed
+in exactly the TRACK tab button's rect (`1386 98 144 40`) between the "track selected" and the
+"FX removed" renders — a macOS hover / press-state artefact of that tab under the runner's
+pointer, not a product change (Windows and Linux green; the diagnostic INFO from earlier in the
+session located it). Certified by the next exact-head green run; if it recurs the compare gets
+a hover-neutral render. **Dock default stays 260** (D27) — the plan's 300 is one drag away and
+persists.
+
+**Not built (this checkpoint).** The mixer and piano roll as dock tabs, the X / P / A header
+cluster and the death of the modal view switch are checkpoint 2; the `AppShell / ArrangeView`
+carve (plan "code moves") is its own later checkpoint — the splitters landed inside
+`MainComponent` deliberately (small, bisectable).
 
 ### G1.7 — Dead-affordance sweep (2026-09-02)
 

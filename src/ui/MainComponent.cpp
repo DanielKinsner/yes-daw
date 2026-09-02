@@ -6,6 +6,7 @@
 
 #include "ui/MainComponent.h"
 #include "ui/UiIcons.h"
+#include "ui/Splitters.h"
 #include "engine/Time.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -45,9 +46,6 @@ constexpr int kHeaderHeight = yesdaw::ui::UiTheme::Layout::headerHeight;
     return action == UiActionId::RecordingArmTrack || action == UiActionId::RecordingSetMonitoringPolicy
         || action == UiActionId::RecordingAssembleComp;
 }
-constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
-constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
-constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr int kUiRefreshIntervalMs = 33;
 // Open Recent menu item ids live above the action-id range (B39).
 constexpr int kRecentMenuBaseId = 1000;
@@ -4279,6 +4277,22 @@ public:
         };
         addAndMakeVisible (inspectorToggle);
 
+        // G2.1: three draggable splitters (header | lanes | inspector, and the dock above).
+        railSplitter.setComponentID ("shell.splitter.rail");
+        railSplitter.setTooltip ("Drag to resize the track headers");
+        inspectorSplitter.setTooltip ("Drag to resize the inspector");
+        dockSplitter.setTooltip ("Drag to resize the editor dock");
+        inspectorSplitter.setComponentID ("shell.splitter.inspector");
+        dockSplitter.setComponentID ("shell.splitter.dock");
+        railSplitter.onDrag = [this] (juce::Point<int> pointer) { setRailWidth (pointer.x); };
+        inspectorSplitter.onDrag = [this] (juce::Point<int> pointer) { setInspectorWidth (getWidth() - pointer.x); };
+        dockSplitter.onDrag = [this] (juce::Point<int> pointer) { setDockHeight (getHeight() - pointer.y); };
+        for (yesdaw::ui::SplitterComponent* splitter : { &railSplitter, &inspectorSplitter, &dockSplitter })
+        {
+            splitter->onDragEnd = [this] { saveViewState(); };
+            addAndMakeVisible (*splitter);
+        }
+
         // G1.5: the keymap editor — hidden until Alt+K; every seam is the registry / the model.
         keymapEditor.rowsProvider = [this] (const juce::String& filter) {
             std::vector<yesdaw::ui::UiActionId> rows;
@@ -5513,6 +5527,9 @@ public:
             view->setProperty ("nudgeValue", context.nudgeValue);
             view->setProperty ("keymapEditor", context.keymapVisible);
             view->setProperty ("hoverHint", hoverHint);
+            view->setProperty ("railWidth", viewState.railWidth);          // G2.1
+            view->setProperty ("inspectorWidth", inspectorWidthNow());
+            view->setProperty ("dockHeight", dockedMixerHeight());
             {
                 const CounterStrings counter = counterStrings();
                 view->setProperty ("timeDisplay", counter.mode);
@@ -5819,7 +5836,7 @@ public:
         }
 
         work.removeFromBottom (dockedMixerHeight());
-        auto left = work.removeFromLeft (kLeftRailWidth)
+        auto left = work.removeFromLeft (viewState.railWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                   yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
         auto inspector = work.removeFromRight (inspectorWidthNow())
@@ -5898,6 +5915,22 @@ public:
         masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
         timelineInput.setBounds (timelineBounds());
         playheadLayer.setBounds (timelineBounds());
+        {
+            // G2.1: the splitters sit on the panel edges, above every panel (last in z-order).
+            const int thickness = yesdaw::ui::UiTheme::Layout::splitterThickness;
+            const int half = thickness / 2;
+            const int top = headerHeightNow();
+            const bool fullMixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer;
+            const int dockTop = getHeight() - dockedMixerHeight();
+            dockSplitter.setBounds (getLocalBounds().withY (dockTop - half).withHeight (thickness));
+            dockSplitter.setVisible (! fullMixer && dockedMixerHeight() > 0);
+            railSplitter.setBounds (viewState.railWidth - half, top, thickness, dockTop - top);
+            railSplitter.setVisible (! fullMixer);
+            inspectorSplitter.setBounds (getWidth() - inspectorWidthNow() - half, top, thickness, dockTop - top);
+            inspectorSplitter.setVisible (! fullMixer && inspectorWidthNow() > 0);
+            for (yesdaw::ui::SplitterComponent* splitter : { &railSplitter, &inspectorSplitter, &dockSplitter })
+                splitter->toFront (false);
+        }
         // G1.5: the keymap editor floats over the arrangement, centred, at most 760×520.
         {
             const juce::Rectangle<int> work = getLocalBounds().withTrimmedTop (headerHeightNow()).withTrimmedBottom (dockedMixerHeight());
@@ -7266,14 +7299,71 @@ private:
     // G1.4: the inspector's width right now — the token, or nothing while it is hidden (I).
     [[nodiscard]] int inspectorWidthNow() const noexcept
     {
-        return appModel.context().inspectorVisible ? kInspectorWidth : 0;
+        return appModel.context().inspectorVisible ? viewState.inspectorWidth : 0;
+    }
+
+    // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.
+    void setRailWidth (int width)
+    {
+        viewState.railWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::leftRailMinWidth,
+                                            yesdaw::ui::UiTheme::Layout::leftRailMaxWidth, width);
+        resized();
+        repaintAll();
+    }
+
+    void setInspectorWidth (int width)
+    {
+        viewState.inspectorWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::inspectorMinWidth,
+                                                 yesdaw::ui::UiTheme::Layout::inspectorMaxWidth, width);
+        resized();
+        repaintAll();
+    }
+
+    void setDockHeight (int height)
+    {
+        viewState.dockHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, height);
+        resized();
+        repaintAll();
+    }
+
+    // The view state follows the project: a different bundle loads its own record (or the
+    // defaults); every splitter release writes the record. Polled from refreshActionState so
+    // every open / new / restore path is covered by the one law.
+    void loadViewStateIfBundleChanged()
+    {
+        const std::filesystem::path& bundle = appModel.bundlePath();
+        if (bundle == viewStateBundle)
+            return;
+        viewStateBundle = bundle;
+        viewState = {};
+        for (const juce::String& line : juce::StringArray::fromLines (juce::String (appModel.readViewStateRecord())))
+        {
+            const juce::String key = line.upToFirstOccurrenceOf ("\t", false, false);
+            const int value = line.fromFirstOccurrenceOf ("\t", false, false).getIntValue();
+            if (key == "rail")
+                viewState.railWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::leftRailMinWidth,
+                                                    yesdaw::ui::UiTheme::Layout::leftRailMaxWidth, value);
+            else if (key == "inspector")
+                viewState.inspectorWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::inspectorMinWidth,
+                                                         yesdaw::ui::UiTheme::Layout::inspectorMaxWidth, value);
+            else if (key == "dock")
+                viewState.dockHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, value);
+        }
+        resized();
+    }
+
+    void saveViewState()
+    {
+        appModel.writeViewStateRecord ("rail\t" + std::to_string (viewState.railWidth)
+                                       + "\ninspector\t" + std::to_string (viewState.inspectorWidth)
+                                       + "\ndock\t" + std::to_string (viewState.dockHeight) + "\n");
     }
 
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
-        work.removeFromLeft (kLeftRailWidth);
+        work.removeFromLeft (viewState.railWidth);
         work.removeFromRight (inspectorWidthNow());
         return work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -7284,7 +7374,7 @@ private:
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
-        return work.removeFromLeft (kLeftRailWidth)
+        return work.removeFromLeft (viewState.railWidth)
                    .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
@@ -7711,7 +7801,13 @@ private:
     // layout function below, so paint and every interactive component's bounds can never drift.
     [[nodiscard]] int dockedMixerHeight() const
     {
-        return appModel.context().mixerDockVisible ? kMixerHeight : 0;
+        if (! appModel.context().mixerDockVisible)
+            return 0;
+        // G2.1: the dragged height, never eating the arrangement below its minimum.
+        const int maxDock = getHeight() - headerHeightNow() - yesdaw::ui::UiTheme::Layout::arrangeMinHeight;
+        return juce::jlimit (yesdaw::ui::UiTheme::Layout::editorDockMinHeight,
+                             juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, maxDock),
+                             viewState.dockHeight);
     }
 
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
@@ -7907,7 +8003,7 @@ private:
         work.removeFromBottom (dockedMixerHeight());
         if (! appModel.context().inspectorVisible)
             return {};
-        return work.removeFromRight (kInspectorWidth)
+        return work.removeFromRight (viewState.inspectorWidth)
             .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                       yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
@@ -9472,6 +9568,7 @@ private:
     void refreshActionState()
     {
         ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
+        loadViewStateIfBundleChanged();   // G2.1
         rebuildTimelineClipViews();
         // E29: a device change (adoption, Test Device, refresh) re-lists the channel pick.
         if (recordingChannelChooserGeneration != appModel.context().recordingDeviceGeneration)
@@ -13036,6 +13133,18 @@ private:
     std::vector<std::pair<juce::Component*, yesdaw::ui::UiActionId>> actionComponents;   // G1.6: live tooltips
     KeymapEditorComponent keymapEditor;    // G1.5
     juce::TextButton inspectorToggle;      // G1.4
+    // G2.1: the Arrange window's splitter sizes (persisted per project as view-state.txt).
+    struct ViewState
+    {
+        int railWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
+        int inspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
+        int dockHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
+    };
+    ViewState viewState;
+    std::filesystem::path viewStateBundle;
+    yesdaw::ui::SplitterComponent railSplitter { yesdaw::ui::SplitterComponent::Axis::Vertical };
+    yesdaw::ui::SplitterComponent inspectorSplitter { yesdaw::ui::SplitterComponent::Axis::Vertical };
+    yesdaw::ui::SplitterComponent dockSplitter { yesdaw::ui::SplitterComponent::Axis::Horizontal };
     int timeDisplayMode = 0;               // G1.4: 0 bars|beats primary, 1 min:sec primary
     AutomationLaneCanvasComponent automationLaneCanvas;
     // E20: the automation lane target — what the canvas edits (struct declared with the

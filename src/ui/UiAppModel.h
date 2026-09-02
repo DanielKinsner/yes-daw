@@ -1262,6 +1262,28 @@ public:
     // directory remembering the most recently opened/created bundle. The native shell reopens it at
     // launch so a crash-then-relaunch reaches the autosave recovery prompt without manual navigation.
     // The injected-choices harness never sets a directory, so tests stay deterministic by default.
+    // G2.1: the Arrange window's splitter sizes persist PER PROJECT as a sidecar record beside
+    // the bundle (the plan said "schema bump"; goldens are a loop hard-stop — STATUS D48). One
+    // `key<TAB>value` per line; the shell owns the keys and the clamps.
+    [[nodiscard]] std::string readViewStateRecord() const
+    {
+        if (bundlePath_.empty())
+            return {};
+        std::ifstream in (bundlePath_ / kViewStateRecordFileName);
+        if (! in)
+            return {};
+        std::string text ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+        return text;
+    }
+
+    void writeViewStateRecord (const std::string& text) const
+    {
+        if (bundlePath_.empty())
+            return;
+        std::ofstream out (bundlePath_ / kViewStateRecordFileName, std::ios::trunc);
+        out << text;
+    }
+
     void setSessionStateDirectory (const std::filesystem::path& directory)
     {
         sessionStateDirectory_ = directory;
@@ -1316,6 +1338,7 @@ public:
     // chord differs from its default: `stableId<TAB>chord` (`-` = unbound). Loaded when the
     // session-state directory is set; written on every rebind / unbind / restore.
     static constexpr const char* kKeymapOverridesRecordFileName = "keymap-overrides.txt";
+    static constexpr const char* kViewStateRecordFileName = "view-state.txt";   // G2.1: beside the bundle
 
     void loadKeymapOverrides()
     {

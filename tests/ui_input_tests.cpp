@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 141u));   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 144u));   // G2.1: + three splitters   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -16224,6 +16224,117 @@ TEST_CASE ("dead-affordance sweep: the repeat combo becomes Edit > Repeat Count,
         REQUIRE (chain.size() == 2u);
         REQUIRE (chain[1].kind == yesdaw::engine::FxKind::Reverb);
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G2.1 dock layout: three splitters drag within the plan's ranges, sizes persist per project, 1280x720 stays operable",
+           "[ui][input][shell][g2][dock-layout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("dock-layout");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    using L = yesdaw::ui::UiTheme::Layout;
+
+    const auto viewInt = [] (juce::Component& s, const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (s)), probe).wasOk());
+        return static_cast<int> (probe.getProperty ("view", {}).getProperty (key, 0));
+    };
+    const auto splitter = [] (juce::Component& s, const char* id)
+    {
+        juce::Component* c = findChildWithComponentId (s, id);
+        REQUIRE (c != nullptr);
+        REQUIRE (c->isVisible());
+        REQUIRE (c->getWidth() > 0);
+        REQUIRE (c->getHeight() > 0);
+        return c;
+    };
+
+    // Defaults are the §3.4 tokens.
+    REQUIRE (viewInt (*shell, "railWidth") == L::leftRailWidth);
+    REQUIRE (viewInt (*shell, "inspectorWidth") == L::inspectorWidth);
+    REQUIRE (viewInt (*shell, "dockHeight") == L::mixerHeight);
+
+    // The rail splitter sits on the rail's right edge and drags it within 180–400.
+    juce::Component* rail = splitter (*shell, "shell.splitter.rail");
+    REQUIRE (std::abs (rail->getBounds().getCentreX() - L::leftRailWidth) <= L::splitterThickness);
+    dragFromTo (*rail, rail->getLocalBounds().getCentre(), rail->getLocalBounds().getCentre().translated (60, 0));
+    REQUIRE (viewInt (*shell, "railWidth") == L::leftRailWidth + 60);
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    REQUIRE (timeline.getX() >= L::leftRailWidth + 60);
+    dragFromTo (*rail, rail->getLocalBounds().getCentre(), rail->getLocalBounds().getCentre().translated (-600, 0));
+    REQUIRE (viewInt (*shell, "railWidth") == L::leftRailMinWidth);
+    dragFromTo (*rail, rail->getLocalBounds().getCentre(), rail->getLocalBounds().getCentre().translated (900, 0));
+    REQUIRE (viewInt (*shell, "railWidth") == L::leftRailMaxWidth);
+    dragFromTo (*rail, rail->getLocalBounds().getCentre(), rail->getLocalBounds().getCentre().translated (-80, 0));
+    REQUIRE (viewInt (*shell, "railWidth") == L::leftRailMaxWidth - 80);
+
+    // The inspector splitter sits on the inspector's left edge; dragging left widens it, within 240–420.
+    juce::Component* inspector = splitter (*shell, "shell.splitter.inspector");
+    REQUIRE (std::abs (inspector->getBounds().getCentreX() - (shell->getWidth() - L::inspectorWidth)) <= L::splitterThickness);
+    dragFromTo (*inspector, inspector->getLocalBounds().getCentre(), inspector->getLocalBounds().getCentre().translated (-40, 0));
+    REQUIRE (viewInt (*shell, "inspectorWidth") == L::inspectorWidth + 40);
+    dragFromTo (*inspector, inspector->getLocalBounds().getCentre(), inspector->getLocalBounds().getCentre().translated (500, 0));
+    REQUIRE (viewInt (*shell, "inspectorWidth") == L::inspectorMinWidth);
+    dragFromTo (*inspector, inspector->getLocalBounds().getCentre(), inspector->getLocalBounds().getCentre().translated (-700, 0));
+    REQUIRE (viewInt (*shell, "inspectorWidth") == L::inspectorMaxWidth);
+
+    // The dock splitter sits on the dock's top edge; dragging up grows the dock, never below 160.
+    juce::Component* dock = splitter (*shell, "shell.splitter.dock");
+    REQUIRE (std::abs (dock->getBounds().getCentreY() - (shell->getHeight() - L::mixerHeight)) <= L::splitterThickness);
+    dragFromTo (*dock, dock->getLocalBounds().getCentre(), dock->getLocalBounds().getCentre().translated (0, -60));
+    REQUIRE (viewInt (*shell, "dockHeight") == L::mixerHeight + 60);
+    dragFromTo (*dock, dock->getLocalBounds().getCentre(), dock->getLocalBounds().getCentre().translated (0, 700));
+    REQUIRE (viewInt (*shell, "dockHeight") == L::editorDockMinHeight);
+    dragFromTo (*dock, dock->getLocalBounds().getCentre(), dock->getLocalBounds().getCentre().translated (0, -40));
+    REQUIRE (viewInt (*shell, "dockHeight") == L::editorDockMinHeight + 40);
+    // The dock never eats the arrangement below its minimum.
+    dragFromTo (*dock, dock->getLocalBounds().getCentre(), dock->getLocalBounds().getCentre().translated (0, -2000));
+    REQUIRE (viewInt (*shell, "dockHeight") <= shell->getHeight() - yesdaw::ui::mainComponentHeaderHeight (*shell) - L::arrangeMinHeight);
+    REQUIRE (requireTimelineComponent (*shell).getHeight() > 0);
+    dragFromTo (*dock, dock->getLocalBounds().getCentre(),
+                { dock->getLocalBounds().getCentreX(), dock->getLocalBounds().getCentreY() + (viewInt (*shell, "dockHeight") - 200) });
+    REQUIRE (viewInt (*shell, "dockHeight") == 200);
+
+    // The sizes persist beside the bundle and come back in a fresh shell on the same project.
+    REQUIRE (std::filesystem::exists (bundlePath / "view-state.txt"));
+    const int railNow = viewInt (*shell, "railWidth");
+    const int inspectorNow = viewInt (*shell, "inspectorWidth");
+    {
+        MainComponentFileChoices again;
+        again.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+        auto fresh = makeShell (std::move (again));
+        REQUIRE (viewInt (*fresh, "railWidth") == L::leftRailWidth);   // defaults until a project is open
+        clickButton (requireButtonForAction (*fresh, UiActionId::ProjectOpen));
+        REQUIRE (viewInt (*fresh, "railWidth") == railNow);
+        REQUIRE (viewInt (*fresh, "inspectorWidth") == inspectorNow);
+        REQUIRE (viewInt (*fresh, "dockHeight") == 200);
+    }
+
+    // 1280×720: every panel is present and the dock collapses on X to give the lanes the room.
+    shell->setSize (1280, 720);
+    REQUIRE (viewInt (*shell, "dockHeight") == 200);
+    REQUIRE (requireTimelineComponent (*shell).getWidth() >= 400);
+    REQUIRE (requireTimelineComponent (*shell).getHeight() >= L::arrangeMinHeight - L::shellPanelVerticalInset * 2);
+    REQUIRE (splitter (*shell, "shell.splitter.rail")->getHeight() > 0);
+    REQUIRE (splitter (*shell, "shell.splitter.inspector")->getHeight() > 0);
+    REQUIRE (splitter (*shell, "shell.splitter.dock")->getWidth() == 1280);
+    const int lanesBefore = requireTimelineComponent (*shell).getHeight();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+    REQUIRE (viewInt (*shell, "dockHeight") == 0);
+    REQUIRE_FALSE (findChildWithComponentId (*shell, "shell.splitter.dock")->isVisible());
+    REQUIRE (requireTimelineComponent (*shell).getHeight() > lanesBefore);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+    REQUIRE (viewInt (*shell, "dockHeight") == 200);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

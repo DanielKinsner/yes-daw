@@ -252,6 +252,15 @@ struct UiTheme
         static constexpr int leftRailWidth = 260;
         static constexpr int inspectorWidth = 300;
         static constexpr int mixerHeight = 260;   // G0.7 cp2: plan says 300 — held at 260 until the inspector stack scrolls (STATUS D27)
+        // G2.1 (plan §3.4): the three Arrange-window splitters — track header 180–400 by drag,
+        // inspector 240–420, editor dock min 160; the arrangement itself keeps at least this much.
+        static constexpr int leftRailMinWidth = 180;
+        static constexpr int leftRailMaxWidth = 400;
+        static constexpr int inspectorMinWidth = 240;
+        static constexpr int inspectorMaxWidth = 420;
+        static constexpr int editorDockMinHeight = 160;
+        static constexpr int arrangeMinHeight = 200;
+        static constexpr int splitterThickness = 6;
         static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 680, 24 }; }   // G1.4: nine menus (G1.2) need the room
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 5;
