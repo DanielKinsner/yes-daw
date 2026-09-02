@@ -41,14 +41,14 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.3 built and proven locally (below); awaiting exact-head CI, then the evidence ticks
-for G0.2 (its own run went red on macOS only — a compile hide of `Component::keyStateChanged`
-by the KeyListener overload; fixed in this commit) and G0.3.
+**Now:** G0.4 rendering budget in progress (built locally; suite + SS-1 + the entry next).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
-G0.2 — built, gated, SS-1 green on its lines; run `33588671718` for `9bb995e` was green on
-Linux/Windows and every other job, red on macOS at the compile step (`-Woverloaded-virtual`);
-certified by the next green exact-head run (this commit carries the one-line fix).
+G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
+`ea4dfea9351773eaca732cc79f3cb2996ef4f5a1`; its own commit's run `33588671718` was red on macOS
+only (compile hide, D11), green everywhere else.
+G0.3 ✅ — certified: exact-head run `33589636898` green on all ten jobs for full SHA
+`ea4dfea9351773eaca732cc79f3cb2996ef4f5a1` (first try). Local suite 363/363.
 **Next:** G0.4 — rendering budget: verify the renderer (probe says Direct2D), layered
 invalidation instead of whole-window `repaint()` per tick, `refreshActionState()` off the 30 Hz
 tick, waveform tile cache; gate B2 on the G0.6 fixture at 1920×1080 and 2560×1440; SS-1 step 12.
