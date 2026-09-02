@@ -41,10 +41,14 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.1 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
-**Next:** G0.2 Command router — `Space` toggles play/stop; every button/combo/slider declines
+**Now:** G0.2 Command router in progress (built locally, UI gates green; SS-1 rerun and the
+feature commit next).
+**Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
+full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
+**Next after G0.2:** G0.3 — stop tearing down the audio callback per action — `Space` toggles play/stop; every button/combo/slider declines
 keyboard focus; a `KeyListener` on the top-level window routes chords before children; `Esc`
-cancels. SS-1 steps 1 (Ctrl+N right after launch), 5, 7, 9 are its red lines. The two agent maps
+cancels. SS-1 steps 1 (Ctrl+N right after launch), 5, 7, 9 are its red lines. Then G0.3
+(`[no-callback-teardown]`, B3). The two agent maps
 that grounded the plan (shell architecture; engine/MIDI/FX capability) are summarized in the plan
 §1 and §5; re-derive from code if in doubt — the drift rule applies.
 
