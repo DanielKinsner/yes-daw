@@ -4704,6 +4704,31 @@ public:
         return { id, state, true };
     }
 
+    // G2.18: the undo history as rows, and a jump to a row (N undo or redo steps as one call —
+    // each step goes through dispatchUndo / dispatchRedo so every law they keep stays kept).
+    [[nodiscard]] engine::ProjectUndoStack::HistoryView undoHistory() const { return undo_.history(); }
+
+    [[nodiscard]] UiActionDispatchResult jumpToUndoHistoryStep (std::size_t row)
+    {
+        const engine::ProjectUndoStack::HistoryView view = undo_.history();
+        if (row > view.steps.size())
+            return { UiActionId::EditShowUndoHistory, {}, false };
+        UiActionDispatchResult last { UiActionId::EditShowUndoHistory, {}, row == view.current };
+        while (row < undo_.history().current)
+        {
+            last = dispatchUndo (UiActionId::EditUndo, {});
+            if (! last.dispatched)
+                return last;
+        }
+        while (row > undo_.history().current)
+        {
+            last = dispatchRedo (UiActionId::EditRedo, {});
+            if (! last.dispatched)
+                return last;
+        }
+        return last;
+    }
+
     [[nodiscard]] UiActionDispatchResult reorderProjectTrack (engine::EntityId trackId, std::size_t newIndex)
     {
         const UiActionId id = UiActionId::TrackReorder;
@@ -6926,6 +6951,7 @@ public:
             case UiActionId::MixerReadBusFxSlots:
             case UiActionId::ProjectExportAudioCancel:
             case UiActionId::HelpShowKeymap:
+            case UiActionId::EditShowUndoHistory:   // G2.18
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:
             case UiActionId::TimelineToolSelectScissors:

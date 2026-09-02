@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 152u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 153u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4634,7 +4634,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 33);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 34);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -18451,6 +18451,89 @@ TEST_CASE ("G2.17 track headers v2: kind badges, drag reorder, multi-select",
     // Down collapses too and moves the primary.
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
     REQUIRE (selectedLanes() == std::vector<int> { 2 });
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.18: the undo history window — Alt+Z shows it, every edit is a labelled row (a gesture group is
+// one row), the current position is marked, a click jumps there as N undo / redo steps (the project
+// follows), Esc closes it, the Edit menu carries it.
+TEST_CASE ("G2.18 undo history window: rows, jump, Esc", "[ui][input][shell][g2][undo-history]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("undo-history");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const auto probeView = [&] {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        return probe.getProperty ("view", juce::var());
+    };
+
+    // Three edits: add a track, rename it, add another track.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    const std::size_t oneTrackAdded = readProjectSnapshot (bundlePath).tracks.size();
+    REQUIRE (oneTrackAdded == 2u);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
+
+    REQUIRE_FALSE (yesdaw::ui::mainComponentUndoHistory (*shell).visible);
+    REQUIRE_FALSE (static_cast<bool> (probeView().getProperty ("undoHistory", false)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::altModifier, 0)));
+    {
+        const yesdaw::ui::MainComponentUndoHistory history = yesdaw::ui::mainComponentUndoHistory (*shell);
+        REQUIRE (history.visible);
+        REQUIRE (static_cast<bool> (probeView().getProperty ("undoHistory", false)));
+        REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::EditShowUndoHistory).enabled);
+        // The import made rows too (a clip add and whatever it grouped); the last three are ours.
+        REQUIRE (history.rows.size() >= 3u);
+        REQUIRE (history.current == static_cast<int> (history.rows.size()));
+        REQUIRE (history.rows[history.rows.size() - 3] == "Add Track");
+        REQUIRE (history.rows[history.rows.size() - 2] == "Add Track");
+        REQUIRE (history.rows[history.rows.size() - 1] == "Add MIDI Clip");
+    }
+
+    // A click two rows back undoes two steps as one jump; the project follows; the rows stay.
+    const int rowsTotal = static_cast<int> (yesdaw::ui::mainComponentUndoHistory (*shell).rows.size());
+    const int dispatchBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+    yesdaw::ui::mainComponentUndoHistoryClickRow (*shell, rowsTotal - 2);
+    {
+        const yesdaw::ui::MainComponentUndoHistory history = yesdaw::ui::mainComponentUndoHistory (*shell);
+        REQUIRE (history.current == rowsTotal - 2);
+        REQUIRE (static_cast<int> (history.rows.size()) == rowsTotal);   // the redo steps stay listed
+        REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == oneTrackAdded);
+        REQUIRE (readProjectSnapshot (bundlePath).midiClips.empty());
+        REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchBefore + 2);
+    }
+    // A click on the last row redoes both.
+    yesdaw::ui::mainComponentUndoHistoryClickRow (*shell, rowsTotal);
+    REQUIRE (yesdaw::ui::mainComponentUndoHistory (*shell).current == rowsTotal);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
+    // A click on the current row is a no-op.
+    yesdaw::ui::mainComponentUndoHistoryClickRow (*shell, rowsTotal);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    // A new edit while the window shows: the rows follow (the branch beyond a jump is dropped).
+    yesdaw::ui::mainComponentUndoHistoryClickRow (*shell, rowsTotal - 1);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    {
+        const yesdaw::ui::MainComponentUndoHistory history = yesdaw::ui::mainComponentUndoHistory (*shell);
+        REQUIRE (static_cast<int> (history.rows.size()) == rowsTotal);
+        REQUIRE (history.current == rowsTotal);
+        REQUIRE (history.rows.back() == "Add Track");
+    }
+
+    // Esc closes it; Alt+Z is a ticked Edit-menu toggle.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentUndoHistory (*shell).visible);
+    REQUIRE_FALSE (static_cast<bool> (probeView().getProperty ("undoHistory", false)));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

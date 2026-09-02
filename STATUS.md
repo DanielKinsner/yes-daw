@@ -41,9 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.17 (track headers v2 — the kind badge, drag reorder, Ctrl / Shift multi-select;
-`[track-headers-v2]`) built, gated locally, committed; G2.16 (`a8f609c`) awaiting its exact-head
-run `33645105611`. Next: G2.18 — the undo history window (`Alt+Z`). The drive stays paused (D14).
+**Now:** G2.18 (the undo history window, `Alt+Z`; `[undo-history]`) built, gated locally,
+committed; G2.16 (`a8f609c`) / G2.17 (`a5b2dbe`) / G2.18 awaiting exact-head runs (G2.16's run
+`33645105611` went red on macOS only — checked, see the G2.16 section). Next: SS-3 "Edit a song"
+(the drive stays paused, D14 — recorded as pending), then G3.1. 
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -109,6 +110,27 @@ job green on the same head.
 G2.13 ✅ — clip processing, schema v25 (`05472a5`); G2.14 ✅ — markers v2, schema v26 (`dba562f`);
 certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.18 — Undo history window (2026-09-02)
+
+**Build.** `ProjectUndoStack::history()` (HistoryView: steps oldest first, each an E21 gesture
+group folded exactly as `undo()` / `redo()` pop them, plus the redo steps; `current` = the "now"
+row) and `projectEditVerbLabel (verb)` (every verb, exhaustive switch). Model `undoHistory()` and
+`jumpToUndoHistoryStep (row)` (N × dispatchUndo / dispatchRedo — the same laws). Verb
+`EditShowUndoHistory` (`Alt+Z`, Toggle, context flag `undoHistoryVisible`; Edit menu 33 → 34, after
+Redo). `UndoHistoryComponent` ("undo.history"; list "undo.history.list", row 0 "Project opened",
+"now" highlighted, redo rows muted; Close) rides the keymap editor's centred overlay law (tokens
+`undoHistoryMaxWidth` 420 / `MaxHeight` 480 / `RowHeight` 22); Esc closes; an edit while it shows
+refreshes the rows. Probe `view.undoHistory`; hooks `mainComponentUndoHistory` /
+`mainComponentUndoHistoryClickRow`.
+
+**Gates.** `[undo-history]` (58 assertions): the rows and their labels, the two-step jump back and
+forward with the project following and the dispatch count, the no-op click, the dropped branch,
+Esc. Child count 152 → 153; Edit menu 34.
+
+**Not built (recorded).** No per-row timestamps or affected-object names (Logic shows the object);
+no "Undo to here" confirmation for long jumps; the window does not persist its visibility in the
+view-state sidecar; no keyboard navigation inside the list (arrow keys are the timeline's).
 
 ### G2.17 — Track headers v2 (2026-09-02)
 

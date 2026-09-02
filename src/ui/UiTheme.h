@@ -818,6 +818,10 @@ struct UiTheme
         static constexpr int keymapEditorBottomRowHeight = 28;
         static constexpr int keymapEditorTitleWidth = 90;
         static constexpr int keymapEditorCloseWidth = 72;
+        // G2.18: the undo history window (Alt+Z) — a narrower centred panel, the same law.
+        static constexpr int undoHistoryMaxWidth = 420;
+        static constexpr int undoHistoryMaxHeight = 480;
+        static constexpr int undoHistoryRowHeight = 22;
         static constexpr int keymapEditorRestoreWidth = 140;
         static constexpr int keymapEditorUnbindWidth = 80;
         static constexpr int keymapEditorChordWidth = 220;

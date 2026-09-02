@@ -3802,6 +3802,102 @@ private:
 // G1.5: the keymap editor (Alt+K). A searchable list of every verb per Focus context, a chord
 // field that rebinds the selected row on Enter (conflicts refused with the owner named in the
 // status line), Unbind, Restore defaults. Rebinds persist beside the last-project record.
+// G2.18: the undo history window (Alt+Z; Logic's Undo History) — every step as a row, oldest first,
+// the current position marked; a click jumps there (N undo or redo steps). Never modal.
+class UndoHistoryComponent final : public juce::Component,
+                                   public juce::SettableTooltipClient,
+                                   public juce::ListBoxModel
+{
+public:
+    std::function<std::vector<juce::String>()> rowsProvider;
+    std::function<int()> currentProvider;
+    std::function<void (int)> onRowClicked;
+    std::function<void()> onClose;
+
+    UndoHistoryComponent()
+    {
+        setName ("Undo history");
+        setComponentID ("undo.history");
+        setTooltip ("Undo history (Alt+Z): every edit as a step; click a step to jump there");
+        list.setComponentID ("undo.history.list");
+        list.setName ("Undo history steps");
+        list.setTooltip ("The edits in order; the highlighted row is now — click a row to undo or redo to it");
+        list.setModel (this);
+        list.setRowHeight (yesdaw::ui::UiTheme::Layout::undoHistoryRowHeight);
+        addAndMakeVisible (list);
+        closeButton.setComponentID ("undo.history.close");
+        closeButton.setButtonText ("Close");
+        closeButton.setTooltip ("Hide the undo history (Esc)");
+        closeButton.onClick = [this] { if (onClose) onClose(); };
+        addAndMakeVisible (closeButton);
+    }
+
+    void refreshRows()
+    {
+        rows = rowsProvider ? rowsProvider() : std::vector<juce::String> {};
+        current = currentProvider ? currentProvider() : 0;
+        list.updateContent();
+        list.repaint();
+    }
+
+    [[nodiscard]] const std::vector<juce::String>& currentRows() const noexcept { return rows; }
+    [[nodiscard]] int currentRow() const noexcept { return current; }
+    void clickRow (int row) { if (onRowClicked) onRowClicked (row); }   // the harness's click, the same path
+
+    int getNumRows() override { return static_cast<int> (rows.size()) + 1; }   // row 0 is "Project opened"
+
+    void paintListBoxItem (int row, juce::Graphics& g, int width, int height, bool) override
+    {
+        const bool isNow = row == current;
+        const bool ahead = row > current;   // a redo step
+        if (isNow)
+        {
+            g.setColour (yesdaw::ui::UiTheme::Color::selectedLane());
+            g.fillRect (0, 0, width, height);
+        }
+        g.setColour (ahead ? yesdaw::ui::UiTheme::Color::mutedText() : yesdaw::ui::UiTheme::Color::text());
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+        const juce::String text = row == 0 ? juce::String ("Project opened") : rows[static_cast<std::size_t> (row - 1)];
+        g.drawText (juce::String (row) + "  " + text, yesdaw::ui::UiTheme::Space::sm, 0,
+                    width - 2 * yesdaw::ui::UiTheme::Space::sm, height, juce::Justification::centredLeft, true);
+    }
+
+    void listBoxItemClicked (int row, const juce::MouseEvent&) override
+    {
+        if (onRowClicked)
+            onRowClicked (row);
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        g.setColour (yesdaw::ui::UiTheme::Color::panelRaised());
+        g.fillRoundedRectangle (getLocalBounds().toFloat(), yesdaw::ui::UiTheme::Radius::panel);
+        g.setColour (yesdaw::ui::UiTheme::Color::panelStroke());
+        g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), yesdaw::ui::UiTheme::Radius::panel, 1.0f);
+        g.setColour (yesdaw::ui::UiTheme::Color::text());
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
+        g.drawText ("Undo History", getLocalBounds().withHeight (yesdaw::ui::UiTheme::Layout::keymapEditorTopRowHeight)
+                                        .reduced (yesdaw::ui::UiTheme::Layout::keymapEditorInset, 0),
+                    juce::Justification::centredLeft, true);
+    }
+
+    void resized() override
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        auto area = getLocalBounds().reduced (L::keymapEditorInset);
+        auto top = area.removeFromTop (L::keymapEditorTopRowHeight);
+        closeButton.setBounds (top.removeFromRight (L::keymapEditorCloseWidth));
+        area.removeFromTop (L::keymapEditorGap);
+        list.setBounds (area);
+    }
+
+private:
+    juce::ListBox list;
+    juce::TextButton closeButton;
+    std::vector<juce::String> rows;
+    int current = 0;
+};
+
 class KeymapEditorComponent final : public juce::Component,
                                     public juce::SettableTooltipClient,
                                     public juce::ListBoxModel
@@ -4879,6 +4975,35 @@ public:
             repaintAll();
         };
         addChildComponent (keymapEditor);
+        // G2.18: the undo history window rides the same overlay law.
+        undoHistory.rowsProvider = [this] {
+            std::vector<juce::String> rows;
+            for (const auto& step : appModel.undoHistory().steps)
+            {
+                juce::String label (yesdaw::engine::projectEditVerbLabel (step.verb));
+                if (step.entryCount > 1)
+                    label << " (" << static_cast<int> (step.entryCount) << " edits)";
+                rows.push_back (label);
+            }
+            return rows;
+        };
+        undoHistory.currentProvider = [this] { return static_cast<int> (appModel.undoHistory().current); };
+        undoHistory.onRowClicked = [this] (int row) {
+            if (row < 0)
+                return;
+            (void) appModel.jumpToUndoHistoryStep (static_cast<std::size_t> (row));
+            undoHistory.refreshRows();
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
+        undoHistory.onClose = [this] {
+            handleAction (yesdaw::ui::UiActionId::EditShowUndoHistory);
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
+        addChildComponent (undoHistory);
 
 
         configureAutomationLaneControls();
@@ -6083,6 +6208,7 @@ public:
                                            : context.snapMode == yesdaw::ui::UiSnapMode::Events ? "events" : "off");   // G2.7
             view->setProperty ("snapEffectiveTicks", static_cast<juce::int64> (effectiveSnapGridTicks()));
             view->setProperty ("keymapEditor", context.keymapVisible);
+            view->setProperty ("undoHistory", context.undoHistoryVisible);   // G2.18
             view->setProperty ("hoverHint", hoverHint);
             view->setProperty ("railWidth", viewState.railWidth);          // G2.1
             view->setProperty ("inspectorWidth", inspectorWidthNow());
@@ -6184,6 +6310,9 @@ public:
     // N6: the rail's painted row rect (shell coordinates), the SAME law rowBounds/rowAt/paint
     // share — so a gate can prove a height drag moved exactly one row and left every other row's
     // position/height alone.
+    // G2.18: the undo history window for the harness.
+    [[nodiscard]] UndoHistoryComponent& harnessUndoHistory() noexcept { return undoHistory; }
+
     [[nodiscard]] juce::Rectangle<int> harnessPaintedRailRowBounds (int row) const
     {
         return trackListInput.rowBounds (row)
@@ -6499,6 +6628,10 @@ public:
             const int width = std::min (L::keymapEditorMaxWidth, work.getWidth() - L::keymapEditorMargin);
             const int height = std::min (L::keymapEditorMaxHeight, work.getHeight() - L::keymapEditorMargin);
             keymapEditor.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, width), std::max (L::keymapEditorMinHeight, height)));
+            // G2.18: the undo history window — the same centred law, narrower.
+            const int historyWidth = std::min (L::undoHistoryMaxWidth, work.getWidth() - L::keymapEditorMargin);
+            const int historyHeight = std::min (L::undoHistoryMaxHeight, work.getHeight() - L::keymapEditorMargin);
+            undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
         }
         pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
         trackListInput.setBounds (leftRailPanelBounds());
@@ -9327,6 +9460,14 @@ private:
     // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
     bool keyPressed (const juce::KeyPress& key) override
     {
+        if (key.getKeyCode() == juce::KeyPress::escapeKey && appModel.context().undoHistoryVisible)   // G2.18
+        {
+            handleAction (yesdaw::ui::UiActionId::EditShowUndoHistory);
+            refreshActionState();
+            resized();
+            repaintAll();
+            return true;
+        }
         if (key.getKeyCode() == juce::KeyPress::escapeKey && appModel.context().keymapVisible)
         {
             handleAction (yesdaw::ui::UiActionId::HelpShowKeymap);
@@ -9499,12 +9640,24 @@ private:
                 keymapEditor.toFront (false);
             }
         }
+        if (action == yesdaw::ui::UiActionId::EditShowUndoHistory)   // G2.18
+        {
+            undoHistory.setVisible (appModel.context().undoHistoryVisible);
+            if (appModel.context().undoHistoryVisible)
+            {
+                undoHistory.refreshRows();
+                undoHistory.toFront (false);
+            }
+        }
+        else if (undoHistory.isVisible())
+            undoHistory.refreshRows();   // an edit while the window shows: the rows follow
 
         // G0.7 / G1.4: the settings row and the inspector change the layout — the whole shell
         // re-lays out.
         if (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow
             || action == yesdaw::ui::UiActionId::ViewToggleInspector
-            || action == yesdaw::ui::UiActionId::HelpShowKeymap)
+            || action == yesdaw::ui::UiActionId::HelpShowKeymap
+            || action == yesdaw::ui::UiActionId::EditShowUndoHistory)
         {
             resized();
             repaintAll();
@@ -9689,8 +9842,9 @@ private:
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 32> kEditMenu {
-            UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
+        static constexpr std::array<UiActionId, 33> kEditMenu {
+            UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::EditShowUndoHistory,   // G2.18
+            UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
             UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
             UiActionId::TimelineRangeCut,  UiActionId::TimelineRangeCopy,  UiActionId::TimelineRangeDelete,
@@ -14565,6 +14719,7 @@ private:
     juce::String hoverHint;                // G1.6: the status line's gesture hint
     std::vector<std::pair<juce::Component*, yesdaw::ui::UiActionId>> actionComponents;   // G1.6: live tooltips
     KeymapEditorComponent keymapEditor;    // G1.5
+    UndoHistoryComponent undoHistory;      // G2.18
     juce::TextButton inspectorToggle;      // G1.4
     juce::ComboBox editModeChooser;        // G2.6
     bool refreshingEditModeChooser = false;
@@ -15169,6 +15324,25 @@ juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component&
         return mainComponent->headerMasterCardBounds();
 
     return {};
+}
+
+MainComponentUndoHistory mainComponentUndoHistory (juce::Component& component)
+{
+    MainComponentUndoHistory out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        out.visible = mainComponent->harnessUndoHistory().isVisible();
+        mainComponent->harnessUndoHistory().refreshRows();
+        out.rows = mainComponent->harnessUndoHistory().currentRows();
+        out.current = mainComponent->harnessUndoHistory().currentRow();
+    }
+    return out;
+}
+
+void mainComponentUndoHistoryClickRow (juce::Component& component, int row)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessUndoHistory().clickRow (row);
 }
 
 juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& component, int row)

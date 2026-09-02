@@ -74,6 +74,7 @@ enum class UiActionId : std::uint8_t
     AutosaveRecoveryRestore,
     AutosaveRecoveryDiscard,
     HelpShowKeymap,
+    EditShowUndoHistory,   // G2.18: the undo history window (Alt+Z)
     TimelineToolSelectPointer,
     TimelineToolSelectPencil,
     TimelineToolSelectScissors,
@@ -432,6 +433,7 @@ struct UiActionContext
     UiRecordingMonitoringPolicy selectedRecordingMonitoringPolicy = UiRecordingMonitoringPolicy::Unselected;
     bool isRecording = false;
     bool keymapVisible = false;
+    bool undoHistoryVisible = false;   // G2.18
     UiPanel activePanel = UiPanel::Timeline;
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     bool snapEnabled = true;
@@ -677,6 +679,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
     { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Alt+K", "Show keymap",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::EditShowUndoHistory, "edit.show_undo_history", "Undo History…", "Alt+Z", "Show the undo history window",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TimelineToolSelectPointer, "timeline.tool.pointer", "Pointer", "1", "Select pointer tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineToolSelectPencil, "timeline.tool.pencil", "Pencil", "2", "Select pencil tool",
@@ -1613,6 +1617,10 @@ public:
             case UiActionId::AutosaveRecoveryDiscard:
                 context.autosaveRecoveryPending = false;
                 ++context.autosaveRecoveryDiscardCount;
+                break;
+
+            case UiActionId::EditShowUndoHistory:   // G2.18
+                context.undoHistoryVisible = ! context.undoHistoryVisible;
                 break;
 
             case UiActionId::HelpShowKeymap:

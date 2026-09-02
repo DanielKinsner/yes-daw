@@ -23,6 +23,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `P` | Piano Roll | `view.piano_roll` |
 | `Ctrl+M` | Mute Clip | `timeline.clip.toggle_mute` |
 | `Alt+K` | Keymap | `help.show_keymap` |
+| `Alt+Z` | Undo History… | `edit.show_undo_history` |
 | `1` | Pointer | `timeline.tool.pointer` |
 | `2` | Pencil | `timeline.tool.pencil` |
 | `3` | Scissors | `timeline.tool.scissors` |

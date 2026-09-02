@@ -105,6 +105,82 @@ enum class ProjectEditVerb : std::uint8_t
     SetPunchRegion
 };
 
+// G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
+[[nodiscard]] constexpr const char* projectEditVerbLabel (ProjectEditVerb verb) noexcept
+{
+    switch (verb)
+    {
+        case ProjectEditVerb::MoveClip: return "Move Clip";
+        case ProjectEditVerb::TrimClip: return "Trim Clip";
+        case ProjectEditVerb::SplitClip: return "Split Clip";
+        case ProjectEditVerb::SetClipGain: return "Clip Gain";
+        case ProjectEditVerb::SetClipFades: return "Clip Fades";
+        case ProjectEditVerb::SetClipStretch: return "Stretch Clip";
+        case ProjectEditVerb::SetClipFadeShapes: return "Fade Shapes";
+        case ProjectEditVerb::SetClipColour: return "Clip Colour";
+        case ProjectEditVerb::SetClipMuted: return "Mute Clip";
+        case ProjectEditVerb::SetClipReversed: return "Reverse Clip";
+        case ProjectEditVerb::MoveNote: return "Move Note";
+        case ProjectEditVerb::SetNoteLength: return "Note Length";
+        case ProjectEditVerb::SplitNote: return "Split Note";
+        case ProjectEditVerb::CutNote: return "Cut Note";
+        case ProjectEditVerb::QuantizeNote: return "Quantize";
+        case ProjectEditVerb::TransposeNote: return "Transpose";
+        case ProjectEditVerb::SetRecordingCompSelection: return "Comp Take";
+        case ProjectEditVerb::AddFxInsert: return "Add Insert";
+        case ProjectEditVerb::RemoveFxInsert: return "Remove Insert";
+        case ProjectEditVerb::ReorderFxInsert: return "Reorder Insert";
+        case ProjectEditVerb::SetFxInsertEnabled: return "Insert Bypass";
+        case ProjectEditVerb::SetFxInsertParam: return "Insert Parameter";
+        case ProjectEditVerb::AddAutomationLane: return "Add Automation Lane";
+        case ProjectEditVerb::RemoveAutomationLane: return "Remove Automation Lane";
+        case ProjectEditVerb::AddAutomationBreakpoint: return "Add Breakpoint";
+        case ProjectEditVerb::MoveAutomationBreakpoint: return "Move Breakpoint";
+        case ProjectEditVerb::SetAutomationBreakpointValue: return "Breakpoint Value";
+        case ProjectEditVerb::SetAutomationBreakpointCurve: return "Breakpoint Curve";
+        case ProjectEditVerb::RemoveAutomationBreakpoint: return "Remove Breakpoint";
+        case ProjectEditVerb::AddClip: return "Add Clip";
+        case ProjectEditVerb::DeleteClip: return "Delete Clip";
+        case ProjectEditVerb::MoveClipToTrack: return "Move Clip to Track";
+        case ProjectEditVerb::AddNote: return "Add Note";
+        case ProjectEditVerb::AddTrack: return "Add Track";
+        case ProjectEditVerb::RenameTrack: return "Rename Track";
+        case ProjectEditVerb::ReorderTrack: return "Reorder Track";
+        case ProjectEditVerb::RemoveTrack: return "Remove Track";
+        case ProjectEditVerb::SetProjectTempo: return "Tempo";
+        case ProjectEditVerb::SetProjectMeter: return "Meter";
+        case ProjectEditVerb::AddTempoChange: return "Add Tempo Change";
+        case ProjectEditVerb::RemoveTempoChange: return "Remove Tempo Change";
+        case ProjectEditVerb::AddMeterChange: return "Add Meter Change";
+        case ProjectEditVerb::RemoveMeterChange: return "Remove Meter Change";
+        case ProjectEditVerb::AddMarker: return "Add Marker";
+        case ProjectEditVerb::RemoveMarker: return "Remove Marker";
+        case ProjectEditVerb::AddMidiClip: return "Add MIDI Clip";
+        case ProjectEditVerb::AddBus: return "Add Bus";
+        case ProjectEditVerb::RemoveBus: return "Remove Bus";
+        case ProjectEditVerb::AddSend: return "Add Send";
+        case ProjectEditVerb::RemoveSend: return "Remove Send";
+        case ProjectEditVerb::SetSendLevel: return "Send Level";
+        case ProjectEditVerb::RenameClip: return "Rename Clip";
+        case ProjectEditVerb::SetTrackMixScalars: return "Track Mix";
+        case ProjectEditVerb::SetNoteVelocity: return "Note Velocity";
+        case ProjectEditVerb::MoveMarker: return "Move Marker";
+        case ProjectEditVerb::RenameMarker: return "Rename Marker";
+        case ProjectEditVerb::SetMarkerColour: return "Marker Colour";
+        case ProjectEditVerb::MoveMidiClip: return "Move MIDI Clip";
+        case ProjectEditVerb::MoveMidiClipToTrack: return "Move MIDI Clip to Track";
+        case ProjectEditVerb::RemoveMidiClip: return "Remove MIDI Clip";
+        case ProjectEditVerb::SetBusMixScalars: return "Bus Mix";
+        case ProjectEditVerb::RenameBus: return "Rename Bus";
+        case ProjectEditVerb::SetSendTap: return "Send Tap";
+        case ProjectEditVerb::SetMasterGain: return "Master Gain";
+        case ProjectEditVerb::RemoveRecordingTake: return "Remove Take";
+        case ProjectEditVerb::SetTrackOutput: return "Track Output";
+        case ProjectEditVerb::SetAutomationMode: return "Automation Mode";
+    }
+    return "Edit";
+}
+
 struct ProjectEditCommand
 {
     ProjectEditVerb verb = ProjectEditVerb::MoveClip;
@@ -2600,6 +2676,50 @@ public:
             redo_.pop_back();
         }
         return ProjectUndoStatus::Applied;
+    }
+
+    // G2.18: the history as the user sees it — one row per undo STEP (an E21 group is one step),
+    // oldest first, then the redo steps beyond the current position. `current` is the number of
+    // undo steps (the row index of "now"); a jump to row r undoes or redoes |r - current| steps.
+    struct HistoryStep
+    {
+        ProjectEditVerb verb = ProjectEditVerb::MoveClip;
+        std::size_t entryCount = 1;   // entries folded into this step (a gesture group)
+    };
+
+    struct HistoryView
+    {
+        std::vector<HistoryStep> steps;
+        std::size_t current = 0;   // steps.size() when nothing is redoable
+    };
+
+    [[nodiscard]] HistoryView history() const
+    {
+        HistoryView view;
+        const auto foldSteps = [] (const std::vector<UndoEntry>& entries, std::vector<HistoryStep>& out)
+        {
+            // Group the entries exactly as undo()/redo() will pop them: trailing runs of one groupId.
+            std::vector<HistoryStep> newestFirst;
+            std::size_t end = entries.size();
+            while (end > 0)
+            {
+                const std::uint64_t groupId = entries[end - 1].groupId;
+                std::size_t count = 1;
+                if (groupId != 0)
+                    while (count < end && entries[end - 1 - count].groupId == groupId)
+                        ++count;
+                newestFirst.push_back ({ entries[end - 1].transaction.command.verb, count });
+                end -= count;
+            }
+            out.insert (out.end(), newestFirst.rbegin(), newestFirst.rend());
+        };
+        foldSteps (undo_, view.steps);
+        view.current = view.steps.size();
+        // The redo stack pops from its back first, so its steps read back-to-front in time order.
+        std::vector<HistoryStep> redoOldestFirst;
+        foldSteps (redo_, redoOldestFirst);
+        view.steps.insert (view.steps.end(), redoOldestFirst.rbegin(), redoOldestFirst.rend());
+        return view;
     }
 
     [[nodiscard]] bool canUndo() const noexcept { return ! undo_.empty(); }

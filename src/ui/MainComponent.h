@@ -234,6 +234,15 @@ struct MainComponentKeymapEditor
     juce::String status;
 };
 [[nodiscard]] MainComponentKeymapEditor mainComponentKeymapEditor (juce::Component& component);
+// G2.18: the undo history window's rows (oldest first) and the "now" row.
+struct MainComponentUndoHistory
+{
+    bool visible = false;
+    std::vector<juce::String> rows;
+    int current = 0;
+};
+[[nodiscard]] MainComponentUndoHistory mainComponentUndoHistory (juce::Component& component);
+void mainComponentUndoHistoryClickRow (juce::Component& component, int row);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.
