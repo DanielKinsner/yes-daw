@@ -41,6 +41,7 @@ enum class UiActionId : std::uint8_t
     ViewTimeline,
     ViewMixer,
     ViewPianoRoll,
+    ViewInstrument,   // G3.1: the Instrument dock tab (the selected Track's instrument panel)
     TimelineClipMove,
     TimelineClipTrim,
     TimelineClipSplit,
@@ -204,6 +205,8 @@ enum class UiActionId : std::uint8_t
     PianoRollNoteQuantizeSelection,
     // M3: a Track's main output destination (master or a Bus)
     MixerTrackSetOutput,
+    TrackSetInstrument,        // G3.1: the selected Track's instrument kind (the chooser)
+    TrackInstrumentParamSet,   // G3.1: one instrument parameter on the selected Track (the panel's rows)
     // V3: show/hide the always-on bottom mixer dock inside the Timeline/Piano Roll views
     TimelineToggleMixerDock,
     // V7: the right inspector's real CLIP/TRACK tabs (the painted tabs used to be decorative)
@@ -260,7 +263,8 @@ enum class UiPanel : std::uint8_t
 enum class UiEditorDockTab : std::uint8_t
 {
     Mixer,
-    PianoRoll
+    PianoRoll,
+    Instrument   // G3.1: the selected Track's instrument panel
 };
 
 // G2.6 (CONTEXT.md "Edit mode"): the rule for neighbouring Clips when one is placed or removed —
@@ -613,6 +617,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "P", "Show or hide the piano roll in the editor dock",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::ViewInstrument, "view.instrument", "Instrument", "", "Show or hide the selected Track's instrument panel in the editor dock",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipMove, "timeline.clip.move", "Move Clip", "", "Move selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipTrim, "timeline.clip.trim", "Trim Clip", "", "Trim selected clip",
@@ -924,6 +930,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollNoteQuantizeSelection, "piano_roll.note.quantize_selection", "Quantize Notes", "Q", "Quantize selected notes to the snap grid",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "", "Route the selected Track's main output to master or a bus",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::TrackSetInstrument, "track.instrument", "Track Instrument", "", "Choose the instrument the selected Track plays",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::TrackInstrumentParamSet, "track.instrument.param", "Instrument Parameter", "", "Set one parameter of the selected Track's instrument",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "X", "Show or hide the mixer in the editor dock",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
@@ -1525,6 +1535,24 @@ public:
                 }
                 break;
 
+            // G3.1: the instrument panel is a dock tab too; it takes no non-global keys, so the
+            // Focus context stays where it was (the arrangement keeps its keys while a knob shows).
+            case UiActionId::ViewInstrument:
+                if (context.mixerDockVisible && context.editorDockTab == UiEditorDockTab::Instrument)
+                {
+                    context.mixerDockVisible = false;
+                    if (context.activePanel == UiPanel::Mixer || context.activePanel == UiPanel::PianoRoll)
+                        context.activePanel = UiPanel::Timeline;
+                }
+                else
+                {
+                    context.mixerDockVisible = true;
+                    context.editorDockTab = UiEditorDockTab::Instrument;
+                    if (context.activePanel == UiPanel::Mixer || context.activePanel == UiPanel::PianoRoll)
+                        context.activePanel = UiPanel::Timeline;
+                }
+                break;
+
             case UiActionId::TimelineClipMove:
             case UiActionId::TimelineClipTrim:
             case UiActionId::TimelineClipSplit:
@@ -1820,6 +1848,8 @@ public:
             case UiActionId::MixerSendRemove:
             case UiActionId::MixerSendSetLevel:
             case UiActionId::MixerTrackSetOutput:
+            case UiActionId::TrackSetInstrument:   // G3.1
+            case UiActionId::TrackInstrumentParamSet:
                 context.activePanel = UiPanel::Mixer;
                 context.canUndo = true;
                 context.canRedo = false;

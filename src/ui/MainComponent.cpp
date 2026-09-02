@@ -3802,6 +3802,169 @@ private:
 // G1.5: the keymap editor (Alt+K). A searchable list of every verb per Focus context, a chord
 // field that rebinds the selected row on Enter (conflicts refused with the owner named in the
 // status line), Unbind, Restore defaults. Rebinds persist beside the last-project record.
+// G3.1 / ADR-0047: the instrument panel — an Editor-dock tab (never a modal, ADR-0046) showing the
+// selected Track's instrument: the kind chooser and one row per ParamSpec (label, slider, readout).
+// Every committed slider value is one undoable SetTrackInstrumentParam through the model; a drag
+// rides Touch / Latch automation exactly like an FX parameter drag (the InstrumentParam lane law).
+class InstrumentPanelComponent final : public juce::Component,
+                                       public juce::SettableTooltipClient
+{
+public:
+    static constexpr std::size_t kMaxRows = 12;
+
+    struct Row
+    {
+        std::uint32_t paramId = 0;
+        juce::String label;
+        juce::String readout;
+        double normalized = 0.0;
+    };
+
+    std::function<juce::String()> kindProvider;
+    std::function<std::vector<juce::String>()> kindChoicesProvider;
+    std::function<int()> kindIndexProvider;
+    std::function<void (int)> onKindChosen;
+    std::function<std::vector<Row>()> rowsProvider;
+    std::function<void (std::uint32_t)> onRowDragStart;
+    std::function<void()> onRowDragEnd;
+    std::function<void (std::uint32_t, double)> onRowValue;
+
+    InstrumentPanelComponent()
+    {
+        setName ("Instrument panel");
+        setComponentID ("instrument.panel");
+        setTooltip ("The selected Track's instrument: choose the kind, drag a parameter (rides Touch / Latch automation)");
+        kindChooser.setComponentID ("instrument.panel.kind");
+        kindChooser.setName ("Instrument kind");
+        kindChooser.setTooltip ("Which instrument the selected Track plays");
+        kindChooser.onChange = [this] {
+            if (refreshing || ! onKindChosen)
+                return;
+            const int selected = kindChooser.getSelectedId();
+            if (selected > 0)
+                onKindChosen (selected - 1);
+        };
+        addAndMakeVisible (kindChooser);
+        for (std::size_t i = 0; i < kMaxRows; ++i)
+        {
+            auto& label = labels[i];
+            label.setComponentID ("instrument.panel.row." + juce::String (static_cast<int> (i)) + ".label");
+            label.setTooltip ("Instrument parameter " + juce::String (static_cast<int> (i) + 1));
+            label.setInterceptsMouseClicks (false, false);
+            addChildComponent (label);
+            auto& slider = sliders[i];
+            slider.setComponentID ("instrument.panel.row." + juce::String (static_cast<int> (i)));
+            slider.setName ("Instrument parameter " + juce::String (static_cast<int> (i) + 1));
+            slider.setTooltip ("Drag to set the parameter; one undo step per drag");
+            slider.setSliderStyle (juce::Slider::LinearHorizontal);
+            slider.setTextBoxStyle (juce::Slider::NoTextBox, false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+            slider.setRange (0.0, 1.0, 0.0);
+            slider.onDragStart = [this, i] { if (onRowDragStart && i < rows.size()) onRowDragStart (rows[i].paramId); };
+            slider.onDragEnd = [this] { if (onRowDragEnd) onRowDragEnd(); };
+            slider.onValueChange = [this, i] {
+                if (refreshing || ! onRowValue || i >= rows.size())
+                    return;
+                onRowValue (rows[i].paramId, sliders[i].getValue());
+            };
+            addChildComponent (slider);
+            auto& readout = readouts[i];
+            readout.setComponentID ("instrument.panel.row." + juce::String (static_cast<int> (i)) + ".readout");
+            readout.setTooltip ("The parameter's value in its unit");
+            readout.setInterceptsMouseClicks (false, false);
+            readout.setJustificationType (juce::Justification::centredRight);
+            addChildComponent (readout);
+        }
+    }
+
+    void refresh()
+    {
+        refreshing = true;
+        kindChooser.clear (juce::dontSendNotification);
+        const std::vector<juce::String> choices = kindChoicesProvider ? kindChoicesProvider() : std::vector<juce::String> {};
+        for (std::size_t i = 0; i < choices.size(); ++i)
+            kindChooser.addItem (choices[i], static_cast<int> (i) + 1);
+        const int kindIndex = kindIndexProvider ? kindIndexProvider() : -1;
+        if (kindIndex >= 0)
+            kindChooser.setSelectedId (kindIndex + 1, juce::dontSendNotification);
+        rows = rowsProvider ? rowsProvider() : std::vector<Row> {};
+        for (std::size_t i = 0; i < kMaxRows; ++i)
+        {
+            const bool used = i < rows.size();
+            labels[i].setVisible (used);
+            sliders[i].setVisible (used);
+            readouts[i].setVisible (used);
+            if (! used)
+                continue;
+            labels[i].setText (rows[i].label, juce::dontSendNotification);
+            labels[i].setColour (juce::Label::textColourId, yesdaw::ui::UiTheme::Color::text());
+            labels[i].setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+            sliders[i].setValue (rows[i].normalized, juce::dontSendNotification);
+            readouts[i].setText (rows[i].readout, juce::dontSendNotification);
+            readouts[i].setColour (juce::Label::textColourId, yesdaw::ui::UiTheme::Color::mutedText());
+            readouts[i].setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+        }
+        refreshing = false;
+        resized();
+        repaint();
+    }
+
+    [[nodiscard]] const std::vector<Row>& currentRows() const noexcept { return rows; }
+    [[nodiscard]] juce::String currentKind() const { return kindProvider ? kindProvider() : juce::String(); }
+    void harnessSetRow (int row, double normalized)
+    {
+        if (row < 0 || static_cast<std::size_t> (row) >= rows.size())
+            return;
+        sliders[static_cast<std::size_t> (row)].setValue (normalized, juce::sendNotificationSync);
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (yesdaw::ui::UiTheme::Color::panel());
+        g.setColour (yesdaw::ui::UiTheme::Color::text());
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body, juce::Font::bold));
+        g.drawText ("Instrument  " + currentKind(),
+                    getLocalBounds().reduced (yesdaw::ui::UiTheme::Layout::instrumentPanelInset, 0)
+                                    .withHeight (yesdaw::ui::UiTheme::Layout::instrumentPanelTitleHeight),
+                    juce::Justification::centredLeft, true);
+    }
+
+    void resized() override
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        auto area = getLocalBounds().reduced (L::instrumentPanelInset);
+        auto title = area.removeFromTop (L::instrumentPanelTitleHeight);
+        kindChooser.setBounds (title.removeFromRight (L::instrumentPanelKindWidth));
+        area.removeFromTop (yesdaw::ui::UiTheme::Space::sm);
+        for (std::size_t i = 0; i < kMaxRows; ++i)
+        {
+            if (! sliders[i].isVisible())
+                continue;
+            if (area.getHeight() < L::instrumentPanelRowHeight)
+            {
+                labels[i].setBounds ({});
+                sliders[i].setBounds ({});
+                readouts[i].setBounds ({});
+                continue;   // drop whole (the section-fit law)
+            }
+            auto row = area.removeFromTop (L::instrumentPanelRowHeight);
+            labels[i].setBounds (row.removeFromLeft (L::instrumentPanelLabelWidth));
+            readouts[i].setBounds (row.removeFromRight (L::instrumentPanelReadoutWidth));
+            sliders[i].setBounds (row);
+            area.removeFromTop (yesdaw::ui::UiTheme::Space::xs);
+        }
+    }
+
+private:
+    juce::ComboBox kindChooser;
+    std::array<juce::Label, kMaxRows> labels;
+    std::array<juce::Slider, kMaxRows> sliders;
+    std::array<juce::Label, kMaxRows> readouts;
+    std::vector<Row> rows;
+    bool refreshing = false;
+};
+
 // G2.18: the undo history window (Alt+Z; Logic's Undo History) — every step as a row, oldest first,
 // the current position marked; a click jumps there (N undo or redo steps). Never modal.
 class UndoHistoryComponent final : public juce::Component,
@@ -4975,6 +5138,64 @@ public:
             repaintAll();
         };
         addChildComponent (keymapEditor);
+        // G3.1: the instrument panel — a dock tab fed by the selected Track's slot.
+        instrumentPanel.kindProvider = [this] {
+            const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
+            return track != nullptr ? juce::String (instrumentKindName (track->instrumentKind)) : juce::String ("No track");
+        };
+        instrumentPanel.kindChoicesProvider = [] { return std::vector<juce::String> { "None (auto)", "SimpleSynth" }; };
+        instrumentPanel.kindIndexProvider = [this] {
+            const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
+            return track != nullptr ? static_cast<int> (track->instrumentKind) : -1;
+        };
+        instrumentPanel.onKindChosen = [this] (int index) {
+            (void) appModel.setInstrumentOnSelectedTrack (static_cast<yesdaw::engine::TrackInstrumentKind> (index));
+            refreshActionState();
+            repaintAll();
+        };
+        instrumentPanel.rowsProvider = [this] { return instrumentPanelRows(); };
+        instrumentPanel.onRowDragStart = [this] (std::uint32_t paramId) {
+            if (const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument())
+                beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::InstrumentParam, paramId, track->id);
+        };
+        instrumentPanel.onRowDragEnd = [this] { endAutomationTouchRideIfActive(); };
+        instrumentPanel.onRowValue = [this] (std::uint32_t paramId, double normalized) {
+            if (automationTouchRideActive)
+                recordAutomationTouchSample (normalized);
+            else
+                (void) appModel.setInstrumentParamOnSelectedTrack (paramId, normalized);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (instrumentPanel);
+
+        // G3.1: the inspector's TRACK tab carries the kind chooser and an Edit button (opens the tab).
+        configureActionComponent (inspectorInstrumentChooser, yesdaw::ui::UiActionId::TrackSetInstrument, "Track instrument");
+        inspectorInstrumentChooser.setComponentID ("track.inspector.instrument");
+        inspectorInstrumentChooser.addItem ("None (auto)", 1);
+        inspectorInstrumentChooser.addItem ("SimpleSynth", 2);
+        inspectorInstrumentChooser.onChange = [this] {
+            if (refreshingInspectorControls)
+                return;
+            const int selected = inspectorInstrumentChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+            (void) appModel.setInstrumentOnSelectedTrack (static_cast<yesdaw::engine::TrackInstrumentKind> (selected - 1));
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorInstrumentChooser);
+        configureActionComponent (inspectorInstrumentEdit, yesdaw::ui::UiActionId::ViewInstrument, "Instrument panel");
+        inspectorInstrumentEdit.setComponentID ("track.inspector.instrument.edit");
+        inspectorInstrumentEdit.setButtonText ("Edit");
+        inspectorInstrumentEdit.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::ViewInstrument);
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
+        addChildComponent (inspectorInstrumentEdit);
+
         // G2.18: the undo history window rides the same overlay law.
         undoHistory.rowsProvider = [this] {
             std::vector<juce::String> rows;
@@ -6195,7 +6416,11 @@ public:
             view->setProperty ("dock", ! context.mixerDockVisible ? juce::String ("None")
                                        : context.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll
                                            ? juce::String ("PianoRoll")
+                                       : context.editorDockTab == yesdaw::ui::UiEditorDockTab::Instrument
+                                           ? juce::String ("Instrument")   // G3.1
                                            : juce::String ("Mixer"));
+            if (const yesdaw::engine::Track* const instrumentTrack = appModel.selectedTrackForInstrument())
+                view->setProperty ("instrument", juce::String (instrumentKindName (instrumentTrack->instrumentKind)));   // G3.1
             view->setProperty ("dockHeight", dockedMixerHeight());
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
@@ -6312,6 +6537,7 @@ public:
     // position/height alone.
     // G2.18: the undo history window for the harness.
     [[nodiscard]] UndoHistoryComponent& harnessUndoHistory() noexcept { return undoHistory; }
+    [[nodiscard]] InstrumentPanelComponent& harnessInstrumentPanel() noexcept { return instrumentPanel; }   // G3.1
 
     [[nodiscard]] juce::Rectangle<int> harnessPaintedRailRowBounds (int row) const
     {
@@ -6534,10 +6760,10 @@ public:
         // rect to degrade gracefully.
         if (appModel.context().mixerDockVisible)
         {
-            // G2.1 cp2: the dock shows ONE editor tab.
+            // G2.1 cp2: the dock shows ONE editor tab. G3.1: the instrument panel paints itself.
             if (dockShowsPianoRoll())
                 drawPianoRoll (g, mixerPanelBounds());
-            else
+            else if (! dockShowsInstrument())
                 drawMixer (g, mixerPanelBounds());
         }
     }
@@ -6634,6 +6860,7 @@ public:
             undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
         }
         pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
+        instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
         trackListInput.setBounds (leftRailPanelBounds());
         {
             auto strips = mixerPanelBounds();
@@ -8192,6 +8419,12 @@ private:
             && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
     }
 
+    [[nodiscard]] bool dockShowsInstrument() const noexcept   // G3.1
+    {
+        return appModel.context().mixerDockVisible
+            && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::Instrument;
+    }
+
     [[nodiscard]] juce::Component* toolbarButtonFor (yesdaw::ui::UiActionId action)
     {
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
@@ -8331,6 +8564,7 @@ private:
         selectedTrackLane = lane;
         (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
         refreshActionState();
+        resized();   // G3.1: the inspector's TRACK tab lays out per selected Track (the instrument row)
         repaintAll();
     }
 
@@ -8347,6 +8581,7 @@ private:
         selectedTrackLane = lane;
         (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
         refreshActionState();
+        resized();   // G3.1: the inspector's TRACK tab lays out per selected Track (the instrument row)
         repaintAll();
     }
 
@@ -8366,7 +8601,43 @@ private:
         selectedTrackLane = lane;
         (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
         refreshActionState();
+        resized();   // G3.1: the inspector's TRACK tab lays out per selected Track (the instrument row)
         repaintAll();
+    }
+
+    // G3.1: the instrument kind's name (the probe, the panel title, the inspector row).
+    [[nodiscard]] static const char* instrumentKindName (yesdaw::engine::TrackInstrumentKind kind) noexcept
+    {
+        switch (kind)
+        {
+            case yesdaw::engine::TrackInstrumentKind::None: return "None (auto)";
+            case yesdaw::engine::TrackInstrumentKind::SimpleSynth: return "SimpleSynth";
+        }
+        return "?";
+    }
+
+    // G3.1: the panel's rows — one per ParamSpec of the selected Track's effective instrument,
+    // the value read back from the project (an unset id shows the spec default).
+    [[nodiscard]] std::vector<InstrumentPanelComponent::Row> instrumentPanelRows() const
+    {
+        std::vector<InstrumentPanelComponent::Row> rows;
+        const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
+        if (track == nullptr)
+            return rows;
+        for (std::uint32_t paramId = 1; paramId <= yesdaw::engine::SimpleSynthNode::kParameterCount; ++paramId)
+        {
+            if (! yesdaw::engine::instrumentKindAcceptsParameterId (track->instrumentKind, paramId))
+                continue;
+            const yesdaw::engine::ParamSpec spec = yesdaw::engine::instrumentParamSpecForKind (track->instrumentKind, paramId);
+            InstrumentPanelComponent::Row row;
+            row.paramId = paramId;
+            row.label = juce::String (spec.name).fromLastOccurrenceOf (".", false, false).replaceCharacter ('_', ' ');
+            row.normalized = track->instrumentParamNormalized (paramId);
+            const double real = yesdaw::engine::mapNormalized (spec, row.normalized);
+            row.readout = juce::String (real, real >= 100.0 ? 0 : 3) + (spec.unit[0] != '\0' ? juce::String (" ") + spec.unit : juce::String());
+            rows.push_back (std::move (row));
+        }
+        return rows;
     }
 
     // G2.17: a track is a MIDI track when it holds MIDI clips; audio otherwise (an empty track is audio).
@@ -9022,8 +9293,19 @@ private:
             inspectorFadeCurveAmount.setBounds ({});
             inspectorTakeChooser.setBounds ({});
             inspectorTakeDelete.setBounds ({});
+            // G3.1: the instrument row is the TRACK tab's first row — the chooser and Edit sit on
+            // its right, the painted "Instrument" label on its left (drawTrackInspector).
+            auto instrumentRow = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
+                                     .removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
+                                     .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
+                                               yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
+            const bool rowFits = area.contains (instrumentRow) && appModel.selectedTrackForInstrument() != nullptr;
+            inspectorInstrumentEdit.setBounds (rowFits ? instrumentRow.removeFromRight (yesdaw::ui::UiTheme::Layout::inspectorInstrumentEditWidth) : juce::Rectangle<int> {});
+            inspectorInstrumentChooser.setBounds (rowFits ? instrumentRow.removeFromRight (yesdaw::ui::UiTheme::Layout::inspectorInstrumentChooserWidth) : juce::Rectangle<int> {});
             return;
         }
+        inspectorInstrumentEdit.setBounds ({});
+        inspectorInstrumentChooser.setBounds ({});
         // E24/E27: ONE law for paint and controls — an inspector section that no longer fits
         // the column is dropped WHOLE (card, labels, and controls), never split across the
         // panel edge or bled over the bottom mixer panel.
@@ -9884,8 +10166,9 @@ private:
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
         };
-        static constexpr std::array<UiActionId, 28> kViewMenu {
+        static constexpr std::array<UiActionId, 29> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
+            UiActionId::ViewInstrument,   // G3.1
             UiActionId::ViewToggleInspector,
             UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
             UiActionId::TimelineAutomationToggleTrackLane,
@@ -9976,6 +10259,7 @@ private:
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
             case UiActionId::ViewPianoRoll:                     return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
+            case UiActionId::ViewInstrument:                    return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Instrument;   // G3.1
             case UiActionId::InspectorShowClipTab:              return ! c.inspectorTrackTabActive;
             case UiActionId::InspectorShowTrackTab:             return c.inspectorTrackTabActive;
             case UiActionId::TimelineSnapDisable:               return ! c.snapEnabled;
@@ -10932,6 +11216,9 @@ private:
         playheadLayer.setVisible (true);
         pianoRollInput.setVisible (dockShowsPianoRoll());
         mixerStripsInput.setVisible (dockShowsMixer());
+        instrumentPanel.setVisible (dockShowsInstrument());   // G3.1
+        if (dockShowsInstrument())
+            instrumentPanel.refresh();
         {
             refreshingTimeMapControls = true;
             const bool tempoEnabled =
@@ -11260,6 +11547,24 @@ private:
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
+        {
+            // G3.1: the inspector's instrument chooser mirrors the selected Track's slot; the
+            // panel re-reads its rows whenever it shows.
+            refreshingInspectorControls = true;
+            const yesdaw::engine::Track* const instrumentTrack = appModel.selectedTrackForInstrument();
+            const bool instrumentEnabled = instrumentTrack != nullptr
+                && appModel.registry().stateFor (yesdaw::ui::UiActionId::TrackSetInstrument, appModel.context()).enabled;
+            inspectorInstrumentChooser.setEnabled (instrumentEnabled);
+            inspectorInstrumentChooser.setVisible (appModel.context().inspectorTrackTabActive);
+            inspectorInstrumentEdit.setVisible (appModel.context().inspectorTrackTabActive);
+            inspectorInstrumentEdit.setEnabled (instrumentTrack != nullptr);
+            inspectorInstrumentEdit.setToggleState (dockShowsInstrument(), juce::dontSendNotification);
+            if (instrumentTrack != nullptr)
+                inspectorInstrumentChooser.setSelectedId (static_cast<int> (instrumentTrack->instrumentKind) + 1, juce::dontSendNotification);
+            refreshingInspectorControls = false;
+            if (dockShowsInstrument())
+                instrumentPanel.refresh();
+        }
         mixerDockToggle.setToggleState (dockShowsMixer(), juce::dontSendNotification);   // G2.1 cp2: the mixer TAB
         // No effect in the full-view Mixer panel (it never reserves dock space to begin with).
         mixerDockToggle.setVisible (true);
@@ -13070,6 +13375,23 @@ private:
             }
         }
 
+        // G3.1: the Track's instrument parameters (when it holds MIDI — the instrument exists).
+        {
+            bool holdsMidi = false;
+            for (const yesdaw::engine::MidiClip& clip : appModel.project().midiClips)
+                if (clip.trackId == trackId)
+                    holdsMidi = true;
+            if (holdsMidi)
+                for (std::uint32_t paramId = 1; paramId <= yesdaw::engine::SimpleSynthNode::kParameterCount; ++paramId)
+                {
+                    if (! yesdaw::engine::instrumentKindAcceptsParameterId (track->instrumentKind, paramId))
+                        continue;
+                    const yesdaw::engine::ParamSpec spec = yesdaw::engine::instrumentParamSpecForKind (track->instrumentKind, paramId);
+                    options.push_back ({ yesdaw::engine::AutomationTargetRole::InstrumentParam, paramId, trackId,
+                                         "Inst " + juce::String (spec.name).fromLastOccurrenceOf (".", false, false) });
+                }
+        }
+
         // R14: bus automation is reachable — every bus's fader, pan, and (R13) send levels
         // enumerate after the track's own targets, labelled by bus name. The engine targets
         // (BusFader/BusPan since M-era, bus SendLevel since R13) were dead code from the shell
@@ -13727,6 +14049,7 @@ private:
 
         auto rows = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop);
         std::vector<juce::String> rowText;
+        rowText.push_back ("Instrument");   // G3.1: the chooser + Edit ride this row's right
         rowText.push_back ("Fader   " + dbReadoutText (track.strip.linearGain));
         const int panPercent = juce::roundToInt (std::abs (track.strip.pan) * 100.0f);
         rowText.push_back ("Pan     "
@@ -14720,6 +15043,9 @@ private:
     std::vector<std::pair<juce::Component*, yesdaw::ui::UiActionId>> actionComponents;   // G1.6: live tooltips
     KeymapEditorComponent keymapEditor;    // G1.5
     UndoHistoryComponent undoHistory;      // G2.18
+    InstrumentPanelComponent instrumentPanel;   // G3.1
+    juce::ComboBox inspectorInstrumentChooser;   // G3.1
+    juce::TextButton inspectorInstrumentEdit;
     juce::TextButton inspectorToggle;      // G1.4
     juce::ComboBox editModeChooser;        // G2.6
     bool refreshingEditModeChooser = false;
@@ -15337,6 +15663,27 @@ MainComponentUndoHistory mainComponentUndoHistory (juce::Component& component)
         out.current = mainComponent->harnessUndoHistory().currentRow();
     }
     return out;
+}
+
+MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component)
+{
+    MainComponentInstrumentPanel out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        InstrumentPanelComponent& panel = mainComponent->harnessInstrumentPanel();
+        out.visible = panel.isVisible();
+        panel.refresh();
+        out.kind = panel.currentKind();
+        for (const InstrumentPanelComponent::Row& row : panel.currentRows())
+            out.rows.emplace_back (row.label, row.normalized);
+    }
+    return out;
+}
+
+void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInstrumentPanel().harnessSetRow (row, normalized);
 }
 
 void mainComponentUndoHistoryClickRow (juce::Component& component, int row)

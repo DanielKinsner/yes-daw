@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 153u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 156u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -7200,6 +7200,23 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
     using L = yesdaw::ui::UiTheme::Layout;
     mouseDownAt (*rail, { kRailRowClickX,
                           L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    const auto instrumentRowState = [&]
+    {
+        auto* c = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+        auto* e = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.inspector.instrument.edit"));
+        juce::String out ("chooser ");
+        if (c == nullptr)
+            out << "null";
+        else
+            out << (c->isEnabled() ? "en " : "dis ") << c->getText() << " " << c->getBounds().toString() << (c->hasKeyboardFocus (true) ? " focus" : "");
+        out << " edit ";
+        if (e == nullptr)
+            out << "null";
+        else
+            out << (e->isEnabled() ? "en " : "dis ") << (e->getToggleState() ? "on " : "off ") << e->getBounds().toString();
+        return out;
+    };
+    const juce::String instrumentRowBefore = instrumentRowState();
     const juce::Image trackTabSelected = renderShell();
     auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
     REQUIRE (fxChooser != nullptr);
@@ -7227,7 +7244,9 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
                 }
         INFO ("inspector region " << inspectorRegion.toString().toStdString() << " differing pixels "
               << differingCount << " within " << differing.toString().toStdString()
-              << " timeline " << timeline.getBounds().toString().toStdString());
+              << " timeline " << timeline.getBounds().toString().toStdString()
+              << " | instrument row before: " << instrumentRowBefore.toStdString()
+              << " | after: " << instrumentRowState().toStdString());
         REQUIRE (differingCount == 0);
     }
 
@@ -18534,6 +18553,106 @@ TEST_CASE ("G2.18 undo history window: rows, jump, Esc", "[ui][input][shell][g2]
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
     REQUIRE_FALSE (yesdaw::ui::mainComponentUndoHistory (*shell).visible);
     REQUIRE_FALSE (static_cast<bool> (probeView().getProperty ("undoHistory", false)));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.1 / ADR-0047: the Track instrument in the shell — the inspector's TRACK tab chooser sets the
+// kind (undoable), Edit opens the Instrument dock tab, the panel's rows are the ParamSpecs with the
+// project's values, a row drag is one undoable parameter edit the probe and the project agree on,
+// the automation lane chooser lists the instrument's parameters for a Track holding MIDI, and the
+// View menu carries the tab.
+TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane chooser entry",
+           "[ui][input][shell][g3][track-instrument]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-instrument");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    // Select the track the way a user does (a rail click): the inspector's TRACK tab and the
+    // instrument slot both key on the selected Track.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
+    const auto probeView = [&] {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        return probe.getProperty ("view", juce::var());
+    };
+
+    // The inspector's TRACK tab (the real tab button, which re-lays out): the chooser and Edit
+    // show, the chooser reads None (auto).
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+    auto* edit = dynamic_cast<juce::TextButton*> (findChildWithComponentId (*shell, "track.inspector.instrument.edit"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (edit != nullptr);
+    REQUIRE (chooser->isVisible());
+    REQUIRE (! chooser->getBounds().isEmpty());
+    REQUIRE (! edit->getBounds().isEmpty());
+    REQUIRE (chooser->getSelectedId() == 1);
+    REQUIRE (probeView().getProperty ("instrument", {}).toString() == "None (auto)");
+
+    // Choosing SimpleSynth is one undoable Track verb.
+    const int dispatchBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+    chooser->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::SimpleSynth);
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchBefore + 1);
+    REQUIRE (probeView().getProperty ("instrument", {}).toString() == "SimpleSynth");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::None);
+    REQUIRE (chooser->getSelectedId() == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier), 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::SimpleSynth);
+
+    // Edit opens the Instrument dock tab; the panel shows the nine ParamSpec rows at their defaults.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentInstrumentPanel (*shell).visible);
+    clickButton (*edit);
+    REQUIRE (probeView().getProperty ("dock", {}).toString() == "Instrument");
+    {
+        const yesdaw::ui::MainComponentInstrumentPanel panel = yesdaw::ui::mainComponentInstrumentPanel (*shell);
+        REQUIRE (panel.visible);
+        REQUIRE (panel.kind == "SimpleSynth");
+        REQUIRE (panel.rows.size() == static_cast<std::size_t> (yesdaw::engine::SimpleSynthNode::kParameterCount));
+        REQUIRE (panel.rows[0].first == "osc mix");
+        REQUIRE (panel.rows[5].first == "cutoff");
+        REQUIRE (panel.rows[5].second == Catch::Approx (1.0));   // cutoff at the top = bypass
+    }
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::ViewInstrument).enabled);
+
+    // A row drag lands one undoable parameter edit; the project and the probe agree.
+    const int knobBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+    yesdaw::ui::mainComponentInstrumentPanelSetRow (*shell, 5, 0.25);
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[0].instrumentParamNormalized (yesdaw::engine::SimpleSynthNode::kCutoffParamId) == Catch::Approx (0.25));
+        REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == knobBefore + 1);
+        REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).rows[5].second == Catch::Approx (0.25));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentState.empty());
+    REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).rows[5].second == Catch::Approx (1.0));
+
+    // The automation lane chooser lists the instrument's parameters for this Track.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineAutomationToggleTrackLane);
+    auto* laneChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (laneChooser != nullptr);
+    bool hasCutoff = false;
+    for (int i = 0; i < laneChooser->getNumItems(); ++i)
+        if (laneChooser->getItemText (i) == "Inst cutoff")
+            hasCutoff = true;
+    REQUIRE (hasCutoff);
+
+    // The tab toggles off through the menu verb; the View menu carries it.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+    REQUIRE (probeView().getProperty ("dock", {}).toString() == "None");
+    REQUIRE_FALSE (yesdaw::ui::mainComponentInstrumentPanel (*shell).visible);
+    juce::MenuBarModel& menus = requireMenuBarModel (*shell);
+    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 29);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

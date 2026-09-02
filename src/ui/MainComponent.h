@@ -243,6 +243,15 @@ struct MainComponentUndoHistory
 };
 [[nodiscard]] MainComponentUndoHistory mainComponentUndoHistory (juce::Component& component);
 void mainComponentUndoHistoryClickRow (juce::Component& component, int row);
+// G3.1: the instrument panel's state for the harness — the dock tab, the kind, the rows.
+struct MainComponentInstrumentPanel
+{
+    bool visible = false;
+    juce::String kind;
+    std::vector<std::pair<juce::String, double>> rows;   // label, normalized value
+};
+[[nodiscard]] MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component);
+void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.

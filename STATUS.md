@@ -41,11 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 — Track instrument (ADR-0047 Accepted). cp1 engine ✅ (awaiting its run), cp2
-`ParamSpec` + verbs + automation ✅ built, gated locally, committed. Next: cp3 — the rail /
-inspector instrument chooser, the instrument panel dock tab (the `ParamSpec` rows), the automation
-lane chooser's Instrument entry, the live knob post, `[track-instrument]`; then the UI checkpoint
-with the drives (SS-1..SS-3, pause D14 lifted).
+**Now:** G3.1 — Track instrument (ADR-0047 Accepted): cp1 ✅ (`381e8db`, run `33652552912`),
+cp2 ✅ (`fa6c67e`, run `33654084069`), cp3 (the shell: chooser, Instrument dock tab, lane entries,
+`[track-instrument]`) built, gated locally, committed; awaiting its run. Next: G3.1's UI
+checkpoint — the real exe, the session drive (pause D14 lifted; SS-1..SS-3 pending since G0–G2),
+screenshots at three sizes, the rubric; then G3.2 piano roll v2.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -113,6 +113,33 @@ certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.1 cp3 — The Track instrument in the shell (2026-09-02)
+
+**Build.** `InstrumentPanelComponent` ("instrument.panel": the kind chooser "instrument.panel.kind",
+rows "instrument.panel.row.N" label / slider / readout) as the Editor dock's third tab
+(`UiEditorDockTab::Instrument`; `ViewInstrument` toggles it, View menu 28 → 29; the Focus context
+stays with the arrangement). The inspector's TRACK tab gains an Instrument row: the chooser
+("track.inspector.instrument", `TrackSetInstrument`) and Edit ("track.inspector.instrument.edit",
+opens the tab). Model: `selectedTrackForInstrument()`, `setInstrumentOnSelectedTrack (kind)`,
+`setInstrumentParamOnSelectedTrack (id, v)` (undoable Track verbs; a knob drag coalesces); the
+panel's drags ride Touch / Latch with role `InstrumentParam`. The automation lane chooser lists
+"Inst <param>" for a Track holding MIDI. Probe `view.instrument`, `view.dock` = "Instrument".
+Tokens `instrumentPanel*`, `inspectorInstrument*`. Child count 153 → 156.
+
+**Gates.** `[track-instrument]` (64 assertions): the chooser's bounds and value after a rail
+click, the kind verb's undo / redo with the chooser following, Edit → the dock tab with nine rows,
+the cutoff row's edit / undo through the project and the probe, the lane chooser's entry, the
+View verb and menu count.
+
+**Found while gating (fixed).** Selecting a lane on the rail refreshed but did not re-lay out, so
+per-Track inspector controls appeared only after the next unrelated edit (the V7 inspector
+paint-restore pin caught it) — `selectTrackLane` and its multi-select siblings now call `resized()`.
+The panel's slider text-box call used raw numbers (theme audit) → the hidden text-box tokens.
+
+**Not built (recorded).** The live knob post (an instrument edit rebuilds the graph); parameter
+smoothing; a chooser on the rail header itself (the inspector row + the panel title carry it);
+the Sampler / plugin kinds (G3.9 / G4.8) — the chooser lists None (auto) and SimpleSynth only.
 
 ### G3.1 cp2 — SimpleSynth ParamSpec, the slot's verbs, the automation target (2026-09-02)
 

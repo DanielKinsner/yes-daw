@@ -822,6 +822,15 @@ struct UiTheme
         static constexpr int undoHistoryMaxWidth = 420;
         static constexpr int undoHistoryMaxHeight = 480;
         static constexpr int undoHistoryRowHeight = 22;
+        // G3.1: the instrument panel (an Editor-dock tab) and the inspector's instrument row.
+        static constexpr int instrumentPanelInset = 12;
+        static constexpr int instrumentPanelTitleHeight = 24;
+        static constexpr int instrumentPanelRowHeight = 22;
+        static constexpr int instrumentPanelLabelWidth = 96;
+        static constexpr int instrumentPanelReadoutWidth = 72;
+        static constexpr int instrumentPanelKindWidth = 160;
+        static constexpr int inspectorInstrumentChooserWidth = 120;
+        static constexpr int inspectorInstrumentEditWidth = 48;
         static constexpr int keymapEditorRestoreWidth = 140;
         static constexpr int keymapEditorUnbindWidth = 80;
         static constexpr int keymapEditorChordWidth = 220;

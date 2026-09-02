@@ -3777,6 +3777,67 @@ public:
     // M3: route the selected Track's MAIN output. An invalid busId means master (the default);
     // otherwise the bus must exist. This is a submix group, not a parallel send: the whole strip
     // lands on the bus and the bus's fader/FX carry it.
+    // G3.1 / ADR-0047: the selected Track's instrument slot — the kind (the chooser) and one
+    // normalized parameter (a panel row). Every edit is an undoable Track verb; a knob drag
+    // coalesces inside its gesture group (E21). An instrument edit rebuilds the graph (the live
+    // knob post is recorded for later); the panel reads the value back from the project.
+    [[nodiscard]] const engine::Track* selectedTrackForInstrument() const noexcept
+    {
+        engine::EntityId trackId;
+        if (! selectedSendOwnerId (trackId))
+            return nullptr;
+        return project_.findTrack (trackId);
+    }
+
+    [[nodiscard]] UiActionDispatchResult setInstrumentOnSelectedTrack (engine::TrackInstrumentKind kind)
+    {
+        const UiActionId id = UiActionId::TrackSetInstrument;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        if (! selectedSendOwnerId (trackId) || project_.findTrack (trackId) == nullptr)
+            return { id, { false, "no track selected" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setTrackInstrument (trackId, kind)).applied())
+            return { id, { false, "instrument refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "instrument did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult setInstrumentParamOnSelectedTrack (std::uint32_t paramId, double normalizedValue)
+    {
+        const UiActionId id = UiActionId::TrackInstrumentParamSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId trackId;
+        const engine::Track* const track = selectedSendOwnerId (trackId) ? project_.findTrack (trackId) : nullptr;
+        if (track == nullptr)
+            return { id, { false, "no track selected" }, false };
+        if (! engine::instrumentKindAcceptsParameterId (track->instrumentKind, paramId))
+            return { id, { false, "instrument does not accept parameter" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setTrackInstrumentParam (trackId, paramId, normalizedValue)).applied())
+            return { id, { false, "instrument parameter refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "instrument parameter did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult setOutputOnSelectedTrack (engine::EntityId busId)
     {
         const UiActionId id = UiActionId::MixerTrackSetOutput;
@@ -6952,6 +7013,7 @@ public:
             case UiActionId::ProjectExportAudioCancel:
             case UiActionId::HelpShowKeymap:
             case UiActionId::EditShowUndoHistory:   // G2.18
+            case UiActionId::ViewInstrument:   // G3.1
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:
             case UiActionId::TimelineToolSelectScissors:
@@ -7136,6 +7198,10 @@ public:
 
             case UiActionId::MixerTrackSetOutput:
                 return { id, { false, "track output payload required" }, false };
+
+            case UiActionId::TrackSetInstrument:   // G3.1: setInstrumentOnSelectedTrack carries the kind
+            case UiActionId::TrackInstrumentParamSet:   // setInstrumentParamOnSelectedTrack carries the value
+                return { id, { false, "instrument payload required" }, false };
 
             case UiActionId::MixerSetFirstSendLevel:
                 return setFirstTrackFirstSendLevel();
