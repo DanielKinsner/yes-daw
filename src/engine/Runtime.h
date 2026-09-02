@@ -29,6 +29,7 @@
 
 #pragma once
 
+#include "engine/ClipSchedule.h"
 #include "engine/CompiledGraph.h"
 #include "engine/Command.h"
 #include "rt/RtHot.h"
@@ -51,6 +52,7 @@ struct Retired
 {
     const CompiledGraph* graph       = nullptr;
     std::uint64_t        retiredAtGen = 0;
+    const ClipSchedule*  schedule    = nullptr;   // G0.5: a retired Track schedule (graph == nullptr)
 };
 static_assert (std::is_trivially_copyable_v<Retired>, "Retired must pass losslessly through the FIFO");
 
@@ -93,6 +95,7 @@ public:
             if (p.graph != nullptr)
                 p.graph->snapshotDelayCache();
             delete p.graph;
+            delete p.schedule;
         }
 
         pending_.clear();
@@ -104,12 +107,18 @@ public:
 
         Command c;
         while (cmdFifo_.pop (c))
+        {
             if (c.type == CommandType::SwapGraph)
             {
                 if (c.graph != nullptr)
                     c.graph->snapshotDelayCache();
                 delete c.graph;
             }
+            else if (c.type == CommandType::SetClipSchedule)
+            {
+                delete c.schedule;   // never installed: still ours to free
+            }
+        }
     }
 
     Runtime (const Runtime&)            = delete;
@@ -151,6 +160,25 @@ public:
     {
         return cmdFifo_.push (Command { CommandType::SetFxParam, nullptr, node, 0.0f, paramId, normalizedValue });
     }
+
+    // G0.5 (CONTROL THREAD): hand a Track's next ClipSchedule to the audio thread. Ownership
+    // transfers on success (the audio thread installs it and retires the previous one to the
+    // janitor); on a full queue `schedule` destructs here and the caller converges by a rebuild.
+    [[nodiscard]] bool postSetClipSchedule (NodeId node, std::unique_ptr<const ClipSchedule> schedule) noexcept
+    {
+        if (schedule == nullptr)
+            return false;
+        Command c { CommandType::SetClipSchedule, nullptr, node, 0.0f, 0, 0.0 };
+        c.schedule = schedule.get();
+        if (cmdFifo_.push (c))
+        {
+            (void) schedule.release();
+            return true;
+        }
+        return false;
+    }
+
+    std::uint64_t schedulesApplied() const noexcept { return schedulesApplied_.load (std::memory_order_acquire); }
 
     // ---- AUDIO THREAD --------------------------------------------------------------------------------
     void processBlock (float* out, int numFrames) noexcept YESDAW_RT_HOT
@@ -262,6 +290,7 @@ public:
                 if (pending_[i].graph != nullptr)
                     pending_[i].graph->snapshotDelayCache();
                 delete pending_[i].graph;
+                delete pending_[i].schedule;   // G0.5: retired Track schedules ride the same fence-post
                 ++freed;
             }
             else
@@ -325,6 +354,30 @@ private:
                 if (current_ != nullptr && current_->applySetFxParam (c.node, c.paramId, c.normalized))
                     scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
                 break;
+
+            case CommandType::SetClipSchedule:
+            {
+                // G0.5: install the new schedule on its Track node and retire the previous one; a
+                // refused install (no such node) retires the NEW schedule instead — never a leak,
+                // never a free on this thread. The getUsedSlots() gate above guarantees the push.
+                const ClipSchedule* retire = c.schedule;
+                const ClipSchedule* previous = nullptr;
+                if (current_ != nullptr && current_->applySetClipSchedule (c.node, c.schedule, previous))
+                {
+                    schedulesApplied_.fetch_add (1, std::memory_order_relaxed);
+                    retire = previous;
+                }
+                if (retire != nullptr)
+                {
+                    Retired r;
+                    r.schedule = retire;
+                    r.retiredAtGen = processedGen_.load (std::memory_order_relaxed);
+                    const bool retired = retireFifo_.push (r);
+                    YESDAW_RT_FATAL (retired);
+                    (void) retired;
+                }
+                break;
+            }
         }
     }
 
@@ -337,6 +390,7 @@ private:
     const CompiledGraph*       current_ = nullptr;        // AUDIO-THREAD-LOCAL — never touched elsewhere
     std::atomic<std::uint64_t> processedGen_   { 0 };
     std::atomic<std::uint64_t> scalarsApplied_ { 0 };
+    std::atomic<std::uint64_t> schedulesApplied_ { 0 };   // G0.5
     std::vector<Retired>       pending_;                  // JANITOR-THREAD-LOCAL
 };
 

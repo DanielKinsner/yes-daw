@@ -1332,3 +1332,70 @@ TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
     REQUIRE (recovered.assets.empty());
     REQUIRE (recovered.clips.empty());
 }
+
+// G0.5 — the live placement lane at the engine boundary (ADR-0046 §6; plan §5.3 lane 2). A
+// Track's new ClipSchedule, built by the SAME resolver a rebuild uses and published through the
+// ordered command queue onto a RUNNING engine, renders bit-identically to an engine freshly built
+// from the edited Project; the edit is audible (the render differs from the unedited one); and
+// the previous schedule is retired to the janitor, never freed under the audio thread.
+TEST_CASE ("PlaybackEngine live ClipSchedule publish renders bit-identically to a rebuild",
+           "[g0][playback][live-placement][clip-schedule]")
+{
+    using yesdaw::engine::buildTrackClipSchedule;
+    using yesdaw::engine::ClipSchedule;
+    using yesdaw::engine::OfflineRenderStatus;
+    using yesdaw::engine::ProjectMixerNodeRole;
+    using yesdaw::engine::projectMixerNodeIdForTrack;
+
+    const PlaybackFixture fixture = makePlaybackFixture();
+    REQUIRE_FALSE (fixture.project.clips.empty());
+    const std::span<const DecodedAssetAudio> views (fixture.decodedAssets.data(), fixture.decodedAssets.size());
+
+    // The edited Project: the first Clip moved later by three frames, quieter, with a short fade in.
+    Project edited = fixture.project;
+    edited.clips.front().timelineStart += 3;
+    edited.clips.front().gain *= 0.5f;
+    edited.clips.front().fadeIn = 2;
+    REQUIRE (edited.hasValidAssetClipIndirection());
+    const EntityId trackId = edited.clips.front().trackId;
+
+    const auto offline = renderOfflineProject (edited, views);
+    REQUIRE (offline.ok());
+    const std::uint64_t totalFrames = offline.interleavedSamples.size() / 2u;
+
+    // Live path: an engine running the ORIGINAL project takes the edited Track's schedule.
+    PlaybackEngine::Result live = PlaybackEngine::create (fixture.project, views, OfflineRenderOptions {});
+    REQUIRE (live.ok());
+    REQUIRE (live.engine->liveSchedulesApplied() == 0);
+    const std::vector<float> beforeEdit = drainPlayback (*live.engine, totalFrames, 8);
+
+    OfflineRenderStatus status = OfflineRenderStatus::Ok;
+    std::unique_ptr<ClipSchedule> schedule = buildTrackClipSchedule (edited, trackId, views, status);
+    REQUIRE (schedule != nullptr);
+    REQUIRE (status == OfflineRenderStatus::Ok);
+    REQUIRE (live.engine->postLiveClipSchedule (
+        projectMixerNodeIdForTrack (trackId, ProjectMixerNodeRole::ClipSchedule), std::move (schedule)));
+    REQUIRE (live.engine->locate (0));
+    const std::vector<float> afterEdit = drainPlayback (*live.engine, totalFrames, 8);
+    REQUIRE (live.engine->liveSchedulesApplied() == 1);
+    REQUIRE_FALSE (bitIdentical (beforeEdit, afterEdit));
+
+    // Rebuild path: a fresh engine from the edited Project — and the offline render of it.
+    PlaybackEngine::Result rebuilt = PlaybackEngine::create (edited, views, OfflineRenderOptions {});
+    REQUIRE (rebuilt.ok());
+    REQUIRE (rebuilt.engine->locate (0));
+    const std::vector<float> rebuiltPlayed = drainPlayback (*rebuilt.engine, totalFrames, 8);
+    REQUIRE (bitIdentical (afterEdit, rebuiltPlayed));
+    REQUIRE (bitIdentical (afterEdit, offline.interleavedSamples));
+
+    // The retired schedule is the janitor's: reclaim() frees it once the audio thread is past it.
+    (void) live.engine->reclaim();
+
+    // A schedule posted for a node that does not exist is retired (never leaked, never installed).
+    std::unique_ptr<ClipSchedule> orphan = buildTrackClipSchedule (edited, trackId, views, status);
+    REQUIRE (orphan != nullptr);
+    REQUIRE (live.engine->postLiveClipSchedule (12345678u, std::move (orphan)));
+    (void) drainPlayback (*live.engine, 16, 8);
+    REQUIRE (live.engine->liveSchedulesApplied() == 1);
+    (void) live.engine->reclaim();
+}

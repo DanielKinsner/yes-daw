@@ -2212,3 +2212,247 @@ TEST_CASE ("G0.4 the adopted real device survives New / Open with a new generati
     REQUIRE (app.recordingDeviceSelection().selected);
     REQUIRE (app.recordingDeviceSelection().generation > afterCreate);
 }
+
+// G0.5 — the live placement lane (ADR-0046 §6; plan §5.3 lane 2; feel budget B4). A placement-only
+// edit (nudge, gain, fades, delete, and its undo) publishes the changed Track's ClipSchedule to
+// the RUNNING engine instead of rebuilding it; what the live engine then renders is bit-identical
+// to what a fresh engine built from the persisted bundle renders; a topology edit still rebuilds.
+TEST_CASE ("G0.5 placement edits ride the live lane: no engine rebuild, audio equals a rebuild",
+           "[ui][app][live-placement][b4]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("live-placement");
+    Project project = makeSmokeProject();
+    Clip neighbour = project.clips.front();
+    neighbour.id = idFromLowByte (9);
+    neighbour.timelineStart = 12;
+    project.clips.push_back (neighbour);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    const std::uint64_t rebuilds = app.playbackReplaceCount();
+    REQUIRE (app.livePlacementEdits() == 0);
+    const yesdaw::engine::DecodedAssetAudio diagView {
+        decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
+        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+    // Phase check: the live engine renders what the offline render of the in-memory project renders.
+    const auto checkLive = [&] (const char* phase) {
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        (void) app.renderPlaybackFrames (256, 128);   // let a queued burst land (<= 64 commands per block)
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        const std::vector<float> live = app.renderPlaybackFrames (256, 128);
+        REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+        const auto offline = yesdaw::engine::renderOfflineProject (app.project(), std::span<const yesdaw::engine::DecodedAssetAudio> (&diagView, 1));
+        REQUIRE (offline.ok());
+        const std::size_t n = std::min (live.size(), offline.interleavedSamples.size());
+        INFO ("phase: " << phase << " gain0=" << app.project().clips[0].gain << " live[2]=" << live[2]
+              << " offline[2]=" << offline.interleavedSamples[2] << " applied=" << app.playbackLiveSchedulesApplied()
+              << " liveEdits=" << app.livePlacementEdits() << " rebuilds=" << app.playbackReplaceCount());
+        REQUIRE (app.playbackLiveSchedulesApplied() == app.livePlacementEdits());
+        for (std::size_t i = 0; i < n; ++i)
+            REQUIRE (live[i] == offline.interleavedSamples[i]);
+    };
+
+    // 100 placement edits of every live verb: nudges both ways, gain, fades, delete, and undo.
+    REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
+    for (int i = 0; i < 20; ++i)
+        REQUIRE (app.dispatch (UiActionId::EditNudgeRight).dispatched);
+    for (int i = 0; i < 20; ++i)
+        REQUIRE (app.dispatch (UiActionId::EditNudgeLeft).dispatched);
+    checkLive ("after 40 nudges");
+    for (int i = 0; i < 10; ++i)
+        REQUIRE (app.dispatch (UiActionId::TimelineClipGainIncrease).dispatched);
+    for (int i = 0; i < 10; ++i)
+        REQUIRE (app.dispatch (UiActionId::TimelineClipGainDecrease).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineClipApplyDefaultFades).dispatched);
+    checkLive ("after gains + fades");
+    for (int i = 0; i < 20; ++i)
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    checkLive ("after 20 undos");
+    for (int i = 0; i < 19; ++i)
+        REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    checkLive ("after 19 redos");
+    REQUIRE (app.playbackReplaceCount() == rebuilds);
+    REQUIRE (app.livePlacementEdits() == 100);
+
+    // Delete and its undo: still no rebuild.
+    REQUIRE (app.dispatch (UiActionId::TimelineClipDelete).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    checkLive ("after delete + undo");
+    REQUIRE (app.playbackReplaceCount() == rebuilds);
+    REQUIRE (app.livePlacementEdits() == 102);
+    REQUIRE (app.project().clips.size() == 2u);
+
+    // What the LIVE engine plays now is exactly what a fresh engine built from the persisted
+    // bundle plays (the same law, bit for bit), and it is not silence. Both play from zero: a
+    // stopped transport renders silence without draining the command queue.
+    REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    (void) app.renderPlaybackFrames (256, 128);   // settle any queued burst (<= 64 commands per block)
+    REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+    const std::vector<float> live = app.renderPlaybackFrames (2048, 128);
+    REQUIRE (app.playbackLiveSchedulesApplied() == app.livePlacementEdits());
+    UiAppModel fresh;
+    UiDecodedAsset decodedAgain = makeDecodedAsset (project.assets.front());
+    REQUIRE (fresh.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decodedAgain, 1)).ok());
+    REQUIRE (fresh.project().clips.size() == 2u);
+    // The persisted bundle and the in-memory project agree on every clip (placement + gain + fades).
+    for (std::size_t i = 0; i < 2u; ++i)
+    {
+        INFO ("clip " << i << " gain live=" << app.project().clips[i].gain << " persisted=" << fresh.project().clips[i].gain
+              << " start live=" << app.project().clips[i].timelineStart << " persisted=" << fresh.project().clips[i].timelineStart
+              << " fadeIn live=" << app.project().clips[i].fadeIn << " persisted=" << fresh.project().clips[i].fadeIn);
+        REQUIRE (app.project().clips[i] == fresh.project().clips[i]);
+    }
+    REQUIRE (fresh.dispatch (UiActionId::TransportLocateStart).dispatched);
+    REQUIRE (fresh.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> rebuilt = fresh.renderPlaybackFrames (2048, 128);
+    REQUIRE (live.size() == rebuilt.size());
+    // Diagnostics: the project's gains are back at unity, and the offline render of the
+    // in-memory project tells which engine drifted if the two disagree.
+    REQUIRE (app.project().clips[0].gain == Catch::Approx (1.0f));
+    REQUIRE (app.project().clips[1].gain == Catch::Approx (1.0f));
+    {
+        const yesdaw::engine::DecodedAssetAudio view {
+            decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
+            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+        const auto offline = yesdaw::engine::renderOfflineProject (app.project(), std::span<const yesdaw::engine::DecodedAssetAudio> (&view, 1));
+        REQUIRE (offline.ok());
+        const std::size_t n = std::min (live.size(), offline.interleavedSamples.size());
+        std::vector<float> offlineHead (offline.interleavedSamples.begin(), offline.interleavedSamples.begin() + static_cast<std::ptrdiff_t> (n));
+        std::vector<float> liveHead (live.begin(), live.begin() + static_cast<std::ptrdiff_t> (n));
+        std::vector<float> rebuiltHead (rebuilt.begin(), rebuilt.begin() + static_cast<std::ptrdiff_t> (n));
+        INFO ("offline[2]=" << offline.interleavedSamples[2] << " live[2]=" << live[2] << " rebuilt[2]=" << rebuilt[2]);
+        REQUIRE (rebuiltHead == offlineHead);
+        REQUIRE (liveHead == offlineHead);
+    }
+    REQUIRE (live == rebuilt);
+    float peak = 0.0f;
+    for (const float v : live)
+        peak = std::max (peak, std::abs (v));
+    REQUIRE (peak > 0.0f);
+
+    // Negative control: topology (a new Track) still rebuilds — exactly once.
+    REQUIRE (app.addAudioTrack().dispatched);
+    REQUIRE (app.playbackReplaceCount() == rebuilds + 1);
+    REQUIRE (app.livePlacementEdits() == 102);
+}
+
+// G0.5 bisect: after EACH single placement verb the live engine must render what the offline
+// render of the in-memory project renders. Localizes which verb leaves the live schedule stale.
+TEST_CASE ("G0.5 live lane stays in step with the project after every single verb",
+           "[ui][app][live-placement][bisect]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("live-placement-bisect");
+    Project project = makeSmokeProject();
+    Clip neighbour = project.clips.front();
+    neighbour.id = idFromLowByte (9);
+    neighbour.timelineStart = 12;
+    project.clips.push_back (neighbour);
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+    UiAppModel app;
+    UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
+    const yesdaw::engine::DecodedAssetAudio view {
+        decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
+        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+
+    const auto check = [&] (const char* step) {
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        (void) app.renderPlaybackFrames (256, 128);   // let the post land (<= 64 commands per block)
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        const std::vector<float> live = app.renderPlaybackFrames (256, 128);
+        REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+        const auto offline = yesdaw::engine::renderOfflineProject (app.project(), std::span<const yesdaw::engine::DecodedAssetAudio> (&view, 1));
+        REQUIRE (offline.ok());
+        const std::size_t n = std::min (live.size(), offline.interleavedSamples.size());
+        INFO ("step: " << step << " gain0=" << app.project().clips[0].gain << " live[2]=" << live[2]
+              << " offline[2]=" << offline.interleavedSamples[2] << " applied=" << app.playbackLiveSchedulesApplied()
+              << " liveEdits=" << app.livePlacementEdits() << " rebuilds=" << app.playbackReplaceCount());
+        for (std::size_t i = 0; i < n; ++i)
+            REQUIRE (live[i] == offline.interleavedSamples[i]);
+    };
+
+    check ("initial");
+    REQUIRE (app.dispatch (UiActionId::TimelineClipGainIncrease).dispatched);
+    check ("gain+");
+    REQUIRE (app.dispatch (UiActionId::TimelineClipGainDecrease).dispatched);
+    check ("gain-");
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    check ("undo (back to gain+)");
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    check ("redo (back to unity)");
+    REQUIRE (app.dispatch (UiActionId::EditNudgeRight).dispatched);
+    check ("nudge right");
+    REQUIRE (app.dispatch (UiActionId::TimelineClipDelete).dispatched);
+    check ("delete");
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    check ("undo delete");
+}
+
+// G0.5 burst probe: N posts queued with no block processed in between must all be applied by
+// the next render, in order, so the live engine renders the project's final state — swept across
+// the runtime's queue depths (command queue 256, retirement queue 64, 64 commands per block).
+TEST_CASE ("G0.5 a burst of queued schedule posts is applied in order by the next render",
+           "[ui][app][live-placement][burst]")
+{
+    for (const int posts : { 63, 64, 65, 71, 90, 102, 127, 128, 129, 200 })
+    {
+        const std::filesystem::path bundlePath = makeTempBundlePath ("live-placement-burst-" + std::to_string (posts));
+        Project project = makeSmokeProject();
+        {
+            ProjectBundleDb db;
+            REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+            REQUIRE (db.writeProjectSnapshot (project).ok());
+            writeProjectAssetFiles (bundlePath, project);
+        }
+        UiAppModel app;
+        UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
+        const yesdaw::engine::DecodedAssetAudio view {
+            decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
+            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+
+        for (int i = 0; i < posts; ++i)
+            REQUIRE (app.dispatch (i % 2 == 0 ? UiActionId::TimelineClipGainIncrease
+                                              : UiActionId::TimelineClipGainDecrease).dispatched);
+        REQUIRE (app.livePlacementEdits() == static_cast<std::uint64_t> (posts));
+        const std::uint64_t appliedBeforeTransport = app.playbackLiveSchedulesApplied();
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        const std::uint64_t appliedBeforeRender = app.playbackLiveSchedulesApplied();
+        // The runtime applies at most 64 commands per block (Runtime::Config::maxCommandsPerBlock,
+        // the O(1) block bound), so a burst of N posts lands within ceil (N / 64) blocks — the
+        // running app's next few device blocks. Settle for four blocks, then compare from zero.
+        (void) app.renderPlaybackFrames (512, 128);
+        const std::uint64_t appliedAfterRender = app.playbackLiveSchedulesApplied();
+        REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
+        const std::vector<float> live = app.renderPlaybackFrames (512, 128);
+        const auto offline = yesdaw::engine::renderOfflineProject (app.project(), std::span<const yesdaw::engine::DecodedAssetAudio> (&view, 1));
+        REQUIRE (offline.ok());
+        INFO ("posts=" << posts << " applied before transport=" << appliedBeforeTransport << " before render=" << appliedBeforeRender
+              << " after render=" << appliedAfterRender << " gain0=" << app.project().clips[0].gain
+              << " live[2]=" << live[2] << " offline[2]=" << offline.interleavedSamples[2]
+              << " rebuilds=" << app.playbackReplaceCount());
+        REQUIRE (appliedAfterRender == static_cast<std::uint64_t> (posts));
+        const std::size_t n = std::min (live.size(), offline.interleavedSamples.size());
+        for (std::size_t i = 0; i < n; ++i)
+            REQUIRE (live[i] == offline.interleavedSamples[i]);
+    }
+}

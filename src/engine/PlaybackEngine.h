@@ -307,6 +307,16 @@ public:
         return liveGraph_ != nullptr && driver_.postSetFxParam (node, paramId, normalizedValue);
     }
 
+    // G0.5 — the live placement lane (CONTROL THREAD): publish a Track's new ClipSchedule to its
+    // schedule node through the ordered command queue. The audio thread installs it and retires
+    // the previous one to the janitor (reclaim()). Refused on a transport-only engine.
+    [[nodiscard]] bool postLiveClipSchedule (NodeId trackScheduleNode,
+                                             std::unique_ptr<const ClipSchedule> schedule) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetClipSchedule (trackScheduleNode, std::move (schedule));
+    }
+    [[nodiscard]] std::uint64_t liveSchedulesApplied() const noexcept { return driver_.schedulesApplied(); }
+
     // Republish the whole ADR-0014 mute/solo/solo-safe mask from the Project's strip state onto
     // the RUNNING graph — the same one law the build path applies (applyProjectStripMuteMask),
     // through the graph's atomic mute words, so no command lane and no rebuild is needed.

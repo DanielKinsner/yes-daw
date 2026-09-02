@@ -1309,6 +1309,62 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
     REQUIRE (sameImage (first, back));
 }
 
+// G0.5 — feel budget B4 through the shipped shell: moving, trimming, deleting and undoing clips
+// WHILE PLAYING never rebuilds the engine (the probe's `audio.rebuilds` / the snapshot's
+// playbackReplaceCount stay put) and playback keeps running; a topology edit still rebuilds.
+TEST_CASE ("B4: placement edits while playing never rebuild the engine",
+           "[ui][input][shell][b4-no-rebuild]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("b4-no-rebuild");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    const auto probeRebuilds = [&shell] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<juce::int64> (probe["audio"]["rebuilds"]);
+    };
+
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    const std::uint64_t rebuilds = snapshotMainComponent (*shell).playbackReplaceCount;
+    const juce::int64 probeBefore = probeRebuilds();
+
+    // 100 nudges, ten undos, ten redos, a delete and its undo — all while playing.
+    for (int i = 0; i < 50; ++i)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    }
+    for (int i = 0; i < 10; ++i)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    for (int i = 0; i < 10; ++i)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+
+    const MainComponentSnapshot after = snapshotMainComponent (*shell);
+    REQUIRE (after.playbackReplaceCount == rebuilds);
+    REQUIRE (probeRebuilds() == probeBefore);
+    REQUIRE (after.context.isPlaying);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+
+    // Negative control: a new Track is topology — exactly one rebuild.
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+    REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount == rebuilds + 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+}
+
 // M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a
 // hash of the clip id whenever no peak cache was ready, and MIDI clips ALWAYS took that path (they
 // carry no asset), so every MIDI clip painted confident audio detail for audio that does not exist.
@@ -6301,7 +6357,22 @@ TEST_CASE ("removing an automated target is never silently refused",
     }
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
-    REQUIRE (renderFromStart() == withClip);
+    {
+        // G0.5 re-pin: the delete and its undo are placement edits, so the engine KEEPS RUNNING
+        // across them (no rebuild). Its fader smoother therefore starts this render from the
+        // automation lane's value instead of the strip gain a fresh engine snaps to, so the first
+        // 5 ms (the Linear5Ms ramp) differ by design; from the ramp's end the audio is identical.
+        const std::vector<float> restored = renderFromStart();
+        REQUIRE (restored.size() == withClip.size());
+        constexpr std::size_t kFaderRampFrames = 240;   // 5 ms at 48 kHz
+        constexpr std::size_t kChannels = 2;
+        REQUIRE (restored.size() > kFaderRampFrames * kChannels * 2);
+        for (std::size_t i = kFaderRampFrames * kChannels; i < restored.size(); ++i)
+        {
+            INFO ("interleaved sample " << i);
+            REQUIRE (restored[i] == withClip[i]);
+        }
+    }
 
     // 2. An automated FX insert can be removed: the insert and its lane go in ONE undo step.
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));

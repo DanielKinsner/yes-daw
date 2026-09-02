@@ -9,6 +9,7 @@
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
+#include "engine/nodes/TrackClipScheduleNode.h"
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FaderNode.h"
@@ -384,6 +385,8 @@ private:
             return CompiledNodeKind::Oscillator;
         if (dynamic_cast<DecodedClipNode*> (&node) != nullptr)
             return CompiledNodeKind::Source;
+        if (dynamic_cast<TrackClipScheduleNode*> (&node) != nullptr)
+            return CompiledNodeKind::Source;   // G0.5: the per-Track clip schedule is a source
         if (dynamic_cast<FaderNode*> (&node) != nullptr)
             return CompiledNodeKind::Fader;
         if (dynamic_cast<PanNode*> (&node) != nullptr)

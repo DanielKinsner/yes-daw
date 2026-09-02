@@ -8,6 +8,7 @@
 #pragma once
 
 #include "engine/ClipEnvelope.h"
+#include "engine/ClipSchedule.h"
 #include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
@@ -35,6 +36,10 @@ struct DecodedAssetAudio
     std::uint64_t     frames = 0;
     std::uint16_t     channels = 0;
     std::span<const float> interleavedSamples;
+    // G0.5: when set, `interleavedSamples` views THIS storage and a ClipSchedule may keep it alive
+    // by reference instead of copying the window (the model shares one per asset). Null means the
+    // span is only valid for the duration of the build and the projection copies what it needs.
+    std::shared_ptr<const AssetSamples> owner;
 };
 
 struct OfflineRenderOptions
@@ -228,6 +233,182 @@ inline void applyProjectStripMuteMask (CompiledGraph& graph, const Project& proj
 }
 
 // Build the compiled Project graph (mixer projection over decoded Asset sources). Pure control-side.
+namespace detail {
+
+// G0.5: resolve ONE Clip into its schedule entry — validation identical to the old per-clip source
+// factory (decoded asset present, metadata match, channel law, window inside the asset), then the
+// samples: an owned asset (the model's shared storage) is referenced in place; an unowned view is
+// copied ONCE per asset for this build (into `copiedAssets`) with the finite-sample scan the old
+// window copy performed.
+[[nodiscard]] inline bool makeScheduledClipSource (std::span<const DecodedAssetAudio> decodedAssets,
+                                                   const Clip& clip,
+                                                   const Asset& asset,
+                                                   int stripChannels,
+                                                   const ResolvedClipWindow& window,
+                                                   std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>>& copiedAssets,
+                                                   ScheduledClipSource& out,
+                                                   OfflineRenderStatus& status)
+{
+    const DecodedAssetAudio* const decoded = findDecodedAsset (decodedAssets, asset.id);
+    if (decoded == nullptr)
+    {
+        status = OfflineRenderStatus::MissingAssetAudio;
+        return false;
+    }
+    if (! decodedAssetMetadataMatches (*decoded, asset))
+    {
+        status = OfflineRenderStatus::AssetMetadataMismatch;
+        return false;
+    }
+    if (asset.channels == 0u || asset.channels > 2u || stripChannels < static_cast<int> (asset.channels))
+    {
+        status = OfflineRenderStatus::UnsupportedAssetChannels;
+        return false;
+    }
+    if (clip.srcOffset > asset.frames || window.sourceFrames > asset.frames - clip.srcOffset)
+    {
+        status = OfflineRenderStatus::SourceDecodeFailed;
+        return false;
+    }
+    if (! clipEditMetadataIsStorageSafe (clip))
+    {
+        status = OfflineRenderStatus::SourceDecodeFailed;
+        return false;
+    }
+
+    std::shared_ptr<const AssetSamples> owner = decoded->owner;
+    if (owner == nullptr)
+    {
+        for (const auto& copied : copiedAssets)
+            if (copied.first == asset.id)
+                owner = copied.second;
+        if (owner == nullptr)
+        {
+            const std::uint64_t assetChannels = asset.channels;
+            const std::uint64_t total = decoded->frames * assetChannels;
+            if (total > static_cast<std::uint64_t> (decoded->interleavedSamples.size())
+                || total > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max()))
+            {
+                status = OfflineRenderStatus::OutputTooLarge;
+                return false;
+            }
+            auto copy = std::make_shared<AssetSamples>();
+            copy->channels = static_cast<int> (assetChannels);
+            copy->frames = decoded->frames;
+            copy->interleaved.resize (static_cast<std::size_t> (total));
+            for (std::size_t n = 0; n < copy->interleaved.size(); ++n)
+            {
+                const float source = decoded->interleavedSamples[n];
+                if (! std::isfinite (source))
+                {
+                    status = OfflineRenderStatus::SourceDecodeFailed;
+                    return false;
+                }
+                copy->interleaved[n] = source;
+            }
+            owner = copy;
+            copiedAssets.emplace_back (asset.id, owner);
+        }
+    }
+
+    if (owner->frames < asset.frames || owner->channels != static_cast<int> (asset.channels))
+    {
+        status = OfflineRenderStatus::AssetMetadataMismatch;
+        return false;
+    }
+
+    out.owner = owner;
+    out.clip.samples = owner->interleaved.data()
+                     + static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
+    out.clip.sourceFrames = static_cast<std::int64_t> (window.sourceFrames);
+    out.clip.sourceChannels = owner->channels;
+    out.clip.startFrame = static_cast<std::int64_t> (window.startFrame);
+    out.clip.fadeInFrames = static_cast<std::int64_t> (clip.fadeIn);
+    out.clip.fadeOutFrames = static_cast<std::int64_t> (clip.fadeOut);
+    out.clip.gain = clip.gain;
+    return true;
+}
+
+// G0.5: resolve one Clip's window with the SAME law buildProjectGraph applies to every Clip.
+[[nodiscard]] inline bool resolveClipWindow (const Clip& clip, ResolvedClipWindow& out) noexcept
+{
+    if (clip.timeBase != TimeBase::SampleLocked)
+        return false;
+    std::uint64_t startFrame = 0;
+    std::uint64_t lengthFrames = 0;
+    if (! tickAsSampleLockedFrame (clip.timelineStart, startFrame)
+        || ! tickAsSampleLockedFrame (clip.timelineLength, lengthFrames))
+        return false;
+    std::uint64_t clipEnd = 0;
+    if (! checkedAddFrames (startFrame, lengthFrames, clipEnd))
+        return false;
+    out = { clip.id, startFrame, lengthFrames, std::min<std::uint64_t> (clip.srcLen, lengthFrames) };
+    return true;
+}
+
+} // namespace detail
+
+// G0.5 — the live placement lane's builder (CONTROL THREAD): the ClipSchedule for one Track of
+// `project`, through the SAME per-clip resolver the graph build uses, so a schedule published
+// live is byte-for-byte what a rebuild would install. Null (with `status`) when any Clip of the
+// Track fails the law — the caller then converges by a real rebuild instead of guessing.
+[[nodiscard]] inline std::unique_ptr<ClipSchedule> buildTrackClipSchedule (const Project& project,
+                                                                            EntityId trackId,
+                                                                            std::span<const DecodedAssetAudio> decodedAssets,
+                                                                            OfflineRenderStatus& status)
+{
+    status = OfflineRenderStatus::Ok;
+    auto schedule = std::make_unique<ClipSchedule>();
+    std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
+
+    int stripChannels = 1;
+    for (const Clip& clip : project.clips)
+    {
+        if (! (clip.trackId == trackId))
+            continue;
+        const Asset* const asset = project.findAsset (clip.assetId);
+        if (asset == nullptr || asset->channels == 0u || asset->channels > 2u)
+        {
+            status = OfflineRenderStatus::InvalidProject;
+            return nullptr;
+        }
+        if (asset->channels == 2u)
+            stripChannels = 2;
+    }
+
+    for (const Clip& clip : project.clips)
+    {
+        if (! (clip.trackId == trackId))
+            continue;
+        const Asset* const asset = project.findAsset (clip.assetId);
+        if (asset == nullptr || ! mixerGainIsValid (clip.gain))
+        {
+            status = OfflineRenderStatus::InvalidProject;
+            return nullptr;
+        }
+        detail::ResolvedClipWindow window;
+        if (! detail::resolveClipWindow (clip, window))
+        {
+            status = OfflineRenderStatus::InvalidTimeline;
+            return nullptr;
+        }
+        ScheduledClipSource source;
+        if (! detail::makeScheduledClipSource (decodedAssets, clip, *asset, stripChannels, window,
+                                               copiedAssets, source, status))
+            return nullptr;
+        schedule->clips.push_back (source.clip);
+        if (source.owner != nullptr)
+        {
+            bool held = false;
+            for (const auto& owner : schedule->keepAlive)
+                held = held || owner == source.owner;
+            if (! held)
+                schedule->keepAlive.push_back (source.owner);
+        }
+    }
+    return schedule;
+}
+
 [[nodiscard]] inline ProjectGraphResult buildProjectGraph (const Project& project,
                                                            std::span<const DecodedAssetAudio> decodedAssets,
                                                            OfflineRenderOptions options = {})
@@ -337,90 +518,23 @@ inline void applyProjectStripMuteMask (CompiledGraph& graph, const Project& proj
 
     MixerProjectionInputs projection;
     OfflineRenderStatus factoryStatus = OfflineRenderStatus::Ok;
+    // G0.5: the SAME per-clip law the live placement lane uses (buildTrackClipSchedule) — one
+    // resolver, so what the engine plays after a live edit is exactly what a rebuild would bake.
+    std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [&decodedAssets, &resolved, &factoryStatus] (const Project&, const Clip& clip, const Asset& asset, NodeId expectedSourceId,
-                                                     int stripChannels)
-            -> std::unique_ptr<Node>
+        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets] (const Project&, const Clip& clip, const Asset& asset,
+                                                                     int stripChannels, ScheduledClipSource& out) -> bool
         {
-            const DecodedAssetAudio* const decoded = detail::findDecodedAsset (decodedAssets, asset.id);
-            if (decoded == nullptr)
-            {
-                factoryStatus = OfflineRenderStatus::MissingAssetAudio;
-                return nullptr;
-            }
-            if (! detail::decodedAssetMetadataMatches (*decoded, asset))
-            {
-                factoryStatus = OfflineRenderStatus::AssetMetadataMismatch;
-                return nullptr;
-            }
-            if (asset.channels == 0u || asset.channels > 2u || stripChannels < static_cast<int> (asset.channels))
-            {
-                factoryStatus = OfflineRenderStatus::UnsupportedAssetChannels;
-                return nullptr;
-            }
-
             const detail::ResolvedClipWindow* const window = detail::findResolvedClip (resolved, clip.id);
             if (window == nullptr)
             {
                 factoryStatus = OfflineRenderStatus::InvalidTimeline;
-                return nullptr;
+                return false;
             }
-            if (clip.srcOffset > asset.frames || window->sourceFrames > asset.frames - clip.srcOffset)
-            {
-                factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
-                return nullptr;
-            }
-
-            std::vector<float> samples;
-            const std::uint64_t assetChannels = asset.channels;
-            if (window->sourceFrames > static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max()) / assetChannels)
-            {
-                factoryStatus = OfflineRenderStatus::OutputTooLarge;
-                return nullptr;
-            }
-
-            // Hand the RAW windowed source to DecodedClipNode and let IT apply Clip gain/fades. The realtime
-            // engine plays Clips through DecodedClipNode's own (linear) fade, so pre-baking a different
-            // (equal-power) curve on the control side here would make the exported file diverge from what
-            // playback produces. Rendering through the same node keeps export == playback by construction.
-            // Validate the fade/gain metadata first, as the envelope evaluator did, so malformed Clips are
-            // still rejected.
-            if (! detail::clipEditMetadataIsStorageSafe (clip))
-            {
-                factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
-                return nullptr;
-            }
-
-            // The window copy is interleaved by the ASSET's channel count; DecodedClipNode widens a mono
-            // source onto a stereo strip itself (centre-compensated, ADR-0042).
-            samples.resize (static_cast<std::size_t> (window->sourceFrames * assetChannels));
-            for (std::uint64_t frame = 0; frame < window->sourceFrames; ++frame)
-            {
-                const std::uint64_t sourceFrame = clip.srcOffset + frame;
-                for (std::uint64_t channel = 0; channel < assetChannels; ++channel)
-                {
-                    const float source =
-                        decoded->interleavedSamples[static_cast<std::size_t> (sourceFrame * assetChannels + channel)];
-                    if (! std::isfinite (source))
-                    {
-                        factoryStatus = OfflineRenderStatus::SourceDecodeFailed;
-                        return nullptr;
-                    }
-
-                    samples[static_cast<std::size_t> (frame * assetChannels + channel)] = source;
-                }
-            }
-
-            return std::make_unique<DecodedClipNode> (expectedSourceId,
-                                                      std::move (samples),
-                                                      stripChannels,
-                                                      static_cast<std::int64_t> (window->startFrame),
-                                                      static_cast<std::int64_t> (clip.fadeIn),
-                                                      static_cast<std::int64_t> (clip.fadeOut),
-                                                      clip.gain,
-                                                      static_cast<int> (asset.channels));
+            return detail::makeScheduledClipSource (decodedAssets, clip, asset, stripChannels, *window,
+                                                    copiedAssets, out, factoryStatus);
         },
         projection,
         &result.projectError);

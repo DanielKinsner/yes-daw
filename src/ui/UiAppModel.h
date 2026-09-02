@@ -281,6 +281,13 @@ public:
     // scalar commands the running engine's audio thread has applied. Together they are the
     // mechanical no-rebuild proof: a live scalar edit advances the second and never the first.
     [[nodiscard]] std::uint64_t playbackReplaceCount() const noexcept { return playbackReplaceCount_; }
+    // G0.5: how many edits took the live placement lane, and how many schedules the audio thread
+    // has installed on the running engine (B4's mechanical proof).
+    [[nodiscard]] std::uint64_t livePlacementEdits() const noexcept { return livePlacementEdits_; }
+    [[nodiscard]] std::uint64_t playbackLiveSchedulesApplied() const noexcept
+    {
+        return playback_ != nullptr ? playback_->liveSchedulesApplied() : 0;
+    }
     [[nodiscard]] std::uint64_t playbackLiveScalarsApplied() const noexcept
     {
         return playback_ != nullptr ? playback_->liveScalarsApplied() : 0;
@@ -297,6 +304,11 @@ public:
 
     void reclaimRetiredAudioObjects()
     {
+        // G0.5: the engine's janitor frees retired ClipSchedules (and graphs) the audio thread is
+        // provably past — the same processedGen fence-post ADR-0006 uses for graph swaps.
+        if (playback_ != nullptr)
+            (void) playback_->reclaim();
+
         const std::uint64_t started = deviceBlocksStarted_.load (std::memory_order_acquire);
         const bool live = deviceCallbackLive_;
         const auto reclaimable = [live, started] (std::uint64_t retiredAtBlock) noexcept {
@@ -2026,6 +2038,11 @@ public:
                     channelStorage.data() + static_cast<std::size_t> (channel) * static_cast<std::size_t> (blockSize);
 
             playback_->processBlock (channelPtrs.data(), channels, n);
+            // G0.5: this synchronous drain IS the control thread, so run the janitor per block as
+            // the UI tick does — the runtime's retirement queue (64 slots) would otherwise fill
+            // after 64 live schedule swaps and defer every later command to a reclaim that never
+            // comes inside one render.
+            (void) playback_->reclaim();
 
             for (int frame = 0; frame < n; ++frame)
             {
@@ -7508,9 +7525,164 @@ private:
         return { id, state, true };
     }
 
+    // ---------------------------------------------------------------------------------------
+    // G0.5: the live placement lane (ADR-0046 §6, plan §5.3 lane 2). An edit that changes ONLY
+    // audio Clip placement (move / trim / split / join / delete / add-from-existing-asset / gain /
+    // fades, and their undo/redo) publishes each changed Track's ClipSchedule to the RUNNING
+    // engine through the ordered command queue instead of rebuilding it. Everything else — tracks,
+    // buses, inserts, sends, routing, automation, MIDI, tempo/meter, assets, a Track whose strip
+    // width (mono/stereo) changes — keeps the full rebuild. The transport is never touched.
+
+    [[nodiscard]] static bool sameNotes (const std::vector<engine::Note>& a, const std::vector<engine::Note>& b) noexcept
+    {
+        if (a.size() != b.size())
+            return false;
+        for (std::size_t i = 0; i < a.size(); ++i)
+        {
+            const engine::Note& x = a[i];
+            const engine::Note& y = b[i];
+            if (! (x.id == y.id) || x.startTick != y.startTick || x.lengthTicks != y.lengthTicks
+                || x.key != y.key || x.pitchNote != y.pitchNote || x.normalizedVelocity != y.normalizedVelocity
+                || x.portIndex != y.portIndex || x.channel != y.channel)
+                return false;
+        }
+        return true;
+    }
+
+    [[nodiscard]] static bool sameMidiClips (const std::vector<engine::MidiClip>& a,
+                                             const std::vector<engine::MidiClip>& b) noexcept
+    {
+        if (a.size() != b.size())
+            return false;
+        for (std::size_t i = 0; i < a.size(); ++i)
+        {
+            const engine::MidiClip& x = a[i];
+            const engine::MidiClip& y = b[i];
+            if (! (x.id == y.id) || ! (x.trackId == y.trackId) || x.timelineStart != y.timelineStart
+                || x.timelineLength != y.timelineLength || x.timeBase != y.timeBase || ! sameNotes (x.notes, y.notes))
+                return false;
+        }
+        return true;
+    }
+
+    // ADR-0042: a Track's strip width derives from its Clips' assets; a move that changes it is topology.
+    [[nodiscard]] static int trackStripWidth (const engine::Project& project, engine::EntityId trackId) noexcept
+    {
+        int width = 1;
+        for (const engine::Clip& clip : project.clips)
+        {
+            if (! (clip.trackId == trackId))
+                continue;
+            const engine::Asset* const asset = project.findAsset (clip.assetId);
+            if (asset != nullptr && asset->channels == 2u)
+                width = 2;
+        }
+        return width;
+    }
+
+    [[nodiscard]] bool canAdoptPlacementEditLive (const engine::Project& next) const noexcept
+    {
+        const engine::Project& cur = project_;
+        if (playback_ == nullptr || ! playback_->hasLiveGraph() || ! context_.projectLoaded)
+            return false;
+        if (cur.sampleRate.hz != next.sampleRate.hz
+            || ! (cur.assets == next.assets)
+            || ! (cur.tracks == next.tracks)
+            || ! (cur.buses == next.buses)
+            || ! (cur.tempoMap == next.tempoMap)
+            || ! (cur.meterMap == next.meterMap)
+            || ! (cur.automationLanes == next.automationLanes)
+            || ! sameMidiClips (cur.midiClips, next.midiClips)
+            || cur.recordingTakes.size() != next.recordingTakes.size()
+            || cur.recordingCompSegments.size() != next.recordingCompSegments.size())
+            return false;
+        for (const engine::Track& track : next.tracks)
+            if (trackStripWidth (cur, track.id) != trackStripWidth (next, track.id))
+                return false;
+        // Something placement-related must actually differ, else there is nothing to publish
+        // (markers, locate points and names take the ordinary path untouched).
+        return ! (cur.clips == next.clips);
+    }
+
+    [[nodiscard]] static bool trackClipsDiffer (const engine::Project& a, const engine::Project& b,
+                                                engine::EntityId trackId) noexcept
+    {
+        std::size_t ia = 0;
+        std::size_t ib = 0;
+        for (;;)
+        {
+            while (ia < a.clips.size() && ! (a.clips[ia].trackId == trackId)) ++ia;
+            while (ib < b.clips.size() && ! (b.clips[ib].trackId == trackId)) ++ib;
+            const bool endA = ia >= a.clips.size();
+            const bool endB = ib >= b.clips.size();
+            if (endA || endB)
+                return endA != endB;
+            if (! (a.clips[ia] == b.clips[ib]))
+                return true;
+            ++ia;
+            ++ib;
+        }
+    }
+
+    [[nodiscard]] bool adoptPlacementEditLive (engine::Project nextProject, engine::ProjectUndoStack nextUndo)
+    {
+        // Build every changed Track's schedule FIRST (same law as a rebuild); any failure means
+        // the ordinary rebuild path, before anything is adopted.
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        std::vector<std::pair<engine::NodeId, std::unique_ptr<const engine::ClipSchedule>>> schedules;
+        for (const engine::Track& track : nextProject.tracks)
+        {
+            if (! trackClipsDiffer (project_, nextProject, track.id))
+                continue;
+            engine::OfflineRenderStatus status = engine::OfflineRenderStatus::Ok;
+            std::unique_ptr<engine::ClipSchedule> schedule = engine::buildTrackClipSchedule (
+                nextProject, track.id,
+                std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+                status);
+            if (schedule == nullptr || status != engine::OfflineRenderStatus::Ok)
+                return false;
+            schedules.emplace_back (
+                engine::projectMixerNodeIdForTrack (track.id, engine::ProjectMixerNodeRole::ClipSchedule),
+                std::move (schedule));
+        }
+
+        if (bundleDb_.isOpen())
+        {
+            persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+            if (! written.ok())
+                return false;
+        }
+
+        project_ = std::move (nextProject);
+        undo_ = std::move (nextUndo);
+        decodedAssetViews_ = std::move (decodedViews);
+        ++editSerial_;
+        syncProjectEditContext();
+
+        bool delivered = true;
+        for (auto& entry : schedules)
+            delivered = playback_->postLiveClipSchedule (entry.first, std::move (entry.second)) && delivered;
+        ++livePlacementEdits_;
+
+        // A full (bounded) command queue is the one honest failure: the project is adopted, so
+        // converge the audio by a real rebuild rather than playing a stale placement.
+        if (! delivered)
+            rebuildPlaybackForCurrentProject();
+        return true;
+    }
+
     [[nodiscard]] bool adoptEditedProject (engine::Project nextProject,
                                            engine::ProjectUndoStack nextUndo)
     {
+        // G0.5: placement-only edits ride the live lane; a refused build falls through to the rebuild.
+        if (canAdoptPlacementEditLive (nextProject))
+        {
+            engine::Project liveProject = nextProject;
+            engine::ProjectUndoStack liveUndo = nextUndo;
+            if (adoptPlacementEditLive (std::move (liveProject), std::move (liveUndo)))
+                return true;
+        }
+
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
             nextProject,
@@ -7848,19 +8020,57 @@ private:
         return decoded;
     }
 
-    static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
+    // G0.5: decoded views carry shared OWNED storage so a live ClipSchedule can keep an asset's
+    // samples alive by reference. One copy per asset, made here (control thread) and re-made
+    // only when the decoded data itself changed (identity: pointer + frames + channels); the
+    // copy is scanned for non-finite samples once, which is what the old per-window copy did
+    // per rebuild.
+    std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
     {
         std::vector<engine::DecodedAssetAudio> views;
         views.reserve (decodedAssets.size());
 
         for (const UiDecodedAsset& asset : decodedAssets)
         {
+            std::shared_ptr<const engine::AssetSamples> owner;
+            for (const OwnedAssetSamples& cached : assetSamplesCache_)
+            {
+                if (cached.assetId == asset.assetId
+                    && cached.sourceData == asset.interleavedSamples.data()
+                    && cached.frames == asset.frames
+                    && cached.channels == asset.channels)
+                {
+                    owner = cached.samples;
+                    break;
+                }
+            }
+            if (owner == nullptr)
+            {
+                bool finite = true;
+                for (const float sample : asset.interleavedSamples)
+                    finite = finite && std::isfinite (sample);
+                if (finite)
+                {
+                    auto copy = std::make_shared<engine::AssetSamples>();
+                    copy->channels = std::max<int> (1, asset.channels);
+                    copy->frames = asset.frames;
+                    copy->interleaved = asset.interleavedSamples;
+                    owner = copy;
+                    std::erase_if (assetSamplesCache_,
+                                   [&asset] (const OwnedAssetSamples& cached) { return cached.assetId == asset.assetId; });
+                    assetSamplesCache_.push_back ({ asset.assetId, asset.interleavedSamples.data(),
+                                                    asset.frames, asset.channels, owner });
+                }
+                // A non-finite decode keeps no owner: the projection copies and rejects it as before.
+            }
+
             views.push_back (engine::DecodedAssetAudio {
                 asset.assetId,
                 asset.sampleRate,
                 asset.frames,
                 asset.channels,
-                std::span<const float> (asset.interleavedSamples.data(), asset.interleavedSamples.size())
+                std::span<const float> (asset.interleavedSamples.data(), asset.interleavedSamples.size()),
+                owner
             });
         }
 
@@ -8773,6 +8983,17 @@ private:
         std::uint64_t retiredAtBlock = 0;
     };
     std::vector<RetiredPlayback> retiredPlayback_;
+    // G0.5: shared asset storage the live lane's schedules keep alive (one copy per decoded asset).
+    struct OwnedAssetSamples
+    {
+        engine::EntityId assetId;
+        const float* sourceData = nullptr;
+        std::uint64_t frames = 0;
+        std::uint16_t channels = 0;
+        std::shared_ptr<const engine::AssetSamples> samples;
+    };
+    std::vector<OwnedAssetSamples> assetSamplesCache_;
+    std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };
     bool deviceCallbackLive_ = false;

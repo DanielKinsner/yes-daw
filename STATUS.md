@@ -41,12 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.5 in progress — placement edits must not rebuild the engine (audio first; MIDI as
-G0.5b if needed). The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes
-the mouse and keyboard for ~40 s), so no drive run happens until he says go; G0.5's see-it step
-waits on that. Headless work (audit, code, ctest, CI) continues.
-G0.4 ✅ — certified: exact-head run `33592155901` green on all ten jobs for full SHA
-`f608d3ddfc6e1b09a35bc9eb7eb19e3c52dafad8` (first try). Local suite 363/363.
+**Now:** G0.5 built and proven headlessly (below); awaiting exact-head CI, then the evidence
+tick. The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes the
+mouse and keyboard for ~40 s), so G0.5's see-it step (SS-1 step 11, `rebuilds` unchanged
+while playing) and every later see-it wait for his go. Headless work continues.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -54,6 +52,80 @@ G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) f
 only (compile hide, D11), green everywhere else.
 G0.3 ✅ — certified: exact-head run `33589636898` green on all ten jobs for full SHA
 `ea4dfea9351773eaca732cc79f3cb2996ef4f5a1` (first try). Local suite 363/363.
+G0.4 ✅ — certified: exact-head run `33592155901` green on all ten jobs for full SHA
+`f608d3ddfc6e1b09a35bc9eb7eb19e3c52dafad8` (first try). Local suite 363/363.
+**Next:** G0.6 — the 16-track three-minute fixture generator (deterministic, hash-stable,
+never committed as WAV); then B2/B4/B5 re-measured on it and every Session script switches to it.
+
+### G0.5 — Placement edits don't rebuild the engine (2026-09-01)
+
+**Story.** Moving a clip while the song plays does not hiccup. **Precedent.** Every DAW edits
+the arrangement under a running engine. **Audit first.** Every audio-clip edit went through
+`adoptEditedProject` → `PlaybackEngine::create` → `replacePlayback` (a whole new graph, the
+R12 rebuild counter); the projection made ONE `DecodedClipNode` per Clip holding a private copy
+of its window; only strip scalars had a live lane. The device block already read the engine
+through an atomic; the transport and scalar lanes were command-queue based (ADR-0006). The
+Runtime's graph retire/reclaim law (processedGen fence-post) was the right shape to extend.
+
+**Built.**
+- **`ClipSchedule`** (`engine/ClipSchedule.h`): a Track's audio Clips as ONE immutable schedule —
+  per-Clip resolved placement (window start, playable frames, channels, fades, gain) plus the
+  shared `AssetSamples` it keeps alive. The per-frame law is `DecodedClipNode`'s verbatim and
+  the Clips are summed in double exactly like the strip Sum, so N scheduled Clips render
+  bit-identically to the N source nodes they replace (the engine-level gate proves it).
+- **`TrackClipScheduleNode`**: one source node per Track (id role `ClipSchedule`, appended to
+  `ProjectMixerNodeRole`), reading its schedule through one atomic load; `exchangeSchedule()`
+  on the audio thread hands the previous one back for retirement. Empty Tracks get an empty
+  schedule node, so the first Clip placed on a Track is a live edit too.
+- **Runtime lane**: `CommandType::SetClipSchedule` rides the ordered command queue with graph
+  swaps and scalars; the audio thread installs it and retires the previous schedule — or a
+  refused one — to the retirement queue; `reclaim()` frees on the ADR-0006 fence-post. Never a
+  free under a running block; never a leak (the destructor sweeps queued and pending ones).
+  `PlaybackEngine::postLiveClipSchedule` / `liveSchedulesApplied`.
+- **Projection**: the per-Clip node-factory seam became a `ClipSourceProvider` (samples, not
+  nodes); `OfflineRenderer::buildTrackClipSchedule` is the ONE resolver the graph build and the
+  live lane share; `DecodedAssetAudio` gains an optional `owner` so schedules reference the
+  model's shared per-asset storage (one copy per asset, scanned finite once) instead of copying
+  every window on every build.
+- **Model lane**: `adoptEditedProject` takes the live lane when ONLY audio Clip placement
+  changed (tracks, buses, assets, MIDI clips, tempo/meter, automation lanes, take/comp counts
+  and every Track's mono/stereo width equal — ADR-0042 width is topology); it builds the changed
+  Tracks' schedules first, persists, posts, and converges by a rebuild only if a post is refused.
+  Undo/redo ride it. The UI tick runs the engine janitor; the headless render reclaims per block.
+
+**Gates.** `[live-placement][b4]` (app smoke): 102 placement edits — nudges, gain, fades, 20
+undos, 19 redos, delete, undo — zero rebuilds; the live engine then renders bit-identically to a
+fresh engine built from the persisted bundle AND to the offline render of the in-memory project;
+a new Track still rebuilds exactly once. `[live-placement][bisect]`: after every single verb the
+live engine equals the offline render. `[live-placement][burst]`: 63, 64, 65, 71, 90, 102, 127,
+128, 129 and 200 queued posts all land and render the final state. `[b4-no-rebuild]` (ui_input
+harness): while playing, 100 nudges + 10 undos + 10 redos + delete + undo leave the probe's
+`audio.rebuilds` and the snapshot's rebuild counter unchanged and playback running; a new Track
+rebuilds once. `[clip-schedule]` (playback tests, engine level): a live publish renders
+bit-identically to a rebuilt engine and to the offline render, the edit is audible, a post to a
+node that does not exist is retired. Re-pins: mixer projection tests (one schedule node per
+Track carrying the Track's clips in order; the "wrong node id from the factory" failure cannot
+exist any more), the driver test's clip source, and the shell's automated-track delete/undo
+compare (from the fader ramp's end — see D15). Local suite green (below).
+
+**SS-1 see-it (step 11, `rebuilds` 2 → 5 while playing).** Pending: the drive is paused (D14).
+Expected green: drag, split and undo are placement edits now.
+
+**Deviation log (G0.5).**
+- D15 A running engine re-located to 0 is not bit-identical to a fresh engine for the first
+  5 ms: the fader's Linear5Ms smoother starts from its last value where a fresh engine snaps to
+  the strip gain and ramps to the lane's value. The shell test that compared a re-render after
+  delete/undo against its first render is re-pinned to compare from the ramp's end, with the
+  rationale in-comment; parked for the G2 loop/locate determinism gates to decide the law.
+- D16 The runtime applies at most 64 commands per block (`Runtime::Config::maxCommandsPerBlock`,
+  the O(1) block bound), so a burst of N queued schedule posts lands within ceil(N/64) device
+  blocks (2.7 ms each at 128/48k), and a STOPPED transport drains no commands at all (edits made
+  while stopped apply on the first block after Play). The gates let a burst settle before
+  comparing; the law is parked with numbers. B4 is about rebuilds, not command latency.
+- D17 MIDI clip/note edits still rebuild (G0.5b per the plan's risk note): the lane requires
+  MIDI clips unchanged. Import (a new asset) also rebuilds; add/split/duplicate/paste of
+  existing-asset clips are live.
+- D18 The drive is paused on Dan's word (D14); G0.5's see-it is recorded as pending, not green.
 
 ### G0.4 — Rendering budget (2026-09-01)
 

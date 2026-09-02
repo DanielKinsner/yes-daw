@@ -11,6 +11,7 @@
 #include "engine/Project.h"
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
+#include "engine/nodes/TrackClipScheduleNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
@@ -37,7 +38,8 @@ enum class ProjectMixerNodeRole : std::uint8_t
     Meter,
     MidiSource,
     Instrument,
-    Fx
+    Fx,
+    ClipSchedule   // G0.5: the Track's one live-swappable audio clip schedule (replaces per-Clip sources)
 };
 
 struct ProjectMixerSendRoute
@@ -352,15 +354,26 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
 
 } // namespace detail
 
-// SourceFactory signature:
-//   std::unique_ptr<Node> factory(const Project&, const Clip&, const Asset&, NodeId expectedSourceNodeId,
-//                                 int stripChannels)
+// G0.5: what a Clip contributes to its Track's schedule — the resolved placement plus the asset
+// storage that keeps its samples alive for as long as the schedule lives.
+struct ScheduledClipSource
+{
+    ScheduledClip clip;
+    std::shared_ptr<const AssetSamples> owner;
+};
+
+// ClipSourceProvider signature (G0.5 — replaces the per-Clip source-node factory):
+//   bool provider(const Project&, const Clip&, const Asset&, int stripChannels, ScheduledClipSource& out)
 // stripChannels is the owning Track's derived width (ADR-0042): 2 if any Clip on the Track references a
-// stereo Asset, else 1. The factory must return a source Node that EMITS stripChannels channels.
-template <typename SourceFactory>
+// stereo Asset, else 1. The provider resolves the Clip to frames and hands back the samples it plays;
+// the projection assembles every Clip of a Track into ONE ClipSchedule on ONE TrackClipScheduleNode
+// (id: projectMixerNodeIdForTrack (track, ProjectMixerNodeRole::ClipSchedule)), which the live
+// placement lane can later swap without a rebuild. A Track with no audio Clips still gets its
+// (empty, silent) schedule node so the first Clip placed on it is a live edit too.
+template <typename ClipSourceProvider>
 [[nodiscard]] inline bool projectToMixerProjectionInputs (const Project& project,
                                                           const ProjectMixerProjectionConfig& config,
-                                                          SourceFactory&& sourceFactory,
+                                                          ClipSourceProvider&& sourceFactory,
                                                           MixerProjectionInputs& out,
                                                           ProjectMixerProjectionError* error = nullptr)
 {
@@ -466,6 +479,8 @@ template <typename SourceFactory>
         std::vector<std::unique_ptr<Node>> clipSources;
         std::vector<Node*> sumInputs;
 
+        // G0.5: every audio Clip on this Track goes into ONE schedule on ONE schedule node.
+        auto schedule = std::make_unique<ClipSchedule>();
         for (std::size_t i = 0; i < project.clips.size(); ++i)
         {
             const Clip& clip = project.clips[i];
@@ -487,28 +502,32 @@ template <typename SourceFactory>
                 return false;
             }
 
-            const NodeId clipSourceId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::Source);
-            if (! detail::registerProjectMixerNodeId (usedIds, clipSourceId, i, ProjectMixerNodeRole::Source, error))
-                return false;
-
-            std::unique_ptr<Node> source = sourceFactory (project, clip, *asset, clipSourceId, stripChannels);
-            if (source == nullptr)
+            ScheduledClipSource source;
+            if (! sourceFactory (project, clip, *asset, stripChannels, source))
             {
                 if (error != nullptr)
-                    *error = { ProjectMixerProjectionError::Code::SourceFactoryFailed, i, clipSourceId, ProjectMixerNodeRole::Source };
+                    *error = { ProjectMixerProjectionError::Code::SourceFactoryFailed, i, 0, ProjectMixerNodeRole::Source };
                 return false;
             }
 
-            if (source->properties().id != clipSourceId)
+            schedule->clips.push_back (source.clip);
+            if (source.owner != nullptr)
             {
-                if (error != nullptr)
-                    *error = { ProjectMixerProjectionError::Code::SourceNodeIdMismatch, i, clipSourceId, ProjectMixerNodeRole::Source };
-                return false;
+                bool held = false;
+                for (const auto& owner : schedule->keepAlive)
+                    held = held || owner == source.owner;
+                if (! held)
+                    schedule->keepAlive.push_back (source.owner);
             }
-
-            sumInputs.push_back (source.get());
-            clipSources.push_back (std::move (source));
         }
+
+        const NodeId scheduleId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::ClipSchedule);
+        if (! detail::registerProjectMixerNodeId (usedIds, scheduleId, trackIndex, ProjectMixerNodeRole::ClipSchedule, error))
+            return false;
+
+        auto scheduleNode = std::make_unique<TrackClipScheduleNode> (scheduleId, stripChannels, std::move (schedule));
+        sumInputs.push_back (scheduleNode.get());
+        clipSources.push_back (std::move (scheduleNode));
 
         // M1: every MIDI Clip on this Track becomes flattened-source -> instrument feeding the SAME
         // strip Sum the Track's audio Clips feed, so the chain below (FX, fader, pan, meter, sends,

@@ -28,6 +28,7 @@
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FaderNode.h"
+#include "engine/nodes/TrackClipScheduleNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/MasterNode.h"
@@ -540,6 +541,24 @@ public:
             return false;
 
         static_cast<FaderNode*> (node->node)->setTargetGain (linearGain);
+        return true;
+    }
+
+    // G0.5 (AUDIO THREAD, via the Runtime command lane): install a new ClipSchedule on a Track's
+    // schedule node. On success `previous` receives the schedule that was playing (the caller
+    // retires it); on refusal (unknown node, or not a schedule node) nothing changes and the
+    // caller retires `next` itself. dynamic_cast allocates nothing.
+    [[nodiscard]] bool applySetClipSchedule (NodeId id,
+                                             const ClipSchedule* next,
+                                             const ClipSchedule*& previous) const noexcept YESDAW_RT_HOT
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->kind != CompiledNodeKind::Source || node->node == nullptr)
+            return false;
+        auto* const schedule = dynamic_cast<TrackClipScheduleNode*> (node->node);
+        if (schedule == nullptr)
+            return false;
+        previous = schedule->exchangeSchedule (next);
         return true;
     }
 

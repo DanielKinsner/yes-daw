@@ -65,6 +65,9 @@ using yesdaw::engine::buildMixerGraphProjection;
 using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerNodeIdForClip;
+using yesdaw::engine::AssetSamples;
+using yesdaw::engine::ScheduledClipSource;
+using yesdaw::engine::TrackClipScheduleNode;
 using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
 using yesdaw::engine::projectMixerNodeIdForTrack;
 using yesdaw::engine::projectToMixerProjectionInputs;
@@ -275,11 +278,31 @@ enum class SourceGainMutation
     DoubleTrackGainAtSource
 };
 
-std::unique_ptr<Node> makeDecodedProjectSource (const Project& project,
-                                                const Clip& clip,
-                                                const Asset& asset,
-                                                NodeId expectedSourceId,
-                                                SourceGainMutation mutation)
+// G0.5: a constant-DC mono clip source as a SCHEDULE entry (the projection owns the node now).
+// `frames` of `value` from timeline frame 0, no fades, the clip's gain — what the old per-clip
+// DecodedClipNode carried.
+bool makeDcClipSource (std::uint64_t frames, float value, float gain, ScheduledClipSource& out)
+{
+    auto owner = std::make_shared<AssetSamples>();
+    owner->channels = 1;
+    owner->frames = frames;
+    owner->interleaved.assign (static_cast<std::size_t> (frames), value);
+    out.owner = owner;
+    out.clip.samples = owner->interleaved.data();
+    out.clip.sourceFrames = static_cast<std::int64_t> (frames);
+    out.clip.sourceChannels = 1;
+    out.clip.startFrame = 0;
+    out.clip.fadeInFrames = 0;
+    out.clip.fadeOutFrames = 0;
+    out.clip.gain = gain;
+    return true;
+}
+
+bool makeDecodedProjectSource (const Project& project,
+                               const Clip& clip,
+                               const Asset& asset,
+                               SourceGainMutation mutation,
+                               ScheduledClipSource& out)
 {
     const Track* const track = project.findTrack (clip.trackId);
     REQUIRE (track != nullptr);
@@ -290,14 +313,7 @@ std::unique_ptr<Node> makeDecodedProjectSource (const Project& project,
     else if (mutation == SourceGainMutation::DoubleTrackGainAtSource)
         source *= track->strip.linearGain;
 
-    std::vector<float> samples (static_cast<std::size_t> (clip.srcLen), source);
-    return std::make_unique<DecodedClipNode> (expectedSourceId,
-                                              std::move (samples),
-                                              1,
-                                              0,
-                                              0,
-                                              0,
-                                              clip.gain);
+    return makeDcClipSource (clip.srcLen, source, clip.gain, out);
 }
 
 MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
@@ -316,10 +332,10 @@ MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [mutation] (const Project& sourceProject, const Clip& clip, const Asset& asset, NodeId expectedSourceId, int)
-            -> std::unique_ptr<Node>
+        [mutation] (const Project& sourceProject, const Clip& clip, const Asset& asset, int, ScheduledClipSource& out)
+            -> bool
         {
-            return makeDecodedProjectSource (sourceProject, clip, asset, expectedSourceId, mutation);
+            return makeDecodedProjectSource (sourceProject, clip, asset, mutation, out);
         },
         projection,
         &projectError);
@@ -477,11 +493,20 @@ TEST_CASE ("Project projector emits MixerProjectionInputs from Project clips", "
     const NodeId trackMeter = projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::Meter);
     REQUIRE (projection.tracks[0].source->properties().id == trackSource);
     REQUIRE (dynamic_cast<SumNode*> (projection.tracks[0].source.get()) != nullptr);
-    REQUIRE (projection.tracks[0].supportNodes.size() == project.clips.size());
-    REQUIRE (projection.tracks[0].supportNodes[0]->properties().id
-             == projectMixerNodeIdForClip (project.clips[0].id, ProjectMixerNodeRole::Source));
-    REQUIRE (projection.tracks[0].supportNodes[1]->properties().id
-             == projectMixerNodeIdForClip (project.clips[1].id, ProjectMixerNodeRole::Source));
+    // G0.5 re-pin: the Track's audio Clips are ONE schedule node (id: the Track's ClipSchedule
+    // role) carrying one schedule entry per Clip in Project order — not one source node per Clip.
+    REQUIRE (projection.tracks[0].supportNodes.size() == 1u);
+    {
+        const auto* scheduleNode =
+            dynamic_cast<const TrackClipScheduleNode*> (projection.tracks[0].supportNodes[0].get());
+        REQUIRE (scheduleNode != nullptr);
+        REQUIRE (scheduleNode->properties().id
+                 == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::ClipSchedule));
+        REQUIRE (scheduleNode->currentSchedule() != nullptr);
+        REQUIRE (scheduleNode->currentSchedule()->clips.size() == project.clips.size());
+        REQUIRE (scheduleNode->currentSchedule()->clips[0].gain == project.clips[0].gain);
+        REQUIRE (scheduleNode->currentSchedule()->clips[1].gain == project.clips[1].gain);
+    }
     REQUIRE (projection.tracks[0].faderNodeId == trackFader);
     REQUIRE (projection.tracks[0].panNodeId == trackPan);
     REQUIRE (projection.tracks[0].meterNodeId == trackMeter);
@@ -755,10 +780,10 @@ TEST_CASE ("Project projector resolves lanes on clip-less tracks and rejects tar
     config.masterSumNodeId = kMasterSumId;
     config.masterNodeId = kMasterId;
 
-    const auto sourceFactory = [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
-        -> std::unique_ptr<Node>
+    const auto sourceFactory = [] (const Project&, const Clip& clip, const Asset&, int, ScheduledClipSource& out)
+        -> bool
     {
-        return std::make_unique<IdentityDcNode> (expectedSourceId, 1.0f, 1);
+        return makeDcClipSource (clip.srcLen, 1.0f, 1.0f, out);
     };
 
     SECTION ("a lane on a track with no clips projects")
@@ -855,11 +880,11 @@ TEST_CASE ("Project projector rejects invalid Project and invalid clip gain befo
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
-                -> std::unique_ptr<Node>
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, int, ScheduledClipSource&)
+                -> bool
             {
                 factoryCalled = true;
-                return nullptr;
+                return false;
             },
             projection,
             &error));
@@ -878,11 +903,11 @@ TEST_CASE ("Project projector rejects invalid Project and invalid clip gain befo
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
-                -> std::unique_ptr<Node>
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, int, ScheduledClipSource&)
+                -> bool
             {
                 factoryCalled = true;
-                return nullptr;
+                return false;
             },
             projection,
             &error));
@@ -909,11 +934,11 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [&factoryCalled] (const Project&, const Clip&, const Asset&, NodeId, int)
-                -> std::unique_ptr<Node>
+            [&factoryCalled] (const Project&, const Clip&, const Asset&, int, ScheduledClipSource&)
+                -> bool
             {
                 factoryCalled = true;
-                return nullptr;
+                return false;
             },
             projection,
             &error));
@@ -933,10 +958,10 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
         REQUIRE_FALSE (projectToMixerProjectionInputs (
             project,
             config,
-            [] (const Project&, const Clip&, const Asset&, NodeId, int)
-                -> std::unique_ptr<Node>
+            [] (const Project&, const Clip&, const Asset&, int, ScheduledClipSource&)
+                -> bool
             {
-                return nullptr;
+                return false;
             },
             projection,
             &error));
@@ -952,19 +977,30 @@ TEST_CASE ("Project projector rejects duplicate generated NodeIds and bad source
 
         MixerProjectionInputs projection;
         ProjectMixerProjectionError error;
-        REQUIRE_FALSE (projectToMixerProjectionInputs (
+        // G0.5 re-pin: node ids are the projection's own law now — a provider hands back
+        // samples, never a node — so the ONE schedule node per Track carries the derived id and
+        // exactly the Track's clips (the old "wrong id from the factory" failure cannot exist).
+        REQUIRE (projectToMixerProjectionInputs (
             project,
             config,
-            [] (const Project&, const Clip&, const Asset&, NodeId expectedSourceId, int)
-                -> std::unique_ptr<Node>
+            [] (const Project&, const Clip& clip, const Asset&, int, ScheduledClipSource& out)
+                -> bool
             {
-                return std::make_unique<IdentityDcNode> (expectedSourceId + 1u, 1.0f, 1);
+                return makeDcClipSource (clip.srcLen, 1.0f, clip.gain, out);
             },
             projection,
             &error));
-
-        REQUIRE (error.code == ProjectMixerProjectionError::Code::SourceNodeIdMismatch);
-        REQUIRE (error.clipIndex == 0u);
+        REQUIRE (error.code == ProjectMixerProjectionError::Code::None);
+        REQUIRE (projection.tracks.size() == 1u);
+        REQUIRE (projection.tracks[0].supportNodes.size() == 1u);
+        const auto* scheduleNode =
+            dynamic_cast<const TrackClipScheduleNode*> (projection.tracks[0].supportNodes[0].get());
+        REQUIRE (scheduleNode != nullptr);
+        REQUIRE (scheduleNode->properties().id
+                 == projectMixerNodeIdForTrack (project.tracks[0].id, ProjectMixerNodeRole::ClipSchedule));
+        REQUIRE (scheduleNode->currentSchedule() != nullptr);
+        REQUIRE (scheduleNode->currentSchedule()->clips.size() == project.clips.size());
+        REQUIRE (scheduleNode->currentSchedule()->clips[0].gain == project.clips[0].gain);
     }
 }
 

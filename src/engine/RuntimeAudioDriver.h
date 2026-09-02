@@ -67,6 +67,14 @@ public:
     // JANITOR / CONTROL THREAD: never call from the Audio thread.
     std::size_t reclaim() noexcept { return runtime_.reclaim(); }
 
+    // G0.5: the live placement lane — hand a Track's new ClipSchedule to the audio thread through
+    // the same ordered command queue as gain/pan/graph swaps. Ownership transfers on success.
+    [[nodiscard]] bool postSetClipSchedule (NodeId node, std::unique_ptr<const ClipSchedule> schedule) noexcept
+    {
+        return runtime_.postSetClipSchedule (node, std::move (schedule));
+    }
+    std::uint64_t schedulesApplied() const noexcept { return runtime_.schedulesApplied(); }
+
     std::uint64_t processedGen() const noexcept { return runtime_.processedGen(); }
     std::uint64_t scalarsApplied() const noexcept { return runtime_.scalarsApplied(); }
 

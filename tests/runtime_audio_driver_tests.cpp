@@ -112,10 +112,21 @@ std::unique_ptr<CompiledGraph> buildProjectMixerGraph (GraphId graphId)
     REQUIRE (projectToMixerProjectionInputs (
         project,
         config,
-        [] (const Project&, const Clip& clip, const Asset&, NodeId expectedSourceId, int)
-            -> std::unique_ptr<Node>
+        // G0.5: a constant-DC schedule entry for the clip window (the projection owns the node).
+        [] (const Project&, const Clip& clip, const Asset&, int, yesdaw::engine::ScheduledClipSource& out)
+            -> bool
         {
-            return std::make_unique<IdentityDcNode> (expectedSourceId, clip.gain, 1);
+            auto owner = std::make_shared<yesdaw::engine::AssetSamples>();
+            owner->channels = 1;
+            owner->frames = clip.srcLen;
+            owner->interleaved.assign (static_cast<std::size_t> (clip.srcLen), 1.0f);
+            out.owner = owner;
+            out.clip.samples = owner->interleaved.data();
+            out.clip.sourceFrames = static_cast<std::int64_t> (clip.srcLen);
+            out.clip.sourceChannels = 1;
+            out.clip.startFrame = 0;
+            out.clip.gain = clip.gain;
+            return true;
         },
         projection,
         &projectError));
