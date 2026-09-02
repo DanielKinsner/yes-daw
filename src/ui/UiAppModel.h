@@ -6967,8 +6967,17 @@ private:
         rebuildMonitorChain();
     }
 
+    // G0.8: the dock's first-Track verbs need their target to exist; the registry names why not.
+    void syncFirstTrackSlotContext() noexcept
+    {
+        const bool hasTrack = context_.projectLoaded && ! project_.tracks.empty();
+        context_.firstTrackSendAvailable = hasTrack && ! project_.tracks.front().sends.empty();
+        context_.firstTrackFxSlotAvailable = hasTrack && ! project_.tracks.front().strip.fxChain.empty();
+    }
+
     void syncRecordingCompContext() noexcept
     {
+        syncFirstTrackSlotContext();
         context_.recordingCompTakesAvailable = project_.recordingTakes.size() >= 2u;
         context_.recordingCompSelected = ! project_.recordingCompSegments.empty();
         context_.recordingCompSegmentCount = static_cast<int> (project_.recordingCompSegments.size());

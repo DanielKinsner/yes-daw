@@ -399,8 +399,6 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     requireDisjointActionBounds (
         *shell,
         std::array {
-            UiActionId::DeviceRefreshAudio,
-            UiActionId::DeviceSelectTestAudio,
             UiActionId::RecordingArmTrack,
             UiActionId::RecordingSetMonitoringPolicy,
             UiActionId::RecordingAssembleComp
@@ -995,7 +993,7 @@ TEST_CASE ("the rail arm badge lights red on the armed track", "[ui][screenshot]
     REQUIRE (before.getPixelAt (badgeCentre.x, badgeCentre.y)
              == yesdaw::ui::UiTheme::Color::mixerBack());
 
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
 
     const juce::Image armed = renderShell (*shell);

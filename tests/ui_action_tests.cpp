@@ -5,6 +5,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <string>
+
 #include <array>
 #include <set>
 #include <string_view>
@@ -354,6 +356,8 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (playBeforeProject.disabledReason == std::string_view ("no project loaded"));
 
     context.projectLoaded = true;
+    context.firstTrackSendAvailable = true;   // G0.8: the first-Track verbs need their target
+    context.firstTrackFxSlotAvailable = true;
     REQUIRE (registry.stateFor (UiActionId::TransportPlay, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineZoomFitProject, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineZoomIn, context).enabled);
@@ -395,7 +399,9 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
     REQUIRE (registry.stateFor (UiActionId::TimelineClipSplit, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineClipSetGain, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineClipSetFades, context).enabled);
-    REQUIRE (registry.stateFor (UiActionId::TimelineClipTimeStretch, context).enabled);
+    // G0.8: Time Stretch is registered but disabled with its reason until G2.9 wires the node.
+    REQUIRE_FALSE (registry.stateFor (UiActionId::TimelineClipTimeStretch, context).enabled);
+    REQUIRE (std::string (registry.stateFor (UiActionId::TimelineClipTimeStretch, context).disabledReason).find ("G2.9") != std::string::npos);
 
     const auto faderWithoutTarget = registry.stateFor (UiActionId::MixerTargetSetFader, context);
     REQUIRE_FALSE (faderWithoutTarget.enabled);
@@ -608,6 +614,8 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
     REQUIRE_FALSE (context.canRedo);
 
     context.mixerTargetSelected = true;
+    context.firstTrackSendAvailable = true;   // G0.8: the first-Track verbs need their target
+    context.firstTrackFxSlotAvailable = true;
     REQUIRE (registry.dispatch (UiActionId::MixerTargetSetFader, context).dispatched);
     REQUIRE (context.activePanel == UiPanel::Mixer);
     REQUIRE (context.mixerEditCount == 1);
@@ -768,14 +776,17 @@ TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo
     REQUIRE (model.project().clips[0].srcLen == 128u);
     REQUIRE (model.project().clips[1].id == rightClipId);
 
+    // G0.8: the stretch verb is refused (disabled with a reason) until G2.9 wires the node —
+    // nothing moves, nothing lands on the undo stack.
+    const int editsBeforeStretch = model.context().timelineEditCount;
     result = model.dispatch (
         UiActionId::TimelineClipTimeStretch,
         UiTimelineEditPayload::timeStretchToLength (clipId, 3072));
-    REQUIRE (result.dispatched);
-    REQUIRE (model.lastAppliedCommand()->verb == ProjectEditVerb::TrimClip);
-    REQUIRE (model.project().clips[0].timelineLength == 3072);
+    REQUIRE_FALSE (result.dispatched);
+    REQUIRE (std::string (result.state.disabledReason).find ("G2.9") != std::string::npos);
+    REQUIRE (model.project().clips[0].timelineLength == 2048);
     REQUIRE (model.project().clips[0].srcLen == 128u);
-    REQUIRE (model.context().timelineEditCount == 6);
+    REQUIRE (model.context().timelineEditCount == editsBeforeStretch);
 
     const std::size_t undoDepthBeforeInvalid = model.undoStack().undoDepth();
     const float gainBeforeInvalid = model.project().clips[0].gain;
@@ -787,16 +798,20 @@ TEST_CASE ("H11 timeline edit actions dispatch to Project edit commands and undo
     REQUIRE (model.undoStack().undoDepth() == undoDepthBeforeInvalid);
     REQUIRE (model.project().clips[0].gain == gainBeforeInvalid);
 
+    // G0.8: with the stretch refused, the undo step on top is the SPLIT (one clip again), and
+    // the redo re-splits it.
     result = model.dispatch (UiActionId::EditUndo);
     REQUIRE (result.dispatched);
     REQUIRE (result.undoStatus == ProjectUndoStatus::Applied);
-    REQUIRE (model.project().clips[0].timelineLength == 2048);
+    REQUIRE (model.project().clips.size() == 1u);
+    REQUIRE (model.project().clips[0].timelineLength == 4096);
     REQUIRE (model.context().canRedo);
 
     result = model.dispatch (UiActionId::EditRedo);
     REQUIRE (result.dispatched);
     REQUIRE (result.undoStatus == ProjectUndoStatus::Applied);
-    REQUIRE (model.project().clips[0].timelineLength == 3072);
+    REQUIRE (model.project().clips.size() == 2u);
+    REQUIRE (model.project().clips[0].timelineLength == 2048);
     REQUIRE_FALSE (model.context().canRedo);
 }
 

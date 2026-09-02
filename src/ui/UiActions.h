@@ -316,6 +316,10 @@ struct UiActionContext
     int recordingMonitoringCount = 0;
     int recordingCommandCount = 0;
     bool recordingCompTakesAvailable = false;
+    // G0.8: the first Track's first send / first FX slot exist (the dock's "Send" and "FX On"
+    // verbs act on them) — so a disabled control's registry state names why.
+    bool firstTrackSendAvailable = false;
+    bool firstTrackFxSlotAvailable = false;
     bool recordingCompSelected = false;
     int recordingCompSegmentCount = 0;
     int recordingCompCommandCount = 0;
@@ -419,7 +423,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "Ctrl+Alt+Shift+T", "Select test audio device",
+    { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "", "Select test audio device",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "Ctrl+Alt+A", "Arm selected Track for recording",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
@@ -449,7 +453,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipSetFades, "timeline.clip.set_fades", "Clip Fades", "Alt+F", "Set selected clip fades",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "Alt+R", "Time-stretch selected clip",
+    { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "", "Time-stretch selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "Ctrl+Alt+F", "Set selected mixer fader",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
@@ -705,13 +709,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
 }};
 
-inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
+// G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
+// test device is a harness-only verb (no chord, no control) so fake provenance cannot be stamped
+// from the UI.
+inline constexpr std::array<UiActionId, 16> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
     UiActionId::ProjectImportAudio,
-    UiActionId::DeviceRefreshAudio,
-    UiActionId::DeviceSelectTestAudio,
     UiActionId::RecordingArmTrack,
     UiActionId::RecordingSetMonitoringPolicy,
     UiActionId::TransportRecord,
@@ -731,7 +736,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 18>& mainShellToolbarActions()
+inline const std::array<UiActionId, 16>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }
@@ -854,6 +859,15 @@ public:
         const UiActionDescriptor* descriptor = descriptorFor (id);
         if (descriptor == nullptr)
             return { false, "unknown action" };
+
+        // G0.8: the verb stays registered but disabled with its reason until G2.9 wires the
+        // TimeStretchNode into the projection and the renderer (today it is a trim in disguise).
+        if (id == UiActionId::TimelineClipTimeStretch)
+            return { false, "coming in G2.9: the time-stretch node is not wired yet" };
+        if (id == UiActionId::MixerSetFirstSendLevel && context.projectLoaded && ! context.firstTrackSendAvailable)
+            return { false, "no send on the first Track" };
+        if (id == UiActionId::MixerToggleFirstFxSlotEnabled && context.projectLoaded && ! context.firstTrackFxSlotAvailable)
+            return { false, "no FX in the first Track's first slot" };
 
         if (descriptor->requiresProject && ! context.projectLoaded)
             return { false, "no project loaded" };

@@ -1518,8 +1518,10 @@ TEST_CASE ("clips paint what they contain: MIDI notes, and no invented waveform"
     // The old placeholder hashed the clip id into a waveform, so each clip grew its own fake
     // peaks — two lanes could never match.
     {
-        juce::Image image (juce::Image::ARGB, 640, 240, true);
-        juce::Graphics graphics (image);
+        // G0.7 cp3: two whole 72 px lanes under the 64 px ruler need more than 240 px; and the
+        // pixels are read only after the Graphics is gone (JUCE 8 flushes on destruction — with
+        // the context alive, Windows compared two unflushed blank lanes and passed vacuously).
+        juce::Image image (juce::Image::ARGB, 640, 360, true);
         const std::array<yesdaw::ui::Clip, 2> clips {
             yesdaw::ui::Clip { 0, 0, 0.0, 4.0, "Pending" },
             yesdaw::ui::Clip { 1, 1, 0.0, 4.0, "Pending" }
@@ -1533,7 +1535,11 @@ TEST_CASE ("clips paint what they contain: MIDI notes, and no invented waveform"
         state.viewport.pixelsPerSecond = 100.0;
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (image.getBounds(), state);
-        (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+        {
+            juce::Graphics graphics (image);
+            (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+        }
+        REQUIRE (geometry.clipArea.getHeight() >= 2 * geometry.laneHeight);
 
         int laneDifferences = 0;
         const int probeWidth = std::min (geometry.clipArea.getWidth(), 300);
@@ -12408,7 +12414,7 @@ TEST_CASE ("the input channel chooser lists the adopted device's channels and dr
     REQUIRE_FALSE (channelChooser->isEnabled());   // nothing adopted yet
 
     // The 2-input harness device: mono channels then the adjacent stereo pair.
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     REQUIRE (channelChooser->isEnabled());
     REQUIRE (channelChooser->getNumItems() == 3);
     REQUIRE (channelChooser->getItemText (0) == "In 1");
@@ -12442,7 +12448,7 @@ TEST_CASE ("the shell's armed rail meter shows the live input peak", "[ui][input
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
 
@@ -12477,7 +12483,7 @@ TEST_CASE ("the inspector take chooser lists the stack and drives switch and del
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
 
@@ -14687,7 +14693,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     // M11 re-pin: Shift+R on a second row ADDS it to the arm set (it used to retarget the arm
     // off the first row), and disarming one row leaves the rest of the set armed.
     const std::vector<std::uint8_t> persistedBeforeArm = readBytes (bundlePath / "project.db");
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::shiftModifier, 0)));
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingTrackArmed);
@@ -16034,6 +16040,65 @@ TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight wh
             REQUIRE (std::abs (railRow.getHeight() - L::trackListRowMinHeight) <= L::trackListSeparatorHeight);
     }
     REQUIRE (wholeLanes >= 8);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G0.8: no dead affordances. Every visible action-backed control is enabled or its registry
+// state names WHY it is not; the two developer buttons are gone; Time Stretch has no control,
+// no chord, and a disabled state with its reason. (Tooltips: the [tooltips] gate above.)
+TEST_CASE ("no dead affordances: every visible control is enabled or reasoned; the two lies are gone",
+           "[ui][input][shell][g0][no-dead-affordances]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("no-dead-affordances");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    for (const bool settings : { false, true })
+    {
+        yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, settings);
+        int actionControls = 0;
+        std::function<void (juce::Component&)> walk = [&] (juce::Component& component)
+        {
+            for (int i = 0; i < component.getNumChildComponents(); ++i)
+            {
+                juce::Component& child = *component.getChildComponent (i);
+                if (child.isVisible() && child.getComponentID().isNotEmpty())
+                {
+                    for (const auto& descriptor : yesdaw::ui::uiActionDescriptors())
+                    {
+                        if (child.getComponentID() != descriptor.stableId)
+                            continue;
+                        ++actionControls;
+                        const yesdaw::ui::UiActionState state = yesdaw::ui::mainComponentActionState (*shell, descriptor.id);
+                        INFO ("control " << descriptor.stableId << " enabled " << child.isEnabled()
+                              << " state " << state.enabled << " reason '" << state.disabledReason << "'");
+                        REQUIRE ((child.isEnabled() || std::string (state.disabledReason).size() > 0));
+                    }
+                }
+                walk (child);
+            }
+        };
+        walk (*shell);
+        REQUIRE (actionControls >= 12);
+    }
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::DeviceRefreshAudio) == nullptr);
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::DeviceSelectTestAudio) == nullptr);
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::TimelineClipTimeStretch) == nullptr);
+    const auto& descriptors = yesdaw::ui::uiActionDescriptors();
+    REQUIRE (std::string (descriptors[static_cast<std::size_t> (UiActionId::DeviceSelectTestAudio)].defaultKey).empty());
+    REQUIRE (std::string (descriptors[static_cast<std::size_t> (UiActionId::TimelineClipTimeStretch)].defaultKey).empty());
+    const yesdaw::ui::UiActionState stretch = yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipTimeStretch);
+    REQUIRE_FALSE (stretch.enabled);
+    REQUIRE (juce::String (stretch.disabledReason).contains ("G2.9"));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

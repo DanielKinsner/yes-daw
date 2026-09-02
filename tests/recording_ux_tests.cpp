@@ -181,14 +181,13 @@ AutosaveRecoveryFixture makeAutosaveRecoveryFixture (std::string label)
 
         auto shell = makeShell (std::move (choices));
         juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
-        juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
         juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
         juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
         juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
         juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
 
         clickButton (newProject);
-        clickButton (testDevice);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
         clickButton (armTrack);
         clickButton (monitor);
         clickButton (record);
@@ -221,16 +220,14 @@ TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording con
 
     REQUIRE (snapshot.isMainComponent);
 
-    juce::Button& refreshDevice = requireButtonForAction (*shell, UiActionId::DeviceRefreshAudio);
-    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
     juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
 
-    REQUIRE (refreshDevice.getComponentID() == "device.refresh_audio");
-    REQUIRE (testDevice.getComponentID() == "device.select_test_audio");
-    REQUIRE (testDevice.getButtonText() == "Test Device");
+    // G0.8: neither device verb has a shell control any more.
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::DeviceRefreshAudio) == nullptr);
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::DeviceSelectTestAudio) == nullptr);
     REQUIRE (armTrack.getComponentID() == "record.track.arm");
     REQUIRE (monitor.getComponentID() == "record.monitoring_policy");
     REQUIRE (record.getComponentID() == "transport.record");
@@ -248,12 +245,11 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     auto shell = makeShell (std::move (choices));
 
     juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
-    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
 
-    REQUIRE_FALSE (testDevice.isEnabled());
+    REQUIRE_FALSE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::DeviceSelectTestAudio).enabled);
     REQUIRE_FALSE (armTrack.isEnabled());
     REQUIRE_FALSE (monitor.isEnabled());
     REQUIRE_FALSE (record.isEnabled());
@@ -268,7 +264,7 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE_FALSE (snapshot.context.recordingInputSelected);
     REQUIRE_FALSE (record.isEnabled());
 
-    clickButton (testDevice);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingDeviceSelected);
@@ -309,8 +305,7 @@ TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device a
     REQUIRE (snapshot.context.recordingArmCount == 1);
     REQUIRE (record.isEnabled());
 
-    juce::Button& refreshDevice = requireButtonForAction (*shell, UiActionId::DeviceRefreshAudio);
-    clickButton (refreshDevice);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceRefreshAudio);   // G0.8: Options menu verb
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.deviceRefreshCount == 1);
@@ -432,7 +427,7 @@ TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting au
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
 
@@ -528,13 +523,12 @@ TEST_CASE ("H13 monitoring policy and fake-device latency calibration are script
     auto shell = makeShell (std::move (choices));
 
     juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
-    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
 
     clickButton (newProject);
-    clickButton (testDevice);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (armTrack);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -610,12 +604,11 @@ TEST_CASE ("H13 recording UX rejects arming when the loaded Project has no Track
     auto shell = makeShell (std::move (choices));
 
     juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
-    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
 
     clickButton (newProject);
-    clickButton (testDevice);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
@@ -642,7 +635,6 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     auto shell = makeShell (std::move (choices));
 
     juce::Button& newProject = requireButtonForAction (*shell, UiActionId::ProjectNew);
-    juce::Button& testDevice = requireButtonForAction (*shell, UiActionId::DeviceSelectTestAudio);
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
@@ -651,7 +643,7 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
 
     clickButton (newProject);
-    clickButton (testDevice);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (armTrack);
     clickButton (monitor);
 

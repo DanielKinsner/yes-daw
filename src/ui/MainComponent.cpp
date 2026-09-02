@@ -42,8 +42,7 @@ constexpr int kHeaderHeight = yesdaw::ui::UiTheme::Layout::headerHeight;
 [[nodiscard]] constexpr bool isSettingsRowAction (yesdaw::ui::UiActionId action) noexcept
 {
     using yesdaw::ui::UiActionId;
-    return action == UiActionId::DeviceRefreshAudio || action == UiActionId::DeviceSelectTestAudio
-        || action == UiActionId::RecordingArmTrack || action == UiActionId::RecordingSetMonitoringPolicy
+    return action == UiActionId::RecordingArmTrack || action == UiActionId::RecordingSetMonitoringPolicy
         || action == UiActionId::RecordingAssembleComp;
 }
 constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
@@ -116,8 +115,6 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::TransportStop: return "Stop";
         case yesdaw::ui::UiActionId::TransportLocateStart: return "|<";
         case yesdaw::ui::UiActionId::TransportToggleLoop: return "Loop";
-        case yesdaw::ui::UiActionId::DeviceRefreshAudio: return "Refresh";
-        case yesdaw::ui::UiActionId::DeviceSelectTestAudio: return "Test Device";
         case yesdaw::ui::UiActionId::RecordingArmTrack: return "Arm";
         case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: return "Monitor";
         case yesdaw::ui::UiActionId::TransportRecord: return "Record";
@@ -5281,8 +5278,6 @@ public:
                 case yesdaw::ui::UiActionId::ProjectOpen:        buttons[i].setBounds (h.openButton); break;
                 case yesdaw::ui::UiActionId::ProjectSave:        buttons[i].setBounds (h.saveButton); break;
                 case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (h.importButton); break;
-                case yesdaw::ui::UiActionId::DeviceRefreshAudio: buttons[i].setBounds (h.refresh); break;
-                case yesdaw::ui::UiActionId::DeviceSelectTestAudio: buttons[i].setBounds (h.testDevice); break;
                 case yesdaw::ui::UiActionId::RecordingArmTrack:  buttons[i].setBounds (h.arm); break;
                 case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: buttons[i].setBounds (h.monitor); break;
                 case yesdaw::ui::UiActionId::TransportRecord:    buttons[i].setBounds (h.record); break;
@@ -7973,7 +7968,7 @@ private:
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
         };
-        static constexpr std::array<UiActionId, 10> kOptionsMenu {
+        static constexpr std::array<UiActionId, 11> kOptionsMenu {
             UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
@@ -7981,6 +7976,7 @@ private:
             UiActionId::TransportToggleReturnToStartOnStop,
             UiActionId::TransportToggleRecordCountIn,
             UiActionId::ViewToggleSettingsRow,
+            UiActionId::DeviceRefreshAudio,   // G0.8: Options ▸ Refresh Device (no toolbar button)
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
 
@@ -9321,11 +9317,10 @@ private:
                                                                      appModel.context()).enabled);
         mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
                                                                     appModel.context()).enabled);
-        const bool firstSendAvailable = appModel.firstTrackFirstSendAutomationLane() != nullptr;
+        // G0.8: the registry state carries the "no send / no FX" reason itself (no dead affordance).
         mixerSendLevelEdit.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSetFirstSendLevel,
-                                          appModel.context()).enabled
-            && firstSendAvailable);
+                                          appModel.context()).enabled);
         mixerFxSlotsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadFxSlots,
                                                                       appModel.context()).enabled);
         mixerGainReductionReadout.setEnabled (
@@ -9334,11 +9329,9 @@ private:
         mixerBusFxSlotsReadout.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadBusFxSlots,
                                           appModel.context()).enabled);
-        const bool firstFxSlotAvailable = projectHasTrack && ! project.tracks.front().strip.fxChain.empty();
         mixerFxSlotToggle.setEnabled (
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled,
-                                          appModel.context()).enabled
-            && firstFxSlotAvailable);
+                                          appModel.context()).enabled);
         refreshingMixerControls = true;
         // E19: the master fader reflects the persisted master gain and enables with a project.
         mixerMasterFader.setEnabled (
@@ -9376,7 +9369,7 @@ private:
             // E23: this readout is the FIRST-track FX bypass tool — it must read track 0's
             // chain, not the selected strip's (found by the cross-strip gate: selecting a
             // chain-less third track while track 0 had FX dereferenced an empty vector).
-            mixerFxSlotToggle.setToggleState (firstFxSlotAvailable
+            mixerFxSlotToggle.setToggleState (appModel.context().firstTrackFxSlotAvailable
                                                   && project.tracks.front().strip.fxChain.front().enabled,
                                               juce::dontSendNotification);
         }
@@ -9747,7 +9740,7 @@ public:
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop;
         juce::Rectangle<int> masterCard, gear;
         juce::Rectangle<int> bitDepth, range, outputDevice, inputDevice, inputChannel;
-        juce::Rectangle<int> refresh, testDevice, arm, monitor, comp;
+        juce::Rectangle<int> arm, monitor, comp;
         bool settingsVisible = false;
     };
 
@@ -9849,8 +9842,6 @@ public:
             h.outputDevice = cell (L::settingsDeviceWidth);
             h.inputDevice = cell (L::settingsDeviceWidth);
             h.inputChannel = cell (L::settingsChannelWidth);
-            h.refresh = cell (L::settingsRefreshWidth);
-            h.testDevice = cell (L::settingsTestDeviceWidth);
             h.arm = cell (L::settingsArmWidth);
             h.monitor = cell (L::settingsMonitorWidth);
             h.comp = cell (L::settingsCompWidth);
@@ -9870,6 +9861,21 @@ public:
     {
         if (appModel.context().settingsRowVisible != visible)
             handleAction (yesdaw::ui::UiActionId::ViewToggleSettingsRow);
+    }
+
+    // G0.8 harness: dispatch an action the way a menu item or chord would (the test device verb
+    // has neither, by design); and read the registry's live state for one.
+    void harnessDispatchAction (yesdaw::ui::UiActionId action)
+    {
+        // Exactly what a toolbar button's click does.
+        handleAction (action);
+        refreshActionState();
+        resized();
+        repaintAll();
+    }
+    [[nodiscard]] yesdaw::ui::UiActionState harnessActionState (yesdaw::ui::UiActionId action) const
+    {
+        return appModel.registry().stateFor (action, appModel.context());
     }
 
     // M9: the header's master card — right-anchored against the gear, drops WHOLE (empty rect)
@@ -12400,8 +12406,7 @@ std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Componen
                                                h.undoButton, h.redoButton, h.exportButton, h.locateStart, h.play,
                                                h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop,
                                                h.masterCard, h.gear, h.bitDepth, h.range, h.outputDevice,
-                                               h.inputDevice, h.inputChannel, h.refresh, h.testDevice, h.arm,
-                                               h.monitor, h.comp })
+                                               h.inputDevice, h.inputChannel, h.arm, h.monitor, h.comp })
             if (! r.isEmpty())
                 rects.push_back (r);
     }
@@ -12420,6 +12425,19 @@ int mainComponentHeaderHeight (const juce::Component& component)
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->headerHeightNow();
     return 0;
+}
+
+void mainComponentDispatchAction (juce::Component& component, yesdaw::ui::UiActionId action)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessDispatchAction (action);
+}
+
+yesdaw::ui::UiActionState mainComponentActionState (const juce::Component& component, yesdaw::ui::UiActionId action)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessActionState (action);
+    return { false, "not a MainComponent" };
 }
 
 void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible)

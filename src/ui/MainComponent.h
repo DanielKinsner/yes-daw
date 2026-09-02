@@ -206,6 +206,9 @@ struct MainComponentSnapshot
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component);
 [[nodiscard]] int mainComponentHeaderHeight (const juce::Component& component);
 void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible);
+// G0.8: dispatch an action as a menu item or chord would, and read its live registry state.
+void mainComponentDispatchAction (juce::Component& component, UiActionId action);
+[[nodiscard]] UiActionState mainComponentActionState (const juce::Component& component, UiActionId action);
 void mainComponentRevealSettingsRowFor (juce::Component& component, UiActionId action);
 
 // N6: the rail's painted row rect (shell coordinates) — the SAME law the paint, rowBounds, and

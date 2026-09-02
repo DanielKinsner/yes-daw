@@ -41,10 +41,8 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.7 checkpoint 3 (the ruler's three rows) built, gated, judged headlessly; committed;
-awaiting its exact-head run. cp1's and cp2's runs were red on macOS only (D30, D31: a clang
-warning, then one inspector exact-restore compare that Windows/Linux pass — this commit carries a
-differing-pixel diagnostic for it). G0.7 ticks when a run is green on all ten jobs; G0.8 after.
+**Now:** G0.8 built, gated locally, committed; awaiting its exact-head run. Next: G1.1 (the first
+item of G1) per the plan, strictly top to bottom. The drive stays paused (D14).
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -61,9 +59,47 @@ G0.5 ✅ — certified by the fix commit's exact-head run `33596503075` (green o
 run `33595208144` was red on Linux/macOS (D22); code `96e9829` + fix `23d3e53`.
 G0.6 ✅ — certified by the same fix-commit run; its own run `33595972964` carried the D22 red;
 code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
+G0.7 ✅ — three checkpoints (`8795c42` header + row law, `8817813` panels + rail row, `4e9932a`
+ruler rows); certified by exact-head run `PENDING` for full SHA `PENDING` (cp1/cp2's own runs were
+red on macOS only: D30 clang capture warning, D31 the inspector exact-restore compare — see the
+cp3/G0.8 notes for the diagnosis). SS-1 see-it steps stay pending the drive (D14).
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G0.8 — Remove the two shipped lies (2026-09-02)
+
+**Build.** The Test Device and Refresh buttons are gone from the shell: Refresh is an Options
+menu item (`Ctrl+Alt+D` stays); the test device is a harness-only verb (no control, no chord —
+fake provenance cannot be stamped from the UI). Time Stretch stays registered, has no chord, and
+`stateFor` returns disabled with the reason "coming in G2.9: the time-stretch node is not wired
+yet"; the model refuses the dispatch. `kMainShellToolbarActions` is 16 (was 18). Harness:
+`mainComponentDispatchAction` / `mainComponentActionState`.
+
+**Gates.** `[no-dead-affordances]` (input check): settings row hidden and shown, every visible
+action-backed control is enabled or its registry state names why not; no control for the two
+device verbs or Time Stretch; their chords empty; the stretch state disabled with its reason.
+Re-pins: the registry gate expects the stretch verb disabled + reasoned; the model-level stretch
+dispatch is refused with nothing changed (clip length, edit count, undo depth); the recording,
+input and screenshot tests dispatch the test-device verb through the harness instead of a button.
+
+**See-it.** No visual change beyond two fewer buttons in the settings row (headless rubric shots
+unchanged at the three sizes). The drive stays paused (D14).
+
+**Deviation log (G0.8).**
+- D32 G0.7 cp3's run `33602350048` was red on Linux AND macOS in the two-lane identical-body
+  gate (`laneDifferences < 1 %`): the test read pixels with its `Graphics` alive, so on Windows it
+  compared two unflushed blank lanes and passed VACUOUSLY (D25's law again); with the 64 px ruler
+  the second 72 px lane no longer fit its 240 px canvas, which the flushing platforms saw. The
+  canvas is 360 px, the context scoped, and the gate now asserts two whole lanes fit. The macOS
+  V7 inspector compare (D31) did NOT recur on that run — recorded as a flake with the diagnostic
+  in place; a second occurrence gets its bounding box.
+- D33 `[no-dead-affordances]` found two REAL dead affordances beyond the two lies: the dock's
+  "Send" and "FX On" verbs (first-Track tools) were disabled by the shell on content presence
+  while their registry state said enabled with no reason. Fixed at the root: two context flags
+  synced with the derived flags, the registry names the reason, the shell reads that state.
+- D34 The G0.7 tick above shows PENDING for its certifying run: this commit's run certifies G0.7
+  (all three checkpoints) and G0.8 together; the ids are filled by the next docs commit.
 
 ### G0.7 — First-minute density, checkpoint 3: the ruler's rows (2026-09-02)
 
