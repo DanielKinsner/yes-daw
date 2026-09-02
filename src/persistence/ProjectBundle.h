@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 26;   // G2.14: markers colour
+inline constexpr int          kCodeSchemaVersion = 27;   // G3.1: the Track instrument slot
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -699,11 +699,16 @@ public:
 
     [[nodiscard]] BundleResult bindBlob (int index, std::span<const std::uint8_t> bytes)
     {
-        const int rc = sqlite3_bind_blob (stmt_,
-                                          index,
-                                          bytes.data(),
-                                          static_cast<int> (bytes.size()),
-                                          SQLITE_TRANSIENT);
+        // G3.1: an EMPTY blob binds as a zero-length blob, never as SQL NULL — sqlite3_bind_blob
+        // with a null data pointer binds NULL, which a NOT NULL column (tracks.instrument_state)
+        // refuses. A zero-length span has no data pointer to speak of, so say "zero blob" outright.
+        const int rc = bytes.empty()
+                         ? sqlite3_bind_zeroblob (stmt_, index, 0)
+                         : sqlite3_bind_blob (stmt_,
+                                              index,
+                                              bytes.data(),
+                                              static_cast<int> (bytes.size()),
+                                              SQLITE_TRANSIENT);
         return rc == SQLITE_OK ? ok() : BundleResult { BundleStatus::SqliteError, rc, 0, sqlite3_errstr (rc) };
     }
 
@@ -1382,13 +1387,20 @@ inline constexpr std::string_view kSchemaV26Sql = R"SQL(
 ALTER TABLE markers ADD COLUMN colour INTEGER NOT NULL DEFAULT 0;
 )SQL";
 
+// G3.1 / ADR-0047: the per-Track instrument slot — kind (0 = none, 1 = SimpleSynth) and an opaque,
+// kind-versioned state blob (empty = defaults). Additive: a v26 bundle opens with 0 / empty.
+inline constexpr std::string_view kSchemaV27Sql = R"SQL(
+ALTER TABLE tracks ADD COLUMN instrument_kind INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tracks ADD COLUMN instrument_state BLOB NOT NULL DEFAULT X'';
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 26> kMigrations {
+inline constexpr std::array<SchemaMigration, 27> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1415,6 +1427,7 @@ inline constexpr std::array<SchemaMigration, 26> kMigrations {
     SchemaMigration { 24, kSchemaV24Sql },
     SchemaMigration { 25, kSchemaV25Sql },
     SchemaMigration { 26, kSchemaV26Sql },
+    SchemaMigration { 27, kSchemaV27Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2096,8 +2109,8 @@ public:
 
         detail::Statement trackStmt (
             db_,
-            "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe, height_px, colour) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO tracks(id, name, linear_gain, pan, muted, soloed, solo_safe, height_px, colour, instrument_kind, instrument_state) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         for (const engine::Track& track : project.tracks)
         {
             trackStmt.reset();
@@ -2110,6 +2123,8 @@ public:
             if (auto result = trackStmt.bindInt64 (7, track.strip.soloSafe ? 1 : 0); ! result.ok()) { rollback(); return result; }
             if (auto result = trackStmt.bindInt64 (8, track.heightPx); ! result.ok()) { rollback(); return result; }
             if (auto result = trackStmt.bindInt64 (9, static_cast<std::int64_t> (track.colour)); ! result.ok()) { rollback(); return result; }
+            if (auto result = trackStmt.bindInt64 (10, static_cast<std::int64_t> (track.instrumentKind)); ! result.ok()) { rollback(); return result; }   // G3.1
+            if (auto result = trackStmt.bindBlob (11, std::span<const std::uint8_t> (track.instrumentState.data(), track.instrumentState.size())); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, trackStmt); ! result.ok()) { rollback(); return result; }
         }
 
@@ -2663,7 +2678,7 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe, height_px, colour FROM tracks ORDER BY rowid;");
+                    "SELECT id, name, linear_gain, pan, muted, soloed, solo_safe, height_px, colour, instrument_kind, instrument_state FROM tracks ORDER BY rowid;");
                 ! result.ok())
                 return result;
 
@@ -2695,6 +2710,18 @@ public:
                 track.colour = static_cast<std::uint32_t> (sqlite3_column_int64 (stmt.get(), 8));
                 if (! engine::trackColourIsValid (track.colour))
                     return detail::semanticInvalid ("tracks.colour is outside the Track value range");
+                // G3.1: the instrument slot.
+                {
+                    const std::int64_t rawKind = sqlite3_column_int64 (stmt.get(), 9);
+                    if (rawKind < 0 || rawKind > 255 || ! engine::trackInstrumentKindIsValid (static_cast<std::uint8_t> (rawKind)))
+                        return detail::semanticInvalid ("tracks.instrument_kind is outside the Track value range");
+                    track.instrumentKind = static_cast<engine::TrackInstrumentKind> (rawKind);
+                    const void* const stateBytes = sqlite3_column_blob (stmt.get(), 10);
+                    const int stateSize = sqlite3_column_bytes (stmt.get(), 10);
+                    if (stateBytes != nullptr && stateSize > 0)
+                        track.instrumentState.assign (static_cast<const std::uint8_t*> (stateBytes),
+                                                      static_cast<const std::uint8_t*> (stateBytes) + stateSize);
+                }
                 project.tracks.push_back (std::move (track));
             }
         }
@@ -4229,7 +4256,7 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE sample_rate_hz <= 0 "
                 "UNION ALL SELECT 1 FROM assets WHERE frames <= 0 OR sample_rate_hz <= 0 OR channels <= 0 "
-                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) OR (height_px != 0 AND (height_px < 56 OR height_px > 400)) OR (colour != 0 AND (colour >> 24) != 255) "
+                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) OR (height_px != 0 AND (height_px < 56 OR height_px > 400)) OR (colour != 0 AND (colour >> 24) != 255) OR instrument_kind NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM buses WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "

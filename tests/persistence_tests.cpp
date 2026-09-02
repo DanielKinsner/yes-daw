@@ -828,6 +828,44 @@ TEST_CASE ("frozen H15 automation schema-v8 fixture bundle opens on HEAD forever
     REQUIRE (readBytes (fixturePath / "project.db") == fixtureDbBefore);
 }
 
+// G3.1 / ADR-0047: the Track instrument slot round-trips; a v26 bundle (no columns) opens with
+// None / empty; an out-of-range kind is refused as semantically invalid.
+TEST_CASE ("Track instrument slot round-trips through a reopened bundle (schema v27)",
+           "[persistence][project][round-trip][instrument]")
+{
+    const auto path = makeTempBundlePath ("instrument-round-trip");
+
+    Project project = makeProject();
+    REQUIRE (project.tracks.size() >= 1u);
+    project.tracks[0].instrumentKind = yesdaw::engine::TrackInstrumentKind::SimpleSynth;
+    project.tracks[0].instrumentState = { 0x01, 0x00, 0x7F, 0x10, 0x20 };
+    REQUIRE (project.tracks[0].isValid());
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    REQUIRE (readback.tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::SimpleSynth);
+    REQUIRE (readback.tracks[0].instrumentState == project.tracks[0].instrumentState);
+
+    // Negative control: the stored kind is read, not re-derived.
+    Project mutated = project;
+    mutated.tracks[0].instrumentKind = yesdaw::engine::TrackInstrumentKind::None;
+    REQUIRE_FALSE (readback.tracks == mutated.tracks);
+
+    // An out-of-range kind on disk is refused.
+    REQUIRE (reopened.executeSql ("UPDATE tracks SET instrument_kind = 9;").ok());
+    Project refused;
+    REQUIRE_FALSE (reopened.readProjectSnapshot (refused).ok());
+}
+
 TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
            "[persistence][project][round-trip][time]")
 {
@@ -1757,6 +1795,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 25; "
             "ALTER TABLE markers DROP COLUMN colour; "   // G2.14: v26
             "DELETE FROM schema_migrations WHERE version = 26; "
+            "ALTER TABLE tracks DROP COLUMN instrument_kind; ALTER TABLE tracks DROP COLUMN instrument_state; "   // G3.1: v27
+            "DELETE FROM schema_migrations WHERE version = 27; "
             "PRAGMA user_version = 10;").ok());
     }
 

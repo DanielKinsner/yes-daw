@@ -361,6 +361,20 @@ inline constexpr std::uint32_t kTrackColourUnset = 0;
     return colour == kTrackColourUnset || (colour >> 24) == 0xFFu;
 }
 
+// G3.1 / ADR-0047: the persisted per-Track instrument slot. None (the default) means "whatever the
+// projection picks for a Track holding MIDI" — SimpleSynth today — so every bundle saved before
+// the slot existed opens and renders exactly as it did. Later kinds (sampler, plugin) append.
+enum class TrackInstrumentKind : std::uint8_t
+{
+    None = 0,
+    SimpleSynth = 1
+};
+
+[[nodiscard]] constexpr bool trackInstrumentKindIsValid (std::uint8_t raw) noexcept
+{
+    return raw <= static_cast<std::uint8_t> (TrackInstrumentKind::SimpleSynth);
+}
+
 struct Track
 {
     EntityId id;
@@ -377,10 +391,17 @@ struct Track
     // N7: persisted row colour, honoured by the rail, the mixer strip nameplate, and this
     // Track's clips. kTrackColourUnset (the default) means no override.
     std::uint32_t colour = kTrackColourUnset;
+    // G3.1: the instrument slot — which instrument this Track plays and its persisted state (an
+    // opaque, kind-versioned parameter blob; empty = the kind's defaults).
+    TrackInstrumentKind instrumentKind = TrackInstrumentKind::None;
+    std::vector<std::uint8_t> instrumentState;
 
     [[nodiscard]] bool isValid() const noexcept
     {
         if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        if (! trackInstrumentKindIsValid (static_cast<std::uint8_t> (instrumentKind)))
             return false;
 
         if (! trackHeightIsValid (heightPx))

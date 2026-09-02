@@ -819,6 +819,17 @@ yesdaw_harden(YesDawPlaybackCheck)
 add_test(NAME YesDawPlaybackCheck COMMAND $<TARGET_FILE:YesDawPlaybackCheck>)
 
 # --- Scheduler/robustness check (H9; deterministic scheduled render + transport/fuzz/plugin gates) ---
+# --- Track instrument check (G3.1 / ADR-0047: N event inputs merge; one instrument per Track) ---
+add_executable(YesDawTrackInstrumentCheck tests/track_instrument_tests.cpp)
+target_include_directories(YesDawTrackInstrumentCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawTrackInstrumentCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawTrackInstrumentCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawTrackInstrumentCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawTrackInstrumentCheck)
+add_test(NAME YesDawTrackInstrumentCheck COMMAND $<TARGET_FILE:YesDawTrackInstrumentCheck>)
+
 add_executable(YesDawSchedulerCheck tests/scheduler_tests.cpp)
 target_include_directories(YesDawSchedulerCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawSchedulerCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})

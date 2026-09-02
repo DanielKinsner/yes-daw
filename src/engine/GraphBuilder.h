@@ -9,6 +9,7 @@
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/DecodedClipNode.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
+#include "engine/nodes/MidiMergeNode.h"
 #include "engine/nodes/TrackClipScheduleNode.h"
 #include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/EqNode.h"
@@ -408,6 +409,8 @@ private:
             return CompiledNodeKind::MidiEffect;
         if (dynamic_cast<DecodedMidiClipNode*> (&node) != nullptr)
             return CompiledNodeKind::MidiSource;
+        if (dynamic_cast<MidiMergeNode*> (&node) != nullptr)
+            return CompiledNodeKind::MidiSource;   // G3.1: the Track's merged stream is an event source too
         if (dynamic_cast<EqNode*> (&node) != nullptr)
             return CompiledNodeKind::Eq;
         if (dynamic_cast<CompressorNode*> (&node) != nullptr)
@@ -688,7 +691,27 @@ private:
             cn.numChannels = channels;
             cn.inputsBegin = static_cast<std::uint32_t> (payload.inputSlotIndices.size());
             cn.outputSlot  = outputSlot;
-            cn.eventInputSlot = eventInputSlotFor (item, eventOutputSlots);
+            // G3.1 / ADR-0047: two or more event-producing inputs get a merge slot of their own.
+            {
+                std::uint32_t producing = 0;
+                for (const std::size_t inputIdx : item.inputs)
+                    if (eventOutputSlots[inputIdx] != kNoEventSlot)
+                        ++producing;
+                if (producing >= 2)
+                {
+                    if (producing > kMaxEventInputsPerNode || nextEventSlot == kNoEventSlot)
+                        return failBool (error, GraphBuildError::GraphTooLarge { item.props.id });
+                    cn.eventInputsBegin = static_cast<std::uint32_t> (payload.eventInputSlotIndices.size());
+                    cn.numEventInputs = static_cast<std::uint16_t> (producing);
+                    for (const std::size_t inputIdx : item.inputs)
+                        if (eventOutputSlots[inputIdx] != kNoEventSlot)
+                            payload.eventInputSlotIndices.push_back (eventOutputSlots[inputIdx]);
+                    cn.eventInputSlot = nextEventSlot;
+                    ++nextEventSlot;
+                }
+                else
+                    cn.eventInputSlot = eventInputSlotFor (item, eventOutputSlots);
+            }
             cn.pathLatency = item.pathLatency;
             cn.delayCacheKey = item.delayCacheKey;
             cn.muteBit     = static_cast<std::uint32_t> (compiledIdx);   // every compiled node is mute-capable (ADR-0016)

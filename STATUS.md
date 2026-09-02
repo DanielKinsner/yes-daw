@@ -41,11 +41,13 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 — Track instrument (ADR-0047 **Accepted** by Dan 2026-09-02, "Accept and go";
-the same "go" lifts the drive pause D14 — SS-1..SS-3 run at the next UI checkpoint / phase exit).
-Checkpoints: cp1 engine (schema v27 instrument slot, per-Track `MidiMerge` + `Instrument` keyed
-by Track, render goldens), cp2 `ParamSpec` + automation target, cp3 shell chooser + instrument
-panel + `[track-instrument]`.
+**Now:** G3.1 — Track instrument (ADR-0047 Accepted). cp1 engine ✅ built, gated, committed
+(schema v27 slot, the N-event-input merge law, `MidiMergeNode` + one `SimpleSynth` per Track);
+awaiting its exact-head run. Next: cp2 — `SimpleSynth` `ParamSpec` (osc mix, ADSR, filter
+cutoff / resonance, glide, volume) read through the block-sliced parameter path, `SetTrackInstrument`
+/ `SetTrackInstrumentParam` verbs, automation lanes targeting the Instrument by Track id; then cp3 —
+the rail / inspector chooser, the instrument panel dock tab, `[track-instrument]`. The drive pause
+D14 is lifted ("Accept and go"): SS-1..SS-3 run at cp3's UI checkpoint.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -113,6 +115,33 @@ certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.1 cp1 — One instrument per Track: the engine half (2026-09-02)
+
+**Build.** ADR-0047's projection law: per Track holding MIDI, every Clip's `DecodedMidiClipNode`
+(`MidiSource`, keyed by the Clip) → one `MidiMergeNode` (new role `MidiMerge`, keyed by the Track)
+→ one `SimpleSynthNode` (`Instrument`, keyed by the Track) → the strip Sum. The compiled graph gained
+the **N-event-input law**: a node with two or more event-producing inputs gets a merge slot
+(`CompiledNode::numEventInputs` / `eventInputsBegin`, payload `eventInputSlotIndices`); the executor
+k-way-merges the producers' slots by `timeInBlock`, stable on ties, bounded by the per-block
+budget, fixed-size cursors on the stack (`kMaxEventInputsPerNode` 32; wider fan-in = GraphTooLarge).
+One producer keeps the single-slot path bit-for-bit. `Track::instrumentKind`
+(`TrackInstrumentKind` None | SimpleSynth) + `instrumentState` blob; schema v27
+(`tracks.instrument_kind`, `tracks.instrument_state`, additive). CONTEXT: "Instrument slot",
+"MIDI merge".
+
+**Gates.** `YesDawTrackInstrumentCheck` (new, 5 cases / 54 assertions): the merge order + tie law,
+the fan-in ceiling, the Track-keyed identities (and no Clip-keyed Instrument), two overlapping
+Clips ≡ one Clip with both notes (bit-identical; a one-note render differs), None ≡ SimpleSynth
+and an unknown kind is invalid. Persistence: the slot round-trips, an out-of-range kind is refused,
+the v10 simulation drops the v27 columns. Suite 369 → 371.
+
+**Found while gating (fixed).** `bindBlob` bound an empty span as SQL NULL — every bundle write
+failed on the new NOT NULL column; an empty blob now binds as a zero-length blob (a latent trap for
+any future empty-blob column).
+
+**Not built (recorded → cp2/cp3).** `ParamSpec` and any audible parameter; the kind is persisted
+but nothing chooses it yet (None resolves to SimpleSynth); no verbs, no automation target, no UI.
 
 ### G2 close-out (2026-09-02)
 

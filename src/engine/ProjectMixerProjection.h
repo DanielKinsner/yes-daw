@@ -17,6 +17,7 @@
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SimpleSynthNode.h"
+#include "engine/nodes/MidiMergeNode.h"
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
@@ -39,7 +40,8 @@ enum class ProjectMixerNodeRole : std::uint8_t
     MidiSource,
     Instrument,
     Fx,
-    ClipSchedule   // G0.5: the Track's one live-swappable audio clip schedule (replaces per-Clip sources)
+    ClipSchedule,   // G0.5: the Track's one live-swappable audio clip schedule (replaces per-Clip sources)
+    MidiMerge       // G3.1 / ADR-0047: the Track's merged MIDI stream (feeds the Track's one Instrument)
 };
 
 struct ProjectMixerSendRoute
@@ -531,10 +533,13 @@ template <typename ClipSourceProvider>
         sumInputs.push_back (scheduleNode.get());
         clipSources.push_back (std::move (scheduleNode));
 
-        // M1: every MIDI Clip on this Track becomes flattened-source -> instrument feeding the SAME
-        // strip Sum the Track's audio Clips feed, so the chain below (FX, fader, pan, meter, sends,
-        // automation, mute/solo) applies to MIDI exactly as it does to audio. The instrument emits
+        // M1: every MIDI Clip on this Track becomes a flattened source; G3.1 / ADR-0047: those
+        // sources merge (MidiMerge, keyed by the Track) into the Track's ONE instrument (Instrument,
+        // keyed by the Track), which feeds the SAME strip Sum the Track's audio Clips feed, so the
+        // chain below (FX, fader, pan, meter, sends, automation, mute/solo) applies to MIDI exactly
+        // as it does to audio, and voices are shared across the Track's Clips. The instrument emits
         // the strip's width; SimpleSynthNode carries the ADR-0042 mono-widening law itself.
+        std::vector<Node*> trackMidiSources;
         for (std::size_t i = 0; i < project.midiClips.size(); ++i)
         {
             const MidiClip& midiClip = project.midiClips[i];
@@ -555,19 +560,31 @@ template <typename ClipSourceProvider>
             }
 
             const NodeId midiSourceId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::MidiSource);
-            const NodeId instrumentId = projectMixerNodeIdForClip (midiClip.id, ProjectMixerNodeRole::Instrument);
-            if (! detail::registerProjectMixerNodeId (usedIds, midiSourceId, i, ProjectMixerNodeRole::MidiSource, error)
-                || ! detail::registerProjectMixerNodeId (usedIds, instrumentId, i, ProjectMixerNodeRole::Instrument, error))
+            if (! detail::registerProjectMixerNodeId (usedIds, midiSourceId, i, ProjectMixerNodeRole::MidiSource, error))
                 return false;
 
             auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
+            trackMidiSources.push_back (midiSource.get());
+            clipSources.push_back (std::move (midiSource));
+        }
+
+        if (! trackMidiSources.empty())
+        {
+            const NodeId mergeId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::MidiMerge);
+            const NodeId instrumentId = projectMixerNodeIdForTrack (owningTrack.id, ProjectMixerNodeRole::Instrument);
+            if (! detail::registerProjectMixerNodeId (usedIds, mergeId, trackIndex, ProjectMixerNodeRole::MidiMerge, error)
+                || ! detail::registerProjectMixerNodeId (usedIds, instrumentId, trackIndex, ProjectMixerNodeRole::Instrument, error))
+                return false;
+
+            auto merge = std::make_unique<MidiMergeNode> (mergeId, std::move (trackMidiSources));
             // ADR-0043: the built-in SimpleSynth is the production instrument (the impulse node
-            // stays the H4 timing-gate instrument).
+            // stays the H4 timing-gate instrument). ADR-0047: TrackInstrumentKind::None resolves
+            // to it too, so pre-slot bundles render unchanged.
             auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
-            instrument->setEventInput (midiSource.get());
+            instrument->setEventInput (merge.get());
 
             sumInputs.push_back (instrument.get());
-            clipSources.push_back (std::move (midiSource));
+            clipSources.push_back (std::move (merge));
             clipSources.push_back (std::move (instrument));
         }
 

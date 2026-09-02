@@ -62,6 +62,10 @@ inline constexpr SlotIndex kSilenceSlot = 0;
 inline constexpr SlotIndex kNoSlot      = 0xFFFFu;
 inline constexpr EventSlotIndex kRootEventSlot = 0;
 inline constexpr EventSlotIndex kNoEventSlot   = 0xFFFFu;
+// G3.1 / ADR-0047: a node may read MORE THAN ONE event-producing input; the executor merges them
+// in block-time order into a dedicated slot before the node runs. The cursor array lives on the
+// audio-thread stack, hence the fixed ceiling (the builder refuses a wider fan-in).
+inline constexpr std::uint16_t kMaxEventInputsPerNode = 32;
 inline constexpr std::uint32_t kNoMuteBit = 0xFFFFFFFFu;
 
 // Number of 64-bit words a mute mask needs to carry one bit per compiled node (ADR-0016). Sized once on
@@ -109,9 +113,11 @@ struct CompiledNode
     std::uint16_t    numChannels   = 0;
     std::uint32_t    inputsBegin   = 0;
     SlotIndex        outputSlot    = kNoSlot;
-    EventSlotIndex   eventInputSlot = kRootEventSlot;
+    EventSlotIndex   eventInputSlot = kRootEventSlot;   // with numEventInputs >= 2: the MERGE slot
     EventSlotIndex   eventOutputSlot = kNoEventSlot;
     DSlotIndex       busAccumSlot  = kNoSlot;
+    std::uint16_t    numEventInputs = 0;   // G3.1: >= 2 means eventInputSlotIndices[eventInputsBegin..] are merged
+    std::uint32_t    eventInputsBegin = 0;
     std::int64_t     pathLatency   = 0;
     DelayCacheKey    delayCacheKey = 0;
     std::uint32_t    muteBit       = 0;   // == this node's compiled index; indexes the mute-mask words (ADR-0016)
@@ -175,6 +181,7 @@ public:
         std::vector<std::unique_ptr<Node>>              nodeStorage;
         std::vector<CompiledNode>                       compiledNodes;
         std::vector<InputSlot>                          inputSlotIndices;
+        std::vector<EventSlotIndex>                     eventInputSlotIndices;   // G3.1: the merged fan-ins
         std::unique_ptr<float[]>                        floatStorage;
         std::unique_ptr<double[]>                       doubleStorage;
         std::unique_ptr<Event[]>                        eventStorage;
@@ -207,6 +214,7 @@ public:
           nodeStorage_ (std::move (payload.nodeStorage)),
           compiledNodes_ (std::move (payload.compiledNodes)),
           inputSlotIndices_ (std::move (payload.inputSlotIndices)),
+          eventInputSlotIndices_ (std::move (payload.eventInputSlotIndices)),
           floatStorage_ (std::move (payload.floatStorage)),
           doubleStorage_ (std::move (payload.doubleStorage)),
           eventStorage_ (std::move (payload.eventStorage)),
@@ -338,6 +346,7 @@ public:
         const CompiledNode* const nodes   = compiledNodes_.data();
         const std::size_t         nNodes  = compiledNodes_.size();
         const InputSlot* const    inputs  = inputSlotIndices_.data();
+        const EventSlotIndex* const eventFanIns = eventInputSlotIndices_.data();   // G3.1
         float* const* const       slots   = floatSlotPtrs_.data();
         Event* const* const       eventSlots = eventSlotPtrs_.data();
         std::uint32_t* const      eventCounts = eventSlotCounts_.get();
@@ -396,6 +405,46 @@ public:
                     float* const* const inChannels = slots + static_cast<std::size_t> (input.fromSlot) * static_cast<std::size_t> (maxCh);
                     copyChannels (inChannels, producer.numChannels, nodeOutChannels, cn.numChannels, numFrames);
                 }
+            }
+
+            // G3.1 / ADR-0047: a node with several event-producing inputs reads ONE stream — the
+            // executor merges the producers' slots by timeInBlock (stable by input order on ties)
+            // into the node's merge slot, bounded by the per-block budget; the merge slot then
+            // feeds the ordinary single-input path below. No allocation: fixed-size cursors.
+            if (cn.numEventInputs >= 2)
+            {
+                YESDAW_RT_FATAL (eventCounts != nullptr);
+                YESDAW_RT_FATAL (eventSlots != nullptr);
+                YESDAW_RT_FATAL (eventFanIns != nullptr);
+                YESDAW_RT_FATAL (cn.numEventInputs <= kMaxEventInputsPerNode);
+                YESDAW_RT_FATAL (cn.eventInputSlot < numEventSlots_);
+                const EventSlotIndex* const sources = eventFanIns + cn.eventInputsBegin;
+                Event* const merged = eventSlots[cn.eventInputSlot];
+                std::uint32_t cursors[kMaxEventInputsPerNode] = {};
+                std::uint32_t mergedCount = 0;
+                while (mergedCount < maxEventsPerBlock_)
+                {
+                    int best = -1;
+                    std::uint32_t bestTime = 0;
+                    for (std::uint16_t sIdx = 0; sIdx < cn.numEventInputs; ++sIdx)
+                    {
+                        const EventSlotIndex slot = sources[sIdx];
+                        YESDAW_RT_FATAL (slot < numEventSlots_);
+                        if (cursors[sIdx] >= eventCounts[slot])
+                            continue;
+                        const std::uint32_t t = eventSlots[slot][cursors[sIdx]].timeInBlock;
+                        if (best < 0 || t < bestTime)
+                        {
+                            best = static_cast<int> (sIdx);
+                            bestTime = t;
+                        }
+                    }
+                    if (best < 0)
+                        break;
+                    const EventSlotIndex slot = sources[best];
+                    merged[mergedCount++] = eventSlots[slot][cursors[best]++];
+                }
+                eventCounts[cn.eventInputSlot] = mergedCount;
             }
 
             std::span<const Event> inputEvents;
@@ -1043,6 +1092,7 @@ private:
     std::vector<std::unique_ptr<Node>>            nodeStorage_;
     std::vector<CompiledNode>                     compiledNodes_;
     std::vector<InputSlot>                        inputSlotIndices_;
+    std::vector<EventSlotIndex>                   eventInputSlotIndices_;   // G3.1
     std::unique_ptr<float[]>                      floatStorage_;
     std::unique_ptr<double[]>                     doubleStorage_;
     std::unique_ptr<Event[]>                      eventStorage_;

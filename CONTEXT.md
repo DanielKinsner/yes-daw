@@ -321,6 +321,18 @@ A Node that changes an audio signal's duration without changing Project placemen
 Signalsmith-backed contract, latency, tail, and scheduler-safety rules.
 _Avoid_: resample (that changes speed and pitch together), warp (too UI-specific)
 
+**Instrument slot** (G3.1 / ADR-0047):
+A Track's persisted instrument: a kind (`TrackInstrumentKind` — None, SimpleSynth; sampler and
+plugin later) and an opaque kind-versioned state blob. One instrument node per Track
+(`Instrument`, keyed by the Track id) plays every MIDI Clip on it, so voices are shared and a note
+sustains across Clip edges. None resolves to SimpleSynth for a Track holding MIDI.
+
+**MIDI merge** (G3.1 / ADR-0047):
+The Track's one merged MIDI stream: a `MidiMergeNode` (role `MidiMerge`, keyed by the Track) whose
+inputs are the Track's MIDI sources (each Clip's `DecodedMidiClipNode`; the live input in G3.10).
+The compiled graph merges N event-producing inputs into one time-ordered stream in the executor
+(stable on ties, bounded by the per-block event budget, no allocation) — the N-event-input law.
+
 **Instrument track auto-wire**:
 The H9 headless bridge that turns a Project MIDI Clip into `DecodedMidiClipNode -> ImpulseInstrumentNode`
 inside the mixer graph. It proves timing and transport; it is not the final user-facing instrument model.
