@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.10 (fades v2 — four shapes with a curve amount through ONE evaluator, the corner
-drag bends the curve, the inspector sets shape and amount; schema v23; `[fade-handles]` + the
-golden table) built, gated locally, committed; awaiting its exact-head run. Next: G2.11 — Slip
-(`Ctrl+Alt`-drag the body slips `srcOffset` with the window fixed; `[slip]`). The drive stays
-paused (D14).
+**Now:** G2.11 (slip — Ctrl+Alt-drag moves the source under a fixed window, snapped, clamped,
+undoable; `[slip]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.12 —
+Clip properties (colour, mute, inline rename, inspector numeric fields; `[clip-properties]`).
+The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -101,7 +100,30 @@ by run `33630615703` on `af3c034` (the one-label fix; D51 in G2.7's section) —
 G2.7 ✅ — Snap modes (`02ea877`); certified by exact-head run `33632069331` (green on all ten jobs).
 G2.8 ✅ — Nudge value in clock units (`463646e`); certified by run `33633084596` after a rerun of its
 macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
+G2.9a ✅ — time-stretch engine half, schema v22 (`4e24714`); certified by exact-head run `33634707297`
+(green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.11 — Slip (2026-09-02)
+
+**Build.** `TimelineDragMode::Slip` (Ctrl+Alt on the body; `DraggingHandCursor`; hint; the
+press does not arm the copy flag); release → `onClipSlipped (id, deltaSeconds)` →
+`slipTimelineClipByLayoutId` (delta → ticks, rounded to `effectiveSnapGridTicks()` when snap
+is on and the mode is not Off) → model `slipSelectedTimelineClipBy (deltaTicks)`: `srcOffset −
+delta` clamped to `[0, asset.frames − srcLen]`, applied as `trimClip (start, length, offset',
+srcLen)` (coalesces / undoes like a trim); a no-room slip is refused with its reason.
+
+**Gates.** `[slip]` (input check): after a Ctrl+T split at the middle (the right half has
+source before its window), zone + cursor under Ctrl+Alt (Ctrl alone still snap-move); a slip
+right by the window's width shrinks `srcOffset` by a grid multiple, window untouched, two
+clips; undo exact; a slip far past the room clamps at 0; Snap: Off lands the raw distance.
+Re-pin: `[narrow-clip]`'s Ctrl+Alt copy drag (Alt copy + Ctrl snap-defeat) is Alt with Snap:
+Off now — Ctrl+Alt is the slip.
+
+**Not built (recorded).** No live waveform preview during the slip (the ghost paints nothing —
+the waveform jumps at release; G3's paint pass draws the slipping waveform); no slip of MIDI
+clips (notes have no source window); no keyboard slip nudge (Logic's has none either); the
+slip does not consult Events snapping (the delta snaps to the grid only).
 
 ### G2.10 — Fades v2 and honest crossfades (2026-09-02)
 

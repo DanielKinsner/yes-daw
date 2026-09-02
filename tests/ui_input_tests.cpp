@@ -7915,9 +7915,10 @@ TEST_CASE ("a clip too narrow for the edge zones still moves and copy-drags unde
 
     // Alt on the narrow body is the wide-body COPY gesture, never a fade grab: the original
     // stays byte-identical (fades included) and a fresh-id copy lands by the drag delta.
+    // (G2.11: Ctrl+Alt is the slip now, so the raw delta comes from Snap: Off, not Ctrl.)
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
     dragFromTo (timeline, centre, { centre.x + 60, centre.y },
                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
-                                    | juce::ModifierKeys::ctrlModifier
                                     | juce::ModifierKeys::altModifier));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 3u);
@@ -17656,6 +17657,116 @@ TEST_CASE ("G2.10 fade handles: the corner drag bends the curve, the inspector s
     const float powerGain = 1.0f - (equalPower[mid].y - area.getY()) / area.getHeight();
     REQUIRE (std::abs (linearGain - 0.5f) < 0.02f);
     REQUIRE (powerGain > linearGain + 0.15f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.11: slip — Ctrl+Alt on the body moves the SOURCE under a fixed window: start, length and
+// srcLen never move, srcOffset moves by the snapped drag distance and clamps to the asset, one
+// undo step per gesture; the zone, the cursor and the copy flag know the gesture.
+TEST_CASE ("G2.11 slip: Ctrl+Alt-drag moves the source under a fixed window, snapped and clamped, undoable",
+           "[ui][input][shell][g2][slip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("slip");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::ModifierKeys ctrlAlt (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier);
+    const juce::ModifierKeys ctrlAltDrag (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
+                                          | juce::ModifierKeys::altModifier);
+    const auto zone = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineZoneAt (*shell, local + timeline.getPosition(), mods);
+    };
+    const auto cursor = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineCursorAt (*shell, local + timeline.getPosition(), mods);
+    };
+
+    // Make room to slip: split the clip at its middle (Ctrl+T at the playhead) and work on the RIGHT
+    // half — its source window starts half-way into the asset, so earlier source can slip in
+    // (the edges sit in the auto-scroll bands at fit zoom, so no edge drag here).
+    const yesdaw::engine::Clip imported = readProjectSnapshot (bundlePath).clips.front();
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        const juce::Rectangle<int> whole = timelineClipHitBounds (timeline, project, 0u);
+        mouseDownAt (timeline, whole.getCentre());   // select the clip
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rulerRows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+        const int xSplit = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project,
+                                                    imported.timelineStart + imported.timelineLength / 2).x;
+        mouseDownAt (timeline, { xSplit, rulerRows.time.getCentreY() });
+        releaseDragAt (timeline, { xSplit, rulerRows.time.getCentreY() }, { xSplit, rulerRows.time.getCentreY() });
+        REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    }
+    const auto rightIndex = [&]
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.clips.size() == 2u);
+        return project.clips[0].timelineStart > project.clips[1].timelineStart ? 0u : 1u;
+    };
+    const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips[rightIndex()]; };
+    const yesdaw::engine::Clip trimmed = clipNow();
+    REQUIRE (trimmed.srcOffset > 0u);
+    REQUIRE (trimmed.srcLen < imported.srcLen);
+    const std::uint64_t room = trimmed.srcOffset;   // the asset frames before the window
+    REQUIRE (room > 0u);
+
+    const juce::Rectangle<int> rect = timelineClipHitBounds (timeline, readProjectSnapshot (bundlePath), rightIndex());
+    const juce::Point<int> body = rect.getCentre();
+    mouseDownAt (timeline, body);   // select the right half
+    REQUIRE (zone (body, ctrlAlt) == "slip");
+    REQUIRE (cursor (body, ctrlAlt) == "dragging-hand");
+    REQUIRE (zone (body, juce::ModifierKeys (juce::ModifierKeys::ctrlModifier)) == "snap-move");
+
+    // Slip the content RIGHT by the window's width (the fixture is short: a quarter would round to
+    // no grid step): earlier source comes in, srcOffset shrinks by the snapped distance; the window
+    // (start, length, srcLen) is untouched; nothing was copied.
+    const std::int64_t grid = probeSnapEffectiveTicks (*shell);
+    REQUIRE (grid > 0);
+    dragFromTo (timeline, body, body.translated (rect.getWidth(), 0), ctrlAltDrag);
+    {
+        const yesdaw::engine::Clip slipped = clipNow();
+        INFO ("offset " << slipped.srcOffset << " from " << trimmed.srcOffset << " grid " << grid);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
+        REQUIRE (slipped.srcOffset < trimmed.srcOffset);
+        REQUIRE ((trimmed.srcOffset - slipped.srcOffset) % static_cast<std::uint64_t> (grid) == 0u);
+        REQUIRE (slipped.timelineStart == trimmed.timelineStart);
+        REQUIRE (slipped.timelineLength == trimmed.timelineLength);
+        REQUIRE (slipped.srcLen == trimmed.srcLen);
+    }
+    // One undo restores the trim state exactly.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == trimmed);
+
+    // Slip RIGHT past the room: the offset clamps at 0, never beyond; the window is still untouched.
+    dragFromTo (timeline, body, body.translated (rect.getWidth() * 2, 0), ctrlAltDrag);
+    {
+        const yesdaw::engine::Clip slipped = clipNow();
+        REQUIRE (slipped.srcOffset == 0u);
+        REQUIRE (slipped.timelineStart == trimmed.timelineStart);
+        REQUIRE (slipped.timelineLength == trimmed.timelineLength);
+        REQUIRE (slipped.srcLen == trimmed.srcLen);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == trimmed);
+
+    // Snap: Off lands the raw distance — the mode governs.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
+    dragFromTo (timeline, body, body.translated (rect.getWidth() / 4 + 3, 0), ctrlAltDrag);
+    {
+        const yesdaw::engine::Clip slipped = clipNow();
+        REQUIRE (slipped.srcOffset < trimmed.srcOffset);
+        REQUIRE (slipped.timelineLength == trimmed.timelineLength);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == trimmed);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

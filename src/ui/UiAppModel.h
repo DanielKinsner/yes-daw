@@ -5232,6 +5232,44 @@ public:
     // Trim the selected Clip's LEFT edge inward (usable-DAW P1): the head moves later on the
     // timeline while the source window advances proportionally, so the audio under the playhead
     // never shifts. Extending the head earlier than the recorded window is out of alpha scope.
+    // G2.11 (plan; Logic slip, R20): move the SOURCE under a fixed window — srcOffset changes by
+    // -delta (dragging the content right pulls earlier source under the window), clamped so the
+    // window keeps fitting the asset; start, length and srcLen never move. One trim edit, so it
+    // coalesces and undoes like a trim.
+    [[nodiscard]] UiActionDispatchResult slipSelectedTimelineClipBy (engine::Tick deltaTicks)
+    {
+        const UiActionId id = UiActionId::TimelineClipTrim;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        const engine::Asset* const asset = project_.findAsset (clip->assetId);
+        if (asset == nullptr || clip->srcLen > asset->frames)
+            return { id, { false, "timeline clip source missing" }, false };
+        const std::uint64_t maxOffset = asset->frames - clip->srcLen;
+        const auto current = static_cast<long long> (clip->srcOffset);
+        const long long wanted = current - static_cast<long long> (deltaTicks);
+        const auto nextOffset = static_cast<std::uint64_t> (std::clamp<long long> (wanted, 0, static_cast<long long> (maxOffset)));
+        if (nextOffset == clip->srcOffset)
+            return { id, { false, "slip has no room to move" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::trimClip (selectedTimelineClipId_, clip->timelineStart, clip->timelineLength,
+                                                  nextOffset, clip->srcLen));
+        if (! applied.applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult trimSelectedTimelineClipLeftTo (engine::Tick timelineStart)
     {
         const UiActionId id = UiActionId::TimelineClipTrim;

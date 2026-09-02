@@ -523,6 +523,7 @@ public:
     std::function<void (int, double, bool)> onClipSplit;         // layoutClipId, seconds, snapInvert
     std::function<void (int, double, bool)> onClipTrimmedRight;  // layoutClipId, seconds, snapInvert
     std::function<void (int, double, bool)> onClipStretchedRight; // G2.9b: layoutClipId, new end seconds, snapInvert
+    std::function<void (int, double)> onClipSlipped;              // G2.11: layoutClipId, delta seconds (content moves right for +)
     std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double, double)> onClipFadeAdjusted;   // G2.10: + the curve bend
@@ -828,6 +829,7 @@ public:
             case TimelineDragMode::Gain:      return "Clip: drag up or down to set gain";
             case TimelineDragMode::TimeSelect: return "Clip: drag here to select a time range \u00b7 the body above moves";
             case TimelineDragMode::SnapMove:  return "Clip: drag to move without snap";
+            case TimelineDragMode::Slip:      return "Clip: Ctrl+Alt-drag slips the audio under the clip \u00b7 the clip stays put";
             case TimelineDragMode::Move:      break;
         }
         return "Clip: drag to move \u00b7 Shift-drag sets gain \u00b7 Ctrl-drag defeats snap \u00b7 edges trim \u00b7 right-click for the clip menu";
@@ -1020,7 +1022,7 @@ public:
             dragState.layoutClipId = hit.id;
             dragState.downPosition = event.getPosition();
             dragState.mode = dragModeForPointer (state, getLocalBounds(), hit.id, event.getPosition(), event.mods);
-            dragState.copy = event.mods.isAltDown()
+            dragState.copy = event.mods.isAltDown() && ! event.mods.isCtrlDown()   // G2.11: Ctrl+Alt is a slip, not a copy
                           && (dragState.mode == TimelineDragMode::Move
                               || dragState.mode == TimelineDragMode::SnapMove);
             if (const yesdaw::ui::Clip* clip = findClipByLayoutId (state, hit.id))
@@ -1444,6 +1446,18 @@ public:
             }
             return;
         }
+        if (drag.mode == TimelineDragMode::Slip)   // G2.11
+        {
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                return;
+            const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            const double pixelsPerSecond = std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+                                                     geometry.viewport.pixelsPerSecond);
+            if (onClipSlipped)
+                onClipSlipped (drag.layoutClipId, static_cast<double> (deltaX) / pixelsPerSecond);
+            return;
+        }
+
         if (drag.mode == TimelineDragMode::TrimRight)
         {
             if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
@@ -1647,7 +1661,8 @@ public:
         FadeIn,
         FadeOut,
         TimeSelect,  // G2.4: the clip body's lower band drags a Time selection (Pro Tools smart tool)
-        StretchRight // G2.9b: Alt on the right edge time-stretches the clip (Logic's Option-drag)
+        StretchRight, // G2.9b: Alt on the right edge time-stretches the clip (Logic's Option-drag)
+        Slip         // G2.11: Ctrl+Alt on the body slips the source under a fixed window (Logic slip)
     };
 private:
 
@@ -1665,6 +1680,7 @@ private:
             case TimelineDragMode::FadeOut:    return "fade-out";
             case TimelineDragMode::TimeSelect: return "time-select";
             case TimelineDragMode::StretchRight: return "stretch-right";
+            case TimelineDragMode::Slip:       return "slip";
         }
         return "move";
     }
@@ -1680,6 +1696,7 @@ private:
             case TimelineDragMode::FadeIn:     return juce::MouseCursor::TopLeftCornerResizeCursor;
             case TimelineDragMode::FadeOut:    return juce::MouseCursor::TopRightCornerResizeCursor;
             case TimelineDragMode::TimeSelect: return juce::MouseCursor::IBeamCursor;
+            case TimelineDragMode::Slip:       return juce::MouseCursor::DraggingHandCursor;   // G2.11
             case TimelineDragMode::Gain:       return juce::MouseCursor::UpDownResizeCursor;
             case TimelineDragMode::Move:
             case TimelineDragMode::SnapMove:   return juce::MouseCursor::NormalCursor;
@@ -1849,6 +1866,9 @@ private:
 
         if (modifiers.isShiftDown())
             return TimelineDragMode::Gain;
+
+        if (modifiers.isCtrlDown() && modifiers.isAltDown())
+            return TimelineDragMode::Slip;   // G2.11: the source moves under the window
 
         if (modifiers.isCtrlDown())
             return TimelineDragMode::SnapMove;
@@ -4217,6 +4237,9 @@ public:
         };
         timelineInput.onClipStretchedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {   // G2.9b
             stretchTimelineClipRightByLayoutId (timelineClipId, endSeconds, snapInvert);
+        };
+        timelineInput.onClipSlipped = [this] (int timelineClipId, double deltaSeconds) {   // G2.11
+            slipTimelineClipByLayoutId (timelineClipId, deltaSeconds);
         };
         timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds, bool snapInvert) {
             if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
@@ -9649,6 +9672,7 @@ public:
         if (zoneCursor == juce::MouseCursor (juce::MouseCursor::TopLeftCornerResizeCursor)) return "top-left";
         if (zoneCursor == juce::MouseCursor (juce::MouseCursor::TopRightCornerResizeCursor)) return "top-right";
         if (zoneCursor == juce::MouseCursor (juce::MouseCursor::IBeamCursor)) return "ibeam";
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::DraggingHandCursor)) return "dragging-hand";   // G2.11
         if (zoneCursor == juce::MouseCursor (juce::MouseCursor::UpDownResizeCursor)) return "up-down";
         return "normal";
     }
@@ -12736,6 +12760,29 @@ private:
         if (const auto tick = timelineTickFromSeconds (endSeconds))
             (void) appModel.trimSelectedTimelineClipRightTo (snappedTimelineTick (*tick, snapInvert));
 
+        refreshActionState();
+        repaintAll();
+    }
+
+    // G2.11: the slip — the dragged distance, snapped to the effective grid when snap is on (Ctrl is
+    // part of the gesture, so it cannot defeat snap here; Snap: Off does), moves the source.
+    void slipTimelineClipByLayoutId (int layoutClipId, double deltaSeconds)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! project.sampleRate.isValid())
+            return;
+        auto deltaTicks = static_cast<yesdaw::engine::Tick> (std::llround (deltaSeconds * project.sampleRate.hz));
+        const bool snapOn = appModel.context().snapEnabled && appModel.context().snapMode != yesdaw::ui::UiSnapMode::Off;
+        const std::int64_t grid = effectiveSnapGridTicks();
+        if (snapOn && grid > 0)
+            deltaTicks = static_cast<yesdaw::engine::Tick> (std::llround (static_cast<double> (deltaTicks) / static_cast<double> (grid)) * grid);
+        if (deltaTicks == 0)
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        (void) appModel.slipSelectedTimelineClipBy (deltaTicks);
         refreshActionState();
         repaintAll();
     }
