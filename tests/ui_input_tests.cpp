@@ -64,7 +64,6 @@ constexpr int kInspectorEqualPowerFadeCurveId = 1;
 constexpr double kInspectorTimingShortenRatio = 0.5;
 constexpr double kInspectorFadeInRatio = 0.25;
 constexpr double kInspectorFadeOutRatio = 0.75;
-constexpr int kPianoRollHighKey = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
 
 constexpr yesdaw::engine::EntityId idFromLowByte (std::uint8_t low) noexcept
 {
