@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 144u));   // G2.1: + three splitters   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 145u));   // G2.1: + three splitters; G2.6: + the edit mode chooser   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4632,7 +4632,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 26);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 29);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -17069,6 +17069,134 @@ TEST_CASE ("G2.5 time selection: split at edges, copy / paste keeping tracks, de
         REQUIRE (following.timelineRangeEndFrame == static_cast<long long> (source.timelineStart + source.timelineLength));
         REQUIRE (following.selectedTimelineClipCount == 0);
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a placement covers, Shuffle moves aside and closes up; one undo step each",
+           "[ui][input][shell][g2][edit-modes]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("edit-modes");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+
+    const auto sortedClips = [&] ()
+    {
+        yesdaw::engine::Project p = readProjectSnapshot (bundlePath);
+        std::sort (p.clips.begin(), p.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        return p.clips;
+    };
+    const auto editMode = [&] ()
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("view", {}).getProperty ("editMode", {}).toString();
+    };
+    const auto locate = [&] (yesdaw::engine::Tick tick)
+    {
+        const yesdaw::engine::Project p = readProjectSnapshot (bundlePath);
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+        const int x = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), p, tick).x;
+        mouseDownAt (timeline, { x, rows.time.getCentreY() });
+        releaseDragAt (timeline, { x, rows.time.getCentreY() }, { x, rows.time.getCentreY() });
+    };
+
+    // Two adjacent clips A [0, L) and B [L, 2L): the fixture and a copy pasted at its end.
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    const yesdaw::engine::Tick L = original.clips.front().timelineLength;
+    REQUIRE (L > 8);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    locate (L);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const auto clips = sortedClips();
+        REQUIRE (clips.size() == 2u);
+        REQUIRE (clips[0].timelineStart == 0);
+        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L)) <= 4);   // a ruler click rounds to a pixel
+    }
+    const auto base = sortedClips();
+    const yesdaw::engine::Tick B0 = base[1].timelineStart;   // where B really landed
+    REQUIRE (editMode() == "overlap");
+
+    // Overlap (default): a paste at L/2 lands over both and moves neither.
+    locate (L / 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const auto clips = sortedClips();
+        REQUIRE (clips.size() == 3u);
+        REQUIRE (clips[0].timelineStart == 0);
+        REQUIRE (clips[0].timelineLength == L);
+        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L / 2)) <= 4);
+        REQUIRE (clips[2].timelineStart == B0);
+        REQUIRE (clips[2].timelineLength == L);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (sortedClips() == base);
+
+    // No Overlap: the same paste trims A's tail and B's head; one undo step restores both.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditModeNoOverlap);
+    REQUIRE (editMode() == "no-overlap");
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.edit_mode.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getSelectedId() == 2);
+    locate (L / 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const auto clips = sortedClips();
+        REQUIRE (clips.size() == 3u);
+        const yesdaw::engine::Tick placedStart = clips[1].timelineStart;
+        REQUIRE (std::llabs (static_cast<long long> (placedStart) - static_cast<long long> (L / 2)) <= 4);
+        REQUIRE (clips[0].timelineStart == 0);
+        REQUIRE (clips[0].timelineLength == placedStart);              // A trimmed to the placed start
+        REQUIRE (clips[1].timelineLength == L);                       // the placed clip, whole
+        REQUIRE (clips[2].timelineStart == placedStart + L);          // B's head trimmed to the placed end
+        REQUIRE (clips[2].timelineStart + clips[2].timelineLength == B0 + L);   // B's end untouched
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (sortedClips() == base);
+
+    // Shuffle: a paste at 0 pushes A and B right by L; deleting A pulls the rest back by L.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditModeShuffle);
+    REQUIRE (editMode() == "shuffle");
+    REQUIRE (chooser->getSelectedId() == 3);
+    locate (0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const auto clips = sortedClips();
+        REQUIRE (clips.size() == 3u);
+        REQUIRE (clips[0].timelineStart == 0);
+        REQUIRE (clips[1].timelineStart == L);          // A pushed right by the placed length
+        REQUIRE (clips[2].timelineStart == B0 + L);     // B likewise
+        for (const auto& c : clips)
+            REQUIRE (c.timelineLength == L);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (sortedClips() == base);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));   // select A
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    {
+        const auto clips = sortedClips();
+        REQUIRE (clips.size() == 1u);
+        REQUIRE (clips[0].timelineStart == std::max<yesdaw::engine::Tick> (0, B0 - L));   // B closed up by A's length (never before 0)
+        REQUIRE (clips[0].timelineLength == L);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (sortedClips() == base);
+
+    // Back to Overlap through the chooser itself.
+    chooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (editMode() == "overlap");
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

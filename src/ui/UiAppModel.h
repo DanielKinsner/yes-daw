@@ -4222,6 +4222,15 @@ public:
                 : engine::ProjectEditCommand::moveClip (clipId, view.timelineStart + delta);
             if (! view.valid || ! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
+            // G2.6: the Edit mode — the old place closes up (Shuffle), the new place is a placement.
+            if (! view.isMidi)
+            {
+                const engine::Clip* moved = findClip (clipId);
+                if (moved != nullptr
+                    && (! applyEditModeAfterRemoval (nextProject, nextUndo, moved->trackId, view.timelineStart, view.timelineLength)
+                        || ! applyEditModeAfterPlacement (nextProject, nextUndo, clipId)))
+                    return { id, { false, "edit mode refused the move" }, false };
+            }
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -4248,11 +4257,15 @@ public:
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
             const UiTimelineEntityView view = timelineEntityView (clipId);
+            const engine::Clip* audio = view.isMidi ? nullptr : findClip (clipId);
+            const engine::EntityId trackId = audio != nullptr ? audio->trackId : engine::EntityId {};
             const engine::ProjectEditCommand command = view.isMidi
                 ? engine::ProjectEditCommand::removeMidiClip (clipId)
                 : engine::ProjectEditCommand::deleteClip (clipId);
             if (! view.valid || ! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
+            if (audio != nullptr && ! applyEditModeAfterRemoval (nextProject, nextUndo, trackId, view.timelineStart, view.timelineLength))
+                return { id, { false, "edit mode refused the delete" }, false };   // G2.6
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -6423,6 +6436,9 @@ public:
             case UiActionId::TimelineToggleMixerDock:
             case UiActionId::InspectorShowClipTab:
             case UiActionId::InspectorShowTrackTab:
+            case UiActionId::EditModeOverlap:          // G2.6: the mode lives in the context
+            case UiActionId::EditModeNoOverlap:
+            case UiActionId::EditModeShuffle:
             {
                 return registry_.dispatch (id, context_);
             }
@@ -8652,6 +8668,125 @@ private:
         return { id, state, true };
     }
 
+    // G2.6: the Edit mode's laws, applied inside the placing / removing verb's own transaction so
+    // the whole thing is ONE undo step. Only audio clips on the same track take part.
+    //  - No overlap: a placed clip trims what it covers (fully covered neighbours go; a
+    //    neighbour that spans it is split around it).
+    //  - Shuffle: a placement pushes every later clip on the track right by the placed length;
+    //    a removal pulls every later clip left by the removed length (closes up).
+    [[nodiscard]] bool applyEditModeAfterPlacement (engine::Project& project, engine::ProjectUndoStack& undo,
+                                                    engine::EntityId placedId)
+    {
+        const auto placedIt = std::find_if (project.clips.begin(), project.clips.end(),
+                                            [placedId] (const engine::Clip& c) { return c.id == placedId; });
+        if (placedIt == project.clips.end() || context_.editMode == UiEditMode::Overlap)
+            return true;
+        const engine::Clip placed = *placedIt;
+        const engine::Tick start = placed.timelineStart;
+        const engine::Tick end = placed.timelineStart + placed.timelineLength;
+        std::vector<engine::EntityId> neighbours;
+        for (const engine::Clip& clip : project.clips)
+            if (clip.id != placedId && clip.trackId == placed.trackId && clip.timelineLength > 0)
+                neighbours.push_back (clip.id);
+        if (context_.editMode == UiEditMode::Shuffle)
+        {
+            for (const engine::EntityId clipId : neighbours)
+            {
+                const auto it = std::find_if (project.clips.begin(), project.clips.end(),
+                                              [clipId] (const engine::Clip& c) { return c.id == clipId; });
+                if (it != project.clips.end() && it->timelineStart >= start)
+                    if (! undo.apply (project, engine::ProjectEditCommand::moveClip (clipId, it->timelineStart + placed.timelineLength)).applied())
+                        return false;
+            }
+            return true;
+        }
+        // No overlap.
+        for (const engine::EntityId clipId : neighbours)
+        {
+            const auto it = std::find_if (project.clips.begin(), project.clips.end(),
+                                          [clipId] (const engine::Clip& c) { return c.id == clipId; });
+            if (it == project.clips.end())
+                continue;
+            const engine::Clip n = *it;
+            const engine::Tick nStart = n.timelineStart;
+            const engine::Tick nEnd = n.timelineStart + n.timelineLength;
+            if (nEnd <= start || nStart >= end)
+                continue;   // no overlap
+            if (nStart >= start && nEnd <= end)
+            {
+                if (! undo.apply (project, engine::ProjectEditCommand::deleteClip (clipId)).applied())
+                    return false;
+                continue;
+            }
+            if (nStart < start && nEnd > end)
+            {
+                // Spans the placed clip: keep the head, add the tail as a new clip.
+                const engine::Tick headLength = start - nStart;
+                const engine::Tick tailLength = nEnd - end;
+                const std::optional<std::uint64_t> headSrc = sourceLengthForSplit (n, headLength);
+                const std::optional<std::uint64_t> consumed = sourceLengthForSplit (n, end - nStart);
+                const std::optional<std::uint64_t> tailSrc = sourceLengthForSplit (n, tailLength);
+                if (! headSrc || ! consumed || ! tailSrc)
+                    return false;
+                engine::Clip tail = n;
+                tail.id = allocateSessionEntityId (0xC6u, project);
+                tail.timelineStart = end;
+                tail.timelineLength = tailLength;
+                tail.srcOffset = n.srcOffset + *consumed;
+                tail.srcLen = *tailSrc;
+                tail.fadeIn = 0;
+                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, nStart, headLength, n.srcOffset, *headSrc)).applied()
+                    || ! undo.apply (project, engine::ProjectEditCommand::addClip (tail)).applied())
+                    return false;
+                continue;
+            }
+            if (nStart < start)
+            {
+                // Overlaps at its tail: keep the head.
+                const engine::Tick headLength = start - nStart;
+                const std::optional<std::uint64_t> headSrc = sourceLengthForSplit (n, headLength);
+                if (! headSrc)
+                    return false;
+                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, nStart, headLength, n.srcOffset, *headSrc)).applied())
+                    return false;
+                continue;
+            }
+            // Overlaps at its head: keep the tail.
+            const engine::Tick consumedTicks = end - nStart;
+            const engine::Tick tailLength = nEnd - end;
+            const std::optional<std::uint64_t> consumed = sourceLengthForSplit (n, consumedTicks);
+            const std::optional<std::uint64_t> tailSrc = sourceLengthForSplit (n, tailLength);
+            if (! consumed || ! tailSrc)
+                return false;
+            if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, end, tailLength, n.srcOffset + *consumed, *tailSrc)).applied())
+                return false;
+        }
+        return true;
+    }
+
+    // Shuffle only: after `removed` (start, length, track) is gone, later clips on the track close up.
+    [[nodiscard]] bool applyEditModeAfterRemoval (engine::Project& project, engine::ProjectUndoStack& undo,
+                                                  engine::EntityId trackId, engine::Tick removedStart, engine::Tick removedLength)
+    {
+        if (context_.editMode != UiEditMode::Shuffle || removedLength <= 0)
+            return true;
+        std::vector<engine::EntityId> later;
+        for (const engine::Clip& clip : project.clips)
+            if (clip.trackId == trackId && clip.timelineStart >= removedStart)
+                later.push_back (clip.id);
+        for (const engine::EntityId clipId : later)
+        {
+            const auto it = std::find_if (project.clips.begin(), project.clips.end(),
+                                          [clipId] (const engine::Clip& c) { return c.id == clipId; });
+            if (it == project.clips.end())
+                continue;
+            const engine::Tick target = std::max<engine::Tick> (0, it->timelineStart - removedLength);
+            if (! undo.apply (project, engine::ProjectEditCommand::moveClip (clipId, target)).applied())
+                return false;
+        }
+        return true;
+    }
+
     // G2.5: the Time selection as an edit object. One law splits every audio clip crossing the
     // range's edges (on all tracks); the range verbs build on it: Copy gathers the fragments
     // inside the range into a track-keeping clipboard without touching the project, Cut / Delete
@@ -8748,9 +8883,20 @@ private:
         }
         for (const engine::EntityId clipId : inside)
         {
+            const auto it = std::find_if (nextProject.clips.begin(), nextProject.clips.end(),
+                                          [clipId] (const engine::Clip& c) { return c.id == clipId; });
+            if (it == nextProject.clips.end())
+                continue;
+            const engine::EntityId trackId = it->trackId;
+            const engine::Tick removedStart = it->timelineStart;
+            const engine::Tick removedLength = it->timelineLength;
             const engine::ProjectEditApplyResult applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (clipId));
             if (! applied.applied())
                 return { id, { false, "delete refused inside the selection" }, false };
+            // G2.6: Delete closes up in Shuffle; Silence keeps the time (the two verbs part here).
+            if (id == UiActionId::TimelineRangeDelete || id == UiActionId::TimelineRangeCut)
+                if (! applyEditModeAfterRemoval (nextProject, nextUndo, trackId, removedStart, removedLength))
+                    return { id, { false, "edit mode refused the delete" }, false };
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -9276,6 +9422,8 @@ private:
 
                 if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
                     return { id, state, false };
+                if (! applyEditModeAfterPlacement (nextProject, nextUndo, clip.id))
+                    return { id, { false, "edit mode refused the paste" }, false };   // G2.6
                 pastedClipIds.push_back (clip.id);
             }
         }

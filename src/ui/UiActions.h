@@ -164,6 +164,10 @@ enum class UiActionId : std::uint8_t
     TimelineRangeSilence,
     TimelineZoomToSelection,
     TimelineSelectAllFollowing,
+    // G2.6: the Edit mode — what happens to neighbours when a Clip is placed or removed.
+    EditModeOverlap,
+    EditModeNoOverlap,
+    EditModeShuffle,
     TrackDuplicate,
     TrackMoveUp,
     TrackMoveDown,
@@ -229,6 +233,16 @@ enum class UiEditorDockTab : std::uint8_t
 {
     Mixer,
     PianoRoll
+};
+
+// G2.6 (CONTEXT.md "Edit mode"): the rule for neighbouring Clips when one is placed or removed —
+// Overlap (default, neighbours untouched), No overlap (the placed Clip trims what it covers),
+// Shuffle (neighbours close up on a removal, move aside on a placement).
+enum class UiEditMode : std::uint8_t
+{
+    Overlap,
+    NoOverlap,
+    Shuffle
 };
 
 // G1.1 (plan §4): the Focus context a chord is looked up in. Global chords work everywhere; an
@@ -390,6 +404,7 @@ struct UiActionContext
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
     bool mixerDockVisible = true;
     UiEditorDockTab editorDockTab = UiEditorDockTab::Mixer;   // G2.1: the tab the dock shows
+    UiEditMode editMode = UiEditMode::Overlap;                // G2.6
     // V7: which inspector tab is active — false = CLIP (the historical content), true = TRACK.
     bool inspectorTrackTabActive = false;
     bool timelineAutomationTrackLaneVisible = false;
@@ -789,6 +804,12 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineSelectAllFollowing, "timeline.select.following", "Select All Following", "Shift+F", "Select everything from the playhead to the end, on all tracks",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::EditModeOverlap, "edit.mode.overlap", "Overlap", "", "Edit mode: neighbours stay put when a Clip is placed or removed",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::EditModeNoOverlap, "edit.mode.no_overlap", "No Overlap", "", "Edit mode: a placed Clip trims what it covers",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::EditModeShuffle, "edit.mode.shuffle", "Shuffle", "", "Edit mode: neighbours close up on a removal and move aside on a placement",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "", "Duplicate selected track with clips and strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "", "Move selected track up one row",
@@ -1815,6 +1836,10 @@ public:
             case UiActionId::TimelineZoomToSelection:
             case UiActionId::TimelineSelectAllFollowing:
                 break;
+
+            case UiActionId::EditModeOverlap:   context.editMode = UiEditMode::Overlap;   break;   // G2.6
+            case UiActionId::EditModeNoOverlap: context.editMode = UiEditMode::NoOverlap; break;
+            case UiActionId::EditModeShuffle:   context.editMode = UiEditMode::Shuffle;   break;
 
             case UiActionId::Count:
                 return { id, { false, "unknown action" }, false };

@@ -41,15 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.5 (the Time selection as an edit object: `Ctrl+E` split at edges, Cut / Copy /
-Delete / Silence within the range on all tracks, track-keeping paste, `Shift+F` select all
-following, `Z` zoom to selection; `[time-selection]`) built, gated locally, committed; awaiting
-its exact-head run. G2.3's run `33626513605` (macOS, 18.5 ms) and G2.4's run `33627456994`
-(Windows, 16.88 ms) were red only on the timeline GPU frame-budget benchmark (budget 16.6 ms) —
-the same runner noise as `bd1117a`; nothing in G2.3 / G2.4 touches the canvas paint it measures
-(parking lot: measure the hosted runners' floor before pinning; the gate is not weakened). The
-Windows job was rerun on the same head; G2.3 and G2.4 (`c56e0e9`) tick when it is green. Next: G2.6 —
-edit modes (Overlap / No overlap / Shuffle). The drive stays paused (D14).
+**Now:** G2.6 (Edit modes Overlap / No Overlap / Shuffle — one chooser, one law inside each
+placing or removing edit; `[edit-modes]`) built, gated locally, committed; awaiting its exact-head
+run. Next: G2.7 — Snap modes (Grid zoom-adaptive, Relative, Events, Off; Ctrl inverts; a snap
+line during drag). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -97,7 +92,37 @@ G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by ex
 G2.1 cp2 + cp3 ✅ — dock tabs (`669d155`), the letter cluster (`3a0ca74`), its paint fixes and
 the Linux fix; certified by exact-head run `33625472284` (green on all ten jobs) — G2.1 complete.
 G2.2 ✅ — ruler v2 (`9618882`); certified by the same run `33625472284`.
+G2.3 ✅ — drag ghosts, landing line, Esc, auto-scroll (`83e8c5e`); G2.4 ✅ — the Smart tool
+(`c56e0e9`); certified by run `33627456994` after a rerun of its Windows job (the GPU frame-budget
+benchmark's hosted-runner noise, parking lot) — every job green on the same head.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.6 — Edit modes (2026-09-02)
+
+**Build.** `UiEditMode { Overlap, NoOverlap, Shuffle }` in the action context; verbs
+`EditModeOverlap / NoOverlap / Shuffle` (Global, ticked in the Edit menu). Model laws
+`applyEditModeAfterPlacement (project, undo, placedId)` and `applyEditModeAfterRemoval
+(project, undo, trackId, start, length)` run INSIDE the verb's transaction — one undo step:
+**No overlap** deletes a fully covered neighbour, splits one that spans the placed clip (head
+kept by `trimClip`, tail re-added with the consumed source offset), trims a head or tail
+overlap; **Shuffle** pushes every later clip on the track right by the placed length on a
+placement and pulls them left by the removed length on a removal. Hooked into move (old place
+closes up, new place is a placement), move-to-track is untouched (recorded), paste, delete,
+and the range verbs (Delete / Cut close up in Shuffle; Silence keeps its time — the two verbs
+part here). Shell: the status row's `editModeChooser` ("Edit: Overlap / No Overlap / Shuffle",
+`timelineEditModeChooserWidth` 128, drops whole like the nudge chooser); probe
+`view.editMode`.
+
+**Gates.** `[edit-modes]` (input check): A [0, L) + B [L, 2L); Overlap paste at L/2 moves
+neither; No Overlap paste trims A to L/2 and B's head to 3L/2 with the placed clip whole;
+Shuffle paste at 0 pushes both by L; Shuffle delete of A pulls B to 0; each undoes as one step
+to the same two clips; the chooser follows and drives the mode. Edit menu 26 → 29; child count
++1.
+
+**Not built (recorded).** Move-to-lane and duplicate do not consult the mode yet (the drag-copy
+and duplicate verbs place through other paths — G2.11 slip / the mixer of drags); Shuffle does
+not butt a clip against an earlier neighbour it lands inside (Pro Tools does) — a placement
+inside an earlier clip still overlaps it; MIDI clips take no part in the modes.
 
 ### G2.5 — Time selection is first-class (2026-09-02)
 

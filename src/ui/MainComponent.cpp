@@ -4573,6 +4573,28 @@ public:
         addAndMakeVisible (timelineSnapChooser);
 
         // G1.4: the Nudge value chooser — four registered verbs as one control.
+        // G2.6: the Edit mode chooser — Overlap / No Overlap / Shuffle — one setting the placing
+        // and removing verbs consult; the Edit menu carries the same three, ticked.
+        configureActionComponent (editModeChooser, yesdaw::ui::UiActionId::EditModeOverlap, "Edit mode");
+        editModeChooser.setComponentID ("timeline.edit_mode.chooser");
+        editModeChooser.setName ("Edit mode");
+        editModeChooser.setTitle ("Edit mode");
+        editModeChooser.addItem ("Edit: Overlap", 1);
+        editModeChooser.addItem ("Edit: No Overlap", 2);
+        editModeChooser.addItem ("Edit: Shuffle", 3);
+        editModeChooser.setSelectedId (1, juce::dontSendNotification);
+        editModeChooser.onChange = [this] {
+            if (refreshingEditModeChooser)
+                return;
+            const int selected = editModeChooser.getSelectedId();
+            handleAction (selected == 2 ? yesdaw::ui::UiActionId::EditModeNoOverlap
+                          : selected == 3 ? yesdaw::ui::UiActionId::EditModeShuffle
+                                          : yesdaw::ui::UiActionId::EditModeOverlap);
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (editModeChooser);
+
         nudgeValueChooser.setComponentID ("timeline.nudge.chooser");
         nudgeValueChooser.setName ("Nudge value");
         nudgeValueChooser.setTitle ("Nudge value");
@@ -5854,6 +5876,8 @@ public:
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
             view->setProperty ("nudgeValue", context.nudgeValue);
+            view->setProperty ("editMode", context.editMode == yesdaw::ui::UiEditMode::Overlap ? "overlap"
+                                           : context.editMode == yesdaw::ui::UiEditMode::NoOverlap ? "no-overlap" : "shuffle");   // G2.6
             view->setProperty ("keymapEditor", context.keymapVisible);
             view->setProperty ("hoverHint", hoverHint);
             view->setProperty ("railWidth", viewState.railWidth);          // G2.1
@@ -8747,8 +8771,13 @@ private:
             juce::Rectangle<int> status = L::statusLineBounds (timeline);
             const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
                                                       .withWidth (L::inspectorToggleWidth);
-            juce::Rectangle<int> nudge = status.withWidth (L::timelineNudgeChooserWidth);
             const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 3;   // G2.1 cp3: [I][X][P][A]
+            // G2.6: [Edit mode][Nudge] lead the status row; each drops whole when the row cannot hold it.
+            const juce::Rectangle<int> editMode = status.withWidth (L::timelineEditModeChooserWidth);
+            const bool editModeFits = editMode.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
+            editModeChooser.setBounds (editModeFits ? editMode : juce::Rectangle<int>());
+            juce::Rectangle<int> nudge = status.withX (editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap : status.getX())
+                                               .withWidth (L::timelineNudgeChooserWidth);
             const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
             nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
             // G2.1 cp3: the view cluster [I][X][P][A] (plan §3.1) — inspector, dock (mixer) toggle,
@@ -8768,7 +8797,8 @@ private:
             if (juce::Component* piano = toolbarButtonFor (yesdaw::ui::UiActionId::ViewPianoRoll))
                 piano->toFront (false);
             automationLaneToggle.toFront (false);
-            const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap : status.getX();
+            const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap
+                                 : editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap : status.getX();
             const int statusRight = clusterLeft - L::inspectorToggleGap;
             statusLine.setBounds (statusRight > statusLeft ? status.withLeft (statusLeft).withRight (statusRight)
                                                           : juce::Rectangle<int>());
@@ -9123,12 +9153,13 @@ private:
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 25> kEditMenu {
+        static constexpr std::array<UiActionId, 28> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
             UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
             UiActionId::TimelineRangeCut,  UiActionId::TimelineRangeCopy,  UiActionId::TimelineRangeDelete,
             UiActionId::TimelineRangeSilence, UiActionId::TimelineRangeSplitEdges, UiActionId::TimelineSelectAllFollowing,
+            UiActionId::EditModeOverlap,   UiActionId::EditModeNoOverlap,  UiActionId::EditModeShuffle,
             UiActionId::TimelineClipSelectAllProject, UiActionId::TimelineClipSelectAllTrack,
             UiActionId::EditRenameSelection,
             UiActionId::EditNudgeLeft,     UiActionId::EditNudgeRight,
@@ -9227,6 +9258,9 @@ private:
             case UiActionId::EditNudgeValueBeat:                return c.nudgeValue == 2;
             case UiActionId::EditNudgeValueSixteenth:           return c.nudgeValue == 3;
             case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
+            case UiActionId::EditModeOverlap:                   return c.editMode == yesdaw::ui::UiEditMode::Overlap;    // G2.6
+            case UiActionId::EditModeNoOverlap:                 return c.editMode == yesdaw::ui::UiEditMode::NoOverlap;
+            case UiActionId::EditModeShuffle:                   return c.editMode == yesdaw::ui::UiEditMode::Shuffle;
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -10442,6 +10476,9 @@ private:
             timelineSnapChooser.setSelectedId (snapId, juce::dontSendNotification);
             refreshingNudgeChooser = true;
             nudgeValueChooser.setSelectedId (appModel.context().nudgeValue + 1, juce::dontSendNotification);
+            refreshingEditModeChooser = true;   // G2.6
+            editModeChooser.setSelectedId (static_cast<int> (appModel.context().editMode) + 1, juce::dontSendNotification);
+            refreshingEditModeChooser = false;
             refreshingNudgeChooser = false;
             refreshActionTooltips();
             inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
@@ -13679,6 +13716,8 @@ private:
     std::vector<std::pair<juce::Component*, yesdaw::ui::UiActionId>> actionComponents;   // G1.6: live tooltips
     KeymapEditorComponent keymapEditor;    // G1.5
     juce::TextButton inspectorToggle;      // G1.4
+    juce::ComboBox editModeChooser;        // G2.6
+    bool refreshingEditModeChooser = false;
     // G2.1: the Arrange window's splitter sizes (persisted per project as view-state.txt).
     struct ViewState
     {

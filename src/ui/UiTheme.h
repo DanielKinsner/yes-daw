@@ -799,6 +799,7 @@ struct UiTheme
         // toggle at the row's right end; the status line takes what is left between them. At the
         // window floor the nudge chooser drops WHOLE (E27) — the Edit menu still carries it.
         static constexpr int timelineNudgeChooserWidth = 104;
+        static constexpr int timelineEditModeChooserWidth = 128;   // G2.6: "Edit: No Overlap"
         static constexpr int timelineNudgeChooserGap = 12;
         static constexpr int inspectorToggleWidth = 32;   // G2.1 cp3: the view cluster is letters — [X][P][I] — so it fits the status row at 1280
         static constexpr int inspectorToggleGap = 8;   // G2.1 cp3: four letters fit the 1280 row
