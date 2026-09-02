@@ -582,6 +582,12 @@ template <typename ClipSourceProvider>
             // to it too, so pre-slot bundles render unchanged.
             auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
             instrument->setEventInput (merge.get());
+            // The Track's persisted parameter overrides (an unset id keeps the spec default, which
+            // is the ADR-0043 sound bit-for-bit).
+            for (const auto& [paramId, normalizedValue] : owningTrack.instrumentParams())
+                instrument->setNormalizedParameter (paramId, normalizedValue);
+            // ADR-0047: the instrument's parameters are automation targets by Track id.
+            automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::InstrumentParam, instrumentId });
 
             sumInputs.push_back (instrument.get());
             clipSources.push_back (std::move (merge));
@@ -802,6 +808,11 @@ template <typename ClipSourceProvider>
                 detail::findProjectedAutomationTarget (automationTargets, lane.ownerEntity, lane.role, lane.paramId);
             if (target == nullptr)
             {
+                // G3.1: an instrument lane on a Track that holds no MIDI right now has no node to
+                // drive — the lane stays stored and sleeps until a MIDI Clip lands (never an error,
+                // or deleting a Track's last MIDI Clip would refuse to project).
+                if (lane.role == AutomationTargetRole::InstrumentParam)
+                    continue;
                 if (error != nullptr)
                     *error = { ProjectMixerProjectionError::Code::InvalidAutomationTarget,
                                laneIndex,

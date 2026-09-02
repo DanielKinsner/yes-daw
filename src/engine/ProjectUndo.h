@@ -102,7 +102,10 @@ enum class ProjectEditVerb : std::uint8_t
     // N7: a Track's persisted colour (0 = no override)
     SetTrackColour,
     // N8: the persisted punch region (disabled = no punch bounds beyond count-in)
-    SetPunchRegion
+    SetPunchRegion,
+    // G3.1 / ADR-0047: the Track's instrument slot — its kind, and one normalized parameter
+    SetTrackInstrument,
+    SetTrackInstrumentParam
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -180,6 +183,8 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SetTrackHeight: return "Track Height";
         case ProjectEditVerb::SetTrackColour: return "Track Colour";
         case ProjectEditVerb::SetPunchRegion: return "Punch Region";
+        case ProjectEditVerb::SetTrackInstrument: return "Track Instrument";
+        case ProjectEditVerb::SetTrackInstrumentParam: return "Instrument Parameter";
     }
     return "Edit";
 }
@@ -239,6 +244,7 @@ struct ProjectEditCommand
     AutomationMode automationMode = AutomationMode::Read;
     int trackHeightPx = 0;
     std::uint32_t trackColour = 0;
+    TrackInstrumentKind trackInstrumentKind = TrackInstrumentKind::None;   // G3.1 (the param rides fxParamId / fxParamValue)
     // N8: punch region payload — startFrame/endFrame are raw sample frames, not musical ticks.
     bool punchEnabled = false;
     Tick punchStartFrame = 0;
@@ -998,6 +1004,28 @@ struct ProjectEditCommand
         return command;
     }
 
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackInstrument (EntityId trackId,
+                                                                            TrackInstrumentKind kind) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackInstrument;
+        command.trackId = trackId;
+        command.trackInstrumentKind = kind;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setTrackInstrumentParam (EntityId trackId,
+                                                                                 std::uint32_t paramId,
+                                                                                 double normalizedValue) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetTrackInstrumentParam;
+        command.trackId = trackId;
+        command.fxParamId = paramId;
+        command.fxParamValue = normalizedValue;
+        return command;
+    }
+
     // E19: persisted master strip gain (rides the shared `gain` field).
     [[nodiscard]] static constexpr ProjectEditCommand setMasterGain (float linearGain) noexcept
     {
@@ -1328,7 +1356,9 @@ namespace detail {
            || verb == ProjectEditVerb::RemoveTrack
            || verb == ProjectEditVerb::SetTrackMixScalars
            || verb == ProjectEditVerb::SetTrackHeight
-           || verb == ProjectEditVerb::SetTrackColour;
+           || verb == ProjectEditVerb::SetTrackColour
+           || verb == ProjectEditVerb::SetTrackInstrument   // G3.1
+           || verb == ProjectEditVerb::SetTrackInstrumentParam;
 }
 
 // R13: the routing verbs take a Track OR a Bus owner, so their inverse may live in either
@@ -1705,6 +1735,12 @@ namespace detail {
 
         case ProjectEditVerb::SetTrackColour:
             return setTrackColour (project, command.trackId, command.trackColour);
+
+        case ProjectEditVerb::SetTrackInstrument:   // G3.1
+            return setTrackInstrument (project, command.trackId, command.trackInstrumentKind);
+
+        case ProjectEditVerb::SetTrackInstrumentParam:
+            return setTrackInstrumentParam (project, command.trackId, command.fxParamId, command.fxParamValue);
 
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);
@@ -2324,7 +2360,9 @@ namespace detail {
            || verb == ProjectEditVerb::SetBusMixScalars
            || verb == ProjectEditVerb::SetMasterGain
            // N6: a row-boundary height drag coalesces the same way a fader drag does.
-           || verb == ProjectEditVerb::SetTrackHeight;
+           || verb == ProjectEditVerb::SetTrackHeight
+           // G3.1: an instrument knob drag coalesces like a fader drag (same track, same param).
+           || verb == ProjectEditVerb::SetTrackInstrumentParam;
 }
 
 [[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
@@ -2361,6 +2399,13 @@ namespace detail {
     if (older.command.verb == ProjectEditVerb::SetTrackHeight)
     {
         return older.command.trackId == newer.command.trackId
+               && older.trackDiff.after == newer.trackDiff.before;
+    }
+
+    if (older.command.verb == ProjectEditVerb::SetTrackInstrumentParam)   // G3.1
+    {
+        return older.command.trackId == newer.command.trackId
+               && older.command.fxParamId == newer.command.fxParamId
                && older.trackDiff.after == newer.trackDiff.before;
     }
 

@@ -41,13 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 — Track instrument (ADR-0047 Accepted). cp1 engine ✅ built, gated, committed
-(schema v27 slot, the N-event-input merge law, `MidiMergeNode` + one `SimpleSynth` per Track);
-awaiting its exact-head run. Next: cp2 — `SimpleSynth` `ParamSpec` (osc mix, ADSR, filter
-cutoff / resonance, glide, volume) read through the block-sliced parameter path, `SetTrackInstrument`
-/ `SetTrackInstrumentParam` verbs, automation lanes targeting the Instrument by Track id; then cp3 —
-the rail / inspector chooser, the instrument panel dock tab, `[track-instrument]`. The drive pause
-D14 is lifted ("Accept and go"): SS-1..SS-3 run at cp3's UI checkpoint.
+**Now:** G3.1 — Track instrument (ADR-0047 Accepted). cp1 engine ✅ (awaiting its run), cp2
+`ParamSpec` + verbs + automation ✅ built, gated locally, committed. Next: cp3 — the rail /
+inspector instrument chooser, the instrument panel dock tab (the `ParamSpec` rows), the automation
+lane chooser's Instrument entry, the live knob post, `[track-instrument]`; then the UI checkpoint
+with the drives (SS-1..SS-3, pause D14 lifted).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -115,6 +113,30 @@ certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.1 cp2 — SimpleSynth ParamSpec, the slot's verbs, the automation target (2026-09-02)
+
+**Build.** `SimpleSynthNode::parameterSpec` (ids 1..9: osc mix, attack, decay, sustain, release,
+cutoff, resonance, glide, volume; every default = the ADR-0043 sound bit-for-bit — the filter is
+bypassed at the top of its range, glide 0, volume 0 dB, mix 1.0); a TPT state-variable low-pass per
+voice; a decay stage; portamento; the event walk merges the regular stream and the automation
+side-band in time order (the FX nodes' law). `InstrumentState.h`: the canonical little-endian
+parameter blob (`encode` / `decode` / `setInstrumentParamValue`); `Track::instrumentParams()` /
+`instrumentParamNormalized (id)`; a malformed blob invalidates the Track. Verbs
+`SetTrackInstrument` / `SetTrackInstrumentParam` (Track family; the knob drag coalesces per
+track + param). `AutomationTargetRole::InstrumentParam` (owner = Track, paramId = spec id;
+validity via `instrumentKindAcceptsParameterId`; persistence role range 0..6); the projection
+registers the target on the Track's Instrument and applies the persisted state; a lane on a Track
+without MIDI sleeps.
+
+**Gates.** `YesDawTrackInstrumentCheck` 5 → 9 cases (216 assertions): specs + refusals, each
+parameter audible with closed forms (−6.02 dB halves the peak, sustain 0.5 halves the held RMS,
+200 Hz cutoff drops RMS > 20 %, glide differs only after note 2), the verbs' undo / coalescing /
+refusals / canonical bytes, the cutoff lane's render and validity laws, the sleeping lane. Suite 371.
+
+**Not built (recorded → cp3).** No UI (chooser, panel, lane chooser entry), no live knob post
+(an instrument param edit rebuilds; the FX insert's `LiveScalarDelta::FxPost` shape is the
+precedent), no smoothing on parameter jumps (a cutoff step is instant; the FX nodes ramp 5 ms).
 
 ### G3.1 cp1 — One instrument per Track: the engine half (2026-09-02)
 

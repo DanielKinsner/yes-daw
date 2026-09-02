@@ -838,7 +838,9 @@ TEST_CASE ("Track instrument slot round-trips through a reopened bundle (schema 
     Project project = makeProject();
     REQUIRE (project.tracks.size() >= 1u);
     project.tracks[0].instrumentKind = yesdaw::engine::TrackInstrumentKind::SimpleSynth;
-    project.tracks[0].instrumentState = { 0x01, 0x00, 0x7F, 0x10, 0x20 };
+    // cp2: the state is a real encoded parameter blob (an arbitrary byte string is malformed).
+    project.tracks[0].instrumentState = yesdaw::engine::encodeInstrumentParams ({ { 2u, 0.25 }, { 6u, 0.5 } });
+    REQUIRE (! project.tracks[0].instrumentState.empty());
     REQUIRE (project.tracks[0].isValid());
 
     {

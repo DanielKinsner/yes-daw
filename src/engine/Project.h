@@ -11,7 +11,9 @@
 #include "engine/ParamSpec.h"
 #include "engine/Time.h"
 #include "engine/nodes/CompressorNode.h"
+#include "engine/InstrumentState.h"
 #include "engine/nodes/EqNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
@@ -375,6 +377,30 @@ enum class TrackInstrumentKind : std::uint8_t
     return raw <= static_cast<std::uint8_t> (TrackInstrumentKind::SimpleSynth);
 }
 
+// ADR-0047: None resolves to the built-in synth for a Track holding MIDI — the kind that actually plays.
+[[nodiscard]] constexpr TrackInstrumentKind effectiveTrackInstrumentKind (TrackInstrumentKind kind) noexcept
+{
+    return kind == TrackInstrumentKind::None ? TrackInstrumentKind::SimpleSynth : kind;
+}
+
+[[nodiscard]] inline ParamSpec instrumentParamSpecForKind (TrackInstrumentKind kind, std::uint32_t paramId) noexcept
+{
+    switch (effectiveTrackInstrumentKind (kind))
+    {
+        case TrackInstrumentKind::SimpleSynth:
+            return SimpleSynthNode::parameterSpec (paramId);
+        case TrackInstrumentKind::None:
+            break;
+    }
+    return {};
+}
+
+[[nodiscard]] inline bool instrumentKindAcceptsParameterId (TrackInstrumentKind kind, std::uint32_t paramId) noexcept
+{
+    const ParamSpec spec = instrumentParamSpecForKind (kind, paramId);
+    return spec.id == paramId && spec.name != nullptr && spec.name[0] != '\0' && paramSpecHasUsableRange (spec);
+}
+
 struct Track
 {
     EntityId id;
@@ -396,6 +422,22 @@ struct Track
     TrackInstrumentKind instrumentKind = TrackInstrumentKind::None;
     std::vector<std::uint8_t> instrumentState;
 
+    // G3.1: the decoded instrument parameter overrides (empty = every ParamSpec default).
+    [[nodiscard]] InstrumentParamValues instrumentParams() const
+    {
+        InstrumentParamValues values;
+        (void) decodeInstrumentParams (instrumentState, values);
+        return values;
+    }
+
+    [[nodiscard]] double instrumentParamNormalized (std::uint32_t paramId) const
+    {
+        for (const auto& [id_, value] : instrumentParams())
+            if (id_ == paramId)
+                return value;
+        return normalizedDefault (instrumentParamSpecForKind (instrumentKind, paramId));
+    }
+
     [[nodiscard]] bool isValid() const noexcept
     {
         if (! id.isValid() || ! strip.isValid())
@@ -403,6 +445,15 @@ struct Track
 
         if (! trackInstrumentKindIsValid (static_cast<std::uint8_t> (instrumentKind)))
             return false;
+
+        {
+            InstrumentParamValues values;
+            if (! decodeInstrumentParams (instrumentState, values))
+                return false;
+            for (const auto& [paramId, value] : values)
+                if (! instrumentKindAcceptsParameterId (instrumentKind, paramId))
+                    return false;
+        }
 
         if (! trackHeightIsValid (heightPx))
             return false;
@@ -682,7 +733,8 @@ enum class AutomationTargetRole : std::uint8_t
     SendLevel,
     BusFader,
     BusPan,
-    FxInsertParam
+    FxInsertParam,
+    InstrumentParam   // G3.1 / ADR-0047: owner = the Track, paramId = the instrument's ParamSpec id
 };
 
 [[nodiscard]] constexpr bool automationTargetRoleIsKnown (AutomationTargetRole role) noexcept
@@ -692,7 +744,8 @@ enum class AutomationTargetRole : std::uint8_t
            || role == AutomationTargetRole::SendLevel
            || role == AutomationTargetRole::BusFader
            || role == AutomationTargetRole::BusPan
-           || role == AutomationTargetRole::FxInsertParam;
+           || role == AutomationTargetRole::FxInsertParam
+           || role == AutomationTargetRole::InstrumentParam;
 }
 
 // N5: a per-project automation write mode. Read (the historical, only behaviour) plays back
@@ -774,6 +827,7 @@ struct LoopRegion
             // Send rows do not exist yet in CP1. For now paramId remains the target send ordinal.
             return true;
         case AutomationTargetRole::FxInsertParam:
+        case AutomationTargetRole::InstrumentParam:
             return true;
     }
 
@@ -1521,6 +1575,14 @@ struct Project
                 {
                     const FxInsert* const insert = findFxInsert (lane.ownerEntity);
                     if (insert == nullptr || ! fxKindAcceptsParameterId (insert->kind, lane.paramId))
+                        return false;
+                    break;
+                }
+
+                case AutomationTargetRole::InstrumentParam:   // G3.1
+                {
+                    const Track* const owner = findTrack (lane.ownerEntity);
+                    if (owner == nullptr || ! instrumentKindAcceptsParameterId (owner->instrumentKind, lane.paramId))
                         return false;
                     break;
                 }
@@ -3227,6 +3289,75 @@ namespace detail {
             continue;
 
         track.colour = colour;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// G3.1 / ADR-0047: the instrument slot's edits. Changing the kind keeps the state blob only when the
+// new kind accepts every stored id (otherwise the state resets to the defaults).
+[[nodiscard]] inline ProjectEditStatus setTrackInstrument (Project& project,
+                                                           EntityId trackId,
+                                                           TrackInstrumentKind kind)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackInstrumentKindIsValid (static_cast<std::uint8_t> (kind)))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.instrumentKind = kind;
+        InstrumentParamValues values;
+        if (! decodeInstrumentParams (track.instrumentState, values))
+            values.clear();
+        for (const auto& [paramId, value] : values)
+            if (! instrumentKindAcceptsParameterId (kind, paramId))
+            {
+                track.instrumentState.clear();
+                break;
+            }
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus setTrackInstrumentParam (Project& project,
+                                                                EntityId trackId,
+                                                                std::uint32_t paramId,
+                                                                double normalizedValue)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! normalizedFxParamValueIsValid (normalizedValue))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        if (! instrumentKindAcceptsParameterId (track.instrumentKind, paramId))
+            return ProjectEditStatus::InvalidTrackMixState;
+
+        InstrumentParamValues values;
+        if (! decodeInstrumentParams (track.instrumentState, values))
+            return ProjectEditStatus::InvalidTrackMixState;
+        setInstrumentParamValue (values, paramId, normalizedValue);
+        track.instrumentState = encodeInstrumentParams (values);
         return ProjectEditStatus::Applied;
     }
 

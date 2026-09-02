@@ -11,6 +11,8 @@
 //     bit-identically to the same Track marked SimpleSynth (None resolves to SimpleSynth).
 
 #include "engine/GraphBuilder.h"
+#include "engine/InstrumentState.h"
+#include "engine/ProjectUndo.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/Project.h"
 #include "engine/ProjectMixerProjection.h"
@@ -20,7 +22,9 @@
 #include "engine/nodes/SimpleSynthNode.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -388,4 +392,259 @@ TEST_CASE ("TrackInstrumentKind::None renders exactly as SimpleSynth (pre-slot b
     Track bad = none.tracks[0];
     bad.instrumentKind = static_cast<TrackInstrumentKind> (9);
     REQUIRE_FALSE (bad.isValid());
+}
+
+// ---------------- cp2: ParamSpec, the verbs, the automation target ----------------
+
+namespace {
+
+double rmsOf (const std::vector<float>& samples, std::size_t begin, std::size_t end)
+{
+    double sum = 0.0;
+    std::size_t n = 0;
+    for (std::size_t i = begin; i < end && i < samples.size(); ++i, ++n)
+        sum += static_cast<double> (samples[i]) * static_cast<double> (samples[i]);
+    return n > 0 ? std::sqrt (sum / static_cast<double> (n)) : 0.0;
+}
+
+double peakOf (const std::vector<float>& samples)
+{
+    double peak = 0.0;
+    for (const float s : samples)
+        peak = std::max (peak, std::fabs (static_cast<double> (s)));
+    return peak;
+}
+
+Project makeOneNoteProject (std::int64_t lengthTicks = 4096, std::int64_t noteLength = 2048, std::int16_t key = 60)
+{
+    MidiClip clip;
+    clip.id = idFromLowByte (40);
+    clip.trackId = idFromLowByte (31);
+    clip.timelineStart = 0;
+    clip.timelineLength = lengthTicks;
+    clip.timeBase = TimeBase::TempoLocked;
+    clip.notes = { makeNote (50, 0, noteLength, key) };
+    return makeMidiProject ({ clip });
+}
+
+Project withParam (Project project, std::uint32_t paramId, double normalized)
+{
+    REQUIRE (yesdaw::engine::setTrackInstrumentParam (project, project.tracks[0].id, paramId, normalized)
+             == yesdaw::engine::ProjectEditStatus::Applied);
+    return project;
+}
+
+} // namespace
+
+TEST_CASE ("SimpleSynth ParamSpec: every id has a usable spec, unknown ids are refused, defaults are the ADR-0043 sound",
+           "[engine][instrument][params][g3]")
+{
+    for (std::uint32_t id = 1; id <= SimpleSynthNode::kParameterCount; ++id)
+    {
+        INFO ("param " << id);
+        REQUIRE (SimpleSynthNode::acceptsParameterId (id));
+        const yesdaw::engine::ParamSpec spec = SimpleSynthNode::parameterSpec (id);
+        REQUIRE (spec.id == id);
+        REQUIRE (yesdaw::engine::paramSpecHasUsableRange (spec));
+        REQUIRE (yesdaw::engine::instrumentKindAcceptsParameterId (TrackInstrumentKind::None, id));
+        REQUIRE (yesdaw::engine::instrumentKindAcceptsParameterId (TrackInstrumentKind::SimpleSynth, id));
+    }
+    REQUIRE_FALSE (SimpleSynthNode::acceptsParameterId (0));
+    REQUIRE_FALSE (SimpleSynthNode::acceptsParameterId (SimpleSynthNode::kParameterCount + 1));
+    REQUIRE_FALSE (yesdaw::engine::instrumentKindAcceptsParameterId (TrackInstrumentKind::SimpleSynth, 99));
+
+    // Setting every parameter to its spec DEFAULT (in real units) leaves the render bit-identical
+    // to an untouched instrument — the defaults ARE the historical sound.
+    const Project plain = makeOneNoteProject();
+    const std::vector<float> reference = renderProject (plain);
+    REQUIRE (anyNonZero (reference));
+    {
+        OfflineRenderOptions options;
+        options.maxBlockSize = 64;
+        SimpleSynthNode probe (1);
+        for (std::uint32_t id = 1; id <= SimpleSynthNode::kParameterCount; ++id)
+        {
+            const yesdaw::engine::ParamSpec spec = SimpleSynthNode::parameterSpec (id);
+            REQUIRE (probe.parameterReal (id) == spec.def);
+        }
+    }
+}
+
+TEST_CASE ("every SimpleSynth parameter is audible: an off-default value changes the render and the closed forms hold",
+           "[engine][instrument][params][render][g3]")
+{
+    const Project plain = makeOneNoteProject();
+    const std::vector<float> reference = renderProject (plain);
+    REQUIRE (anyNonZero (reference));
+
+    // Each parameter, pushed away from its default, changes the render.
+    const std::array<std::pair<std::uint32_t, double>, 9> offDefaults {
+        std::pair<std::uint32_t, double> { SimpleSynthNode::kOscMixParamId, 0.0 },
+        { SimpleSynthNode::kAttackParamId, 0.8 },
+        { SimpleSynthNode::kDecayParamId, 0.7 },
+        { SimpleSynthNode::kSustainParamId, 0.5 },
+        { SimpleSynthNode::kReleaseParamId, 0.9 },
+        { SimpleSynthNode::kCutoffParamId, 0.3 },
+        { SimpleSynthNode::kResonanceParamId, 0.9 },
+        { SimpleSynthNode::kGlideParamId, 0.5 },
+        { SimpleSynthNode::kVolumeParamId, 0.5 } };
+    for (const auto& [id, normalized] : offDefaults)
+    {
+        INFO ("param " << id);
+        if (id == SimpleSynthNode::kGlideParamId)
+            continue;   // glide needs a PREVIOUS note; proven below
+        Project edited = withParam (plain, id, normalized);
+        if (id == SimpleSynthNode::kDecayParamId)
+            edited = withParam (edited, SimpleSynthNode::kSustainParamId, 0.5);   // decay only shows below full sustain
+        if (id == SimpleSynthNode::kResonanceParamId)
+            edited = withParam (edited, SimpleSynthNode::kCutoffParamId, 0.5);   // resonance only shows with the filter in
+        const std::vector<float> changed = renderProject (edited);
+        REQUIRE (changed != reference);
+    }
+
+    // Volume: -6.0206 dB halves the peak (the envelope and phase are untouched, so the ratio is exact
+    // up to float rounding).
+    {
+        const yesdaw::engine::ParamSpec volume = SimpleSynthNode::parameterSpec (SimpleSynthNode::kVolumeParamId);
+        const double halfDb = 20.0 * std::log10 (0.5);
+        const std::vector<float> half = renderProject (withParam (plain, SimpleSynthNode::kVolumeParamId,
+                                                                  yesdaw::engine::unmapToNormalized (volume, halfDb)));
+        REQUIRE (peakOf (half) == Catch::Approx (peakOf (reference) * 0.5).epsilon (1.0e-3));
+    }
+
+    // Sustain 0.5 with a fast decay: the held level after the decay is half the reference's.
+    {
+        const yesdaw::engine::ParamSpec decay = SimpleSynthNode::parameterSpec (SimpleSynthNode::kDecayParamId);
+        Project sustained = withParam (plain, SimpleSynthNode::kSustainParamId, 0.5);
+        sustained = withParam (sustained, SimpleSynthNode::kDecayParamId, yesdaw::engine::unmapToNormalized (decay, 0.002));
+        const std::vector<float> halfHeld = renderProject (sustained);
+        // 30720 frames/s: frames 512..1536 sit after attack + decay and before the note-off at 2048.
+        REQUIRE (rmsOf (halfHeld, 512, 1536) == Catch::Approx (rmsOf (reference, 512, 1536) * 0.5).epsilon (2.0e-2));
+    }
+
+    // Cutoff at 200 Hz on a C4 (261.6 Hz) note removes energy: the RMS drops well below the reference.
+    {
+        const yesdaw::engine::ParamSpec cutoff = SimpleSynthNode::parameterSpec (SimpleSynthNode::kCutoffParamId);
+        const std::vector<float> dark = renderProject (withParam (plain, SimpleSynthNode::kCutoffParamId,
+                                                                  yesdaw::engine::unmapToNormalized (cutoff, 200.0)));
+        REQUIRE (rmsOf (dark, 512, 1536) < rmsOf (reference, 512, 1536) * 0.8);
+        REQUIRE (anyNonZero (dark));
+    }
+
+    // Glide: a second note after a first slides into pitch — the render differs from no-glide
+    // only AFTER the second note starts.
+    {
+        MidiClip clip;
+        clip.id = idFromLowByte (40);
+        clip.trackId = idFromLowByte (31);
+        clip.timelineStart = 0;
+        clip.timelineLength = 4096;
+        clip.timeBase = TimeBase::TempoLocked;
+        clip.notes = { makeNote (50, 0, 1024, 48), makeNote (51, 1024, 1024, 72) };
+        const Project twoNotes = makeMidiProject ({ clip });
+        const std::vector<float> straight = renderProject (twoNotes);
+        const std::vector<float> glided = renderProject (withParam (twoNotes, SimpleSynthNode::kGlideParamId, 0.5));
+        REQUIRE (straight != glided);
+        REQUIRE (std::equal (straight.begin(), straight.begin() + 1024, glided.begin()));   // identical before note 2
+    }
+}
+
+TEST_CASE ("SetTrackInstrument / SetTrackInstrumentParam are undoable Track verbs; a knob drag coalesces",
+           "[engine][instrument][undo][g3]")
+{
+    using yesdaw::engine::ProjectEditCommand;
+    using yesdaw::engine::ProjectUndoStack;
+    Project project = makeOneNoteProject();
+    const EntityId trackId = project.tracks[0].id;
+    ProjectUndoStack undo;
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackInstrument (trackId, TrackInstrumentKind::SimpleSynth)).applied());
+    REQUIRE (project.tracks[0].instrumentKind == TrackInstrumentKind::SimpleSynth);
+
+    REQUIRE (undo.beginTransactionGroup());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackInstrumentParam (trackId, SimpleSynthNode::kCutoffParamId, 0.4)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackInstrumentParam (trackId, SimpleSynthNode::kCutoffParamId, 0.3)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackInstrumentParam (trackId, SimpleSynthNode::kCutoffParamId, 0.2)).applied());
+    REQUIRE (undo.endTransactionGroup());
+    REQUIRE (project.tracks[0].instrumentParamNormalized (SimpleSynthNode::kCutoffParamId) == Catch::Approx (0.2));
+    REQUIRE (undo.history().steps.size() == 2u);   // the kind, then ONE knob step
+
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.tracks[0].instrumentState.empty());   // the whole drag is one step
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.tracks[0].instrumentParamNormalized (SimpleSynthNode::kCutoffParamId) == Catch::Approx (0.2));
+
+    // An unknown parameter id and a non-normalized value are refused; the state is untouched.
+    const Track before = project.tracks[0];
+    REQUIRE_FALSE (undo.apply (project, ProjectEditCommand::setTrackInstrumentParam (trackId, 77, 0.5)).applied());
+    REQUIRE_FALSE (undo.apply (project, ProjectEditCommand::setTrackInstrumentParam (trackId, SimpleSynthNode::kCutoffParamId, 1.5)).applied());
+    REQUIRE (project.tracks[0] == before);
+
+    // The blob is canonical: equal states encode to equal bytes regardless of edit order.
+    Project a = makeOneNoteProject();
+    Project b = makeOneNoteProject();
+    a = withParam (withParam (a, 2, 0.25), 6, 0.5);
+    b = withParam (withParam (b, 6, 0.5), 2, 0.25);
+    REQUIRE (a.tracks[0].instrumentState == b.tracks[0].instrumentState);
+    yesdaw::engine::InstrumentParamValues decoded;
+    REQUIRE (yesdaw::engine::decodeInstrumentParams (a.tracks[0].instrumentState, decoded));
+    REQUIRE (decoded == yesdaw::engine::InstrumentParamValues { { 2, 0.25 }, { 6, 0.5 } });
+    std::vector<std::uint8_t> malformed = a.tracks[0].instrumentState;
+    malformed.pop_back();
+    REQUIRE_FALSE (yesdaw::engine::decodeInstrumentParams (malformed, decoded));
+    Project corrupt = a;
+    corrupt.tracks[0].instrumentState = malformed;
+    REQUIRE_FALSE (corrupt.tracks[0].isValid());
+}
+
+TEST_CASE ("an automation lane on an instrument parameter targets the Track's Instrument and changes the render; it sleeps without MIDI",
+           "[engine][instrument][automation][render][g3]")
+{
+    using yesdaw::engine::AutomationBreakpoint;
+    using yesdaw::engine::AutomationCurveType;
+    using yesdaw::engine::AutomationLaneData;
+    using yesdaw::engine::AutomationTargetRole;
+
+    Project plain = makeOneNoteProject();
+    const std::vector<float> reference = renderProject (plain);
+
+    // A cutoff lane held at a low value from tick 0.
+    Project automated = plain;
+    AutomationLaneData lane;
+    lane.id = idFromLowByte (90);
+    lane.ownerEntity = automated.tracks[0].id;
+    lane.role = AutomationTargetRole::InstrumentParam;
+    lane.paramId = SimpleSynthNode::kCutoffParamId;
+    lane.points = { AutomationBreakpoint { 0, 0.3, AutomationCurveType::Hold } };
+    automated.automationLanes = { lane };
+    REQUIRE (automated.hasValidAssetClipIndirection());
+    const std::vector<float> withLane = renderProject (automated);
+    REQUIRE (anyNonZero (withLane));
+    REQUIRE (withLane != reference);
+    REQUIRE (rmsOf (withLane, 512, 1536) < rmsOf (reference, 512, 1536));
+
+    // The lane's validity law: an unknown param id or a non-Track owner is invalid.
+    Project badParam = automated;
+    badParam.automationLanes[0].paramId = 99;
+    REQUIRE_FALSE (badParam.hasValidAssetClipIndirection());
+    Project badOwner = automated;
+    badOwner.automationLanes[0].ownerEntity = idFromLowByte (77);
+    REQUIRE_FALSE (badOwner.hasValidAssetClipIndirection());
+
+    // Without MIDI on the lane's Track the lane has no node: it sleeps, the project still projects
+    // (a second Track keeps the timeline non-empty, so the only question is the lane).
+    Project silent = automated;
+    Track other;
+    other.id = idFromLowByte (32);
+    other.strip.name = "Other";
+    silent.tracks.push_back (other);
+    for (MidiClip& clip : silent.midiClips)
+        clip.trackId = other.id;
+    REQUIRE (silent.hasValidAssetClipIndirection());
+    OfflineRenderOptions options;
+    options.maxBlockSize = 64;
+    auto built = yesdaw::engine::buildProjectGraph (silent, std::span<const DecodedAssetAudio> {}, options);
+    INFO ("status " << static_cast<int> (built.status) << " projection error " << static_cast<int> (built.projectError.code)
+          << " at lane/clip " << built.projectError.clipIndex);
+    REQUIRE (built.ok());
 }
