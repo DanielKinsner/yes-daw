@@ -1296,6 +1296,16 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
 
         REQUIRE (hasHeaderCoverage (image));
         REQUIRE (hasHeaderSectionHierarchy (image, *shell));
+        // G1.4: the counter's caption row (the secondary time) really paints, and the menu bar
+        // shows all nine menus (its last name paints inside its bounds).
+        {
+            const juce::Rectangle<int> readout = yesdaw::ui::mainComponentHeaderTimeReadoutBounds (*shell);
+            const juce::Rectangle<int> caption = readout.withTrimmedTop (L::headerTransportLabelInsetY).reduced (L::headerTransportTextInsetX, yesdaw::ui::UiTheme::Space::hairline);
+            REQUIRE (caption.getHeight() >= 10);
+            REQUIRE (fullDifferentPixelCount (image, caption) > 20u);
+            const juce::Rectangle<int> menuBar = L::headerMenuBarBounds();
+            REQUIRE (fullDifferentPixelCount (image, menuBar.withLeft (menuBar.getRight() - 90)) > 20u);   // "Help" paints
+        }
         const juce::Rectangle<int> card = yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell);
         REQUIRE (card.getWidth() == L::headerMasterWidth);
         const juce::Rectangle<int> transport = yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 1);

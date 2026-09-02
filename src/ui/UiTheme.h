@@ -252,7 +252,7 @@ struct UiTheme
         static constexpr int leftRailWidth = 260;
         static constexpr int inspectorWidth = 300;
         static constexpr int mixerHeight = 260;   // G0.7 cp2: plan says 300 — held at 260 until the inspector stack scrolls (STATUS D27)
-        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 420, 24 }; }
+        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 680, 24 }; }   // G1.4: nine menus (G1.2) need the room
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 5;
         static constexpr int headerMenuWidth = 70;

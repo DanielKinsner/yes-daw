@@ -10200,10 +10200,12 @@ private:
                         .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportClockHeight),
                     juce::Justification::centred,
                     false);
+        // The caption row under the clock: trimmed from the TOP by the label inset (reducing on
+        // both sides left nothing at the 44 px readout — the caption had been clipped since G0.7).
         drawSmallLabel (g,
                         counter.secondary,
-                        time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
-                                      yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
+                        time.withTrimmedTop (yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY)
+                            .reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX, yesdaw::ui::UiTheme::Space::hairline),
                         juce::Justification::centred);
 
         const juce::String tempo = appModel.context().projectLoaded && ! appModel.project().tempoMap.empty()

@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.4 checkpoint 1 (Nudge value chooser + verbs, the inspector toggle on `I`, the
-two-readout counter with the click cycle; `[toolbar-v2]`) built, gated locally, committed;
-awaiting its exact-head run. G1.3 is certified by the right-button fix's run once green (D44).
-Next: G1.4 cp2 (regroup the X / P / A panel toggles into the toolbar) or, if the plan's reading
-allows, straight to G1.5. The drive stays paused (D14).
+**Now:** G1.4 checkpoint 1 committed; a follow-up commit fixes two defects its rubric shot
+exposed (D45 menu bar width, D46 the counter caption clipped since G0.7) — its run certifies
+G1.3 and G1.4 cp1. Next: G1.5 keymap editor (the plan's X / P / A regrouping is recorded as a
+G1.7 sweep item, not a checkpoint). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -100,6 +99,19 @@ shell child count + 2.
 with no behaviour is a dead affordance); the panel toggles X / P / A exist as the dock, Piano and
 Automation buttons and are not regrouped here (cp2 if kept in G1.4); nudge in milliseconds /
 samples / frames (needs the frame↔time law at the playhead's tempo — G2.15).
+
+**Rubric (headless 1080p shot after cp1).** The toolbar reads `Nudge: Grid` and `Inspector`;
+the counter reads `001|01`. Two FIX lines the shot exposed, fixed in the follow-up commit:
+- D45 The menu bar's fixed 420 px width truncated the nine G1.2 menus after Transport (Options
+  and Help never painted). Widened to 680; the rubric gate now requires the last name to paint.
+- D46 The counter's caption row has been CLIPPED since G0.7 cp1: the caption rect was reduced by
+  the 28 px label inset on BOTH sides of a 44 px readout, leaving nothing — the old "BAR | BEAT"
+  caption and now the secondary time never painted. I judged three header shots and missed it:
+  a text-absence a coverage count does not catch. Fixed (trim from the top only); the rubric
+  gate now requires painted text in the caption row.
+- D47 The right-button fix's run `33610765332` was CANCELLED by the next push (the workflow's
+  concurrency law), and G1.3 cp2's own run carried the macOS Ctrl-drag red; G1.3 and G1.4 cp1
+  are certified by the follow-up commit's run.
 
 ### G1.3 — Context menus, checkpoint 2: the insert slot (2026-09-02)
 
