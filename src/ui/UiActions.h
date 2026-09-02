@@ -215,6 +215,14 @@ enum class UiPanel : std::uint8_t
     PianoRoll
 };
 
+// G2.1: which editor the Editor dock shows (ADR-0046: one tabbed editor at a time, never a
+// modal view). UiPanel stays the FOCUS context — which editor receives non-global keys.
+enum class UiEditorDockTab : std::uint8_t
+{
+    Mixer,
+    PianoRoll
+};
+
 // G1.1 (plan §4): the Focus context a chord is looked up in. Global chords work everywhere; an
 // Arrange / PianoRoll / Mixer chord only while that editor has focus, and the same chord may
 // mean different things in different contexts (Alt+Up: clip gain in Arrange, transpose in the
@@ -366,6 +374,7 @@ struct UiActionContext
     // reclaim vertical space. True (visible) matches today's historical always-on behaviour, so
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
     bool mixerDockVisible = true;
+    UiEditorDockTab editorDockTab = UiEditorDockTab::Mixer;   // G2.1: the tab the dock shows
     // V7: which inspector tab is active — false = CLIP (the historical content), true = TRACK.
     bool inspectorTrackTabActive = false;
     bool timelineAutomationTrackLaneVisible = false;
@@ -521,9 +530,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, true, false },
     { UiActionId::ViewTimeline, "view.timeline", "Timeline", "", "Show timeline",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::ViewMixer, "view.mixer", "Mixer", "", "Show mixer",
+    { UiActionId::ViewMixer, "view.mixer", "Mixer", "", "Show the mixer in the editor dock",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "P", "Show piano roll",
+    { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "P", "Show or hide the piano roll in the editor dock",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineClipMove, "timeline.clip.move", "Move Clip", "", "Move selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
@@ -775,7 +784,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "", "Route the selected Track's main output to master or a bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "X", "Show or hide the bottom mixer dock",
+    { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "X", "Show or hide the mixer in the editor dock",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::InspectorShowClipTab, "inspector.tab.clip", "Clip", "", "Show the clip inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
@@ -1339,12 +1348,29 @@ public:
                 context.activePanel = UiPanel::Timeline;
                 break;
 
+            // G2.1 cp2: the mixer and the piano roll are Editor-dock TABS, not modal views. Mixer
+            // shows the mixer tab (idempotent, the menu verb); X toggles it; P toggles the piano
+            // roll tab (Logic). The Focus context follows the tab shown and returns to the
+            // arrangement when the dock closes on the focused editor.
             case UiActionId::ViewMixer:
+                context.mixerDockVisible = true;
+                context.editorDockTab = UiEditorDockTab::Mixer;
                 context.activePanel = UiPanel::Mixer;
                 break;
 
             case UiActionId::ViewPianoRoll:
-                context.activePanel = UiPanel::PianoRoll;
+                if (context.mixerDockVisible && context.editorDockTab == UiEditorDockTab::PianoRoll)
+                {
+                    context.mixerDockVisible = false;
+                    if (context.activePanel == UiPanel::PianoRoll)
+                        context.activePanel = UiPanel::Timeline;
+                }
+                else
+                {
+                    context.mixerDockVisible = true;
+                    context.editorDockTab = UiEditorDockTab::PianoRoll;
+                    context.activePanel = UiPanel::PianoRoll;
+                }
                 break;
 
             case UiActionId::TimelineClipMove:
@@ -1540,7 +1566,18 @@ public:
                 break;
 
             case UiActionId::TimelineToggleMixerDock:
-                context.mixerDockVisible = ! context.mixerDockVisible;
+                if (context.mixerDockVisible && context.editorDockTab == UiEditorDockTab::Mixer)
+                {
+                    context.mixerDockVisible = false;
+                    if (context.activePanel == UiPanel::Mixer)
+                        context.activePanel = UiPanel::Timeline;
+                }
+                else
+                {
+                    context.mixerDockVisible = true;
+                    context.editorDockTab = UiEditorDockTab::Mixer;
+                    context.activePanel = UiPanel::Mixer;
+                }
                 break;
 
             case UiActionId::InspectorShowClipTab:

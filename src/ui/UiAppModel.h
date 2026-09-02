@@ -1262,6 +1262,23 @@ public:
     // directory remembering the most recently opened/created bundle. The native shell reopens it at
     // launch so a crash-then-relaunch reaches the autosave recovery prompt without manual navigation.
     // The injected-choices harness never sets a directory, so tests stay deterministic by default.
+    // G2.1 cp2: an editor that takes focus also takes the Editor dock (ADR-0046: one tabbed
+    // editor at a time, never a modal view) — every model path that used to switch the panel
+    // goes through these two, so a focused editor is always a shown editor.
+    void showPianoRollTab()
+    {
+        context_.activePanel = UiPanel::PianoRoll;
+        context_.mixerDockVisible = true;
+        context_.editorDockTab = UiEditorDockTab::PianoRoll;
+    }
+
+    void showMixerTab()
+    {
+        context_.activePanel = UiPanel::Mixer;
+        context_.mixerDockVisible = true;
+        context_.editorDockTab = UiEditorDockTab::Mixer;
+    }
+
     // G2.1: the Arrange window's splitter sizes persist PER PROJECT as a sidecar record beside
     // the bundle (the plan said "schema bump"; goldens are a loop hard-stop — STATUS D48). One
     // `key<TAB>value` per line; the shell owns the keys and the clamps.
@@ -2304,7 +2321,7 @@ public:
         selectedMidiClipId_ = midiClipId;
         selectedMidiNoteId_ = {};
         selectedMidiNoteIds_.clear();
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         return true;
     }
@@ -2325,7 +2342,7 @@ public:
             selectedMidiNoteId_ = {};
         }
 
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         return true;
     }
@@ -2343,7 +2360,7 @@ public:
 
         selectedMidiClipId_ = midiClipId;
         selectedMidiNoteId_ = {};
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
 
         const UiActionState state = registry_.stateFor (id, context_);
@@ -2372,7 +2389,7 @@ public:
         for (const engine::Note& note : midiClip->notes)
             selectedMidiNoteIds_.push_back (note.id);
         selectedMidiNoteId_ = midiClip->notes.front().id;
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         return true;
@@ -2406,7 +2423,7 @@ public:
                 ? engine::EntityId {}
                 : selectedMidiNoteIds_.back();
         }
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         return true;
@@ -2432,7 +2449,7 @@ public:
         selectedMidiNoteId_ = selectedMidiNoteIds_.empty()
             ? engine::EntityId {}
             : selectedMidiNoteIds_.back();
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         return true;
@@ -2461,7 +2478,7 @@ public:
             selectedMidiNoteIds_.assign (1, noteId);
         }
         selectedMidiNoteId_ = noteId;
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         return true;
     }
@@ -2870,6 +2887,8 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
+        // G2.1 cp2: a READ verb (the shell calls it while painting) sets focus only — it must
+        // never open the dock tab, or X would flip straight back to the piano roll.
         context_.activePanel = UiPanel::PianoRoll;
         ++context_.commandDispatchCount;
         ++context_.midiReadCount;
@@ -2918,7 +2937,7 @@ public:
         selectedMixerTarget_ = { MixerTargetKind::Track, index };
         context_.mixerTargetSelected = true;
         if (showMixerPanel)
-            context_.activePanel = UiPanel::Mixer;
+            showMixerTab();
         return true;
     }
 
@@ -2934,7 +2953,7 @@ public:
         selectedMixerTarget_ = { MixerTargetKind::Bus, index };
         context_.mixerTargetSelected = true;
         if (showMixerPanel)
-            context_.activePanel = UiPanel::Mixer;
+            showMixerTab();
         return true;
     }
 
@@ -2950,7 +2969,7 @@ public:
         selectedMixerTarget_ = { MixerTargetKind::Master, 0 };
         context_.mixerTargetSelected = true;
         if (showMixerPanel)
-            context_.activePanel = UiPanel::Mixer;
+            showMixerTab();
         return true;
     }
 
@@ -3069,7 +3088,7 @@ public:
             return { id, { false, "bus removal did not persist" }, false };
 
         clearMixerTargetSelection();
-        context_.activePanel = UiPanel::Mixer;
+        showMixerTab();
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };
@@ -4123,7 +4142,7 @@ public:
             return { id, { false, "FX slot edit did not persist" }, false };
         }
 
-        context_.activePanel = UiPanel::Mixer;
+        showMixerTab();
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };
@@ -4164,7 +4183,7 @@ public:
             return { id, { false, "send level edit did not persist" }, false };
         }
 
-        context_.activePanel = UiPanel::Mixer;
+        showMixerTab();
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };
@@ -4839,7 +4858,7 @@ public:
 
         selectedMidiClipId_ = midiClipId;
         selectedMidiNoteId_ = {};
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         ++context_.midiEditCount;
@@ -7493,7 +7512,7 @@ private:
             return { id, { false, "mixer edit did not persist" }, false };
 
         context_.mixerTargetSelected = true;
-        context_.activePanel = UiPanel::Mixer;
+        showMixerTab();
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };
@@ -7665,7 +7684,7 @@ private:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "piano roll edit did not persist" }, false };
 
-        context_.activePanel = UiPanel::PianoRoll;
+        showPianoRollTab();
         ++context_.commandDispatchCount;
         ++context_.midiEditCount;
         return { id, state, true };

@@ -212,6 +212,7 @@ void mainComponentSetSettingsRowVisible (juce::Component& component, bool visibl
 // showing it, so headless gates can assert it. `shown` is false where nothing has a menu.
 struct MainComponentContextMenu
 {
+    juce::String route;   // harness diagnostic: which surface the request reached
     bool shown = false;
     ContextMenuTarget target = ContextMenuTarget::Clip;
     int index = -1;   // lane / row / strip / marker index the click resolved to, when any
@@ -237,6 +238,9 @@ void mainComponentKeymapEditorSearch (juce::Component& component, const juce::St
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.
 [[nodiscard]] juce::String mainComponentHoverHintAt (juce::Component& component, juce::Point<int> shellPoint);
+// G2.1: set the Editor dock's height through the same clamp the splitter uses (tests that need
+// the mixer's full control lane grow the dock first, as a user would drag it).
+void mainComponentSetDockHeight (juce::Component& component, int height);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);
 

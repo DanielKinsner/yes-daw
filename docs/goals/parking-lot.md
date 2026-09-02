@@ -55,3 +55,5 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
   lower ruler edge) → G2 ruler/playhead pass.
 
 - **Keymap editor: chord capture (2026-09-02, G1.7).** A chord is typed as text in the editor ("Ctrl+Shift+K"); a capture field that records the next key press is polish for a later G-item. Also parked: a strip-menu **Add Send ▸** submenu (§3.3) once the bus list can be a submenu (G4).
+
+- **Inspector stack must scroll (2026-09-02, G2.1 cp2, STATUS D50).** With the plan's 300 px dock the CLIP tab's fixed section tops (takes at 426) drop the takes section whole at 1536×960 once the settings row is open; at 1080p the arrangement shows seven whole lanes, not the plan's nine, because the timeline's toolbar and status rows are not folded into the header. Both belong to the G2 inspector rebuild / header pass.

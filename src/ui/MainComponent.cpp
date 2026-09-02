@@ -33,6 +33,7 @@
 #include <span>
 #include <string>
 #include <utility>
+#include <map>
 #include <vector>
 
 namespace {
@@ -5318,8 +5319,7 @@ public:
         put ("rail", leftRailPanelBounds());
         put ("timeline", timelineBounds());
         put ("inspector", inspectorBounds());
-        if (appModel.context().mixerDockVisible
-            || appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
+        if (appModel.context().mixerDockVisible)
             put ("dock", mixerPanelBounds());
 
         // Every visible identified child by its component id — toolbar buttons carry their
@@ -5329,8 +5329,7 @@ public:
                 if (child->isVisible() && child->getComponentID().isNotEmpty())
                     put ("widget." + child->getComponentID(), child->getBounds());
 
-        if (appModel.context().projectLoaded
-            && appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer)
+        if (appModel.context().projectLoaded)
         {
             const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
             const yesdaw::ui::TimelineCanvasGeometry geometry =
@@ -5515,12 +5514,11 @@ public:
             view->setProperty ("scrollSec", timelineScrollSeconds);
             view->setProperty ("trackScrollRows", timelineTrackScrollRows);
             view->setProperty ("activePanel", probeFocusContextName (context.activePanel));
-            view->setProperty ("inspector", ! inspectorBounds().isEmpty()
-                                                && context.activePanel != yesdaw::ui::UiPanel::Mixer);
-            view->setProperty ("dock", context.activePanel == yesdaw::ui::UiPanel::Mixer
-                                           ? juce::String ("MixerFull")
-                                           : context.mixerDockVisible ? juce::String ("Mixer")
-                                                                      : juce::String ("None"));
+            view->setProperty ("inspector", ! inspectorBounds().isEmpty());
+            view->setProperty ("dock", ! context.mixerDockVisible ? juce::String ("None")
+                                       : context.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll
+                                           ? juce::String ("PianoRoll")
+                                           : juce::String ("Mixer"));
             view->setProperty ("dockHeight", dockedMixerHeight());
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
@@ -5829,11 +5827,6 @@ public:
                         .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
 
         auto work = bounds.withTrimmedTop (headerHeightNow());
-        if (appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
-        {
-            drawMixer (g, mixerPanelBounds());
-            return;
-        }
 
         work.removeFromBottom (dockedMixerHeight());
         auto left = work.removeFromLeft (viewState.railWidth)
@@ -5842,22 +5835,24 @@ public:
         auto inspector = work.removeFromRight (inspectorWidthNow())
                              .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
-        auto timeline = work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
-                                      yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
-
         drawTrackList (g, left);
-        if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll)
-            drawPianoRoll (g, timeline);
         drawInspector (g, inspector);
         // V3: a collapsed dock paints NOTHING (the "drop whole" law this codebase already uses
         // elsewhere for sections that don't fit) rather than relying on a zero/negative-height
         // rect to degrade gracefully.
         if (appModel.context().mixerDockVisible)
-            drawMixer (g, mixerPanelBounds());
+        {
+            // G2.1 cp2: the dock shows ONE editor tab.
+            if (dockShowsPianoRoll())
+                drawPianoRoll (g, mixerPanelBounds());
+            else
+                drawMixer (g, mixerPanelBounds());
+        }
     }
 
     void resized() override
     {
+        restoreControlsHiddenByDockTab();   // G2.1 cp2
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
         const HeaderLayout h = headerLayout();
 
@@ -5883,12 +5878,7 @@ public:
                 case yesdaw::ui::UiActionId::TransportPlay:      buttons[i].setBounds (h.play); break;
                 case yesdaw::ui::UiActionId::TransportStop:      buttons[i].setBounds (h.stop); break;
                 case yesdaw::ui::UiActionId::TransportToggleLoop: buttons[i].setBounds (h.loop); break;
-                case yesdaw::ui::UiActionId::ViewMixer:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewMixerButtonBounds (mixerPanelBounds()));
-                    break;
-                case yesdaw::ui::UiActionId::ViewPianoRoll:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewPianoRollButtonBounds (mixerPanelBounds()));
-                    break;
+                // G2.1 cp2: ViewMixer / ViewPianoRoll sit in the status row's view cluster (below).
                 default: buttons[i].setBounds ({});
             }
         }
@@ -5920,14 +5910,13 @@ public:
             const int thickness = yesdaw::ui::UiTheme::Layout::splitterThickness;
             const int half = thickness / 2;
             const int top = headerHeightNow();
-            const bool fullMixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer;
             const int dockTop = getHeight() - dockedMixerHeight();
             dockSplitter.setBounds (getLocalBounds().withY (dockTop - half).withHeight (thickness));
-            dockSplitter.setVisible (! fullMixer && dockedMixerHeight() > 0);
+            dockSplitter.setVisible (dockedMixerHeight() > 0);
             railSplitter.setBounds (viewState.railWidth - half, top, thickness, dockTop - top);
-            railSplitter.setVisible (! fullMixer);
+            railSplitter.setVisible (true);
             inspectorSplitter.setBounds (getWidth() - inspectorWidthNow() - half, top, thickness, dockTop - top);
-            inspectorSplitter.setVisible (! fullMixer && inspectorWidthNow() > 0);
+            inspectorSplitter.setVisible (inspectorWidthNow() > 0);
             for (yesdaw::ui::SplitterComponent* splitter : { &railSplitter, &inspectorSplitter, &dockSplitter })
                 splitter->toFront (false);
         }
@@ -5939,7 +5928,7 @@ public:
             const int height = std::min (L::keymapEditorMaxHeight, work.getHeight() - L::keymapEditorMargin);
             keymapEditor.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, width), std::max (L::keymapEditorMinHeight, height)));
         }
-        pianoRollInput.setBounds (timelineBounds());
+        pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
         trackListInput.setBounds (leftRailPanelBounds());
         {
             auto strips = mixerPanelBounds();
@@ -5994,6 +5983,7 @@ public:
         layoutAutomationLaneControls();
         layoutInspectorControls();
         layoutMixerControls();
+        hideMixerControlsBehindDockTab();   // G2.1 cp2
     }
 
 private:
@@ -7352,6 +7342,73 @@ private:
         resized();
     }
 
+    // G2.1 cp2: which editor tab the dock shows.
+    [[nodiscard]] bool dockShowsMixer() const noexcept
+    {
+        return appModel.context().mixerDockVisible
+            && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
+    }
+
+    [[nodiscard]] bool dockShowsPianoRoll() const noexcept
+    {
+        return appModel.context().mixerDockVisible
+            && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
+    }
+
+    void setToolbarButtonBounds (yesdaw::ui::UiActionId action, juce::Rectangle<int> bounds)
+    {
+        const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
+        for (std::size_t i = 0; i < buttons.size() && i < toolbarActions.size(); ++i)
+            if (toolbarActions[i] == action)
+                buttons[i].setBounds (bounds);
+    }
+
+    // The mixer's control lane (every widget the mixer tab owns). While another tab shows, they
+    // are hidden as a set and restored to what their own laws last chose when the mixer returns:
+    // restore at the start of every refresh / layout, hide at the end. The one list is the law —
+    // the [dock-tabs] gate walks the dock rect and refuses any stray visible widget.
+    [[nodiscard]] std::vector<juce::Component*> mixerLaneControls()
+    {
+        std::vector<juce::Component*> controls {
+            &mixerStripsInput, &mixerFxAddChooser, &mixerFxParamPageChooser, &mixerMasterFader,
+            &mixerBusAddButton, &mixerBusRemoveButton, &mixerSendAddChooser, &mixerTrackOutputChooser,
+            &mixerTrackSelect, &mixerFader, &mixerPan, &mixerMetersReadout, &mixerSendsReadout,
+            &mixerSendLevelEdit, &mixerFxSlotsReadout, &mixerGainReductionReadout, &mixerBusFxSlotsReadout,
+            &mixerFxSlotToggle, &mixerMute, &mixerSolo, &mixerSoloSafe };
+        for (auto& c : mixerFxSlotToggles) controls.push_back (&c);
+        for (auto& c : mixerFxSlotRemoves) controls.push_back (&c);
+        for (auto& c : mixerFxSlotEdits) controls.push_back (&c);
+        for (auto& c : mixerFxSlotUps) controls.push_back (&c);
+        for (auto& c : mixerFxSlotDowns) controls.push_back (&c);
+        for (auto& c : mixerFxParamSliders) controls.push_back (&c);
+        for (auto& c : mixerFxParamLabels) controls.push_back (&c);
+        for (auto& c : mixerFxParamChoosers) controls.push_back (&c);
+        for (auto& c : mixerSendLevelSliders) controls.push_back (&c);
+        for (auto& c : mixerSendLabels) controls.push_back (&c);
+        for (auto& c : mixerSendRemoves) controls.push_back (&c);
+        for (auto& c : mixerSendTaps) controls.push_back (&c);
+        for (auto& c : mixerSendDestinations) controls.push_back (&c);
+        return controls;
+    }
+
+    void restoreControlsHiddenByDockTab()
+    {
+        for (auto& [control, wasVisible] : hiddenByDockTab)
+            control->setVisible (wasVisible);
+        hiddenByDockTab.clear();
+    }
+
+    void hideMixerControlsBehindDockTab()
+    {
+        if (dockShowsMixer())
+            return;
+        for (juce::Component* control : mixerLaneControls())
+        {
+            hiddenByDockTab.try_emplace (control, control->isVisible());
+            control->setVisible (false);
+        }
+    }
+
     void saveViewState()
     {
         appModel.writeViewStateRecord ("rail\t" + std::to_string (viewState.railWidth)
@@ -7813,9 +7870,7 @@ private:
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
-        auto mixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer
-                         ? work
-                         : work.removeFromBottom (dockedMixerHeight());
+        auto mixer = work.removeFromBottom (dockedMixerHeight());   // G2.1 cp2: always the dock
         return mixer.reduced (yesdaw::ui::UiTheme::Layout::mixerPanelHorizontalInset,
                               yesdaw::ui::UiTheme::Layout::mixerPanelVerticalInset);
     }
@@ -8115,6 +8170,9 @@ private:
             inspectorTakeChooser.setBounds ({});
             inspectorTakeDelete.setBounds ({});
         }
+        // G2.1 cp2: the takes law reads these bounds — re-evaluate after layout, so a layout that
+        // makes room (the settings row collapsing, the dock shrinking) shows the chooser at once.
+        refreshInspectorTakesVisibility();
     }
 
     void layoutMixerControls()
@@ -8345,11 +8403,17 @@ private:
             const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
                                                       .withWidth (L::inspectorToggleWidth);
             juce::Rectangle<int> nudge = status.withWidth (L::timelineNudgeChooserWidth);
-            const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= toggle.getX();
+            const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 2;   // G2.1 cp2
+            const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
             nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
             inspectorToggle.setBounds (toggle);
+            // G2.1 cp2: the view cluster [Mixer][Piano][Inspector] — X / P / I, one row.
+            const juce::Rectangle<int> pianoToggle = toggle.translated (-(L::inspectorToggleWidth + L::inspectorToggleGap), 0);
+            const juce::Rectangle<int> mixerToggle = pianoToggle.translated (-(L::inspectorToggleWidth + L::inspectorToggleGap), 0);
+            setToolbarButtonBounds (yesdaw::ui::UiActionId::ViewPianoRoll, pianoToggle);
+            setToolbarButtonBounds (yesdaw::ui::UiActionId::ViewMixer, mixerToggle);
             const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap : status.getX();
-            const int statusRight = toggle.getX() - L::inspectorToggleGap;
+            const int statusRight = clusterLeft - L::inspectorToggleGap;
             statusLine.setBounds (statusRight > statusLeft ? status.withLeft (statusLeft).withRight (statusRight)
                                                           : juce::Rectangle<int>());
         }
@@ -8452,6 +8516,7 @@ private:
     void repaintAll()
     {
         ++fullInvalidations;
+        hideMixerControlsBehindDockTab();   // G2.1 cp2: after every action's refresh
         timelineInput.repaint();
         repaint();
     }
@@ -8462,8 +8527,7 @@ private:
         playheadLayer.repaint();
         repaint (getLocalBounds().withHeight (headerHeightNow()));
         repaint (leftRailPanelBounds());
-        if (appModel.context().mixerDockVisible
-            || appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
+        if (appModel.context().mixerDockVisible)
             repaint (mixerPanelBounds());
     }
 
@@ -8807,8 +8871,8 @@ private:
             case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
-            case UiActionId::ViewMixer:                         return c.activePanel == yesdaw::ui::UiPanel::Mixer;
-            case UiActionId::ViewPianoRoll:                     return c.activePanel == yesdaw::ui::UiPanel::PianoRoll;
+            case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
+            case UiActionId::ViewPianoRoll:                     return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
             case UiActionId::InspectorShowClipTab:              return ! c.inspectorTrackTabActive;
             case UiActionId::InspectorShowTrackTab:             return c.inspectorTrackTabActive;
             case UiActionId::TimelineSnapDisable:               return ! c.snapEnabled;
@@ -8967,6 +9031,8 @@ private:
     }
 
 public:
+    void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
+
     void harnessInvokeContextMenuItem (yesdaw::ui::UiActionId action, int direction)
     {
         if (action == yesdaw::ui::UiActionId::MixerFxInsertAdd)
@@ -8984,15 +9050,29 @@ public:
     [[nodiscard]] yesdaw::ui::MainComponentContextMenu harnessRequestContextMenu (juce::Point<int> shellPoint)
     {
         lastContextMenu = {};
+        juce::String route = "none";
         if (timelineInput.isVisible() && timelineInput.getBounds().contains (shellPoint))
+        {
+            route = "timeline";
             timelineInput.requestContextMenu (shellPoint - timelineInput.getPosition());
+        }
         else if (pianoRollInput.isVisible() && pianoRollInput.getBounds().contains (shellPoint))
+        {
+            route = "pianoRoll";
             pianoRollInput.requestContextMenu (shellPoint - pianoRollInput.getPosition());
+        }
         else if (trackListInput.isVisible() && trackListInput.getBounds().contains (shellPoint))
+        {
+            route = "rail";
             trackListInput.requestContextMenu (shellPoint - trackListInput.getPosition());
+        }
         else if (mixerStripsInput.isVisible() && mixerStripsInput.getBounds().contains (shellPoint))
+        {
+            route = "strips";
             mixerStripsInput.requestContextMenu (shellPoint - mixerStripsInput.getPosition());
+        }
         yesdaw::ui::MainComponentContextMenu out;
+        out.route = route;
         out.shown = lastContextMenu.shown;
         out.target = lastContextMenu.target;
         out.index = lastContextMenu.index;
@@ -9556,7 +9636,10 @@ private:
 
             case yesdaw::ui::UiActionId::ViewPianoRoll:
                 (void) appModel.dispatch (action);
-                (void) appModel.selectFirstMidiClip();
+                // G2.1 cp2: P toggles the tab — only a SHOWN roll wants a clip (selecting one
+                // opens the editor, which would undo the close).
+                if (dockShowsPianoRoll())
+                    (void) appModel.selectFirstMidiClip();
                 return;
 
             default:
@@ -9569,6 +9652,7 @@ private:
     {
         ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
         loadViewStateIfBundleChanged();   // G2.1
+        restoreControlsHiddenByDockTab();   // G2.1 cp2: the laws below decide afresh
         rebuildTimelineClipViews();
         // E29: a device change (adoption, Test Device, refresh) re-lists the channel pick.
         if (recordingChannelChooserGeneration != appModel.context().recordingDeviceGeneration)
@@ -9598,10 +9682,8 @@ private:
                                                && appModel.context().recordingMonitoringSelected)
                                            || (action == yesdaw::ui::UiActionId::RecordingAssembleComp
                                                && appModel.context().recordingCompSelected)
-                                           || (action == yesdaw::ui::UiActionId::ViewMixer
-                                               && appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
-                                           || (action == yesdaw::ui::UiActionId::ViewPianoRoll
-                                               && appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll),
+                                           || (action == yesdaw::ui::UiActionId::ViewMixer && dockShowsMixer())
+                                           || (action == yesdaw::ui::UiActionId::ViewPianoRoll && dockShowsPianoRoll()),
                                        juce::dontSendNotification);
         }
         refreshAutosaveRecoveryControls();
@@ -9621,9 +9703,11 @@ private:
             appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
                                           appModel.context()).enabled);
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
-        timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
-        playheadLayer.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
-        pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
+        // G2.1 cp2: the arrangement is always there; the dock shows one editor tab.
+        timelineInput.setVisible (true);
+        playheadLayer.setVisible (true);
+        pianoRollInput.setVisible (dockShowsPianoRoll());
+        mixerStripsInput.setVisible (dockShowsMixer());
         {
             refreshingTimeMapControls = true;
             const bool tempoEnabled =
@@ -9920,7 +10004,7 @@ private:
             inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
             refreshingSnapChooser = false;
         }
-        const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        const bool railVisible = true;   // G2.1 cp2: no modal mixer view
         trackListInput.setVisible (railVisible);
         trackAddButton.setVisible (railVisible);
         trackAddButton.setEnabled (
@@ -9931,8 +10015,7 @@ private:
             dismissClipRenameEditor();
         if (selectedTrackLane >= static_cast<int> (appModel.project().tracks.size()))
             selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
-        const bool inspectorVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer
-                                   && appModel.context().timelineClipSelected
+        const bool inspectorVisible = appModel.context().timelineClipSelected
                                    && ! appModel.context().inspectorTrackTabActive;
         inspectorStart.setVisible (inspectorVisible);
         inspectorEnd.setVisible (inspectorVisible);
@@ -9946,9 +10029,9 @@ private:
         refreshMixerControls();
         mixerDockToggle.setToggleState (appModel.context().mixerDockVisible, juce::dontSendNotification);
         // No effect in the full-view Mixer panel (it never reserves dock space to begin with).
-        mixerDockToggle.setVisible (appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer);
+        mixerDockToggle.setVisible (true);
         // V7: the tab buttons live wherever the inspector panel does; the active tab lights.
-        const bool inspectorPanelVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
+        const bool inspectorPanelVisible = true;   // G2.1 cp2
         inspectorClipTab.setVisible (inspectorPanelVisible);
         inspectorTrackTab.setVisible (inspectorPanelVisible);
         inspectorClipTab.setToggleState (! appModel.context().inspectorTrackTabActive,
@@ -10181,6 +10264,18 @@ private:
         autosaveDiscardButton.setVisible (visible);
         autosaveRestoreButton.setEnabled (visible && restoreState.enabled);
         autosaveDiscardButton.setEnabled (visible && discardState.enabled);
+    }
+
+    void refreshInspectorTakesVisibility()
+    {
+        const bool selected = appModel.context().timelineClipSelected
+                           && findProjectClipById (appModel.selectedTimelineClipId()) != nullptr;
+        const bool takesVisible = selected && ! inspectorTakeViews.empty()
+                               && ! inspectorTakeChooser.getBounds().isEmpty();
+        inspectorTakeChooser.setVisible (takesVisible);
+        inspectorTakeDelete.setVisible (takesVisible);
+        inspectorTakeChooser.setEnabled (takesVisible);
+        inspectorTakeDelete.setEnabled (takesVisible && inspectorTakeChooser.getSelectedId() > 0);
     }
 
     void refreshInspectorControls()
@@ -13142,6 +13237,7 @@ private:
     };
     ViewState viewState;
     std::filesystem::path viewStateBundle;
+    std::map<juce::Component*, bool> hiddenByDockTab;   // G2.1 cp2
     yesdaw::ui::SplitterComponent railSplitter { yesdaw::ui::SplitterComponent::Axis::Vertical };
     yesdaw::ui::SplitterComponent inspectorSplitter { yesdaw::ui::SplitterComponent::Axis::Vertical };
     yesdaw::ui::SplitterComponent dockSplitter { yesdaw::ui::SplitterComponent::Axis::Horizontal };
@@ -13609,6 +13705,12 @@ yesdaw::ui::MainComponentContextMenu mainComponentRequestContextMenu (juce::Comp
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessRequestContextMenu (shellPoint);
     return {};
+}
+
+void mainComponentSetDockHeight (juce::Component& component, int height)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessSetDockHeight (height);
 }
 
 void mainComponentInvokeContextMenuItem (juce::Component& component, yesdaw::ui::UiActionId action, int direction)

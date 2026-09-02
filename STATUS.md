@@ -41,12 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.1 checkpoint 1 (three draggable splitters with the §3.4 ranges; sizes persist per
-project as `view-state.txt`; `[dock-layout]`) built, gated locally, committed; awaiting its
-exact-head run. G1.6 and G1.7 are certified by G1.7's exact-head run `33615096877` (green on
-all ten jobs; G1.6's own run was red on macOS only — the V7 inspector compare, D49). Next: G2.1 checkpoint 2 — the mixer and piano
-roll as Editor-dock tabs (X / P / A in the header), killing the modal view switch. The drive
-stays paused (D14).
+**Now:** G2.1 checkpoint 2 (the mixer and the piano roll as Editor-dock tabs — X / P / Mixer —
+no modal views; `[dock-tabs]`) built, gated locally, committed; awaiting its exact-head run.
+Checkpoint 1 is certified (run `33616439236`, green on all ten jobs). Next: G2.1's rubric shots at three sizes
+(headless render + judgment; the drive stays paused, D14), then G2.2 the ruler v2.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -89,7 +87,66 @@ G1.6 ✅ — status hints + live tooltips (`15ce6e7`); its own run `33614073659`
 only (D49); certified by G1.7's exact-head run `33615096877`.
 G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run `33615096877`
 (green on all ten jobs, first try). **G1 headless work complete**; SS-2 pending Dan's go (D14).
+G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by exact-head run
+`33616439236` (green on all ten jobs, first try).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.1 — One window, docked panels, splitters — checkpoint 2 (2026-09-02)
+
+**Build.** No more modal views. `UiEditorDockTab { Mixer, PianoRoll }` in the action context
+(`editorDockTab`); `UiPanel` stays the **Focus context**. Registry: `ViewMixer` shows the mixer
+tab (idempotent, the menu verb); `TimelineToggleMixerDock` (X) toggles it; `ViewPianoRoll` (P)
+toggles the piano-roll tab — plain toggles from any focus, the Logic law (a "focus-or-toggle"
+variant was tried and rejected: it broke X collapsing the dock from the arrangement, which the
+plan names outright); `ViewTimeline` moves focus to the arrangement without touching the
+dock; focus follows the tab shown and returns to the arrangement when the dock closes on the
+focused editor. Shell: `mixerPanelBounds()` is always the dock; the piano roll input and paint
+use the dock rect; the timeline, playhead layer, rail and inspector are always present; the
+view cluster **[Mixer][Piano][Inspector]** sits in the status row (X / P / I), toggled to what
+the dock shows; the mixer's control lane is one list (`mixerLaneControls`) hidden as a set
+behind another tab and restored to its laws' last choice when the mixer returns (restore at the
+start of every refresh / layout, hide at the end). Probe `view.dock` = Mixer / PianoRoll / None.
+Descriptor tooltips now say "in the editor dock"; `docs/keymap-v2.md` regenerated. **Dock
+default 260 → 300** (the plan's number; D27 lifted — the dock is draggable and the mixer is a tab
+now): a 300 px dock paints two insert rows and the 96 px fader, the reference look; sends and
+the mixer's utility column come back as the dock grows. Harness `mainComponentSetDockHeight`
+(the splitter's clamp) — every test that assumed the old full-window mixer or piano roll grows
+the dock first, as a user would drag it (one law, applied after each `ViewMixer` /
+`ViewPianoRoll` in the tests, and back to the default after each `ViewTimeline`). Every MODEL
+path that used to switch the panel (note edits focusing the piano roll, mixer verbs focusing
+the mixer) goes through `showPianoRollTab()` / `showMixerTab()`, so a focused editor is always a
+shown editor (creating a MIDI clip opens its editor, the old law, now as the dock's tab). The
+inspector's takes law re-evaluates after layout (`refreshInspectorTakesVisibility`), so a layout
+that makes room shows the take chooser at once instead of one refresh late.
+
+**Gates.** `[dock-tabs]` (input check): default Mixer + arrangement focus; P → piano roll owns
+the dock rect, lanes and rail intact, focus PianoRoll, **no stray visible widget intersects the
+dock** (the FX chooser hidden); P → None, focus Timeline; Mixer → Mixer tab, controls back,
+piano roll hidden; Mixer idempotent; X closes / reopens; P over Mixer swaps, X swaps back; the
+cluster's three buttons share a row in order, Mixer toggled on; Timeline moves focus only. V3's
+dock test re-pinned (Mixer shows the tab at the dock height, not a full window); the two "short
+strip drops its rows" pins use the dock at its minimum; the clip-light test scans the strips
+for the strip's light (the rail's is on screen too now); the 720p rubric shot's whole-lane pin
+is 2 (the plan's 300 dock + 72 rows + 64 ruler + 88 header cannot give three at 720; the dock is
+one drag from 160 where four fit — recorded as a rubric judgment, 1080p keeps ≥ 8).
+
+**Deviations.** **D50** — with the plan's 300 px dock, the inspector's fixed CLIP-tab stack no
+longer fits a 960 px window once the settings row (the recording cluster) is open: the takes
+section (top 426 + 50) drops whole, so the take chooser is gone at 1536×960 while recording with
+the settings row up. Not hidden: the take-chooser test collapses the settings row first (as a
+user would) and this is the parking lot's "inspector stack must scroll" item, now owned by the
+G2 inspector rebuild. **Rubric pins**: 1080p shows seven whole lanes with the 300 dock (the
+plan's "nine" needs the timeline's toolbar and status rows folded into the header — parked);
+720p shows two. A READ verb (`PianoRollReadExpressionLanes`) that used to set the panel now sets
+focus only — it must never open a dock tab.
+
+**Not built (recorded).** The **A** (automation editor) tab: the automation lane toggle stays
+on the timeline header until the automation editor exists (G2.x); the plan's `[I][X][P][A]`
+cluster is `[Mixer][Piano][Inspector]` in the status row rather than the toolbar row (the
+toolbar row is full at 1280; the status row is the same height and always visible) — the
+rubric pass judges it. `ViewMixer` and `TimelineToggleMixerDock` are two verbs for one tab
+(show vs toggle); folding them is a keymap-doc change for the G2 rubric pass. The `AppShell /
+ArrangeView` carve stays a later checkpoint.
 
 ### G2.1 — One window, docked panels, splitters — checkpoint 1 (2026-09-02)
 

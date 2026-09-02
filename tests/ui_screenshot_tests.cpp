@@ -410,6 +410,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     const std::uint64_t timelineFingerprint = captureShellPng (timelineImage, "yesdaw-timeline-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
     const juce::Rectangle<int> masterRegion = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
     REQUIRE_FALSE (masterRegion.isEmpty());
@@ -419,6 +420,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     const std::uint64_t mixerFingerprint = captureShellPng (mixerImage, "yesdaw-mixer-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
     const juce::Image pianoRollImage = renderShell (*shell);
     requireHonestEmptyArrangementCoverage (pianoRollImage, *shell);
@@ -578,6 +580,7 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     REQUIRE (shell->keyPressed (addTrack));
     REQUIRE (shell->keyPressed (addTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     // M4: the strips paint their FX chains, so the mixer capture carries a REAL chain — an empty
     // mixer would hide the very thing these screenshots are for.
@@ -1170,7 +1173,7 @@ TEST_CASE ("header flex row: tools left, transport centred, master right, nothin
     STATIC_REQUIRE (L::timelineRulerTimeRowHeight == 22);
     STATIC_REQUIRE (L::timelineRulerMarkerLaneHeight == 20);
     STATIC_REQUIRE (L::timelineCanvasRulerHeight == 64);
-    STATIC_REQUIRE (L::mixerHeight == 260);   // plan §3.4 says 300: held until the inspector stack scrolls (STATUS D27)
+    STATIC_REQUIRE (L::mixerHeight == 300);   // plan §3.4: 300 — G2.1 cp2 lifted D27 (the dock is draggable; the mixer is a tab)
     // The rail row at 260: number · icon · name · M S O left of the PAN/VOL cluster, no overlap.
     STATIC_REQUIRE (L::trackListNameLeftInset + 3 * L::trackListButtonWidth
                     <= L::leftRailWidth - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth);
@@ -1345,12 +1348,14 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
             REQUIRE (fullDifferentPixelCount (image, timeRow) > 30u);
         }
         INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
-        // 720p with the 260 px mixer dock open leaves ~300 px of lanes: three whole rows (the
-        // rubric records it; the dock's height is a later item's call).
+        // G2.1 cp2: the plan's 300 px dock at 720p leaves two whole rows and a third partial
+        // (88 + 36 + 64 + 3×72 + 300 + insets does not fit 720); the dock is one drag from 160,
+        // where four fit. At 1080p the same budget (plus the toolbar and status rows) is seven
+        // whole lanes; the plan's "nine" needs those rows folded into the header (parked).
         if (height >= 1080)
-            REQUIRE (wholeLanes >= 8);
+            REQUIRE (wholeLanes >= 7);
         else
-            REQUIRE (wholeLanes >= 3);
+            REQUIRE (wholeLanes >= 2);
     }
 
     std::error_code ec;
