@@ -41,9 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.7 checkpoint 1 (header + row law) built, gated, judged headlessly; committed; awaiting
-its exact-head run. Checkpoint 2 next: rail 260 / inspector 300 / dock widths with their internal
-relayout (rail row: number · icon · name · M S O · PAN/VOL must survive 260), then the item ticks.
+**Now:** G0.7 checkpoint 2 (rail 260, inspector 300, rail row re-cut) built, gated, judged
+headlessly; committed with the macOS capture fix; awaiting its exact-head run (it certifies cp1 and
+cp2). Checkpoint 3 next: the ruler as two 22 px time rows (bars, minutes:seconds) plus a 20 px
+marker lane (plan §3.4), then the item ticks. G0.8 after.
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -63,6 +64,48 @@ code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G0.7 — First-minute density, checkpoint 2: the panels and the rail row (2026-09-02)
+
+**Build.** `leftRailWidth 260` (was 318), `inspectorWidth 300` (was 320), `trackListNameLeftInset 80`
+(was 88), `trackListButtonsTop 46` (was 34). The rail row at 72 × 260: number · icon · name
+(ellipsised; the name cell ends where the PAN/VOL cluster begins) · M S O under the name · PAN
+knob, VOL column, L/R meter at the right. The editor dock stays 260 (D27). macOS: the header
+layout lambdas captured constants (`-Wunused-lambda-capture`) — dropped.
+
+**Gates.** `[header-flex]` pins the panel tokens and the rail-row fit (`STATIC_REQUIRE`: name + M S O
+left of the mix cluster, icon left of the name). The arrangement and shell-size coverage regions
+read the tokens (`leftRailWidth`, `inspectorWidth`, `mixerHeight`, `headerHeight`) instead of the
+318/638/320/348 literals. `[rubric-shots]` re-rendered on the fixture.
+
+**Rubric (headless renders on the fixture).**
+| Size | Rail row at 260 | Density | Verdict |
+|---|---|---|---|
+| 1280×720 | number, icon, name, M S O, PAN/VOL all present, no overlap | 3 whole + partial (dock 260) | PASS (density is the dock's) |
+| 1920×1080 | same; names ellipsise before the cluster | 8 whole + partial | PASS |
+| 2560×1440 | same | 13 whole | PASS |
+FIX lines seen: the PAN/VOL labels are 8 px captions in a 68 px cluster — legible, not pretty
+(G2's rail pass); the inspector's empty state (300 × 600 of "No clip selected") stands out more
+at 300 (G2); the master card meter sliver (cp1 (a)) unchanged.
+
+**Deviation log (G0.7 checkpoint 2).**
+- D27 The plan's dock height (300) is NOT applied: at 1536×960 it pushes the inspector's FIXED
+  section stack (gain 118, fades 214, FX 360, automation 426, takes below) past the dock so the
+  takes chooser and the FX list drop, and at the 1152×720 floor it hides the timeline outright
+  (11 gates red). The dock grows to 300 when the inspector stack scrolls/collapses (G2's inspector
+  rebuild) — parking lot. `mixerHeight` stays pinned at 260 with that rationale.
+- D28 47 rail "row centre" clicks in the input tests (and one in the screenshot tests) clicked
+  `rail->getWidth() / 2` at the row's vertical middle. In a 72 px row the middle was the M S O
+  strip, and at 260 wide the horizontal centre sat on the arm cell. Two honest changes: the strip
+  moved below the name (`trackListButtonsTop 46`), so a row's middle IS its select zone; the
+  replicas click the name cell (`kRailRowClickX`).
+- D29 The piano-roll drag gate went red because its note-centre replica centred the TICK extent
+  of a 1/16 note (one pixel wide at that zoom) while the roll paints every note at least
+  `pianoRollNoteMinWidth` (10 px) from the rounded start x — one pixel left of the paint, exposed
+  by the wider roll. The replica now centres the painted rect (a grab-widening law was tried
+  first and reverted: the note was never a one-pixel target).
+- D30 cp1's own run `33599191354` was red on macOS only (the lambda captures); cp2's commit
+  carries the fix and certifies both.
 
 ### G0.7 — First-minute density, checkpoint 1: the header and the row law (2026-09-01)
 

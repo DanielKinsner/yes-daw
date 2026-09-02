@@ -248,9 +248,10 @@ struct UiTheme
         static constexpr int windowMinHeight = 720;
         static constexpr int windowMaxWidth = 8192;
         static constexpr int windowMaxHeight = 4320;
-        static constexpr int leftRailWidth = 318;
-        static constexpr int inspectorWidth = 320;
-        static constexpr int mixerHeight = 260;
+        // G0.7 cp2 (plan §3.4): track header 260, inspector 300, editor dock 300.
+        static constexpr int leftRailWidth = 260;
+        static constexpr int inspectorWidth = 300;
+        static constexpr int mixerHeight = 260;   // G0.7 cp2: plan says 300 — held at 260 until the inspector stack scrolls (STATUS D27)
         static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 420, 24 }; }
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 5;
@@ -634,12 +635,12 @@ struct UiTheme
         static constexpr int trackListAccentHorizontalInset = 0;
         static constexpr int trackListAccentVerticalInset = 1;
         static constexpr int trackListSeparatorHeight = 1;
-        static constexpr int trackListNameLeftInset = 88;
+        static constexpr int trackListNameLeftInset = 80;   // G0.7 cp2: name + M S O fit left of the mix cluster at 260
         static constexpr int trackListNameHeight = 24;
         static constexpr int trackListNameOffsetX = 0;
         static constexpr int trackListNameOffsetY = 9;
         static constexpr int trackListNumberWidth = 40;
-        static constexpr int trackListButtonsTop = 34;
+        static constexpr int trackListButtonsTop = 46;   // G0.7 cp2: below the name in a 72 px row; the row middle is the select zone
         static constexpr int trackListButtonsHeight = 18;
         static constexpr int trackListButtonWidth = 24;
         static constexpr int trackListButtonInsetX = 2;

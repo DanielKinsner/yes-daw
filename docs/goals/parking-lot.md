@@ -45,3 +45,8 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
   keeps ~5 at that size with a shorter dock → the dock's default height is a G2 call.
 - 2026-09-01 (G0.7 cp1): the header master card's meter is a 6 px sliver; the card wants a real
   stereo meter + LUFS stack at 260 wide → G0.7 cp2 or G2.
+- 2026-09-02 (G0.7 cp2): the editor dock's plan height (300) waits for the inspector's fixed
+  section stack to scroll or collapse (at 1536×960 the takes/FX sections drop; at the floor the
+  timeline hides) → G2 inspector rebuild; `mixerHeight` pinned at 260 until then (STATUS D27).
+- 2026-09-02 (G0.7 cp2): the rail's PAN/VOL cluster labels are 8 px captions in a 68 px box —
+  legible, not a reference look → G2 rail pass.

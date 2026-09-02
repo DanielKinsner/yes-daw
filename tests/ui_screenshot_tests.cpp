@@ -303,10 +303,13 @@ void requireHonestEmptyArrangementCoverage (const juce::Image& image, const juce
 {
     REQUIRE (hasHeaderCoverage (image));
     REQUIRE (hasHeaderSectionHierarchy (image, shell));
-    REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 20u);
-    REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 100u);
-    REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 10u);
-    REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - 260, image.getWidth(), 260 }) > 40u);
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int work = image.getHeight() - L::headerHeight - L::mixerHeight;
+    REQUIRE (sampledDifferentPixelCount (image, { 0, L::headerHeight, L::leftRailWidth, work }) > 20u);
+    REQUIRE (sampledDifferentPixelCount (image, { L::leftRailWidth, L::headerHeight,
+                                                  image.getWidth() - L::leftRailWidth - L::inspectorWidth, work }) > 100u);
+    REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - L::inspectorWidth, L::headerHeight, L::inspectorWidth, work }) > 10u);
+    REQUIRE (sampledDifferentPixelCount (image, { 0, image.getHeight() - L::mixerHeight, image.getWidth(), L::mixerHeight }) > 40u);
 }
 
 bool hasMixerSurfaceCoverage (const juce::Image& image)
@@ -470,10 +473,9 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
     REQUIRE (rail != nullptr);
     const auto selectRailRow = [&shell, rail] (int row, int rowCount)
     {
-        const int rowHeight = juce::jmax (
-            yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-            (rail->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / rowCount);
-        const juce::Point<int> point { rail->getWidth() / 2,
+        (void) rowCount;
+        const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;   // G0.7: fixed rows
+        const juce::Point<int> point { yesdaw::ui::UiTheme::Layout::trackListNameLeftInset + 8,
                                        yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                            + row * rowHeight + rowHeight / 2 };
         const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(),
@@ -519,9 +521,14 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
         // Size-relative honesty: the header row, the rail column, the arrangement body, and
         // the bottom section all paint real structure at EVERY size.
         REQUIRE (sampledDifferentPixelCount (image, { 0, 0, width, 88 }) > 60u);
-        REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, height - 348 }) > 20u);
-        REQUIRE (sampledDifferentPixelCount (image, { 318, 88, width - 638, height - 348 }) > 100u);
-        REQUIRE (sampledDifferentPixelCount (image, { 0, height - 260, width, 260 }) > 40u);
+        {
+            using L = yesdaw::ui::UiTheme::Layout;
+            const int work = height - L::headerHeight - L::mixerHeight;
+            REQUIRE (sampledDifferentPixelCount (image, { 0, L::headerHeight, L::leftRailWidth, work }) > 20u);
+            REQUIRE (sampledDifferentPixelCount (image, { L::leftRailWidth, L::headerHeight,
+                                                          width - L::leftRailWidth - L::inspectorWidth, work }) > 100u);
+            REQUIRE (sampledDifferentPixelCount (image, { 0, height - L::mixerHeight, width, L::mixerHeight }) > 40u);
+        }
         // E24: NO inspector control may bleed into the bottom mixer panel — small windows drop
         // the sections that no longer fit instead of overlapping.
         const int bottomPanelTop = height - yesdaw::ui::UiTheme::Layout::mixerHeight;
@@ -852,9 +859,14 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
         shell->setSize (width, height);
         const juce::Image image = renderShell (*shell);
         REQUIRE (hasHeaderCoverage (image));
-        REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, height - 348 }) > 20u);
-        REQUIRE (sampledDifferentPixelCount (image, { 318, 88, width - 638, height - 348 }) > 60u);
-        REQUIRE (sampledDifferentPixelCount (image, { 0, height - 260, width, 260 }) > 40u);
+        {
+            using L = yesdaw::ui::UiTheme::Layout;
+            const int work = height - L::headerHeight - L::mixerHeight;
+            REQUIRE (sampledDifferentPixelCount (image, { 0, L::headerHeight, L::leftRailWidth, work }) > 20u);
+            REQUIRE (sampledDifferentPixelCount (image, { L::leftRailWidth, L::headerHeight,
+                                                          width - L::leftRailWidth - L::inspectorWidth, work }) > 60u);
+            REQUIRE (sampledDifferentPixelCount (image, { 0, height - L::mixerHeight, width, L::mixerHeight }) > 40u);
+        }
         // E27: the WHOLE-SECTION drop law — an inspector section fits entirely (all its
         // controls laid out above the bottom mixer panel) or is dropped entirely (all its
         // controls empty). The FADES section is the witness: dropped at the floor, present
@@ -1155,6 +1167,13 @@ TEST_CASE ("header flex row: tools left, transport centred, master right, nothin
     STATIC_REQUIRE (L::headerMasterWidth == 260);
     STATIC_REQUIRE (L::timelineCanvasLaneRowHeight == 72);
     STATIC_REQUIRE (L::trackListRowMinHeight == L::timelineCanvasLaneRowHeight);
+    STATIC_REQUIRE (L::leftRailWidth == 260);
+    STATIC_REQUIRE (L::inspectorWidth == 300);
+    STATIC_REQUIRE (L::mixerHeight == 260);   // plan §3.4 says 300: held until the inspector stack scrolls (STATUS D27)
+    // The rail row at 260: number · icon · name · M S O left of the PAN/VOL cluster, no overlap.
+    STATIC_REQUIRE (L::trackListNameLeftInset + 3 * L::trackListButtonWidth
+                    <= L::leftRailWidth - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth);
+    STATIC_REQUIRE (L::trackListIconLeftInset + L::trackListIconSize <= L::trackListNameLeftInset);
 
     auto shell = yesdaw::ui::createMainComponent (yesdaw::ui::MainComponentFileChoices {});
     for (const auto& size : { std::pair<int, int> { L::windowMinWidth, L::windowMinHeight },

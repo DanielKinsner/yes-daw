@@ -9762,7 +9762,7 @@ public:
 
         // Tools, left: New Open Save Import · Undo Redo · Export.
         int x = L::headerEdgeInset;
-        const auto small = [&x, controlY] (int w)
+        const auto small = [&x] (int w)
         {
             const juce::Rectangle<int> r (x, controlY, w, L::headerControlHeight);
             x += w + L::headerButtonGap;
@@ -9807,7 +9807,7 @@ public:
             h.masterCard = juce::Rectangle<int> (cardRight - cardWidth, L::headerMasterY, cardWidth, L::headerMasterHeight);
 
         x = cx;
-        const auto big = [&x, bigY] (int w)
+        const auto big = [&x] (int w)
         {
             const juce::Rectangle<int> r (x, bigY, w, L::headerTransportButtonSize);
             x += w + L::headerButtonGap;
@@ -9838,7 +9838,7 @@ public:
             h.settingsRow = juce::Rectangle<int> (0, kHeaderHeight, width, L::settingsRowHeight);
             const int rowY = kHeaderHeight + (L::settingsRowHeight - L::headerControlHeight) / 2;
             x = L::headerEdgeInset;
-            const auto cell = [&x, rowY] (int w)
+            const auto cell = [&x] (int w)
             {
                 const juce::Rectangle<int> r (x, rowY, w, L::headerControlHeight);
                 x += w + L::headerButtonGap;
@@ -10108,12 +10108,17 @@ private:
             g.setFont (yesdaw::ui::UiTheme::Type::font (
                 yesdaw::ui::UiTheme::Type::title,
                 juce::Font::bold));
+            // G0.7 cp2: the name cell ends where the mix cluster (PAN/VOL, knob, level, meter)
+            // begins; a long name ellipsises instead of running under it.
             g.drawText (trackName,
                         row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListNameLeftInset)
+                            .withRight (row.getRight() - yesdaw::ui::UiTheme::Layout::trackListMixSummaryRightInset
+                                        - yesdaw::ui::UiTheme::Layout::trackListMixSummaryWidth
+                                        - yesdaw::ui::UiTheme::Layout::trackListButtonInsetX)
                             .withHeight (yesdaw::ui::UiTheme::Layout::trackListNameHeight)
                             .translated (yesdaw::ui::UiTheme::Layout::trackListNameOffsetX,
                                          yesdaw::ui::UiTheme::Layout::trackListNameOffsetY),
-                        juce::Justification::centredLeft, false);
+                        juce::Justification::centredLeft, true);
 
             g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
                 yesdaw::ui::UiTheme::Type::readout));
