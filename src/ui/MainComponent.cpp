@@ -2205,6 +2205,7 @@ public:
                 case PianoDragMode::TrimHead:  return "Note head: drag to trim";
                 case PianoDragMode::SetLength: return "Note end: drag to set its length";
                 case PianoDragMode::Move:      break;
+                case PianoDragMode::VelocityDrag: break;   // never a pointer verdict; the Velocity tool's own mode
             }
             return "Note: drag to move \u00b7 up or down transposes \u00b7 Ctrl-drag copies \u00b7 Shift-drag sets length \u00b7 right-click for the note menu";
         }
