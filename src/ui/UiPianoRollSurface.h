@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -78,7 +79,29 @@ struct UiPianoRollSurfaceSnapshot
     // already means copy-drag, so there is no Ctrl inversion in the roll).
     bool snapEnabled = true;
     engine::Tick snapGridTicks = 0;
+    // G3.2: the grid follows the meter and the snap — beat and bar lines from the meter in force,
+    // subdivision lines from the snap chooser; the shared playhead, clip-relative (< 0 = none).
+    engine::Tick beatTicks = 15360;
+    engine::Tick barTicks = 4 * 15360;
+    engine::Tick playheadTick = -1;
 };
+
+// G3.2: a grid line the roll paints (and the gate counts).
+enum class PianoRollGridLineKind : std::uint8_t { Bar, Beat, Snap };
+struct PianoRollGridLine
+{
+    engine::Tick tick = 0;
+    int x = 0;
+    PianoRollGridLineKind kind = PianoRollGridLineKind::Beat;
+};
+
+// G3.2: the keyboard's note names ("C4", "F#3"): MIDI 60 = C4.
+[[nodiscard]] inline std::string pianoRollKeyName (int key)
+{
+    static constexpr const char* kNames[12] { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    const int octave = key / 12 - 1;
+    return std::string (kNames[((key % 12) + 12) % 12]) + std::to_string (octave);
+}
 
 struct UiPianoRollActionPayload
 {

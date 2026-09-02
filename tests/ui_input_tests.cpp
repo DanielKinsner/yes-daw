@@ -3,6 +3,7 @@
 #include "ui/MainComponent.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
+#include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
 #include "ui/UiTheme.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -24,6 +25,7 @@
 #include <fstream>
 #include <memory>
 #include <span>
+#include <sstream>
 #include <set>
 #include <string>
 #include <utility>
@@ -18692,7 +18694,7 @@ TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane choo
     REQUIRE (probeView().getProperty ("dock", {}).toString() == "None");
     REQUIRE_FALSE (yesdaw::ui::mainComponentInstrumentPanel (*shell).visible);
     juce::MenuBarModel& menus = requireMenuBarModel (*shell);
-    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 29);
+    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 31);   // G3.2: + the Eraser and Velocity tools
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -18723,6 +18725,199 @@ TEST_CASE ("inspector stat cells share the width equally and the Length label fi
         REQUIRE (juce::GlyphArrangement::getStringWidthInt (labelFont, "Length") <= textWidth);
         REQUIRE (juce::GlyphArrangement::getStringWidthInt (valueFont, "180.000 s") <= textWidth);
     }
+}
+
+// G3.2 piano roll dock v2: the grid follows the meter and the snap, every white key is named when
+// the rows allow, the shared playhead paints clip-relative and the roll pages after it, Left / Right
+// step the selection to the adjacent note, a double-click on the empty grid adds a note, the Eraser
+// deletes on click, the Scissors split at the click, the Velocity tool's drag sets velocity once.
+TEST_CASE ("G3.2 piano roll v2: grid, names, playhead + follow, adjacent notes, double-click add, eraser, scissors, velocity",
+           "[ui][input][shell][g3][piano-roll-v2]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("piano-roll-v2");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    REQUIRE (project().midiClips.size() == 1u);
+    const yesdaw::engine::Tick clipLength = project().midiClips.front().timelineLength;
+
+    // The grid: bar lines every bar of the head meter (4/4 → 4 quarters), beats between, and with
+    // Snap: Beat the subdivision step is a beat (no fainter lines); a finer snap adds them.
+    {
+        const yesdaw::ui::MainComponentPianoRollGrid grid = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        REQUIRE (! grid.lines.empty());
+        int bars = 0, beats = 0, snaps = 0;
+        for (const auto& [tick, x, kind] : grid.lines)
+        {
+            if (kind == 0) { ++bars; REQUIRE (tick % (4 * yesdaw::engine::kTicksPerQuarter) == 0); }
+            else if (kind == 1) { ++beats; REQUIRE (tick % yesdaw::engine::kTicksPerQuarter == 0); }
+            else ++snaps;
+        }
+        REQUIRE (bars >= 1);
+        REQUIRE (beats >= bars);
+        INFO ("snap lines " << snaps);
+        REQUIRE (std::get<0> (grid.lines.front()) == 0);
+    }
+
+    // Key names: MIDI 60 is C4, 61 C#4, 59 B3.
+    REQUIRE (yesdaw::ui::pianoRollKeyName (60) == std::string ("C4"));
+    REQUIRE (yesdaw::ui::pianoRollKeyName (61) == std::string ("C#4"));
+    REQUIRE (yesdaw::ui::pianoRollKeyName (59) == std::string ("B3"));
+
+    // Three notes by the pencil at three grid columns; Left / Right walk them by start tick.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // Pencil
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    // A key's row: the grid shows pianoRollKeyCount rows from the view's low key, bottom-up.
+    const auto keyCentreY = [&] (int key)
+    {
+        const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        const double rowHeight = static_cast<double> (grid.getHeight()) / yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;
+        return grid.getBottom() - static_cast<int> ((key - lowKey + 0.5) * rowHeight);
+    };
+    const auto gridPoint = [&] (double fraction, int key)
+    {
+        return juce::Point<int> (grid.getX() + static_cast<int> (grid.getWidth() * fraction), keyCentreY (key));
+    };
+    const auto noteWithKey = [] (const yesdaw::engine::Project& snapshotProject, int key) -> const yesdaw::engine::Note*
+    {
+        for (const yesdaw::engine::Note& note : snapshotProject.midiClips.front().notes)
+            if (note.key == key)
+                return &note;
+        return nullptr;
+    };
+    const auto selectedNoteHex = [&]
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        const juce::var selection = probe.getProperty ("selection", {});
+        const juce::Array<juce::var>* const notes = selection.getProperty ("notes", {}).getArray();
+        return notes != nullptr && ! notes->isEmpty() ? (*notes)[0].toString() : juce::String();
+    };
+    const auto hexOf = [] (const yesdaw::engine::EntityId& id)
+    {
+        juce::String out;
+        for (const std::uint8_t byte : id.bytes)
+            out << juce::String::toHexString (static_cast<int> (byte)).paddedLeft ('0', 2);
+        return out;
+    };
+    mouseDownAt (pianoRoll, gridPoint (0.10, 60));
+    mouseDownAt (pianoRoll, gridPoint (0.40, 64));
+    mouseDownAt (pianoRoll, gridPoint (0.70, 67));
+    REQUIRE (project().midiClips.front().notes.size() == 3u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // Pointer
+    const auto sortedNotes = [&]
+    {
+        std::vector<yesdaw::engine::Note> notes = project().midiClips.front().notes;
+        std::sort (notes.begin(), notes.end(), [] (const auto& a, const auto& b) { return a.startTick < b.startTick; });
+        return notes;
+    };
+    const std::vector<yesdaw::engine::Note> notes = sortedNotes();
+    mouseDownAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, project().midiClips.front(), notes[1]));
+    REQUIRE (selectedNoteHex() == hexOf (notes[1].id));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (selectedNoteHex() == hexOf (notes[2].id));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (selectedNoteHex() == hexOf (notes[2].id));   // clamps at the end
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+    REQUIRE (selectedNoteHex() == hexOf (notes[0].id));
+
+    // A double-click on the empty grid adds a fourth note at that column and key.
+    doubleClickAt (pianoRoll, gridPoint (0.85, 72));
+    {
+        const yesdaw::engine::Project added = project();
+        REQUIRE (added.midiClips.front().notes.size() == 4u);
+        REQUIRE (noteWithKey (added, 72) != nullptr);
+    }
+
+    // The Eraser deletes on click; the Scissors split at the click; the Velocity tool's drag sets
+    // velocity once (one undo step).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectEraser);
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Eraser);
+    {
+        const yesdaw::engine::Project beforeErase = project();
+        mouseDownAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, beforeErase.midiClips.front(), *noteWithKey (beforeErase, 72)));
+        const yesdaw::engine::Project erased = project();
+        REQUIRE (erased.midiClips.front().notes.size() == 3u);
+        REQUIRE (noteWithKey (erased, 72) == nullptr);
+    }
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));   // Scissors
+    {
+        const yesdaw::engine::Project beforeSplit = project();
+        const yesdaw::engine::Note target = *noteWithKey (beforeSplit, 60);
+        // The pencil's note is one snap step long, so a snapped split would land on its start and
+        // be refused; Ctrl defeats the snap (the arrangement's scissors law) and splits at the click.
+        const int dispatchBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+        mouseDownAt (pianoRoll, pianoRollNoteCenterPoint (pianoRoll, project().midiClips.front(), target),
+                     juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
+        REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchBefore + 1);
+        const yesdaw::engine::Project afterSplit = project();   // a named snapshot: a range-for over a temporary dangles
+        REQUIRE (afterSplit.midiClips.front().notes.size() == 4u);
+        int atKey60 = 0;
+        for (const auto& note : afterSplit.midiClips.front().notes)
+            if (note.key == 60) ++atKey60;
+        REQUIRE (atKey60 == 2);
+    }
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectVelocity);
+    {
+        const yesdaw::engine::Project beforeDrag = project();
+        const yesdaw::engine::Note target = *noteWithKey (beforeDrag, 67);
+        REQUIRE (target.normalizedVelocity == Catch::Approx (1.0));
+        const juce::Point<int> centre = pianoRollNoteCenterPoint (pianoRoll, project().midiClips.front(), target);
+        const int undoBefore = snapshotMainComponent (*shell).context.undoCount;
+        dragFromTo (pianoRoll, centre, { centre.x, centre.y + 50 });   // 50 px down = -0.5
+        {
+            const yesdaw::engine::Project dragged = project();
+            REQUIRE (noteWithKey (dragged, 67)->normalizedVelocity == Catch::Approx (0.5).margin (0.05));
+        }
+        // ONE undo step restores the velocity (the press selects, the release edits once).
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (snapshotMainComponent (*shell).context.undoCount == undoBefore + 1);
+        {
+            const yesdaw::engine::Project restored = project();
+            REQUIRE (noteWithKey (restored, 67)->normalizedVelocity == Catch::Approx (1.0));
+        }
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+
+    // The playhead paints clip-relative and the roll pages after it: zoom in 8x, play from the
+    // clip's start, render past the visible window, the view scrolls to keep it in sight.
+    {
+        yesdaw::ui::MainComponentPianoRollGrid before = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        REQUIRE (before.playheadTick >= 0);
+        juce::MouseWheelDetails wheelIn {};
+        wheelIn.deltaY = 0.4f;
+        const juce::MouseEvent ctrlWheel = makeMouseEvent (pianoRoll, grid.getCentre(), grid.getCentre(), false, 0,
+                                                           juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+        for (int i = 0; i < 6; ++i)
+            pianoRoll.mouseWheelMove (ctrlWheel, wheelIn);
+        before = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        REQUIRE (before.visibleTicks < clipLength);
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const double sampleRate = project().sampleRate.hz;
+        // Enough frames to pass the visible window (ticks → seconds at 120 BPM: a quarter = 0.5 s).
+        const double visibleSeconds = static_cast<double> (before.visibleTicks) / yesdaw::engine::kTicksPerQuarter * 0.5;
+        (void) renderMainComponentPlayback (*shell, static_cast<int> (visibleSeconds * sampleRate * 1.5), 512);
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+        const yesdaw::ui::MainComponentPianoRollGrid after = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        INFO ("playhead " << after.playheadTick << " scroll " << after.viewScrollTicks << " visible " << after.visibleTicks);
+        REQUIRE (after.viewScrollTicks > 0);
+        REQUIRE (after.playheadTick >= after.viewScrollTicks);
+        REQUIRE (after.playheadTick < after.viewScrollTicks + after.visibleTicks);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",

@@ -930,8 +930,13 @@ struct UiTheme
         static constexpr int pianoRollLowKey = 48;
         static constexpr int pianoRollHighKey = 72;
         static constexpr int pianoRollKeyCount = pianoRollHighKey - pianoRollLowKey + 1;
-        static constexpr int pianoRollGridTickStep = 512;
+        static constexpr int pianoRollGridTickStep = 512;         // (pre-G3.2 fixed grid; the paint now follows the meter + snap)
         static constexpr int pianoRollGridStrongTickStep = 2048;
+        static constexpr int pianoRollGridMinLinePx = 6;          // G3.2: a snap subdivision paints only when its cells are this wide
+        static constexpr int pianoRollKeyLabelMinRowHeight = 11;  // G3.2: every white key gets its name from this row height
+        static constexpr int pianoRollPlayheadWidth = 2;
+        static constexpr int pianoRollFollowLeadPercent = 10;     // G3.2: a page-follow lands the playhead this far in
+        static constexpr int pianoRollVelocityDragPixelsPerUnit = 100;   // G3.2: the velocity tool: 100 px = the full 0..1 range
         static constexpr int pianoRollGridInsetX = 0;
         static constexpr int pianoRollGridInsetY = 2;
         static constexpr int pianoRollGridMinHeight = 1;

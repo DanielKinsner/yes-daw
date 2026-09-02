@@ -93,6 +93,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Alt+Shift+Down` | Octave Down | `piano_roll.note.octave_down` |
 | `Q` | Quantize Notes | `piano_roll.note.quantize_selection` |
 | `Ctrl+A` | Select All Notes | `piano_roll.note.select_all` |
+| `Left` | Previous Note | `piano_roll.note.select_previous` |
+| `Right` | Next Note | `piano_roll.note.select_next` |
 
 ## Mixer
 
@@ -142,6 +144,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Restore Autosave (`autosave.recovery.restore`)
 - Discard Autosave (`autosave.recovery.discard`)
 - Hand (`timeline.tool.hand`)
+- Eraser (`timeline.tool.eraser`)
+- Velocity (`timeline.tool.velocity`)
 - Snap Off (`timeline.snap.disable`)
 - Snap Bar (`timeline.snap.bar`)
 - Snap Beat (`timeline.snap.beat`)

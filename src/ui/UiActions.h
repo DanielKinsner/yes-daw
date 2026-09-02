@@ -81,6 +81,8 @@ enum class UiActionId : std::uint8_t
     TimelineToolSelectScissors,
     TimelineToolSelectHand,
     TimelineToolSelectZoom,
+    TimelineToolSelectEraser,     // G3.2
+    TimelineToolSelectVelocity,   // G3.2
     TimelineSnapDisable,
     TimelineSnapSetBar,
     TimelineSnapSetBeat,
@@ -220,6 +222,8 @@ enum class UiActionId : std::uint8_t
     TransportTogglePlayStop,
     ViewToggleSettingsRow,
     PianoRollNoteSelectAll,
+    PianoRollNoteSelectPrevious,   // G3.2: Left in the roll (Logic)
+    PianoRollNoteSelectNext,       // G3.2: Right in the roll
     ViewToggleInspector,
     EditNudgeValueGrid,
     EditNudgeValueBar,
@@ -355,6 +359,8 @@ enum class UiFocusContext : std::uint8_t
         case UiActionId::PianoRollNoteQuantizeSelection:
         case UiActionId::PianoRollNoteTranspose:
         case UiActionId::PianoRollNoteSelectAll:
+        case UiActionId::PianoRollNoteSelectPrevious:   // G3.2
+        case UiActionId::PianoRollNoteSelectNext:
             return UiFocusContext::PianoRoll;
         default:
             return UiFocusContext::Global;
@@ -378,7 +384,9 @@ enum class TimelineTool : std::uint8_t
     Pencil,
     Scissors,
     Hand,
-    Zoom
+    Zoom,
+    Eraser,     // G3.2: a click deletes the note (roll) or the clip (arrangement) — Logic's eraser
+    Velocity    // G3.2: a vertical drag on a note sets its velocity (roll); the Pointer elsewhere
 };
 
 enum class UiRecordingMonitoringPolicy : std::uint8_t
@@ -697,6 +705,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineToolSelectZoom, "timeline.tool.zoom", "Zoom", "6", "Select zoom tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectEraser, "timeline.tool.eraser", "Eraser", "", "Select the eraser tool: click a note or clip to delete it",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineToolSelectVelocity, "timeline.tool.velocity", "Velocity", "", "Select the velocity tool: drag a note up or down to set its velocity",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "", "Disable timeline snap",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineSnapSetBar, "timeline.snap.bar", "Snap Bar", "", "Set timeline snap to bar",
@@ -952,6 +964,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     // G1.1 (§4 "select all in the focused editor"): every note of the selected MIDI clip.
     { UiActionId::PianoRollNoteSelectAll, "piano_roll.note.select_all", "Select All Notes", "Ctrl+A", "Select every note in the selected MIDI clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollNoteSelectPrevious, "piano_roll.note.select_previous", "Previous Note", "Left", "Select the previous note by start time (Logic)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::PianoRollNoteSelectNext, "piano_roll.note.select_next", "Next Note", "Right", "Select the next note by start time (Logic)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     // G1.4 (§4.3): the inspector shows and hides on I.
     { UiActionId::ViewToggleInspector, "view.toggle_inspector", "Inspector", "I", "Show or hide the inspector",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
@@ -1633,6 +1649,8 @@ public:
                 ++context.midiReadCount;
                 break;
 
+            case UiActionId::PianoRollNoteSelectPrevious:   // G3.2
+            case UiActionId::PianoRollNoteSelectNext:
             case UiActionId::PianoRollNoteSelectAll:
                 context.activePanel = UiPanel::PianoRoll;
                 break;
@@ -1675,6 +1693,14 @@ public:
 
             case UiActionId::TimelineToolSelectZoom:
                 context.activeTimelineTool = TimelineTool::Zoom;
+                break;
+
+            case UiActionId::TimelineToolSelectEraser:   // G3.2
+                context.activeTimelineTool = TimelineTool::Eraser;
+                break;
+
+            case UiActionId::TimelineToolSelectVelocity:
+                context.activeTimelineTool = TimelineTool::Velocity;
                 break;
 
             case UiActionId::TimelineZoomFitProject:

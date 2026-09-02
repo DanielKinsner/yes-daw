@@ -542,6 +542,7 @@ public:
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
     std::function<void (double, bool)> onZoomToolClicked;        // anchorSeconds, zoomOut (Alt) — E3
     std::function<void (double)> onHandToolScrolled;             // secondsDelta from a Hand drag — E3
+    std::function<void (int)> onClipErased;                      // G3.2: the Eraser tool's click (layout clip id)
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
     std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
@@ -986,6 +987,13 @@ public:
                                 timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
                             if (onClipSplit)
                                 onClipSplit (hit.id, *seconds, event.mods.isCtrlDown());
+                    return;
+                }
+
+                if (tool == yesdaw::ui::TimelineTool::Eraser)   // G3.2: a click deletes the clip under it
+                {
+                    if (hit.hit && onClipErased)
+                        onClipErased (hit.id);
                     return;
                 }
 
@@ -1964,6 +1972,7 @@ struct PianoRollCanvasGeometry
     return surface.viewLowKey + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1;
 }
 
+
 [[nodiscard]] int pianoRollKeyY (const PianoRollCanvasGeometry& geometry,
                                  const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
                                  int key) noexcept
@@ -1981,6 +1990,37 @@ struct PianoRollCanvasGeometry
     const double normalized = static_cast<double> (tick - surface.viewScrollTicks) / visibleTicks;
     return geometry.grid.getX()
          + juce::roundToInt (static_cast<float> (normalized) * static_cast<float> (geometry.grid.getWidth()));
+}
+
+// G3.2: the roll's grid lines — bars and beats from the meter, snap subdivisions only while a
+// cell is at least pianoRollGridMinLinePx wide; ONE law for the paint and the gate.
+[[nodiscard]] std::vector<yesdaw::ui::PianoRollGridLine> pianoRollGridLines (const PianoRollCanvasGeometry& geometry,
+                                                                             const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface)
+{
+    std::vector<yesdaw::ui::PianoRollGridLine> lines;
+    if (geometry.grid.getWidth() <= 0 || surface.timelineLength <= 0)
+        return lines;
+    const yesdaw::engine::Tick beat = std::max<yesdaw::engine::Tick> (1, surface.beatTicks);
+    const yesdaw::engine::Tick bar = std::max<yesdaw::engine::Tick> (beat, surface.barTicks);
+    const double pixelsPerTick = static_cast<double> (geometry.grid.getWidth()) / static_cast<double> (std::max<yesdaw::engine::Tick> (1, pianoRollVisibleTicks (surface)));
+    yesdaw::engine::Tick step = beat;
+    if (surface.snapEnabled && surface.snapGridTicks > 0 && surface.snapGridTicks < beat
+        && static_cast<double> (surface.snapGridTicks) * pixelsPerTick >= yesdaw::ui::UiTheme::Layout::pianoRollGridMinLinePx)
+        step = surface.snapGridTicks;
+    for (yesdaw::engine::Tick tick = 0; tick <= surface.timelineLength; tick += step)
+    {
+        const int x = pianoRollTickX (geometry, surface, tick);
+        if (x < geometry.grid.getX() || x > geometry.grid.getRight())
+            continue;
+        yesdaw::ui::PianoRollGridLine line;
+        line.tick = tick;
+        line.x = x;
+        line.kind = (tick % bar) == 0 ? yesdaw::ui::PianoRollGridLineKind::Bar
+                  : (tick % beat) == 0 ? yesdaw::ui::PianoRollGridLineKind::Beat
+                  : yesdaw::ui::PianoRollGridLineKind::Snap;
+        lines.push_back (line);
+    }
+    return lines;
 }
 
 [[nodiscard]] yesdaw::engine::Tick pianoRollTickDeltaForPixels (
@@ -2080,6 +2120,7 @@ public:
     std::function<void (yesdaw::engine::EntityId, std::span<const yesdaw::engine::EntityId>)> onNotesMarqueeSelected;
     std::function<void()> onSelectionCleared;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteDeleted;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteSplit;   // G3.2: the Scissors tool
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
     // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
     std::function<void (int)> onViewKeysScrolled;                          // +1 up / -1 down
@@ -2277,6 +2318,45 @@ public:
                 repaint();
             }
             return;
+        }
+
+        // G3.2: the roll honours the shared tools on a note hit — the Eraser deletes it, the
+        // Scissors split it at the clicked tick, the Velocity tool starts a vertical velocity drag.
+        {
+            const yesdaw::ui::TimelineTool tool =
+                activeToolProvider ? activeToolProvider() : yesdaw::ui::TimelineTool::Pointer;
+            if (tool == yesdaw::ui::TimelineTool::Eraser)
+            {
+                if (onNoteDeleted)
+                    onNoteDeleted (surface.midiClipId, hit->noteId);
+                return;
+            }
+            if (tool == yesdaw::ui::TimelineTool::Scissors)
+            {
+                const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+                yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, event.getPosition().x);
+                // The split snaps like the arrangement's scissors; Ctrl defeats the snap (G2.7).
+                if (surface.snapEnabled && surface.snapGridTicks > 0 && ! event.mods.isCtrlDown())
+                    tick -= tick % surface.snapGridTicks;
+                if (onNoteSplit)
+                    onNoteSplit (surface.midiClipId, hit->noteId, tick);
+                return;
+            }
+            if (tool == yesdaw::ui::TimelineTool::Velocity)
+            {
+                if (onNoteClicked)
+                    onNoteClicked (surface.midiClipId, hit->noteId);
+                dragState = {};
+                dragState.active = true;
+                dragState.noteId = hit->noteId;
+                dragState.midiClipId = surface.midiClipId;
+                dragState.startTick = hit->startTick;
+                dragState.lengthTicks = hit->lengthTicks;
+                dragState.downPosition = event.getPosition();
+                dragState.mode = PianoDragMode::VelocityDrag;
+                dragState.downVelocity = hit->normalizedVelocity;
+                return;
+            }
         }
 
         // Shift+click toggles the note in the multi-selection (E11); a Shift+DRAG keeps the
@@ -2477,6 +2557,15 @@ public:
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
         const int deltaX = event.getPosition().x - drag.downPosition.x;
         const int deltaY = event.getPosition().y - drag.downPosition.y;
+        // G3.2: the Velocity tool — up raises, down lowers; 100 px is the full range; one edit on release.
+        if (drag.mode == PianoDragMode::VelocityDrag)
+        {
+            const double velocity = juce::jlimit (0.0, 1.0,
+                drag.downVelocity - static_cast<double> (deltaY) / static_cast<double> (yesdaw::ui::UiTheme::Layout::pianoRollVelocityDragPixelsPerUnit));
+            if (onNoteVelocityAdjusted)
+                onNoteVelocityAdjusted (drag.midiClipId, drag.noteId, velocity);
+            return;
+        }
         // E12: vertical drag transposes — a row of movement is a semitone.
         const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
         const int keyDelta = drag.mode == PianoDragMode::Move && ! drag.copy
@@ -2538,7 +2627,22 @@ public:
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
         const auto hit = noteAt (surface, event.getPosition());
         if (! hit)
+        {
+            // G3.2: a double-click on the empty grid adds a note there (Logic), one snap step long,
+            // with any tool — the Pencil's single click is the fast path, this is the discoverable one.
+            const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            if (! surface.midiClipSelected || ! geometry.grid.contains (event.getPosition()) || ! onNoteAdded)
+                return;
+            yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, event.getPosition().x);
+            if (surface.snapEnabled && surface.snapGridTicks > 0)
+                tick -= tick % surface.snapGridTicks;
+            const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
+            const int key = pianoRollViewHighKey (surface)
+                - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
+            if (key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
+                onNoteAdded (surface.midiClipId, std::max<yesdaw::engine::Tick> (0, tick), static_cast<std::int16_t> (key));
             return;
+        }
 
         if (onNoteClicked)
             onNoteClicked (surface.midiClipId, hit->noteId);
@@ -2574,6 +2678,7 @@ public:
 private:
     enum class PianoDragMode
     {
+        VelocityDrag,   // G3.2: the Velocity tool
         Move,
         SetLength,
         TrimHead    // E12: drag the left edge — the note end stays fixed
@@ -2604,6 +2709,7 @@ private:
         yesdaw::engine::Tick lengthTicks = 0;
         PianoDragMode mode = PianoDragMode::Move;
         bool copy = false;   // Ctrl+drag copy-drag (B35)
+        double downVelocity = 1.0;   // G3.2: the Velocity tool's anchor
         juce::Point<int> downPosition;
     };
 
@@ -4427,6 +4533,14 @@ public:
             zoomTimelineAtAnchor (anchorSeconds, zoomOut ? 1.0 / factor : factor);
             repaintAll();
         };
+        timelineInput.onClipErased = [this] (int layoutClipId) {   // G3.2: select, then the one delete verb
+            if (layoutClipId < 0 || static_cast<std::size_t> (layoutClipId) >= timelineClipIds.size())
+                return;
+            (void) appModel.selectTimelineClipForGesture (timelineClipIds[static_cast<std::size_t> (layoutClipId)], false);
+            handleAction (yesdaw::ui::UiActionId::TimelineClipDelete);
+            refreshActionState();
+            repaintAll();
+        };
         timelineInput.onHandToolScrolled = [this] (double secondsDelta) {
             // G2.16: clamped to the view's range like the scroll bar — no transient overshoot.
             const double visible = timelineVisibleSecondsFor (timelineTotalSeconds);
@@ -5475,6 +5589,11 @@ public:
             refreshActionState();
             repaintAll();
         };
+        pianoRollInput.onNoteSplit = [this] (yesdaw::engine::EntityId midiClipId, yesdaw::engine::EntityId noteId, yesdaw::engine::Tick tick) {   // G3.2
+            (void) appModel.splitPianoRollNoteAt (midiClipId, noteId, tick);
+            refreshActionState();
+            repaintAll();
+        };
         pianoRollInput.onExpressionRead = [this] {
             (void) appModel.readPianoRollExpressionLanes();
             refreshActionState();
@@ -5754,7 +5873,8 @@ public:
         // dynamic layers (playhead, meters, transport counter) repaint this tick.
         const double scrollBefore = timelineScrollSeconds;
         followPlaybackPlayhead();
-        if (timelineScrollSeconds != scrollBefore)
+        const bool rollScrolled = followPianoRollPlayhead();   // G3.2
+        if (timelineScrollSeconds != scrollBefore || rollScrolled)
             repaintAll();
         else
             repaintDynamicLayers();
@@ -6184,6 +6304,8 @@ public:
             case yesdaw::ui::TimelineTool::Scissors: return "Scissors";
             case yesdaw::ui::TimelineTool::Hand:     return "Hand";
             case yesdaw::ui::TimelineTool::Zoom:     return "Zoom";
+            case yesdaw::ui::TimelineTool::Eraser:   return "Eraser";     // G3.2
+            case yesdaw::ui::TimelineTool::Velocity: return "Velocity";
         }
         return "Pointer";
     }
@@ -6560,6 +6682,8 @@ public:
     // G2.18: the undo history window for the harness.
     [[nodiscard]] UndoHistoryComponent& harnessUndoHistory() noexcept { return undoHistory; }
     [[nodiscard]] InstrumentPanelComponent& harnessInstrumentPanel() noexcept { return instrumentPanel; }   // G3.1
+    [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
+    [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
 
     [[nodiscard]] juce::Rectangle<int> harnessPaintedRailRowBounds (int row) const
     {
@@ -10089,6 +10213,24 @@ private:
              / std::max (1.0, timelinePixelsPerSecondFor (totalSeconds));
     }
 
+    // G3.2: the roll pages after the playhead while it shows and the transport rolls — the same
+    // page law as the arrangement, in the clip's ticks. Returns true when the view moved.
+    bool followPianoRollPlayhead()
+    {
+        if (! dockShowsPianoRoll() || ! appModel.context().playheadFollowEnabled || ! appModel.context().isPlaying)
+            return false;
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = currentPianoRollSurface();
+        if (! surface.midiClipSelected || surface.playheadTick < 0 || surface.playheadTick > surface.timelineLength)
+            return false;
+        const yesdaw::engine::Tick visible = pianoRollVisibleTicks (surface);
+        if (surface.playheadTick >= surface.viewScrollTicks && surface.playheadTick < surface.viewScrollTicks + visible)
+            return false;
+        const yesdaw::engine::Tick lead = visible * yesdaw::ui::UiTheme::Layout::pianoRollFollowLeadPercent / 100;
+        const yesdaw::engine::Tick maxScroll = std::max<yesdaw::engine::Tick> (0, surface.timelineLength - visible);
+        pianoRollViewScrollTicks = std::clamp<yesdaw::engine::Tick> (surface.playheadTick - lead, 0, maxScroll);
+        return true;
+    }
+
     void followPlaybackPlayhead()
     {
         if (! appModel.context().playheadFollowEnabled
@@ -10183,14 +10325,15 @@ private:
             UiActionId::TimelineClipReverse, UiActionId::TimelineClipNormalize, UiActionId::TimelineClipStripSilence,   // G2.13
             UiActionId::TimelineMidiClipAdd,
         };
-        static constexpr std::array<UiActionId, 10> kMidiMenu {
+        static constexpr std::array<UiActionId, 12> kMidiMenu {
             UiActionId::PianoRollNoteAdd,  UiActionId::PianoRollNoteDelete, UiActionId::PianoRollNoteSelectAll,
             UiActionId::PianoRollNoteQuantizeSelection, UiActionId::PianoRollNoteTranspose,
             UiActionId::PianoRollNoteOctaveUp, UiActionId::PianoRollNoteOctaveDown,
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
+            UiActionId::PianoRollNoteSelectPrevious, UiActionId::PianoRollNoteSelectNext,   // G3.2
         };
-        static constexpr std::array<UiActionId, 29> kViewMenu {
+        static constexpr std::array<UiActionId, 31> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
             UiActionId::ViewInstrument,   // G3.1
             UiActionId::ViewToggleInspector,
@@ -10203,7 +10346,8 @@ private:
             UiActionId::TimelineTogglePlayheadFollow,
             UiActionId::TimelineToolSelectPointer, UiActionId::TimelineToolSelectPencil,
             UiActionId::TimelineToolSelectScissors, UiActionId::TimelineToolSelectHand,
-            UiActionId::TimelineToolSelectZoom, UiActionId::ViewToggleSettingsRow,
+            UiActionId::TimelineToolSelectZoom, UiActionId::TimelineToolSelectEraser, UiActionId::TimelineToolSelectVelocity,   // G3.2
+            UiActionId::ViewToggleSettingsRow,
             UiActionId::TimelineSnapModeGrid, UiActionId::TimelineSnapModeRelative,
             UiActionId::TimelineSnapModeEvents, UiActionId::TimelineSnapModeOff,
         };
@@ -10293,6 +10437,8 @@ private:
             case UiActionId::TimelineToolSelectPointer:         return c.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer;
             case UiActionId::TimelineToolSelectPencil:          return c.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil;
             case UiActionId::TimelineToolSelectScissors:        return c.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors;
+            case UiActionId::TimelineToolSelectEraser:          return c.activeTimelineTool == yesdaw::ui::TimelineTool::Eraser;     // G3.2
+            case UiActionId::TimelineToolSelectVelocity:        return c.activeTimelineTool == yesdaw::ui::TimelineTool::Velocity;
             case UiActionId::TimelineToolSelectHand:            return c.activeTimelineTool == yesdaw::ui::TimelineTool::Hand;
             case UiActionId::TimelineToolSelectZoom:            return c.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom;
             default:                                            return false;
@@ -11050,6 +11196,7 @@ private:
             case yesdaw::ui::UiActionId::PianoRollNoteDuplicate:
                 (void) appModel.duplicateSelectedPianoRollNote (kPianoRollSnapGridTicks);
                 return;
+
 
             case yesdaw::ui::UiActionId::TimelineClipSplit:
                 (void) appModel.splitSelectedTimelineClipAt (
@@ -13890,33 +14037,45 @@ private:
                                              geometry.grid.getWidth(),
                                              yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth));
 
-            if (key % 12 == 0)
+            // G3.2: every white key names itself once its row is tall enough; C keeps its bold octave
+            // label at any height (the landmark Logic paints).
+            if (key % 12 == 0
+                || (! isBlackMidiKey (key)
+                    && juce::roundToInt (geometry.rowHeight) >= yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelMinRowHeight))
             {
                 g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
                 g.setFont (yesdaw::ui::UiTheme::Type::font (
                     yesdaw::ui::UiTheme::Type::caption,
-                    juce::Font::bold));
-                g.drawText ("C" + juce::String (key / 12 - 1),
+                    key % 12 == 0 ? juce::Font::bold : juce::Font::plain));
+                g.drawText (juce::String (yesdaw::ui::pianoRollKeyName (key)),
                             keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX,
                                             yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetY),
                             juce::Justification::centredLeft, false);
             }
         }
 
-        for (yesdaw::engine::Tick tick = 0;
-             tick <= surface.timelineLength;
-             tick += yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep)
+        // G3.2: the grid follows the meter and the snap (plan §3.2): bar lines strong, beat lines
+        // weak, snap subdivisions fainter and only while their cells are wide enough to read.
+        for (const yesdaw::ui::PianoRollGridLine& line : pianoRollGridLines (geometry, surface))
         {
-            const int x = pianoRollTickX (geometry, surface, tick);
-            if (x < geometry.grid.getX() || x > geometry.grid.getRight())
-                continue;
-            g.setColour ((tick % yesdaw::ui::UiTheme::Layout::pianoRollGridStrongTickStep) == 0
-                              ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
-                              : yesdaw::ui::UiTheme::Color::pianoGridWeak());
-            g.fillRect (x,
+            g.setColour (line.kind == yesdaw::ui::PianoRollGridLineKind::Bar ? yesdaw::ui::UiTheme::Color::pianoGridStrong()
+                         : line.kind == yesdaw::ui::PianoRollGridLineKind::Beat ? yesdaw::ui::UiTheme::Color::pianoGridWeak()
+                         : yesdaw::ui::UiTheme::Color::pianoGridWeak().withAlpha (0.45f));
+            g.fillRect (line.x,
                         geometry.grid.getY(),
                         yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth,
                         geometry.grid.getHeight());
+        }
+
+        // G3.2: the shared playhead, clip-relative.
+        if (surface.playheadTick >= 0 && surface.playheadTick <= surface.timelineLength)
+        {
+            const int x = pianoRollTickX (geometry, surface, surface.playheadTick);
+            if (x >= geometry.grid.getX() && x <= geometry.grid.getRight())
+            {
+                g.setColour (kText);
+                g.fillRect (x, geometry.grid.getY(), yesdaw::ui::UiTheme::Layout::pianoRollPlayheadWidth, geometry.grid.getHeight());
+            }
         }
 
         for (const yesdaw::ui::UiPianoRollNoteView& note : surface.notes)
@@ -14913,6 +15072,20 @@ private:
             // E12: note gestures snap through the real chooser.
             surface.snapEnabled = appModel.context().snapEnabled;
             surface.snapGridTicks = static_cast<yesdaw::engine::Tick> (appModel.context().snapGridTicks);
+            // G3.2: the grid follows the meter in force at the clip (bars / beats) and the snap; the
+            // shared playhead is published clip-relative (-1 when it has no tick).
+            {
+                const yesdaw::engine::MeterChange* meter = nullptr;
+                for (const yesdaw::engine::MeterChange& change : appModel.project().meterMap)
+                    if (change.tick <= surface.timelineStart && (meter == nullptr || change.tick >= meter->tick))
+                        meter = &change;
+                const int numerator = meter != nullptr ? std::max<int> (1, meter->numerator) : 4;
+                const int denominator = meter != nullptr ? std::max<int> (1, meter->denominator) : 4;
+                surface.beatTicks = std::max<yesdaw::engine::Tick> (1, yesdaw::engine::kTicksPerQuarter * 4 / denominator);
+                surface.barTicks = surface.beatTicks * numerator;
+                if (const std::optional<yesdaw::engine::Tick> playhead = appModel.playheadTick())
+                    surface.playheadTick = *playhead - surface.timelineStart;
+            }
             return surface;
         }
 
@@ -15687,6 +15860,22 @@ MainComponentUndoHistory mainComponentUndoHistory (juce::Component& component)
         mainComponent->harnessUndoHistory().refreshRows();
         out.rows = mainComponent->harnessUndoHistory().currentRows();
         out.current = mainComponent->harnessUndoHistory().currentRow();
+    }
+    return out;
+}
+
+MainComponentPianoRollGrid mainComponentPianoRollGrid (juce::Component& component)
+{
+    MainComponentPianoRollGrid out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = mainComponent->harnessPianoRollSurface();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (mainComponent->harnessPianoRollBounds().withZeroOrigin());
+        for (const yesdaw::ui::PianoRollGridLine& line : pianoRollGridLines (geometry, surface))
+            out.lines.emplace_back (static_cast<std::int64_t> (line.tick), line.x, static_cast<int> (line.kind));
+        out.playheadTick = surface.playheadTick;
+        out.viewScrollTicks = surface.viewScrollTicks;
+        out.visibleTicks = pianoRollVisibleTicks (surface);
     }
     return out;
 }

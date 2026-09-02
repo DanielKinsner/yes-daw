@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 — Track instrument: cp1 ✅ (`381e8db`), cp2 ✅ (`fa6c67e`), cp3 ✅ (`4c26a17`, run
-`33655909259`), and the **UI checkpoint** (the first session drives since D14 lifted; the §7.4
-rubric; two FIXes — one gated here, one owned by G4) committed; awaiting its run. Next: G3.2 —
-piano roll dock v2 (`[piano-roll-v2]`).
+**Now:** G3.1 ✅ (cp1 `381e8db`, cp2 `fa6c67e`, cp3 `4c26a17`, the UI checkpoint `dc60b42` on run
+`33660679423` — green on all ten jobs). G3.2 — piano roll dock v2: cp1 (the editor laws, `[piano-roll-v2]`)
+built, gated locally, committed; awaiting its run. Next: cp2 — audition on click through the Track
+instrument (a live-event lane into the Track's `MidiMerge`, the seam G3.10 reuses), then G3.2's
+UI checkpoint (drives + shots + rubric), then G3.3.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -111,7 +112,40 @@ G2.13 ✅ — clip processing, schema v25 (`05472a5`); G2.14 ✅ — markers v2,
 certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
+G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `33652552912`), cp2 `fa6c67e` (run
+`33654084069`), cp3 `4c26a17` (run `33655909259`), the UI checkpoint `dc60b42` (run `33660679423`) —
+every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
+the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.2 cp1 — Piano roll dock v2: the editor laws (2026-09-02)
+
+**Build.** `pianoRollGridLines` (ONE law for the paint and the gate): bar / beat lines from the
+meter in force at the clip (`surface.beatTicks` / `barTicks`), snap subdivisions from the chooser
+painted only while a cell is ≥ `pianoRollGridMinLinePx` (6). `pianoRollKeyName` — every white key
+named from `pianoRollKeyLabelMinRowHeight` (11), C bold at any height. The shared playhead paints
+clip-relative (`surface.playheadTick`) and `followPianoRollPlayhead` pages after it
+(`pianoRollFollowLeadPercent` 10) while the dock shows the roll. `PianoRollNoteSelectPrevious /
+Next` (Left / Right in the PianoRoll context; the arrangement keeps its grid locate) via
+`selectAdjacentPianoRollNote` (start tick, then key; clamps). A double-click on the empty grid adds
+a note one snap step long. Tools: `TimelineTool::Eraser` (click deletes the note / the clip via
+`onClipErased` → select + Delete) and `TimelineTool::Velocity` (`PianoDragMode::VelocityDrag`,
+`pianoRollVelocityDragPixelsPerUnit` 100, one edit on release); the Scissors split a note at the
+click through `splitPianoRollNoteAt` (SplitNote), snapped, Ctrl defeats. View menu 29 → 31,
+MIDI menu 10 → 12. Hook `mainComponentPianoRollGrid`.
+
+**Gates.** `[piano-roll-v2]` (98 assertions): the grid's bar / beat ticks, the key names, Left /
+Right walking three notes and clamping, the double-click add, the Eraser, the Ctrl+Scissors split,
+the Velocity tool's drag + one undo, the page follow at 8× zoom.
+
+**Found while gating.** A range-for over `project().midiClips.front().notes` dangles (the temporary
+Project dies at the end of the range expression) — the gates bind a named snapshot; recorded here
+so no later gate repeats it.
+
+**Not built (recorded → cp2 / later).** Audition on click through the Track instrument (cp2: the
+live-event lane); the roll header's Snap / Quantize / Scale controls of §3.2 (G3.4 / G3.8); the
+Alt = ramp velocity-lane drag (the lane already paints a line between two velocities — E13); a tool
+popup at the mouse (`T`, §4).
 
 ### G3.1 UI checkpoint — the real exe, the drives, the rubric (2026-09-02)
 

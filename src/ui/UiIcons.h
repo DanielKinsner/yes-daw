@@ -326,6 +326,25 @@ inline void drawTimelineToolIcon (juce::Graphics& g,
             path.startNewSubPath (cx + w * 0.10f, cy + h * 0.10f);
             path.lineTo (right - w * 0.08f, bottom - h * 0.08f);
             break;
+
+        case TimelineTool::Eraser:   // G3.2: a slanted block with its rubbing edge
+            path.startNewSubPath (left + w * 0.15f, bottom - h * 0.30f);
+            path.lineTo (right - w * 0.35f, top + h * 0.12f);
+            path.lineTo (right - w * 0.10f, top + h * 0.38f);
+            path.lineTo (left + w * 0.40f, bottom - h * 0.05f);
+            path.closeSubPath();
+            path.startNewSubPath (left + w * 0.30f, cy + h * 0.05f);
+            path.lineTo (cx + w * 0.10f, bottom - h * 0.22f);
+            break;
+
+        case TimelineTool::Velocity:   // G3.2: three rising bars
+            path.startNewSubPath (left + w * 0.18f, bottom - h * 0.10f);
+            path.lineTo (left + w * 0.18f, cy + h * 0.10f);
+            path.startNewSubPath (cx, bottom - h * 0.10f);
+            path.lineTo (cx, cy - h * 0.15f);
+            path.startNewSubPath (right - w * 0.18f, bottom - h * 0.10f);
+            path.lineTo (right - w * 0.18f, top + h * 0.12f);
+            break;
     }
 
     strokeIconPath (g, path, colour, UiTheme::Layout::iconFineStrokeWidth);

@@ -253,6 +253,15 @@ struct MainComponentInstrumentPanel
 [[nodiscard]] MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component);
 void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized);
 void mainComponentInstrumentPanelDragRow (juce::Component& component, int row, double first, double second);   // one drag, two values
+// G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.
+struct MainComponentPianoRollGrid
+{
+    std::vector<std::tuple<std::int64_t, int, int>> lines;
+    std::int64_t playheadTick = -1;
+    std::int64_t viewScrollTicks = 0;
+    std::int64_t visibleTicks = 0;
+};
+[[nodiscard]] MainComponentPianoRollGrid mainComponentPianoRollGrid (juce::Component& component);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.

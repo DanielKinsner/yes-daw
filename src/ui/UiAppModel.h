@@ -2706,6 +2706,60 @@ public:
         return { id, state, true };
     }
 
+    // G3.2: Left / Right in the roll select the adjacent note (Logic): by start tick, then key.
+    [[nodiscard]] UiActionDispatchResult selectAdjacentPianoRollNote (int direction)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteSelect;
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr || midiClip->notes.empty())
+            return { id, { false, "no MIDI clip" }, false };
+        std::vector<const engine::Note*> ordered;
+        ordered.reserve (midiClip->notes.size());
+        for (const engine::Note& note : midiClip->notes)
+            ordered.push_back (&note);
+        std::sort (ordered.begin(), ordered.end(), [] (const engine::Note* a, const engine::Note* b) {
+            return a->startTick != b->startTick ? a->startTick < b->startTick : a->key < b->key;
+        });
+        std::size_t current = ordered.size();
+        for (std::size_t i = 0; i < ordered.size(); ++i)
+            if (ordered[i]->id == selectedMidiNoteId_)
+                current = i;
+        std::size_t next = 0;
+        if (current < ordered.size())
+        {
+            const std::ptrdiff_t moved = static_cast<std::ptrdiff_t> (current) + (direction < 0 ? -1 : 1);
+            next = static_cast<std::size_t> (std::clamp<std::ptrdiff_t> (moved, 0, static_cast<std::ptrdiff_t> (ordered.size()) - 1));
+        }
+        else
+            next = direction < 0 ? ordered.size() - 1 : 0;
+        return selectPianoRollNote (midiClip->id, ordered[next]->id);
+    }
+
+    // G3.2: the Scissors tool splits a note at a tick inside it (one undoable SplitNote).
+    [[nodiscard]] UiActionDispatchResult splitPianoRollNoteAt (engine::EntityId midiClipId,
+                                                               engine::EntityId noteId,
+                                                               engine::Tick tick)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteAdd;
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        const engine::Note* const note = midiClip != nullptr ? findNote (*midiClip, noteId) : nullptr;
+        if (note == nullptr)
+            return { id, { false, "no note to split" }, false };
+        const engine::Tick leftLength = tick - note->startTick;
+        if (leftLength <= 0 || leftLength >= note->lengthTicks)
+            return { id, { false, "split tick outside the note" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::EntityId rightId = allocateSessionEntityId (0xC3u, nextProject);
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::splitNote (midiClipId, noteId, rightId, leftLength)).applied())
+            return { id, { false, "note split refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "note split did not persist" }, false };
+        ++context_.commandDispatchCount;
+        return { id, registry_.stateFor (id, context_), true };
+    }
+
     [[nodiscard]] UiActionDispatchResult duplicateSelectedPianoRollNote (engine::Tick gridStepTicks)
     {
         const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
@@ -7032,6 +7086,8 @@ public:
             case UiActionId::TimelineToolSelectScissors:
             case UiActionId::TimelineToolSelectHand:
             case UiActionId::TimelineToolSelectZoom:
+            case UiActionId::TimelineToolSelectEraser:   // G3.2
+            case UiActionId::TimelineToolSelectVelocity:
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineZoomIn:
@@ -7280,6 +7336,12 @@ public:
 
             case UiActionId::PianoRollNoteSelectAll:
                 return { id, registry_.stateFor (id, context_), selectAllPianoRollNotes() };
+
+            case UiActionId::PianoRollNoteSelectPrevious:   // G3.2
+                return selectAdjacentPianoRollNote (-1);
+
+            case UiActionId::PianoRollNoteSelectNext:
+                return selectAdjacentPianoRollNote (1);
 
             case UiActionId::ViewPianoRoll:
             {
