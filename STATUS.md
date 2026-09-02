@@ -41,12 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** **G2 headless work complete** (G2.1–G2.18 built, gated, certified). The exit's
-**SS-3 "Edit a song"** drive needs the real mouse and keyboard and stays paused (D14) — recorded
-as pending, not done, exactly as SS-2 was. **G3.1 is a plan §8.4 stop-and-ask (trigger 1):** its
-per-Track instrument slot supersedes ADR-0045's Instrument-by-Clip identity law, so
-[ADR-0047](docs/adr/0047-per-track-instrument-slot.md) is filed as *Proposed* and the loop has
-stopped there (D53). Next, once Dan accepts or amends ADR-0047: G3.1 per its Verification section.
+**Now:** G3.1 — Track instrument (ADR-0047 **Accepted** by Dan 2026-09-02, "Accept and go";
+the same "go" lifts the drive pause D14 — SS-1..SS-3 run at the next UI checkpoint / phase exit).
+Checkpoints: cp1 engine (schema v27 instrument slot, per-Track `MidiMerge` + `Instrument` keyed
+by Track, render goldens), cp2 `ParamSpec` + automation target, cp3 shell chooser + instrument
+panel + `[track-instrument]`.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA

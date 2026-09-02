@@ -1,6 +1,6 @@
 # 0047. One persisted instrument per Track, shared by every MIDI Clip on it
 
-- **Status:** Proposed <!-- Proposed | Accepted | Superseded by NNNN | Deprecated -->
+- **Status:** Accepted (Dan, 2026-09-02: "Accept and go") <!-- Proposed | Accepted | Superseded by NNNN | Deprecated -->
 - **Date:** 2026-09-02
 - **Deciders:** Dan (the Real-DAW arc's G3.1 item), build agent (proposer)
 - **Related:** ADR-0045 (MIDI plays through its owning Track's strip — **superseded in part** by
@@ -35,7 +35,7 @@ What is hard to reverse: the **node identity law** (what `Instrument` is keyed b
 projection gate, the graph-diff / no-rebuild adoption path, and the automation-lane targets key
 on; and the **schema** gains a per-Track instrument row that every later instrument kind extends.
 Changing an Accepted ADR's law is a plan §8.4 stop-and-ask trigger, hence this ADR is
-**Proposed** and the build agent stops at G3.1 until it is Accepted.
+**Proposed** and the build agent stopped at G3.1 until it was Accepted (2026-09-02).
 
 ## Options considered
 

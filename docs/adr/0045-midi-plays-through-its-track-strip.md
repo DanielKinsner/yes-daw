@@ -1,6 +1,6 @@
 # 0045. MIDI plays through its owning Track's strip
 
-- **Status:** Accepted
+- **Status:** Accepted — superseded in part by ADR-0047 (the `Instrument` node is keyed by Track, not Clip)
 - **Date:** 2026-08-14
 - **Deciders:** Dan (standing usable-DAW directive), build agent
 - **Related:** ADR-0026 (built-in instrument-track auto-wire — superseded in part by this ADR),
