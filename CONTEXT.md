@@ -446,6 +446,91 @@ mouse/key gestures against hit-tested Components, and then verifies Project, sel
 piano-roll, undo/redo, accessibility, frame-time, and save/reopen state without human judgment.
 _Avoid_: manual QA script, visual spot-check, model-only harness, back-channel command path
 
+**Arrange window**:
+The whole editing view of the YES DAW app: track headers on the left, ruler and clip lanes in the
+centre, the inspector on the right, and the editor dock below. The Timeline canvas is the drawing
+surface inside it, not the window itself (ADR-0046).
+_Avoid_: timeline (when you mean the whole view), main view
+
+**Editor dock**:
+The resizable bottom panel of the Arrange window that hosts one tabbed editor at a time: Mixer,
+Piano roll, or an automation editor. Toggled per editor with the reference-DAW keys (ADR-0046).
+_Avoid_: modal view switch, bottom bar
+
+**Focus context**:
+Which editor currently receives non-global keys: Arrange, Piano roll, or Mixer. A chord may map to
+different actions in different contexts; transport chords work in every context (ADR-0046).
+_Avoid_: keyboard focus (the JUCE widget notion), active panel
+
+**Command router**:
+The single control-thread entry that turns a key chord or a menu/context/toolbar activation into a
+UI action for the current Focus context. Widgets never own keys; only an active text field does.
+_Avoid_: per-widget shortcut, key listener on a button
+
+**Object selection**:
+The set of selected Clips, Notes, or Tracks that editing verbs act on. Exactly one object kind is
+current at a time, decided by the Focus context.
+_Avoid_: highlighted items, selection array
+
+**Time selection**:
+A half-open tick range on one or more Tracks, made on the ruler or across lanes, that verbs such as
+split, cut, delete, loop-from-selection, and paste-to act on. It coexists with the Object selection
+(ADR-0046).
+_Avoid_: range (unqualified), edit selection (a Pro Tools word), marquee (the gesture, not the state)
+
+**Edit mode**:
+The rule for what happens to neighbouring Clips when one is moved, trimmed, or deleted: *Overlap*
+(default — neighbours untouched), *No overlap* (the moved Clip trims what it covers), *Shuffle*
+(neighbours close up or move aside; Pro Tools "shuffle", Logic "shuffle L/R").
+_Avoid_: ripple (Reaper/video word — use Shuffle), drag mode (Logic's menu label; our term is Edit mode)
+
+**Smart tool**:
+The pointer tool whose action depends on where in a Clip it hovers: body moves, edges trim, top
+corners fade, the lower band makes a Time selection, and the cursor shape announces each zone before
+the press (Pro Tools smart tool; Logic pointer zones).
+_Avoid_: modal tool switching for daily edits
+
+**Nudge value**:
+The user-chosen distance a nudge key moves the selection: a grid unit, a bar, a beat, milliseconds,
+samples, or frames. Shown in the toolbar; changeable without a dialog.
+_Avoid_: nudge amount hard-wired to the snap grid
+
+**Snap mode**:
+How a dragged position lands: *Grid* (absolute grid lines), *Relative* (keeps the object's offset
+from the grid), *Events* (Clip edges, Markers, the playhead), or *Off*. A modifier held during a drag
+temporarily inverts snapping.
+_Avoid_: snap on/off as the only choice
+
+**Session script**:
+A numbered list of user steps with observable outcomes ("press Space; the playhead moves") that a
+phase of the shell plan must pass. Written in plain words so Dan can run it too; executed by the
+Session drive (ADR-0046).
+_Avoid_: test plan (too broad), dogfood notes (those are findings, not the script)
+
+**Session drive**:
+The one-command Windows script that launches the real built `YesDaw.exe`, injects real mouse and
+key input, screenshots the window, reads the State probe, and asserts a Session script exit 0/1.
+A mechanical gate class alongside ctest (ADR-0046).
+_Avoid_: computer-use permission flow, manual clicking, headless harness (that is the UI input harness)
+
+**State probe**:
+A debug-only JSON snapshot of shell state (transport, selections, Focus context, view state, last
+action, frame times, callback-registration count) the app writes each UI tick when
+`YESDAW_STATE_PROBE` names a file. Read by the Session drive; never present in a normal launch.
+_Avoid_: log scraping, pixel probing for state
+
+**Feel budget**:
+A numeric limit on latency or work the shell may spend per action or per frame (action-to-paint,
+paint-per-frame, engine rebuilds per edit script, audio-callback removals). Gated; only ever
+tightened (ADR-0046).
+_Avoid_: "feels fast", subjective smoothness
+
+**Reference-DAW rule**:
+Any UI question is settled by what Logic Pro does, then Pro Tools, then Cubase/Reaper consensus,
+with the precedent written into the item. No invented chords or gestures where a precedent exists
+(ADR-0046).
+_Avoid_: house style, agent taste
+
 ### Product & AI
 
 **Stem**:
