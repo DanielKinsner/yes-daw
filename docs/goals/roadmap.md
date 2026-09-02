@@ -5,6 +5,13 @@
 > Full detail, architecture, and rationale live in the build plan:
 > [`docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md`](../plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md).
 
+> **2026-09-01 — shell direction change.** Everything user-facing (arrangement editing, MIDI,
+> mixer UI, project lifecycle, polish, and the order recording comes in) is now governed by
+> [ADR-0046](../adr/0046-feel-first-shell-arc.md) and the
+> [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). H16/H17's shell scope is
+> absorbed by it; H18 (plugins) opens inside it at G4.8. The engine horizons and their exit
+> criteria below stay as recorded.
+
 Build order: **playable spine first**, then widen. **Editing-first** (recording is later). MIDI is
 co-equal in the *model* from H1, with its UI sequenced later. Hard rule (all three research reports):
 no mixer-UI, MIDI-editor, or plugin-UI code until the project format and graph+PDC model are frozen

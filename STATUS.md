@@ -8,6 +8,45 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-01 the Real-DAW arc (G0–G8) — plan written, waiting for Dan's "go"
+
+**What happened.** Dan used the app for real on 2026-09-01 and reported: laggy, things not working
+or hard to understand, Space-to-play "worked half the time depending on focus", no visible cut
+tools or familiar hotkeys, "obscure details instead of obvious things", UI "just not there". He
+asked for a turnaround plan: read what's there, know what a DAW is, make them meet — editing and
+MIDI first, recording later, rules that keep agents from wandering without him.
+
+**Reproduced mechanically the same evening** (real exe, injected Win32 input, screenshots): Space
+after clicking the timeline did nothing twice; Space after clicking a toolbar button started the
+transport. Causes in code: Space is Play-only (Stop is `K`), no widget declines keyboard focus,
+every action removes and re-adds the audio callback, whole-window 30 Hz repaint, every non-scalar
+edit rebuilds the engine, invented chords, menus without shortcuts, zero context menus. Two shipped
+lies found on the way: the Time Stretch action is a trim (node exists, unwired) and the RT clip fade
+is linear while the UI law is equal-power.
+
+**Decided and written (this session):**
+- [ADR-0046 — the feel-first shell arc](docs/adr/0046-feel-first-shell-arc.md): reference-DAW
+  rule, no invented chords, focus contexts, command router, everything reachable by mouse, nothing
+  blind, feel budgets as gates, selection model, density from the reference, **Session drive** as a
+  new mechanical gate class on the real exe, agent visual judgment at every UI checkpoint, editing
+  and MIDI before recording, anti-wander (no audit carves; parking lot).
+- [The Real-DAW plan (G0–G8)](docs/plans/2026-09-01-real-daw-ground-up-plan.md): verdict, laws,
+  target wireframes, keymap v2 decision table (Logic first, Pro Tools second), the code moves
+  (carve `MainComponent`, layered rendering, three engine edit lanes), phases with per-item
+  story/precedent/gate/see-it, Session scripts SS-1…SS-7, feel budgets B1–B6, the visual rubric,
+  process rules, where every R-item went, risks.
+- `CONTEXT.md` gained the arc's vocabulary; `docs/goals/parking-lot.md` opened; the roadmap points
+  at the plan for everything shell-side.
+
+**The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
+are mapped into phases by the plan §9. Do not work R-items from that document any more.
+
+**Now:** checkpoint handed back to Dan. Nothing built yet.
+**Next (on "go"):** G0.1 — State probe + `tools/session-drive.ps1` + `ss1-first-minute` authored
+red; then G0.2 Command router (Space toggles; widgets decline focus). The two agent maps that
+grounded the plan (shell architecture; engine/MIDI/FX capability) are summarized in the plan §1
+and §5; re-derive from code if in doubt — the drift rule applies.
+
 ## 2026-08-25 reality run (carved — ready for the loop)
 
 **Dan's call (2026-08-25):** he has no time to dogfood-test — the pre-authorized fallback
